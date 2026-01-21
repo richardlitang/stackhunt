@@ -1,0 +1,113 @@
+---
+/**
+ * Tools Index - /tools
+ * Browse all tools
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ToolCard from '@/components/ToolCard.astro';
+import { supabase, getCategories } from '@/lib/supabase';
+import { getCanonicalUrl } from '@/lib/utils';
+
+// Get filter from URL
+const url = new URL(Astro.request.url);
+const categoryFilter = url.searchParams.get('category');
+const sortBy = url.searchParams.get('sort') || 'score';
+
+// Fetch all tools
+let query = supabase
+  .from('tools')
+  .select(`
+    id, name, slug, logo_url, short_description, avg_score, pricing_type,
+    category:categories(name, slug)
+  `);
+
+if (categoryFilter) {
+  query = query.eq('category.slug', categoryFilter);
+}
+
+if (sortBy === 'score') {
+  query = query.order('avg_score', { ascending: false });
+} else if (sortBy === 'name') {
+  query = query.order('name', { ascending: true });
+} else if (sortBy === 'newest') {
+  query = query.order('created_at', { ascending: false });
+}
+
+const { data: tools } = await query.limit(100);
+const categories = await getCategories();
+
+const meta = {
+  title: 'All Software Tools - Browse Our Directory | StackHunt',
+  description: 'Browse our complete directory of software tools. Filter by category, compare features, and find the best tools with AI-powered analysis.',
+  canonical: getCanonicalUrl('/tools'),
+  ogType: 'website' as const,
+};
+---
+
+<BaseLayout meta={meta}>
+  <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-slate-900">All Tools</h1>
+      <p class="mt-2 text-slate-600">
+        Browse {tools?.length || 0} tools in our directory
+      </p>
+    </header>
+
+    <!-- Filters -->
+    <div class="mb-8 flex flex-wrap items-center gap-4">
+      <!-- Category Filter -->
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-slate-700">Category:</label>
+        <select
+          id="category-filter"
+          class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+          onchange="window.location.href = this.value ? `?category=${this.value}&sort=${new URLSearchParams(window.location.search).get('sort') || 'score'}` : `?sort=${new URLSearchParams(window.location.search).get('sort') || 'score'}`"
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option value={cat.slug} selected={categoryFilter === cat.slug}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <!-- Sort -->
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-slate-700">Sort by:</label>
+        <select
+          id="sort-filter"
+          class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+          onchange="window.location.href = `?category=${new URLSearchParams(window.location.search).get('category') || ''}&sort=${this.value}`"
+        >
+          <option value="score" selected={sortBy === 'score'}>Highest Score</option>
+          <option value="name" selected={sortBy === 'name'}>Name (A-Z)</option>
+          <option value="newest" selected={sortBy === 'newest'}>Newest</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tools Grid -->
+    {tools && tools.length > 0 ? (
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {tools.map((tool) => (
+          <ToolCard tool={tool} category={tool.category} />
+        ))}
+      </div>
+    ) : (
+      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-slate-900">No tools found</h3>
+        <p class="mt-2 text-sm text-slate-500">
+          {categoryFilter
+            ? 'No tools in this category. Try another filter.'
+            : 'Run the Hunter Agent to populate the directory!'}
+        </p>
+      </div>
+    )}
+  </div>
+</BaseLayout>

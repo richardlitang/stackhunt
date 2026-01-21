@@ -1,0 +1,122 @@
+---
+/**
+ * Admin Login Page
+ * Simple password-based authentication for admin routes
+ */
+
+// Get redirect URL from query params
+const redirectUrl = Astro.url.searchParams.get('redirect') || '/admin';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Admin Login | StackHunt</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
+      <div class="bg-white rounded-xl shadow-lg p-8">
+        <!-- Logo -->
+        <div class="flex justify-center mb-6">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900">
+            <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <h1 class="text-xl font-bold text-slate-900 text-center mb-2">Admin Login</h1>
+        <p class="text-sm text-slate-500 text-center mb-6">Enter the admin password to continue</p>
+
+        <form id="login-form" class="space-y-4">
+          <input type="hidden" name="redirect" value={redirectUrl} />
+
+          <div>
+            <label for="password" class="block text-sm font-medium text-slate-700 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              autofocus
+              class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:border-slate-500 focus:ring-slate-500"
+              placeholder="Enter admin password"
+            />
+          </div>
+
+          <div id="error-message" class="hidden text-sm text-red-600 bg-red-50 rounded-lg p-3"></div>
+
+          <button
+            type="submit"
+            id="submit-btn"
+            class="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition disabled:opacity-50"
+          >
+            Sign In
+          </button>
+        </form>
+
+        <p class="mt-6 text-xs text-center text-slate-400">
+          Set ADMIN_PASSWORD in your environment variables
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('login-form') as HTMLFormElement;
+      const errorEl = document.getElementById('error-message') as HTMLElement;
+      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorEl.classList.add('hidden');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in...';
+
+        const formData = new FormData(form);
+        const password = formData.get('password') as string;
+        const redirect = formData.get('redirect') as string;
+
+        try {
+          const response = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            window.location.href = redirect || '/admin';
+          } else {
+            errorEl.textContent = result.error || 'Invalid password';
+            errorEl.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign In';
+          }
+        } catch (err) {
+          errorEl.textContent = 'Network error. Please try again.';
+          errorEl.classList.remove('hidden');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign In';
+        }
+      });
+    </script>
+  </body>
+</html>

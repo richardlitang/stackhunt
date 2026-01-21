@@ -1,0 +1,52 @@
+---
+import type { AffiliateOffer } from '@/types/database';
+
+interface Props {
+  offer: Pick<AffiliateOffer, 'url' | 'cta_text' | 'is_affiliate'>;
+  toolName: string;
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'primary' | 'secondary';
+}
+
+const { offer, toolName, size = 'md', variant = 'primary' } = Astro.props;
+
+const sizeClasses = {
+  sm: 'px-4 py-2 text-sm',
+  md: 'px-6 py-3 text-base',
+  lg: 'px-8 py-4 text-lg',
+};
+
+const variantClasses = {
+  primary: 'bg-hunt-500 text-white hover:bg-hunt-600 shadow-lg shadow-hunt-500/25',
+  secondary: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+};
+
+// Build rel attribute for affiliate compliance
+const relAttr = offer.is_affiliate
+  ? 'nofollow sponsored noopener'
+  : 'noopener';
+---
+
+<a
+  href={offer.url}
+  target="_blank"
+  rel={relAttr}
+  class:list={[
+    'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition',
+    sizeClasses[size],
+    variantClasses[variant],
+  ]}
+  data-analytics={`cta-click-${toolName.toLowerCase().replace(/\s+/g, '-')}`}
+>
+  {offer.cta_text}
+
+  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+  </svg>
+</a>
+
+{offer.is_affiliate && (
+  <p class="mt-2 text-xs text-slate-400">
+    * Affiliate link - we may earn a commission
+  </p>
+)}

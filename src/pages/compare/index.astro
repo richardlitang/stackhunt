@@ -1,0 +1,169 @@
+---
+/**
+ * Compare Index - /compare
+ * Lists popular tool comparisons
+ * Auto-generates comparison pairs from tools in same category
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { supabase } from '@/lib/supabase';
+import { getCanonicalUrl } from '@/lib/utils';
+
+// Fetch top tools grouped by category
+const { data: tools } = await supabase
+  .from('tools')
+  .select(`
+    id, name, slug, logo_url, avg_score, pricing_type,
+    category:categories(id, name, slug)
+  `)
+  .gt('avg_score', 0)
+  .order('avg_score', { ascending: false })
+  .limit(100);
+
+// Group tools by category
+const byCategory: Record<string, typeof tools> = {};
+for (const tool of tools || []) {
+  const catName = tool.category?.name || 'Other';
+  if (!byCategory[catName]) byCategory[catName] = [];
+  byCategory[catName].push(tool);
+}
+
+// Generate comparison pairs (top tools in each category)
+interface ComparisonPair {
+  toolA: typeof tools[0];
+  toolB: typeof tools[0];
+  category: string;
+}
+
+const comparisons: ComparisonPair[] = [];
+
+for (const [category, categoryTools] of Object.entries(byCategory)) {
+  // Only categories with 2+ tools
+  if (categoryTools.length < 2) continue;
+
+  // Take top 4 tools, create pairs
+  const topTools = categoryTools.slice(0, 4);
+  for (let i = 0; i < topTools.length; i++) {
+    for (let j = i + 1; j < topTools.length; j++) {
+      comparisons.push({
+        toolA: topTools[i],
+        toolB: topTools[j],
+        category,
+      });
+    }
+  }
+}
+
+// Limit to 20 comparisons for the index
+const displayComparisons = comparisons.slice(0, 20);
+
+const meta = {
+  title: 'Compare Software Tools Side by Side | StackHunt',
+  description: 'Compare popular software tools head-to-head. See features, pricing, pros & cons side by side to make the best choice.',
+  canonical: getCanonicalUrl('/compare'),
+  ogType: 'website' as const,
+};
+---
+
+<BaseLayout meta={meta}>
+  <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <header class="text-center">
+      <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">
+        Compare Tools
+      </h1>
+      <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+        Side-by-side comparisons to help you choose the right software.
+        See features, pricing, and honest pros & cons.
+      </p>
+    </header>
+
+    <!-- Search/Generator -->
+    <div class="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-6">
+      <h2 class="text-lg font-semibold text-slate-900">Create a Comparison</h2>
+      <p class="mt-1 text-sm text-slate-600">
+        Enter two tool slugs to compare (e.g., <code class="rounded bg-slate-200 px-1">slack</code> vs <code class="rounded bg-slate-200 px-1">discord</code>)
+      </p>
+      <form
+        class="mt-4 flex gap-3"
+        onsubmit="event.preventDefault(); const a = this.toolA.value.toLowerCase().replace(/\\s+/g, '-'); const b = this.toolB.value.toLowerCase().replace(/\\s+/g, '-'); if(a && b) window.location.href = `/compare/${a}-vs-${b}`;"
+      >
+        <input
+          type="text"
+          name="toolA"
+          placeholder="First tool..."
+          class="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+        />
+        <span class="flex items-center text-slate-400 font-medium">vs</span>
+        <input
+          type="text"
+          name="toolB"
+          placeholder="Second tool..."
+          class="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+        />
+        <button
+          type="submit"
+          class="rounded-lg bg-hunt-500 px-6 py-2 text-sm font-medium text-white hover:bg-hunt-600"
+        >
+          Compare
+        </button>
+      </form>
+    </div>
+
+    <!-- Popular Comparisons -->
+    <section class="mt-12">
+      <h2 class="mb-6 text-xl font-semibold text-slate-900">Popular Comparisons</h2>
+
+      {displayComparisons.length > 0 ? (
+        <div class="grid gap-4 sm:grid-cols-2">
+          {displayComparisons.map(({ toolA, toolB, category }) => (
+            <a
+              href={`/compare/${toolA.slug}-vs-${toolB.slug}`}
+              class="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-hunt-200 hover:shadow-lg"
+            >
+              <!-- Tool A -->
+              <div class="flex items-center gap-2">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                  {toolA.logo_url ? (
+                    <img src={toolA.logo_url} alt="" class="h-full w-full object-contain p-1" />
+                  ) : (
+                    <span class="font-bold text-slate-400">{toolA.name.charAt(0)}</span>
+                  )}
+                </div>
+                <span class="font-medium text-slate-900">{toolA.name}</span>
+              </div>
+
+              <!-- VS -->
+              <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 group-hover:bg-hunt-100 group-hover:text-hunt-600">
+                vs
+              </span>
+
+              <!-- Tool B -->
+              <div class="flex items-center gap-2">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                  {toolB.logo_url ? (
+                    <img src={toolB.logo_url} alt="" class="h-full w-full object-contain p-1" />
+                  ) : (
+                    <span class="font-bold text-slate-400">{toolB.name.charAt(0)}</span>
+                  )}
+                </div>
+                <span class="font-medium text-slate-900">{toolB.name}</span>
+              </div>
+
+              <!-- Arrow -->
+              <svg class="ml-auto h-5 w-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-hunt-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+          <p class="text-slate-500">
+            No comparisons available yet. Add some tools to see suggestions!
+          </p>
+        </div>
+      )}
+    </section>
+  </div>
+</BaseLayout>

@@ -1,0 +1,660 @@
+---
+/**
+ * Admin Review Queue - /admin/review
+ * List all drafts awaiting review with bulk actions, filters, and pagination
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAdminClient } from '@/lib/supabase';
+
+const admin = getAdminClient();
+
+// Get filter from URL
+const url = new URL(Astro.request.url);
+const statusFilter = url.searchParams.get('status') || 'pending';
+const searchQuery = url.searchParams.get('q') || '';
+const page = parseInt(url.searchParams.get('page') || '1');
+const perPage = 10;
+
+// Get counts for tabs first
+const [{ count: pendingCount }, { count: publishedCount }, { count: rejectedCount }] = await Promise.all([
+  admin.from('reviews').select('*', { count: 'exact', head: true }).in('status', ['draft', 'review']),
+  admin.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+  admin.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+]);
+
+// Build query with pagination
+let query = admin
+  .from('reviews')
+  .select(`
+    id,
+    score,
+    summary_markdown,
+    pros,
+    cons,
+    sentiment_tags,
+    created_at,
+    status,
+    sources,
+    tool:tools(id, name, slug, logo_url, short_description, pricing_type, category:categories(name, slug)),
+    context:contexts(id, title, slug)
+  `, { count: 'exact' })
+  .order('created_at', { ascending: false })
+  .range((page - 1) * perPage, page * perPage - 1);
+
+// Apply status filter
+if (statusFilter === 'pending') {
+  query = query.in('status', ['draft', 'review']);
+} else if (statusFilter === 'published') {
+  query = query.eq('status', 'published');
+} else if (statusFilter === 'rejected') {
+  query = query.eq('status', 'rejected');
+}
+
+const { data: drafts, count: totalCount } = await query;
+
+// Client-side search filtering
+let filteredDrafts = drafts || [];
+if (searchQuery) {
+  const q = searchQuery.toLowerCase();
+  filteredDrafts = filteredDrafts.filter((d) => {
+    const tool = d.tool as { name: string } | null;
+    const context = d.context as { title: string } | null;
+    return tool?.name?.toLowerCase().includes(q) || context?.title?.toLowerCase().includes(q);
+  });
+}
+
+// Pagination info
+const totalPages = Math.ceil((totalCount || 0) / perPage);
+const hasNextPage = page < totalPages;
+const hasPrevPage = page > 1;
+
+// Generate page numbers for pagination
+const pageNumbers: number[] = [];
+for (let i = 0; i < Math.min(5, totalPages); i++) {
+  let pageNum;
+  if (totalPages <= 5) {
+    pageNum = i + 1;
+  } else if (page <= 3) {
+    pageNum = i + 1;
+  } else if (page >= totalPages - 2) {
+    pageNum = totalPages - 4 + i;
+  } else {
+    pageNum = page - 2 + i;
+  }
+  pageNumbers.push(pageNum);
+}
+---
+
+<AdminLayout title="Review Queue">
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Review Queue</h1>
+        <p class="mt-1 text-sm text-slate-500">
+          Review, edit, and publish AI-generated content
+        </p>
+      </div>
+
+      {filteredDrafts.length > 0 && statusFilter === 'pending' && (
+        <div class="flex items-center gap-2">
+          <a
+            href="/admin/review/speed"
+            class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Speed Review
+          </a>
+          <a
+            href="/admin/review/mode"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+          >
+            Classic Mode
+          </a>
+        </div>
+      )}
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <!-- Status Tabs -->
+      <div class="flex gap-1 rounded-lg bg-slate-100 p-1">
+        <a
+          href="/admin/review?status=pending"
+          class={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+            statusFilter === 'pending'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Pending
+          {(pendingCount || 0) > 0 && (
+            <span class="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+              {pendingCount}
+            </span>
+          )}
+        </a>
+        <a
+          href="/admin/review?status=published"
+          class={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+            statusFilter === 'published'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Published
+        </a>
+        <a
+          href="/admin/review?status=rejected"
+          class={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+            statusFilter === 'rejected'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Rejected
+        </a>
+      </div>
+
+      <!-- Search -->
+      <form method="GET" class="flex items-center gap-2">
+        <input type="hidden" name="status" value={statusFilter} />
+        <div class="relative">
+          <svg
+            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="search"
+            name="q"
+            value={searchQuery}
+            placeholder="Search tools..."
+            class="w-64 rounded-lg border border-slate-200 py-2 pl-9 pr-4 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+          />
+        </div>
+        {searchQuery && (
+          <a
+            href={`/admin/review?status=${statusFilter}`}
+            class="text-sm text-slate-500 hover:text-slate-700"
+          >
+            Clear
+          </a>
+        )}
+      </form>
+    </div>
+
+    <!-- Bulk Actions Bar (hidden by default, shown when items selected) -->
+    <div
+      id="bulk-actions"
+      class="hidden sticky top-14 z-40 -mx-4 sm:-mx-6 lg:-mx-8 bg-slate-900 px-4 sm:px-6 lg:px-8 py-3 shadow-lg"
+    >
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span id="selected-count" class="text-sm font-medium text-white">0 selected</span>
+          <button
+            type="button"
+            id="select-all-btn"
+            class="text-sm text-slate-300 hover:text-white"
+          >
+            Select all
+          </button>
+          <button
+            type="button"
+            id="clear-selection-btn"
+            class="text-sm text-slate-300 hover:text-white"
+          >
+            Clear
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            id="bulk-publish-btn"
+            class="rounded-lg bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+          >
+            Publish Selected
+          </button>
+          <button
+            type="button"
+            id="bulk-reject-btn"
+            class="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+          >
+            Reject Selected
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drafts List -->
+    {filteredDrafts && filteredDrafts.length > 0 ? (
+      <div class="space-y-3" id="drafts-list">
+        {filteredDrafts.map((draft, index) => {
+          const tool = draft.tool as { id: string; name: string; slug: string; logo_url: string | null; short_description: string | null };
+          const context = draft.context as { id: string; title: string; slug: string } | null;
+
+          const category = (tool as any)?.category as { name: string; slug: string } | null;
+          const pricingType = (tool as any)?.pricing_type as string | null;
+          const summaryPreview = (draft.summary_markdown as string || '').slice(0, 150);
+          const sourceCount = Array.isArray(draft.sources) ? draft.sources.length : 0;
+
+          return (
+            <div
+              class="draft-card group rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm"
+              data-id={draft.id}
+              data-index={index}
+            >
+              <div class="flex items-start gap-4">
+                {/* Checkbox */}
+                {statusFilter === 'pending' && (
+                  <label class="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      class="draft-checkbox h-5 w-5 rounded border-slate-300 text-hunt-500 focus:ring-hunt-500"
+                      data-id={draft.id}
+                    />
+                  </label>
+                )}
+
+                {/* Logo */}
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                  {tool?.logo_url ? (
+                    <img src={tool.logo_url} alt="" class="h-full w-full object-contain p-1.5" />
+                  ) : (
+                    <span class="text-lg font-bold text-slate-300">
+                      {tool?.name?.charAt(0) || '?'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-4">
+                    <div>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="font-semibold text-slate-900">{tool?.name || 'Unknown Tool'}</h3>
+                        <span class={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          (draft.score || 0) >= 70 ? 'bg-green-100 text-green-700' :
+                          (draft.score || 0) >= 50 ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {draft.score}
+                        </span>
+                        {pricingType && (
+                          <span class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
+                            {pricingType}
+                          </span>
+                        )}
+                        {category && (
+                          <span class="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-600">
+                            {category.name}
+                          </span>
+                        )}
+                      </div>
+                      {context && (
+                        <a href={`/best/${context.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700 hover:underline">
+                          {context.title}
+                        </a>
+                      )}
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <span class={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        draft.status === 'published' ? 'bg-green-100 text-green-700' :
+                        draft.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                        draft.status === 'review' ? 'bg-amber-100 text-amber-700' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {draft.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Summary Preview */}
+                  {summaryPreview && (
+                    <p class="mt-2 text-sm text-slate-600 line-clamp-2">
+                      {summaryPreview}{summaryPreview.length >= 150 ? '...' : ''}
+                    </p>
+                  )}
+
+                  {/* Quick Preview - Pros/Cons */}
+                  <div class="mt-3 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <h4 class="text-xs font-medium uppercase text-slate-400">Pros</h4>
+                      <ul class="mt-1 space-y-0.5">
+                        {(draft.pros as string[] || []).slice(0, 2).map((pro) => (
+                          <li class="flex items-start gap-1 text-sm text-slate-600">
+                            <span class="text-green-500 shrink-0">+</span>
+                            <span class="line-clamp-1">{pro}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-medium uppercase text-slate-400">Cons</h4>
+                      <ul class="mt-1 space-y-0.5">
+                        {(draft.cons as string[] || []).slice(0, 2).map((con) => (
+                          <li class="flex items-start gap-1 text-sm text-slate-600">
+                            <span class="text-red-500 shrink-0">-</span>
+                            <span class="line-clamp-1">{con}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Sentiment Tags */}
+                  {(draft.sentiment_tags as string[] || []).length > 0 && (
+                    <div class="mt-2 flex flex-wrap gap-1">
+                      {(draft.sentiment_tags as string[]).slice(0, 5).map((tag) => (
+                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                          {tag}
+                        </span>
+                      ))}
+                      {(draft.sentiment_tags as string[]).length > 5 && (
+                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                          +{(draft.sentiment_tags as string[]).length - 5} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div class="mt-4 flex items-center gap-3 border-t border-slate-100 pt-3">
+                    <a
+                      href={`/admin/review/${draft.id}`}
+                      class="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+                    >
+                      Edit
+                    </a>
+                    {statusFilter === 'pending' && (
+                      <>
+                        <button
+                          type="button"
+                          class="quick-publish-btn rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100"
+                          data-id={draft.id}
+                        >
+                          Publish
+                        </button>
+                        <button
+                          type="button"
+                          class="quick-reject-btn rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100"
+                          data-id={draft.id}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    <div class="ml-auto flex items-center gap-3 text-xs text-slate-400">
+                      {sourceCount > 0 && (
+                        <span class="flex items-center gap-1">
+                          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                          {sourceCount} sources
+                        </span>
+                      )}
+                      <span>{new Date(draft.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-slate-900">
+          {statusFilter === 'pending' ? 'All caught up!' : `No ${statusFilter} reviews`}
+        </h3>
+        <p class="mt-2 text-sm text-slate-500">
+          {statusFilter === 'pending'
+            ? 'No drafts awaiting review. Create some content!'
+            : `No reviews with status "${statusFilter}" found.`}
+        </p>
+        {statusFilter === 'pending' && (
+          <a
+            href="/admin/create"
+            class="mt-4 inline-flex items-center gap-2 rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-600"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Create Content
+          </a>
+        )}
+      </div>
+    )}
+
+    {/* Pagination */}
+    {totalPages > 1 && (
+      <div class="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 rounded-xl mt-6">
+        <div class="flex flex-1 justify-between sm:hidden">
+          {hasPrevPage ? (
+            <a
+              href={`/admin/review?status=${statusFilter}&page=${page - 1}${searchQuery ? `&q=${searchQuery}` : ''}`}
+              class="relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Previous
+            </a>
+          ) : (
+            <span class="relative inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-400 cursor-not-allowed">
+              Previous
+            </span>
+          )}
+          {hasNextPage ? (
+            <a
+              href={`/admin/review?status=${statusFilter}&page=${page + 1}${searchQuery ? `&q=${searchQuery}` : ''}`}
+              class="relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Next
+            </a>
+          ) : (
+            <span class="relative ml-3 inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-400 cursor-not-allowed">
+              Next
+            </span>
+          )}
+        </div>
+        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-slate-700">
+              Showing <span class="font-medium">{(page - 1) * perPage + 1}</span> to{' '}
+              <span class="font-medium">{Math.min(page * perPage, totalCount || 0)}</span> of{' '}
+              <span class="font-medium">{totalCount}</span> results
+            </p>
+          </div>
+          <div>
+            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              {hasPrevPage ? (
+                <a
+                  href={`/admin/review?status=${statusFilter}&page=${page - 1}${searchQuery ? `&q=${searchQuery}` : ''}`}
+                  class="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0"
+                >
+                  <span class="sr-only">Previous</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                  </svg>
+                </a>
+              ) : (
+                <span class="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-300 ring-1 ring-inset ring-slate-300 cursor-not-allowed">
+                  <span class="sr-only">Previous</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              )}
+
+              {/* Page numbers */}
+              {pageNumbers.map((pageNum) => (
+                <a
+                  href={`/admin/review?status=${statusFilter}&page=${pageNum}${searchQuery ? `&q=${searchQuery}` : ''}`}
+                  class={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                    pageNum === page
+                      ? 'z-10 bg-hunt-500 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hunt-500'
+                      : 'text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0'
+                  }`}
+                >
+                  {pageNum}
+                </a>
+              ))}
+
+              {hasNextPage ? (
+                <a
+                  href={`/admin/review?status=${statusFilter}&page=${page + 1}${searchQuery ? `&q=${searchQuery}` : ''}`}
+                  class="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0"
+                >
+                  <span class="sr-only">Next</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                  </svg>
+                </a>
+              ) : (
+                <span class="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-300 ring-1 ring-inset ring-slate-300 cursor-not-allowed">
+                  <span class="sr-only">Next</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              )}
+            </nav>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <script is:inline>
+    const bulkActions = document.getElementById('bulk-actions');
+    const selectedCount = document.getElementById('selected-count');
+    const checkboxes = document.querySelectorAll('.draft-checkbox');
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const clearSelectionBtn = document.getElementById('clear-selection-btn');
+    const bulkPublishBtn = document.getElementById('bulk-publish-btn');
+    const bulkRejectBtn = document.getElementById('bulk-reject-btn');
+
+    function updateBulkActions() {
+      const selected = document.querySelectorAll('.draft-checkbox:checked');
+      if (selected.length > 0) {
+        bulkActions?.classList.remove('hidden');
+        if (selectedCount) {
+          selectedCount.textContent = `${selected.length} selected`;
+        }
+      } else {
+        bulkActions?.classList.add('hidden');
+      }
+    }
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', updateBulkActions);
+    });
+
+    selectAllBtn?.addEventListener('click', () => {
+      checkboxes.forEach(cb => { cb.checked = true; });
+      updateBulkActions();
+    });
+
+    clearSelectionBtn?.addEventListener('click', () => {
+      checkboxes.forEach(cb => { cb.checked = false; });
+      updateBulkActions();
+    });
+
+    // Bulk publish
+    bulkPublishBtn?.addEventListener('click', () => {
+      const selected = Array.from(document.querySelectorAll('.draft-checkbox:checked'))
+        .map(cb => cb.dataset.id);
+
+      if (selected.length === 0) return;
+
+      window.confirm2(
+        'Publish Reviews',
+        `Are you sure you want to publish ${selected.length} review${selected.length > 1 ? 's' : ''}?`,
+        async () => {
+          let success = 0;
+          for (const id of selected) {
+            const res = await fetch(`/api/admin/review/${id}/publish`, { method: 'POST' });
+            if (res.ok) success++;
+          }
+          window.toast?.success(`Published ${success} review${success > 1 ? 's' : ''}`);
+          setTimeout(() => window.location.reload(), 500);
+        },
+        'Publish All',
+        'bg-green-600 hover:bg-green-700'
+      );
+    });
+
+    // Bulk reject
+    bulkRejectBtn?.addEventListener('click', () => {
+      const selected = Array.from(document.querySelectorAll('.draft-checkbox:checked'))
+        .map(cb => cb.dataset.id);
+
+      if (selected.length === 0) return;
+
+      window.confirm2(
+        'Reject Reviews',
+        `Are you sure you want to reject ${selected.length} review${selected.length > 1 ? 's' : ''}?`,
+        async () => {
+          let success = 0;
+          for (const id of selected) {
+            const res = await fetch(`/api/admin/review/${id}/reject`, { method: 'POST' });
+            if (res.ok) success++;
+          }
+          window.toast?.info(`Rejected ${success} review${success > 1 ? 's' : ''}`);
+          setTimeout(() => window.location.reload(), 500);
+        }
+      );
+    });
+
+    // Quick publish buttons
+    document.querySelectorAll('.quick-publish-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        window.confirm2(
+          'Publish Review',
+          'Are you sure you want to publish this review?',
+          async () => {
+            const res = await fetch(`/api/admin/review/${id}/publish`, { method: 'POST' });
+            if (res.ok) {
+              window.toast?.success('Review published');
+              btn.closest('.draft-card')?.remove();
+            } else {
+              window.toast?.error('Failed to publish');
+            }
+          },
+          'Publish',
+          'bg-green-600 hover:bg-green-700'
+        );
+      });
+    });
+
+    // Quick reject buttons
+    document.querySelectorAll('.quick-reject-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        window.confirm2(
+          'Reject Review',
+          'Are you sure you want to reject this review?',
+          async () => {
+            const res = await fetch(`/api/admin/review/${id}/reject`, { method: 'POST' });
+            if (res.ok) {
+              window.toast?.info('Review rejected');
+              btn.closest('.draft-card')?.remove();
+            } else {
+              window.toast?.error('Failed to reject');
+            }
+          }
+        );
+      });
+    });
+  </script>
+</AdminLayout>

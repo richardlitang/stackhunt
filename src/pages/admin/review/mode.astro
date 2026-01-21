@@ -1,0 +1,367 @@
+---
+/**
+ * Admin Review Mode - /admin/review/mode
+ * Streamlined single-page review workflow with keyboard navigation
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAdminClient } from '@/lib/supabase';
+
+const admin = getAdminClient();
+
+// Fetch all pending drafts
+const { data: drafts } = await admin
+  .from('reviews')
+  .select(`
+    id,
+    score,
+    summary_markdown,
+    pros,
+    cons,
+    sentiment_tags,
+    created_at,
+    status,
+    reviewer_notes,
+    tool:tools(id, name, slug, logo_url, short_description, website, pricing_type),
+    context:contexts(id, title, slug)
+  `)
+  .in('status', ['draft', 'review'])
+  .order('created_at', { ascending: false });
+
+// Serialize drafts for client-side use
+const draftsJson = JSON.stringify(drafts || []);
+---
+
+<AdminLayout title="Review Mode">
+  <div class="relative">
+    <!-- Header Bar -->
+    <div class="sticky top-14 z-30 -mx-4 sm:-mx-6 lg:-mx-8 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <a
+            href="/admin/review"
+            class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Exit
+          </a>
+          <div class="h-4 w-px bg-slate-200"></div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              id="prev-btn"
+              class="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Previous (k)"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span class="text-sm text-slate-600">
+              <span id="current-index">1</span> of <span id="total-count">{drafts?.length || 0}</span>
+            </span>
+            <button
+              type="button"
+              id="next-btn"
+              class="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Next (j)"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="hidden sm:inline text-xs text-slate-400">
+            <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">p</kbd> publish
+            <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono ml-2">x</kbd> reject
+            <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono ml-2">j/k</kbd> navigate
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Review Area -->
+    {drafts && drafts.length > 0 ? (
+      <div id="review-container" class="py-6">
+        <div id="review-card" class="max-w-4xl mx-auto">
+          <!-- Content loaded dynamically -->
+        </div>
+      </div>
+    ) : (
+      <div class="py-16 text-center">
+        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-slate-900">All caught up!</h3>
+        <p class="mt-2 text-sm text-slate-500">No drafts awaiting review.</p>
+        <a href="/admin/create" class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700">
+          Create new content →
+        </a>
+      </div>
+    )}
+  </div>
+
+  <script is:inline define:vars={{ draftsJson }}>
+    const drafts = JSON.parse(draftsJson);
+    let currentIndex = 0;
+    let isSubmitting = false;
+
+    const reviewCard = document.getElementById('review-card');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const currentIndexEl = document.getElementById('current-index');
+    const totalCountEl = document.getElementById('total-count');
+
+    function renderReview() {
+      if (drafts.length === 0) return;
+
+      const draft = drafts[currentIndex];
+      const tool = draft.tool || {};
+      const context = draft.context;
+
+      currentIndexEl.textContent = currentIndex + 1;
+      totalCountEl.textContent = drafts.length;
+
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === drafts.length - 1;
+
+      reviewCard.innerHTML = `
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <!-- Tool Header -->
+          <div class="border-b border-slate-100 p-6">
+            <div class="flex items-start gap-4">
+              <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                ${tool.logo_url
+                  ? `<img src="${tool.logo_url}" alt="" class="h-full w-full object-contain p-2" />`
+                  : `<span class="text-2xl font-bold text-slate-300">${tool.name?.charAt(0) || '?'}</span>`
+                }
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3">
+                  <h2 class="text-xl font-bold text-slate-900">${tool.name || 'Unknown Tool'}</h2>
+                  <span class="rounded-full px-3 py-1 text-sm font-semibold ${
+                    draft.score >= 70 ? 'bg-green-100 text-green-700' :
+                    draft.score >= 50 ? 'bg-amber-100 text-amber-700' :
+                    'bg-red-100 text-red-700'
+                  }">
+                    ${draft.score}/100
+                  </span>
+                </div>
+                ${context ? `<p class="mt-1 text-slate-500">${context.title}</p>` : ''}
+                <div class="mt-2 flex items-center gap-4 text-sm">
+                  ${tool.website ? `
+                    <a href="${tool.website}" target="_blank" class="text-hunt-600 hover:text-hunt-700">
+                      Visit website →
+                    </a>
+                  ` : ''}
+                  <span class="text-slate-400 capitalize">${tool.pricing_type?.replace('_', ' ') || 'Unknown pricing'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Review Content -->
+          <div class="p-6 space-y-6">
+            <!-- Summary -->
+            <div>
+              <h3 class="text-sm font-medium text-slate-700 mb-2">Summary</h3>
+              <div class="prose prose-sm prose-slate max-w-none rounded-lg bg-slate-50 p-4">
+                ${draft.summary_markdown || '<p class="text-slate-400">No summary provided</p>'}
+              </div>
+            </div>
+
+            <!-- Pros & Cons -->
+            <div class="grid gap-6 sm:grid-cols-2">
+              <div>
+                <h3 class="text-sm font-medium text-slate-700 mb-2">Pros</h3>
+                <ul class="space-y-2">
+                  ${(draft.pros || []).map(pro => `
+                    <li class="flex items-start gap-2 text-sm">
+                      <span class="text-green-500 mt-0.5">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                      <span class="text-slate-600">${pro}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+              <div>
+                <h3 class="text-sm font-medium text-slate-700 mb-2">Cons</h3>
+                <ul class="space-y-2">
+                  ${(draft.cons || []).map(con => `
+                    <li class="flex items-start gap-2 text-sm">
+                      <span class="text-red-500 mt-0.5">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
+                      <span class="text-slate-600">${con}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+            </div>
+
+            <!-- Tags -->
+            ${(draft.sentiment_tags || []).length > 0 ? `
+              <div>
+                <h3 class="text-sm font-medium text-slate-700 mb-2">Tags</h3>
+                <div class="flex flex-wrap gap-2">
+                  ${draft.sentiment_tags.map(tag => `
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">${tag}</span>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Actions -->
+          <div class="border-t border-slate-100 p-6 bg-slate-50">
+            <div class="flex items-center justify-between">
+              <a
+                href="/admin/review/${draft.id}"
+                class="text-sm text-slate-600 hover:text-slate-900"
+              >
+                Edit details →
+              </a>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  id="reject-btn"
+                  class="rounded-lg border border-red-200 bg-white px-6 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 transition"
+                >
+                  Reject
+                </button>
+                <button
+                  type="button"
+                  id="publish-btn"
+                  class="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition"
+                >
+                  Publish
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Attach event listeners
+      document.getElementById('publish-btn')?.addEventListener('click', handlePublish);
+      document.getElementById('reject-btn')?.addEventListener('click', handleReject);
+    }
+
+    async function handlePublish() {
+      if (isSubmitting) return;
+      isSubmitting = true;
+
+      const draft = drafts[currentIndex];
+
+      try {
+        const res = await fetch(`/api/admin/review/${draft.id}/publish`, { method: 'POST' });
+        if (res.ok) {
+          window.toast?.success('Published!');
+          removeCurrentAndAdvance();
+        } else {
+          window.toast?.error('Failed to publish');
+        }
+      } catch (err) {
+        window.toast?.error('Network error');
+      } finally {
+        isSubmitting = false;
+      }
+    }
+
+    async function handleReject() {
+      if (isSubmitting) return;
+
+      window.confirm2(
+        'Reject Review',
+        'Are you sure you want to reject this review?',
+        async () => {
+          isSubmitting = true;
+          const draft = drafts[currentIndex];
+
+          try {
+            const res = await fetch(`/api/admin/review/${draft.id}/reject`, { method: 'POST' });
+            if (res.ok) {
+              window.toast?.info('Rejected');
+              removeCurrentAndAdvance();
+            } else {
+              window.toast?.error('Failed to reject');
+            }
+          } catch (err) {
+            window.toast?.error('Network error');
+          } finally {
+            isSubmitting = false;
+          }
+        }
+      );
+    }
+
+    function removeCurrentAndAdvance() {
+      drafts.splice(currentIndex, 1);
+
+      if (drafts.length === 0) {
+        // All done!
+        reviewCard.innerHTML = `
+          <div class="py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-slate-900">All done!</h3>
+            <p class="mt-2 text-sm text-slate-500">You've reviewed all pending drafts.</p>
+            <a href="/admin/review" class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700">
+              Back to Review Queue →
+            </a>
+          </div>
+        `;
+        currentIndexEl.textContent = '0';
+        totalCountEl.textContent = '0';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+      } else {
+        // Adjust index if we removed the last item
+        if (currentIndex >= drafts.length) {
+          currentIndex = drafts.length - 1;
+        }
+        renderReview();
+      }
+    }
+
+    function goToPrev() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderReview();
+      }
+    }
+
+    function goToNext() {
+      if (currentIndex < drafts.length - 1) {
+        currentIndex++;
+        renderReview();
+      }
+    }
+
+    // Navigation buttons
+    prevBtn?.addEventListener('click', goToPrev);
+    nextBtn?.addEventListener('click', goToNext);
+
+    // Keyboard shortcuts
+    document.addEventListener('shortcut:publish', handlePublish);
+    document.addEventListener('shortcut:reject', handleReject);
+    document.addEventListener('shortcut:next', goToNext);
+    document.addEventListener('shortcut:prev', goToPrev);
+
+    // Initial render
+    if (drafts.length > 0) {
+      renderReview();
+    }
+  </script>
+</AdminLayout>

@@ -1,0 +1,300 @@
+---
+/**
+ * Editorial Guidelines Editor - /admin/editorial/guidelines
+ * Configure AI behavior and content rules
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAdminClient } from '@/lib/supabase';
+
+const admin = getAdminClient();
+
+const { data: guidelines } = await admin
+  .from('editorial_guidelines')
+  .select('*')
+  .order('key');
+---
+
+<AdminLayout title="Editorial Guidelines">
+  <div class="space-y-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-3">
+          <a href="/admin/editorial" class="text-slate-400 hover:text-slate-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </a>
+          <h1 class="text-2xl font-bold text-slate-900">Editorial Guidelines</h1>
+        </div>
+        <p class="mt-1 text-sm text-slate-500 ml-8">
+          Configure rules that control AI content generation
+        </p>
+      </div>
+    </div>
+
+    <!-- Guidelines Cards -->
+    <div class="space-y-6">
+      {guidelines?.map((guideline) => (
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden guideline-card" data-key={guideline.key}>
+          <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
+            <div>
+              <h2 class="font-semibold text-slate-900">{guideline.name}</h2>
+              {guideline.description && (
+                <p class="text-sm text-slate-500">{guideline.description}</p>
+              )}
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  class="active-toggle h-4 w-4 rounded border-slate-300 text-hunt-500 focus:ring-hunt-500"
+                  checked={guideline.is_active}
+                  data-key={guideline.key}
+                />
+                <span class="text-slate-600">Active</span>
+              </label>
+              <button
+                class="edit-btn rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                data-key={guideline.key}
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+          <div class="p-6">
+            <pre class="guideline-content text-sm text-slate-700 bg-slate-50 rounded-lg p-4 overflow-x-auto max-h-64 overflow-y-auto">{JSON.stringify(guideline.content, null, 2)}</pre>
+            <div class="guideline-editor hidden mt-4">
+              <textarea
+                class="guideline-textarea w-full h-64 font-mono text-sm rounded-lg border border-slate-300 p-4 focus:border-hunt-500 focus:ring-2 focus:ring-hunt-500/20 outline-none"
+                data-key={guideline.key}
+              >{JSON.stringify(guideline.content, null, 2)}</textarea>
+              <div class="flex items-center justify-between mt-3">
+                <p class="text-xs text-slate-500">Edit JSON directly. Invalid JSON will not be saved.</p>
+                <div class="flex gap-2">
+                  <button
+                    class="cancel-btn rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    data-key={guideline.key}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="save-btn rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-600 transition"
+                    data-key={guideline.key}
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Add New Guideline -->
+    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+      <h3 class="font-semibold text-slate-900 mb-4">Add New Guideline</h3>
+      <form id="add-guideline-form" class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="key" class="block text-sm font-medium text-slate-700 mb-1">Key (snake_case)</label>
+          <input
+            type="text"
+            id="key"
+            name="key"
+            placeholder="e.g., seo_rules"
+            pattern="[a-z_]+"
+            class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-2 focus:ring-hunt-500/20 outline-none"
+            required
+          />
+        </div>
+        <div>
+          <label for="name" class="block text-sm font-medium text-slate-700 mb-1">Display Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="e.g., SEO Rules"
+            class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-2 focus:ring-hunt-500/20 outline-none"
+            required
+          />
+        </div>
+        <div class="sm:col-span-2">
+          <label for="new-description" class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+          <input
+            type="text"
+            id="new-description"
+            name="description"
+            placeholder="What this guideline controls"
+            class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-2 focus:ring-hunt-500/20 outline-none"
+          />
+        </div>
+        <div class="sm:col-span-2">
+          <label for="new-content" class="block text-sm font-medium text-slate-700 mb-1">Content (JSON)</label>
+          <textarea
+            id="new-content"
+            name="content"
+            rows="6"
+            placeholder='{"rules": [], "settings": {}}'
+            class="w-full font-mono rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-2 focus:ring-hunt-500/20 outline-none"
+            required
+          ></textarea>
+        </div>
+        <div class="sm:col-span-2 flex justify-end">
+          <button
+            type="submit"
+            class="inline-flex items-center gap-2 rounded-lg bg-hunt-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-hunt-600 transition"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Guideline
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="fixed bottom-4 right-4 hidden">
+    <div class="rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-lg">
+      <span id="toast-message"></span>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  function showToast(message: string, isError = false) {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    if (toast && toastMessage) {
+      toastMessage.textContent = message;
+      const inner = toast.querySelector('div');
+      if (inner) {
+        inner.className = `rounded-lg px-4 py-3 text-sm text-white shadow-lg ${isError ? 'bg-red-600' : 'bg-slate-900'}`;
+      }
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+  }
+
+  // Edit button handlers
+  document.querySelectorAll('.edit-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const key = (e.target as HTMLElement).dataset.key;
+      const card = document.querySelector(`.guideline-card[data-key="${key}"]`);
+      if (card) {
+        card.querySelector('.guideline-content')?.classList.add('hidden');
+        card.querySelector('.guideline-editor')?.classList.remove('hidden');
+        (e.target as HTMLButtonElement).classList.add('hidden');
+      }
+    });
+  });
+
+  // Cancel button handlers
+  document.querySelectorAll('.cancel-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const key = (e.target as HTMLElement).dataset.key;
+      const card = document.querySelector(`.guideline-card[data-key="${key}"]`);
+      if (card) {
+        card.querySelector('.guideline-content')?.classList.remove('hidden');
+        card.querySelector('.guideline-editor')?.classList.add('hidden');
+        card.querySelector('.edit-btn')?.classList.remove('hidden');
+      }
+    });
+  });
+
+  // Save button handlers
+  document.querySelectorAll('.save-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      const key = (e.target as HTMLElement).dataset.key;
+      const textarea = document.querySelector(`.guideline-textarea[data-key="${key}"]`) as HTMLTextAreaElement;
+
+      let content;
+      try {
+        content = JSON.parse(textarea.value);
+      } catch (err) {
+        showToast('Invalid JSON format', true);
+        return;
+      }
+
+      const res = await fetch('/api/admin/editorial/guidelines', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, content }),
+      });
+
+      if (res.ok) {
+        showToast('Guideline updated');
+        const card = document.querySelector(`.guideline-card[data-key="${key}"]`);
+        if (card) {
+          const contentEl = card.querySelector('.guideline-content');
+          if (contentEl) {
+            contentEl.textContent = JSON.stringify(content, null, 2);
+          }
+          card.querySelector('.guideline-content')?.classList.remove('hidden');
+          card.querySelector('.guideline-editor')?.classList.add('hidden');
+          card.querySelector('.edit-btn')?.classList.remove('hidden');
+        }
+      } else {
+        showToast('Failed to save', true);
+      }
+    });
+  });
+
+  // Active toggle handlers
+  document.querySelectorAll('.active-toggle').forEach((checkbox) => {
+    checkbox.addEventListener('change', async (e) => {
+      const key = (e.target as HTMLInputElement).dataset.key;
+      const isActive = (e.target as HTMLInputElement).checked;
+
+      const res = await fetch('/api/admin/editorial/guidelines', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, is_active: isActive }),
+      });
+
+      if (res.ok) {
+        showToast(`Guideline ${isActive ? 'enabled' : 'disabled'}`);
+      } else {
+        showToast('Failed to update', true);
+        (e.target as HTMLInputElement).checked = !isActive;
+      }
+    });
+  });
+
+  // Add new guideline form
+  document.getElementById('add-guideline-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+
+    let content;
+    try {
+      content = JSON.parse(formData.get('content') as string);
+    } catch (err) {
+      showToast('Invalid JSON format in content', true);
+      return;
+    }
+
+    const res = await fetch('/api/admin/editorial/guidelines', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key: formData.get('key'),
+        name: formData.get('name'),
+        description: formData.get('description') || undefined,
+        content,
+      }),
+    });
+
+    if (res.ok) {
+      showToast('Guideline added');
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      const data = await res.json();
+      showToast('Failed: ' + data.error, true);
+    }
+  });
+</script>

@@ -1,0 +1,184 @@
+---
+import type { MetaProps } from '@/lib/seo';
+import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/seo';
+import MyStackWidget from '@/components/MyStackWidget';
+
+interface Props {
+  meta: MetaProps;
+  schemas?: Record<string, unknown>[];
+}
+
+const { meta, schemas = [] } = Astro.props;
+
+const allSchemas = [
+  generateOrganizationSchema(),
+  generateWebSiteSchema(),
+  ...schemas,
+];
+---
+
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary Meta Tags -->
+    <title>{meta.title}</title>
+    <meta name="title" content={meta.title} />
+    <meta name="description" content={meta.description} />
+    {meta.noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Canonical -->
+    <link rel="canonical" href={meta.canonical} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={meta.ogType || 'website'} />
+    <meta property="og:url" content={meta.canonical} />
+    <meta property="og:title" content={meta.title} />
+    <meta property="og:description" content={meta.description} />
+    {meta.ogImage && <meta property="og:image" content={meta.ogImage} />}
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={meta.canonical} />
+    <meta property="twitter:title" content={meta.title} />
+    <meta property="twitter:description" content={meta.description} />
+    {meta.ogImage && <meta property="twitter:image" content={meta.ogImage} />}
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- JSON-LD Schemas -->
+    {allSchemas.map((schema) => (
+      <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+    ))}
+  </head>
+
+  <body class="min-h-screen bg-white text-slate-900 antialiased">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-lg">
+      <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-2">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-hunt-500">
+            <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <span class="text-xl font-bold text-slate-900">Stack<span class="text-hunt-500">Hunt</span></span>
+        </a>
+
+        <!-- Search (placeholder for now) -->
+        <div class="hidden flex-1 justify-center px-8 md:flex">
+          <div class="relative w-full max-w-md">
+            <input
+              type="text"
+              placeholder="Search tools... (CMD+K)"
+              class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 transition focus:border-hunt-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+            />
+            <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Nav Links -->
+        <div class="flex items-center gap-6">
+          <a href="/categories" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+            Categories
+          </a>
+          <a href="/best" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+            Best Lists
+          </a>
+          <a
+            href="/submit"
+            class="rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-hunt-600"
+          >
+            Submit Tool
+          </a>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      <slot />
+    </main>
+
+    <!-- My Stack Widget (floating) -->
+    <MyStackWidget client:load />
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 bg-slate-50">
+      <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div class="grid gap-8 md:grid-cols-4">
+          <!-- Brand -->
+          <div class="md:col-span-2">
+            <a href="/" class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-hunt-500">
+                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <span class="text-xl font-bold text-slate-900">Stack<span class="text-hunt-500">Hunt</span></span>
+            </a>
+            <p class="mt-4 max-w-md text-sm text-slate-600">
+              Discover the best software alternatives. AI-powered analysis, honest reviews, and real comparisons to help you find the perfect tool.
+            </p>
+          </div>
+
+          <!-- Links -->
+          <div>
+            <h3 class="font-semibold text-slate-900">Explore</h3>
+            <ul class="mt-4 space-y-2">
+              <li><a href="/categories" class="text-sm text-slate-600 hover:text-hunt-500">Categories</a></li>
+              <li><a href="/best" class="text-sm text-slate-600 hover:text-hunt-500">Best Lists</a></li>
+              <li><a href="/tools" class="text-sm text-slate-600 hover:text-hunt-500">All Tools</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-slate-900">Company</h3>
+            <ul class="mt-4 space-y-2">
+              <li><a href="/about" class="text-sm text-slate-600 hover:text-hunt-500">About</a></li>
+              <li><a href="/submit" class="text-sm text-slate-600 hover:text-hunt-500">Submit Tool</a></li>
+              <li><a href="/contact" class="text-sm text-slate-600 hover:text-hunt-500">Contact</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-8 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
+          <p>&copy; {new Date().getFullYear()} StackHunt. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+</style>

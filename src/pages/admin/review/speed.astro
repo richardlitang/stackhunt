@@ -1,0 +1,646 @@
+---
+/**
+ * Admin Speed Review Mode - /admin/review/speed
+ * "Management by Exception" interface for rapid review
+ *
+ * Features:
+ * - Traffic Light confidence highlighting
+ * - Source Peeking links
+ * - Inline editing
+ * - Keyboard shortcuts (A=Approve, D=Reject, J/K=Navigate)
+ * - Batch "Approve All High Confidence"
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAdminClient } from '@/lib/supabase';
+import SpeedReviewCard from '@/components/SpeedReviewCard';
+
+const admin = getAdminClient();
+
+// Fetch all pending drafts with knowledge_card data
+const { data: drafts } = await admin
+  .from('reviews')
+  .select(`
+    id,
+    score,
+    summary_markdown,
+    pros,
+    cons,
+    sentiment_tags,
+    created_at,
+    status,
+    reviewer_notes,
+    sources,
+    tool:tools(
+      id,
+      name,
+      slug,
+      logo_url,
+      short_description,
+      website,
+      pricing_type,
+      knowledge_card
+    ),
+    context:contexts(id, title, slug)
+  `)
+  .in('status', ['draft', 'review'])
+  .order('created_at', { ascending: false });
+
+// Count high confidence drafts
+const highConfidenceCount = (drafts || []).filter((d) => {
+  const tool = d.tool as { knowledge_card?: { meta?: { data_quality?: string } } };
+  return tool?.knowledge_card?.meta?.data_quality === 'high';
+}).length;
+
+// Serialize for client
+const draftsJson = JSON.stringify(drafts || []);
+---
+
+<AdminLayout title="Speed Review">
+  <div class="relative">
+    <!-- Header Bar -->
+    <div class="sticky top-14 z-30 -mx-4 sm:-mx-6 lg:-mx-8 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <a
+            href="/admin/review"
+            class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Exit
+          </a>
+          <div class="h-4 w-px bg-slate-200"></div>
+
+          <!-- Navigation -->
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              id="prev-btn"
+              class="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Previous (K)"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span class="text-sm text-slate-600">
+              <span id="current-index">1</span> of <span id="total-count">{drafts?.length || 0}</span>
+            </span>
+            <button
+              type="button"
+              id="next-btn"
+              class="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Next (J)"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- Batch Approve Button -->
+          {highConfidenceCount > 0 && (
+            <button
+              type="button"
+              id="batch-approve-btn"
+              class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Approve All High ({highConfidenceCount})
+            </button>
+          )}
+
+          <!-- Keyboard hints -->
+          <div class="hidden lg:flex items-center gap-3 text-xs text-slate-400">
+            <span>
+              <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">A</kbd> approve
+            </span>
+            <span>
+              <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">D</kbd> reject
+            </span>
+            <span>
+              <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">J</kbd>/<kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">K</kbd> navigate
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confidence Legend -->
+    <div class="mt-4 mb-6 flex items-center justify-center gap-6 text-xs">
+      <div class="flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-full bg-green-500"></span>
+        <span class="text-slate-500">High confidence (auto-approvable)</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+        <span class="text-slate-500">Medium confidence (review recommended)</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-full bg-red-500"></span>
+        <span class="text-slate-500">Low confidence (needs review)</span>
+      </div>
+    </div>
+
+    <!-- Main Review Area -->
+    {drafts && drafts.length > 0 ? (
+      <div id="review-container" class="max-w-4xl mx-auto">
+        <!-- React component will be mounted here -->
+        <div id="speed-review-root"></div>
+      </div>
+    ) : (
+      <div class="py-16 text-center">
+        <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-slate-900">All caught up!</h3>
+        <p class="mt-2 text-sm text-slate-500">No drafts awaiting review.</p>
+        <a href="/admin/create" class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700">
+          Create new content →
+        </a>
+      </div>
+    )}
+  </div>
+
+  <!-- Speed Review React App -->
+  <script is:inline define:vars={{ draftsJson }}>
+    // Parse drafts data
+    const drafts = JSON.parse(draftsJson);
+    let currentIndex = 0;
+    let isSubmitting = false;
+
+    // DOM elements
+    const root = document.getElementById('speed-review-root');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const currentIndexEl = document.getElementById('current-index');
+    const totalCountEl = document.getElementById('total-count');
+    const batchApproveBtn = document.getElementById('batch-approve-btn');
+
+    // Render current review
+    function render() {
+      if (!root || drafts.length === 0) return;
+
+      const draft = drafts[currentIndex];
+      const tool = draft.tool || {};
+      const card = tool.knowledge_card || {};
+      const meta = card.meta || {};
+      const dataQuality = meta.data_quality || 'low';
+      const context = draft.context;
+      const sources = draft.sources || [];
+
+      // Update navigation
+      currentIndexEl.textContent = currentIndex + 1;
+      totalCountEl.textContent = drafts.length;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === drafts.length - 1;
+
+      // Confidence colors
+      const qualityColors = {
+        high: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
+        medium: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500' },
+        low: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', dot: 'bg-red-500' },
+      };
+      const colors = qualityColors[dataQuality] || qualityColors.low;
+
+      // Build fact rows
+      function factRow(label, value, confidence, sourceHint) {
+        const c = qualityColors[confidence] || qualityColors.low;
+        const source = sources.find(s =>
+          s.type?.toLowerCase().includes(sourceHint?.toLowerCase() || '') ||
+          s.title?.toLowerCase().includes(label.toLowerCase())
+        ) || sources[0];
+        const sourceLink = source
+          ? `<a href="${source.url}" target="_blank" class="ml-1 text-xs text-hunt-500 hover:underline">[Source]</a>`
+          : '';
+
+        return `
+          <div class="flex items-start gap-3 rounded-lg border p-3 ${c.bg} ${c.border}">
+            <div class="mt-1 h-2 w-2 shrink-0 rounded-full ${c.dot}" title="${confidence}"></div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-medium text-slate-500 uppercase">${label}</span>
+                ${sourceLink}
+              </div>
+              <div class="mt-0.5 text-sm ${c.text}"
+                   contenteditable="true"
+                   data-field="${label.toLowerCase().replace(/\s+/g, '_')}"
+                   data-original="${value}">${value}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Render the card
+      root.innerHTML = `
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <!-- Confidence Banner -->
+          <div class="px-4 py-2 ${colors.bg} ${colors.border} border-b flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="h-2 w-2 rounded-full ${colors.dot}"></span>
+              <span class="text-sm font-medium ${colors.text}">
+                Data Quality: ${dataQuality.charAt(0).toUpperCase() + dataQuality.slice(1)}
+              </span>
+            </div>
+            <button id="toggle-facts" class="text-xs text-slate-500 hover:text-slate-700">
+              Show all facts
+            </button>
+          </div>
+
+          <!-- Tool Header -->
+          <div class="border-b border-slate-100 p-6">
+            <div class="flex items-start gap-4">
+              <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                ${tool.logo_url
+                  ? `<img src="${tool.logo_url}" alt="" class="h-full w-full object-contain p-2" />`
+                  : `<span class="text-2xl font-bold text-slate-300">${tool.name?.charAt(0) || '?'}</span>`
+                }
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3">
+                  <h2 class="text-xl font-bold text-slate-900">${tool.name || 'Unknown'}</h2>
+                  <span
+                    class="rounded-full px-3 py-1 text-sm font-semibold cursor-pointer hover:ring-2 hover:ring-offset-1 ${
+                      draft.score >= 70 ? 'bg-green-100 text-green-700 hover:ring-green-300' :
+                      draft.score >= 50 ? 'bg-amber-100 text-amber-700 hover:ring-amber-300' :
+                      'bg-red-100 text-red-700 hover:ring-red-300'
+                    }"
+                    contenteditable="true"
+                    data-field="score"
+                    data-original="${draft.score}"
+                  >${draft.score}</span><span class="text-slate-400">/100</span>
+                </div>
+                ${context ? `<p class="mt-1 text-slate-500">${context.title}</p>` : ''}
+                ${card.tagline ? `<p class="mt-2 text-sm text-slate-600 italic">"${card.tagline}"</p>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- Knowledge Card Facts -->
+          <div class="p-6 space-y-3 border-b border-slate-100" id="facts-section">
+            <h3 class="text-sm font-semibold text-slate-900">Knowledge Card</h3>
+            <div class="grid gap-2 sm:grid-cols-2" id="facts-grid">
+              ${factRow('Pricing Model', card.pricing?.model || 'Unknown', card.pricing?.model ? 'high' : 'low', 'pricing')}
+              ${factRow('Starting Price', card.pricing?.starting_price || 'Not found', card.pricing?.starting_price ? 'medium' : 'low', 'pricing')}
+              ${factRow('Free Tier', card.pricing?.has_free_tier ? 'Yes' : 'No', 'medium', 'pricing')}
+              ${factRow('Free Trial', card.pricing?.has_free_trial ? (card.pricing?.trial_days ? card.pricing.trial_days + ' days' : 'Yes') : 'No', 'medium', 'pricing')}
+              ${factRow('API Access', card.integrations?.has_api ? 'Yes' : 'No', card.integrations?.has_api !== undefined ? 'medium' : 'low', 'api')}
+              ${factRow('Zapier', card.integrations?.has_zapier ? 'Yes' : 'No', 'medium', 'integrations')}
+              ${factRow('SSO', card.security?.sso_available === true ? 'Yes' : card.security?.sso_available === false ? 'No' : 'Unknown', card.security?.sso_available !== null ? 'medium' : 'low', 'security')}
+              ${factRow('SOC 2', card.security?.soc2_certified === true ? 'Yes' : card.security?.soc2_certified === false ? 'No' : 'Unknown', card.security?.soc2_certified !== null ? 'high' : 'low', 'security')}
+            </div>
+          </div>
+
+          <!-- Pros & Cons -->
+          <div class="p-6 space-y-4">
+            <div class="grid gap-6 sm:grid-cols-2">
+              <div>
+                <h3 class="text-sm font-medium text-slate-700 mb-2">Pros</h3>
+                <ul class="space-y-2" id="pros-list">
+                  ${(draft.pros || []).map((pro, i) => `
+                    <li class="flex items-start gap-2 text-sm">
+                      <span class="text-green-500 mt-0.5">✓</span>
+                      <span contenteditable="true" data-field="pro-${i}" data-original="${pro}" class="text-slate-600 outline-none focus:bg-slate-50 px-1 -mx-1 rounded">${pro}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+              <div>
+                <h3 class="text-sm font-medium text-slate-700 mb-2">Cons</h3>
+                <ul class="space-y-2" id="cons-list">
+                  ${(draft.cons || []).map((con, i) => `
+                    <li class="flex items-start gap-2 text-sm">
+                      <span class="text-red-500 mt-0.5">✗</span>
+                      <span contenteditable="true" data-field="con-${i}" data-original="${con}" class="text-slate-600 outline-none focus:bg-slate-50 px-1 -mx-1 rounded">${con}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sources -->
+          ${sources.length > 0 ? `
+            <div class="px-6 pb-4">
+              <details class="group">
+                <summary class="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
+                  View ${sources.length} source${sources.length > 1 ? 's' : ''}
+                </summary>
+                <ul class="mt-2 space-y-1 text-xs">
+                  ${sources.map(s => `
+                    <li>
+                      <a href="${s.url}" target="_blank" class="text-hunt-600 hover:underline">${s.title || s.url}</a>
+                      ${s.type ? `<span class="ml-2 text-slate-400">(${s.type})</span>` : ''}
+                    </li>
+                  `).join('')}
+                </ul>
+              </details>
+            </div>
+          ` : ''}
+
+          <!-- Actions -->
+          <div class="border-t border-slate-100 p-6 bg-slate-50">
+            <div class="flex items-center justify-between">
+              <a href="/admin/review/${draft.id}" class="text-sm text-slate-600 hover:text-slate-900">
+                Full editor →
+              </a>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  id="reject-btn"
+                  class="rounded-lg border border-red-200 bg-white px-6 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 transition"
+                >
+                  Reject <kbd class="ml-2 text-xs opacity-60">D</kbd>
+                </button>
+                <button
+                  type="button"
+                  id="approve-btn"
+                  class="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition"
+                >
+                  Approve <kbd class="ml-2 text-xs opacity-60">A</kbd>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Attach event listeners
+      document.getElementById('approve-btn')?.addEventListener('click', handleApprove);
+      document.getElementById('reject-btn')?.addEventListener('click', handleReject);
+
+      // Handle inline edits on blur
+      root.querySelectorAll('[contenteditable="true"]').forEach(el => {
+        el.addEventListener('blur', handleInlineEdit);
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            el.blur();
+          }
+          if (e.key === 'Escape') {
+            el.textContent = el.dataset.original;
+            el.blur();
+          }
+        });
+      });
+    }
+
+    // Handle inline edit save
+    async function handleInlineEdit(e) {
+      const el = e.target;
+      const field = el.dataset.field;
+      const original = el.dataset.original;
+      const newValue = el.textContent.trim();
+
+      if (newValue === original) return;
+
+      const draft = drafts[currentIndex];
+
+      // Map field names to API fields
+      let apiField = field;
+      let apiValue = newValue;
+
+      if (field === 'score') {
+        apiValue = parseInt(newValue, 10);
+        if (isNaN(apiValue)) {
+          el.textContent = original;
+          return;
+        }
+      } else if (field.startsWith('pro-')) {
+        const index = parseInt(field.split('-')[1], 10);
+        const newPros = [...(draft.pros || [])];
+        newPros[index] = newValue;
+        apiField = 'pros';
+        apiValue = newPros;
+      } else if (field.startsWith('con-')) {
+        const index = parseInt(field.split('-')[1], 10);
+        const newCons = [...(draft.cons || [])];
+        newCons[index] = newValue;
+        apiField = 'cons';
+        apiValue = newCons;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/review/${draft.id}/inline-update`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ field: apiField, value: apiValue }),
+        });
+
+        if (res.ok) {
+          // Update local data
+          if (apiField === 'score') draft.score = apiValue;
+          else if (apiField === 'pros') draft.pros = apiValue;
+          else if (apiField === 'cons') draft.cons = apiValue;
+          el.dataset.original = newValue;
+          window.toast?.success('Updated');
+        } else {
+          el.textContent = original;
+          window.toast?.error('Failed to save');
+        }
+      } catch (err) {
+        el.textContent = original;
+        window.toast?.error('Network error');
+      }
+    }
+
+    // Approve current review
+    async function handleApprove() {
+      if (isSubmitting) return;
+      isSubmitting = true;
+
+      const draft = drafts[currentIndex];
+
+      try {
+        const res = await fetch(`/api/admin/review/${draft.id}/publish`, { method: 'POST' });
+        if (res.ok) {
+          window.toast?.success('Approved!');
+          removeAndAdvance();
+        } else {
+          window.toast?.error('Failed to approve');
+        }
+      } catch (err) {
+        window.toast?.error('Network error');
+      } finally {
+        isSubmitting = false;
+      }
+    }
+
+    // Reject current review
+    async function handleReject() {
+      if (isSubmitting) return;
+
+      window.confirm2?.(
+        'Reject Review',
+        'Are you sure you want to reject this review?',
+        async () => {
+          isSubmitting = true;
+          const draft = drafts[currentIndex];
+
+          try {
+            const res = await fetch(`/api/admin/review/${draft.id}/reject`, { method: 'POST' });
+            if (res.ok) {
+              window.toast?.info('Rejected');
+              removeAndAdvance();
+            } else {
+              window.toast?.error('Failed to reject');
+            }
+          } catch (err) {
+            window.toast?.error('Network error');
+          } finally {
+            isSubmitting = false;
+          }
+        }
+      ) || handleRejectDirect();
+    }
+
+    async function handleRejectDirect() {
+      isSubmitting = true;
+      const draft = drafts[currentIndex];
+      try {
+        const res = await fetch(`/api/admin/review/${draft.id}/reject`, { method: 'POST' });
+        if (res.ok) {
+          window.toast?.info('Rejected');
+          removeAndAdvance();
+        }
+      } finally {
+        isSubmitting = false;
+      }
+    }
+
+    // Remove current and show next
+    function removeAndAdvance() {
+      drafts.splice(currentIndex, 1);
+
+      if (drafts.length === 0) {
+        root.innerHTML = `
+          <div class="py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-slate-900">All done!</h3>
+            <p class="mt-2 text-sm text-slate-500">You've reviewed all pending drafts.</p>
+            <a href="/admin/review" class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700">
+              Back to Review Queue →
+            </a>
+          </div>
+        `;
+        currentIndexEl.textContent = '0';
+        totalCountEl.textContent = '0';
+      } else {
+        if (currentIndex >= drafts.length) currentIndex = drafts.length - 1;
+        totalCountEl.textContent = drafts.length;
+        render();
+      }
+    }
+
+    // Navigation
+    function goToPrev() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        render();
+      }
+    }
+
+    function goToNext() {
+      if (currentIndex < drafts.length - 1) {
+        currentIndex++;
+        render();
+      }
+    }
+
+    // Batch approve all high confidence
+    async function handleBatchApprove() {
+      if (isSubmitting) return;
+
+      const highConfIds = drafts
+        .filter(d => d.tool?.knowledge_card?.meta?.data_quality === 'high')
+        .map(d => d.id);
+
+      if (highConfIds.length === 0) {
+        window.toast?.info('No high-confidence reviews');
+        return;
+      }
+
+      window.confirm2?.(
+        'Batch Approve',
+        `Approve ${highConfIds.length} high-confidence reviews?`,
+        async () => {
+          isSubmitting = true;
+          try {
+            const res = await fetch('/api/admin/review/batch-approve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids: highConfIds }),
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              window.toast?.success(`Approved ${data.data?.approved || 0} reviews`);
+              // Remove approved from local list
+              for (const id of highConfIds) {
+                const idx = drafts.findIndex(d => d.id === id);
+                if (idx !== -1) drafts.splice(idx, 1);
+              }
+              if (currentIndex >= drafts.length) currentIndex = Math.max(0, drafts.length - 1);
+              totalCountEl.textContent = drafts.length;
+              if (drafts.length > 0) render();
+              else removeAndAdvance();
+            } else {
+              window.toast?.error('Batch approve failed');
+            }
+          } catch (err) {
+            window.toast?.error('Network error');
+          } finally {
+            isSubmitting = false;
+          }
+        },
+        'Approve All',
+        'bg-green-600 hover:bg-green-700'
+      );
+    }
+
+    // Event listeners
+    prevBtn?.addEventListener('click', goToPrev);
+    nextBtn?.addEventListener('click', goToNext);
+    batchApproveBtn?.addEventListener('click', handleBatchApprove);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Ignore if typing in an editable field
+      if (e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case 'a':
+          e.preventDefault();
+          handleApprove();
+          break;
+        case 'd':
+          e.preventDefault();
+          handleReject();
+          break;
+        case 'j':
+          e.preventDefault();
+          goToNext();
+          break;
+        case 'k':
+          e.preventDefault();
+          goToPrev();
+          break;
+      }
+    });
+
+    // Initial render
+    if (drafts.length > 0) {
+      render();
+    }
+  </script>
+</AdminLayout>

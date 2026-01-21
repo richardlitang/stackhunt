@@ -1,0 +1,82 @@
+---
+/**
+ * SpiderwebGrid - Shows all contexts/lists a tool appears in
+ * Creates internal linking for SEO and helps users discover related content
+ */
+
+interface ContextLink {
+  id: string;
+  title: string;
+  slug: string;
+  score: number;
+  tool_count?: number;
+}
+
+interface Props {
+  contexts: ContextLink[];
+  currentToolName: string;
+  limit?: number;
+}
+
+const { contexts, currentToolName, limit = 6 } = Astro.props;
+const displayContexts = contexts.slice(0, limit);
+const remaining = contexts.length - limit;
+---
+
+{contexts.length > 0 && (
+  <section class="rounded-xl border border-slate-200 bg-white p-6">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="font-semibold text-slate-900">
+        {currentToolName} appears in {contexts.length} list{contexts.length !== 1 ? 's' : ''}
+      </h3>
+      {remaining > 0 && (
+        <span class="text-sm text-slate-500">+{remaining} more</span>
+      )}
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {displayContexts.map((context) => (
+        <a
+          href={`/best/${context.slug}`}
+          class="group flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3 transition hover:border-hunt-200 hover:bg-hunt-50"
+        >
+          <div class="min-w-0 flex-1">
+            <h4 class="truncate text-sm font-medium text-slate-700 group-hover:text-hunt-600">
+              {context.title}
+            </h4>
+            {context.tool_count && (
+              <span class="text-xs text-slate-400">
+                {context.tool_count} tools
+              </span>
+            )}
+          </div>
+
+          <div class="ml-3 flex items-center gap-2">
+            <span class="text-xs font-medium text-slate-500">
+              #{context.score}
+            </span>
+            <svg
+              class="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-hunt-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </a>
+      ))}
+    </div>
+
+    {remaining > 0 && (
+      <div class="mt-4 text-center">
+        <button
+          class="text-sm font-medium text-hunt-600 hover:text-hunt-700"
+          onclick="this.closest('section').querySelector('.hidden-contexts')?.classList.toggle('hidden')"
+        >
+          Show all lists
+        </button>
+      </div>
+    )}
+  </section>
+)}

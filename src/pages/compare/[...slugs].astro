@@ -1,0 +1,488 @@
+---
+/**
+ * Comparison Page - /compare/[tool-a]-vs-[tool-b]
+ *
+ * Programmatic "versus" pages generated from existing tool data.
+ * High-intent SEO keywords like "Slack vs Discord", "Notion vs Obsidian"
+ *
+ * No additional Hunter runs needed - uses existing pros/cons/scores.
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ScoreBadge from '@/components/ScoreBadge.astro';
+import PricingBadge from '@/components/PricingBadge.astro';
+import AffiliateButton from '@/components/AffiliateButton.astro';
+import SmartComparisonTable from '@/components/SmartComparisonTable';
+import { supabase } from '@/lib/supabase';
+import { getCanonicalUrl, getScoreColor, formatPricingType } from '@/lib/utils';
+import {
+  generateBreadcrumbSchema,
+} from '@/lib/seo';
+
+// Parse URL: /compare/slack-vs-discord
+const { slugs } = Astro.params;
+
+// Extract tool slugs from URL
+const slugParts = (slugs || '').split('-vs-');
+if (slugParts.length !== 2) {
+  return Astro.redirect('/404');
+}
+
+const [slugA, slugB] = slugParts.map(s => s.trim());
+
+// Fetch both tools with their reviews, offers, and metadata (Knowledge Cards)
+const { data: tools } = await supabase
+  .from('tools')
+  .select(`
+    *,
+    metadata,
+    category:categories(name, slug, icon),
+    affiliate_offers(*),
+    reviews(
+      score,
+      pros,
+      cons,
+      sentiment_tags,
+      summary_markdown,
+      context:contexts(title, slug)
+    )
+  `)
+  .in('slug', [slugA, slugB]);
+
+if (!tools || tools.length !== 2) {
+  return Astro.redirect('/404');
+}
+
+// Ensure correct order (A then B)
+const toolA = tools.find(t => t.slug === slugA)!;
+const toolB = tools.find(t => t.slug === slugB)!;
+
+// Get primary offers
+const offerA = toolA.affiliate_offers?.find(o => o.is_primary) || toolA.affiliate_offers?.[0];
+const offerB = toolB.affiliate_offers?.find(o => o.is_primary) || toolB.affiliate_offers?.[0];
+
+// Aggregate pros/cons from all reviews
+const aggregatePros = (reviews: typeof toolA.reviews) =>
+  [...new Set(reviews?.flatMap(r => r.pros || []) || [])].slice(0, 5);
+
+const aggregateCons = (reviews: typeof toolA.reviews) =>
+  [...new Set(reviews?.flatMap(r => r.cons || []) || [])].slice(0, 5);
+
+const aggregateTags = (reviews: typeof toolA.reviews) =>
+  [...new Set(reviews?.flatMap(r => r.sentiment_tags || []) || [])].slice(0, 6);
+
+const prosA = aggregatePros(toolA.reviews);
+const consA = aggregateCons(toolA.reviews);
+const tagsA = aggregateTags(toolA.reviews);
+
+const prosB = aggregatePros(toolB.reviews);
+const consB = aggregateCons(toolB.reviews);
+const tagsB = aggregateTags(toolB.reviews);
+
+// Find contrasting tags (A has "expensive", B has "affordable" = highlight)
+const contrastingTags = [
+  { tagA: 'expensive', tagB: 'affordable', label: 'Price' },
+  { tagA: 'easy-to-use', tagB: 'steep-learning-curve', label: 'Learning Curve' },
+  { tagA: 'feature-rich', tagB: 'minimalist', label: 'Features' },
+  { tagA: 'great-support', tagB: 'poor-support', label: 'Support' },
+  { tagA: 'fast', tagB: 'slow', label: 'Performance' },
+  { tagA: 'modern-ui', tagB: 'outdated-ui', label: 'Design' },
+];
+
+const highlights: Array<{ label: string; winnerA: boolean; winnerB: boolean }> = [];
+
+for (const contrast of contrastingTags) {
+  const aHasGood = tagsA.includes(contrast.tagA) || tagsB.includes(contrast.tagB);
+  const bHasGood = tagsB.includes(contrast.tagA) || tagsA.includes(contrast.tagB);
+
+  // Check if there's a clear difference
+  if (tagsA.includes(contrast.tagA) && !tagsB.includes(contrast.tagA)) {
+    highlights.push({ label: contrast.label, winnerA: true, winnerB: false });
+  } else if (tagsB.includes(contrast.tagA) && !tagsA.includes(contrast.tagA)) {
+    highlights.push({ label: contrast.label, winnerA: false, winnerB: true });
+  }
+}
+
+// Determine overall winner
+const scoreA = toolA.avg_score || 0;
+const scoreB = toolB.avg_score || 0;
+const winner = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'tie';
+
+// SEO
+const title = `${toolA.name} vs ${toolB.name}: Which is Better? (${new Date().getFullYear()}) | StackHunt`;
+const description = `Compare ${toolA.name} and ${toolB.name} side by side. See pricing, features, pros & cons to find the best choice for your needs.`;
+
+const meta = {
+  title,
+  description,
+  canonical: getCanonicalUrl(`/compare/${slugA}-vs-${slugB}`),
+  ogType: 'website' as const,
+};
+
+const schemas = [
+  generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Compare', url: '/compare' },
+    { name: `${toolA.name} vs ${toolB.name}`, url: `/compare/${slugA}-vs-${slugB}` },
+  ]),
+  // FAQ Schema for rich snippets
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: `Is ${toolA.name} better than ${toolB.name}?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: winner === 'A'
+            ? `Based on our analysis, ${toolA.name} scores higher (${scoreA}/100) compared to ${toolB.name} (${scoreB}/100). However, the best choice depends on your specific needs.`
+            : winner === 'B'
+            ? `Based on our analysis, ${toolB.name} scores higher (${scoreB}/100) compared to ${toolA.name} (${scoreA}/100). However, the best choice depends on your specific needs.`
+            : `Both tools score similarly. ${toolA.name} scores ${scoreA}/100 and ${toolB.name} scores ${scoreB}/100. The best choice depends on your specific needs.`,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: `What is the pricing difference between ${toolA.name} and ${toolB.name}?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `${toolA.name} uses a ${formatPricingType(toolA.pricing_type)} model, while ${toolB.name} uses a ${formatPricingType(toolB.pricing_type)} model.`,
+        },
+      },
+    ],
+  },
+];
+---
+
+<BaseLayout meta={meta} schemas={schemas}>
+  <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Breadcrumbs -->
+    <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">
+      <a href="/" class="hover:text-hunt-500">Home</a>
+      <span>/</span>
+      <a href="/compare" class="hover:text-hunt-500">Compare</a>
+      <span>/</span>
+      <span class="text-slate-700">{toolA.name} vs {toolB.name}</span>
+    </nav>
+
+    <!-- Header -->
+    <header class="mb-10 text-center">
+      <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">
+        {toolA.name} <span class="text-hunt-500">vs</span> {toolB.name}
+      </h1>
+      <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+        A detailed comparison to help you choose the right tool for your needs.
+      </p>
+    </header>
+
+    <!-- Quick Verdict Banner -->
+    {winner !== 'tie' && (
+      <div class={`mb-8 rounded-xl p-4 text-center ${winner === 'A' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200'}`}>
+        <span class="text-sm font-medium text-slate-600">Our Recommendation:</span>
+        <span class={`ml-2 font-bold ${winner === 'A' ? 'text-green-700' : 'text-blue-700'}`}>
+          {winner === 'A' ? toolA.name : toolB.name}
+        </span>
+        <span class="text-sm text-slate-500 ml-1">
+          scores {winner === 'A' ? scoreA : scoreB}/100
+        </span>
+      </div>
+    )}
+
+    <!-- Side-by-Side Comparison -->
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- Tool A -->
+      <div class={`rounded-2xl border-2 ${winner === 'A' ? 'border-green-300 bg-green-50/30' : 'border-slate-200 bg-white'} p-6`}>
+        {winner === 'A' && (
+          <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            Recommended
+          </div>
+        )}
+
+        <!-- Header -->
+        <div class="flex items-start gap-4">
+          <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+            {toolA.logo_url ? (
+              <img src={toolA.logo_url} alt={toolA.name} class="h-full w-full object-contain p-2" />
+            ) : (
+              <span class="text-2xl font-bold text-slate-300">{toolA.name.charAt(0)}</span>
+            )}
+          </div>
+          <div class="flex-1">
+            <a href={`/tools/${toolA.slug}`} class="text-xl font-bold text-slate-900 hover:text-hunt-600">
+              {toolA.name}
+            </a>
+            <div class="mt-1 flex items-center gap-2">
+              <PricingBadge type={toolA.pricing_type} size="sm" />
+              {toolA.category && (
+                <span class="text-xs text-slate-500">{toolA.category.name}</span>
+              )}
+            </div>
+          </div>
+          <ScoreBadge score={Math.round(scoreA)} size="md" />
+        </div>
+
+        <!-- Description -->
+        {toolA.short_description && (
+          <p class="mt-4 text-sm text-slate-600">{toolA.short_description}</p>
+        )}
+
+        <!-- Pros -->
+        <div class="mt-6">
+          <h3 class="flex items-center gap-2 font-semibold text-green-700">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Pros
+          </h3>
+          <ul class="mt-2 space-y-1">
+            {prosA.map(pro => (
+              <li class="flex items-start gap-2 text-sm text-slate-700">
+                <span class="mt-1 text-green-500">+</span>
+                {pro}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Cons -->
+        <div class="mt-4">
+          <h3 class="flex items-center gap-2 font-semibold text-red-700">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cons
+          </h3>
+          <ul class="mt-2 space-y-1">
+            {consA.map(con => (
+              <li class="flex items-start gap-2 text-sm text-slate-700">
+                <span class="mt-1 text-red-500">-</span>
+                {con}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Tags -->
+        {tagsA.length > 0 && (
+          <div class="mt-4 flex flex-wrap gap-1">
+            {tagsA.map(tag => (
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                {tag.replace(/-/g, ' ')}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <!-- CTA -->
+        {offerA && (
+          <div class="mt-6">
+            <AffiliateButton offer={offerA} toolName={toolA.name} size="md" variant="primary" />
+          </div>
+        )}
+      </div>
+
+      <!-- Tool B -->
+      <div class={`rounded-2xl border-2 ${winner === 'B' ? 'border-blue-300 bg-blue-50/30' : 'border-slate-200 bg-white'} p-6`}>
+        {winner === 'B' && (
+          <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            Recommended
+          </div>
+        )}
+
+        <!-- Header -->
+        <div class="flex items-start gap-4">
+          <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+            {toolB.logo_url ? (
+              <img src={toolB.logo_url} alt={toolB.name} class="h-full w-full object-contain p-2" />
+            ) : (
+              <span class="text-2xl font-bold text-slate-300">{toolB.name.charAt(0)}</span>
+            )}
+          </div>
+          <div class="flex-1">
+            <a href={`/tools/${toolB.slug}`} class="text-xl font-bold text-slate-900 hover:text-hunt-600">
+              {toolB.name}
+            </a>
+            <div class="mt-1 flex items-center gap-2">
+              <PricingBadge type={toolB.pricing_type} size="sm" />
+              {toolB.category && (
+                <span class="text-xs text-slate-500">{toolB.category.name}</span>
+              )}
+            </div>
+          </div>
+          <ScoreBadge score={Math.round(scoreB)} size="md" />
+        </div>
+
+        <!-- Description -->
+        {toolB.short_description && (
+          <p class="mt-4 text-sm text-slate-600">{toolB.short_description}</p>
+        )}
+
+        <!-- Pros -->
+        <div class="mt-6">
+          <h3 class="flex items-center gap-2 font-semibold text-green-700">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Pros
+          </h3>
+          <ul class="mt-2 space-y-1">
+            {prosB.map(pro => (
+              <li class="flex items-start gap-2 text-sm text-slate-700">
+                <span class="mt-1 text-green-500">+</span>
+                {pro}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Cons -->
+        <div class="mt-4">
+          <h3 class="flex items-center gap-2 font-semibold text-red-700">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cons
+          </h3>
+          <ul class="mt-2 space-y-1">
+            {consB.map(con => (
+              <li class="flex items-start gap-2 text-sm text-slate-700">
+                <span class="mt-1 text-red-500">-</span>
+                {con}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Tags -->
+        {tagsB.length > 0 && (
+          <div class="mt-4 flex flex-wrap gap-1">
+            {tagsB.map(tag => (
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                {tag.replace(/-/g, ' ')}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <!-- CTA -->
+        {offerB && (
+          <div class="mt-6">
+            <AffiliateButton offer={offerB} toolName={toolB.name} size="md" variant="primary" />
+          </div>
+        )}
+      </div>
+    </div>
+
+    <!-- Key Differences Table -->
+    {highlights.length > 0 && (
+      <section class="mt-10">
+        <h2 class="mb-6 text-xl font-semibold text-slate-900">Key Differences</h2>
+        <div class="overflow-hidden rounded-xl border border-slate-200">
+          <table class="w-full">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Aspect</th>
+                <th class="px-6 py-3 text-center text-sm font-semibold text-slate-700">{toolA.name}</th>
+                <th class="px-6 py-3 text-center text-sm font-semibold text-slate-700">{toolB.name}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              <tr>
+                <td class="px-6 py-4 text-sm font-medium text-slate-700">Overall Score</td>
+                <td class="px-6 py-4 text-center">
+                  <span class={`font-bold ${scoreA >= scoreB ? 'text-green-600' : 'text-slate-600'}`}>
+                    {scoreA}/100
+                    {scoreA > scoreB && ' ✓'}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                  <span class={`font-bold ${scoreB >= scoreA ? 'text-green-600' : 'text-slate-600'}`}>
+                    {scoreB}/100
+                    {scoreB > scoreA && ' ✓'}
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td class="px-6 py-4 text-sm font-medium text-slate-700">Pricing</td>
+                <td class="px-6 py-4 text-center">
+                  <PricingBadge type={toolA.pricing_type} size="sm" />
+                </td>
+                <td class="px-6 py-4 text-center">
+                  <PricingBadge type={toolB.pricing_type} size="sm" />
+                </td>
+              </tr>
+              {highlights.map(h => (
+                <tr>
+                  <td class="px-6 py-4 text-sm font-medium text-slate-700">{h.label}</td>
+                  <td class="px-6 py-4 text-center">
+                    {h.winnerA ? (
+                      <span class="text-green-600">✓ Better</span>
+                    ) : (
+                      <span class="text-slate-400">-</span>
+                    )}
+                  </td>
+                  <td class="px-6 py-4 text-center">
+                    {h.winnerB ? (
+                      <span class="text-green-600">✓ Better</span>
+                    ) : (
+                      <span class="text-slate-400">-</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )}
+
+    <!-- Smart Feature Comparison (using Knowledge Cards) -->
+    <section class="mt-10">
+      <h2 class="mb-6 text-xl font-semibold text-slate-900">Detailed Feature Comparison</h2>
+      <SmartComparisonTable
+        client:load
+        toolA={{
+          name: toolA.name,
+          slug: toolA.slug,
+          logo_url: toolA.logo_url,
+          metadata: toolA.metadata,
+        }}
+        toolB={{
+          name: toolB.name,
+          slug: toolB.slug,
+          logo_url: toolB.logo_url,
+          metadata: toolB.metadata,
+        }}
+      />
+    </section>
+
+    <!-- Related Comparisons -->
+    <section class="mt-10">
+      <h2 class="mb-4 text-lg font-semibold text-slate-900">Related Comparisons</h2>
+      <div class="flex flex-wrap gap-2">
+        <a href={`/tools/${toolA.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+          More about {toolA.name} →
+        </a>
+        <span class="text-slate-300">|</span>
+        <a href={`/tools/${toolB.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+          More about {toolB.name} →
+        </a>
+        {toolA.category && (
+          <>
+            <span class="text-slate-300">|</span>
+            <a href={`/categories/${toolA.category.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+              All {toolA.category.name} tools →
+            </a>
+          </>
+        )}
+      </div>
+    </section>
+  </div>
+</BaseLayout>

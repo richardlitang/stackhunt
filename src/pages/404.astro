@@ -1,0 +1,37 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCanonicalUrl } from '@/lib/utils';
+
+const meta = {
+  title: 'Page Not Found | StackHunt',
+  description: 'The page you are looking for does not exist.',
+  canonical: getCanonicalUrl('/404'),
+  noindex: true,
+};
+---
+
+<BaseLayout meta={meta}>
+  <div class="flex min-h-[60vh] items-center justify-center px-4">
+    <div class="text-center">
+      <h1 class="text-6xl font-bold text-hunt-500">404</h1>
+      <h2 class="mt-4 text-2xl font-semibold text-slate-900">Page not found</h2>
+      <p class="mt-2 text-slate-600">
+        The page you're looking for doesn't exist or has been moved.
+      </p>
+      <div class="mt-8 flex justify-center gap-4">
+        <a
+          href="/"
+          class="rounded-lg bg-hunt-500 px-6 py-3 font-medium text-white transition hover:bg-hunt-600"
+        >
+          Go Home
+        </a>
+        <a
+          href="/tools"
+          class="rounded-lg border border-slate-200 bg-white px-6 py-3 font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          Browse Tools
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

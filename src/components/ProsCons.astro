@@ -1,0 +1,174 @@
+---
+/**
+ * ProsCons Component
+ * Displays pros and cons with optional source citations
+ *
+ * Supports two formats:
+ * - Legacy: string[] - ["pro1", "pro2"]
+ * - New: Array<{text: string, source_url?: string}> - with citations
+ */
+
+interface ClaimWithSource {
+  text: string;
+  source_url?: string;
+}
+
+type ClaimItem = string | ClaimWithSource;
+
+interface Props {
+  pros: ClaimItem[];
+  cons: ClaimItem[];
+  title?: string;
+}
+
+const { pros, cons, title } = Astro.props;
+
+// Normalize items to always have { text, source_url? } format
+function normalizeClaim(item: ClaimItem): ClaimWithSource {
+  if (typeof item === 'string') {
+    return { text: item };
+  }
+  return item;
+}
+
+const normalizedPros = pros.map(normalizeClaim);
+const normalizedCons = cons.map(normalizeClaim);
+
+// Extract domain from URL for display
+function getDomain(url: string): string {
+  try {
+    const domain = new URL(url).hostname.replace(/^www\./, '');
+    return domain;
+  } catch {
+    return url;
+  }
+}
+---
+
+<div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+  {title && (
+    <div class="border-b border-slate-200 bg-slate-50 px-6 py-3">
+      <h3 class="font-semibold text-slate-900">{title}</h3>
+    </div>
+  )}
+
+  <div class="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+    <!-- Pros -->
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
+          <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <span class="font-semibold text-green-700">Pros</span>
+      </div>
+
+      <ul class="space-y-3">
+        {normalizedPros.map((pro) => (
+          <li class="text-sm text-slate-700">
+            <div class="flex items-start gap-3">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <div class="flex-1">
+                <span>{pro.text}</span>
+                {pro.source_url && (
+                  <button
+                    type="button"
+                    class="source-copy-btn ml-1.5 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-hunt-600 transition"
+                    data-url={pro.source_url}
+                    title={`Source: ${getDomain(pro.source_url)}`}
+                  >
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span class="source-domain">{getDomain(pro.source_url)}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <!-- Cons -->
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
+          <svg class="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        <span class="font-semibold text-red-700">Cons</span>
+      </div>
+
+      <ul class="space-y-3">
+        {normalizedCons.map((con) => (
+          <li class="text-sm text-slate-700">
+            <div class="flex items-start gap-3">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <div class="flex-1">
+                <span>{con.text}</span>
+                {con.source_url && (
+                  <button
+                    type="button"
+                    class="source-copy-btn ml-1.5 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-hunt-600 transition"
+                    data-url={con.source_url}
+                    title={`Source: ${getDomain(con.source_url)}`}
+                  >
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span class="source-domain">{getDomain(con.source_url)}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+  // Copy source URL to clipboard
+  document.querySelectorAll('.source-copy-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const url = btn.dataset.url;
+      const domain = btn.querySelector('.source-domain');
+      const originalText = domain?.textContent;
+
+      try {
+        await navigator.clipboard.writeText(url);
+        if (domain) {
+          domain.textContent = 'Copied!';
+          setTimeout(() => {
+            domain.textContent = originalText;
+          }, 1500);
+        }
+      } catch (err) {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (domain) {
+          domain.textContent = 'Copied!';
+          setTimeout(() => {
+            domain.textContent = originalText;
+          }, 1500);
+        }
+      }
+    });
+  });
+</script>

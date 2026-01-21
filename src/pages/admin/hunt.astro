@@ -1,0 +1,428 @@
+---
+/**
+ * Admin: Quick Hunt
+ * Run the Hunter agent from the browser
+ * Two modes: Tool-first or Context-first
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { supabase } from '@/lib/supabase';
+
+// Fetch recent tools for quick re-hunt
+const { data: recentTools } = await supabase
+  .from('tools')
+  .select('id, name, slug')
+  .order('created_at', { ascending: false })
+  .limit(10);
+
+// Fetch contexts for dropdown
+const { data: contexts } = await supabase
+  .from('contexts')
+  .select('id, title, slug')
+  .order('title')
+  .limit(50);
+
+// Fetch categories
+const { data: categories } = await supabase
+  .from('categories')
+  .select('slug, name, type')
+  .eq('type', 'function')
+  .order('name');
+---
+
+<AdminLayout title="Hunt">
+  <div class="space-y-8">
+    <!-- Mode Tabs -->
+    <div class="border-b border-slate-200">
+      <nav class="flex gap-4" aria-label="Hunt modes">
+        <button
+          type="button"
+          id="tab-tool"
+          class="tab-btn border-b-2 border-hunt-500 px-4 py-2 text-sm font-medium text-hunt-600"
+          data-tab="tool"
+        >
+          Tool Hunt
+        </button>
+        <button
+          type="button"
+          id="tab-context"
+          class="tab-btn border-b-2 border-transparent px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
+          data-tab="context"
+        >
+          Context Hunt (Best X for Y)
+        </button>
+      </nav>
+    </div>
+
+    <!-- Tool Hunt Form -->
+    <div id="panel-tool" class="hunt-panel">
+      <div class="rounded-lg border border-slate-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-2">Hunt a Specific Tool</h2>
+        <p class="text-sm text-slate-500 mb-4">Research a tool and optionally add it to a context list.</p>
+
+        <form id="hunt-form-tool" class="space-y-4">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Tool Name <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="toolName"
+                required
+                placeholder="e.g., Notion, Figma, Slack"
+                class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Context (Optional)
+              </label>
+              <input
+                type="text"
+                name="contextTitle"
+                placeholder="e.g., Best Note-Taking Apps for Students"
+                class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
+              />
+              <p class="mt-1 text-xs text-slate-500">Leave empty for tool-only hunt</p>
+            </div>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Category (Optional)
+              </label>
+              <select
+                name="categorySlug"
+                class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
+              >
+                <option value="">Auto-detect</option>
+                {categories?.map((cat) => (
+                  <option value={cat.slug}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Mode
+              </label>
+              <div class="flex items-center gap-4 mt-2">
+                <label class="flex items-center gap-2">
+                  <input type="radio" name="mode" value="draft" checked class="text-hunt-500 focus:ring-hunt-500" />
+                  <span class="text-sm text-slate-700">Draft</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="radio" name="mode" value="publish" class="text-hunt-500 focus:ring-hunt-500" />
+                  <span class="text-sm text-slate-700">Publish</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 pt-2">
+            <button
+              type="submit"
+              class="hunt-btn rounded-lg bg-hunt-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-hunt-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Start Tool Hunt
+            </button>
+            <span class="hunt-status text-sm text-slate-500"></span>
+          </div>
+        </form>
+      </div>
+
+      <!-- Quick Re-Hunt -->
+      {recentTools && recentTools.length > 0 && (
+        <div class="rounded-lg border border-slate-200 bg-white p-6">
+          <h2 class="text-lg font-semibold text-slate-900 mb-4">Recent Tools</h2>
+          <div class="flex flex-wrap gap-2">
+            {recentTools.map((tool) => (
+              <button
+                type="button"
+                class="quick-tool-btn rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:border-hunt-300 hover:bg-hunt-50 transition"
+                data-tool={tool.name}
+              >
+                {tool.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+
+    <!-- Context Hunt Form -->
+    <div id="panel-context" class="hunt-panel hidden">
+      <div class="rounded-lg border border-slate-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-2">Create a "Best X for Y" List</h2>
+        <p class="text-sm text-slate-500 mb-4">
+          Discover and rank the top tools for a specific context. AI will find 5-10 relevant tools automatically.
+        </p>
+
+        <form id="hunt-form-context" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Context Query <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="contextQuery"
+              required
+              placeholder="e.g., Best CRM for Small Business, Best Design Tools for Startups"
+              class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
+            />
+            <p class="mt-1 text-xs text-slate-500">Describe what you're looking for - "Best [category] for [audience]"</p>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Max Tools to Find
+              </label>
+              <select
+                name="maxTools"
+                class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
+              >
+                <option value="3">3 tools (quick)</option>
+                <option value="5" selected>5 tools (standard)</option>
+                <option value="8">8 tools (comprehensive)</option>
+                <option value="10">10 tools (full list)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">
+                Mode
+              </label>
+              <div class="flex items-center gap-4 mt-2">
+                <label class="flex items-center gap-2">
+                  <input type="radio" name="contextMode" value="draft" checked class="text-hunt-500 focus:ring-hunt-500" />
+                  <span class="text-sm text-slate-700">Draft</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="radio" name="contextMode" value="publish" class="text-hunt-500 focus:ring-hunt-500" />
+                  <span class="text-sm text-slate-700">Publish</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 pt-2">
+            <button
+              type="submit"
+              class="hunt-btn rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Start Context Hunt
+            </button>
+            <span class="hunt-status text-sm text-slate-500"></span>
+          </div>
+        </form>
+      </div>
+
+      <!-- Quick Context Ideas -->
+      <div class="rounded-lg border border-slate-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Quick Ideas</h2>
+        <div class="grid gap-2 md:grid-cols-2">
+          {[
+            'Best Project Management Tools for Remote Teams',
+            'Best CRM Software for Small Business',
+            'Best Design Tools for Startups',
+            'Best Note-Taking Apps for Researchers',
+            'Best Email Marketing Tools for E-commerce',
+            'Best Analytics Tools for SaaS',
+          ].map((idea) => (
+            <button
+              type="button"
+              class="quick-context-btn text-left rounded-lg border border-slate-200 px-4 py-2 text-sm hover:border-green-300 hover:bg-green-50 transition"
+              data-context={idea}
+            >
+              {idea}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Panel (shared) -->
+    <div id="results-panel" class="hidden rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="text-lg font-semibold text-slate-900 mb-4">Hunt Results</h2>
+      <div id="results-content"></div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.hunt-panel');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = (btn as HTMLElement).dataset.tab;
+
+        // Update tabs
+        tabBtns.forEach(t => {
+          t.classList.remove('border-hunt-500', 'text-hunt-600');
+          t.classList.add('border-transparent', 'text-slate-500');
+        });
+        btn.classList.remove('border-transparent', 'text-slate-500');
+        btn.classList.add('border-hunt-500', 'text-hunt-600');
+
+        // Update panels
+        panels.forEach(p => p.classList.add('hidden'));
+        document.getElementById(`panel-${tab}`)?.classList.remove('hidden');
+      });
+    });
+
+    // Quick tool buttons
+    document.querySelectorAll('.quick-tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const toolName = (btn as HTMLElement).dataset.tool;
+        const input = document.querySelector('#hunt-form-tool [name="toolName"]') as HTMLInputElement;
+        input.value = toolName || '';
+        input.focus();
+      });
+    });
+
+    // Quick context buttons
+    document.querySelectorAll('.quick-context-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const context = (btn as HTMLElement).dataset.context;
+        const input = document.querySelector('#hunt-form-context [name="contextQuery"]') as HTMLInputElement;
+        input.value = context || '';
+        input.focus();
+      });
+    });
+
+    const resultsPanel = document.getElementById('results-panel') as HTMLElement;
+    const resultsContent = document.getElementById('results-content') as HTMLElement;
+
+    // Tool Hunt Form
+    const toolForm = document.getElementById('hunt-form-tool') as HTMLFormElement;
+    toolForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(toolForm);
+      const btn = toolForm.querySelector('.hunt-btn') as HTMLButtonElement;
+      const status = toolForm.querySelector('.hunt-status') as HTMLElement;
+
+      btn.disabled = true;
+      status.innerHTML = '<span class="text-amber-600">Hunting... 15-30 seconds</span>';
+      resultsPanel.classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/admin/hunt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            toolName: formData.get('toolName'),
+            contextTitle: formData.get('contextTitle') || undefined,
+            categorySlug: formData.get('categorySlug') || undefined,
+            publish: formData.get('mode') === 'publish',
+          }),
+        });
+
+        const result = await response.json();
+        showToolResult(result, formData.get('mode') as string);
+        status.innerHTML = result.success
+          ? '<span class="text-green-600">Done!</span>'
+          : `<span class="text-red-600">Error: ${result.error || 'Unknown error'}</span>`;
+      } catch (err) {
+        status.innerHTML = `<span class="text-red-600">Network error: ${(err as Error).message}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Context Hunt Form
+    const contextForm = document.getElementById('hunt-form-context') as HTMLFormElement;
+    contextForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(contextForm);
+      const btn = contextForm.querySelector('.hunt-btn') as HTMLButtonElement;
+      const status = contextForm.querySelector('.hunt-status') as HTMLElement;
+
+      btn.disabled = true;
+      status.innerHTML = '<span class="text-amber-600">Discovering tools... 30-60 seconds</span>';
+      resultsPanel.classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/admin/hunt-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contextQuery: formData.get('contextQuery'),
+            maxTools: parseInt(formData.get('maxTools') as string) || 5,
+            publish: formData.get('contextMode') === 'publish',
+          }),
+        });
+
+        const result = await response.json();
+        showContextResult(result, formData.get('contextMode') as string);
+        status.innerHTML = result.success
+          ? '<span class="text-green-600">Done!</span>'
+          : `<span class="text-red-600">Error: ${result.error || 'Unknown error'}</span>`;
+      } catch (err) {
+        status.innerHTML = `<span class="text-red-600">Network error: ${(err as Error).message}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    function showToolResult(result: any, mode: string) {
+      resultsPanel.classList.remove('hidden');
+      if (result.success) {
+        resultsContent.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 text-green-600">
+              <span class="text-xl">✓</span>
+              <span class="font-medium">Tool hunt complete</span>
+            </div>
+            <dl class="grid grid-cols-2 gap-2 text-sm">
+              <dt class="text-slate-500">Duration</dt>
+              <dd>${(result.durationMs / 1000).toFixed(2)}s</dd>
+              <dt class="text-slate-500">Tokens</dt>
+              <dd>${result.tokensUsed || 'N/A'}</dd>
+            </dl>
+            <div class="flex gap-3 pt-4 border-t border-slate-200">
+              ${result.toolId ? `<a href="/admin/review" class="text-sm text-hunt-600 hover:underline">Review Drafts →</a>` : ''}
+            </div>
+          </div>
+        `;
+      } else {
+        resultsContent.innerHTML = `<pre class="text-sm text-red-600 bg-red-50 p-4 rounded-lg">${result.error}</pre>`;
+      }
+    }
+
+    function showContextResult(result: any, mode: string) {
+      resultsPanel.classList.remove('hidden');
+      if (result.success) {
+        resultsContent.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 text-green-600">
+              <span class="text-xl">✓</span>
+              <span class="font-medium">Context hunt complete</span>
+            </div>
+            <dl class="grid grid-cols-2 gap-2 text-sm">
+              <dt class="text-slate-500">Tools Created</dt>
+              <dd>${result.toolsCreated}</dd>
+              <dt class="text-slate-500">Reviews Created</dt>
+              <dd>${result.reviewsCreated}</dd>
+              <dt class="text-slate-500">Duration</dt>
+              <dd>${(result.durationMs / 1000).toFixed(2)}s</dd>
+              <dt class="text-slate-500">Tokens</dt>
+              <dd>${result.tokensUsed || 'N/A'}</dd>
+            </dl>
+            <div class="flex gap-3 pt-4 border-t border-slate-200">
+              <a href="/admin/review" class="text-sm text-hunt-600 hover:underline">Review Drafts →</a>
+            </div>
+          </div>
+        `;
+      } else {
+        resultsContent.innerHTML = `<pre class="text-sm text-red-600 bg-red-50 p-4 rounded-lg">${result.error}</pre>`;
+      }
+    }
+  </script>
+</AdminLayout>

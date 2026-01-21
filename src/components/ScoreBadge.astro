@@ -1,0 +1,44 @@
+---
+import { getScoreColor } from '@/lib/utils';
+
+interface Props {
+  score: number;
+  size?: 'sm' | 'md' | 'lg';
+  showLabel?: boolean;
+}
+
+const { score, size = 'md', showLabel = false } = Astro.props;
+const colors = getScoreColor(score);
+
+const sizeClasses = {
+  sm: 'h-8 w-8 text-sm',
+  md: 'h-12 w-12 text-lg',
+  lg: 'h-16 w-16 text-2xl',
+};
+
+const labelSizeClasses = {
+  sm: 'text-xs',
+  md: 'text-sm',
+  lg: 'text-base',
+};
+---
+
+<div class="flex flex-col items-center gap-1">
+  <div
+    class:list={[
+      'flex items-center justify-center rounded-full font-bold border-2',
+      sizeClasses[size],
+      colors.bg,
+      colors.text,
+      colors.border,
+    ]}
+    title={`Score: ${score}/100 - ${colors.label}`}
+  >
+    {score}
+  </div>
+  {showLabel && (
+    <span class:list={['font-medium', labelSizeClasses[size], colors.text]}>
+      {colors.label}
+    </span>
+  )}
+</div>

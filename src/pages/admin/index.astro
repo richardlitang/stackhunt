@@ -1,0 +1,383 @@
+---
+/**
+ * Admin Dashboard - /admin
+ * Overview of content pipeline status with actionable widgets
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAdminClient } from '@/lib/supabase';
+
+const admin = getAdminClient();
+
+// Fetch stats and recent data
+const [
+  { count: draftCount },
+  { count: pendingQueueCount },
+  { count: publishedCount },
+  { count: failedQueueCount },
+  { count: pendingCorrectionsCount },
+  { data: recentDrafts },
+  { data: recentPublished },
+  { data: failedItems },
+  { data: pendingCorrections },
+] = await Promise.all([
+  admin.from('reviews').select('*', { count: 'exact', head: true }).in('status', ['draft', 'review']),
+  admin.from('content_queue').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+  admin.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+  admin.from('content_queue').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
+  admin.from('corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+  admin.from('reviews')
+    .select('id, score, created_at, tool:tools(name, slug, logo_url), context:contexts(title)')
+    .in('status', ['draft', 'review'])
+    .order('created_at', { ascending: false })
+    .limit(5),
+  admin.from('reviews')
+    .select('id, score, published_at, tool:tools(name, slug, logo_url), context:contexts(title)')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false })
+    .limit(5),
+  admin.from('content_queue')
+    .select('*')
+    .eq('status', 'failed')
+    .order('created_at', { ascending: false })
+    .limit(3),
+  admin.from('corrections')
+    .select('id, field_name, correction_text, reporter_email, created_at, tool:tools(name, slug)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(3),
+]);
+
+const hasWork = (draftCount || 0) > 0 || (failedQueueCount || 0) > 0 || (pendingCorrectionsCount || 0) > 0;
+---
+
+<AdminLayout title="Dashboard">
+  <div class="space-y-8">
+    <!-- Welcome Header -->
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        {hasWork
+          ? 'You have items that need attention'
+          : 'Everything looks good! Create some new content.'
+        }
+      </p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <a
+        href="/admin/review"
+        class="group rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/50 p-5 transition hover:shadow-md hover:shadow-amber-100"
+      >
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-3xl font-bold text-amber-700">{draftCount || 0}</div>
+            <div class="mt-1 text-sm font-medium text-amber-600">Pending Review</div>
+          </div>
+          <div class="rounded-lg bg-amber-200/50 p-2 text-amber-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+        </div>
+        {(draftCount || 0) > 0 && (
+          <div class="mt-3 text-xs text-amber-600 group-hover:text-amber-700">
+            Review now →
+          </div>
+        )}
+      </a>
+
+      <a
+        href="/admin/create"
+        class="group rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 transition hover:shadow-md hover:shadow-blue-100"
+      >
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-3xl font-bold text-blue-700">{pendingQueueCount || 0}</div>
+            <div class="mt-1 text-sm font-medium text-blue-600">In Queue</div>
+          </div>
+          <div class="rounded-lg bg-blue-200/50 p-2 text-blue-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-blue-600 group-hover:text-blue-700">
+          Manage queue →
+        </div>
+      </a>
+
+      <div class="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-green-100/50 p-5">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-3xl font-bold text-green-700">{publishedCount || 0}</div>
+            <div class="mt-1 text-sm font-medium text-green-600">Published</div>
+          </div>
+          <div class="rounded-lg bg-green-200/50 p-2 text-green-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {(failedQueueCount || 0) > 0 ? (
+        <a
+          href="/admin/create"
+          class="group rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-red-100/50 p-5 transition hover:shadow-md hover:shadow-red-100"
+        >
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-3xl font-bold text-red-700">{failedQueueCount}</div>
+              <div class="mt-1 text-sm font-medium text-red-600">Failed</div>
+            </div>
+            <div class="rounded-lg bg-red-200/50 p-2 text-red-600">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3 text-xs text-red-600 group-hover:text-red-700">
+            Fix now →
+          </div>
+        </a>
+      ) : (
+        <div class="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-3xl font-bold text-slate-400">0</div>
+              <div class="mt-1 text-sm font-medium text-slate-500">Failed</div>
+            </div>
+            <div class="rounded-lg bg-slate-200/50 p-2 text-slate-400">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+
+    <!-- Quick Actions -->
+    {(draftCount || 0) > 0 && (
+      <div class="rounded-xl border border-hunt-200 bg-hunt-50 p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="font-semibold text-hunt-900">Ready to review?</h2>
+            <p class="mt-1 text-sm text-hunt-700">
+              You have {draftCount} draft{(draftCount || 0) !== 1 ? 's' : ''} waiting for review.
+            </p>
+          </div>
+          <a
+            href="/admin/review/mode"
+            class="inline-flex items-center gap-2 rounded-lg bg-hunt-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-hunt-600 transition shadow-sm"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Start Review Mode
+          </a>
+        </div>
+      </div>
+    )}
+
+    <!-- User Corrections Alert -->
+    {pendingCorrections && pendingCorrections.length > 0 && (
+      <div class="rounded-xl border border-purple-200 bg-purple-50 p-6">
+        <div class="flex items-start gap-4">
+          <div class="rounded-lg bg-purple-100 p-2 text-purple-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold text-purple-900">User Suggestions</h3>
+              <span class="rounded-full bg-purple-200 px-2.5 py-0.5 text-xs font-medium text-purple-700">
+                {pendingCorrectionsCount} pending
+              </span>
+            </div>
+            <p class="mt-1 text-sm text-purple-700">
+              Users have submitted corrections that need review:
+            </p>
+            <ul class="mt-3 space-y-2">
+              {pendingCorrections.map((correction) => {
+                const tool = correction.tool as { name: string; slug: string } | null;
+                return (
+                  <li class="flex items-center justify-between rounded-lg bg-white px-4 py-2 text-sm">
+                    <div class="flex items-center gap-3">
+                      <span class="font-medium text-slate-900">{tool?.name || 'Unknown'}</span>
+                      <span class="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-600 capitalize">
+                        {correction.field_name}
+                      </span>
+                    </div>
+                    <span class="text-slate-500 truncate max-w-xs text-xs">
+                      {(correction.correction_text as string).slice(0, 50)}...
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <a href="/admin/corrections" class="mt-3 inline-block text-sm font-medium text-purple-700 hover:text-purple-800">
+              Review all suggestions →
+            </a>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Failed Items Alert -->
+    {failedItems && failedItems.length > 0 && (
+      <div class="rounded-xl border border-red-200 bg-red-50 p-6">
+        <div class="flex items-start gap-4">
+          <div class="rounded-lg bg-red-100 p-2 text-red-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-semibold text-red-900">Failed Queue Items</h3>
+            <p class="mt-1 text-sm text-red-700">
+              These items failed to process and may need attention:
+            </p>
+            <ul class="mt-3 space-y-2">
+              {failedItems.map((item) => (
+                <li class="flex items-center justify-between rounded-lg bg-white px-4 py-2 text-sm">
+                  <span class="font-medium text-slate-900">{item.tool_name}</span>
+                  <span class="text-red-600 truncate max-w-xs">{item.last_error || 'Unknown error'}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="/admin/create" class="mt-3 inline-block text-sm font-medium text-red-700 hover:text-red-800">
+              View all failed items →
+            </a>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <div class="grid gap-8 lg:grid-cols-2">
+      <!-- Recent Drafts -->
+      <section>
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-slate-900">Recent Drafts</h2>
+          {(draftCount || 0) > 0 && (
+            <a href="/admin/review" class="text-sm text-hunt-600 hover:text-hunt-700">
+              View all →
+            </a>
+          )}
+        </div>
+
+        {recentDrafts && recentDrafts.length > 0 ? (
+          <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+            {recentDrafts.map((draft) => {
+              const tool = draft.tool as { name: string; slug: string; logo_url: string | null };
+              const context = draft.context as { title: string } | null;
+
+              return (
+                <a
+                  href={`/admin/review/${draft.id}`}
+                  class="flex items-center gap-4 p-4 hover:bg-slate-50 transition"
+                >
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                    {tool?.logo_url ? (
+                      <img src={tool.logo_url} alt="" class="h-full w-full object-contain p-1" />
+                    ) : (
+                      <span class="text-sm font-bold text-slate-300">
+                        {tool?.name?.charAt(0) || '?'}
+                      </span>
+                    )}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium text-slate-900 truncate">{tool?.name}</span>
+                      <span class={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                        (draft.score || 0) >= 70 ? 'bg-green-100 text-green-700' :
+                        (draft.score || 0) >= 50 ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {draft.score}
+                      </span>
+                    </div>
+                    {context && (
+                      <p class="text-sm text-slate-500 truncate">{context.title}</p>
+                    )}
+                  </div>
+                  <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+            <p class="text-sm text-slate-500">No drafts awaiting review</p>
+            <a href="/admin/create" class="mt-2 inline-block text-sm text-hunt-600 hover:text-hunt-700">
+              Create new content →
+            </a>
+          </div>
+        )}
+      </section>
+
+      <!-- Recently Published -->
+      <section>
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-slate-900">Recently Published</h2>
+          <a href="/admin/review?status=published" class="text-sm text-hunt-600 hover:text-hunt-700">
+            View all →
+          </a>
+        </div>
+
+        {recentPublished && recentPublished.length > 0 ? (
+          <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+            {recentPublished.map((review) => {
+              const tool = review.tool as { name: string; slug: string; logo_url: string | null };
+              const context = review.context as { title: string } | null;
+
+              return (
+                <div class="flex items-center gap-4 p-4">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                    {tool?.logo_url ? (
+                      <img src={tool.logo_url} alt="" class="h-full w-full object-contain p-1" />
+                    ) : (
+                      <span class="text-sm font-bold text-slate-300">
+                        {tool?.name?.charAt(0) || '?'}
+                      </span>
+                    )}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium text-slate-900 truncate">{tool?.name}</span>
+                      <span class="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        {review.score}
+                      </span>
+                    </div>
+                    {context && (
+                      <p class="text-sm text-slate-500 truncate">{context.title}</p>
+                    )}
+                  </div>
+                  <a
+                    href={`/tools/${tool?.slug}`}
+                    target="_blank"
+                    class="shrink-0 text-slate-400 hover:text-hunt-600"
+                    title="View on site"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+            <p class="text-sm text-slate-500">No published reviews yet</p>
+          </div>
+        )}
+      </section>
+    </div>
+  </div>
+</AdminLayout>

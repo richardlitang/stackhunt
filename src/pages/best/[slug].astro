@@ -1,0 +1,333 @@
+---
+/**
+ * Context/List Page - /best/[slug]
+ * The "Spoke" in our Hub & Spoke model
+ *
+ * Examples:
+ * - /best/crm-for-small-teams
+ * - /best/slack-alternatives-for-remote-teams
+ *
+ * Features:
+ * - Ranked tool list with contextual scores
+ * - SEO: ItemList JSON-LD schema
+ * - Internal links to each tool's hub page
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ToolCard from '@/components/ToolCard.astro';
+import ProsCons from '@/components/ProsCons.astro';
+import SentimentTags from '@/components/SentimentTags.astro';
+import VoteWidget from '@/components/VoteWidget';
+import { getContextBySlug, getAllContextSlugs } from '@/lib/supabase';
+import {
+  generateContextMeta,
+  generateListSchema,
+  generateBreadcrumbSchema,
+} from '@/lib/seo';
+import { simpleMarkdown, getScoreColor } from '@/lib/utils';
+
+// Static generation
+export async function getStaticPaths() {
+  const slugs = await getAllContextSlugs();
+  return slugs.map((slug) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+
+// Fetch context with all tools
+const context = await getContextBySlug(slug);
+
+if (!context) {
+  return Astro.redirect('/404');
+}
+
+// Sort reviews by score
+const sortedReviews = [...(context.reviews || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+// Generate SEO
+const meta = generateContextMeta(context, context.category?.name);
+const schemas = [
+  generateListSchema(
+    context,
+    sortedReviews.map((r, i) => ({
+      tool: r.tool,
+      score: r.score || 0,
+      position: i + 1,
+    }))
+  ),
+  generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Best Lists', url: '/best' },
+    ...(context.category ? [{ name: context.category.name, url: `/categories/${context.category.slug}` }] : []),
+    { name: context.title, url: `/best/${context.slug}` },
+  ]),
+];
+
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
+---
+
+<BaseLayout meta={meta} schemas={schemas}>
+  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Breadcrumbs -->
+    <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">
+      <a href="/" class="hover:text-hunt-500">Home</a>
+      <span>/</span>
+      <a href="/best" class="hover:text-hunt-500">Best Lists</a>
+      {context.category && (
+        <>
+          <span>/</span>
+          <a href={`/categories/${context.category.slug}`} class="hover:text-hunt-500">
+            {context.category.name}
+          </a>
+        </>
+      )}
+      <span>/</span>
+      <span class="text-slate-700 truncate">{context.title}</span>
+    </nav>
+
+    <!-- Header -->
+    <header class="mb-10">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">
+            {context.title}
+          </h1>
+
+          {context.category && (
+            <div class="mt-2">
+              <a
+                href={`/categories/${context.category.slug}`}
+                class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-hunt-500"
+              >
+                <span>{context.category.icon || '📁'}</span>
+                {context.category.name}
+              </a>
+            </div>
+          )}
+        </div>
+
+        <div class="shrink-0 text-right">
+          <div class="text-3xl font-bold text-hunt-500">{context.tool_count}</div>
+          <div class="text-sm text-slate-500">tools compared</div>
+        </div>
+      </div>
+
+      {context.intro_text && (
+        <div
+          class="mt-6 prose prose-slate prose-sm max-w-none rounded-xl border border-slate-200 bg-slate-50 p-5"
+          set:html={simpleMarkdown(context.intro_text)}
+        />
+      )}
+
+      <!-- If this is an "alternatives to" page, show primary tool -->
+      {context.primary_tool && (
+        <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-amber-700">Looking for alternatives to</span>
+            <a
+              href={`/tools/${context.primary_tool.slug}`}
+              class="inline-flex items-center gap-2 font-medium text-amber-800 hover:text-amber-900"
+            >
+              {context.primary_tool.logo_url && (
+                <img
+                  src={context.primary_tool.logo_url}
+                  alt=""
+                  class="h-5 w-5 rounded"
+                />
+              )}
+              {context.primary_tool.name}
+              <span class="text-amber-600">→</span>
+            </a>
+          </div>
+        </div>
+      )}
+    </header>
+
+    <!-- Ranked Tool List -->
+    <section>
+      <div class="mb-6 flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-slate-900">
+          Top {Math.min(sortedReviews.length, 10)} Picks
+        </h2>
+        <span class="text-sm text-slate-500">
+          Sorted by contextual score
+        </span>
+      </div>
+
+      <div class="space-y-6">
+        {sortedReviews.map((review, index) => {
+          const rank = index + 1;
+          const scoreColors = getScoreColor(review.score || 0);
+
+          return (
+            <article
+              class="rounded-xl border border-slate-200 bg-white overflow-hidden transition hover:shadow-lg"
+              id={`tool-${rank}`}
+            >
+              <!-- Rank Header -->
+              <div class={`flex items-center justify-between px-6 py-3 ${rank === 1 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100' : 'bg-slate-50 border-b border-slate-100'}`}>
+                <div class="flex items-center gap-3">
+                  <span class={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${rank === 1 ? 'bg-amber-500 text-white' : rank === 2 ? 'bg-slate-400 text-white' : rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                    #{rank}
+                  </span>
+                  {rank === 1 && (
+                    <span class="text-xs font-medium text-amber-700">Top Pick</span>
+                  )}
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <span class={`text-sm font-medium ${scoreColors.text}`}>
+                    Score: {review.score}/100
+                  </span>
+                  <div class={`h-2 w-16 rounded-full ${scoreColors.bg}`}>
+                    <div
+                      class={`h-2 rounded-full ${review.score >= 70 ? 'bg-green-500' : review.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                      style={`width: ${review.score}%`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tool Content -->
+              <div class="p-6">
+                <div class="flex items-start gap-5">
+                  <!-- Logo -->
+                  <a
+                    href={`/tools/${review.tool.slug}`}
+                    class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white"
+                  >
+                    {review.tool.logo_url ? (
+                      <img
+                        src={review.tool.logo_url}
+                        alt={`${review.tool.name} logo`}
+                        class="h-full w-full object-contain p-2"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span class="text-2xl font-bold text-slate-300">
+                        {review.tool.name.charAt(0)}
+                      </span>
+                    )}
+                  </a>
+
+                  <!-- Info -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-4">
+                      <div>
+                        <a
+                          href={`/tools/${review.tool.slug}`}
+                          class="text-xl font-semibold text-slate-900 hover:text-hunt-600"
+                        >
+                          {review.tool.name}
+                        </a>
+                        {review.tool.short_description && (
+                          <p class="mt-1 text-sm text-slate-600 line-clamp-2">
+                            {review.tool.short_description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* CTA Button */}
+                      {review.tool.affiliate_offers?.[0] && (
+                        <a
+                          href={review.tool.affiliate_offers[0].url}
+                          target="_blank"
+                          rel={review.tool.affiliate_offers[0].is_affiliate ? 'nofollow sponsored noopener' : 'noopener'}
+                          class="shrink-0 rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-hunt-600"
+                        >
+                          {review.tool.affiliate_offers[0].cta_text}
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Tags */}
+                    {review.sentiment_tags?.length > 0 && (
+                      <div class="mt-3">
+                        <SentimentTags tags={review.sentiment_tags} limit={4} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pros/Cons - Expanded for SEO, collapses after JS loads */}
+                {(review.pros?.length > 0 || review.cons?.length > 0) && (
+                  <details class="mt-4 group seo-collapse" open>
+                    <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900">
+                      <svg class="h-4 w-4 transition group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                      View pros & cons
+                    </summary>
+
+                    <div class="mt-4">
+                      <ProsCons
+                        pros={review.pros || []}
+                        cons={review.cons || []}
+                      />
+                    </div>
+                  </details>
+                )}
+
+                {/* Summary - Expanded for SEO, collapses after JS loads */}
+                {review.summary_markdown && (
+                  <details class="mt-3 group seo-collapse" open>
+                    <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900">
+                      <svg class="h-4 w-4 transition group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                      Read full analysis
+                    </summary>
+
+                    <div
+                      class="mt-3 prose prose-slate prose-sm max-w-none rounded-lg bg-slate-50 p-4"
+                      set:html={simpleMarkdown(review.summary_markdown)}
+                    />
+                  </details>
+                )}
+
+                {/* Vote & Link */}
+                <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                  <VoteWidget
+                    client:visible
+                    reviewId={review.id}
+                    initialUpvotes={review.upvotes}
+                    initialDownvotes={review.downvotes}
+                    turnstileSiteKey={turnstileSiteKey}
+                  />
+
+                  <a
+                    href={`/tools/${review.tool.slug}`}
+                    class="text-sm font-medium text-hunt-600 hover:text-hunt-700"
+                  >
+                    Full profile →
+                  </a>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+
+    <!-- Empty State -->
+    {sortedReviews.length === 0 && (
+      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-slate-900">No tools yet</h3>
+        <p class="mt-2 text-sm text-slate-500">
+          We're still researching tools for this category. Check back soon!
+        </p>
+      </div>
+    )}
+  </div>
+  {/* Collapse details after 2s for UX, but bots see expanded content */}
+  <script>
+    setTimeout(() => {
+      document.querySelectorAll('details.seo-collapse').forEach(el => {
+        el.removeAttribute('open');
+      });
+    }, 2000);
+  </script>
+</BaseLayout>
