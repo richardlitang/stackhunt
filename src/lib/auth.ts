@@ -15,13 +15,22 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 }
 
-// Get required environment variable - fails in production if missing
+// Check if we're in build/prerender phase (no runtime context)
+function isBuildPhase(): boolean {
+  return process.env.ASTRO_BUILD === 'true' || typeof process.env.VERCEL_URL === 'undefined' && isProduction();
+}
+
+// Get required environment variable - fails in production runtime if missing
 function getRequiredEnvVar(key: string): string {
   // For server-side secrets, only use process.env (not import.meta.env)
   // Astro only exposes PUBLIC_ prefixed vars through import.meta.env
   const value = process.env[key];
 
   if (!value) {
+    // During build phase, return placeholder (won't be used)
+    if (isBuildPhase()) {
+      return `build-placeholder-${key}`;
+    }
     if (isProduction()) {
       throw new Error(`CRITICAL: ${key} environment variable is required in production`);
     }
@@ -37,9 +46,24 @@ function getRequiredEnvVar(key: string): string {
   return value;
 }
 
-// Constants - will throw in production if not configured
-const ADMIN_PASSWORD = getRequiredEnvVar('ADMIN_PASSWORD');
-const SESSION_SECRET = getRequiredEnvVar('SESSION_SECRET');
+// Lazy-loaded secrets (evaluated on first use, not during module load)
+let _adminPassword: string | null = null;
+let _sessionSecret: string | null = null;
+
+function getAdminPassword(): string {
+  if (_adminPassword === null) {
+    _adminPassword = getRequiredEnvVar('ADMIN_PASSWORD');
+  }
+  return _adminPassword;
+}
+
+function getSessionSecret(): string {
+  if (_sessionSecret === null) {
+    _sessionSecret = getRequiredEnvVar('SESSION_SECRET');
+  }
+  return _sessionSecret;
+}
+
 export const COOKIE_NAME = 'stackhunt_admin_session';
 export const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
@@ -65,7 +89,7 @@ function safeCompare(a: string, b: string): boolean {
  * Validate admin password
  */
 export function validatePassword(password: string): boolean {
-  return safeCompare(password, ADMIN_PASSWORD);
+  return safeCompare(password, getAdminPassword());
 }
 
 /**
@@ -77,7 +101,7 @@ export function generateSessionToken(): string {
   const timestamp = Date.now().toString();
   const payload = `${randomPart}:${timestamp}`;
 
-  const hmac = createHmac('sha256', SESSION_SECRET);
+  const hmac = createHmac('sha256', getSessionSecret());
   hmac.update(payload);
   const signature = hmac.digest('hex');
 
@@ -88,7 +112,7 @@ export function generateSessionToken(): string {
  * Hash a session token for database storage
  */
 export function hashSessionToken(token: string): string {
-  const hmac = createHmac('sha256', SESSION_SECRET);
+  const hmac = createHmac('sha256', getSessionSecret());
   hmac.update(token);
   return hmac.digest('hex');
 }
@@ -202,7 +226,7 @@ export function validateLegacyToken(token: string): boolean {
     const decoded = atob(token);
     const [password, timestamp] = decoded.split(':');
 
-    if (!safeCompare(password, ADMIN_PASSWORD)) {
+    if (!safeCompare(password, getAdminPassword())) {
       return false;
     }
 

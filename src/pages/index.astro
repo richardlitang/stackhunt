@@ -17,6 +17,9 @@ import {
 } from '@/lib/supabase';
 import { getCanonicalUrl } from '@/lib/utils';
 
+// Cache for 5 minutes (SSR)
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+
 // Fetch data
 const [featuredTools, featuredContexts, categories] = await Promise.all([
   getFeaturedTools(12),

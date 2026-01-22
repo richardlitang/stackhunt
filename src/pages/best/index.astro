@@ -8,6 +8,9 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import { supabase } from '@/lib/supabase';
 import { getCanonicalUrl } from '@/lib/utils';
 
+// Cache for 5 minutes (SSR)
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+
 // Fetch all contexts with categories
 const { data: contexts } = await supabase
   .from('contexts')
@@ -39,11 +42,11 @@ const categoryNames = Object.keys(byCategory).sort();
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Header -->
     <header class="text-center">
-      <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">
+      <h1 class="text-3xl font-semibold text-zinc-100 sm:text-4xl">
         Best Software Lists
       </h1>
-      <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-        Curated comparison lists to help you find the perfect tool. Each list is ranked based on AI analysis of features, pricing, and reviews.
+      <p class="mx-auto mt-4 max-w-2xl text-base text-zinc-400">
+        Curated comparison lists to help you find the perfect tool. Each list is ranked based on features, pricing, and reviews.
       </p>
     </header>
 
@@ -52,29 +55,29 @@ const categoryNames = Object.keys(byCategory).sort();
       <div class="mt-12 space-y-12">
         {categoryNames.map((catName) => (
           <section>
-            <h2 class="mb-6 flex items-center gap-2 text-xl font-semibold text-slate-900">
+            <h2 class="mb-6 flex items-center gap-2 text-xl font-semibold text-zinc-100">
               {byCategory[catName][0]?.category?.icon && (
                 <span>{byCategory[catName][0].category.icon}</span>
               )}
               {catName}
             </h2>
 
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {byCategory[catName].map((ctx) => (
                 <a
                   href={`/best/${ctx.slug}`}
-                  class="group rounded-xl border border-slate-200 bg-white p-5 transition hover:border-hunt-200 hover:shadow-lg"
+                  class="group rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700 hover:bg-gradient-to-b hover:from-zinc-800/50 hover:to-zinc-900/50"
                 >
-                  <h3 class="font-semibold text-slate-900 group-hover:text-hunt-600 line-clamp-2">
+                  <h3 class="font-medium text-zinc-100 group-hover:text-white line-clamp-2">
                     {ctx.title}
                   </h3>
 
                   <div class="mt-2 flex items-center justify-between">
-                    <span class="text-sm text-slate-500">
+                    <span class="text-sm text-zinc-500">
                       {ctx.tool_count} tools
                     </span>
-                    <span class="text-sm text-hunt-600 opacity-0 transition group-hover:opacity-100">
-                      View list →
+                    <span class="text-sm text-zinc-400 opacity-0 transition group-hover:opacity-100">
+                      View →
                     </span>
                   </div>
                 </a>
@@ -84,13 +87,13 @@ const categoryNames = Object.keys(byCategory).sort();
         ))}
       </div>
     ) : (
-      <div class="mt-12 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="mt-12 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
-        <h3 class="mt-4 text-lg font-medium text-slate-900">No lists yet</h3>
-        <p class="mt-2 text-sm text-slate-500">
-          Run the Hunter Agent to create comparison lists!
+        <h3 class="mt-4 text-lg font-medium text-zinc-100">No lists yet</h3>
+        <p class="mt-2 text-sm text-zinc-500">
+          Check back soon for more comparison lists!
         </p>
       </div>
     )}
