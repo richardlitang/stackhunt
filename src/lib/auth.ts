@@ -19,7 +19,7 @@ function isProduction(): boolean {
 function getRequiredEnvVar(key: string): string {
   // For server-side secrets, only use process.env (not import.meta.env)
   // Astro only exposes PUBLIC_ prefixed vars through import.meta.env
-  const value = process.env[key];
+  const value = process.env[key]?.trim();
 
   if (!value) {
     if (isProduction()) {
@@ -65,15 +65,7 @@ function safeCompare(a: string, b: string): boolean {
  * Validate admin password
  */
 export function validatePassword(password: string): boolean {
-  // Debug: Log password lengths (not actual values for security)
-  console.log('[Auth Debug] Input password length:', password?.length);
-  console.log('[Auth Debug] Expected password length:', ADMIN_PASSWORD?.length);
-  console.log('[Auth Debug] ADMIN_PASSWORD is set:', !!ADMIN_PASSWORD);
-  console.log('[Auth Debug] Is default dev password:', ADMIN_PASSWORD === 'dev-password-only');
-
-  const result = safeCompare(password, ADMIN_PASSWORD);
-  console.log('[Auth Debug] Password match result:', result);
-  return result;
+  return safeCompare(password, ADMIN_PASSWORD);
 }
 
 /**
