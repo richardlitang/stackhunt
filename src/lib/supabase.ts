@@ -135,9 +135,11 @@ export async function getToolsByCategory(categorySlug: string) {
 
 /**
  * Fetch featured tools for homepage
+ * Falls back to top-rated tools if no featured items exist
  */
 export async function getFeaturedTools(limit = 12) {
-  const { data, error } = await supabase
+  // First try featured tools
+  const { data: featured, error: featuredError } = await supabase
     .from('tools')
     .select(`
       id, name, slug, logo_url, short_description, avg_score, pricing_type,
@@ -147,15 +149,35 @@ export async function getFeaturedTools(limit = 12) {
     .order('avg_score', { ascending: false })
     .limit(limit);
 
-  if (error) throw error;
-  return data;
+  if (featuredError) throw featuredError;
+
+  // If we have featured tools, return them
+  if (featured && featured.length > 0) {
+    return featured;
+  }
+
+  // Fallback: get top-rated tools (by avg_score, then by created_at)
+  const { data: topRated, error: topRatedError } = await supabase
+    .from('tools')
+    .select(`
+      id, name, slug, logo_url, short_description, avg_score, pricing_type,
+      category:categories(name, slug)
+    `)
+    .order('avg_score', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (topRatedError) throw topRatedError;
+  return topRated;
 }
 
 /**
  * Fetch featured contexts/lists for homepage
+ * Falls back to contexts with most tools if no featured items exist
  */
 export async function getFeaturedContexts(limit = 8) {
-  const { data, error } = await supabase
+  // First try featured contexts
+  const { data: featured, error: featuredError } = await supabase
     .from('contexts')
     .select(`
       id, title, slug, tool_count,
@@ -165,8 +187,27 @@ export async function getFeaturedContexts(limit = 8) {
     .order('tool_count', { ascending: false })
     .limit(limit);
 
-  if (error) throw error;
-  return data;
+  if (featuredError) throw featuredError;
+
+  // If we have featured contexts, return them
+  if (featured && featured.length > 0) {
+    return featured;
+  }
+
+  // Fallback: get contexts with most tools
+  const { data: topContexts, error: topContextsError } = await supabase
+    .from('contexts')
+    .select(`
+      id, title, slug, tool_count,
+      category:categories!contexts_category_id_fkey(name, slug, icon)
+    `)
+    .gt('tool_count', 0)
+    .order('tool_count', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (topContextsError) throw topContextsError;
+  return topContexts;
 }
 
 /**

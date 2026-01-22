@@ -67,47 +67,30 @@ const allSchemas = [
     ))}
   </head>
 
-  <body class="min-h-screen bg-white text-slate-900 antialiased">
+  <body class="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
     <!-- Header -->
-    <header class="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-lg">
-      <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header class="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-lg">
+      <nav class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <!-- Logo -->
         <a href="/" class="flex items-center gap-2">
-          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-hunt-500">
-            <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500">
+            <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <span class="text-xl font-bold text-slate-900">Stack<span class="text-hunt-500">Hunt</span></span>
+          <span class="text-lg font-semibold text-zinc-100">Stack<span class="text-indigo-400">Hunt</span></span>
         </a>
 
-        <!-- Search (placeholder for now) -->
-        <div class="hidden flex-1 justify-center px-8 md:flex">
-          <div class="relative w-full max-w-md">
-            <input
-              type="text"
-              placeholder="Search tools... (CMD+K)"
-              class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 transition focus:border-hunt-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
-            />
-            <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-        </div>
-
         <!-- Nav Links -->
-        <div class="flex items-center gap-6">
-          <a href="/categories" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+        <div class="flex items-center gap-4">
+          <a href="/categories" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
             Categories
           </a>
-          <a href="/best" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition">
-            Best Lists
+          <a href="/best" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
+            Lists
           </a>
-          <a
-            href="/submit"
-            class="rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-hunt-600"
-          >
-            Submit Tool
+          <a href="/tools" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
+            Tools
           </a>
         </div>
       </nav>
@@ -122,52 +105,45 @@ const allSchemas = [
     <MyStackWidget client:load />
 
     <!-- Footer -->
-    <footer class="border-t border-slate-200 bg-slate-50">
-      <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <footer class="border-t border-zinc-800 bg-zinc-900">
+      <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div class="grid gap-8 md:grid-cols-4">
           <!-- Brand -->
           <div class="md:col-span-2">
             <a href="/" class="flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-hunt-500">
-                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500">
+                <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <span class="text-xl font-bold text-slate-900">Stack<span class="text-hunt-500">Hunt</span></span>
+              <span class="text-lg font-semibold text-zinc-100">Stack<span class="text-indigo-400">Hunt</span></span>
             </a>
-            <p class="mt-4 max-w-md text-sm text-slate-600">
-              Discover the best software alternatives. AI-powered analysis, honest reviews, and real comparisons to help you find the perfect tool.
+            <p class="mt-3 max-w-md text-sm text-zinc-500">
+              Curated software recommendations for developers, designers, and teams.
             </p>
           </div>
 
           <!-- Links -->
           <div>
-            <h3 class="font-semibold text-slate-900">Explore</h3>
-            <ul class="mt-4 space-y-2">
-              <li><a href="/categories" class="text-sm text-slate-600 hover:text-hunt-500">Categories</a></li>
-              <li><a href="/best" class="text-sm text-slate-600 hover:text-hunt-500">Best Lists</a></li>
-              <li><a href="/tools" class="text-sm text-slate-600 hover:text-hunt-500">All Tools</a></li>
+            <h3 class="text-sm font-medium text-zinc-100">Explore</h3>
+            <ul class="mt-3 space-y-2">
+              <li><a href="/categories" class="text-sm text-zinc-500 hover:text-indigo-400">Categories</a></li>
+              <li><a href="/best" class="text-sm text-zinc-500 hover:text-indigo-400">Best Lists</a></li>
+              <li><a href="/tools" class="text-sm text-zinc-500 hover:text-indigo-400">All Tools</a></li>
             </ul>
           </div>
 
           <div>
-            <h3 class="font-semibold text-slate-900">Company</h3>
-            <ul class="mt-4 space-y-2">
-              <li><a href="/about" class="text-sm text-slate-600 hover:text-hunt-500">About</a></li>
-              <li><a href="/submit" class="text-sm text-slate-600 hover:text-hunt-500">Submit Tool</a></li>
-              <li><a href="/contact" class="text-sm text-slate-600 hover:text-hunt-500">Contact</a></li>
+            <h3 class="text-sm font-medium text-zinc-100">Legal</h3>
+            <ul class="mt-3 space-y-2">
+              <li><a href="/privacy" class="text-sm text-zinc-500 hover:text-indigo-400">Privacy</a></li>
+              <li><a href="/disclosure" class="text-sm text-zinc-500 hover:text-indigo-400">Disclosure</a></li>
             </ul>
           </div>
         </div>
 
-        <div class="mt-8 border-t border-slate-200 pt-8">
-          <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p class="text-sm text-slate-500">&copy; {new Date().getFullYear()} StackHunt. All rights reserved.</p>
-            <nav class="flex gap-6">
-              <a href="/privacy" class="text-sm text-slate-500 hover:text-hunt-500 transition">Privacy Policy</a>
-              <a href="/disclosure" class="text-sm text-slate-500 hover:text-hunt-500 transition">Affiliate Disclosure</a>
-            </nav>
-          </div>
+        <div class="mt-8 border-t border-zinc-800 pt-6">
+          <p class="text-center text-sm text-zinc-600">&copy; {new Date().getFullYear()} StackHunt</p>
         </div>
       </div>
     </footer>
@@ -177,17 +153,17 @@ const allSchemas = [
 <style is:global>
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: #18181b;
   }
   ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
+    background: #3f3f46;
+    border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: #52525b;
   }
 </style>
