@@ -72,17 +72,17 @@ export function formatPricingType(type: string): string {
 }
 
 /**
- * Get pricing badge color (SDS v2 - dark mode compatible)
+ * Get pricing badge color (SDS v2 - Emerald for money/business)
  */
 export function getPricingColor(type: string): string {
   const colors: Record<string, string> = {
-    free: 'bg-emerald-500/20 text-emerald-400',
-    freemium: 'bg-indigo-500/20 text-indigo-400',
-    paid: 'bg-amber-500/20 text-amber-400',
-    enterprise: 'bg-zinc-700 text-zinc-300',
-    open_source: 'bg-emerald-500/20 text-emerald-400',
+    free: 'bg-emerald-500/15 text-emerald-400',
+    freemium: 'bg-emerald-500/15 text-emerald-400',
+    paid: 'bg-emerald-500/15 text-emerald-400',
+    enterprise: 'bg-zinc-800 text-zinc-400',
+    open_source: 'bg-indigo-500/15 text-indigo-400',
   };
-  return colors[type] || 'bg-zinc-700 text-zinc-400';
+  return colors[type] || 'bg-zinc-800 text-zinc-400';
 }
 
 /**
