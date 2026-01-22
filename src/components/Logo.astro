@@ -1,0 +1,85 @@
+---
+/**
+ * Logo Component - Compliant Hotlinking
+ *
+ * Uses Brandfetch CDN with proper hotlinking (TOS compliant)
+ * Fallback chain: Brandfetch → Google Favicons → DuckDuckGo → Initials
+ */
+
+interface Props {
+  domain: string | null;
+  name: string;
+  size?: 'sm' | 'md' | 'lg';
+  class?: string;
+}
+
+const { domain, name, size = 'md', class: className = '' } = Astro.props;
+
+const sizeClasses = {
+  sm: 'h-8 w-8',
+  md: 'h-12 w-12',
+  lg: 'h-16 w-16',
+};
+
+const sizeClass = sizeClasses[size];
+
+// If no domain, show initials
+if (!domain) {
+  const initials = name.charAt(0).toUpperCase();
+  ---
+  <div class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-slate-100`}>
+    <span class="text-xl font-bold text-slate-400">{initials}</span>
+  </div>
+  ---
+  return;
+}
+
+// Brandfetch Client ID (from env - free tier, no attribution required)
+const brandfetchId = import.meta.env.PUBLIC_BRANDFETCH_CLIENT_ID || '';
+
+// Primary: Brandfetch CDN (hotlink compliant)
+const brandfetchUrl = brandfetchId
+  ? `https://cdn.brandfetch.io/${domain}?c=${brandfetchId}`
+  : null;
+
+// Fallback 1: Google Favicons
+const googleUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+
+// Fallback 2: DuckDuckGo
+const duckduckgoUrl = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+
+// Initials fallback
+const initials = name.charAt(0).toUpperCase();
+---
+
+<div class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-slate-100`}>
+  <img
+    src={brandfetchUrl || googleUrl}
+    alt={`${name} logo`}
+    class="h-full w-full object-contain p-1"
+    loading="lazy"
+    onerror={`
+      // Fallback chain
+      if (this.src.includes('brandfetch')) {
+        this.src = '${googleUrl}';
+      } else if (this.src.includes('google')) {
+        this.src = '${duckduckgoUrl}';
+      } else {
+        // Last resort: hide image, show initials
+        this.style.display = 'none';
+        this.nextElementSibling.style.display = 'flex';
+      }
+    `}
+  />
+  <span class="hidden text-xl font-bold text-slate-400">{initials}</span>
+</div>
+
+<style>
+  /* Smooth loading transition */
+  img {
+    transition: opacity 0.2s ease-in-out;
+  }
+  img[src=""] {
+    opacity: 0;
+  }
+</style>

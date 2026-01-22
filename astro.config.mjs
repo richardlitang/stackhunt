@@ -5,10 +5,9 @@ import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 
 export default defineConfig({
-  site: process.env.PUBLIC_SITE_URL || 'https://stackhunt.com',
+  site: process.env.PUBLIC_SITE_URL || 'https://stackhunt.io',
   output: 'server', // Server-side with prerendering for static pages
   adapter: vercel({
-    webAnalytics: { enabled: true },
     imageService: true,
   }),
   integrations: [
