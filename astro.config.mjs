@@ -15,7 +15,10 @@ export default defineConfig({
     tailwind(),
     react(),
     sitemap({
-      filter: (page) => !page.includes('/api/'),
+      filter: (page) => {
+        // Exclude API routes and admin pages from sitemap
+        return !page.includes('/api/') && !page.includes('/admin');
+      },
     }),
   ],
   vite: {

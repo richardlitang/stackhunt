@@ -598,13 +598,60 @@ async function handleStrategyImport(
     const toolName = row.tool_name || row.tool || row.Tool || row['Tool Name'];
     const contextQuery = row.context_query || row.context || row.Context || row.audience;
     const searchVolume = parseInt(row.search_volume || row.volume || row.Volume || '0', 10);
-    const keywordDifficulty = parseInt(row.keyword_difficulty || row.difficulty || row.KD || row.kd || '50', 10);
+    const keywordDifficulty = parseInt(row.keyword_difficulty || row.difficulty || row.KD || row.kd || '0', 10);
     const cpc = parseFloat(row.cpc || row.CPC || '0');
+
+    // New fields for LLM brainstorm format
+    const pillar = row.pillar || row.Pillar || null;
+    const targetAudience = row.target_audience || row.audience || row.Audience || null;
+    const contentType = row.content_type || row.type || row.Type || null;
+    const notes = row.notes || row.Notes || row.editorial_notes || null;
+
+    // Priority: accept number (0-100) or text (high/medium/low)
+    const rawPriority = row.priority || row.Priority || '50';
+    let priority = 50;
+    if (/^\d+$/.test(rawPriority)) {
+      priority = Math.min(Math.max(parseInt(rawPriority, 10), 0), 100);
+    } else {
+      // Convert text to number (higher = more important)
+      const priorityMap: Record<string, number> = {
+        critical: 95, urgent: 90, high: 80, medium: 50, low: 30, backlog: 10,
+      };
+      priority = priorityMap[rawPriority.toLowerCase()] || 50;
+    }
+
+    // Validate pillar
+    const validPillars = ['builder', 'creative', 'growth', 'operations'];
+    const normalizedPillar = pillar && validPillars.includes(pillar.toLowerCase())
+      ? pillar.toLowerCase()
+      : null;
+
+    // Validate target audience
+    const validAudiences = [
+      'freelancers', 'solopreneurs', 'small-teams', 'agencies',
+      'startups', 'enterprise', 'developers', 'designers',
+      'marketers', 'content-creators', 'consultants', 'coaches',
+      'remote-teams', 'sales-teams', 'finance-teams', 'students',
+      'non-profits', 'virtual-assistants', 'creatives', 'founders',
+    ];
+    const normalizedAudience = targetAudience && validAudiences.includes(targetAudience.toLowerCase())
+      ? targetAudience.toLowerCase()
+      : null;
+
+    // Validate content type
+    const validContentTypes = ['listicle', 'comparison', 'alternatives', 'single_tool', 'roundup'];
+    const normalizedContentType = contentType && validContentTypes.includes(contentType.toLowerCase())
+      ? contentType.toLowerCase()
+      : null;
 
     if (!keyword && !toolName) {
       skipped++;
       continue;
     }
+
+    // Determine source format
+    const hasLlmFields = pillar || targetAudience || contentType || notes || (rawPriority && !/^\d+$/.test(rawPriority));
+    const sourceFormat = hasLlmFields ? 'llm_brainstorm' : 'simple';
 
     // Insert into content_ideas
     const { error: insertError } = await supabase
@@ -613,10 +660,16 @@ async function handleStrategyImport(
         keyword: keyword || toolName,
         tool_name: toolName || keyword,
         context_query: contextQuery || null,
-        search_volume: searchVolume,
-        keyword_difficulty: keywordDifficulty,
-        cpc: cpc,
+        search_volume: searchVolume || null,
+        keyword_difficulty: keywordDifficulty || null,
+        cpc: cpc || null,
+        pillar: normalizedPillar,
+        target_audience: normalizedAudience,
+        content_type: normalizedContentType,
+        priority: priority,
+        notes: notes,
         source: 'csv_import',
+        source_format: sourceFormat,
         import_batch_id: batch.id,
         status: 'pending',
       });

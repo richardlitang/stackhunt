@@ -1,0 +1,193 @@
+---
+/**
+ * Privacy Policy Page
+ *
+ * Covers:
+ * - Analytics (Vercel Web Analytics)
+ * - Affiliate tracking
+ * - Cookies and local storage
+ * - Data collection practices
+ *
+ * @module pages/privacy
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  meta={{
+    title: "Privacy Policy | StackHunt",
+    description: "Learn how StackHunt collects, uses, and protects your data. Our privacy practices for analytics, cookies, and affiliate tracking."
+  }}
+>
+  <main class="container mx-auto max-w-3xl px-4 py-12">
+    <article class="prose prose-slate max-w-none">
+      <h1>Privacy Policy</h1>
+
+      <p class="lead text-xl text-slate-600">
+        Last updated: January 2026
+      </p>
+
+      <p>
+        StackHunt ("we," "us," or "our") respects your privacy and is committed to
+        protecting your personal data. This privacy policy explains how we collect,
+        use, and safeguard information when you visit stackhunt.com.
+      </p>
+
+      <h2>Information We Collect</h2>
+
+      <h3>Analytics Data</h3>
+      <p>
+        We use <strong>Vercel Web Analytics</strong> to understand how visitors use our site.
+        This privacy-focused analytics service collects:
+      </p>
+      <ul>
+        <li>Page views and navigation patterns</li>
+        <li>Referral sources (how you found us)</li>
+        <li>Device type and browser information</li>
+        <li>Geographic region (country/region level only)</li>
+      </ul>
+      <p>
+        Vercel Web Analytics is designed to be privacy-friendly and does not use cookies
+        for tracking. It does not collect personally identifiable information (PII) and
+        is compliant with GDPR, CCPA, and other privacy regulations.
+      </p>
+
+      <h3>Voting and Interaction Data</h3>
+      <p>
+        When you upvote or downvote tools on StackHunt, we collect:
+      </p>
+      <ul>
+        <li>A hashed browser fingerprint (to prevent duplicate votes)</li>
+        <li>A hashed IP address (for rate limiting and fraud prevention)</li>
+        <li>Your vote direction (up or down)</li>
+      </ul>
+      <p>
+        We hash these identifiers using one-way encryption, meaning we cannot reverse
+        them to identify you personally. This data is used solely to ensure fair voting
+        and prevent abuse.
+      </p>
+
+      <h3>Local Storage</h3>
+      <p>
+        We use your browser's local storage to save:
+      </p>
+      <ul>
+        <li>Your "My Stack" selections (tools you've saved for comparison)</li>
+        <li>Your voting history (to show you how you voted)</li>
+        <li>UI preferences</li>
+      </ul>
+      <p>
+        This data never leaves your device and is not transmitted to our servers.
+      </p>
+
+      <h2>Cookies</h2>
+
+      <h3>Essential Cookies</h3>
+      <p>
+        We use minimal essential cookies required for the site to function:
+      </p>
+      <ul>
+        <li><strong>Session cookies</strong> — Used for admin authentication only. Regular visitors do not receive session cookies.</li>
+        <li><strong>Security tokens</strong> — Cloudflare Turnstile may set cookies to verify you're not a bot when voting.</li>
+      </ul>
+
+      <h3>Third-Party Cookies</h3>
+      <p>
+        Some of our affiliate partners may set cookies when you click on affiliate links.
+        These cookies help track referrals so we can earn a commission if you make a purchase.
+        These are set by the merchant's website, not by StackHunt.
+      </p>
+
+      <h2>Affiliate Link Tracking</h2>
+
+      <p>
+        StackHunt participates in affiliate programs with various software companies and
+        affiliate networks (such as Impact and PartnerStack). When you click an affiliate
+        link on our site:
+      </p>
+      <ul>
+        <li>We record that a click occurred (to measure our content's effectiveness)</li>
+        <li>You are redirected to the merchant's website</li>
+        <li>The merchant may set their own tracking cookies</li>
+      </ul>
+      <p>
+        We do not share your personal information with affiliate partners. The click data
+        we collect is aggregated and anonymized.
+      </p>
+      <p>
+        For more information about our affiliate relationships, see our{' '}
+        <a href="/disclosure" class="text-hunt-600 hover:text-hunt-700">Affiliate Disclosure</a>.
+      </p>
+
+      <h2>How We Use Your Information</h2>
+
+      <p>We use collected information to:</p>
+      <ul>
+        <li>Improve our content and user experience</li>
+        <li>Prevent abuse and ensure fair voting</li>
+        <li>Measure the effectiveness of our content</li>
+        <li>Understand aggregate usage patterns</li>
+      </ul>
+      <p>
+        We do <strong>not</strong> sell, rent, or share your personal information with
+        third parties for their marketing purposes.
+      </p>
+
+      <h2>Data Retention</h2>
+
+      <p>
+        Analytics data is retained for up to 12 months in aggregated form. Vote records
+        are retained indefinitely to maintain voting integrity, but contain only hashed
+        identifiers that cannot be linked back to you.
+      </p>
+
+      <h2>Your Rights</h2>
+
+      <p>Depending on your location, you may have the right to:</p>
+      <ul>
+        <li>Access the personal data we hold about you</li>
+        <li>Request deletion of your data</li>
+        <li>Opt out of certain data collection</li>
+        <li>Lodge a complaint with a supervisory authority</li>
+      </ul>
+      <p>
+        Since we collect minimal personal data and use privacy-focused analytics, there
+        is typically little to no personal data to access or delete. If you have concerns,
+        please contact us.
+      </p>
+
+      <h2>Children's Privacy</h2>
+
+      <p>
+        StackHunt is not directed at children under 13. We do not knowingly collect
+        personal information from children under 13. If you believe we have inadvertently
+        collected such information, please contact us so we can delete it.
+      </p>
+
+      <h2>Changes to This Policy</h2>
+
+      <p>
+        We may update this privacy policy from time to time. We will notify you of any
+        changes by posting the new policy on this page and updating the "Last updated"
+        date at the top.
+      </p>
+
+      <h2>Contact Us</h2>
+
+      <p>
+        If you have questions about this privacy policy or our data practices, please
+        contact us at:{' '}
+        <a href="mailto:privacy@stackhunt.com" class="text-hunt-600 hover:text-hunt-700">
+          privacy@stackhunt.com
+        </a>
+      </p>
+
+      <hr class="my-8" />
+
+      <p class="text-sm text-slate-500">
+        This policy is effective as of January 2026.
+      </p>
+    </article>
+  </main>
+</BaseLayout>

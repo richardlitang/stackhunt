@@ -14,7 +14,9 @@ import {
 } from '@/lib/supabase';
 import { generateCategoryMeta, generateBreadcrumbSchema } from '@/lib/seo';
 
-// Static generation
+// Prerender for sitemap inclusion and performance
+export const prerender = true;
+
 export async function getStaticPaths() {
   const slugs = await getAllCategorySlugs();
   return slugs.map((slug) => ({ params: { slug } }));

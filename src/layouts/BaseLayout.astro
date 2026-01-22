@@ -157,8 +157,14 @@ const allSchemas = [
           </div>
         </div>
 
-        <div class="mt-8 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
-          <p>&copy; {new Date().getFullYear()} StackHunt. All rights reserved.</p>
+        <div class="mt-8 border-t border-slate-200 pt-8">
+          <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <p class="text-sm text-slate-500">&copy; {new Date().getFullYear()} StackHunt. All rights reserved.</p>
+            <nav class="flex gap-6">
+              <a href="/privacy" class="text-sm text-slate-500 hover:text-hunt-500 transition">Privacy Policy</a>
+              <a href="/disclosure" class="text-sm text-slate-500 hover:text-hunt-500 transition">Affiliate Disclosure</a>
+            </nav>
+          </div>
         </div>
       </div>
     </footer>

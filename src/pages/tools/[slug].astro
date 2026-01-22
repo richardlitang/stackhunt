@@ -34,7 +34,9 @@ import {
 } from '@/lib/seo';
 import { simpleMarkdown } from '@/lib/utils';
 
-// Static generation
+// Prerender for sitemap inclusion and performance
+export const prerender = true;
+
 export async function getStaticPaths() {
   const slugs = await getAllToolSlugs();
   return slugs.map((slug) => ({ params: { slug } }));
