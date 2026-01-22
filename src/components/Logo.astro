@@ -23,7 +23,7 @@ const sizeClasses = {
 
 const sizeClass = sizeClasses[size];
 
-// Initials fallback
+// Calculate initials for fallback (always needed)
 const initials = name.charAt(0).toUpperCase();
 
 // Brandfetch Client ID (from env - free tier, no attribution required)
@@ -42,11 +42,11 @@ const duckduckgoUrl = domain ? `https://icons.duckduckgo.com/ip3/${domain}.ico` 
 ---
 
 {!domain ? (
-  <div class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-slate-100`}>
-    <span class="text-xl font-bold text-slate-400">{initials}</span>
+  <div class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-zinc-900`}>
+    <span class="text-xl font-bold text-zinc-500">{initials}</span>
   </div>
 ) : (
-  <div class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-slate-100`}>
+  <div class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-zinc-900`}>
     <img
       src={brandfetchUrl || googleUrl}
       alt={`${name} logo`}
@@ -63,7 +63,7 @@ const duckduckgoUrl = domain ? `https://icons.duckduckgo.com/ip3/${domain}.ico` 
         }
       `}
     />
-    <span class="hidden text-xl font-bold text-slate-400">{initials}</span>
+    <span class="hidden text-xl font-bold text-zinc-500">{initials}</span>
   </div>
 )}
 
