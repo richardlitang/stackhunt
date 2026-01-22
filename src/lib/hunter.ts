@@ -654,46 +654,39 @@ Extract the knowledge card JSON:`;
     toolName: string,
     websiteUrl?: string
   ): Promise<{ path: string; url: string } | null> {
-    this.log(`Fetching logo for: ${toolName}`);
+    this.log(`Preparing logo for: ${toolName}`);
 
-    const logoSources = [
-      websiteUrl ? `https://logo.clearbit.com/${new URL(websiteUrl).hostname}` : null,
-      websiteUrl ? `https://www.google.com/s2/favicons?domain=${new URL(websiteUrl).hostname}&sz=128` : null,
-      websiteUrl ? `https://icons.duckduckgo.com/ip3/${new URL(websiteUrl).hostname}.ico` : null,
-    ].filter(Boolean) as string[];
-
-    for (const logoUrl of logoSources) {
-      try {
-        const response = await axios.get(logoUrl, {
-          responseType: 'arraybuffer',
-          timeout: 5000,
-          validateStatus: (status) => status === 200,
-        });
-
-        const contentType = response.headers['content-type'] || 'image/png';
-        const extension = contentType.includes('svg') ? 'svg' : contentType.includes('ico') ? 'ico' : 'png';
-        const fileName = `${this.slugify(toolName)}.${extension}`;
-        const filePath = `logos/${fileName}`;
-
-        const { error: uploadError } = await this.supabase.storage
-          .from('assets')
-          .upload(filePath, response.data, { contentType, upsert: true });
-
-        if (uploadError) {
-          this.log(`Logo upload failed: ${uploadError.message}`);
-          continue;
-        }
-
-        const { data: urlData } = this.supabase.storage.from('assets').getPublicUrl(filePath);
-        this.log(`Logo uploaded: ${urlData.publicUrl}`);
-        return { path: filePath, url: urlData.publicUrl };
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        this.log(`Logo source failed: ${axiosError.message}`);
-      }
+    if (!websiteUrl) {
+      this.log('No website URL - skipping logo');
+      return null;
     }
 
-    return null;
+    try {
+      const domain = new URL(websiteUrl).hostname;
+
+      // NEW STRATEGY: Save domain for hotlinking (complies with Brandfetch TOS)
+      // Frontend will construct: https://cdn.brandfetch.io/{domain}?c={clientId}
+      // This is LEGAL under Brandfetch free tier
+
+      // Verify domain is accessible (quick HEAD request)
+      try {
+        await axios.head(websiteUrl, { timeout: 3000 });
+        this.log(`Domain verified: ${domain}`);
+
+        // Return domain as "path" for backward compatibility
+        // Frontend Logo component will use this to construct Brandfetch URL
+        return {
+          path: `hotlink:${domain}`, // Special format to indicate hotlinking
+          url: domain // Store just the domain
+        };
+      } catch (verifyError) {
+        this.log(`Domain verification failed: ${(verifyError as Error).message}`);
+        return null;
+      }
+    } catch (urlError) {
+      this.log(`Invalid website URL: ${(urlError as Error).message}`);
+      return null;
+    }
   }
 
   // --------------------------------------------------------------------------
