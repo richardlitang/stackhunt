@@ -9,19 +9,33 @@ import { getAdminClient } from '@/lib/supabase';
 
 const admin = getAdminClient();
 
-// Get filter from URL
+// Get filters from URL
 const url = new URL(Astro.request.url);
 const statusFilter = url.searchParams.get('status') || 'pending';
+const aiFilter = url.searchParams.get('ai') || 'all'; // 'all', 'confirmed', 'rejected', 'inconclusive', 'unverified'
 
-// Fetch corrections
-const { data: corrections } = await admin
+// Build query with filters
+let query = admin
   .from('corrections')
   .select(`
     *,
     tool:tools(id, name, slug, logo_url)
   `)
-  .eq('status', statusFilter)
-  .order('created_at', { ascending: false });
+  .eq('status', statusFilter);
+
+// Apply AI filter
+if (aiFilter === 'confirmed') {
+  query = query.eq('ai_verification_result', 'confirmed');
+} else if (aiFilter === 'rejected') {
+  query = query.eq('ai_verification_result', 'rejected');
+} else if (aiFilter === 'inconclusive') {
+  query = query.eq('ai_verification_result', 'inconclusive');
+} else if (aiFilter === 'unverified') {
+  query = query.eq('ai_verified', false);
+}
+
+// Fetch corrections
+const { data: corrections } = await query.order('created_at', { ascending: false });
 
 // Get counts for tabs
 const [
@@ -41,6 +55,12 @@ const fieldLabels: Record<string, string> = {
   summary: 'Summary',
   score: 'Score',
   other: 'Other',
+};
+
+const aiResultLabels: Record<string, { label: string; color: string }> = {
+  confirmed: { label: 'AI Confirmed', color: 'bg-green-100 text-green-700' },
+  rejected: { label: 'AI Rejected', color: 'bg-red-100 text-red-700' },
+  inconclusive: { label: 'AI Inconclusive', color: 'bg-yellow-100 text-yellow-700' },
 };
 ---
 
@@ -115,6 +135,65 @@ const fieldLabels: Record<string, string> = {
       </nav>
     </div>
 
+    <!-- AI Verification Filter -->
+    {statusFilter === 'pending' && (
+      <div class="flex items-center gap-2 text-sm">
+        <span class="text-slate-500">AI Status:</span>
+        <div class="flex gap-1">
+          <a
+            href={`/admin/corrections?status=pending&ai=all`}
+            class={`rounded-full px-3 py-1 transition ${
+              aiFilter === 'all'
+                ? 'bg-slate-800 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            All
+          </a>
+          <a
+            href={`/admin/corrections?status=pending&ai=confirmed`}
+            class={`rounded-full px-3 py-1 transition ${
+              aiFilter === 'confirmed'
+                ? 'bg-green-600 text-white'
+                : 'bg-green-100 text-green-700 hover:bg-green-200'
+            }`}
+          >
+            ✓ Confirmed
+          </a>
+          <a
+            href={`/admin/corrections?status=pending&ai=rejected`}
+            class={`rounded-full px-3 py-1 transition ${
+              aiFilter === 'rejected'
+                ? 'bg-red-600 text-white'
+                : 'bg-red-100 text-red-700 hover:bg-red-200'
+            }`}
+          >
+            ✗ Rejected
+          </a>
+          <a
+            href={`/admin/corrections?status=pending&ai=inconclusive`}
+            class={`rounded-full px-3 py-1 transition ${
+              aiFilter === 'inconclusive'
+                ? 'bg-yellow-600 text-white'
+                : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+            }`}
+          >
+            ? Inconclusive
+          </a>
+          <a
+            href={`/admin/corrections?status=pending&ai=unverified`}
+            class={`rounded-full px-3 py-1 transition ${
+              aiFilter === 'unverified'
+                ? 'bg-slate-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Unverified
+          </a>
+        </div>
+      </div>
+    )}
+
     <!-- Corrections List -->
     {corrections && corrections.length > 0 ? (
       <div class="space-y-4">
@@ -146,11 +225,22 @@ const fieldLabels: Record<string, string> = {
                         Vendor
                       </span>
                     )}
+                    {correction.ai_verified && correction.ai_verification_result && (
+                      <span class={`rounded px-2 py-0.5 text-xs font-medium ${aiResultLabels[correction.ai_verification_result]?.color || 'bg-slate-100 text-slate-600'}`}>
+                        {aiResultLabels[correction.ai_verification_result]?.label || 'AI Verified'}
+                      </span>
+                    )}
                   </div>
 
                   <p class="mt-2 text-sm text-slate-600 whitespace-pre-wrap">
                     {correction.correction_text}
                   </p>
+
+                  {correction.ai_verification_notes && (
+                    <div class="mt-2 rounded-lg bg-blue-50 p-2.5 text-xs text-blue-700">
+                      <span class="font-medium">AI Analysis:</span> {correction.ai_verification_notes}
+                    </div>
+                  )}
 
                   <div class="mt-3 flex items-center gap-4 text-xs text-slate-400">
                     <span>
