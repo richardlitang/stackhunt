@@ -39,24 +39,34 @@ if (!sessionToken) {
 
     <!-- Import Form -->
     <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 class="mb-4 text-lg font-semibold text-slate-900">Import CSV</h2>
+      <h2 class="mb-4 text-lg font-semibold text-slate-900">Import Content Ideas</h2>
 
       <form id="import-form" class="space-y-4">
         <div>
           <label class="mb-2 block text-sm font-medium text-slate-700">
-            Paste CSV Content
+            Paste from Gemini (JSON or CSV)
           </label>
           <textarea
             id="csv-content"
             name="csv_content"
             rows="12"
             required
-            placeholder="keyword,tool_name,context_query,content_type,pillar,target_audience,priority,notes
-&quot;supabase vs firebase&quot;,&quot;Supabase&quot;,&quot;Supabase vs Firebase&quot;,comparison,builder,developers,98,&quot;Core wedge topic&quot;"
+            placeholder='[
+  {
+    "keyword": "supabase vs firebase",
+    "tool_name": "Supabase",
+    "context_query": "Supabase vs Firebase",
+    "content_type": "comparison",
+    "pillar": "builder",
+    "target_audience": "developers",
+    "priority": 98,
+    "notes": "Core wedge topic"
+  }
+]'
             class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           ></textarea>
           <p class="mt-1 text-xs text-slate-500">
-            Expected format: keyword, tool_name, context_query, content_type, pillar, target_audience, priority, notes
+            Accepts JSON arrays or CSV format. Just paste directly from Gemini output.
           </p>
         </div>
 

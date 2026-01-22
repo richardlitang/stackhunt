@@ -44,22 +44,47 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (!csv_content || typeof csv_content !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Invalid CSV content' }),
+        JSON.stringify({ error: 'Invalid content' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse CSV
-    const records = parse(csv_content, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-      relax_quotes: true,
-    }) as ContentIdea[];
+    let records: ContentIdea[];
+
+    // Try to detect format: JSON array or CSV
+    const trimmed = csv_content.trim();
+
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      // JSON format (array or single object)
+      try {
+        const parsed = JSON.parse(trimmed);
+        records = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON format' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // CSV format
+      try {
+        records = parse(trimmed, {
+          columns: true,
+          skip_empty_lines: true,
+          trim: true,
+          relax_quotes: true,
+        }) as ContentIdea[];
+      } catch (err) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid CSV format: ' + (err instanceof Error ? err.message : 'Parse error') }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     if (records.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'No records found in CSV' }),
+        JSON.stringify({ error: 'No records found' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
