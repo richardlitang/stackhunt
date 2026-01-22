@@ -33,3 +33,6 @@ yarn-error.log*
 .cache/
 .vercel
 .env*.local
+
+# Data imports
+data/
