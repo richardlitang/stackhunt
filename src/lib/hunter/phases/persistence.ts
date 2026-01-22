@@ -140,6 +140,7 @@ export async function executePersistencePhase(
     contextId,
     ctx.analysis.analysis,
     ctx.research.scoutResult.sources,
+    ctx.research.knowledgeCard,
     deps
   );
 
@@ -430,12 +431,14 @@ function validateNegativeClaim(
  * - Applies negative sentiment guardrail (2+ sources for negative opinions)
  * - Stores research sources for audit trail
  * - Records generation timestamp
+ * - Auto-publishes if high confidence (quality="high", score 70+, minimal filtered claims)
  */
 async function createReview(
   toolId: string,
   contextId: string,
   analysis: any,
   sources: Array<{ url: string; title: string; snippet: string; domain: string }>,
+  knowledgeCard: any,
   deps: HunterDependencies
 ): Promise<string> {
   // Normalize pros and cons with source attribution
@@ -481,9 +484,25 @@ async function createReview(
     reviewData.sources = sources;
   }
 
-  // DRAFT MODE: Reviews start as drafts
-  if (deps.config.isDraftMode) {
+  // AUTO-PUBLISH LOGIC: High-confidence reviews go live immediately
+  // Criteria:
+  // 1. High data quality (verified facts from official sources)
+  // 2. Good score (70+)
+  // 3. Minimal legal risk (≤1 filtered con, ≥2 valid cons remaining)
+  const isHighConfidence =
+    knowledgeCard.meta.data_quality === 'high' &&
+    analysis.score >= 70 &&
+    filteredCons.length <= 1 &&
+    normalizedCons.length >= 2;
+
+  if (isHighConfidence && deps.config.isDraftMode !== false) {
+    reviewData.status = 'published';
+    deps.log(`[Auto-publish] High confidence review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`);
+  } else if (deps.config.isDraftMode) {
     reviewData.status = 'draft';
+    if (!isHighConfidence) {
+      deps.log(`[Draft] Review needs manual review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`);
+    }
   }
 
   const { data: review, error: reviewError } = await deps.supabase
