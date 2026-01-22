@@ -1,0 +1,72 @@
+---
+/**
+ * FTC Affiliate Disclosure Component
+ *
+ * Required for FTC compliance when pages contain affiliate links.
+ * Must be placed ABOVE THE FOLD (visible without scrolling) per FTC guidelines.
+ *
+ * Key requirements met:
+ * - Clear and conspicuous disclosure
+ * - Placed before any affiliate content
+ * - Uses plain language
+ * - Links to full disclosure policy
+ *
+ * @see https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers
+ * @module components/AffiliateDisclosure
+ */
+
+interface Props {
+  variant?: 'banner' | 'inline' | 'compact';
+  hasAffiliateLinks?: boolean;
+}
+
+const { variant = 'banner', hasAffiliateLinks = true } = Astro.props;
+---
+
+{hasAffiliateLinks && variant === 'banner' && (
+  <div class="bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-center text-sm text-amber-800">
+    <div class="container mx-auto max-w-4xl flex items-center justify-center gap-2">
+      <svg class="h-4 w-4 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>
+        <strong>Disclosure:</strong> Some links on this page may be affiliate links.
+        We may earn a commission if you make a purchase, at no extra cost to you.
+        <a href="/disclosure" class="underline hover:text-amber-900 font-medium ml-1">
+          Learn more
+        </a>
+      </span>
+    </div>
+  </div>
+)}
+
+{hasAffiliateLinks && variant === 'inline' && (
+  <div class="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-600 mb-6">
+    <div class="flex items-start gap-3">
+      <svg class="h-5 w-5 shrink-0 text-slate-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <p class="font-medium text-slate-700 mb-1">Affiliate Disclosure</p>
+        <p>
+          This page contains affiliate links. If you click through and make a purchase,
+          we may receive a small commission at no additional cost to you.
+          This helps support our independent research.
+          <a href="/disclosure" class="text-hunt-600 hover:text-hunt-700 underline ml-1">
+            Full disclosure policy
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+
+{hasAffiliateLinks && variant === 'compact' && (
+  <p class="text-xs text-slate-500 mb-4">
+    <svg class="inline h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    Some links are affiliate links.
+    <a href="/disclosure" class="underline hover:text-slate-600">Disclosure</a>
+  </p>
+)}

@@ -11,14 +11,14 @@ const admin = getAdminClient();
 
 // Fetch queue items grouped by status
 const { data: queueItems } = await admin
-  .from('content_queue')
+  .from('hunt_queue')
   .select('*')
   .order('status', { ascending: true })
   .order('priority', { ascending: false })
   .order('created_at', { ascending: true });
 
 const pending = queueItems?.filter((i) => i.status === 'pending') || [];
-const processing = queueItems?.filter((i) => i.status === 'processing') || [];
+const processing = queueItems?.filter((i) => i.status === 'processing' || i.status === 'claimed') || [];
 const completed = queueItems?.filter((i) => i.status === 'completed') || [];
 const failed = queueItems?.filter((i) => i.status === 'failed') || [];
 ---
@@ -151,7 +151,7 @@ const failed = queueItems?.filter((i) => i.status === 'failed') || [];
               {failed.map((item) => (
                 <tr class="hover:bg-red-50">
                   <td class="px-4 py-3 text-sm font-medium text-slate-900">{item.tool_name}</td>
-                  <td class="px-4 py-3 text-sm text-red-600">{item.last_error || 'Unknown error'}</td>
+                  <td class="px-4 py-3 text-sm text-red-600">{item.error_message || 'Unknown error'}</td>
                   <td class="px-4 py-3 text-sm text-slate-500">{item.attempts}</td>
                   <td class="px-4 py-3 text-right space-x-2">
                     <form method="POST" action={`/api/admin/queue/${item.id}/retry`} class="inline">
@@ -195,7 +195,7 @@ const failed = queueItems?.filter((i) => i.status === 'failed') || [];
                   <td class="px-4 py-3 text-sm font-medium text-slate-900">{item.tool_name}</td>
                   <td class="px-4 py-3 text-sm text-slate-600">{item.context_title || '-'}</td>
                   <td class="px-4 py-3 text-sm text-slate-500">
-                    {item.processed_at ? new Date(item.processed_at).toLocaleDateString() : '-'}
+                    {item.completed_at ? new Date(item.completed_at).toLocaleDateString() : '-'}
                   </td>
                   <td class="px-4 py-3 text-right">
                     {item.review_id && (

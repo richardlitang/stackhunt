@@ -1,0 +1,108 @@
+---
+/**
+ * Affiliate Disclosure Policy Page
+ *
+ * FTC-compliant disclosure page explaining our affiliate relationships.
+ * This page is linked from affiliate disclosure notices throughout the site.
+ *
+ * @module pages/disclosure
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  meta={{
+    title: "Affiliate Disclosure Policy | StackHunt",
+    description: "Learn about our affiliate relationships, how we make money, and our commitment to editorial independence."
+  }}
+>
+  <main class="container mx-auto max-w-3xl px-4 py-12">
+    <article class="prose prose-slate max-w-none">
+      <h1>Affiliate Disclosure Policy</h1>
+
+      <p class="lead text-xl text-slate-600">
+        Transparency is important to us. This page explains how StackHunt earns revenue
+        and how it affects (and doesn't affect) our content.
+      </p>
+
+      <h2>How We Earn Revenue</h2>
+
+      <p>
+        Some of the links on StackHunt are affiliate links. This means that if you click
+        on a link and make a purchase or sign up for a service, we may receive a small
+        commission from the company at <strong>no additional cost to you</strong>.
+      </p>
+
+      <p>
+        These affiliate relationships help support our independent research and keep
+        StackHunt free for everyone to use.
+      </p>
+
+      <h2>Our Editorial Independence</h2>
+
+      <p>
+        <strong>Affiliate relationships never influence our reviews, scores, or recommendations.</strong>
+      </p>
+
+      <ul>
+        <li>We research and evaluate tools using publicly available information, regardless of affiliate status</li>
+        <li>Tools without affiliate programs receive the same thorough analysis as those with programs</li>
+        <li>Our scores and rankings are based on features, user feedback, and value - not affiliate potential</li>
+        <li>We often recommend free alternatives that generate no revenue for us</li>
+      </ul>
+
+      <h2>How We Label Affiliate Links</h2>
+
+      <p>
+        We strive to be transparent about affiliate links:
+      </p>
+
+      <ul>
+        <li>Pages containing affiliate links display a disclosure banner at the top</li>
+        <li>Individual affiliate links may be labeled with "affiliate" or similar indicators</li>
+        <li>"Visit Website" buttons on tool pages may be affiliate links</li>
+      </ul>
+
+      <h2>AI-Assisted Research</h2>
+
+      <p>
+        StackHunt uses AI to assist with research and content generation. All AI-generated
+        content is based on publicly available information from official websites, review
+        platforms (G2, Capterra, etc.), and community discussions (Reddit, forums).
+      </p>
+
+      <p>
+        Every claim in our reviews includes a source citation so you can verify
+        information independently. We clearly label community-sourced opinions
+        and distinguish them from factual information.
+      </p>
+
+      <h2>Report Inaccuracies</h2>
+
+      <p>
+        If you find inaccurate information on StackHunt, please let us know.
+        We take accuracy seriously and will investigate and correct any errors.
+      </p>
+
+      <p>
+        <a href="/corrections" class="text-hunt-600 hover:text-hunt-700">
+          Submit a correction request
+        </a>
+      </p>
+
+      <h2>Questions?</h2>
+
+      <p>
+        If you have questions about our affiliate relationships or editorial policies,
+        please contact us. We're happy to clarify anything.
+      </p>
+
+      <hr class="my-8" />
+
+      <p class="text-sm text-slate-500">
+        Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+      </p>
+    </article>
+  </main>
+</BaseLayout>

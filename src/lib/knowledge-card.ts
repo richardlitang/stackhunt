@@ -23,7 +23,7 @@ const FactWithConfidence = <T extends z.ZodTypeAny>(schema: T) =>
 export const PricingTierSchema = z.object({
   name: z.string(),                        // "Free", "Pro", "Enterprise"
   price: z.string().nullable(),            // "$9/mo", "Custom", null if unknown
-  billing_period: z.enum(['monthly', 'yearly', 'one-time', 'custom']).nullable(),
+  billing_period: z.enum(['monthly', 'yearly', 'one-time', 'custom']).nullable().optional(),
   features: z.array(z.string()).default([]),
 });
 export type PricingTier = z.infer<typeof PricingTierSchema>;
@@ -32,7 +32,7 @@ export type PricingTier = z.infer<typeof PricingTierSchema>;
 export const IntegrationSchema = z.object({
   name: z.string(),                        // "Slack", "Google Drive"
   type: z.enum(['native', 'api', 'zapier', 'webhook', 'plugin']),
-  direction: z.enum(['import', 'export', 'bidirectional']).optional(),
+  direction: z.enum(['import', 'export', 'bidirectional']).nullable().optional(),
 });
 export type Integration = z.infer<typeof IntegrationSchema>;
 
@@ -40,7 +40,7 @@ export type Integration = z.infer<typeof IntegrationSchema>;
 export const PlatformAvailabilitySchema = z.object({
   platform: z.enum(['web', 'mac', 'windows', 'linux', 'ios', 'android', 'cli', 'api', 'self-hosted']),
   available: z.boolean(),
-  notes: z.string().optional(),            // "Beta", "Via PWA", etc.
+  notes: z.string().nullable().optional(),            // "Beta", "Via PWA", etc.
 });
 export type PlatformAvailability = z.infer<typeof PlatformAvailabilitySchema>;
 
@@ -48,7 +48,7 @@ export type PlatformAvailability = z.infer<typeof PlatformAvailabilitySchema>;
 export const FeatureCapabilitySchema = z.object({
   name: z.string(),                        // "Offline Mode", "Real-time Collaboration"
   status: z.enum(['full', 'partial', 'none', 'planned', 'beta']),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
 });
 export type FeatureCapability = z.infer<typeof FeatureCapabilitySchema>;
 
@@ -59,17 +59,17 @@ export type FeatureCapability = z.infer<typeof FeatureCapabilitySchema>;
 export const KnowledgeCardSchema = z.object({
   // === IDENTITY ===
   official_name: z.string(),
-  tagline: z.string().nullable(),          // Official tagline if found
-  website_url: z.string().url().nullable(),
-  logo_url: z.string().url().nullable(),
+  tagline: z.string().nullable().optional(),          // Official tagline if found
+  website_url: z.string().url().nullable().optional(),
+  logo_url: z.string().url().nullable().optional(),
 
   // === COMPANY INFO ===
   company: z.object({
-    name: z.string().nullable(),
-    founded_year: z.number().int().min(1970).max(2030).nullable(),
-    headquarters: z.string().nullable(),   // "San Francisco, CA"
-    employee_count: z.enum(['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']).nullable(),
-    funding_stage: z.enum(['bootstrapped', 'seed', 'series-a', 'series-b', 'series-c+', 'public', 'acquired']).nullable(),
+    name: z.string().nullable().optional(),
+    founded_year: z.number().int().min(1970).max(2030).nullable().optional(),
+    headquarters: z.string().nullable().optional(),   // "San Francisco, CA"
+    employee_count: z.enum(['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']).nullable().optional(),
+    funding_stage: z.enum(['bootstrapped', 'seed', 'series-a', 'series-b', 'series-c+', 'public', 'acquired']).nullable().optional(),
   }).default({}),
 
   // === PRICING ===
@@ -77,8 +77,8 @@ export const KnowledgeCardSchema = z.object({
     model: z.enum(['free', 'freemium', 'paid', 'enterprise', 'open_source']),
     has_free_tier: z.boolean(),
     has_free_trial: z.boolean(),
-    trial_days: z.number().int().nullable(),
-    starting_price: z.string().nullable(), // "$5/user/mo"
+    trial_days: z.number().int().nullable().default(null),
+    starting_price: z.string().nullable().default(null), // "$5/user/mo"
     tiers: z.array(PricingTierSchema).default([]),
   }),
 
@@ -94,54 +94,54 @@ export const KnowledgeCardSchema = z.object({
 
   // === INTEGRATIONS ===
   integrations: z.object({
-    total_count: z.number().int().nullable(),
+    total_count: z.number().int().nullable().optional(),
     notable: z.array(IntegrationSchema).default([]),
-    has_api: z.boolean(),
-    has_webhooks: z.boolean(),
-    has_zapier: z.boolean(),
+    has_api: z.boolean().optional().default(false),
+    has_webhooks: z.boolean().optional().default(false),
+    has_zapier: z.boolean().optional().default(false),
   }).default({}),
 
   // === TARGET AUDIENCE ===
   audience: z.object({
     primary: z.array(z.string()).default([]),  // "Developers", "Small Teams"
     use_cases: z.array(z.string()).default([]), // "Project Management", "Note-Taking"
-    team_size: z.enum(['solo', 'small', 'medium', 'enterprise', 'any']).nullable(),
-    skill_level: z.enum(['beginner', 'intermediate', 'advanced', 'any']).nullable(),
+    team_size: z.enum(['solo', 'small', 'medium', 'enterprise', 'any']).nullable().optional(),
+    skill_level: z.enum(['beginner', 'intermediate', 'advanced', 'any']).nullable().optional(),
   }).default({}),
 
   // === COMPETITIVE LANDSCAPE ===
   competitive: z.object({
     main_alternatives: z.array(z.string()).default([]),
     differentiators: z.array(z.string()).default([]), // What makes it different
-    best_for: z.string().nullable(),       // "Best for X because Y"
-    not_ideal_for: z.string().nullable(),  // "Not ideal for X because Y"
+    best_for: z.string().nullable().optional(),       // "Best for X because Y"
+    not_ideal_for: z.string().nullable().optional(),  // "Not ideal for X because Y"
   }).default({}),
 
   // === DATA & SECURITY ===
   security: z.object({
-    soc2_certified: z.boolean().nullable(),
-    gdpr_compliant: z.boolean().nullable(),
-    hipaa_compliant: z.boolean().nullable(),
-    data_encryption: z.enum(['at-rest', 'in-transit', 'both', 'none', 'unknown']).nullable(),
-    sso_available: z.boolean().nullable(),
-    two_factor: z.boolean().nullable(),
-    self_hosted_option: z.boolean(),
+    soc2_certified: z.boolean().nullable().optional(),
+    gdpr_compliant: z.boolean().nullable().optional(),
+    hipaa_compliant: z.boolean().nullable().optional(),
+    data_encryption: z.enum(['at-rest', 'in-transit', 'both', 'none', 'unknown']).nullable().optional(),
+    sso_available: z.boolean().nullable().optional(),
+    two_factor: z.boolean().nullable().optional(),
+    self_hosted_option: z.boolean().optional().default(false),
   }).default({}),
 
   // === SUPPORT ===
   support: z.object({
-    has_documentation: z.boolean(),
-    has_community: z.boolean(),            // Forum, Discord, etc.
-    has_live_chat: z.boolean(),
-    has_phone_support: z.boolean(),
-    has_dedicated_support: z.boolean(),    // Enterprise tier
+    has_documentation: z.boolean().optional().default(false),
+    has_community: z.boolean().optional().default(false),            // Forum, Discord, etc.
+    has_live_chat: z.boolean().optional().default(false),
+    has_phone_support: z.boolean().optional().default(false),
+    has_dedicated_support: z.boolean().optional().default(false),    // Enterprise tier
   }).default({}),
 
   // === META ===
   meta: z.object({
-    last_major_update: z.string().nullable(), // "2024-01", approximate
-    active_development: z.boolean().nullable(),
-    user_sentiment: z.enum(['very_positive', 'positive', 'mixed', 'negative', 'very_negative']).nullable(),
+    last_major_update: z.string().nullable().optional(), // "2024-01", approximate
+    active_development: z.boolean().nullable().optional(),
+    user_sentiment: z.enum(['very_positive', 'positive', 'mixed', 'negative', 'very_negative']).nullable().optional(),
     data_quality: z.enum(['high', 'medium', 'low']),  // How confident we are overall
     extraction_date: z.string(),           // ISO date when facts extracted
   }),

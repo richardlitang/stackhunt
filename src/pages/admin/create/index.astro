@@ -17,7 +17,7 @@ const [
 ] = await Promise.all([
   supabase.from('tools').select('id, name, slug').order('created_at', { ascending: false }).limit(10),
   supabase.from('categories').select('slug, name, type').eq('type', 'function').order('name'),
-  admin.from('content_queue').select(`
+  admin.from('hunt_queue').select(`
     *,
     tool:tools(id, name, slug, logo_url),
     review:reviews(id, score, summary_markdown, pros, cons, status)

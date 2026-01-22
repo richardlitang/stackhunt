@@ -1,0 +1,373 @@
+---
+/**
+ * Admin: Strategy War Room
+ * CSV Import + ROI Analysis + Content Ideas Pipeline
+ *
+ * The Strategy Gatekeeper prevents low-value content
+ * BEFORE it costs money (API calls).
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAdminClient } from '@/lib/supabase';
+
+const admin = getAdminClient();
+
+// Fetch pipeline stats
+const [
+  { data: statusCounts },
+  { count: duplicateCount },
+  { data: recentBatches },
+  { data: topPending },
+  { count: queuePending },
+] = await Promise.all([
+  // Status breakdown
+  admin
+    .from('content_ideas')
+    .select('status')
+    .then(({ data }) => {
+      const counts: Record<string, number> = {};
+      data?.forEach((row) => {
+        counts[row.status] = (counts[row.status] || 0) + 1;
+      });
+      return { data: counts };
+    }),
+  // Duplicates
+  admin
+    .from('content_ideas')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_duplicate', true),
+  // Recent imports
+  admin
+    .from('import_batches')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(5),
+  // Top ROI candidates
+  admin
+    .from('content_ideas')
+    .select('id, keyword, tool_name, context_query, roi_score, search_volume, keyword_difficulty, cpc, source')
+    .eq('status', 'analyzed')
+    .eq('is_duplicate', false)
+    .order('roi_score', { ascending: false })
+    .limit(20),
+  // Hunt queue pending
+  admin
+    .from('hunt_queue')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending'),
+]);
+
+const pending = statusCounts?.pending || 0;
+const analyzed = statusCounts?.analyzed || 0;
+const approved = statusCounts?.approved || 0;
+const rejected = statusCounts?.rejected || 0;
+const total = pending + analyzed + approved + rejected;
+---
+
+<AdminLayout title="Strategy War Room">
+  <div class="space-y-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Strategy War Room</h1>
+        <p class="mt-1 text-sm text-slate-500">
+          Import keywords, analyze ROI, prevent duplicates before spending API credits.
+        </p>
+      </div>
+      <a
+        href="/admin"
+        class="text-sm text-slate-500 hover:text-slate-700"
+      >
+        &larr; Back to Dashboard
+      </a>
+    </div>
+
+    <!-- Pipeline Stats -->
+    <div class="grid gap-4 sm:grid-cols-5">
+      <div class="rounded-xl border border-slate-200 bg-white p-4">
+        <div class="text-2xl font-bold text-slate-700">{pending}</div>
+        <div class="text-sm text-slate-500">Pending Analysis</div>
+      </div>
+      <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <div class="text-2xl font-bold text-blue-700">{analyzed}</div>
+        <div class="text-sm text-blue-600">Analyzed</div>
+      </div>
+      <div class="rounded-xl border border-green-200 bg-green-50 p-4">
+        <div class="text-2xl font-bold text-green-700">{approved}</div>
+        <div class="text-sm text-green-600">Approved</div>
+      </div>
+      <div class="rounded-xl border border-red-200 bg-red-50 p-4">
+        <div class="text-2xl font-bold text-red-700">{rejected}</div>
+        <div class="text-sm text-red-600">Rejected</div>
+      </div>
+      <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div class="text-2xl font-bold text-amber-700">{duplicateCount || 0}</div>
+        <div class="text-sm text-amber-600">Duplicates Blocked</div>
+      </div>
+    </div>
+
+    <!-- CSV Upload -->
+    <div class="rounded-xl border border-slate-200 bg-white p-6">
+      <h2 class="text-lg font-semibold text-slate-900">Import Keywords</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Upload a CSV with columns: keyword, tool_name, context_query, search_volume, keyword_difficulty, cpc
+      </p>
+
+      <form
+        id="upload-form"
+        action="/api/admin/strategy/import"
+        method="POST"
+        enctype="multipart/form-data"
+        class="mt-4"
+      >
+        <div class="flex flex-wrap items-end gap-4">
+          <div class="flex-1 min-w-[300px]">
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              CSV File
+            </label>
+            <input
+              type="file"
+              name="file"
+              accept=".csv"
+              required
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-hunt-50 file:px-3 file:py-1 file:text-sm file:font-medium file:text-hunt-700 hover:file:bg-hunt-100"
+            />
+          </div>
+          <button
+            type="submit"
+            class="rounded-lg bg-hunt-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-hunt-600 transition"
+          >
+            Upload & Import
+          </button>
+        </div>
+      </form>
+
+      <div id="upload-status" class="mt-4 hidden">
+        <div class="rounded-lg bg-blue-50 border border-blue-200 p-4">
+          <div class="flex items-center gap-3">
+            <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm text-blue-700">Importing...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Imports -->
+    {recentBatches && recentBatches.length > 0 && (
+      <div class="rounded-xl border border-slate-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Recent Imports</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-2 text-left font-medium text-slate-700">Filename</th>
+                <th class="px-4 py-2 text-left font-medium text-slate-700">Imported</th>
+                <th class="px-4 py-2 text-left font-medium text-slate-700">Skipped</th>
+                <th class="px-4 py-2 text-left font-medium text-slate-700">Status</th>
+                <th class="px-4 py-2 text-left font-medium text-slate-700">Date</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {recentBatches.map((batch) => (
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3 font-medium text-slate-900">{batch.filename}</td>
+                  <td class="px-4 py-3 text-green-600">{batch.imported_rows}/{batch.total_rows}</td>
+                  <td class="px-4 py-3 text-slate-500">{batch.skipped_rows || 0}</td>
+                  <td class="px-4 py-3">
+                    <span class={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      batch.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      batch.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {batch.status}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-slate-500">
+                    {new Date(batch.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    <!-- Actions -->
+    <div class="flex flex-wrap gap-4">
+      <form action="/api/admin/strategy/analyze" method="POST">
+        <input type="hidden" name="limit" value="100" />
+        <button
+          type="submit"
+          class="rounded-lg border border-blue-200 bg-blue-50 px-5 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-100 transition flex items-center gap-2"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Analyze ROI ({pending} pending)
+        </button>
+      </form>
+
+      <form action="/api/admin/strategy/approve" method="POST">
+        <input type="hidden" name="min_roi" value="5.0" />
+        <input type="hidden" name="limit" value="20" />
+        <button
+          type="submit"
+          class="rounded-lg border border-green-200 bg-green-50 px-5 py-2.5 text-sm font-medium text-green-700 hover:bg-green-100 transition flex items-center gap-2"
+          {analyzed === 0 ? 'disabled' : ''}
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Auto-Approve (ROI >= 5.0)
+        </button>
+      </form>
+
+      <a
+        href="/admin/queue"
+        class="rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-2"
+      >
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        View Hunt Queue ({queuePending || 0})
+      </a>
+    </div>
+
+    <!-- Top ROI Candidates -->
+    {topPending && topPending.length > 0 && (
+      <div class="rounded-xl border border-slate-200 bg-white p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-slate-900">Top ROI Candidates</h2>
+          <span class="text-sm text-slate-500">{analyzed} analyzed, ready to approve</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-2 text-left font-medium text-slate-700">Tool / Keyword</th>
+                <th class="px-4 py-2 text-left font-medium text-slate-700">Context</th>
+                <th class="px-4 py-2 text-right font-medium text-slate-700">ROI</th>
+                <th class="px-4 py-2 text-right font-medium text-slate-700">Volume</th>
+                <th class="px-4 py-2 text-right font-medium text-slate-700">KD</th>
+                <th class="px-4 py-2 text-right font-medium text-slate-700">CPC</th>
+                <th class="px-4 py-2 text-center font-medium text-slate-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {topPending.map((idea) => (
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3">
+                    <div class="font-medium text-slate-900">{idea.tool_name || idea.keyword}</div>
+                    {idea.tool_name && idea.keyword !== idea.tool_name && (
+                      <div class="text-xs text-slate-500">{idea.keyword}</div>
+                    )}
+                  </td>
+                  <td class="px-4 py-3 text-slate-600">{idea.context_query || '-'}</td>
+                  <td class="px-4 py-3 text-right">
+                    <span class={`font-semibold ${
+                      (idea.roi_score || 0) >= 10 ? 'text-green-600' :
+                      (idea.roi_score || 0) >= 5 ? 'text-blue-600' :
+                      'text-slate-600'
+                    }`}>
+                      {idea.roi_score?.toFixed(2) || '0.00'}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-right text-slate-600">
+                    {idea.search_volume?.toLocaleString() || '-'}
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <span class={`${
+                      (idea.keyword_difficulty || 0) <= 30 ? 'text-green-600' :
+                      (idea.keyword_difficulty || 0) <= 60 ? 'text-amber-600' :
+                      'text-red-600'
+                    }`}>
+                      {idea.keyword_difficulty || '-'}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-right text-slate-600">
+                    {idea.cpc ? `$${idea.cpc.toFixed(2)}` : '-'}
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <form action="/api/admin/strategy/approve-single" method="POST" class="inline">
+                      <input type="hidden" name="id" value={idea.id} />
+                      <button
+                        type="submit"
+                        class="text-green-600 hover:text-green-700 text-sm font-medium"
+                      >
+                        Approve
+                      </button>
+                    </form>
+                    <span class="text-slate-300 mx-2">|</span>
+                    <form action="/api/admin/strategy/reject" method="POST" class="inline">
+                      <input type="hidden" name="id" value={idea.id} />
+                      <button
+                        type="submit"
+                        class="text-red-600 hover:text-red-700 text-sm font-medium"
+                      >
+                        Reject
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    <!-- Empty State -->
+    {total === 0 && (
+      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-slate-900">No content ideas yet</h3>
+        <p class="mt-2 text-sm text-slate-500">
+          Upload a CSV file with keywords to get started, or use the CLI:
+        </p>
+        <pre class="mt-4 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm text-slate-300 font-mono">
+npm run hunt -- --strategy import --file="keywords.csv"
+        </pre>
+      </div>
+    )}
+
+    <!-- CLI Reference -->
+    <div class="rounded-xl border border-slate-200 bg-slate-50 p-6">
+      <h3 class="font-semibold text-slate-900">CLI Commands</h3>
+      <div class="mt-3 space-y-2 font-mono text-sm">
+        <div class="flex items-start gap-4">
+          <code class="text-slate-600">npm run hunt -- --strategy import --file="keywords.csv"</code>
+          <span class="text-slate-400">Import CSV</span>
+        </div>
+        <div class="flex items-start gap-4">
+          <code class="text-slate-600">npm run hunt -- --strategy analyze</code>
+          <span class="text-slate-400">ROI analysis</span>
+        </div>
+        <div class="flex items-start gap-4">
+          <code class="text-slate-600">npm run hunt -- --strategy approve --priority 5</code>
+          <span class="text-slate-400">Auto-approve</span>
+        </div>
+        <div class="flex items-start gap-4">
+          <code class="text-slate-600">npm run hunt -- --strategy status</code>
+          <span class="text-slate-400">War Room</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  // Handle form submission with loading state
+  const form = document.getElementById('upload-form');
+  const status = document.getElementById('upload-status');
+
+  form?.addEventListener('submit', () => {
+    status?.classList.remove('hidden');
+  });
+</script>

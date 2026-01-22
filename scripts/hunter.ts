@@ -1,21 +1,23 @@
 #!/usr/bin/env npx tsx
 /**
- * StackHunt Hunter CLI
+ * StackHunt Hunter CLI (v3.0 - Intelligence Engine)
  *
- * Command-line interface for the Hunter Agent.
+ * Command-line interface for the Hunter Agent + Strategy Gatekeeper.
  * Uses the shared Hunter module from src/lib/hunter.ts
  *
  * Usage:
  *   npm run hunt -- --tool="Salesforce"
  *   npm run hunt -- --tool="Slack" --context="Best for Remote Teams"
- *   npm run hunt -- --tool="Notion" --category="productivity" --publish
- *   npm run hunt -- --queue add --tool="HubSpot" --context="Best CRM for Startups"
  *   npm run hunt -- --queue process
+ *   npm run hunt -- --strategy analyze
+ *   npm run hunt -- --strategy import --file="keywords.csv"
  */
 
 import { parseArgs } from 'util';
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
+import { readFileSync, existsSync } from 'fs';
+import { parse } from 'csv-parse/sync';
 
 // Load environment variables
 config();
@@ -27,9 +29,17 @@ async function main() {
       tool: { type: 'string', short: 't' },
       context: { type: 'string', short: 'c' },
       category: { type: 'string', short: 'g' },
-      publish: { type: 'boolean', short: 'p' }, // Skip draft, publish immediately
-      queue: { type: 'string', short: 'q' },     // 'add' or 'process'
-      priority: { type: 'string' },              // Queue priority (0-100)
+      publish: { type: 'boolean', short: 'p' },  // Skip draft, publish immediately
+      queue: { type: 'string', short: 'q' },      // 'add' | 'process' | 'batch' | 'cleanup' | 'status'
+      strategy: { type: 'string', short: 's' },   // 'analyze' | 'import' | 'ahrefs' | 'classify' | 'approve' | 'status' | 'thresholds'
+      file: { type: 'string', short: 'f' },       // CSV file for import
+      priority: { type: 'string' },               // Queue priority (0-100) or min ROI for approve
+      limit: { type: 'string', short: 'l' },      // Limit for batch operations
+      'no-filter': { type: 'boolean' },           // Skip filtering for ahrefs import
+      'min-volume': { type: 'string' },           // Threshold: min search volume
+      'max-difficulty': { type: 'string' },       // Threshold: max keyword difficulty
+      'min-cpc': { type: 'string' },              // Threshold: min CPC
+      domain: { type: 'string', short: 'd' },     // Competitor domain for import
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -39,18 +49,41 @@ async function main() {
     process.exit(0);
   }
 
-  // Validate environment
-  const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GEMINI_API_KEY', 'SERPER_API_KEY'];
-  const missing = requiredEnvVars.filter(v => !process.env[v]);
-  if (missing.length > 0) {
-    console.error(`Missing required environment variables: ${missing.join(', ')}`);
+  // Validate environment (only Supabase required for strategy operations)
+  const supabaseVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+  const missingSupabase = supabaseVars.filter(v => !process.env[v]);
+  if (missingSupabase.length > 0) {
+    console.error(`Missing required environment variables: ${missingSupabase.join(', ')}`);
     process.exit(1);
+  }
+
+  // Strategy operations (The Gatekeeper)
+  if (values.strategy) {
+    await handleStrategyOperation(values);
+    return;
   }
 
   // Queue operations
   if (values.queue) {
+    // Queue processing needs AI keys
+    if (values.queue === 'process' || values.queue === 'batch') {
+      const aiVars = ['GEMINI_API_KEY', 'SERPER_API_KEY'];
+      const missingAi = aiVars.filter(v => !process.env[v]);
+      if (missingAi.length > 0) {
+        console.error(`Missing AI environment variables for processing: ${missingAi.join(', ')}`);
+        process.exit(1);
+      }
+    }
     await handleQueueOperation(values);
     return;
+  }
+
+  // Direct hunt requires AI keys
+  const aiVars = ['GEMINI_API_KEY', 'SERPER_API_KEY'];
+  const missingAi = aiVars.filter(v => !process.env[v]);
+  if (missingAi.length > 0) {
+    console.error(`Missing AI environment variables: ${missingAi.join(', ')}`);
+    process.exit(1);
   }
 
   // Direct hunt
@@ -65,37 +98,113 @@ async function main() {
 
 function printHelp() {
   console.log(`
-StackHunt Hunter CLI
-====================
+StackHunt Hunter CLI (v3.0 - Intelligence Engine)
+=================================================
+
+The Software Intelligence Engine with Strategy Gatekeeper.
+Prevents low-value content and duplicates BEFORE they cost money.
 
 Usage:
   npm run hunt -- --tool="Tool Name" [options]
+  npm run hunt -- --strategy <operation> [options]
+  npm run hunt -- --queue <operation> [options]
 
-Direct Hunt Options:
-  -t, --tool      Tool name to research (required)
-  -c, --context   Context/audience (e.g., "Best for Small Teams")
-  -g, --category  Category slug (e.g., "crm-sales", "productivity")
-  -p, --publish   Publish immediately (skip draft review queue)
-  -h, --help      Show this help
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRATEGY GATEKEEPER (CSV Import & ROI Analysis)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Queue Operations:
-  --queue add     Add tool to content queue for scheduled processing
-  --queue process Process next item from queue
-  --priority N    Queue priority (0-100, higher = process first)
+  --strategy import    Import simple CSV (tool_name, context)
+    -f, --file         Path to CSV file (required)
+
+  --strategy ahrefs    Import Ahrefs keyword export (with filtering)
+    -f, --file         Path to Ahrefs CSV file (required)
+    --no-filter        Skip threshold filtering
+
+  --strategy classify  AI-classify pending keywords (extract tools, detect type)
+    -l, --limit        Max items to classify (default: 50)
+
+  --strategy analyze   Analyze pending ideas, check duplicates, calculate ROI
+    -l, --limit        Max items to analyze (default: 100)
+
+  --strategy approve   Auto-approve high ROI ideas to hunt queue
+    --priority         Min ROI score threshold (default: 5.0)
+    -l, --limit        Max items to approve (default: 20)
+
+  --strategy thresholds  View/update import filter thresholds
+    --min-volume       Min monthly search volume (default: 50)
+    --max-difficulty   Max keyword difficulty (default: 70)
+    --min-cpc          Min CPC for commercial intent (default: 0.10)
+
+  --strategy competitors  Import competitor top pages (Ahrefs/SEMrush)
+    -f, --file         Path to competitor pages CSV
+    -d, --domain       Competitor domain (required)
+
+  --strategy gaps      Show keyword gap analysis vs competitors
+    -l, --limit        Max gaps to show (default: 20)
+
+  --strategy status    Show Strategy War Room dashboard
+
+Ahrefs CSV Format (columns):
+  Keyword, Difficulty, Volume, CPC, Clicks, CPS, Return Rate, Parent Keyword
+
+Simple CSV Format (columns):
+  keyword, tool_name, context_query, search_volume, keyword_difficulty, cpc
+
+Competitor CSV Format (Ahrefs Top Pages):
+  #, Traffic, %, Value, Keywords, RD, Page URL, Top keyword, Its volume, Pos.
 
 Examples:
-  # Direct hunt (creates draft by default)
+  npm run hunt -- --strategy ahrefs --file="ahrefs-export.csv"
+  npm run hunt -- --strategy classify --limit 20
+  npm run hunt -- --strategy thresholds --min-volume 100 --max-difficulty 50
+  npm run hunt -- --strategy competitors --file="competitor-pages.csv" --domain="competitor.com"
+  npm run hunt -- --strategy gaps --limit 20
+  npm run hunt -- --strategy analyze
+  npm run hunt -- --strategy approve --priority 10 --limit 10
+  npm run hunt -- --strategy status
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUNT QUEUE (Worker Operations)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  --queue add          Add tool to hunt queue
+    -t, --tool         Tool name (required)
+    -c, --context      Context/audience
+    --priority         Priority 0-100 (default: 50)
+
+  --queue process      Process next item from queue
+  --queue batch        Process multiple items
+    --priority         Max items to process (default: 5)
+
+  --queue cleanup      Release stale claims from dead workers
+  --queue status       Show queue status dashboard
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIRECT HUNT (Bypass Queue)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  -t, --tool           Tool name to research (required)
+  -c, --context        Context/audience
+  -g, --category       Category slug
+  -p, --publish        Publish immediately (skip draft review)
+
+Examples:
   npm run hunt -- --tool="Salesforce"
   npm run hunt -- --tool="Slack" --context="Best for Remote Teams"
+  npm run hunt -- --tool="Notion" --publish
 
-  # Publish immediately (skip review queue)
-  npm run hunt -- --tool="Notion" --category="productivity" --publish
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORKFLOW: CSV → Strategy Gatekeeper → Hunt Queue → CLI Worker
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  # Add to queue for later processing
-  npm run hunt -- --queue add --tool="HubSpot" --context="Best CRM" --priority 10
+1. Import CSV:     npm run hunt -- --strategy import --file="keywords.csv"
+2. Analyze ROI:    npm run hunt -- --strategy analyze
+3. Auto-Approve:   npm run hunt -- --strategy approve --priority 5
+4. Process Queue:  npm run hunt -- --queue process
 
-  # Process next queued item
-  npm run hunt -- --queue process
+VPS Cron Jobs:
+  */5 * * * *  npm run hunt -- --queue process
+  0 * * * *    npm run hunt -- --queue cleanup
 `);
 }
 
@@ -112,26 +221,27 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
     }
 
     const { data, error } = await supabase
-      .from('content_queue')
+      .from('hunt_queue')
       .insert({
         tool_name: values.tool as string,
         context_title: (values.context as string) || null,
         category_slug: (values.category as string) || null,
-        priority: parseInt(values.priority as string) || 0,
-        source: 'cli',
+        priority: parseInt(values.priority as string) || 50,
+        source: 'admin',
+        hunt_type: 'full',
       })
       .select()
       .single();
 
     if (error) {
       if (error.code === '23505') {
-        console.log(`Tool "${values.tool}" already in queue`);
+        console.log(`Tool "${values.tool}" already in queue (pending/processing)`);
       } else {
         console.error('Failed to add to queue:', error.message);
         process.exit(1);
       }
     } else {
-      console.log(`Added to queue: ${values.tool}`);
+      console.log(`Added to hunt queue: ${values.tool}`);
       console.log(`  Context: ${values.context || '(none)'}`);
       console.log(`  Priority: ${data.priority}`);
       console.log(`  Queue ID: ${data.id}`);
@@ -145,14 +255,45 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
     return;
   }
 
+  if (values.queue === 'batch') {
+    const batchSize = parseInt(values.priority as string) || 5;
+    console.log(`Processing up to ${batchSize} items from queue...`);
+    await runBatchProcess(batchSize);
+    return;
+  }
+
+  if (values.queue === 'cleanup') {
+    console.log('Releasing stale queue claims...');
+    await runCleanup();
+    return;
+  }
+
   if (values.queue === 'status') {
+    // Pending items
     const { data: pending } = await supabase
-      .from('content_queue')
+      .from('hunt_queue')
       .select('*')
       .eq('status', 'pending')
       .order('priority', { ascending: false })
       .limit(10);
 
+    // Processing items
+    const { data: processing } = await supabase
+      .from('hunt_queue')
+      .select('*')
+      .in('status', ['claimed', 'processing'])
+      .order('claimed_at', { ascending: false })
+      .limit(5);
+
+    // Recent failures
+    const { data: failed } = await supabase
+      .from('hunt_queue')
+      .select('*')
+      .eq('status', 'failed')
+      .order('completed_at', { ascending: false })
+      .limit(5);
+
+    // Drafts awaiting review
     const { data: drafts } = await supabase
       .from('reviews')
       .select('id, created_at, tool:tools(name), context:contexts(title)')
@@ -160,18 +301,41 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
       .order('created_at', { ascending: false })
       .limit(10);
 
-    console.log('\n📋 Queue Status\n');
+    console.log('\n📋 Hunt Queue Status\n');
+    console.log('═'.repeat(50));
 
-    console.log('Pending in Queue:');
+    console.log('\n⏳ Pending:');
     if (pending?.length) {
       pending.forEach((item, i) => {
-        console.log(`  ${i + 1}. ${item.tool_name} ${item.context_title ? `(${item.context_title})` : ''} [priority: ${item.priority}]`);
+        console.log(`  ${i + 1}. ${item.tool_name} ${item.context_title ? `(${item.context_title})` : ''}`);
+        console.log(`     Priority: ${item.priority} | Source: ${item.source}`);
       });
     } else {
       console.log('  (empty)');
     }
 
-    console.log('\nDrafts Awaiting Review:');
+    console.log('\n🔄 Processing:');
+    if (processing?.length) {
+      processing.forEach((item, i) => {
+        const stale = item.heartbeat_at && new Date(item.heartbeat_at) < new Date(Date.now() - 5 * 60 * 1000);
+        console.log(`  ${i + 1}. ${item.tool_name} [${item.status}]${stale ? ' ⚠️ STALE' : ''}`);
+        console.log(`     Worker: ${item.claimed_by || 'unknown'}`);
+      });
+    } else {
+      console.log('  (none)');
+    }
+
+    console.log('\n❌ Recent Failures:');
+    if (failed?.length) {
+      failed.forEach((item, i) => {
+        console.log(`  ${i + 1}. ${item.tool_name}`);
+        console.log(`     Error: ${item.error_message?.slice(0, 60)}...`);
+      });
+    } else {
+      console.log('  (none)');
+    }
+
+    console.log('\n📝 Drafts Awaiting Review:');
     if (drafts?.length) {
       drafts.forEach((item, i) => {
         console.log(`  ${i + 1}. ${(item.tool as { name: string })?.name || 'Unknown'} - ${(item.context as { title: string })?.title || 'No context'}`);
@@ -180,11 +344,12 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
       console.log('  (none)');
     }
 
+    console.log('\n' + '═'.repeat(50));
     return;
   }
 
   console.error(`Unknown queue operation: ${values.queue}`);
-  console.log('Valid operations: add, process, status');
+  console.log('Valid operations: add, process, batch, cleanup, status');
   process.exit(1);
 }
 
@@ -263,11 +428,1092 @@ async function runQueueProcess() {
   }
 }
 
+async function runBatchProcess(maxItems: number) {
+  const { Hunter } = await import('../src/lib/hunter');
+
+  const hunter = new Hunter({
+    supabaseUrl: process.env.SUPABASE_URL!,
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    geminiApiKey: process.env.GEMINI_API_KEY!,
+    serperApiKey: process.env.SERPER_API_KEY!,
+    isDraftMode: true,
+  });
+
+  console.log('═'.repeat(60));
+  console.log(`🔄 Starting batch processing (max ${maxItems} items)`);
+  console.log('═'.repeat(60));
+
+  const result = await hunter.processQueueBatch(maxItems);
+
+  console.log('═'.repeat(60));
+  console.log('📊 Batch Processing Complete');
+  console.log(`   Processed: ${result.processed}`);
+  console.log(`   Succeeded: ${result.succeeded}`);
+  console.log(`   Failed: ${result.failed}`);
+  console.log('═'.repeat(60));
+
+  if (result.failed > 0) {
+    process.exit(1);
+  }
+}
+
+async function runCleanup() {
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // Call the database function to release stale claims
+  const { data, error } = await supabase.rpc('release_stale_hunt_claims', {
+    p_stale_minutes: 10,
+  });
+
+  if (error) {
+    console.error('Cleanup failed:', error.message);
+    process.exit(1);
+  }
+
+  const released = data as number;
+  if (released > 0) {
+    console.log(`🧹 Released ${released} stale queue claims`);
+  } else {
+    console.log('✅ No stale claims to release');
+  }
+}
+
+// =============================================================================
+// STRATEGY GATEKEEPER OPERATIONS
+// =============================================================================
+
+async function handleStrategyOperation(values: Record<string, string | boolean | undefined>) {
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const operation = values.strategy as string;
+
+  switch (operation) {
+    case 'import':
+      await handleStrategyImport(supabase, values);
+      break;
+    case 'ahrefs':
+      await handleAhrefsImport(supabase, values);
+      break;
+    case 'classify':
+      await handleKeywordClassify(supabase, values);
+      break;
+    case 'analyze':
+      await handleStrategyAnalyze(supabase, values);
+      break;
+    case 'approve':
+      await handleStrategyApprove(supabase, values);
+      break;
+    case 'status':
+      await handleStrategyStatus(supabase);
+      break;
+    case 'thresholds':
+      await handleThresholds(supabase, values);
+      break;
+    case 'competitors':
+      await handleCompetitorImport(supabase, values);
+      break;
+    case 'gaps':
+      await handleGapAnalysis(supabase, values);
+      break;
+    default:
+      console.error(`Unknown strategy operation: ${operation}`);
+      console.log('Valid operations: import, ahrefs, classify, analyze, approve, status, thresholds, competitors, gaps');
+      process.exit(1);
+  }
+}
+
+/**
+ * Import keywords from CSV file into content_ideas staging table
+ */
+async function handleStrategyImport(
+  supabase: ReturnType<typeof createClient>,
+  values: Record<string, string | boolean | undefined>
+) {
+  const filePath = values.file as string;
+
+  if (!filePath) {
+    console.error('Error: --file is required for import');
+    console.log('Usage: npm run hunt -- --strategy import --file="keywords.csv"');
+    process.exit(1);
+  }
+
+  if (!existsSync(filePath)) {
+    console.error(`Error: File not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  console.log('═'.repeat(60));
+  console.log('📥 Strategy Gatekeeper: CSV Import');
+  console.log('═'.repeat(60));
+
+  // Read and parse CSV
+  const csvContent = readFileSync(filePath, 'utf-8');
+  let records: Array<Record<string, string>>;
+
+  try {
+    records = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+    });
+  } catch (err) {
+    console.error('Failed to parse CSV:', (err as Error).message);
+    process.exit(1);
+  }
+
+  console.log(`Found ${records.length} rows in CSV`);
+
+  // Create import batch
+  const { data: batch, error: batchError } = await supabase
+    .from('import_batches')
+    .insert({
+      filename: filePath.split('/').pop() || filePath,
+      total_rows: records.length,
+      status: 'processing',
+    })
+    .select()
+    .single();
+
+  if (batchError) {
+    console.error('Failed to create import batch:', batchError.message);
+    process.exit(1);
+  }
+
+  console.log(`Created import batch: ${batch.id}`);
+
+  // Process each row
+  let imported = 0;
+  let skipped = 0;
+  let errors = 0;
+
+  for (const row of records) {
+    // Map CSV columns (flexible column names)
+    const keyword = row.keyword || row.Keyword || row.term || row.Term;
+    const toolName = row.tool_name || row.tool || row.Tool || row['Tool Name'];
+    const contextQuery = row.context_query || row.context || row.Context || row.audience;
+    const searchVolume = parseInt(row.search_volume || row.volume || row.Volume || '0', 10);
+    const keywordDifficulty = parseInt(row.keyword_difficulty || row.difficulty || row.KD || row.kd || '50', 10);
+    const cpc = parseFloat(row.cpc || row.CPC || '0');
+
+    if (!keyword && !toolName) {
+      skipped++;
+      continue;
+    }
+
+    // Insert into content_ideas
+    const { error: insertError } = await supabase
+      .from('content_ideas')
+      .insert({
+        keyword: keyword || toolName,
+        tool_name: toolName || keyword,
+        context_query: contextQuery || null,
+        search_volume: searchVolume,
+        keyword_difficulty: keywordDifficulty,
+        cpc: cpc,
+        source: 'csv_import',
+        import_batch_id: batch.id,
+        status: 'pending',
+      });
+
+    if (insertError) {
+      if (insertError.code === '23505') {
+        // Duplicate - already exists
+        skipped++;
+      } else {
+        console.error(`  Error inserting "${keyword || toolName}": ${insertError.message}`);
+        errors++;
+      }
+    } else {
+      imported++;
+    }
+  }
+
+  // Update batch status
+  await supabase
+    .from('import_batches')
+    .update({
+      imported_rows: imported,
+      duplicate_rows: skipped,
+      error_rows: errors,
+      status: errors > 0 ? 'completed_with_errors' : 'completed',
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', batch.id);
+
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('📊 Import Summary');
+  console.log('═'.repeat(60));
+  console.log(`  Total rows:    ${records.length}`);
+  console.log(`  Imported:      ${imported}`);
+  console.log(`  Skipped:       ${skipped} (duplicates or empty)`);
+  console.log(`  Errors:        ${errors}`);
+  console.log('');
+  console.log('Next step: npm run hunt -- --strategy analyze');
+  console.log('═'.repeat(60));
+}
+
+/**
+ * Analyze pending ideas: calculate ROI, check duplicates
+ */
+async function handleStrategyAnalyze(
+  supabase: ReturnType<typeof createClient>,
+  values: Record<string, string | boolean | undefined>
+) {
+  const limit = parseInt(values.limit as string) || 100;
+
+  console.log('═'.repeat(60));
+  console.log('🔬 Strategy Gatekeeper: ROI Analysis');
+  console.log('═'.repeat(60));
+
+  // The analyze_content_ideas function returns a TABLE of analyzed ideas
+  // It analyzes pending ideas and returns recommendations
+  const { data: analyzed, error } = await supabase.rpc('analyze_content_ideas', {
+    p_limit: limit,
+  });
+
+  if (error) {
+    console.error('Analysis failed:', error.message);
+    process.exit(1);
+  }
+
+  const ideas = analyzed as Array<{
+    id: string;
+    keyword: string;
+    tool_name: string | null;
+    roi_score: number | null;
+    is_duplicate: boolean;
+    duplicate_reason: string | null;
+    recommendation: string;
+  }>;
+
+  // Calculate stats from returned rows
+  const totalAnalyzed = ideas.length;
+  const duplicatesFound = ideas.filter(i => i.is_duplicate).length;
+  const rejected = ideas.filter(i => i.recommendation?.startsWith('REJECT')).length;
+  const highRoi = ideas.filter(i => i.recommendation?.includes('High ROI')).length;
+
+  console.log(`  Analyzed:        ${totalAnalyzed} ideas`);
+  console.log(`  Duplicates:      ${duplicatesFound} found`);
+  console.log(`  Rejected:        ${rejected} (low ROI or duplicates)`);
+  console.log(`  High ROI:        ${highRoi} opportunities`);
+
+  // Show top candidates (non-duplicates with highest ROI)
+  const topIdeas = ideas
+    .filter(i => !i.is_duplicate && i.roi_score !== null)
+    .sort((a, b) => (b.roi_score || 0) - (a.roi_score || 0))
+    .slice(0, 10);
+
+  if (topIdeas.length) {
+    console.log('');
+    console.log('🏆 Top ROI Candidates:');
+    console.log('─'.repeat(60));
+    topIdeas.forEach((idea, i) => {
+      const roi = idea.roi_score?.toFixed(2) || '0.00';
+      const rec = idea.recommendation || 'REVIEW';
+      console.log(`  ${i + 1}. ${idea.tool_name || idea.keyword}`);
+      console.log(`     ROI: ${roi} | ${rec}`);
+    });
+  } else {
+    console.log('');
+    console.log('No high-ROI candidates found. Import more keywords or lower the threshold.');
+  }
+
+  console.log('');
+  console.log('Next step: npm run hunt -- --strategy approve --priority 5');
+  console.log('═'.repeat(60));
+}
+
+/**
+ * Auto-approve high ROI ideas to hunt queue
+ */
+async function handleStrategyApprove(
+  supabase: ReturnType<typeof createClient>,
+  values: Record<string, string | boolean | undefined>
+) {
+  const minRoi = parseFloat(values.priority as string) || 5.0;
+  const limit = parseInt(values.limit as string) || 20;
+
+  console.log('═'.repeat(60));
+  console.log('✅ Strategy Gatekeeper: Auto-Approve to Queue');
+  console.log('═'.repeat(60));
+  console.log(`  Min ROI threshold: ${minRoi}`);
+  console.log(`  Max items: ${limit}`);
+  console.log('');
+
+  // Call bulk approve function
+  // Returns TABLE(approved_count INT, queue_ids UUID[])
+  const { data, error } = await supabase.rpc('bulk_approve_ideas', {
+    p_min_roi: minRoi,
+    p_max_count: limit,
+    p_approved_by: 'cli',
+  });
+
+  if (error) {
+    console.error('Approval failed:', error.message);
+    process.exit(1);
+  }
+
+  // Result is an array with one row containing approved_count and queue_ids
+  const result = (data as Array<{ approved_count: number; queue_ids: string[] }>)?.[0];
+  const approvedCount = result?.approved_count || 0;
+  const queueIds = result?.queue_ids || [];
+
+  console.log(`  Approved:  ${approvedCount} ideas`);
+  console.log(`  Queued:    ${queueIds.length} items added to hunt queue`);
+
+  if (queueIds.length > 0) {
+    console.log('');
+    console.log('Queue IDs:');
+    queueIds.slice(0, 5).forEach((id, i) => {
+      console.log(`  ${i + 1}. ${id}`);
+    });
+    if (queueIds.length > 5) {
+      console.log(`  ... and ${queueIds.length - 5} more`);
+    }
+  }
+
+  console.log('');
+  console.log('Next step: npm run hunt -- --queue process');
+  console.log('═'.repeat(60));
+}
+
+/**
+ * Show Strategy War Room dashboard
+ */
+async function handleStrategyStatus(supabase: ReturnType<typeof createClient>) {
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('🎯 STRATEGY WAR ROOM');
+  console.log('═'.repeat(60));
+
+  // Get counts by status
+  const { data: statusCounts } = await supabase
+    .from('content_ideas')
+    .select('status')
+    .then(({ data }) => {
+      const counts: Record<string, number> = {};
+      data?.forEach(row => {
+        counts[row.status] = (counts[row.status] || 0) + 1;
+      });
+      return { data: counts };
+    });
+
+  const pending = statusCounts?.pending || 0;
+  const analyzed = statusCounts?.analyzed || 0;
+  const approved = statusCounts?.approved || 0;
+  const rejected = statusCounts?.rejected || 0;
+
+  console.log('');
+  console.log('📊 Content Ideas Pipeline:');
+  console.log('─'.repeat(40));
+  console.log(`  ⏳ Pending analysis:  ${pending}`);
+  console.log(`  🔬 Analyzed:          ${analyzed}`);
+  console.log(`  ✅ Approved:          ${approved}`);
+  console.log(`  ❌ Rejected:          ${rejected}`);
+
+  // Duplicate stats
+  const { count: duplicateCount } = await supabase
+    .from('content_ideas')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_duplicate', true);
+
+  console.log(`  🔄 Duplicates found:  ${duplicateCount || 0}`);
+
+  // Recent imports
+  const { data: recentBatches } = await supabase
+    .from('import_batches')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  if (recentBatches?.length) {
+    console.log('');
+    console.log('📥 Recent Imports:');
+    console.log('─'.repeat(40));
+    recentBatches.forEach((batch) => {
+      const date = new Date(batch.created_at).toLocaleDateString();
+      console.log(`  ${batch.filename} (${date})`);
+      console.log(`    ${batch.imported_rows}/${batch.total_rows} imported | Status: ${batch.status}`);
+    });
+  }
+
+  // Queue status
+  const { count: queuePending } = await supabase
+    .from('hunt_queue')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+
+  const { count: queueProcessing } = await supabase
+    .from('hunt_queue')
+    .select('*', { count: 'exact', head: true })
+    .in('status', ['claimed', 'processing']);
+
+  console.log('');
+  console.log('🎯 Hunt Queue:');
+  console.log('─'.repeat(40));
+  console.log(`  ⏳ Pending:     ${queuePending || 0}`);
+  console.log(`  🔄 Processing:  ${queueProcessing || 0}`);
+
+  // Top pending ideas by ROI
+  const { data: topPending } = await supabase
+    .from('content_ideas')
+    .select('keyword, tool_name, roi_score')
+    .eq('status', 'analyzed')
+    .eq('is_duplicate', false)
+    .order('roi_score', { ascending: false })
+    .limit(5);
+
+  if (topPending?.length) {
+    console.log('');
+    console.log('🏆 Top Pending (Ready to Approve):');
+    console.log('─'.repeat(40));
+    topPending.forEach((idea, i) => {
+      const name = idea.tool_name || idea.keyword;
+      const roi = idea.roi_score?.toFixed(2) || '0.00';
+      console.log(`  ${i + 1}. ${name} (ROI: ${roi})`);
+    });
+  }
+
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('Commands:');
+  console.log('  npm run hunt -- --strategy import --file="keywords.csv"');
+  console.log('  npm run hunt -- --strategy analyze');
+  console.log('  npm run hunt -- --strategy approve --priority 5');
+  console.log('  npm run hunt -- --queue process');
+  console.log('═'.repeat(60));
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+}
+
+// =============================================================================
+// AHREFS IMPORT & KEYWORD CLASSIFICATION
+// =============================================================================
+
+/**
+ * Import keywords from Ahrefs CSV export with filtering
+ */
+async function handleAhrefsImport(
+  supabase: ReturnType<typeof createClient>,
+  values: Record<string, string | boolean | undefined>
+) {
+  const filePath = values.file as string;
+  const applyFilters = !values['no-filter'];
+
+  if (!filePath) {
+    console.error('Error: --file is required for ahrefs import');
+    console.log('Usage: npm run hunt -- --strategy ahrefs --file="ahrefs-export.csv"');
+    process.exit(1);
+  }
+
+  if (!existsSync(filePath)) {
+    console.error(`Error: File not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  console.log('═'.repeat(60));
+  console.log('📥 Strategy Gatekeeper: Ahrefs Import');
+  console.log('═'.repeat(60));
+
+  // Get current thresholds
+  if (applyFilters) {
+    const { data: settings } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'keyword_import_thresholds')
+      .single();
+
+    const thresholds = settings?.value as Record<string, number> | undefined;
+    console.log('');
+    console.log('📏 Filter Thresholds:');
+    console.log(`  Min Volume:     ${thresholds?.min_volume || 50}`);
+    console.log(`  Max Difficulty: ${thresholds?.max_difficulty || 70}`);
+    console.log(`  Min CPC:        $${thresholds?.min_cpc || 0.10}`);
+    console.log('');
+  } else {
+    console.log('');
+    console.log('⚠️  Filters DISABLED - importing all keywords');
+    console.log('');
+  }
+
+  // Read and parse CSV
+  const csvContent = readFileSync(filePath, 'utf-8');
+  let records: Array<Record<string, string>>;
+
+  try {
+    records = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+      relax_column_count: true,
+    });
+  } catch (err) {
+    console.error('Failed to parse CSV:', (err as Error).message);
+    process.exit(1);
+  }
+
+  console.log(`Found ${records.length} rows in CSV`);
+
+  // Create import batch
+  const { data: batch, error: batchError } = await supabase
+    .from('import_batches')
+    .insert({
+      filename: filePath.split('/').pop() || filePath,
+      total_rows: records.length,
+      status: 'processing',
+      notes: `Ahrefs import, filters: ${applyFilters ? 'enabled' : 'disabled'}`,
+    })
+    .select()
+    .single();
+
+  if (batchError) {
+    console.error('Failed to create import batch:', batchError.message);
+    process.exit(1);
+  }
+
+  console.log(`Created import batch: ${batch.id}`);
+
+  // Transform Ahrefs format to our format
+  // Ahrefs columns: #, Keyword, Difficulty, Volume, CPC, Clicks, CPS, Return Rate, Parent Keyword
+  const keywords = records.map(row => ({
+    keyword: row.Keyword || row.keyword || '',
+    difficulty: parseInt(row.Difficulty || row.difficulty || '0', 10),
+    volume: parseInt(row.Volume || row.volume || '0', 10),
+    cpc: parseFloat(row.CPC || row.cpc || '0'),
+    clicks: row.Clicks ? parseInt(row.Clicks, 10) : null,
+    cps: row.CPS ? parseFloat(row.CPS) : null,
+    return_rate: row['Return Rate'] ? parseFloat(row['Return Rate']) : null,
+    parent_keyword: row['Parent Keyword'] || row.parent_keyword || null,
+  })).filter(k => k.keyword);  // Remove empty keywords
+
+  console.log(`Parsed ${keywords.length} valid keywords`);
+
+  // Call bulk import RPC
+  const { data: result, error: importError } = await supabase.rpc('import_ahrefs_keywords', {
+    p_keywords: keywords,
+    p_batch_id: batch.id,
+    p_apply_filters: applyFilters,
+  });
+
+  if (importError) {
+    console.error('Import failed:', importError.message);
+    // Update batch as failed
+    await supabase
+      .from('import_batches')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', batch.id);
+    process.exit(1);
+  }
+
+  const importResult = result as { imported: number; filtered: number; duplicates: number };
+
+  // Update batch status
+  await supabase
+    .from('import_batches')
+    .update({
+      imported_rows: importResult.imported,
+      duplicate_rows: importResult.duplicates,
+      error_rows: importResult.filtered,  // Using error_rows for filtered count
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', batch.id);
+
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('📊 Import Summary');
+  console.log('═'.repeat(60));
+  console.log(`  Total keywords: ${keywords.length}`);
+  console.log(`  Imported:       ${importResult.imported} ✅`);
+  console.log(`  Filtered:       ${importResult.filtered} (below thresholds)`);
+  console.log(`  Duplicates:     ${importResult.duplicates}`);
+  console.log('');
+
+  if (importResult.imported > 0) {
+    console.log('Next step: npm run hunt -- --strategy classify');
+  } else {
+    console.log('No keywords imported. Try adjusting thresholds:');
+    console.log('  npm run hunt -- --strategy thresholds --min-volume 20');
+  }
+  console.log('═'.repeat(60));
+}
+
+/**
+ * AI-classify pending keywords to determine type and extract tools
+ */
+async function handleKeywordClassify(
+  supabase: ReturnType<typeof createClient>,
+  values: Record<string, string | boolean | undefined>
+) {
+  const limit = parseInt(values.limit as string) || 50;
+
+  // Check for Gemini API key
+  if (!process.env.GEMINI_API_KEY) {
+    console.error('Error: GEMINI_API_KEY required for classification');
+    process.exit(1);
+  }
+
+  console.log('═'.repeat(60));
+  console.log('🤖 Strategy Gatekeeper: AI Keyword Classification');
+  console.log('═'.repeat(60));
+
+  // Get unclassified keywords
+  const { data: keywords, error } = await supabase
+    .from('content_ideas')
+    .select('id, keyword, parent_keyword')
+    .is('keyword_type', null)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    console.error('Failed to fetch keywords:', error.message);
+    process.exit(1);
+  }
+
+  if (!keywords?.length) {
+    console.log('No unclassified keywords found.');
+    console.log('Import keywords first: npm run hunt -- --strategy ahrefs --file="export.csv"');
+    return;
+  }
+
+  console.log(`Found ${keywords.length} keywords to classify`);
+  console.log('');
+
+  // Import Gemini service
+  const { GoogleGenerativeAI } = await import('@google/generative-ai');
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  let classified = 0;
+  let failed = 0;
+
+  // Process in batches of 10 for efficiency
+  const batchSize = 10;
+  for (let i = 0; i < keywords.length; i += batchSize) {
+    const batch = keywords.slice(i, i + batchSize);
+    const keywordList = batch.map(k => k.keyword).join('\n');
+
+    const prompt = `Classify these search keywords for a SaaS/software tools comparison website.
+
+For each keyword, determine:
+1. type: One of: best_list, comparison, alternatives, single_tool, informational, skip
+   - best_list: "best X software", "top X tools" → user wants a list of tools
+   - comparison: "X vs Y", "X or Y" → user comparing specific tools
+   - alternatives: "X alternatives" → user wants tools similar to X
+   - single_tool: "X pricing", "X review", "how to use X" (but about a specific software tool)
+   - informational: How-to guides, tutorials, definitions (no commercial intent)
+   - skip: Nonsense, spam, or irrelevant
+
+2. extracted_tools: Array of tool/software names found in the keyword (empty if none)
+
+3. suggested_context: A context title like "Best X Tools" or "Best X for Y" (null if not applicable)
+
+KEYWORDS:
+${keywordList}
+
+Respond in JSON format:
+{
+  "classifications": [
+    {
+      "keyword": "...",
+      "type": "best_list",
+      "extracted_tools": ["Tool1", "Tool2"],
+      "suggested_context": "Best Project Management Tools"
+    }
+  ]
+}`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error(`  Batch ${i / batchSize + 1}: Failed to parse response`);
+        failed += batch.length;
+        continue;
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]) as {
+        classifications: Array<{
+          keyword: string;
+          type: string;
+          extracted_tools: string[];
+          suggested_context: string | null;
+        }>;
+      };
+
+      // Update each keyword
+      for (const classification of parsed.classifications) {
+        const idea = batch.find(k => k.keyword === classification.keyword);
+        if (!idea) continue;
+
+        const { error: updateError } = await supabase.rpc('update_keyword_classification', {
+          p_idea_id: idea.id,
+          p_keyword_type: classification.type,
+          p_extracted_tools: classification.extracted_tools || [],
+          p_tool_name: classification.extracted_tools?.[0] || null,
+          p_context_query: classification.suggested_context,
+          p_ai_response: classification,
+        });
+
+        if (updateError) {
+          console.error(`  Failed to update "${classification.keyword}": ${updateError.message}`);
+          failed++;
+        } else {
+          classified++;
+          const tools = classification.extracted_tools?.length
+            ? `[${classification.extracted_tools.join(', ')}]`
+            : '(none)';
+          console.log(`  ✓ ${classification.keyword}`);
+          console.log(`    Type: ${classification.type} | Tools: ${tools}`);
+        }
+      }
+    } catch (err) {
+      console.error(`  Batch ${i / batchSize + 1}: API error - ${(err as Error).message}`);
+      failed += batch.length;
+    }
+
+    // Rate limiting
+    if (i + batchSize < keywords.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('📊 Classification Summary');
+  console.log('═'.repeat(60));
+  console.log(`  Classified: ${classified}`);
+  console.log(`  Failed:     ${failed}`);
+  console.log('');
+  console.log('Next step: npm run hunt -- --strategy analyze');
+  console.log('═'.repeat(60));
+}
+
+/**
+ * View or update import threshold settings
+ */
+async function handleThresholds(
+  supabase: ReturnType<typeof createClient>,
+  values: Record<string, string | boolean | undefined>
+) {
+  const minVolume = values['min-volume'] ? parseInt(values['min-volume'] as string) : undefined;
+  const maxDifficulty = values['max-difficulty'] ? parseInt(values['max-difficulty'] as string) : undefined;
+  const minCpc = values['min-cpc'] ? parseFloat(values['min-cpc'] as string) : undefined;
+
+  console.log('═'.repeat(60));
+  console.log('⚙️  Import Threshold Settings');
+  console.log('═'.repeat(60));
+
+  // Get current settings
+  const { data: current, error } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'keyword_import_thresholds')
+    .single();
+
+  if (error) {
+    console.error('Failed to fetch settings:', error.message);
+    process.exit(1);
+  }
+
+  const thresholds = (current?.value as Record<string, number | boolean>) || {
+    min_volume: 50,
+    max_difficulty: 70,
+    min_cpc: 0.10,
+    skip_informational: true,
+  };
+
+  // Check if we're updating
+  if (minVolume !== undefined || maxDifficulty !== undefined || minCpc !== undefined) {
+    const updated = {
+      ...thresholds,
+      ...(minVolume !== undefined && { min_volume: minVolume }),
+      ...(maxDifficulty !== undefined && { max_difficulty: maxDifficulty }),
+      ...(minCpc !== undefined && { min_cpc: minCpc }),
+    };
+
+    const { error: updateError } = await supabase
+      .from('system_settings')
+      .update({ value: updated, updated_at: new Date().toISOString() })
+      .eq('key', 'keyword_import_thresholds');
+
+    if (updateError) {
+      console.error('Failed to update settings:', updateError.message);
+      process.exit(1);
+    }
+
+    console.log('');
+    console.log('✅ Thresholds updated:');
+    console.log('');
+    console.log(`  Min Volume:        ${thresholds.min_volume} → ${updated.min_volume}`);
+    console.log(`  Max Difficulty:    ${thresholds.max_difficulty} → ${updated.max_difficulty}`);
+    console.log(`  Min CPC:           $${thresholds.min_cpc} → $${updated.min_cpc}`);
+    console.log(`  Skip Informational: ${updated.skip_informational}`);
+  } else {
+    console.log('');
+    console.log('Current thresholds:');
+    console.log('');
+    console.log(`  Min Volume:        ${thresholds.min_volume}`);
+    console.log(`  Max Difficulty:    ${thresholds.max_difficulty}`);
+    console.log(`  Min CPC:           $${thresholds.min_cpc}`);
+    console.log(`  Skip Informational: ${thresholds.skip_informational}`);
+    console.log('');
+    console.log('To update, use:');
+    console.log('  npm run hunt -- --strategy thresholds --min-volume 100');
+    console.log('  npm run hunt -- --strategy thresholds --max-difficulty 50');
+    console.log('  npm run hunt -- --strategy thresholds --min-cpc 0.50');
+  }
+
+  console.log('');
+  console.log('═'.repeat(60));
+}
+
+// =============================================================================
+// COMPETITOR INTELLIGENCE
+// =============================================================================
+
+/**
+ * Import competitor top pages from Ahrefs/SEMrush export
+ */
+async function handleCompetitorImport(
+  supabase: ReturnType<typeof createClient>,
+  values: Record<string, string | boolean | undefined>
+) {
+  const filePath = values.file as string;
+  const domain = values.domain as string;
+
+  if (!filePath) {
+    console.error('Error: --file is required for competitor import');
+    console.log('Usage: npm run hunt -- --strategy competitors --file="pages.csv" --domain="example.com"');
+    process.exit(1);
+  }
+
+  if (!domain) {
+    console.error('Error: --domain is required for competitor import');
+    console.log('Usage: npm run hunt -- --strategy competitors --file="pages.csv" --domain="example.com"');
+    process.exit(1);
+  }
+
+  if (!existsSync(filePath)) {
+    console.error(`Error: File not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  console.log('═'.repeat(60));
+  console.log('🕵️  Competitor Intelligence: Top Pages Import');
+  console.log('═'.repeat(60));
+  console.log(`  Domain: ${domain}`);
+  console.log('');
+
+  // Read and parse CSV
+  const csvContent = readFileSync(filePath, 'utf-8');
+  let records: Array<Record<string, string>>;
+
+  try {
+    records = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+      relax_column_count: true,
+    });
+  } catch (err) {
+    console.error('Failed to parse CSV:', (err as Error).message);
+    process.exit(1);
+  }
+
+  console.log(`Found ${records.length} rows in CSV`);
+
+  // Create import batch
+  const { data: batch, error: batchError } = await supabase
+    .from('import_batches')
+    .insert({
+      filename: `competitor:${domain}:${filePath.split('/').pop()}`,
+      total_rows: records.length,
+      status: 'processing',
+      notes: `Competitor pages import for ${domain}`,
+    })
+    .select()
+    .single();
+
+  if (batchError) {
+    console.error('Failed to create import batch:', batchError.message);
+    process.exit(1);
+  }
+
+  // Transform to our format
+  // Ahrefs columns: #, Traffic, %, Value, Keywords, RD, Page URL, Top keyword, Its volume, Pos.
+  const pages = records.map(row => {
+    // Parse traffic (might have commas like "1,404")
+    const trafficStr = row.Traffic || row.traffic || '0';
+    const traffic = parseInt(trafficStr.replace(/,/g, ''), 10);
+
+    // Parse value (might have $ and commas like "$2,796")
+    const valueStr = row.Value || row.value || '0';
+    const value = parseFloat(valueStr.replace(/[$,]/g, ''));
+
+    return {
+      url: row['Page URL'] || row.url || row.URL || '',
+      traffic: traffic,
+      traffic_share: parseFloat((row['%'] || row.traffic_share || '0').replace('%', '')),
+      value: value,
+      keywords: parseInt(row.Keywords || row.keywords || '0', 10),
+      rd: parseInt(row.RD || row.rd || row['Referring Domains'] || '0', 10),
+      top_keyword: row['Top keyword'] || row.top_keyword || row.Keyword || '',
+      volume: parseInt((row['Its volume'] || row.volume || row.Volume || '0').replace(/,/g, ''), 10),
+      position: parseInt(row['Pos.'] || row.position || row.Position || '0', 10),
+    };
+  }).filter(p => p.url && p.top_keyword);
+
+  console.log(`Parsed ${pages.length} valid pages`);
+
+  // Call bulk import RPC
+  const { data: result, error: importError } = await supabase.rpc('import_competitor_pages', {
+    p_competitor_domain: domain,
+    p_pages: pages,
+    p_batch_id: batch.id,
+  });
+
+  if (importError) {
+    console.error('Import failed:', importError.message);
+    await supabase
+      .from('import_batches')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', batch.id);
+    process.exit(1);
+  }
+
+  const importResult = result as { imported: number; updated: number; competitor_id: string };
+
+  // Update batch status
+  await supabase
+    .from('import_batches')
+    .update({
+      imported_rows: importResult.imported,
+      duplicate_rows: importResult.updated,
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', batch.id);
+
+  console.log('');
+  console.log('═'.repeat(60));
+  console.log('📊 Import Summary');
+  console.log('═'.repeat(60));
+  console.log(`  Total pages:  ${pages.length}`);
+  console.log(`  New:          ${importResult.imported}`);
+  console.log(`  Updated:      ${importResult.updated}`);
+  console.log('');
+
+  // Show top opportunities
+  const { data: topOpportunities } = await supabase
+    .from('competitor_opportunities')
+    .select('*')
+    .eq('competitor', domain)
+    .order('opportunity_score', { ascending: false })
+    .limit(5);
+
+  if (topOpportunities?.length) {
+    console.log('🏆 Top Opportunities:');
+    console.log('─'.repeat(60));
+    topOpportunities.forEach((opp, i) => {
+      console.log(`  ${i + 1}. "${opp.top_keyword}"`);
+      console.log(`     Value: $${opp.traffic_value} | Pos: ${opp.their_position} | RD: ${opp.their_rd}`);
+      console.log(`     Opportunity: ${opp.opportunity_score} (${opp.opportunity_tier}, ${opp.difficulty})`);
+    });
+  }
+
+  console.log('');
+  console.log('Next step: npm run hunt -- --strategy gaps');
+  console.log('═'.repeat(60));
+}
+
+/**
+ * Show keyword gap analysis vs competitors
+ */
+async function handleGapAnalysis(
+  supabase: ReturnType<typeof createClient>,
+  values: Record<string, string | boolean | undefined>
+) {
+  const limit = parseInt(values.limit as string) || 20;
+
+  console.log('═'.repeat(60));
+  console.log('🔍 Keyword Gap Analysis');
+  console.log('═'.repeat(60));
+
+  // Get gaps (keywords competitors rank for that we don't have content for)
+  const { data: gaps, error } = await supabase
+    .from('competitor_keyword_gaps')
+    .select('*')
+    .eq('our_status', 'gap')
+    .order('opportunity_score', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Failed to fetch gaps:', error.message);
+    process.exit(1);
+  }
+
+  if (!gaps?.length) {
+    console.log('No keyword gaps found.');
+    console.log('Import competitor data first: npm run hunt -- --strategy competitors --file="pages.csv" --domain="competitor.com"');
+    return;
+  }
+
+  console.log(`Found ${gaps.length} keyword gaps`);
+  console.log('');
+
+  // Group by tier
+  const highValue = gaps.filter(g => g.opportunity_score >= 1000);
+  const mediumValue = gaps.filter(g => g.opportunity_score >= 500 && g.opportunity_score < 1000);
+  const lowValue = gaps.filter(g => g.opportunity_score < 500);
+
+  if (highValue.length) {
+    console.log('🔥 HIGH VALUE GAPS (opportunity ≥ $1000):');
+    console.log('─'.repeat(60));
+    highValue.slice(0, 10).forEach((gap, i) => {
+      console.log(`  ${i + 1}. "${gap.keyword}"`);
+      console.log(`     Vol: ${gap.volume} | Value: $${gap.competitor_traffic_value}`);
+      console.log(`     Competitor: ${gap.competitor_domain} (pos ${gap.competitor_position}, ${gap.competitor_rd} RD)`);
+    });
+    console.log('');
+  }
+
+  if (mediumValue.length) {
+    console.log('💰 MEDIUM VALUE GAPS ($500-$1000):');
+    console.log('─'.repeat(60));
+    mediumValue.slice(0, 5).forEach((gap, i) => {
+      console.log(`  ${i + 1}. "${gap.keyword}" (opp: ${gap.opportunity_score})`);
+    });
+    console.log('');
+  }
+
+  console.log(`📊 Summary: ${highValue.length} high, ${mediumValue.length} medium, ${lowValue.length} low value gaps`);
+  console.log('');
+
+  // Offer to create content ideas
+  console.log('To add gaps to content pipeline:');
+  console.log('  1. Review gaps above');
+  console.log('  2. Use admin UI to create content ideas from competitor_opportunities view');
+  console.log('  3. Or manually: npm run hunt -- --strategy import --file="selected-gaps.csv"');
+
+  console.log('');
+  console.log('═'.repeat(60));
 }
 
 main().catch((error) => {

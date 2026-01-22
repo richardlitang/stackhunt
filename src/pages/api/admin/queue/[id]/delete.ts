@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ params }) => {
   try {
     const admin = getAdminClient();
 
-    const { error } = await admin.from('content_queue').delete().eq('id', id);
+    const { error } = await admin.from('hunt_queue').delete().eq('id', id);
 
     if (error) {
       console.error('Queue delete error:', error);

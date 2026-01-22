@@ -1,0 +1,104 @@
+---
+/**
+ * Legal Disclaimer Component
+ *
+ * Displays important disclaimers for legal protection:
+ * - Editorial independence notice
+ * - AI-generated content disclosure
+ * - Source attribution policy
+ * - Correction request process
+ *
+ * @module components/LegalDisclaimer
+ */
+
+interface Props {
+  variant?: 'full' | 'compact' | 'inline';
+  showCorrectionLink?: boolean;
+  toolName?: string;
+  lastUpdated?: string;
+}
+
+const {
+  variant = 'compact',
+  showCorrectionLink = true,
+  toolName,
+  lastUpdated
+} = Astro.props;
+
+const currentYear = new Date().getFullYear();
+const formattedDate = lastUpdated
+  ? new Date(lastUpdated).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  : null;
+---
+
+{variant === 'full' && (
+  <div class="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+    <h4 class="mb-3 font-semibold text-slate-700">About This Review</h4>
+
+    <div class="space-y-3">
+      <p>
+        <strong>Editorial Independence:</strong> Our reviews are editorially independent.
+        We research tools using publicly available information including official websites,
+        professional review sites (G2, Capterra, etc.), and community discussions.
+      </p>
+
+      <p>
+        <strong>AI-Assisted Research:</strong> This review was generated with AI assistance
+        using data gathered from multiple sources. All claims are attributed to their sources.
+        Opinions from community discussions are clearly labeled as such.
+      </p>
+
+      <p>
+        <strong>Accuracy & Currency:</strong> We strive for accuracy but software features
+        and pricing change frequently. {formattedDate && `This review was last updated ${formattedDate}.`}
+        Always verify critical information on official websites before making decisions.
+      </p>
+
+      <p>
+        <strong>Affiliate Disclosure:</strong> Some links on this page may be affiliate links.
+        This doesn't affect our editorial content or scoring, but we may earn a commission
+        if you purchase through our links.
+      </p>
+
+      {showCorrectionLink && (
+        <p class="pt-2 border-t border-slate-200">
+          <strong>Report an Error:</strong> Found inaccurate information?
+          {toolName ? (
+            <a
+              href={`/corrections?tool=${encodeURIComponent(toolName)}`}
+              class="text-hunt-600 hover:text-hunt-700 underline"
+            >
+              Submit a correction request
+            </a>
+          ) : (
+            <a
+              href="/corrections"
+              class="text-hunt-600 hover:text-hunt-700 underline"
+            >
+              Submit a correction request
+            </a>
+          )}
+        </p>
+      )}
+    </div>
+  </div>
+)}
+
+{variant === 'compact' && (
+  <div class="mt-6 text-xs text-slate-500 border-t border-slate-100 pt-4">
+    <p>
+      AI-assisted review using public sources.
+      {formattedDate && <span>Updated {formattedDate}. </span>}
+      <a href="/about/methodology" class="text-hunt-600 hover:underline">Learn about our methodology</a>
+      {showCorrectionLink && (
+        <span> · <a href="/corrections" class="text-hunt-600 hover:underline">Report an error</a></span>
+      )}
+    </p>
+  </div>
+)}
+
+{variant === 'inline' && (
+  <span class="text-xs text-slate-400">
+    (AI-assisted, {formattedDate ? `updated ${formattedDate}` : 'see sources'})
+  </span>
+)}

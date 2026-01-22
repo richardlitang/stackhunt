@@ -22,9 +22,9 @@ const [
   { data: pendingCorrections },
 ] = await Promise.all([
   admin.from('reviews').select('*', { count: 'exact', head: true }).in('status', ['draft', 'review']),
-  admin.from('content_queue').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+  admin.from('hunt_queue').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   admin.from('reviews').select('*', { count: 'exact', head: true }).eq('status', 'published'),
-  admin.from('content_queue').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
+  admin.from('hunt_queue').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
   admin.from('corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   admin.from('reviews')
     .select('id, score, created_at, tool:tools(name, slug, logo_url), context:contexts(title)')
@@ -36,7 +36,7 @@ const [
     .eq('status', 'published')
     .order('published_at', { ascending: false })
     .limit(5),
-  admin.from('content_queue')
+  admin.from('hunt_queue')
     .select('*')
     .eq('status', 'failed')
     .order('created_at', { ascending: false })
