@@ -28,12 +28,15 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
     }
 
     // Validate password (constant-time comparison)
+    console.log('[Login API] Attempting password validation...');
     if (!validatePassword(password)) {
+      console.log('[Login API] Password validation FAILED');
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid password' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
+    console.log('[Login API] Password validation PASSED');
 
     // Generate secure session token
     const token = generateSessionToken();

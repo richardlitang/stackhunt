@@ -65,7 +65,15 @@ function safeCompare(a: string, b: string): boolean {
  * Validate admin password
  */
 export function validatePassword(password: string): boolean {
-  return safeCompare(password, ADMIN_PASSWORD);
+  // Debug: Log password lengths (not actual values for security)
+  console.log('[Auth Debug] Input password length:', password?.length);
+  console.log('[Auth Debug] Expected password length:', ADMIN_PASSWORD?.length);
+  console.log('[Auth Debug] ADMIN_PASSWORD is set:', !!ADMIN_PASSWORD);
+  console.log('[Auth Debug] Is default dev password:', ADMIN_PASSWORD === 'dev-password-only');
+
+  const result = safeCompare(password, ADMIN_PASSWORD);
+  console.log('[Auth Debug] Password match result:', result);
+  return result;
 }
 
 /**
