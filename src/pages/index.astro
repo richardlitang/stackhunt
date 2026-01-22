@@ -2,12 +2,6 @@
 /**
  * Homepage - /
  *
- * Features:
- * - Hero with search bar (powers up later)
- * - Featured tools grid
- * - Featured lists/contexts
- * - Category navigation
- *
  * Design System: SDS v2 - "High-Performance Utility"
  * - Zinc color palette (professional, clean)
  * - Indigo accents (primary actions)
@@ -32,7 +26,7 @@ const [featuredTools, featuredContexts, categories] = await Promise.all([
 
 const meta = {
   title: 'StackHunt - Find the Right Tools for Your Stack',
-  description: 'Curated software recommendations for freelancers, indie developers, and small teams. Compare tools with honest, context-aware reviews.',
+  description: 'Curated software recommendations for developers, designers, and teams. Compare tools with honest, context-aware reviews.',
   canonical: getCanonicalUrl('/'),
   ogType: 'website' as const,
 };
@@ -53,19 +47,10 @@ const meta = {
       </svg>
     </div>
 
-    <div class="relative mx-auto max-w-5xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+    <div class="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
       <div class="text-center">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-sm text-indigo-400">
-          <span class="relative flex h-1.5 w-1.5">
-            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-            <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
-          </span>
-          For Freelancers & Teams
-        </div>
-
         <!-- Headline -->
-        <h1 class="mt-6 text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">
+        <h1 class="text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">
           Find the <span class="text-indigo-400">Right Tools</span>
           <br class="hidden sm:block" />for Your Stack
         </h1>
@@ -96,26 +81,6 @@ const meta = {
             <a href="/best/note-taking-apps-for-students" class="text-sm text-indigo-400 hover:text-indigo-300">Note-taking</a>
             <a href="/best/project-management-tools-for-remote-teams" class="text-sm text-indigo-400 hover:text-indigo-300">Project management</a>
             <a href="/best/accounting-software" class="text-sm text-indigo-400 hover:text-indigo-300">Accounting</a>
-          </div>
-        </div>
-
-        <!-- Pillars -->
-        <div class="mt-10 flex flex-wrap justify-center gap-6">
-          <div class="flex items-center gap-2 text-zinc-400">
-            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-            <span class="text-sm">Dev Tools</span>
-          </div>
-          <div class="flex items-center gap-2 text-zinc-400">
-            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-            <span class="text-sm">Design</span>
-          </div>
-          <div class="flex items-center gap-2 text-zinc-400">
-            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-            <span class="text-sm">Growth</span>
-          </div>
-          <div class="flex items-center gap-2 text-zinc-400">
-            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-            <span class="text-sm">Operations</span>
           </div>
         </div>
       </div>
@@ -163,86 +128,48 @@ const meta = {
           <ToolCard tool={tool} category={tool.category} />
         ))}
       </div>
-
-      {featuredTools.length === 0 && (
-        <div class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900 p-10 text-center">
-          <p class="text-sm text-zinc-500">More tools coming soon. Suggest one below!</p>
-        </div>
-      )}
     </div>
   </section>
 
-  <!-- Featured Lists -->
-  <section class="border-t border-zinc-800 bg-zinc-900 py-12">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex items-end justify-between">
-        <div>
-          <h2 class="text-2xl font-semibold text-zinc-100">Comparisons</h2>
-          <p class="mt-1 text-sm text-zinc-400">Curated lists to help you choose</p>
+  <!-- Comparisons -->
+  {featuredContexts && featuredContexts.length > 0 && (
+    <section class="border-t border-zinc-800 bg-zinc-900 py-12">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex items-end justify-between">
+          <div>
+            <h2 class="text-2xl font-semibold text-zinc-100">Comparisons</h2>
+            <p class="mt-1 text-sm text-zinc-400">Curated lists to help you choose</p>
+          </div>
+          <a href="/best" class="text-sm text-indigo-400 hover:text-indigo-300">
+            View all →
+          </a>
         </div>
-        <a href="/best" class="text-sm text-indigo-400 hover:text-indigo-300">
-          View all →
-        </a>
-      </div>
 
-      <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {featuredContexts.map((ctx) => (
-          <a
-            href={`/best/${ctx.slug}`}
-            class="group rounded-lg border border-zinc-800 bg-zinc-950 p-4 transition hover:border-indigo-500/50"
-          >
-            <div class="flex items-center gap-3">
-              {ctx.category?.icon && (
-                <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900 text-lg group-hover:bg-indigo-500/10">
-                  {ctx.category.icon}
-                </span>
-              )}
-              <div class="min-w-0 flex-1">
-                <h3 class="truncate text-sm font-medium text-zinc-100 group-hover:text-indigo-400">
-                  {ctx.title}
-                </h3>
-                <p class="text-sm text-zinc-500">{ctx.tool_count} tools</p>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {featuredContexts.map((ctx) => (
+            <a
+              href={`/best/${ctx.slug}`}
+              class="group rounded-lg border border-zinc-800 bg-zinc-950 p-4 transition hover:border-indigo-500/50"
+            >
+              <div class="flex items-center gap-3">
+                {ctx.category?.icon && (
+                  <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900 text-lg group-hover:bg-indigo-500/10">
+                    {ctx.category.icon}
+                  </span>
+                )}
+                <div class="min-w-0 flex-1">
+                  <h3 class="truncate text-sm font-medium text-zinc-100 group-hover:text-indigo-400">
+                    {ctx.title}
+                  </h3>
+                  <p class="text-sm text-zinc-500">{ctx.tool_count} tools</p>
+                </div>
               </div>
-            </div>
-          </a>
-        ))}
-      </div>
-
-      {featuredContexts.length === 0 && (
-        <div class="rounded-lg border border-dashed border-zinc-800 bg-zinc-950 p-10 text-center">
-          <p class="text-sm text-zinc-500">Comparison guides coming soon. Request one below!</p>
-        </div>
-      )}
-    </div>
-  </section>
-
-  <!-- CTA Section -->
-  <section class="bg-zinc-950 py-12">
-    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-      <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-8 text-center">
-        <h2 class="text-xl font-semibold text-zinc-100">
-          Can't find what you're looking for?
-        </h2>
-        <p class="mx-auto mt-2 max-w-md text-sm text-zinc-400">
-          Submit a tool or request a comparison. We'll review and add it to the directory.
-        </p>
-        <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-          <a
-            href="/submit"
-            class="rounded-lg bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-600"
-          >
-            Submit a Tool
-          </a>
-          <a
-            href="/request"
-            class="rounded-lg border border-zinc-700 bg-zinc-800 px-5 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-zinc-700"
-          >
-            Request Comparison
-          </a>
+            </a>
+          ))}
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+  )}
 </BaseLayout>
 
 <style>
