@@ -1,16 +1,19 @@
 /**
- * Logo Service - Logo fetching and uploading
+ * Logo Service - Logo hotlinking strategy (Brandfetch TOS compliant)
  *
- * Handles fetching logos from various sources (Clearbit, Google, DuckDuckGo)
- * and uploading to Supabase storage.
+ * Extracts domain from website URL and stores it for hotlinking.
+ * Frontend Logo component constructs CDN URLs dynamically:
+ * - Brandfetch: https://cdn.brandfetch.io/{domain}?c={clientId}
+ * - Fallback chain: Google Favicons → DuckDuckGo → Initials
+ *
+ * This approach complies with Brandfetch free tier TOS (hotlinking allowed, downloading prohibited).
  *
  * @module hunter/services/logo
  */
 
-import axios, { type AxiosError } from 'axios';
+import axios from 'axios';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
-import { slugify } from '../utils';
 
 export interface LogoConfig {
   supabase: SupabaseClient<Database>;
@@ -24,8 +27,13 @@ export class LogoService {
   }
 
   /**
-   * Fetch and upload logo for a tool
-   * Tries multiple sources in order: Clearbit, Google Favicons, DuckDuckGo
+   * Prepare logo for a tool using hotlinking strategy
+   * Stores only the domain - frontend Logo component handles CDN URL construction
+   *
+   * This is LEGAL and TOS-compliant:
+   * - Brandfetch allows hotlinking (downloading is prohibited)
+   * - No Supabase Storage usage
+   * - Always fresh logos (auto-updates if company changes branding)
    */
   async fetchAndUpload(
     toolName: string,
@@ -33,51 +41,37 @@ export class LogoService {
     onLog?: (message: string) => void
   ): Promise<{ path: string; url: string } | null> {
     const log = onLog || (() => {});
-    log(`Fetching logo for: ${toolName}`);
+    log(`Preparing logo for: ${toolName}`);
 
     if (!websiteUrl) {
-      log('No website URL provided, skipping logo fetch');
+      log('No website URL - skipping logo');
       return null;
     }
 
-    const logoSources = [
-      `https://logo.clearbit.com/${new URL(websiteUrl).hostname}`,
-      `https://www.google.com/s2/favicons?domain=${new URL(websiteUrl).hostname}&sz=128`,
-      `https://icons.duckduckgo.com/ip3/${new URL(websiteUrl).hostname}.ico`,
-    ];
+    try {
+      const domain = new URL(websiteUrl).hostname;
 
-    for (const logoUrl of logoSources) {
+      // NEW STRATEGY: Save domain for hotlinking (complies with Brandfetch TOS)
+      // Frontend will construct: https://cdn.brandfetch.io/{domain}?c={clientId}
+
+      // Verify domain is accessible (quick HEAD request)
       try {
-        const response = await axios.get(logoUrl, {
-          responseType: 'arraybuffer',
-          timeout: 5000,
-          validateStatus: (status) => status === 200,
-        });
+        await axios.head(websiteUrl, { timeout: 3000 });
+        log(`Domain verified: ${domain}`);
 
-        const contentType = response.headers['content-type'] || 'image/png';
-        const extension = contentType.includes('svg') ? 'svg' : contentType.includes('ico') ? 'ico' : 'png';
-        const fileName = `${slugify(toolName)}.${extension}`;
-        const filePath = `logos/${fileName}`;
-
-        const { error: uploadError } = await this.supabase.storage
-          .from('assets')
-          .upload(filePath, response.data, { contentType, upsert: true });
-
-        if (uploadError) {
-          log(`Logo upload failed: ${uploadError.message}`);
-          continue;
-        }
-
-        const { data: urlData } = this.supabase.storage.from('assets').getPublicUrl(filePath);
-        log(`Logo uploaded: ${urlData.publicUrl}`);
-        return { path: filePath, url: urlData.publicUrl };
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        log(`Logo source failed: ${axiosError.message}`);
+        // Return domain as "path" for backward compatibility
+        // Frontend Logo component will use this to construct Brandfetch URL
+        return {
+          path: `hotlink:${domain}`, // Special format to indicate hotlinking
+          url: domain // Store just the domain
+        };
+      } catch (verifyError) {
+        log(`Domain verification failed: ${(verifyError as Error).message}`);
+        return null;
       }
+    } catch (urlError) {
+      log(`Invalid website URL: ${(urlError as Error).message}`);
+      return null;
     }
-
-    log('All logo sources failed');
-    return null;
   }
 }
