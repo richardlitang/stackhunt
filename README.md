@@ -78,9 +78,6 @@ npm install
 # Paste into Supabase SQL Editor and run
 ```
 
-3. Create a Storage bucket named `assets` (for logos)
-4. Make the bucket public (Settings → Make public)
-
 ### 3. Configure Environment
 
 ```bash
@@ -95,11 +92,14 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-# OpenAI (from platform.openai.com)
-OPENAI_API_KEY=sk-...
+# Gemini (from aistudio.google.com/apikey)
+GEMINI_API_KEY=...
 
 # Serper.dev (from serper.dev)
 SERPER_API_KEY=...
+
+# Brandfetch (from brandfetch.com/api - free, no attribution required)
+PUBLIC_BRANDFETCH_CLIENT_ID=...
 
 # Cloudflare Turnstile (from dash.cloudflare.com)
 PUBLIC_TURNSTILE_SITE_KEY=0x...
@@ -247,9 +247,9 @@ npm run hunt -- --queue process
 3. EMBED (OpenAI text-embedding-3-small)
    └── Generate 1536-dim vector for semantic search
 
-4. ASSETS
-   ├── Fetch logo (Clearbit → Google Favicon → DuckDuckGo)
-   └── Upload to Supabase Storage (not hotlinked!)
+4. LOGO
+   ├── Extract domain from website URL
+   └── Save domain only (hotlinked via Brandfetch CDN on frontend)
 
 5. SAVE (Supabase)
    ├── Upsert tool record
