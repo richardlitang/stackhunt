@@ -13,6 +13,7 @@
     "verify-affiliates": "npx tsx scripts/verify-affiliate-links.ts",
     "discover-topics": "npx tsx scripts/discover-topics.ts",
     "import-ideas": "npx tsx scripts/import-content-ideas.ts",
+    "queue-ideas": "npx tsx scripts/queue-content-ideas.ts",
     "db:migrate": "supabase db push",
     "db:reset": "supabase db reset",
     "typecheck": "tsc --noEmit",

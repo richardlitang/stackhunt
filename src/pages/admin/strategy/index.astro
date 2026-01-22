@@ -145,6 +145,10 @@ if (!sessionToken) {
             <span id="inserted-count" class="text-slate-900">0</span>
           </div>
           <div class="flex items-center gap-2 text-sm">
+            <span class="font-medium text-blue-700">Auto-Queued (priority ≥90):</span>
+            <span id="queued-count" class="text-slate-900">0</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
             <span class="font-medium text-yellow-700">Skipped (duplicates):</span>
             <span id="skipped-count" class="text-slate-900">0</span>
           </div>
@@ -177,6 +181,7 @@ if (!sessionToken) {
     const progressBar = document.getElementById('progress-bar');
     const results = document.getElementById('results');
     const insertedCount = document.getElementById('inserted-count');
+    const queuedCount = document.getElementById('queued-count');
     const skippedCount = document.getElementById('skipped-count');
     const failedCount = document.getElementById('failed-count');
     const errorMessages = document.getElementById('error-messages');
@@ -265,6 +270,7 @@ if (!sessionToken) {
           progress?.classList.add('hidden');
           results?.classList.remove('hidden');
           insertedCount.textContent = data.inserted;
+          queuedCount.textContent = data.autoQueued || 0;
           skippedCount.textContent = data.skipped;
           failedCount.textContent = data.failed;
 
@@ -277,6 +283,14 @@ if (!sessionToken) {
 
           // Refresh recent ideas
           loadRecentIdeas();
+
+          // Show success message if items were auto-queued
+          if (data.autoQueued > 0) {
+            const msg = document.createElement('div');
+            msg.className = 'mt-3 rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700';
+            msg.textContent = `🚀 ${data.autoQueued} high-priority item(s) automatically added to hunt queue!`;
+            results?.appendChild(msg);
+          }
         }, 500);
 
       } catch (error) {

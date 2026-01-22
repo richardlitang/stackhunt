@@ -92,6 +92,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     let inserted = 0;
     let skipped = 0;
     let failed = 0;
+    let autoQueued = 0;
     const errors: string[] = [];
 
     for (const idea of records) {
@@ -108,6 +109,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           continue;
         }
 
+        const priority = parseInt(String(idea.priority), 10);
+
         // Insert content idea
         const { error: insertError } = await supabase
           .from('content_ideas')
@@ -118,7 +121,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             content_type: idea.content_type,
             pillar: idea.pillar,
             target_audience: idea.target_audience,
-            priority: parseInt(String(idea.priority), 10),
+            priority,
             notes: idea.notes || null,
             status: 'pending',
           });
@@ -126,8 +129,45 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (insertError) {
           failed++;
           errors.push(`${idea.keyword}: ${insertError.message}`);
-        } else {
-          inserted++;
+          continue;
+        }
+
+        inserted++;
+
+        // Auto-queue high priority items (>= 90)
+        if (priority >= 90) {
+          try {
+            // Check if not already in queue
+            const { data: inQueue } = await supabase
+              .from('hunt_queue')
+              .select('id')
+              .eq('tool_name', idea.tool_name || idea.keyword)
+              .eq('context_title', idea.context_query || idea.keyword)
+              .in('status', ['pending', 'claimed', 'processing'])
+              .single();
+
+            if (!inQueue) {
+              await supabase.from('hunt_queue').insert({
+                tool_name: idea.tool_name || idea.keyword,
+                context_title: idea.context_query || idea.keyword,
+                hunt_type: 'full',
+                priority: Math.min(priority, 100),
+                source: 'suggestion',
+                status: 'pending',
+              });
+
+              // Update status to queued
+              await supabase
+                .from('content_ideas')
+                .update({ status: 'queued' })
+                .eq('keyword', idea.keyword);
+
+              autoQueued++;
+            }
+          } catch (queueErr) {
+            // Don't fail the import if auto-queue fails
+            console.error('Auto-queue error:', queueErr);
+          }
         }
       } catch (err) {
         failed++;
@@ -141,6 +181,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         inserted,
         skipped,
         failed,
+        autoQueued,
         errors: errors.slice(0, 10), // Limit error messages
         total: records.length,
       }),
