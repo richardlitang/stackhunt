@@ -11,6 +11,8 @@ interface Props {
   toolSlug: string;
   toolName: string;
   toolLogo?: string | null;
+  categorySlug?: string | null;
+  categoryName?: string | null;
 }
 
 const STORAGE_KEY = 'stackhunt_compare_tools';
@@ -20,6 +22,8 @@ interface CompareTool {
   slug: string;
   name: string;
   logo?: string | null;
+  categorySlug?: string | null;
+  categoryName?: string | null;
 }
 
 function getCompareTools(): CompareTool[] {
@@ -39,7 +43,7 @@ function setCompareTools(tools: CompareTool[]) {
   window.dispatchEvent(new CustomEvent('compare-tools-changed', { detail: tools }));
 }
 
-export default function CompareButton({ toolSlug, toolName, toolLogo }: Props) {
+export default function CompareButton({ toolSlug, toolName, toolLogo, categorySlug, categoryName }: Props) {
   const [isAdded, setIsAdded] = useState(false);
   const [compareTools, setCompareToolsState] = useState<CompareTool[]>([]);
 
@@ -74,7 +78,19 @@ export default function CompareButton({ toolSlug, toolName, toolLogo }: Props) {
         alert(`You can compare up to ${MAX_COMPARE_TOOLS} tools at once. Remove one to add another.`);
         return;
       }
-      const newTools = [...tools, { slug: toolSlug, name: toolName, logo: toolLogo }];
+
+      // Check category mismatch
+      if (tools.length > 0 && categorySlug) {
+        const existingCategories = new Set(tools.map(t => t.categorySlug).filter(Boolean));
+        if (existingCategories.size > 0 && !existingCategories.has(categorySlug)) {
+          const confirmed = confirm(
+            `You're comparing tools from different categories. This might not give meaningful results.\n\nContinue anyway?`
+          );
+          if (!confirmed) return;
+        }
+      }
+
+      const newTools = [...tools, { slug: toolSlug, name: toolName, logo: toolLogo, categorySlug, categoryName }];
       setCompareTools(newTools);
       setIsAdded(true);
     }

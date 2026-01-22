@@ -212,6 +212,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
               toolSlug={tool.slug}
               toolName={tool.name}
               toolLogo={tool.logo_url}
+              categorySlug={tool.category?.slug}
+              categoryName={tool.category?.name}
             />
             <AddToStackButton
               client:load
@@ -232,13 +234,24 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     <div class="grid gap-8 lg:grid-cols-3">
       <!-- Left Column (2/3) -->
       <div class="space-y-8 lg:col-span-2">
-        <!-- Pros & Cons -->
-        {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) && (
+        <!-- Pros & Cons - Always show, even if empty -->
+        {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
           <ProsCons
             pros={firstReview.pros || []}
             cons={firstReview.cons || []}
             title="Pros & Cons"
           />
+        ) : (
+          <section class="rounded-xl border border-slate-200 bg-white p-6">
+            <h2 class="mb-4 text-lg font-semibold text-slate-900">Pros & Cons</h2>
+            <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+              <svg class="mx-auto h-10 w-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p class="text-sm text-slate-500 mb-2">No detailed pros and cons available yet.</p>
+              <p class="text-xs text-slate-400">We're working on analyzing this tool. Check back soon!</p>
+            </div>
+          </section>
         )}
 
         <!-- Review Summary -->
@@ -299,7 +312,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           <section class="rounded-xl border border-slate-200 bg-white p-6">
             <h2 class="mb-4 text-lg font-semibold text-slate-900">About {tool.name}</h2>
             <div
-              class="prose prose-slate prose-sm max-w-none"
+              class="prose prose-slate max-w-none text-slate-700 leading-relaxed"
               set:html={simpleMarkdown(tool.long_description)}
             />
           </section>
