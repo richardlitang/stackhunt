@@ -17,6 +17,11 @@
         "@modelcontextprotocol/server-filesystem",
         "/Users/richardlitang/Desktop/dreams/stackhunt"
       ]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-playwright"]
     }
   }
 }

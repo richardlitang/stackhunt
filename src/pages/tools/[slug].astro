@@ -15,6 +15,7 @@ import ScoreBadge from '@/components/ScoreBadge.astro';
 import PricingBadge from '@/components/PricingBadge.astro';
 import ProsCons from '@/components/ProsCons.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
+import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import SpiderwebGrid from '@/components/SpiderwebGrid.astro';
 import SentimentTags from '@/components/SentimentTags.astro';
 import VoteWidget from '@/components/VoteWidget';
@@ -84,6 +85,9 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
+  {/* FTC Affiliate Disclosure - Above the fold */}
+  <AffiliateDisclosure variant="banner" hasAffiliateLinks={primaryOffer?.is_affiliate || false} />
+
   <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">

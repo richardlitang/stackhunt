@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const admin = getAdminClient();
 
-    const { error } = await admin.from('content_queue').insert({
+    const { error } = await admin.from('hunt_queue').insert({
       tool_name,
       context_title,
       priority,

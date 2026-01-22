@@ -18,6 +18,7 @@ import ToolCard from '@/components/ToolCard.astro';
 import ProsCons from '@/components/ProsCons.astro';
 import SentimentTags from '@/components/SentimentTags.astro';
 import VoteWidget from '@/components/VoteWidget';
+import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import { getContextBySlug, getAllContextSlugs } from '@/lib/supabase';
 import {
   generateContextMeta,
@@ -64,9 +65,17 @@ const schemas = [
 ];
 
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
+
+// Check if any tools have affiliate links
+const hasAffiliateLinks = sortedReviews.some(
+  (review) => review.tool.affiliate_offers?.some((offer) => offer.is_affiliate)
+);
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
+  {/* FTC Affiliate Disclosure - Above the fold */}
+  <AffiliateDisclosure variant="banner" hasAffiliateLinks={hasAffiliateLinks} />
+
   <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">

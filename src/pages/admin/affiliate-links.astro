@@ -1,0 +1,239 @@
+---
+/**
+ * Admin: Affiliate Links Management
+ *
+ * View and manage affiliate link health status.
+ * Features:
+ * - List all affiliate links with verification status
+ * - Filter by status, tier, network
+ * - Manually verify individual links
+ * - View statistics
+ *
+ * @module pages/admin/affiliate-links
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+
+const pageTitle = 'Affiliate Links Management';
+---
+
+<AdminLayout title={pageTitle}>
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-slate-900">{pageTitle}</h1>
+    <p class="mt-2 text-sm text-slate-600">
+      Monitor affiliate link health and verify broken links.
+    </p>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div id="stats-cards" class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+    <!-- Loaded via JS -->
+  </div>
+
+  <!-- Filters -->
+  <div class="mb-6 flex flex-wrap gap-4">
+    <select id="status-filter" class="rounded-lg border border-slate-200 px-4 py-2 text-sm">
+      <option value="">All Statuses</option>
+      <option value="healthy">✅ Healthy</option>
+      <option value="broken">❌ Broken</option>
+      <option value="unknown">⚠️ Unknown</option>
+      <option value="pending">⏳ Pending</option>
+    </select>
+
+    <select id="tier-filter" class="rounded-lg border border-slate-200 px-4 py-2 text-sm">
+      <option value="">All Tiers</option>
+      <option value="1">Tier 1: API (PartnerStack/Impact)</option>
+      <option value="2">Tier 2: Legacy (ShareASale/CJ)</option>
+      <option value="3">Tier 3: Manual/Direct</option>
+    </select>
+
+    <button
+      id="refresh-btn"
+      class="rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-600"
+    >
+      Refresh
+    </button>
+  </div>
+
+  <!-- Links Table -->
+  <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+            Tool
+          </th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+            Network
+          </th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+            Tier
+          </th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+            Status
+          </th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+            Last Verified
+          </th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody id="links-table-body" class="divide-y divide-slate-200 bg-white">
+        <tr>
+          <td colspan="6" class="px-6 py-4 text-center text-sm text-slate-500">
+            Loading...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script is:inline>
+    let currentData = null;
+
+    // Fetch and display affiliate links
+    async function loadLinks() {
+      const statusFilter = document.getElementById('status-filter').value;
+      const tierFilter = document.getElementById('tier-filter').value;
+
+      let url = '/api/admin/affiliate-links?';
+      if (statusFilter) url += `status=${statusFilter}&`;
+      if (tierFilter) url += `tier=${tierFilter}&`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.success) {
+          alert('Failed to load links: ' + (data.error || 'Unknown error'));
+          return;
+        }
+
+        currentData = data;
+        renderStats(data.stats);
+        renderTable(data.offers);
+      } catch (error) {
+        console.error('Error loading links:', error);
+        alert('Network error. Please try again.');
+      }
+    }
+
+    // Render statistics cards
+    function renderStats(stats) {
+      const container = document.getElementById('stats-cards');
+      container.innerHTML = `
+        <div class="rounded-lg border border-slate-200 bg-white p-4">
+          <div class="text-2xl font-bold text-slate-900">${stats.total}</div>
+          <div class="text-sm text-slate-500">Total Links</div>
+        </div>
+        <div class="rounded-lg border border-green-200 bg-green-50 p-4">
+          <div class="text-2xl font-bold text-green-700">${stats.healthy}</div>
+          <div class="text-sm text-green-600">Healthy</div>
+        </div>
+        <div class="rounded-lg border border-red-200 bg-red-50 p-4">
+          <div class="text-2xl font-bold text-red-700">${stats.broken}</div>
+          <div class="text-sm text-red-600">Broken</div>
+        </div>
+        <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+          <div class="text-2xl font-bold text-yellow-700">${stats.unknown}</div>
+          <div class="text-sm text-yellow-600">Unknown</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div class="text-2xl font-bold text-slate-700">${stats.never_verified}</div>
+          <div class="text-sm text-slate-600">Never Verified</div>
+        </div>
+      `;
+    }
+
+    // Render table rows
+    function renderTable(offers) {
+      const tbody = document.getElementById('links-table-body');
+
+      if (offers.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="px-6 py-4 text-center text-sm text-slate-500">
+              No affiliate links found.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = offers.map(offer => {
+        const statusBadge = {
+          healthy: '<span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">✅ Healthy</span>',
+          broken: '<span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">❌ Broken</span>',
+          unknown: '<span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">⚠️ Unknown</span>',
+          pending: '<span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">⏳ Pending</span>',
+          expired: '<span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800">🔒 Expired</span>',
+        }[offer.verification_status] || offer.verification_status;
+
+        const lastVerified = offer.last_verified_at
+          ? new Date(offer.last_verified_at).toLocaleString()
+          : 'Never';
+
+        const tierBadge = {
+          1: '<span class="text-xs font-medium text-green-600">Tier 1</span>',
+          2: '<span class="text-xs font-medium text-yellow-600">Tier 2</span>',
+          3: '<span class="text-xs font-medium text-slate-600">Tier 3</span>',
+        }[offer.network_tier] || offer.network_tier;
+
+        return `
+          <tr>
+            <td class="px-6 py-4 text-sm">
+              <a href="/tools/${offer.tools?.slug}" class="font-medium text-hunt-600 hover:text-hunt-700" target="_blank">
+                ${offer.tools?.name || 'Unknown'}
+              </a>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-600">${offer.network || 'Direct'}</td>
+            <td class="px-6 py-4 text-sm">${tierBadge}</td>
+            <td class="px-6 py-4 text-sm">${statusBadge}</td>
+            <td class="px-6 py-4 text-sm text-slate-600">${lastVerified}</td>
+            <td class="px-6 py-4 text-sm">
+              <button
+                class="text-hunt-600 hover:text-hunt-700"
+                onclick="verifyLink('${offer.id}')"
+              >
+                Verify Now
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Manually verify a single link
+    window.verifyLink = async function(offerId) {
+      if (!confirm('Verify this link now?')) return;
+
+      try {
+        const response = await fetch(`/api/admin/affiliate-links/${offerId}/verify`, {
+          method: 'POST',
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+          alert('Verification failed: ' + (data.error || 'Unknown error'));
+          return;
+        }
+
+        alert(`Verification complete!\nStatus: ${data.verification.status}\nHTTP Code: ${data.verification.statusCode || 'N/A'}`);
+        loadLinks(); // Refresh table
+      } catch (error) {
+        console.error('Error verifying link:', error);
+        alert('Network error. Please try again.');
+      }
+    };
+
+    // Event listeners
+    document.getElementById('status-filter').addEventListener('change', loadLinks);
+    document.getElementById('tier-filter').addEventListener('change', loadLinks);
+    document.getElementById('refresh-btn').addEventListener('click', loadLinks);
+
+    // Initial load
+    loadLinks();
+  </script>
+</AdminLayout>

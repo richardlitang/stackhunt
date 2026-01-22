@@ -1,16 +1,25 @@
 ---
 /**
  * ProsCons Component
- * Displays pros and cons with optional source citations
+ * Displays pros and cons with full source attribution for legal protection
  *
- * Supports two formats:
+ * Supports multiple formats:
  * - Legacy: string[] - ["pro1", "pro2"]
- * - New: Array<{text: string, source_url?: string}> - with citations
+ * - Basic: Array<{text: string, source_url?: string}>
+ * - Full: Array<{text: string, source_url: string, source_type: string, claim_type: string}>
+ *
+ * For community sources and opinions, applies hedging language automatically.
  */
+
+type SourceType = 'official' | 'editorial' | 'community';
+type ClaimType = 'fact' | 'opinion';
 
 interface ClaimWithSource {
   text: string;
   source_url?: string;
+  source_type?: SourceType;
+  claim_type?: ClaimType;
+  retrieved_at?: string; // ISO 8601 timestamp for time-bound defense
 }
 
 type ClaimItem = string | ClaimWithSource;
@@ -19,20 +28,44 @@ interface Props {
   pros: ClaimItem[];
   cons: ClaimItem[];
   title?: string;
+  showSources?: boolean;
 }
 
-const { pros, cons, title } = Astro.props;
+const { pros, cons, title, showSources = true } = Astro.props;
 
-// Normalize items to always have { text, source_url? } format
-function normalizeClaim(item: ClaimItem): ClaimWithSource {
+// Hedging prefixes for different source types
+const HEDGING_PREFIXES: Record<SourceType, string[]> = {
+  community: ['Users report that', 'According to community feedback,', 'Based on user discussions,'],
+  editorial: ['According to reviews,', 'Reviewers note that'],
+  official: [],
+};
+
+// Normalize items to consistent format
+function normalizeClaim(item: ClaimItem, index: number): ClaimWithSource & { displayText: string; formattedDate: string | null } {
   if (typeof item === 'string') {
-    return { text: item };
+    return { text: item, displayText: item, formattedDate: null };
   }
-  return item;
+
+  // Determine if we need hedging
+  const needsHedging =
+    item.source_type === 'community' ||
+    (item.claim_type === 'opinion' && item.source_type !== 'official');
+
+  let displayText = item.text;
+  if (needsHedging && item.source_type) {
+    const prefixes = HEDGING_PREFIXES[item.source_type];
+    if (prefixes.length > 0) {
+      const prefix = prefixes[index % prefixes.length];
+      // Lowercase first letter of claim text when adding prefix
+      displayText = `${prefix} ${item.text.charAt(0).toLowerCase()}${item.text.slice(1)}`;
+    }
+  }
+
+  return { ...item, displayText, formattedDate: formatTimestamp(item.retrieved_at) };
 }
 
-const normalizedPros = pros.map(normalizeClaim);
-const normalizedCons = cons.map(normalizeClaim);
+const normalizedPros = pros.map((item, i) => normalizeClaim(item, i));
+const normalizedCons = cons.map((item, i) => normalizeClaim(item, i));
 
 // Extract domain from URL for display
 function getDomain(url: string): string {
@@ -41,6 +74,83 @@ function getDomain(url: string): string {
     return domain;
   } catch {
     return url;
+  }
+}
+
+// Get source type badge styles
+function getSourceBadgeClass(sourceType?: SourceType): string {
+  switch (sourceType) {
+    case 'official':
+      return 'bg-blue-50 text-blue-600 border-blue-200';
+    case 'editorial':
+      return 'bg-purple-50 text-purple-600 border-purple-200';
+    case 'community':
+      return 'bg-amber-50 text-amber-600 border-amber-200';
+    default:
+      return 'bg-slate-50 text-slate-500 border-slate-200';
+  }
+}
+
+// Get source type label
+function getSourceLabel(sourceType?: SourceType): string {
+  switch (sourceType) {
+    case 'official': return 'Official';
+    case 'editorial': return 'Review';
+    case 'community': return 'Community';
+    default: return 'Source';
+  }
+}
+
+// Format timestamp for display (e.g., "Jan 2026")
+function formatTimestamp(isoDate?: string): string | null {
+  if (!isoDate) return null;
+  try {
+    const date = new Date(isoDate);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get appropriate rel attribute for source links based on source type
+ *
+ * SEO Strategy (per Gemini's E-E-A-T analysis):
+ * - Official sources: dofollow (links to authoritative sites help SEO)
+ * - Editorial sources: nofollow (don't pass juice to review aggregators)
+ * - Community sources: nofollow ugc (UGC = User Generated Content per Google guidelines)
+ */
+function getSourceRelAttribute(sourceType?: SourceType): string {
+  switch (sourceType) {
+    case 'official':
+      // Dofollow for official sources - linking to high-authority sites helps our SEO
+      return 'noopener noreferrer';
+    case 'editorial':
+      // Nofollow for review sites - cite but don't pass authority
+      return 'nofollow noopener noreferrer';
+    case 'community':
+      // Nofollow + UGC for user-generated content (Reddit, forums)
+      return 'nofollow ugc noopener noreferrer';
+    default:
+      // Default to nofollow for safety
+      return 'nofollow noopener noreferrer';
+  }
+}
+
+// Get source icon based on domain
+function getSourceIcon(url?: string): string | null {
+  if (!url) return null;
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    // Return emoji icons for known sources (lightweight, no external requests)
+    if (hostname.includes('reddit.com')) return '🗣️';
+    if (hostname.includes('g2.com')) return '⭐';
+    if (hostname.includes('capterra.com')) return '📊';
+    if (hostname.includes('producthunt.com')) return '🚀';
+    if (hostname.includes('ycombinator.com')) return '🟧';
+    return null;
+  } catch {
+    return null;
   }
 }
 ---
@@ -72,19 +182,27 @@ function getDomain(url: string): string {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
               <div class="flex-1">
-                <span>{pro.text}</span>
-                {pro.source_url && (
-                  <button
-                    type="button"
-                    class="source-copy-btn ml-1.5 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-hunt-600 transition"
-                    data-url={pro.source_url}
-                    title={`Source: ${getDomain(pro.source_url)}`}
-                  >
-                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    <span class="source-domain">{getDomain(pro.source_url)}</span>
-                  </button>
+                <span>{pro.displayText}</span>
+                {showSources && pro.source_url && (
+                  <span class="inline-flex items-center gap-1 ml-2">
+                    {pro.source_type && (
+                      <span class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(pro.source_type)}`}>
+                        {getSourceIcon(pro.source_url) && <span class="mr-0.5">{getSourceIcon(pro.source_url)}</span>}
+                        {getSourceLabel(pro.source_type)}{pro.formattedDate && `, ${pro.formattedDate}`}
+                      </span>
+                    )}
+                    <a
+                      href={pro.source_url}
+                      target="_blank"
+                      rel={getSourceRelAttribute(pro.source_type)}
+                      class="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-hunt-600 transition"
+                      title={`View source: ${getDomain(pro.source_url)}${pro.formattedDate ? ` (retrieved ${pro.formattedDate})` : ''}`}
+                    >
+                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </span>
                 )}
               </div>
             </div>
@@ -112,19 +230,27 @@ function getDomain(url: string): string {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
               <div class="flex-1">
-                <span>{con.text}</span>
-                {con.source_url && (
-                  <button
-                    type="button"
-                    class="source-copy-btn ml-1.5 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-hunt-600 transition"
-                    data-url={con.source_url}
-                    title={`Source: ${getDomain(con.source_url)}`}
-                  >
-                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    <span class="source-domain">{getDomain(con.source_url)}</span>
-                  </button>
+                <span>{con.displayText}</span>
+                {showSources && con.source_url && (
+                  <span class="inline-flex items-center gap-1 ml-2">
+                    {con.source_type && (
+                      <span class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(con.source_type)}`}>
+                        {getSourceIcon(con.source_url) && <span class="mr-0.5">{getSourceIcon(con.source_url)}</span>}
+                        {getSourceLabel(con.source_type)}{con.formattedDate && `, ${con.formattedDate}`}
+                      </span>
+                    )}
+                    <a
+                      href={con.source_url}
+                      target="_blank"
+                      rel={getSourceRelAttribute(con.source_type)}
+                      class="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-hunt-600 transition"
+                      title={`View source: ${getDomain(con.source_url)}${con.formattedDate ? ` (retrieved ${con.formattedDate})` : ''}`}
+                    >
+                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </span>
                 )}
               </div>
             </div>
@@ -135,40 +261,4 @@ function getDomain(url: string): string {
   </div>
 </div>
 
-<script is:inline>
-  // Copy source URL to clipboard
-  document.querySelectorAll('.source-copy-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const url = btn.dataset.url;
-      const domain = btn.querySelector('.source-domain');
-      const originalText = domain?.textContent;
-
-      try {
-        await navigator.clipboard.writeText(url);
-        if (domain) {
-          domain.textContent = 'Copied!';
-          setTimeout(() => {
-            domain.textContent = originalText;
-          }, 1500);
-        }
-      } catch (err) {
-        // Fallback for older browsers
-        const textarea = document.createElement('textarea');
-        textarea.value = url;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        if (domain) {
-          domain.textContent = 'Copied!';
-          setTimeout(() => {
-            domain.textContent = originalText;
-          }, 1500);
-        }
-      }
-    });
-  });
-</script>
+<!-- Source links now open in new tab instead of copy-to-clipboard -->

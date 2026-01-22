@@ -111,7 +111,17 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       );
     }
 
-    // Verify Turnstile (if token provided)
+    // Verify Turnstile (REQUIRED in production)
+    if (isProduction() && !turnstileToken) {
+      return addRateLimitHeaders(
+        new Response(
+          JSON.stringify({ success: false, error: 'Verification token required' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        ),
+        rateLimit
+      );
+    }
+
     if (turnstileToken) {
       const isValid = await verifyTurnstile(turnstileToken, ip);
       if (!isValid) {

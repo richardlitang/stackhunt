@@ -20,10 +20,11 @@ export const POST: APIRoute = async ({ params }) => {
 
     // Reset to pending with cleared error
     const { error } = await admin
-      .from('content_queue')
+      .from('hunt_queue')
       .update({
         status: 'pending',
-        last_error: null,
+        error_message: null,
+        error_details: null,
         attempts: 0,
       })
       .eq('id', id);

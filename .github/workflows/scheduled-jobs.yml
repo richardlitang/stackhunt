@@ -1,0 +1,188 @@
+name: Scheduled Jobs
+
+on:
+  schedule:
+    # Daily hunt queue processing - 6am UTC
+    - cron: '0 6 * * *'
+    # Daily topic discovery - 7am UTC
+    - cron: '0 7 * * *'
+    # Daily affiliate link verification - 3am UTC
+    - cron: '0 3 * * *'
+    # Weekly corrections verification - Sunday 2am UTC
+    - cron: '0 2 * * 0'
+
+  # Allow manual triggers with job selection
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which job to run'
+        required: true
+        type: choice
+        options:
+          - hunt-queue
+          - discover-topics
+          - verify-corrections
+          - verify-affiliates
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================
+  # DAILY: Process Hunt Queue (6am UTC)
+  # Processes pending items from hunt_queue table
+  # ============================================================
+  hunt-queue:
+    name: Process Hunt Queue
+    if: github.event.schedule == '0 6 * * *' || github.event.inputs.job == 'hunt-queue'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Recover stale jobs
+        run: |
+          echo "Checking for stale jobs..."
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+          supabase.rpc('recover_stale_hunt_jobs').then(({ data, error }) => {
+            if (error) {
+              console.error('Error recovering stale jobs:', error);
+              process.exit(1);
+            }
+            console.log('Recovered', data, 'stale jobs');
+          });
+          "
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Process hunt queue
+        run: npm run hunt:batch
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"❌ Hunt queue processing failed. Check GitHub Actions logs."}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }}
+          fi
+
+  # ============================================================
+  # DAILY: Topic Discovery (7am UTC)
+  # AI-powered discovery of new content opportunities
+  # ============================================================
+  discover-topics:
+    name: Discover Topics
+    if: github.event.schedule == '0 7 * * *' || github.event.inputs.job == 'discover-topics'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run topic discovery
+        run: npm run discover-topics
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+  # ============================================================
+  # DAILY: Verify Affiliate Links (3am UTC)
+  # HTTP HEAD requests to check link health
+  # ============================================================
+  verify-affiliates:
+    name: Verify Affiliate Links
+    if: github.event.schedule == '0 3 * * *' || github.event.inputs.job == 'verify-affiliates'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify affiliate links
+        run: npm run verify-affiliates
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+  # ============================================================
+  # WEEKLY: Verify User Corrections (Sunday 2am UTC)
+  # AI verification of user-submitted corrections
+  # Only runs if 50+ pending OR oldest > 30 days
+  # ============================================================
+  verify-corrections:
+    name: Verify Corrections
+    if: github.event.schedule == '0 2 * * 0' || github.event.inputs.job == 'verify-corrections'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run corrections verification
+        run: npm run verify-corrections
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"❌ Weekly corrections verification failed. Check GitHub Actions logs."}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }}
+          fi
