@@ -41,24 +41,68 @@ if (!sessionToken) {
     <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 class="mb-4 text-lg font-semibold text-slate-900">Import Content Ideas</h2>
 
+      <!-- Tabs -->
+      <div class="mb-4 border-b border-slate-200">
+        <div class="flex gap-4">
+          <button
+            type="button"
+            id="paste-tab"
+            class="border-b-2 border-indigo-600 px-4 py-2 text-sm font-medium text-indigo-600"
+          >
+            Paste from Gemini
+          </button>
+          <button
+            type="button"
+            id="upload-tab"
+            class="border-b-2 border-transparent px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
+          >
+            Upload CSV (Ahrefs, etc)
+          </button>
+        </div>
+      </div>
+
       <form id="import-form" class="space-y-4">
-        <div>
-          <label class="mb-2 block text-sm font-medium text-slate-700">
-            Paste CSV from Gemini
-          </label>
-          <textarea
-            id="csv-content"
-            name="csv_content"
-            rows="12"
-            required
-            placeholder='keyword,tool_name,context_query,content_type,pillar,target_audience,priority,notes
+        <!-- Paste Panel -->
+        <div id="paste-panel" class="space-y-4">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">
+              Paste CSV
+            </label>
+            <textarea
+              id="csv-content"
+              name="csv_content"
+              rows="12"
+              placeholder='keyword,tool_name,context_query,content_type,pillar,target_audience,priority,notes
 "supabase vs firebase","Supabase","Supabase vs Firebase",comparison,builder,developers,98,"Core wedge"
 "best headless cms",,"Best Headless CMS",listicle,builder,developers,95,"Sanity, Strapi"'
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-          ></textarea>
-          <p class="mt-1 text-xs text-slate-500">
-            Just paste directly from Gemini - it will auto-detect CSV or JSON format.
-          </p>
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            ></textarea>
+            <p class="mt-1 text-xs text-slate-500">
+              Paste CSV directly from Gemini or other tools
+            </p>
+          </div>
+        </div>
+
+        <!-- Upload Panel -->
+        <div id="upload-panel" class="hidden space-y-4">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">
+              Upload CSV File
+            </label>
+            <div class="flex items-center justify-center w-full">
+              <label for="csv-file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                  <svg class="w-8 h-8 mb-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p class="mb-1 text-sm text-slate-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                  <p class="text-xs text-slate-400">CSV files from Ahrefs, SEMrush, etc</p>
+                </div>
+                <input id="csv-file" type="file" accept=".csv" class="hidden" />
+              </label>
+            </div>
+            <p id="file-name" class="mt-2 text-sm text-slate-600"></p>
+          </div>
         </div>
 
         <div class="flex items-center gap-3">
@@ -125,6 +169,8 @@ if (!sessionToken) {
   <script>
     const form = document.getElementById('import-form');
     const csvContent = document.getElementById('csv-content');
+    const csvFile = document.getElementById('csv-file');
+    const fileName = document.getElementById('file-name');
     const clearBtn = document.getElementById('clear-btn');
     const progress = document.getElementById('progress');
     const progressText = document.getElementById('progress-text');
@@ -135,8 +181,51 @@ if (!sessionToken) {
     const failedCount = document.getElementById('failed-count');
     const errorMessages = document.getElementById('error-messages');
 
+    // Tab elements
+    const pasteTab = document.getElementById('paste-tab');
+    const uploadTab = document.getElementById('upload-tab');
+    const pastePanel = document.getElementById('paste-panel');
+    const uploadPanel = document.getElementById('upload-panel');
+
+    // Tab switching
+    pasteTab?.addEventListener('click', () => {
+      pasteTab.classList.add('border-indigo-600', 'text-indigo-600');
+      pasteTab.classList.remove('border-transparent', 'text-slate-500');
+      uploadTab.classList.remove('border-indigo-600', 'text-indigo-600');
+      uploadTab.classList.add('border-transparent', 'text-slate-500');
+      pastePanel?.classList.remove('hidden');
+      uploadPanel?.classList.add('hidden');
+    });
+
+    uploadTab?.addEventListener('click', () => {
+      uploadTab.classList.add('border-indigo-600', 'text-indigo-600');
+      uploadTab.classList.remove('border-transparent', 'text-slate-500');
+      pasteTab.classList.remove('border-indigo-600', 'text-indigo-600');
+      pasteTab.classList.add('border-transparent', 'text-slate-500');
+      uploadPanel?.classList.remove('hidden');
+      pastePanel?.classList.add('hidden');
+    });
+
+    // File upload handling
+    csvFile?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      fileName.textContent = `Selected: ${file.name}`;
+
+      try {
+        const text = await file.text();
+        csvContent.value = text;
+      } catch (error) {
+        alert('Failed to read file');
+        console.error(error);
+      }
+    });
+
     clearBtn?.addEventListener('click', () => {
       csvContent.value = '';
+      csvFile.value = '';
+      fileName.textContent = '';
       results?.classList.add('hidden');
     });
 

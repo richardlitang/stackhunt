@@ -89,21 +89,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Get all tools for mapping
-    const { data: tools, error: toolsError } = await supabase
-      .from('tools')
-      .select('id, name, slug');
-
-    if (toolsError) {
-      console.error('Failed to fetch tools:', toolsError);
-      return new Response(
-        JSON.stringify({ error: 'Database error' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const toolMap = new Map(tools?.map(t => [t.name.toLowerCase(), t]) || []);
-
     let inserted = 0;
     let skipped = 0;
     let failed = 0;
@@ -111,16 +96,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     for (const idea of records) {
       try {
-        // Try to find matching tool
-        let toolId: string | null = null;
-
-        if (idea.tool_name) {
-          const tool = toolMap.get(idea.tool_name.toLowerCase());
-          if (tool) {
-            toolId = tool.id;
-          }
-        }
-
         // Check if already exists (by keyword)
         const { data: existing } = await supabase
           .from('content_ideas')
@@ -138,14 +113,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           .from('content_ideas')
           .insert({
             keyword: idea.keyword,
-            tool_id: toolId,
+            tool_name: idea.tool_name || null,
             context_query: idea.context_query,
             content_type: idea.content_type,
             pillar: idea.pillar,
             target_audience: idea.target_audience,
             priority: parseInt(String(idea.priority), 10),
             notes: idea.notes || null,
-            status: 'backlog',
+            status: 'pending',
           });
 
         if (insertError) {
