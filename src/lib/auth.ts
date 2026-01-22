@@ -19,7 +19,7 @@ function isProduction(): boolean {
 function getRequiredEnvVar(key: string): string {
   // For server-side secrets, only use process.env (not import.meta.env)
   // Astro only exposes PUBLIC_ prefixed vars through import.meta.env
-  const value = process.env[key]?.trim();
+  const value = process.env[key];
 
   if (!value) {
     if (isProduction()) {
