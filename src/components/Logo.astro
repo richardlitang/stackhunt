@@ -42,35 +42,32 @@ const duckduckgoUrl = domain ? `https://icons.duckduckgo.com/ip3/${domain}.ico` 
 ---
 
 {!domain ? (
-  <div class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-slate-100`}>
-    <span class="text-xl font-bold text-slate-400">{initials}</span>
+  <div class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-zinc-900`}>
+    <span class="text-xl font-bold text-zinc-500">{initials}</span>
   </div>
 ) : (
-  <div class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-slate-100`}>
+  <div class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-zinc-900`}>
     <img
       src={brandfetchUrl || googleUrl}
       alt={`${name} logo`}
       class="h-full w-full object-contain p-1"
       loading="lazy"
       onerror={`
-        // Fallback chain
         if (this.src.includes('brandfetch')) {
           this.src = '${googleUrl}';
         } else if (this.src.includes('google')) {
           this.src = '${duckduckgoUrl}';
         } else {
-          // Last resort: hide image, show initials
           this.style.display = 'none';
           this.nextElementSibling.style.display = 'flex';
         }
       `}
     />
-    <span class="hidden text-xl font-bold text-slate-400">{initials}</span>
+    <span class="hidden text-xl font-bold text-zinc-500">{initials}</span>
   </div>
 )}
 
 <style>
-  /* Smooth loading transition */
   img {
     transition: opacity 0.2s ease-in-out;
   }

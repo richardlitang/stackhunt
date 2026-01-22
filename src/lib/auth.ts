@@ -12,13 +12,14 @@ import { supabase } from './supabase';
 
 // Environment detection
 function isProduction(): boolean {
-  const mode = import.meta.env?.MODE || process.env.NODE_ENV;
-  return mode === 'production';
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 }
 
 // Get required environment variable - fails in production if missing
 function getRequiredEnvVar(key: string): string {
-  const value = import.meta.env?.[key] || process.env[key];
+  // For server-side secrets, only use process.env (not import.meta.env)
+  // Astro only exposes PUBLIC_ prefixed vars through import.meta.env
+  const value = process.env[key];
 
   if (!value) {
     if (isProduction()) {
