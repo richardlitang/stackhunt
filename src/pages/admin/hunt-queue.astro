@@ -1,0 +1,387 @@
+---
+/**
+ * Admin Hunt Queue - /admin/hunt-queue
+ * Manage hunt queue: upload CSV, view status, monitor progress
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAdminClient } from '@/lib/supabase';
+
+const admin = getAdminClient();
+
+// Get filter from URL
+const url = new URL(Astro.request.url);
+const statusFilter = url.searchParams.get('status') || 'pending';
+
+// Fetch stats
+const { data: statsData } = await admin.rpc('get_hunt_queue_stats');
+const stats = statsData || {
+  pending: 0,
+  claimed: 0,
+  processing: 0,
+  completed: 0,
+  failed: 0,
+  total: 0,
+};
+
+// Build query with filters
+let query = admin
+  .from('hunt_queue')
+  .select(`
+    id,
+    tool_name,
+    tool_url,
+    category_hint,
+    context_title,
+    category_slug,
+    status,
+    priority,
+    attempts,
+    max_attempts,
+    claimed_by,
+    claimed_at,
+    started_at,
+    completed_at,
+    error_message,
+    tool_id,
+    review_id,
+    created_at
+  `);
+
+// Apply status filter
+if (statusFilter && statusFilter !== 'all') {
+  query = query.eq('status', statusFilter);
+}
+
+// Fetch queue items
+const { data: items } = await query
+  .order('priority', { ascending: false })
+  .order('created_at', { ascending: true })
+  .limit(100);
+
+const statusLabels: Record<string, { label: string; color: string }> = {
+  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700' },
+  claimed: { label: 'Claimed', color: 'bg-blue-100 text-blue-700' },
+  processing: { label: 'Processing', color: 'bg-purple-100 text-purple-700' },
+  completed: { label: 'Completed', color: 'bg-green-100 text-green-700' },
+  failed: { label: 'Failed', color: 'bg-red-100 text-red-700' },
+};
+---
+
+<AdminLayout title="Hunt Queue">
+  <!-- Breadcrumb -->
+  <nav class="mb-6 flex items-center gap-2 text-sm">
+    <a href="/admin" class="text-slate-500 hover:text-slate-700">Dashboard</a>
+    <svg class="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+    <span class="text-slate-900 font-medium">Hunt Queue</span>
+  </nav>
+
+  <div class="space-y-6">
+    <!-- Header with Stats -->
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Hunt Queue</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Upload CSV to bulk-add tools, or monitor the processing queue
+      </p>
+
+      <!-- Stats Bar -->
+      <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div class="rounded-lg border border-slate-200 bg-white p-3">
+          <div class="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+          <div class="text-xs text-slate-500">Pending</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3">
+          <div class="text-2xl font-bold text-purple-600">{stats.processing + stats.claimed}</div>
+          <div class="text-xs text-slate-500">Processing</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3">
+          <div class="text-2xl font-bold text-green-600">{stats.completed}</div>
+          <div class="text-xs text-slate-500">Completed</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3">
+          <div class="text-2xl font-bold text-red-600">{stats.failed}</div>
+          <div class="text-xs text-slate-500">Failed</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3">
+          <div class="text-2xl font-bold text-slate-900">{stats.total}</div>
+          <div class="text-xs text-slate-500">Total</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSV Upload Section -->
+    <div class="rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="text-lg font-semibold text-slate-900">Upload CSV</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Format: <code class="rounded bg-slate-100 px-1 py-0.5">name,website,category</code>
+        · Max 1000 rows · Max 1MB
+      </p>
+
+      <form id="csv-upload-form" class="mt-4 space-y-4">
+        <div>
+          <label
+            for="csv-file"
+            class="block cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center hover:border-purple-500 hover:bg-purple-50"
+          >
+            <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span class="mt-2 block text-sm font-medium text-slate-600">
+              Click to select CSV file
+            </span>
+            <span id="file-name" class="mt-1 block text-xs text-slate-400"></span>
+          </label>
+          <input
+            type="file"
+            id="csv-file"
+            name="file"
+            accept=".csv"
+            class="hidden"
+            required
+          />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div id="upload-status" class="text-sm"></div>
+          <button
+            type="submit"
+            class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:bg-slate-300"
+          >
+            Upload & Add to Queue
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Status Tabs -->
+    <div class="border-b border-slate-200">
+      <nav class="flex gap-6">
+        <a
+          href="/admin/hunt-queue?status=all"
+          class={`pb-3 text-sm font-medium border-b-2 transition ${
+            statusFilter === 'all'
+              ? 'border-slate-500 text-slate-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          All
+        </a>
+        <a
+          href="/admin/hunt-queue?status=pending"
+          class={`pb-3 text-sm font-medium border-b-2 transition ${
+            statusFilter === 'pending'
+              ? 'border-yellow-500 text-yellow-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Pending
+          {stats.pending > 0 && (
+            <span class="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-600">
+              {stats.pending}
+            </span>
+          )}
+        </a>
+        <a
+          href="/admin/hunt-queue?status=processing"
+          class={`pb-3 text-sm font-medium border-b-2 transition ${
+            statusFilter === 'processing'
+              ? 'border-purple-500 text-purple-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Processing
+          {(stats.processing + stats.claimed) > 0 && (
+            <span class="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-600">
+              {stats.processing + stats.claimed}
+            </span>
+          )}
+        </a>
+        <a
+          href="/admin/hunt-queue?status=completed"
+          class={`pb-3 text-sm font-medium border-b-2 transition ${
+            statusFilter === 'completed'
+              ? 'border-green-500 text-green-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Completed
+        </a>
+        <a
+          href="/admin/hunt-queue?status=failed"
+          class={`pb-3 text-sm font-medium border-b-2 transition ${
+            statusFilter === 'failed'
+              ? 'border-red-500 text-red-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Failed
+          {stats.failed > 0 && (
+            <span class="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">
+              {stats.failed}
+            </span>
+          )}
+        </a>
+      </nav>
+    </div>
+
+    <!-- Queue Table -->
+    {items && items.length > 0 ? (
+      <div class="overflow-x-auto rounded-lg border border-slate-200">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-left">
+            <tr>
+              <th class="px-4 py-3 font-medium text-slate-600">Tool</th>
+              <th class="px-4 py-3 font-medium text-slate-600">Status</th>
+              <th class="px-4 py-3 font-medium text-slate-600">Priority</th>
+              <th class="px-4 py-3 font-medium text-slate-600">Attempts</th>
+              <th class="px-4 py-3 font-medium text-slate-600">Worker</th>
+              <th class="px-4 py-3 font-medium text-slate-600">Created</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200">
+            {items.map((item) => (
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3">
+                  <div>
+                    <div class="font-medium text-slate-900">{item.tool_name}</div>
+                    {item.tool_url && (
+                      <div class="text-xs text-slate-500 truncate max-w-xs">
+                        {item.tool_url}
+                      </div>
+                    )}
+                    {item.context_title && (
+                      <div class="text-xs text-slate-500">
+                        Context: {item.context_title}
+                      </div>
+                    )}
+                    {item.category_hint && (
+                      <div class="text-xs text-slate-500">
+                        Category: {item.category_hint}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td class="px-4 py-3">
+                  <span class={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusLabels[item.status]?.color || 'bg-slate-100 text-slate-700'}`}>
+                    {statusLabels[item.status]?.label || item.status}
+                  </span>
+                  {item.error_message && (
+                    <div class="mt-1 text-xs text-red-600 truncate max-w-xs">
+                      {item.error_message}
+                    </div>
+                  )}
+                </td>
+                <td class="px-4 py-3">
+                  <span class="text-slate-600">{item.priority}</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="text-slate-600">
+                    {item.attempts}/{item.max_attempts}
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  {item.claimed_by ? (
+                    <span class="text-xs text-slate-600">{item.claimed_by}</span>
+                  ) : (
+                    <span class="text-xs text-slate-400">-</span>
+                  )}
+                </td>
+                <td class="px-4 py-3">
+                  <span class="text-xs text-slate-500">
+                    {new Date(item.created_at).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <div class="rounded-lg border border-slate-200 bg-slate-50 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <p class="mt-2 text-sm text-slate-600">No items in queue</p>
+        <p class="mt-1 text-xs text-slate-500">Upload a CSV to get started</p>
+      </div>
+    )}
+  </div>
+
+  <!-- CSV Upload Script -->
+  <script>
+    const form = document.getElementById('csv-upload-form') as HTMLFormElement;
+    const fileInput = document.getElementById('csv-file') as HTMLInputElement;
+    const fileName = document.getElementById('file-name');
+    const uploadStatus = document.getElementById('upload-status');
+
+    // Show selected file name
+    fileInput?.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files.length > 0 && fileName) {
+        fileName.textContent = fileInput.files[0].name;
+      }
+    });
+
+    // Handle form submission
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!fileInput.files || fileInput.files.length === 0) {
+        if (uploadStatus) {
+          uploadStatus.innerHTML = '<span class="text-red-600">Please select a file</span>';
+        }
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      if (uploadStatus) {
+        uploadStatus.innerHTML = '<span class="text-slate-600">Uploading...</span>';
+      }
+
+      try {
+        const response = await fetch('/api/admin/hunt-queue/upload-csv', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          if (uploadStatus) {
+            uploadStatus.innerHTML = `<span class="text-green-600">✓ Uploaded ${result.inserted} items (${result.duplicates} duplicates skipped)</span>`;
+          }
+          // Reset form
+          form.reset();
+          if (fileName) fileName.textContent = '';
+          // Reload page after 2 seconds
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } else {
+          if (uploadStatus) {
+            if (result.errors && result.errors.length > 0) {
+              const errorList = result.errors.map((e: any) =>
+                `Row ${e.row} (${e.field}): ${e.message}`
+              ).slice(0, 3).join('<br>');
+              uploadStatus.innerHTML = `<span class="text-red-600">Validation errors:<br>${errorList}</span>`;
+            } else {
+              uploadStatus.innerHTML = `<span class="text-red-600">Error: ${result.error}</span>`;
+            }
+          }
+        }
+      } catch (error) {
+        if (uploadStatus) {
+          uploadStatus.innerHTML = '<span class="text-red-600">Upload failed. Please try again.</span>';
+        }
+      }
+    });
+  </script>
+</AdminLayout>
