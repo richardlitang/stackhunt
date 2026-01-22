@@ -11,6 +11,7 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import Logo from '@/components/Logo.astro';
 import ScoreBadge from '@/components/ScoreBadge.astro';
 import PricingBadge from '@/components/PricingBadge.astro';
 import ProsCons from '@/components/ProsCons.astro';
@@ -113,19 +114,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <!-- Left: Logo & Info -->
         <div class="flex items-start gap-5">
-          <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            {tool.logo_url ? (
-              <img
-                src={tool.logo_url}
-                alt={`${tool.name} logo`}
-                class="h-full w-full object-contain p-2"
-              />
-            ) : (
-              <span class="text-3xl font-bold text-slate-300">
-                {tool.name.charAt(0)}
-              </span>
-            )}
-          </div>
+          <Logo domain={tool.logo_url} name={tool.name} size="xl" class="shrink-0 rounded-2xl border border-slate-200 shadow-sm" />
 
           <div>
             <div class="flex items-center gap-3">

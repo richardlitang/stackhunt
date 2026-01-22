@@ -1,17 +1,23 @@
 ---
 /**
- * Logo Component - Smart Logo Resolution
+ * Logo Component - Brandfetch Hotlinking (TOS Compliant)
  *
- * Handles multiple input types:
- * 1. Full URL to logo image → use directly
- * 2. Domain name (notion.so) → Brandfetch → Google Favicons → DuckDuckGo
- * 3. Null/empty → Show initials
+ * Uses domain-based hotlinking to Brandfetch CDN.
+ * Does NOT read logo URLs from database - constructs URLs dynamically.
+ *
+ * Fallback chain:
+ * 1. Brandfetch CDN (high-quality)
+ * 2. Google Favicons (reliable fallback)
+ * 3. DuckDuckGo (last resort)
+ * 4. Initials (if all fail)
+ *
+ * @see src/lib/hunter/services/logo.ts for the data storage strategy
  */
 
 interface Props {
   domain: string | null;
   name: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   class?: string;
 }
 
@@ -21,6 +27,7 @@ const sizeClasses = {
   sm: 'h-8 w-8',
   md: 'h-12 w-12',
   lg: 'h-16 w-16',
+  xl: 'h-20 w-20',
 };
 
 const sizeClass = sizeClasses[size];
@@ -28,43 +35,41 @@ const sizeClass = sizeClasses[size];
 // Calculate initials for fallback (always needed)
 const initials = name.charAt(0).toUpperCase();
 
-// Determine if input is a full URL or a domain
-const isFullUrl = domain?.startsWith('http://') || domain?.startsWith('https://');
-
-// Extract domain from URL if needed (for fallbacks)
-function extractDomain(input: string | null): string | null {
+// Extract clean domain from input (handles both "notion.so" and "https://notion.so")
+function cleanDomain(input: string | null): string | null {
   if (!input) return null;
   try {
-    if (input.startsWith('http://') || input.startsWith('https://')) {
+    // If it looks like a URL, extract hostname
+    if (input.includes('://')) {
       return new URL(input).hostname;
     }
+    // Otherwise use as-is (already a domain)
     return input;
   } catch {
     return input;
   }
 }
 
-const extractedDomain = extractDomain(domain);
+const cleanedDomain = cleanDomain(domain);
 
 // Brandfetch Client ID (from env - free tier, no attribution required)
 const brandfetchId = import.meta.env.PUBLIC_BRANDFETCH_CLIENT_ID || '';
 
-// If full URL provided, use it as primary source
-const directUrl = isFullUrl ? domain : null;
-
-// Brandfetch CDN (hotlink compliant) - for domain-based lookup
-const brandfetchUrl = extractedDomain && brandfetchId
-  ? `https://cdn.brandfetch.io/${extractedDomain}?c=${brandfetchId}`
+// Construct URLs dynamically (NO database logo URLs - hotlinking only)
+const brandfetchUrl = cleanedDomain && brandfetchId
+  ? `https://cdn.brandfetch.io/${cleanedDomain}?c=${brandfetchId}`
   : null;
 
-// Google Favicons fallback
-const googleUrl = extractedDomain ? `https://www.google.com/s2/favicons?domain=${extractedDomain}&sz=128` : null;
+const googleUrl = cleanedDomain
+  ? `https://www.google.com/s2/favicons?domain=${cleanedDomain}&sz=128`
+  : null;
 
-// DuckDuckGo fallback
-const duckduckgoUrl = extractedDomain ? `https://icons.duckduckgo.com/ip3/${extractedDomain}.ico` : null;
+const duckduckgoUrl = cleanedDomain
+  ? `https://icons.duckduckgo.com/ip3/${cleanedDomain}.ico`
+  : null;
 
-// Primary image source (direct URL > Brandfetch > Google)
-const primarySrc = directUrl || brandfetchUrl || googleUrl;
+// Primary: Brandfetch if client ID available, else Google
+const primarySrc = brandfetchUrl || googleUrl;
 ---
 
 {!domain ? (
