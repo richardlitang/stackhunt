@@ -7,6 +7,11 @@
  * - Featured tools grid
  * - Featured lists/contexts
  * - Category navigation
+ *
+ * Design System: SDS v2 - "High-Performance Utility"
+ * - Zinc color palette (professional, clean)
+ * - Indigo accents (primary actions)
+ * - rounded-lg (app-like, not harsh)
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -26,8 +31,8 @@ const [featuredTools, featuredContexts, categories] = await Promise.all([
 ]);
 
 const meta = {
-  title: 'StackHunt - Find the Best Software Alternatives',
-  description: 'Discover the best software alternatives with AI-powered analysis. Compare tools, read honest reviews, and find the perfect solution for your needs.',
+  title: 'StackHunt - Find the Right Tools for Your Stack',
+  description: 'Curated software recommendations for freelancers, indie developers, and small teams. Compare tools with honest, context-aware reviews.',
   canonical: getCanonicalUrl('/'),
   ogType: 'website' as const,
 };
@@ -35,80 +40,82 @@ const meta = {
 
 <BaseLayout meta={meta}>
   <!-- Hero Section -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-    <!-- Background Pattern -->
-    <div class="absolute inset-0 opacity-20">
+  <section class="relative overflow-hidden bg-zinc-950">
+    <!-- Subtle grid pattern -->
+    <div class="absolute inset-0 opacity-[0.03]">
       <svg class="h-full w-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="0.5" class="text-slate-500" />
+          <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" stroke-width="1" class="text-zinc-100" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
       </svg>
     </div>
 
-    <div class="relative mx-auto max-w-5xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+    <div class="relative mx-auto max-w-5xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
       <div class="text-center">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 rounded-full border border-hunt-500/30 bg-hunt-500/10 px-4 py-1.5 text-sm text-hunt-400">
-          <span class="relative flex h-2 w-2">
-            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-hunt-400 opacity-75"></span>
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-hunt-500"></span>
+        <div class="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-sm text-indigo-400">
+          <span class="relative flex h-1.5 w-1.5">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+            <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
           </span>
-          AI-Powered Software Discovery
+          For Freelancers & Teams
         </div>
 
         <!-- Headline -->
-        <h1 class="mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-          Find the <span class="text-hunt-500">Best Software</span>
-          <br />Alternatives
+        <h1 class="mt-6 text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">
+          Find the <span class="text-indigo-400">Right Tools</span>
+          <br class="hidden sm:block" />for Your Stack
         </h1>
 
-        <p class="mx-auto mt-6 max-w-2xl text-lg text-slate-300">
-          Stop wasting hours researching tools. Our AI analyzes reviews, features, and pricing to help you discover the perfect software for your needs.
+        <p class="mx-auto mt-5 max-w-xl text-base text-zinc-400">
+          Curated recommendations for dev tools, design apps, and productivity software. Honest reviews that help you choose what works.
         </p>
 
         <!-- Search Bar -->
-        <div class="mx-auto mt-10 max-w-xl">
+        <div class="mx-auto mt-8 max-w-md">
           <div class="relative">
             <input
               type="text"
-              placeholder="Search for any tool or category..."
-              class="w-full rounded-xl border-2 border-transparent bg-white/10 py-4 pl-12 pr-4 text-white placeholder-slate-400 backdrop-blur transition focus:border-hunt-500 focus:bg-white/20 focus:outline-none"
+              placeholder="Search tools or categories..."
+              class="w-full rounded-lg border border-zinc-800 bg-zinc-900 py-3 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
-            <svg class="absolute left-4 top-4 h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="absolute left-3 top-3 h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <kbd class="absolute right-4 top-4 hidden rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-400 sm:inline-block">
+            <kbd class="absolute right-3 top-2.5 hidden rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-500 sm:inline-block">
               ⌘K
             </kbd>
           </div>
 
           <!-- Quick Links -->
-          <div class="mt-4 flex flex-wrap justify-center gap-2">
-            <span class="text-sm text-slate-400">Popular:</span>
-            <a href="/best/slack-alternatives" class="text-sm text-hunt-400 hover:text-hunt-300">Slack alternatives</a>
-            <span class="text-slate-600">•</span>
-            <a href="/best/notion-alternatives" class="text-sm text-hunt-400 hover:text-hunt-300">Notion alternatives</a>
-            <span class="text-slate-600">•</span>
-            <a href="/best/crm-for-startups" class="text-sm text-hunt-400 hover:text-hunt-300">CRM for startups</a>
+          <div class="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1">
+            <span class="text-sm text-zinc-500">Popular:</span>
+            <a href="/best/note-taking-apps-for-students" class="text-sm text-indigo-400 hover:text-indigo-300">Note-taking</a>
+            <a href="/best/project-management-tools-for-remote-teams" class="text-sm text-indigo-400 hover:text-indigo-300">Project management</a>
+            <a href="/best/accounting-software" class="text-sm text-indigo-400 hover:text-indigo-300">Accounting</a>
           </div>
         </div>
 
-        <!-- Stats -->
-        <div class="mt-12 flex justify-center gap-12">
-          <div>
-            <div class="text-3xl font-bold text-white">500+</div>
-            <div class="text-sm text-slate-400">Tools Analyzed</div>
+        <!-- Pillars -->
+        <div class="mt-10 flex flex-wrap justify-center gap-6">
+          <div class="flex items-center gap-2 text-zinc-400">
+            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+            <span class="text-sm">Dev Tools</span>
           </div>
-          <div>
-            <div class="text-3xl font-bold text-white">50+</div>
-            <div class="text-sm text-slate-400">Categories</div>
+          <div class="flex items-center gap-2 text-zinc-400">
+            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+            <span class="text-sm">Design</span>
           </div>
-          <div>
-            <div class="text-3xl font-bold text-white">10K+</div>
-            <div class="text-sm text-slate-400">Reviews Processed</div>
+          <div class="flex items-center gap-2 text-zinc-400">
+            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            <span class="text-sm">Growth</span>
+          </div>
+          <div class="flex items-center gap-2 text-zinc-400">
+            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+            <span class="text-sm">Operations</span>
           </div>
         </div>
       </div>
@@ -116,22 +123,21 @@ const meta = {
   </section>
 
   <!-- Categories Section -->
-  <section class="border-b border-slate-200 bg-slate-50 py-8">
+  <section class="border-b border-zinc-800 bg-zinc-900 py-4">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
-        <span class="shrink-0 text-sm font-medium text-slate-500">Categories:</span>
+      <div class="flex items-center gap-4 overflow-x-auto scrollbar-hide">
+        <span class="shrink-0 text-sm text-zinc-500">Browse:</span>
         {categories.slice(0, 10).map((cat) => (
           <a
             href={`/categories/${cat.slug}`}
-            class="shrink-0 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-600 transition hover:border-hunt-200 hover:text-hunt-600"
+            class="shrink-0 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-400 transition hover:border-indigo-500/50 hover:text-zinc-100"
           >
-            {cat.icon && <span class="mr-1">{cat.icon}</span>}
             {cat.name}
           </a>
         ))}
         <a
           href="/categories"
-          class="shrink-0 text-sm font-medium text-hunt-600 hover:text-hunt-700"
+          class="shrink-0 text-sm text-indigo-400 hover:text-indigo-300"
         >
           View all →
         </a>
@@ -140,62 +146,62 @@ const meta = {
   </section>
 
   <!-- Featured Tools -->
-  <section class="py-16">
+  <section class="bg-zinc-950 py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex items-end justify-between">
         <div>
-          <h2 class="text-2xl font-bold text-slate-900">Featured Tools</h2>
-          <p class="mt-2 text-slate-600">Top-rated software across all categories</p>
+          <h2 class="text-2xl font-semibold text-zinc-100">Featured Tools</h2>
+          <p class="mt-1 text-sm text-zinc-400">Top-rated across all categories</p>
         </div>
-        <a href="/tools" class="text-sm font-medium text-hunt-600 hover:text-hunt-700">
-          View all tools →
+        <a href="/tools" class="text-sm text-indigo-400 hover:text-indigo-300">
+          View all →
         </a>
       </div>
 
-      <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {featuredTools.map((tool) => (
           <ToolCard tool={tool} category={tool.category} />
         ))}
       </div>
 
       {featuredTools.length === 0 && (
-        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-          <p class="text-slate-500">No featured tools yet. Run the Hunter Agent to populate data!</p>
+        <div class="rounded-lg border border-dashed border-zinc-800 bg-zinc-900 p-10 text-center">
+          <p class="text-sm text-zinc-500">More tools coming soon. Suggest one below!</p>
         </div>
       )}
     </div>
   </section>
 
   <!-- Featured Lists -->
-  <section class="border-t border-slate-200 bg-slate-50 py-16">
+  <section class="border-t border-zinc-800 bg-zinc-900 py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex items-end justify-between">
         <div>
-          <h2 class="text-2xl font-bold text-slate-900">Popular Comparisons</h2>
-          <p class="mt-2 text-slate-600">Curated lists to help you choose the right tool</p>
+          <h2 class="text-2xl font-semibold text-zinc-100">Comparisons</h2>
+          <p class="mt-1 text-sm text-zinc-400">Curated lists to help you choose</p>
         </div>
-        <a href="/best" class="text-sm font-medium text-hunt-600 hover:text-hunt-700">
-          View all lists →
+        <a href="/best" class="text-sm text-indigo-400 hover:text-indigo-300">
+          View all →
         </a>
       </div>
 
-      <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {featuredContexts.map((ctx) => (
           <a
             href={`/best/${ctx.slug}`}
-            class="group rounded-xl border border-slate-200 bg-white p-5 transition hover:border-hunt-200 hover:shadow-lg"
+            class="group rounded-lg border border-zinc-800 bg-zinc-950 p-4 transition hover:border-indigo-500/50"
           >
             <div class="flex items-center gap-3">
               {ctx.category?.icon && (
-                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-xl group-hover:bg-hunt-100">
+                <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900 text-lg group-hover:bg-indigo-500/10">
                   {ctx.category.icon}
                 </span>
               )}
               <div class="min-w-0 flex-1">
-                <h3 class="truncate font-semibold text-slate-900 group-hover:text-hunt-600">
+                <h3 class="truncate text-sm font-medium text-zinc-100 group-hover:text-indigo-400">
                   {ctx.title}
                 </h3>
-                <p class="text-sm text-slate-500">{ctx.tool_count} tools</p>
+                <p class="text-sm text-zinc-500">{ctx.tool_count} tools</p>
               </div>
             </div>
           </a>
@@ -203,33 +209,33 @@ const meta = {
       </div>
 
       {featuredContexts.length === 0 && (
-        <div class="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-          <p class="text-slate-500">No featured lists yet. Create contexts via the Hunter Agent!</p>
+        <div class="rounded-lg border border-dashed border-zinc-800 bg-zinc-950 p-10 text-center">
+          <p class="text-sm text-zinc-500">Comparison guides coming soon. Request one below!</p>
         </div>
       )}
     </div>
   </section>
 
   <!-- CTA Section -->
-  <section class="py-16">
-    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-      <div class="rounded-2xl bg-gradient-to-br from-hunt-500 to-hunt-600 p-8 text-center sm:p-12">
-        <h2 class="text-2xl font-bold text-white sm:text-3xl">
+  <section class="bg-zinc-950 py-12">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+      <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-8 text-center">
+        <h2 class="text-xl font-semibold text-zinc-100">
           Can't find what you're looking for?
         </h2>
-        <p class="mx-auto mt-4 max-w-xl text-hunt-100">
-          Submit a tool or request a specific comparison. Our AI will analyze it and add it to the directory.
+        <p class="mx-auto mt-2 max-w-md text-sm text-zinc-400">
+          Submit a tool or request a comparison. We'll review and add it to the directory.
         </p>
-        <div class="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+        <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <a
             href="/submit"
-            class="rounded-lg bg-white px-6 py-3 font-semibold text-hunt-600 transition hover:bg-hunt-50"
+            class="rounded-lg bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-600"
           >
             Submit a Tool
           </a>
           <a
             href="/request"
-            class="rounded-lg border-2 border-white/30 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
+            class="rounded-lg border border-zinc-700 bg-zinc-800 px-5 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-zinc-700"
           >
             Request Comparison
           </a>
