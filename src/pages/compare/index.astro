@@ -1,15 +1,15 @@
 ---
 /**
  * Compare Index - /compare
- * Lists popular tool comparisons
- * Auto-generates comparison pairs from tools in same category
+ * Category-based tool selection for comparisons
+ * Only allows comparing tools within the same category
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { supabase } from '@/lib/supabase';
 import { getCanonicalUrl } from '@/lib/utils';
 
-// Fetch top tools grouped by category
+// Fetch tools with categories, grouped by category
 const { data: tools } = await supabase
   .from('tools')
   .select(`
@@ -18,44 +18,40 @@ const { data: tools } = await supabase
   `)
   .gt('avg_score', 0)
   .order('avg_score', { ascending: false })
-  .limit(100);
+  .limit(200);
 
-// Group tools by category
+// Group tools by category (only categories with 2+ tools)
+interface CategoryGroup {
+  name: string;
+  slug: string;
+  tools: typeof tools;
+}
+
+const categoryGroups: CategoryGroup[] = [];
 const byCategory: Record<string, typeof tools> = {};
+
 for (const tool of tools || []) {
-  const catName = tool.category?.name || 'Other';
-  if (!byCategory[catName]) byCategory[catName] = [];
-  byCategory[catName].push(tool);
+  if (!tool.category?.slug) continue;
+  const catSlug = tool.category.slug;
+  if (!byCategory[catSlug]) {
+    byCategory[catSlug] = [];
+  }
+  byCategory[catSlug].push(tool);
 }
 
-// Generate comparison pairs (top tools in each category)
-interface ComparisonPair {
-  toolA: typeof tools[0];
-  toolB: typeof tools[0];
-  category: string;
-}
-
-const comparisons: ComparisonPair[] = [];
-
-for (const [category, categoryTools] of Object.entries(byCategory)) {
-  // Only categories with 2+ tools
-  if (categoryTools.length < 2) continue;
-
-  // Take top 4 tools, create pairs
-  const topTools = categoryTools.slice(0, 4);
-  for (let i = 0; i < topTools.length; i++) {
-    for (let j = i + 1; j < topTools.length; j++) {
-      comparisons.push({
-        toolA: topTools[i],
-        toolB: topTools[j],
-        category,
-      });
-    }
+// Only include categories with 2+ tools for comparison
+for (const [slug, categoryTools] of Object.entries(byCategory)) {
+  if (categoryTools.length >= 2) {
+    categoryGroups.push({
+      name: categoryTools[0].category?.name || slug,
+      slug,
+      tools: categoryTools,
+    });
   }
 }
 
-// Limit to 20 comparisons for the index
-const displayComparisons = comparisons.slice(0, 20);
+// Sort categories by tool count (most tools first)
+categoryGroups.sort((a, b) => b.tools.length - a.tools.length);
 
 const meta = {
   title: 'Compare Software Tools Side by Side | StackHunt',
@@ -73,97 +69,99 @@ const meta = {
         Compare Tools
       </h1>
       <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-        Side-by-side comparisons to help you choose the right software.
-        See features, pricing, and honest pros & cons.
+        Select two tools from the same category to compare them side-by-side.
       </p>
     </header>
 
-    <!-- Search/Generator -->
-    <div class="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-6">
-      <h2 class="text-lg font-semibold text-slate-900">Create a Comparison</h2>
-      <p class="mt-1 text-sm text-slate-600">
-        Enter two tool slugs to compare (e.g., <code class="rounded bg-slate-200 px-1">slack</code> vs <code class="rounded bg-slate-200 px-1">discord</code>)
-      </p>
-      <form
-        class="mt-4 flex gap-3"
-        onsubmit="event.preventDefault(); const a = this.toolA.value.toLowerCase().replace(/\\s+/g, '-'); const b = this.toolB.value.toLowerCase().replace(/\\s+/g, '-'); if(a && b) window.location.href = `/compare/${a}-vs-${b}`;"
-      >
-        <input
-          type="text"
-          name="toolA"
-          placeholder="First tool..."
-          class="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
-        />
-        <span class="flex items-center text-slate-400 font-medium">vs</span>
-        <input
-          type="text"
-          name="toolB"
-          placeholder="Second tool..."
-          class="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
-        />
-        <button
-          type="submit"
-          class="rounded-lg bg-hunt-500 px-6 py-2 text-sm font-medium text-white hover:bg-hunt-600"
-        >
-          Compare
-        </button>
-      </form>
+    <!-- Category-based Tool Lists -->
+    <div class="mt-12 space-y-10">
+      {categoryGroups.map(({ name, slug, tools: categoryTools }) => (
+        <section>
+          <h2 class="mb-4 flex items-center gap-2 text-xl font-semibold text-slate-900">
+            {name}
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+              {categoryTools.length} tools
+            </span>
+          </h2>
+
+          <div class="rounded-xl border border-slate-200 bg-white">
+            <div class="grid grid-cols-1 divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+              {/* Tool A Selection */}
+              <div class="p-4">
+                <label class="mb-2 block text-sm font-medium text-slate-600">First tool</label>
+                <select
+                  id={`toolA-${slug}`}
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+                >
+                  <option value="">Select a tool...</option>
+                  {categoryTools.map((tool) => (
+                    <option value={tool.slug}>{tool.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tool B Selection */}
+              <div class="p-4">
+                <label class="mb-2 block text-sm font-medium text-slate-600">Second tool</label>
+                <select
+                  id={`toolB-${slug}`}
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+                >
+                  <option value="">Select a tool...</option>
+                  {categoryTools.map((tool) => (
+                    <option value={tool.slug}>{tool.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Compare Button */}
+            <div class="border-t border-slate-100 p-4">
+              <button
+                type="button"
+                data-category={slug}
+                class="compare-btn w-full rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                Compare
+              </button>
+            </div>
+          </div>
+        </section>
+      ))}
     </div>
 
-    <!-- Popular Comparisons -->
-    <section class="mt-12">
-      <h2 class="mb-6 text-xl font-semibold text-slate-900">Popular Comparisons</h2>
-
-      {displayComparisons.length > 0 ? (
-        <div class="grid gap-4 sm:grid-cols-2">
-          {displayComparisons.map(({ toolA, toolB, category }) => (
-            <a
-              href={`/compare/${toolA.slug}-vs-${toolB.slug}`}
-              class="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-hunt-200 hover:shadow-lg"
-            >
-              <!-- Tool A -->
-              <div class="flex items-center gap-2">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
-                  {toolA.logo_url ? (
-                    <img src={toolA.logo_url} alt="" class="h-full w-full object-contain p-1" />
-                  ) : (
-                    <span class="font-bold text-slate-400">{toolA.name.charAt(0)}</span>
-                  )}
-                </div>
-                <span class="font-medium text-slate-900">{toolA.name}</span>
-              </div>
-
-              <!-- VS -->
-              <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 group-hover:bg-hunt-100 group-hover:text-hunt-600">
-                vs
-              </span>
-
-              <!-- Tool B -->
-              <div class="flex items-center gap-2">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
-                  {toolB.logo_url ? (
-                    <img src={toolB.logo_url} alt="" class="h-full w-full object-contain p-1" />
-                  ) : (
-                    <span class="font-bold text-slate-400">{toolB.name.charAt(0)}</span>
-                  )}
-                </div>
-                <span class="font-medium text-slate-900">{toolB.name}</span>
-              </div>
-
-              <!-- Arrow -->
-              <svg class="ml-auto h-5 w-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-hunt-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-          <p class="text-slate-500">
-            No comparisons available yet. Add some tools to see suggestions!
-          </p>
-        </div>
-      )}
-    </section>
+    {categoryGroups.length === 0 && (
+      <div class="mt-12 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+        <p class="text-slate-500">
+          No categories with multiple tools available yet.
+        </p>
+      </div>
+    )}
   </div>
 </BaseLayout>
+
+<script>
+  // Handle compare button clicks
+  document.querySelectorAll('.compare-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const category = btn.getAttribute('data-category');
+      const toolASelect = document.getElementById(`toolA-${category}`) as HTMLSelectElement;
+      const toolBSelect = document.getElementById(`toolB-${category}`) as HTMLSelectElement;
+
+      const toolA = toolASelect?.value;
+      const toolB = toolBSelect?.value;
+
+      if (!toolA || !toolB) {
+        alert('Please select two tools to compare');
+        return;
+      }
+
+      if (toolA === toolB) {
+        alert('Please select two different tools');
+        return;
+      }
+
+      window.location.href = `/compare/${toolA}-vs-${toolB}`;
+    });
+  });
+</script>

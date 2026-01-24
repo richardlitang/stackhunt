@@ -79,14 +79,12 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
         return;
       }
 
-      // Check category mismatch
+      // Enforce same category - only allow sensible comparisons
       if (tools.length > 0 && categorySlug) {
         const existingCategories = new Set(tools.map(t => t.categorySlug).filter(Boolean));
         if (existingCategories.size > 0 && !existingCategories.has(categorySlug)) {
-          const confirmed = confirm(
-            `You're comparing tools from different categories. This might not give meaningful results.\n\nContinue anyway?`
-          );
-          if (!confirmed) return;
+          alert(`You can only compare tools from the same category. Clear your selection to compare ${toolName} with other ${categoryName || 'similar'} tools.`);
+          return;
         }
       }
 
