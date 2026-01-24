@@ -202,6 +202,38 @@ Return ONLY valid JSON array:
     console.log(`   Generated ${suggestions.length} suggestions\n`);
     return suggestions;
   } catch (error) {
+    const errMessage = error instanceof Error ? error.message : String(error);
+    const errString = errMessage.toLowerCase();
+
+    // Check for critical API errors
+    const isCritical =
+      errString.includes('quota') ||
+      errString.includes('api key') ||
+      errString.includes('unauthorized') ||
+      errString.includes('403') ||
+      errString.includes('401');
+
+    if (isCritical) {
+      console.error(`CRITICAL API ERROR: ${errMessage}`);
+
+      // Send Discord alert if webhook is configured
+      const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL;
+      if (discordWebhookUrl) {
+        const { alertCritical } = await import('../src/lib/notifications/discord');
+        await alertCritical(discordWebhookUrl, {
+          title: 'Gemini API Failure',
+          message: errMessage,
+          service: 'gemini',
+          action: errString.includes('quota')
+            ? 'Check billing and quota limits'
+            : 'Check and update API key in GitHub Secrets',
+        });
+      }
+
+      // Exit with error to trigger workflow failure notification
+      process.exit(1);
+    }
+
     console.error('AI generation failed:', error);
     return [];
   }

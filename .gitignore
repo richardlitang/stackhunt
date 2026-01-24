@@ -36,3 +36,4 @@ yarn-error.log*
 
 # Data imports
 data/
+logs

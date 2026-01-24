@@ -37,6 +37,15 @@ export {
   QueueService,
 } from './services';
 
+// Re-export error types
+export {
+  ApiError,
+  classifySerperError,
+  classifyGeminiError,
+  type ApiErrorType,
+  type ApiErrorDetails,
+} from './errors';
+
 // Re-export phases for custom orchestration
 export {
   executeResearchPhase,

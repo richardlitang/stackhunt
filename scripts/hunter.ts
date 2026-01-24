@@ -430,6 +430,10 @@ async function runQueueProcess() {
 
 async function runBatchProcess(maxItems: number) {
   const { Hunter } = await import('../src/lib/hunter');
+  const { ApiError } = await import('../src/lib/hunter/errors');
+  const { alertCritical, alertQueueSummary } = await import('../src/lib/notifications/discord');
+
+  const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL;
 
   const hunter = new Hunter({
     supabaseUrl: process.env.SUPABASE_URL!,
@@ -443,7 +447,44 @@ async function runBatchProcess(maxItems: number) {
   console.log(`🔄 Starting batch processing (max ${maxItems} items)`);
   console.log('═'.repeat(60));
 
-  const result = await hunter.processQueueBatch(maxItems);
+  let result: { processed: number; succeeded: number; failed: number; results: Array<{ success: boolean; error?: string; toolName?: string }> };
+  const errors: Array<{ tool: string; error: string }> = [];
+
+  try {
+    result = await hunter.processQueueBatch(maxItems);
+
+    // Collect errors from failed results
+    for (const r of result.results) {
+      if (!r.success && r.error) {
+        errors.push({ tool: r.toolName || 'Unknown', error: r.error });
+      }
+    }
+  } catch (error) {
+    // Check if this is a critical API error
+    if (error instanceof ApiError && error.isCritical) {
+      console.error(`❌ CRITICAL API ERROR: ${error.message}`);
+
+      // Send immediate Discord alert for critical errors
+      if (discordWebhookUrl) {
+        await alertCritical(discordWebhookUrl, {
+          title: `${error.service.toUpperCase()} API Failure`,
+          message: error.message,
+          service: error.service,
+          action: error.type === 'auth_error'
+            ? 'Check and update API key in GitHub Secrets'
+            : error.type === 'quota_exceeded'
+            ? 'Check billing and quota limits'
+            : 'Review error logs and contact support',
+        });
+      }
+
+      // Re-throw to fail the job
+      throw error;
+    }
+
+    // Non-critical errors
+    throw error;
+  }
 
   console.log('═'.repeat(60));
   console.log('📊 Batch Processing Complete');
@@ -451,6 +492,16 @@ async function runBatchProcess(maxItems: number) {
   console.log(`   Succeeded: ${result.succeeded}`);
   console.log(`   Failed: ${result.failed}`);
   console.log('═'.repeat(60));
+
+  // Send summary to Discord if there were failures or if we processed items
+  if (discordWebhookUrl && result.processed > 0) {
+    await alertQueueSummary(discordWebhookUrl, {
+      processed: result.processed,
+      succeeded: result.succeeded,
+      failed: result.failed,
+      errors,
+    });
+  }
 
   if (result.failed > 0) {
     process.exit(1);

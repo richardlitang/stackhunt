@@ -8,6 +8,7 @@
 
 import axios from 'axios';
 import type { SerperResponse } from '../types';
+import { classifySerperError } from '../errors';
 
 export interface SerperConfig {
   apiKey: string;
@@ -37,17 +38,22 @@ export class SerperService {
    * Perform a single search query
    */
   async search(query: string): Promise<SerperResponse> {
-    const response = await axios.post<SerperResponse>(
-      'https://google.serper.dev/search',
-      { q: query, num: 10 },
-      {
-        headers: {
-          'X-API-KEY': this.apiKey,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    return response.data;
+    try {
+      const response = await axios.post<SerperResponse>(
+        'https://google.serper.dev/search',
+        { q: query, num: 10 },
+        {
+          headers: {
+            'X-API-KEY': this.apiKey,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000, // 30 second timeout
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw classifySerperError(error);
+    }
   }
 
   /**

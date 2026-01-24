@@ -13,6 +13,7 @@ import {
   type KnowledgeCard,
 } from '../../knowledge-card';
 import { AnalysisSchema, type HunterAnalysis } from '../types';
+import { classifyGeminiError } from '../errors';
 
 export interface GeminiConfig {
   apiKey: string;
@@ -83,7 +84,13 @@ Extract the knowledge card JSON:`;
       },
     });
 
-    const generateFn = () => model.generateContent(prompt);
+    const generateFn = async () => {
+      try {
+        return await model.generateContent(prompt);
+      } catch (error) {
+        throw classifyGeminiError(error);
+      }
+    };
     const response = withRetry
       ? await withRetry(generateFn, 'Gemini fact extraction')
       : await generateFn();
@@ -125,7 +132,13 @@ Extract the knowledge card JSON:`;
       },
     });
 
-    const generateFn = () => model.generateContent(prompt);
+    const generateFn = async () => {
+      try {
+        return await model.generateContent(prompt);
+      } catch (error) {
+        throw classifyGeminiError(error);
+      }
+    };
     const response = withRetry
       ? await withRetry(generateFn, 'Gemini synthesis')
       : await generateFn();
@@ -155,7 +168,13 @@ Extract the knowledge card JSON:`;
   ): Promise<number[]> {
     const model = this.client.getGenerativeModel({ model: 'text-embedding-004' });
 
-    const embedFn = () => model.embedContent(text);
+    const embedFn = async () => {
+      try {
+        return await model.embedContent(text);
+      } catch (error) {
+        throw classifyGeminiError(error);
+      }
+    };
     const response = withRetry
       ? await withRetry(embedFn, 'Gemini embedding')
       : await embedFn();

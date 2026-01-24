@@ -76,10 +76,30 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
       - name: Notify on failure
         if: failure()
         run: |
+          # Discord notification
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{
+                "content": "@here Automation failure!",
+                "embeds": [{
+                  "title": "Hunt Queue Processing Failed",
+                  "description": "The scheduled hunt queue job failed. Check GitHub Actions logs.",
+                  "color": 16711680,
+                  "fields": [
+                    {"name": "Workflow", "value": "scheduled-jobs.yml", "inline": true},
+                    {"name": "Job", "value": "hunt-queue", "inline": true}
+                  ],
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }]
+              }' \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
+          fi
+          # Legacy Slack support
           if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
             curl -X POST -H 'Content-type: application/json' \
               --data '{"text":"❌ Hunt queue processing failed. Check GitHub Actions logs."}' \
@@ -115,6 +135,23 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{
+                "embeds": [{
+                  "title": "Topic Discovery Failed",
+                  "description": "The scheduled topic discovery job failed. Check GitHub Actions logs.",
+                  "color": 16711680,
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }]
+              }' \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
+          fi
 
   # ============================================================
   # DAILY: Verify Affiliate Links (3am UTC)
@@ -176,13 +213,20 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
       - name: Notify on failure
         if: failure()
         run: |
-          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
             curl -X POST -H 'Content-type: application/json' \
-              --data '{"text":"❌ Weekly corrections verification failed. Check GitHub Actions logs."}' \
-              ${{ secrets.SLACK_WEBHOOK_URL }}
+              --data '{
+                "embeds": [{
+                  "title": "Corrections Verification Failed",
+                  "description": "The weekly corrections verification job failed. Check GitHub Actions logs.",
+                  "color": 16711680,
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }]
+              }' \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
           fi
