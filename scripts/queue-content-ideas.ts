@@ -37,6 +37,21 @@ interface ContentIdea {
   notes: string | null;
 }
 
+/**
+ * Detects if a string looks like a search query pattern rather than a tool name.
+ * Search queries like "best X for Y" or "X alternatives" should not be used as tool names.
+ */
+function isSearchQueryPattern(str: string): boolean {
+  const normalized = str.toLowerCase().trim();
+  return (
+    normalized.startsWith('best ') ||
+    normalized.endsWith(' alternatives') ||
+    normalized.includes(' vs ') ||
+    normalized.startsWith('top ') ||
+    normalized.includes('how to ')
+  );
+}
+
 async function queueContentIdeas() {
   const args = process.argv.slice(2);
   const queueAll = args.includes('--all');
@@ -87,14 +102,30 @@ async function queueContentIdeas() {
 
   for (const idea of ideas as ContentIdea[]) {
     console.log(`📌 ${idea.context_query || idea.keyword}`);
-    console.log(`   Priority: ${idea.priority} | Tool: ${idea.tool_name || 'auto-discover'}`);
+    console.log(`   Priority: ${idea.priority} | Tool: ${idea.tool_name || '(none)'} | Type: ${idea.content_type || 'unknown'}`);
 
     try {
+      // VALIDATION: Require an actual tool_name for tool hunts
+      // Listicles/roundups without a specific tool cannot be queued as tool hunts
+      if (!idea.tool_name) {
+        console.log('   ⏭️  No tool_name specified - skipping (listicles need explicit tools)');
+        skipped++;
+        continue;
+      }
+
+      // VALIDATION: Detect search query patterns that shouldn't be tool names
+      // e.g., "best headless cms for nextjs" is a context/list, not a tool
+      if (isSearchQueryPattern(idea.tool_name)) {
+        console.log(`   ⚠️  tool_name "${idea.tool_name}" looks like a search query, not a tool - skipping`);
+        skipped++;
+        continue;
+      }
+
       // Check if already in queue
       const { data: existing } = await supabase
         .from('hunt_queue')
         .select('id')
-        .eq('tool_name', idea.tool_name || idea.keyword)
+        .eq('tool_name', idea.tool_name)
         .eq('context_title', idea.context_query || idea.keyword)
         .in('status', ['pending', 'claimed', 'processing'])
         .single();
@@ -105,11 +136,11 @@ async function queueContentIdeas() {
         continue;
       }
 
-      // Add to hunt queue
+      // Add to hunt queue with actual tool name
       const { error: insertError } = await supabase
         .from('hunt_queue')
         .insert({
-          tool_name: idea.tool_name || idea.keyword,
+          tool_name: idea.tool_name,
           context_title: idea.context_query || idea.keyword,
           hunt_type: 'full',
           priority: Math.min(idea.priority, 100),

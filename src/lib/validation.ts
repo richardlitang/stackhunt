@@ -43,12 +43,31 @@ export type VoteRequest = z.infer<typeof VoteRequestSchema>;
 // QUEUE ENDPOINT
 // ============================================================================
 
+/**
+ * Detects if a string looks like a search query pattern rather than a tool name.
+ * Search queries like "best X for Y" or "X alternatives" should be contexts, not tools.
+ */
+function isSearchQueryPattern(str: string): boolean {
+  const normalized = str.toLowerCase().trim();
+  return (
+    normalized.startsWith('best ') ||
+    normalized.endsWith(' alternatives') ||
+    normalized.includes(' vs ') ||
+    normalized.startsWith('top ') ||
+    normalized.includes('how to ')
+  );
+}
+
 export const QueueAddRequestSchema = z.object({
   tool_name: z
     .string()
     .min(1, 'Tool name is required')
     .max(100, 'Tool name too long')
-    .transform(s => s.trim()),
+    .transform(s => s.trim())
+    .refine(
+      (name) => !isSearchQueryPattern(name),
+      'Tool name looks like a search query (e.g., "best X for Y"). Use an actual tool name like "Notion" or "Figma".'
+    ),
   context_title: z
     .string()
     .max(200, 'Context title too long')
@@ -94,7 +113,11 @@ export const HuntRequestSchema = z.object({
     .string()
     .min(1, 'Tool name is required')
     .max(100, 'Tool name too long')
-    .transform(s => s.trim()),
+    .transform(s => s.trim())
+    .refine(
+      (name) => !isSearchQueryPattern(name),
+      'Tool name looks like a search query (e.g., "best X for Y"). Use an actual tool name like "Notion" or "Figma".'
+    ),
   contextTitle: z
     .string()
     .max(200, 'Context title too long')
