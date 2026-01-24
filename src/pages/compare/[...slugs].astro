@@ -53,6 +53,13 @@ if (!tools || tools.length !== 2) {
   return Astro.redirect('/404');
 }
 
+// Validate same category - only allow sensible comparisons
+const categoryA = tools[0].category?.slug;
+const categoryB = tools[1].category?.slug;
+if (!categoryA || !categoryB || categoryA !== categoryB) {
+  return Astro.redirect('/compare');
+}
+
 // Ensure correct order (A then B)
 const toolA = tools.find(t => t.slug === slugA)!;
 const toolB = tools.find(t => t.slug === slugB)!;
@@ -225,9 +232,12 @@ const schemas = [
           <ScoreBadge score={Math.round(scoreA)} size="md" />
         </div>
 
-        <!-- Description -->
+        <!-- About -->
         {toolA.short_description && (
-          <p class="mt-4 text-sm text-slate-600">{toolA.short_description}</p>
+          <div class="mt-6">
+            <h3 class="font-semibold text-slate-700">About</h3>
+            <p class="mt-2 text-sm text-slate-600">{toolA.short_description}</p>
+          </div>
         )}
 
         <!-- Pros -->
@@ -319,9 +329,12 @@ const schemas = [
           <ScoreBadge score={Math.round(scoreB)} size="md" />
         </div>
 
-        <!-- Description -->
+        <!-- About -->
         {toolB.short_description && (
-          <p class="mt-4 text-sm text-slate-600">{toolB.short_description}</p>
+          <div class="mt-6">
+            <h3 class="font-semibold text-slate-700">About</h3>
+            <p class="mt-2 text-sm text-slate-600">{toolB.short_description}</p>
+          </div>
         )}
 
         <!-- Pros -->
