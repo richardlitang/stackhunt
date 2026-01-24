@@ -131,7 +131,14 @@ export async function alertQueueSummary(
   if (options.errors.length > 0) {
     const errorList = options.errors
       .slice(0, 5)
-      .map((e) => `- **${e.tool}**: ${e.error.slice(0, 100)}`)
+      .map((e) => {
+        // Smart truncation: keep max 200 chars, but try to break at word boundaries
+        const maxLen = 200;
+        const errorText = e.error.length > maxLen
+          ? e.error.slice(0, maxLen).trim() + '...'
+          : e.error;
+        return `- **${e.tool}**: ${errorText}`;
+      })
       .join('\n');
     embed.fields!.push({
       name: 'Errors',

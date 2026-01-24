@@ -128,11 +128,25 @@ async function processQueue(): Promise<void> {
     console.log(`Processing up to ${batchSize} items...`);
 
     const result = await hunter.processQueueBatch(batchSize);
-    const errors: Array<{ tool: string; error: string }> = [];
+    const errors: Array<{ tool: string; error: string; category?: string }> = [];
 
     for (const r of result.results) {
       if (!r.success && r.error) {
-        errors.push({ tool: 'Unknown', error: r.error });
+        // Import formatter dynamically
+        const { formatValidationError } = await import('../src/lib/utils/error-formatter');
+        const formatted = formatValidationError(r.error);
+
+        // Log full error to console for debugging
+        console.error(`\n❌ Queue item failed:`);
+        console.error(`   Category: ${formatted.category}`);
+        console.error(`   Summary: ${formatted.summary}`);
+        console.error(`   Full details: ${formatted.details}`);
+
+        errors.push({
+          tool: formatted.category,
+          error: formatted.summary,
+          category: formatted.category
+        });
       }
     }
 
@@ -158,15 +172,22 @@ async function processQueue(): Promise<void> {
     // Check for critical errors in the results
     for (const r of result.results) {
       if (!r.success && r.error) {
-        const errLower = r.error.toLowerCase();
-        if (errLower.includes('api key') || errLower.includes('quota') || errLower.includes('unauthorized')) {
-          console.error(`\n❌ CRITICAL ERROR DETECTED: ${r.error}`);
-          await notify('StackHunt CRITICAL', 'API key or quota error! Check immediately.', true);
+        const { formatValidationError } = await import('../src/lib/utils/error-formatter');
+        const formatted = formatValidationError(r.error);
+
+        // Check if this is a critical error (API key, quota, auth issues)
+        if (formatted.category === 'Authentication' || formatted.category === 'Authorization' || formatted.category === 'Rate Limit') {
+          console.error(`\n🚨 CRITICAL ERROR DETECTED:`);
+          console.error(`   Category: ${formatted.category}`);
+          console.error(`   Summary: ${formatted.summary}`);
+          console.error(`   Full details: ${formatted.details}`);
+
+          await notify('StackHunt CRITICAL', `${formatted.category}: ${formatted.summary}`, true);
           if (discordUrl) {
             await alertCritical(discordUrl, {
-              title: 'API Failure in Queue Worker',
-              message: r.error,
-              action: 'Check API keys and billing',
+              title: `${formatted.category} Failure in Queue Worker`,
+              message: formatted.details,
+              action: 'Check API keys, billing, and permissions immediately',
             });
           }
           // Don't continue processing with broken API keys
@@ -177,16 +198,25 @@ async function processQueue(): Promise<void> {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`\n❌ Queue processing failed: ${message}`);
-    await notify('StackHunt Error', `Queue processing failed: ${message.slice(0, 100)}`, true);
+    const { formatValidationError } = await import('../src/lib/utils/error-formatter');
+    const formatted = formatValidationError(message);
+
+    // Log full error to console
+    console.error(`\n❌ Queue processing failed:`);
+    console.error(`   Category: ${formatted.category}`);
+    console.error(`   Summary: ${formatted.summary}`);
+    console.error(`   Full details: ${formatted.details}`);
+
+    // Use formatted summary for notification (user-friendly)
+    await notify('StackHunt Error', `Queue failed: ${formatted.summary}`, true);
 
     const discordUrl = process.env.DISCORD_WEBHOOK_URL;
     if (discordUrl) {
       const { alertCritical } = await import('../src/lib/notifications/discord');
       await alertCritical(discordUrl, {
         title: 'Queue Worker Crashed',
-        message: message,
-        action: 'Check worker logs',
+        message: formatted.details, // Send full error details for critical alerts
+        action: `Check worker logs. Category: ${formatted.category}`,
       });
     }
 
