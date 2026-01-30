@@ -506,6 +506,94 @@ const schemas = [
       </section>
     )}
 
+    <!-- Choose If Section (from curated insights) -->
+    {(chooseAIf.length > 0 || chooseBIf.length > 0) && (
+      <section class="mt-12">
+        <h2 class="mb-6 text-xl font-semibold text-slate-900">When to Choose</h2>
+        <div class="grid gap-6 lg:grid-cols-2">
+          {chooseAIf.length > 0 && (
+            <div class="rounded-xl border-2 border-green-200 bg-green-50/50 p-5">
+              <h3 class="flex items-center gap-2 font-semibold text-green-800 mb-3">
+                <Logo domain={toolA.logo_url} name={toolA.name} size="sm" class="rounded-lg" />
+                Choose {toolA.name} if...
+              </h3>
+              <ul class="space-y-2">
+                {chooseAIf.map((reason: string) => (
+                  <li class="flex items-start gap-2 text-sm text-slate-700">
+                    <svg class="h-4 w-4 mt-0.5 text-green-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {chooseBIf.length > 0 && (
+            <div class="rounded-xl border-2 border-blue-200 bg-blue-50/50 p-5">
+              <h3 class="flex items-center gap-2 font-semibold text-blue-800 mb-3">
+                <Logo domain={toolB.logo_url} name={toolB.name} size="sm" class="rounded-lg" />
+                Choose {toolB.name} if...
+              </h3>
+              <ul class="space-y-2">
+                {chooseBIf.map((reason: string) => (
+                  <li class="flex items-start gap-2 text-sm text-slate-700">
+                    <svg class="h-4 w-4 mt-0.5 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </section>
+    )}
+
+    <!-- Why People Switch (from curated insights) -->
+    {(whySwitchAtoB.length > 0 || whySwitchBtoA.length > 0) && (
+      <section class="mt-12">
+        <h2 class="mb-6 text-xl font-semibold text-slate-900">Why People Switch</h2>
+        <div class="grid gap-6 lg:grid-cols-2">
+          {whySwitchAtoB.length > 0 && (
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 class="text-sm font-medium text-slate-600 mb-3">
+                {toolA.name} → {toolB.name}
+              </h3>
+              <ul class="space-y-2">
+                {whySwitchAtoB.map((reason: string) => (
+                  <li class="flex items-start gap-2 text-sm text-slate-700">
+                    <svg class="h-4 w-4 mt-0.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {whySwitchBtoA.length > 0 && (
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 class="text-sm font-medium text-slate-600 mb-3">
+                {toolB.name} → {toolA.name}
+              </h3>
+              <ul class="space-y-2">
+                {whySwitchBtoA.map((reason: string) => (
+                  <li class="flex items-start gap-2 text-sm text-slate-700">
+                    <svg class="h-4 w-4 mt-0.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </section>
+    )}
+
     <!-- Smart Feature Comparison (using Knowledge Cards) -->
     <section class="mt-12">
       <h2 class="mb-6 text-xl font-semibold text-slate-900">Detailed Feature Comparison</h2>
