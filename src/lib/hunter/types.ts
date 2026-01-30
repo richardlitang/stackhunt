@@ -128,6 +128,7 @@ export interface HunterAnalysis {
   pricingType: PricingModel;
   websiteUrl?: string;
   shortDescription?: string;
+  verdict?: string; // One-line conclusion
   // Knowledge Graph tags
   graphTags: {
     functions: string[];   // What it does: "Notetaking", "CRM"
@@ -141,6 +142,12 @@ export interface HunterAnalysis {
   };
   // Knowledge Card (structured facts from two-pass extraction)
   knowledgeCard?: KnowledgeCard;
+  // Context-specific review fields (Migration 022)
+  fitScore?: number;              // 0-100: How well tool fits THIS context
+  valueRating?: number;           // 1-5: Value for money for this audience
+  standoutFeatures?: string[];    // Features especially relevant to this context
+  dealbreakers?: string[];        // Concerns that might be dealbreakers
+  switchingFrom?: string[];       // Common tools this audience switches FROM
 }
 
 // ============================================================================
@@ -299,6 +306,7 @@ export const AnalysisSchema = z.object({
   pricingType: z.enum(['free', 'freemium', 'paid', 'enterprise', 'open_source']),
   websiteUrl: z.string().url().optional(),
   shortDescription: z.string().max(200).optional(),
+  verdict: z.string().max(200).optional(), // One-line conclusion
   graphTags: z.object({
     functions: z.array(z.string()).min(1).max(5),
     audiences: z.array(z.string()).min(1).max(5),
@@ -308,4 +316,10 @@ export const AnalysisSchema = z.object({
     noun: z.string(),
     modifier: z.string().nullable().optional(),
   }).optional(),
+  // Context-specific review fields (Migration 022)
+  fitScore: z.number().min(0).max(100).optional(),
+  valueRating: z.number().min(1).max(5).optional(),
+  standoutFeatures: z.array(z.string()).max(5).optional(),
+  dealbreakers: z.array(z.string()).max(5).optional(),
+  switchingFrom: z.array(z.string()).max(5).optional(),
 });

@@ -61,7 +61,13 @@ Output ONLY valid JSON matching this exact schema:
   "titleParts": {
     "noun": "<type of tool, e.g., 'Note-Taking Apps'>",
     "modifier": "<optional modifier, e.g., 'for Students'>"
-  }
+  },
+  "verdict": "<one-line conclusion, max 200 chars, e.g., 'Best for teams who need real-time collaboration'>",
+  "fitScore": <0-100: how well tool fits THIS specific context/audience - only if contextTitle provided>,
+  "valueRating": <1-5: value for money for this specific audience>,
+  "standoutFeatures": [<1-5 features especially relevant to this context>],
+  "dealbreakers": [<0-3 concerns that might be dealbreakers for this specific audience>],
+  "switchingFrom": [<0-3 common tools this audience typically switches FROM when adopting this tool>]
 }
 
 ## Source Type Classification Guide:

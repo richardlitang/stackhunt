@@ -9,6 +9,7 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import Logo from '@/components/Logo.astro';
 import ScoreBadge from '@/components/ScoreBadge.astro';
 import PricingBadge from '@/components/PricingBadge.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
@@ -36,6 +37,8 @@ const { data: tools } = await supabase
   .select(`
     *,
     metadata,
+    data_confidence,
+    learning_curve,
     category:categories(name, slug, icon),
     affiliate_offers(*),
     reviews(
@@ -44,10 +47,24 @@ const { data: tools } = await supabase
       cons,
       sentiment_tags,
       summary_markdown,
+      fit_score,
+      value_rating,
+      standout_features,
+      dealbreakers,
+      switching_from,
       context:contexts(title, slug)
     )
   `)
   .in('slug', [slugA, slugB]);
+
+// Fetch comparison insights if they exist (curated comparison data)
+const [orderedSlugA, orderedSlugB] = slugA < slugB ? [slugA, slugB] : [slugB, slugA];
+const { data: comparisonInsights } = await supabase
+  .from('comparison_insights')
+  .select('*')
+  .eq('item_a_slug', orderedSlugA)
+  .eq('item_b_slug', orderedSlugB)
+  .single();
 
 if (!tools || tools.length !== 2) {
   return Astro.redirect('/404');
@@ -115,6 +132,27 @@ const scoreA = toolA.avg_score || 0;
 const scoreB = toolB.avg_score || 0;
 const winner = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'tie';
 
+// Format learning curve for display
+const formatLearningCurve = (curve: string | null) => {
+  if (!curve) return 'Unknown';
+  const map: Record<string, string> = {
+    minutes: '~Minutes',
+    hours: '~Hours',
+    days: '~Days',
+    weeks: '~Weeks',
+    months: '~Months',
+  };
+  return map[curve] || curve;
+};
+
+// Get comparison insights data (if curated)
+const curatedVerdict = comparisonInsights?.verdict;
+const chooseAIf = comparisonInsights?.choose_a_if || [];
+const chooseBIf = comparisonInsights?.choose_b_if || [];
+const whySwitchAtoB = comparisonInsights?.why_switch_a_to_b || [];
+const whySwitchBtoA = comparisonInsights?.why_switch_b_to_a || [];
+const isCurated = comparisonInsights?.is_curated || false;
+
 // SEO
 const title = `${toolA.name} vs ${toolB.name}: Which is Better? (${new Date().getFullYear()}) | StackHunt`;
 const description = `Compare ${toolA.name} and ${toolB.name} side by side. See pricing, features, pros & cons to find the best choice for your needs.`;
@@ -163,7 +201,7 @@ const schemas = [
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
-  <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">
       <a href="/" class="hover:text-hunt-500">Home</a>
@@ -174,7 +212,7 @@ const schemas = [
     </nav>
 
     <!-- Header -->
-    <header class="mb-10 text-center">
+    <header class="mb-12 text-center">
       <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">
         {toolA.name} <span class="text-hunt-500">vs</span> {toolB.name}
       </h1>
@@ -183,9 +221,22 @@ const schemas = [
       </p>
     </header>
 
+    <!-- Curated Verdict (if available) -->
+    {curatedVerdict && (
+      <div class="mb-6 rounded-xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-5 text-center shadow-md">
+        <div class="flex items-center justify-center gap-2 mb-2">
+          <svg class="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+          </svg>
+          <span class="text-sm font-medium text-purple-700">{isCurated ? 'Expert Verdict' : 'Quick Take'}</span>
+        </div>
+        <p class="text-lg font-semibold text-slate-800">{curatedVerdict}</p>
+      </div>
+    )}
+
     <!-- Quick Verdict Banner -->
-    {winner !== 'tie' && (
-      <div class={`mb-8 rounded-xl p-4 text-center ${winner === 'A' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200'}`}>
+    {winner !== 'tie' && !curatedVerdict && (
+      <div class={`mb-10 rounded-xl p-5 text-center shadow-md ${winner === 'A' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300'}`}>
         <span class="text-sm font-medium text-slate-600">Our Recommendation:</span>
         <span class={`ml-2 font-bold ${winner === 'A' ? 'text-green-700' : 'text-blue-700'}`}>
           {winner === 'A' ? toolA.name : toolB.name}
@@ -197,9 +248,9 @@ const schemas = [
     )}
 
     <!-- Side-by-Side Comparison -->
-    <div class="grid gap-6 lg:grid-cols-2">
+    <div class="grid gap-8 lg:grid-cols-2">
       <!-- Tool A -->
-      <div class={`rounded-2xl border-2 ${winner === 'A' ? 'border-green-300 bg-green-50/30' : 'border-slate-200 bg-white'} p-6`}>
+      <div class={`rounded-2xl border-2 ${winner === 'A' ? 'border-green-300 bg-green-50/30 shadow-lg' : 'border-slate-200 bg-white shadow-sm'} p-6 transition-shadow`}>
         {winner === 'A' && (
           <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
             <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -211,13 +262,7 @@ const schemas = [
 
         <!-- Header -->
         <div class="flex items-start gap-4">
-          <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
-            {toolA.logo_url ? (
-              <img src={toolA.logo_url} alt={toolA.name} class="h-full w-full object-contain p-2" />
-            ) : (
-              <span class="text-2xl font-bold text-slate-300">{toolA.name.charAt(0)}</span>
-            )}
-          </div>
+          <Logo domain={toolA.logo_url} name={toolA.name} size="xl" class="shrink-0 rounded-xl border border-slate-200 shadow-sm" />
           <div class="flex-1">
             <a href={`/tool/${toolA.slug}`} class="text-xl font-bold text-slate-900 hover:text-hunt-600">
               {toolA.name}
@@ -296,7 +341,7 @@ const schemas = [
       </div>
 
       <!-- Tool B -->
-      <div class={`rounded-2xl border-2 ${winner === 'B' ? 'border-blue-300 bg-blue-50/30' : 'border-slate-200 bg-white'} p-6`}>
+      <div class={`rounded-2xl border-2 ${winner === 'B' ? 'border-blue-300 bg-blue-50/30 shadow-lg' : 'border-slate-200 bg-white shadow-sm'} p-6 transition-shadow`}>
         {winner === 'B' && (
           <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
             <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -308,13 +353,7 @@ const schemas = [
 
         <!-- Header -->
         <div class="flex items-start gap-4">
-          <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
-            {toolB.logo_url ? (
-              <img src={toolB.logo_url} alt={toolB.name} class="h-full w-full object-contain p-2" />
-            ) : (
-              <span class="text-2xl font-bold text-slate-300">{toolB.name.charAt(0)}</span>
-            )}
-          </div>
+          <Logo domain={toolB.logo_url} name={toolB.name} size="xl" class="shrink-0 rounded-xl border border-slate-200 shadow-sm" />
           <div class="flex-1">
             <a href={`/tool/${toolB.slug}`} class="text-xl font-bold text-slate-900 hover:text-hunt-600">
               {toolB.name}
@@ -395,9 +434,9 @@ const schemas = [
 
     <!-- Key Differences Table -->
     {highlights.length > 0 && (
-      <section class="mt-10">
+      <section class="mt-12">
         <h2 class="mb-6 text-xl font-semibold text-slate-900">Key Differences</h2>
-        <div class="overflow-hidden rounded-xl border border-slate-200">
+        <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
           <table class="w-full">
             <thead class="bg-slate-50">
               <tr>
@@ -431,6 +470,17 @@ const schemas = [
                   <PricingBadge type={toolB.pricing_type} size="sm" />
                 </td>
               </tr>
+              {(toolA.learning_curve || toolB.learning_curve) && (
+                <tr>
+                  <td class="px-6 py-4 text-sm font-medium text-slate-700">Learning Curve</td>
+                  <td class="px-6 py-4 text-center text-sm text-slate-600">
+                    {formatLearningCurve(toolA.learning_curve)}
+                  </td>
+                  <td class="px-6 py-4 text-center text-sm text-slate-600">
+                    {formatLearningCurve(toolB.learning_curve)}
+                  </td>
+                </tr>
+              )}
               {highlights.map(h => (
                 <tr>
                   <td class="px-6 py-4 text-sm font-medium text-slate-700">{h.label}</td>
@@ -457,7 +507,7 @@ const schemas = [
     )}
 
     <!-- Smart Feature Comparison (using Knowledge Cards) -->
-    <section class="mt-10">
+    <section class="mt-12">
       <h2 class="mb-6 text-xl font-semibold text-slate-900">Detailed Feature Comparison</h2>
       <SmartComparisonTable
         client:load
@@ -477,7 +527,7 @@ const schemas = [
     </section>
 
     <!-- Related Comparisons -->
-    <section class="mt-10">
+    <section class="mt-12">
       <h2 class="mb-4 text-lg font-semibold text-slate-900">Related Comparisons</h2>
       <div class="flex flex-wrap gap-2">
         <a href={`/tool/${toolA.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">

@@ -70,7 +70,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
 // Check if any tools have affiliate links
 const hasAffiliateLinks = sortedReviews.some(
-  (review) => review.tool.affiliate_offers?.some((offer) => offer.is_affiliate)
+  (review) => review.item.affiliate_offers?.some((offer) => offer.is_affiliate)
 );
 ---
 
@@ -78,7 +78,7 @@ const hasAffiliateLinks = sortedReviews.some(
   {/* FTC Affiliate Disclosure - Above the fold */}
   <AffiliateDisclosure variant="banner" hasAffiliateLinks={hasAffiliateLinks} />
 
-  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">
       <a href="/" class="hover:text-hunt-500">Home</a>
@@ -97,7 +97,7 @@ const hasAffiliateLinks = sortedReviews.some(
     </nav>
 
     <!-- Header -->
-    <header class="mb-10">
+    <header class="mb-12">
       <div class="flex items-start justify-between gap-4">
         <div>
           <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">
@@ -130,23 +130,23 @@ const hasAffiliateLinks = sortedReviews.some(
         />
       )}
 
-      <!-- If this is an "alternatives to" page, show primary tool -->
-      {context.primary_tool && (
+      <!-- If this is an "alternatives to" page, show primary item -->
+      {context.primary_item && (
         <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div class="flex items-center gap-3">
             <span class="text-sm text-amber-700">Looking for alternatives to</span>
             <a
-              href={`/tool/${context.primary_tool.slug}`}
+              href={`/tool/${context.primary_item.slug}`}
               class="inline-flex items-center gap-2 font-medium text-amber-800 hover:text-amber-900"
             >
-              {context.primary_tool.logo_url && (
+              {context.primary_item.logo_url && (
                 <img
-                  src={context.primary_tool.logo_url}
+                  src={context.primary_item.logo_url}
                   alt=""
                   class="h-5 w-5 rounded"
                 />
               )}
-              {context.primary_tool.name}
+              {context.primary_item.name}
               <span class="text-amber-600">→</span>
             </a>
           </div>
@@ -165,14 +165,14 @@ const hasAffiliateLinks = sortedReviews.some(
         </span>
       </div>
 
-      <div class="space-y-6">
+      <div class="space-y-8">
         {sortedReviews.map((review, index) => {
           const rank = index + 1;
           const scoreColors = getScoreColor(review.score || 0);
 
           return (
             <article
-              class="rounded-xl border border-slate-200 bg-white overflow-hidden transition hover:shadow-lg"
+              class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-slate-300"
               id={`tool-${rank}`}
             >
               <!-- Rank Header -->
@@ -204,19 +204,19 @@ const hasAffiliateLinks = sortedReviews.some(
                 <div class="flex items-start gap-5">
                   <!-- Logo -->
                   <a
-                    href={`/tool/${review.tool.slug}`}
+                    href={`/tool/${review.item.slug}`}
                     class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white"
                   >
-                    {review.tool.logo_url ? (
+                    {review.item.logo_url ? (
                       <img
-                        src={review.tool.logo_url}
-                        alt={`${review.tool.name} logo`}
+                        src={review.item.logo_url}
+                        alt={`${review.item.name} logo`}
                         class="h-full w-full object-contain p-2"
                         loading="lazy"
                       />
                     ) : (
                       <span class="text-2xl font-bold text-slate-300">
-                        {review.tool.name.charAt(0)}
+                        {review.item.name.charAt(0)}
                       </span>
                     )}
                   </a>
@@ -226,27 +226,27 @@ const hasAffiliateLinks = sortedReviews.some(
                     <div class="flex items-start justify-between gap-4">
                       <div>
                         <a
-                          href={`/tool/${review.tool.slug}`}
+                          href={`/tool/${review.item.slug}`}
                           class="text-xl font-semibold text-slate-900 hover:text-hunt-600"
                         >
-                          {review.tool.name}
+                          {review.item.name}
                         </a>
-                        {review.tool.short_description && (
+                        {review.item.short_description && (
                           <p class="mt-1 text-sm text-slate-600 line-clamp-2">
-                            {review.tool.short_description}
+                            {review.item.short_description}
                           </p>
                         )}
                       </div>
 
                       {/* CTA Button */}
-                      {review.tool.affiliate_offers?.[0] && (
+                      {review.item.affiliate_offers?.[0] && (
                         <a
-                          href={review.tool.affiliate_offers[0].url}
+                          href={review.item.affiliate_offers[0].url}
                           target="_blank"
-                          rel={review.tool.affiliate_offers[0].is_affiliate ? 'nofollow sponsored noopener' : 'noopener'}
-                          class="shrink-0 rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-hunt-600"
+                          rel={review.item.affiliate_offers[0].is_affiliate ? 'nofollow sponsored noopener' : 'noopener'}
+                          class="shrink-0 rounded-lg bg-hunt-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-hunt-600 hover:shadow-md"
                         >
-                          {review.tool.affiliate_offers[0].cta_text}
+                          {review.item.affiliate_offers[0].cta_text}
                         </a>
                       )}
                     </div>
@@ -307,7 +307,7 @@ const hasAffiliateLinks = sortedReviews.some(
                   />
 
                   <a
-                    href={`/tool/${review.tool.slug}`}
+                    href={`/tool/${review.item.slug}`}
                     class="text-sm font-medium text-hunt-600 hover:text-hunt-700"
                   >
                     Full profile →

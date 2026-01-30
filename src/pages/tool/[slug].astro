@@ -22,6 +22,7 @@ import {
   getToolContexts,
   getToolTags,
   getToolSlugsByType,
+  supabase,
 } from '@/lib/supabase';
 import {
   generateToolMeta,
@@ -49,6 +50,16 @@ const tags = await getToolTags(tool.id);
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
 const firstReview = tool.reviews?.[0];
 
+// Fetch similar tools from same category
+const { data: similarTools } = tool.category_id ? await supabase
+  .from('items')
+  .select('id, name, slug, logo_url, short_description, avg_score, pricing_type')
+  .eq('category_id', tool.category_id)
+  .eq('type', 'tool')
+  .neq('id', tool.id)
+  .order('avg_score', { ascending: false, nullsFirst: false })
+  .limit(4) : { data: [] };
+
 const sourceDomains = firstReview?.sources
   ? [...new Set((firstReview.sources as Array<{domain: string}>).map(s => {
       const domain = s.domain.replace(/\.(com|org|net|io|co)$/, '');
@@ -73,7 +84,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 <BaseLayout meta={meta} schemas={schemas}>
   <AffiliateDisclosure variant="banner" hasAffiliateLinks={primaryOffer?.is_affiliate || false} />
 
-  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">
       <a href="/" class="hover:text-hunt-500">Home</a>
@@ -92,7 +103,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     </nav>
 
     <!-- Hero Section -->
-    <header class="mb-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 sm:p-8">
+    <header class="mb-12 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 sm:p-8 shadow-sm">
       <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex items-start gap-5">
           <Logo domain={tool.logo_url} name={tool.name} size="xl" class="shrink-0 rounded-2xl border border-slate-200 shadow-sm" />
@@ -142,7 +153,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         </div>
         <div class="flex flex-col items-center gap-4 sm:items-end">
           {tool.avg_score > 0 && <ScoreBadge score={Math.round(tool.avg_score)} size="lg" showLabel />}
-          {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="md" />}
+          {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />}
           <div class="flex gap-2">
             <CompareButton client:load toolSlug={tool.slug} toolName={tool.name} toolLogo={tool.logo_url} categorySlug={tool.category?.slug} categoryName={tool.category?.name} />
             <AddToStackButton client:load toolSlug={tool.slug} toolName={tool.name} toolLogo={tool.logo_url} pricing={{ starting_price: (tool.metadata as Record<string, unknown>)?.pricing?.starting_price ?? null, model: (tool.metadata as Record<string, unknown>)?.pricing?.model ?? tool.pricing_type }} />
@@ -152,8 +163,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     </header>
 
     <!-- Main Content Grid -->
-    <div class="grid gap-8 lg:grid-cols-3">
-      <div class="space-y-8 lg:col-span-2">
+    <div class="grid gap-12 lg:grid-cols-3">
+      <div class="space-y-12 lg:col-span-2">
         {/* Video Embed */}
         {tool.video_id && (
           <section>
@@ -161,27 +172,78 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           </section>
         )}
 
-        {/* Pros & Cons */}
-        {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
-          <ProsCons pros={firstReview.pros || []} cons={firstReview.cons || []} title="Pros & Cons" />
-        ) : (
-          <section class="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 class="mb-4 text-lg font-semibold text-slate-900">Pros & Cons</h2>
-            <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-              <svg class="mx-auto h-10 w-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p class="text-sm text-slate-500 mb-2">No detailed pros and cons available yet.</p>
-              <p class="text-xs text-slate-400">We're working on analyzing this tool. Check back soon!</p>
-            </div>
-          </section>
-        )}
-
         {/* Review Summary */}
         {firstReview?.summary_markdown && (
-          <section class="rounded-xl border border-slate-200 bg-white p-6">
+          <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
             <h2 class="mb-4 text-lg font-semibold text-slate-900">Our Analysis</h2>
             <div class="prose prose-slate prose-sm max-w-none" set:html={simpleMarkdown(firstReview.summary_markdown)} />
+
+            {/* Standout Features */}
+            {firstReview.standout_features?.length > 0 && (
+              <div class="mt-6 border-t border-slate-100 pt-4">
+                <h3 class="text-sm font-medium text-slate-700 mb-2">Standout Features</h3>
+                <div class="flex flex-wrap gap-2">
+                  {firstReview.standout_features.map((feature: string) => (
+                    <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                      <svg class="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      </svg>
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Dealbreakers */}
+            {firstReview.dealbreakers?.length > 0 && (
+              <div class="mt-4 border-t border-slate-100 pt-4">
+                <h3 class="text-sm font-medium text-slate-700 mb-2">Potential Dealbreakers</h3>
+                <div class="flex flex-wrap gap-2">
+                  {firstReview.dealbreakers.map((dealbreaker: string) => (
+                    <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                      <svg class="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                      </svg>
+                      {dealbreaker}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Value Rating and Fit Score */}
+            {(firstReview.value_rating || firstReview.fit_score) && (
+              <div class="mt-4 border-t border-slate-100 pt-4 flex flex-wrap gap-4">
+                {firstReview.value_rating && (
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-slate-500">Value:</span>
+                    <div class="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg class={`h-4 w-4 ${star <= firstReview.value_rating ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {firstReview.fit_score && (
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-slate-500">Context Fit:</span>
+                    <span class="text-sm font-medium text-slate-700">{firstReview.fit_score}%</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Switching From */}
+            {firstReview.switching_from?.length > 0 && (
+              <div class="mt-4 border-t border-slate-100 pt-4">
+                <span class="text-xs text-slate-500">Users often switch from: </span>
+                <span class="text-xs text-slate-600">{firstReview.switching_from.join(', ')}</span>
+              </div>
+            )}
+
             {firstReview.sentiment_tags?.length > 0 && (
               <div class="mt-6 border-t border-slate-100 pt-4">
                 <SentimentTags tags={firstReview.sentiment_tags} />
@@ -209,16 +271,32 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         {/* About */}
         {tool.long_description && (
-          <section class="rounded-xl border border-slate-200 bg-white p-6">
+          <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
             <h2 class="mb-4 text-lg font-semibold text-slate-900">About {tool.name}</h2>
             <div class="prose prose-slate max-w-none text-slate-700 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
+          </section>
+        )}
+
+        {/* Pros & Cons */}
+        {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
+          <ProsCons pros={firstReview.pros || []} cons={firstReview.cons || []} title="Pros & Cons" />
+        ) : (
+          <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+            <h2 class="mb-4 text-lg font-semibold text-slate-900">Pros & Cons</h2>
+            <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+              <svg class="mx-auto h-10 w-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p class="text-sm text-slate-500 mb-2">No detailed pros and cons available yet.</p>
+              <p class="text-xs text-slate-400">We're working on analyzing this tool. Check back soon!</p>
+            </div>
           </section>
         )}
       </div>
 
       <!-- Sidebar -->
-      <div class="space-y-6">
-        <div class="rounded-xl border border-slate-200 bg-white p-5">
+      <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 class="mb-4 font-semibold text-slate-900">Quick Stats</h3>
           <dl class="space-y-3">
             <div class="flex justify-between">
@@ -229,6 +307,12 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
               <dt class="text-sm text-slate-500">Pricing</dt>
               <dd class="text-sm font-medium text-slate-900 capitalize">{tool.pricing_type.replace('_', ' ')}</dd>
             </div>
+            {tool.learning_curve && (
+              <div class="flex justify-between">
+                <dt class="text-sm text-slate-500">Learning Curve</dt>
+                <dd class="text-sm font-medium text-slate-900 capitalize">{tool.learning_curve}</dd>
+              </div>
+            )}
             <div class="flex justify-between">
               <dt class="text-sm text-slate-500">Reviews</dt>
               <dd class="text-sm font-medium text-slate-900">{tool.review_count}</dd>
@@ -240,9 +324,17 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
               </div>
             )}
           </dl>
+          {tool.data_confidence && tool.data_confidence < 0.8 && (
+            <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              <svg class="inline-block h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              Some data may be approximate
+            </div>
+          )}
         </div>
         {tool.affiliate_offers && tool.affiliate_offers.length > 1 && (
-          <div class="rounded-xl border border-slate-200 bg-white p-5">
+          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 class="mb-4 font-semibold text-slate-900">Get {tool.name}</h3>
             <div class="space-y-3">
               {tool.affiliate_offers.map((offer) => (
@@ -259,9 +351,54 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       </div>
     </div>
 
+    {/* Similar Tools */}
+    {similarTools && similarTools.length > 0 && (
+      <div class="mt-16">
+        <div class="mb-6 flex items-end justify-between">
+          <div>
+            <h2 class="text-2xl font-semibold text-slate-900">Similar Tools</h2>
+            <p class="mt-1 text-sm text-slate-500">Other {tool.category?.name.toLowerCase()} tools you might like</p>
+          </div>
+          {tool.category && (
+            <a href={`/categories/${tool.category.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+              View all →
+            </a>
+          )}
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {similarTools.map((similar) => (
+            <a href={`/tool/${similar.slug}`} class="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+              <div class="flex items-start gap-3">
+                {similar.logo_url ? (
+                  <img src={similar.logo_url} alt={similar.name} class="h-10 w-10 rounded-lg object-contain" loading="lazy" />
+                ) : (
+                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-slate-400">
+                    {similar.name.charAt(0)}
+                  </div>
+                )}
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-medium text-slate-900 group-hover:text-hunt-600 line-clamp-1">{similar.name}</h3>
+                  {similar.avg_score > 0 && (
+                    <div class="mt-1 flex items-center gap-1">
+                      <span class="text-xs font-medium text-slate-600">{Math.round(similar.avg_score)}</span>
+                      <span class="text-xs text-slate-400">/100</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {similar.short_description && (
+                <p class="mt-2 text-xs text-slate-600 line-clamp-2">{similar.short_description}</p>
+              )}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+
     {/* Spiderweb */}
     {contextLinks && contextLinks.length > 0 && (
-      <div class="mt-10">
+      <div class="mt-16">
         <SpiderwebGrid contexts={contextLinks.map((cl) => ({ id: cl.context.id, title: cl.context.title, slug: cl.context.slug, score: cl.score, tool_count: cl.context.tool_count }))} currentToolName={tool.name} limit={9} />
       </div>
     )}

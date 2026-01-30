@@ -145,6 +145,9 @@ export const KnowledgeCardSchema = z.object({
     data_quality: z.enum(['high', 'medium', 'low']),  // How confident we are overall
     extraction_date: z.string(),           // ISO date when facts extracted
   }),
+
+  // === LEARNING & ADOPTION ===
+  learning_curve: z.enum(['minutes', 'hours', 'days', 'weeks', 'months']).nullable().optional(),
 });
 
 export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>;
@@ -296,6 +299,7 @@ export const GeminiKnowledgeCardSchema = {
       },
       required: ['data_quality'],
     },
+    learning_curve: { type: 'string', nullable: true, enum: ['minutes', 'hours', 'days', 'weeks', 'months'] },
   },
   required: ['official_name', 'pricing', 'meta'],
 };

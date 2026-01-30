@@ -76,6 +76,15 @@ export async function executePersistencePhase(
     // Space for company info and competitors to be added later
   };
 
+  // Calculate data_confidence from Knowledge Card's data_quality
+  // high=0.9, medium=0.7, low=0.5
+  const dataConfidenceMap: Record<string, number> = {
+    high: 0.9,
+    medium: 0.7,
+    low: 0.5,
+  };
+  const dataConfidence = dataConfidenceMap[knowledgeCard?.meta?.data_quality || 'low'] || 0.5;
+
   const itemData: Record<string, unknown> = {
     name: ctx.toolName,
     slug: toolSlug,
@@ -90,6 +99,9 @@ export async function executePersistencePhase(
     metadata,
     specs,
     verdict: analysis.verdict || null, // One-line conclusion if provided
+    // Migration 022: New fields
+    data_confidence: dataConfidence,
+    learning_curve: knowledgeCard?.learning_curve || null,
   };
 
   const { data: item, error: itemError } = await deps.supabase
@@ -495,6 +507,12 @@ async function createReview(
     pros: normalizedPros,
     cons: normalizedCons,
     sentiment_tags: analysis.sentimentTags,
+    // Migration 022: Context-specific review fields
+    fit_score: analysis.fitScore || null,
+    value_rating: analysis.valueRating || null,
+    standout_features: analysis.standoutFeatures || [],
+    dealbreakers: analysis.dealbreakers || [],
+    switching_from: analysis.switchingFrom || [],
   };
 
   // Add sources if provided (for audit trail)

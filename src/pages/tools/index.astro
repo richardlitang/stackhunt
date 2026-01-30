@@ -42,7 +42,7 @@ let query = supabase
   .from('tools')
   .select(`
     id, name, slug, logo_url, short_description, avg_score, pricing_type, type,
-    category:categories(name, slug)
+    category:categories${categoryFilter ? '!inner' : ''}(name, slug)
   `)
   .eq('type', 'tool');
 
