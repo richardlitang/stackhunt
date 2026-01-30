@@ -530,3 +530,37 @@ export async function getItemsForComparison(slugs: string[]) {
   const slugOrder = new Map(slugs.map((s, i) => [s, i]));
   return (data || []).sort((a, b) => (slugOrder.get(a.slug) || 0) - (slugOrder.get(b.slug) || 0));
 }
+
+/**
+ * Get category by slug with its items
+ */
+export async function getCategoryBySlug(slug: string) {
+  const { data: category, error: categoryError } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('slug', slug)
+    .single();
+
+  if (categoryError) throw categoryError;
+  if (!category) return null;
+
+  // Get items in this category (via item_category_links for Knowledge Graph)
+  const { data: items, error: itemsError } = await supabase
+    .from('item_category_links')
+    .select(`
+      relevance_score,
+      item:items(
+        id, name, slug, logo_url, short_description,
+        avg_score, review_count, pricing_type, type
+      )
+    `)
+    .eq('category_id', category.id)
+    .order('relevance_score', { ascending: false });
+
+  if (itemsError) throw itemsError;
+
+  return {
+    ...category,
+    items: items?.map(link => link.item).filter(Boolean) || [],
+  };
+}

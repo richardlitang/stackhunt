@@ -65,10 +65,10 @@ const meta = {
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Header -->
     <header class="text-center">
-      <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">
+      <h1 class="text-3xl font-bold text-zinc-100 sm:text-4xl">
         Compare Tools
       </h1>
-      <p class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+      <p class="mx-auto mt-4 max-w-2xl text-lg text-zinc-300">
         Select two tools from the same category to compare them side-by-side.
       </p>
     </header>
@@ -77,21 +77,21 @@ const meta = {
     <div class="mt-12 space-y-10">
       {categoryGroups.map(({ name, slug, tools: categoryTools }) => (
         <section>
-          <h2 class="mb-4 flex items-center gap-2 text-xl font-semibold text-slate-900">
+          <h2 class="mb-4 flex items-center gap-2 text-xl font-semibold text-zinc-100">
             {name}
-            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-zinc-400">
               {categoryTools.length} tools
             </span>
           </h2>
 
-          <div class="rounded-xl border border-slate-200 bg-white">
+          <div class="rounded-xl border border-zinc-700 bg-zinc-900">
             <div class="grid grid-cols-1 divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
               {/* Tool A Selection */}
               <div class="p-4">
-                <label class="mb-2 block text-sm font-medium text-slate-600">First tool</label>
+                <label class="mb-2 block text-sm font-medium text-zinc-300">First tool</label>
                 <select
                   id={`toolA-${slug}`}
-                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+                  class="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
                 >
                   <option value="">Select a tool...</option>
                   {categoryTools.map((tool) => (
@@ -102,10 +102,10 @@ const meta = {
 
               {/* Tool B Selection */}
               <div class="p-4">
-                <label class="mb-2 block text-sm font-medium text-slate-600">Second tool</label>
+                <label class="mb-2 block text-sm font-medium text-zinc-300">Second tool</label>
                 <select
                   id={`toolB-${slug}`}
-                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+                  class="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
                 >
                   <option value="">Select a tool...</option>
                   {categoryTools.map((tool) => (
@@ -116,7 +116,7 @@ const meta = {
             </div>
 
             {/* Compare Button */}
-            <div class="border-t border-slate-100 p-4">
+            <div class="border-t border-zinc-800 p-4">
               <button
                 type="button"
                 data-category={slug}
@@ -131,8 +131,8 @@ const meta = {
     </div>
 
     {categoryGroups.length === 0 && (
-      <div class="mt-12 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-        <p class="text-slate-500">
+      <div class="mt-12 rounded-xl border border-dashed border-zinc-600 bg-zinc-900 p-12 text-center">
+        <p class="text-zinc-400">
           No categories with multiple tools available yet.
         </p>
       </div>

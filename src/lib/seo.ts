@@ -204,6 +204,31 @@ export function generateBreadcrumbSchema(
 }
 
 /**
+ * VideoObject schema for tools with video content
+ */
+export function generateVideoSchema(
+  tool: Tool,
+  videoId: string,
+  videoTitle: string
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: videoTitle || `${tool.name} Overview`,
+    description: tool.short_description || `Video overview of ${tool.name}`,
+    thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
+    uploadDate: new Date().toISOString(),
+    contentUrl: `https://www.youtube.com/watch?v=${videoId}`,
+    embedUrl: `https://www.youtube.com/embed/${videoId}`,
+    author: {
+      '@type': 'Organization',
+      name: tool.name,
+      url: tool.website || getCanonicalUrl(`/tools/${tool.slug}`),
+    },
+  };
+}
+
+/**
  * FAQPage schema (useful for SEO)
  */
 export function generateFAQSchema(

@@ -99,6 +99,9 @@ export async function executePersistencePhase(
     metadata,
     specs,
     verdict: analysis.verdict || null, // One-line conclusion if provided
+    // Video data from research
+    video_id: ctx.research.video?.videoId || null,
+    video_title: ctx.research.video?.title || null,
     // Migration 022: New fields
     data_confidence: dataConfidence,
     learning_curve: knowledgeCard?.learning_curve || null,

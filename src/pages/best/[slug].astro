@@ -27,13 +27,11 @@ import {
 } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
 
-// Prerender for sitemap inclusion and performance
-export const prerender = true;
+// Server-render for fresh data (switch to prerender = true for production if needed)
+export const prerender = false;
 
-export async function getStaticPaths() {
-  const slugs = await getAllContextSlugs();
-  return slugs.map((slug) => ({ params: { slug } }));
-}
+// Cache for 5 minutes
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
 
 const { slug } = Astro.params;
 
@@ -80,7 +78,7 @@ const hasAffiliateLinks = sortedReviews.some(
 
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
-    <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">
+    <nav class="mb-6 flex items-center gap-2 text-sm text-zinc-500">
       <a href="/" class="hover:text-hunt-500">Home</a>
       <span>/</span>
       <a href="/best" class="hover:text-hunt-500">Best Lists</a>
@@ -93,14 +91,14 @@ const hasAffiliateLinks = sortedReviews.some(
         </>
       )}
       <span>/</span>
-      <span class="text-slate-700 truncate">{context.title}</span>
+      <span class="text-zinc-300 truncate">{context.title}</span>
     </nav>
 
     <!-- Header -->
     <header class="mb-12">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-slate-900 sm:text-4xl">
+          <h1 class="text-3xl font-bold text-zinc-100 sm:text-4xl">
             {context.title}
           </h1>
 
@@ -108,7 +106,7 @@ const hasAffiliateLinks = sortedReviews.some(
             <div class="mt-2">
               <a
                 href={`/categories/${context.category.slug}`}
-                class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-hunt-500"
+                class="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-hunt-500"
               >
                 <span>{context.category.icon || '📁'}</span>
                 {context.category.name}
@@ -119,13 +117,13 @@ const hasAffiliateLinks = sortedReviews.some(
 
         <div class="shrink-0 text-right">
           <div class="text-3xl font-bold text-hunt-500">{context.tool_count}</div>
-          <div class="text-sm text-slate-500">tools compared</div>
+          <div class="text-sm text-zinc-400">tools compared</div>
         </div>
       </div>
 
       {context.intro_text && (
         <div
-          class="mt-6 prose prose-slate prose-sm max-w-none rounded-xl border border-slate-200 bg-slate-50 p-5"
+          class="mt-6 prose prose-slate prose-sm max-w-none rounded-xl border border-zinc-700 bg-zinc-900 p-5"
           set:html={simpleMarkdown(context.intro_text)}
         />
       )}
@@ -157,10 +155,10 @@ const hasAffiliateLinks = sortedReviews.some(
     <!-- Ranked Tool List -->
     <section>
       <div class="mb-6 flex items-center justify-between">
-        <h2 class="text-xl font-semibold text-slate-900">
+        <h2 class="text-xl font-semibold text-zinc-100">
           Top {Math.min(sortedReviews.length, 10)} Picks
         </h2>
-        <span class="text-sm text-slate-500">
+        <span class="text-sm text-zinc-400">
           Sorted by contextual score
         </span>
       </div>
@@ -172,13 +170,13 @@ const hasAffiliateLinks = sortedReviews.some(
 
           return (
             <article
-              class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-slate-300"
+              class="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-zinc-600"
               id={`tool-${rank}`}
             >
               <!-- Rank Header -->
-              <div class={`flex items-center justify-between px-6 py-3 ${rank === 1 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100' : 'bg-slate-50 border-b border-slate-100'}`}>
+              <div class={`flex items-center justify-between px-6 py-3 ${rank === 1 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100' : 'bg-zinc-900 border-b border-zinc-800'}`}>
                 <div class="flex items-center gap-3">
-                  <span class={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${rank === 1 ? 'bg-amber-500 text-white' : rank === 2 ? 'bg-slate-400 text-white' : rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                  <span class={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${rank === 1 ? 'bg-amber-500 text-white' : rank === 2 ? 'bg-zinc-600 text-white' : rank === 3 ? 'bg-amber-700 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
                     #{rank}
                   </span>
                   {rank === 1 && (
@@ -205,7 +203,7 @@ const hasAffiliateLinks = sortedReviews.some(
                   <!-- Logo -->
                   <a
                     href={`/tool/${review.item.slug}`}
-                    class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white"
+                    class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900"
                   >
                     {review.item.logo_url ? (
                       <img
@@ -227,12 +225,12 @@ const hasAffiliateLinks = sortedReviews.some(
                       <div>
                         <a
                           href={`/tool/${review.item.slug}`}
-                          class="text-xl font-semibold text-slate-900 hover:text-hunt-600"
+                          class="text-xl font-semibold text-zinc-100 hover:text-hunt-600"
                         >
                           {review.item.name}
                         </a>
                         {review.item.short_description && (
-                          <p class="mt-1 text-sm text-slate-600 line-clamp-2">
+                          <p class="mt-1 text-sm text-zinc-300 line-clamp-2">
                             {review.item.short_description}
                           </p>
                         )}
@@ -263,7 +261,7 @@ const hasAffiliateLinks = sortedReviews.some(
                 {/* Pros/Cons - Expanded for SEO, collapses after JS loads */}
                 {(review.pros?.length > 0 || review.cons?.length > 0) && (
                   <details class="mt-4 group seo-collapse" open>
-                    <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900">
+                    <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100">
                       <svg class="h-4 w-4 transition group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                       </svg>
@@ -282,7 +280,7 @@ const hasAffiliateLinks = sortedReviews.some(
                 {/* Summary - Expanded for SEO, collapses after JS loads */}
                 {review.summary_markdown && (
                   <details class="mt-3 group seo-collapse" open>
-                    <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900">
+                    <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100">
                       <svg class="h-4 w-4 transition group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                       </svg>
@@ -290,14 +288,14 @@ const hasAffiliateLinks = sortedReviews.some(
                     </summary>
 
                     <div
-                      class="mt-3 prose prose-slate prose-sm max-w-none rounded-lg bg-slate-50 p-4"
+                      class="mt-3 prose prose-slate prose-sm max-w-none rounded-lg bg-zinc-900 p-4"
                       set:html={simpleMarkdown(review.summary_markdown)}
                     />
                   </details>
                 )}
 
                 {/* Vote & Link */}
-                <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                <div class="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
                   <VoteWidget
                     client:visible
                     reviewId={review.id}
@@ -322,12 +320,12 @@ const hasAffiliateLinks = sortedReviews.some(
 
     <!-- Empty State -->
     {sortedReviews.length === 0 && (
-      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="rounded-xl border border-dashed border-zinc-600 bg-zinc-900 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <h3 class="mt-4 text-lg font-medium text-slate-900">No tools yet</h3>
-        <p class="mt-2 text-sm text-slate-500">
+        <h3 class="mt-4 text-lg font-medium text-zinc-100">No tools yet</h3>
+        <p class="mt-2 text-sm text-zinc-400">
           We're still researching tools for this category. Check back soon!
         </p>
       </div>

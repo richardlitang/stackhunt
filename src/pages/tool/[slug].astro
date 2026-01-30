@@ -30,6 +30,7 @@ import {
   generateToolMeta,
   generateToolSchema,
   generateBreadcrumbSchema,
+  generateVideoSchema,
 } from '@/lib/seo';
 import { simpleMarkdown } from '@/lib/utils';
 
@@ -86,6 +87,8 @@ const schemas = [
     ...(tool.category ? [{ name: tool.category.name, url: `/categories/${tool.category.slug}` }] : []),
     { name: tool.name, url: `/tool/${tool.slug}` },
   ]),
+  // Include VideoObject schema if video exists
+  ...(tool.video_id ? [generateVideoSchema(tool, tool.video_id, tool.video_title || `${tool.name} Overview`)] : []),
 ];
 
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
@@ -96,7 +99,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
-    <nav class="mb-6 flex items-center gap-2 text-sm text-slate-500">
+    <nav class="mb-6 flex items-center gap-2 text-sm text-zinc-400">
       <a href="/" class="hover:text-hunt-500">Home</a>
       <span>/</span>
       <a href="/tools" class="hover:text-hunt-500">Tools</a>
@@ -109,17 +112,17 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         </>
       )}
       <span>/</span>
-      <span class="text-slate-700">{tool.name}</span>
+      <span class="text-zinc-300">{tool.name}</span>
     </nav>
 
     <!-- Hero Section -->
-    <header class="mb-12 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 sm:p-8 shadow-sm">
+    <header class="mb-12 rounded-2xl border border-zinc-700 bg-gradient-to-br from-white to-slate-50 p-6 sm:p-8 shadow-sm">
       <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex items-start gap-5">
-          <Logo domain={tool.logo_url} name={tool.name} size="xl" class="shrink-0 rounded-2xl border border-slate-200 shadow-sm" />
+          <Logo domain={tool.logo_url} name={tool.name} size="xl" class="shrink-0 rounded-2xl border border-zinc-700 shadow-sm" />
           <div>
             <div class="flex items-center gap-3">
-              <h1 class="text-2xl font-bold text-slate-900 sm:text-3xl">{tool.name}</h1>
+              <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{tool.name}</h1>
               {tool.is_verified && (
                 <span class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                   <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -129,16 +132,16 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
                 </span>
               )}
             </div>
-            {tool.short_description && <p class="mt-2 text-slate-600">{tool.short_description}</p>}
+            {tool.short_description && <p class="mt-2 text-zinc-300">{tool.short_description}</p>}
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <PricingBadge type={tool.pricing_type} />
               {tool.category && (
-                <a href={`/categories/${tool.category.slug}`} class="text-sm text-slate-500 hover:text-hunt-500">
+                <a href={`/categories/${tool.category.slug}`} class="text-sm text-zinc-400 hover:text-hunt-500">
                   {tool.category.name}
                 </a>
               )}
               {tool.website && (
-                <a href={tool.website} target="_blank" rel="noopener" class="flex items-center gap-1 text-sm text-slate-500 hover:text-hunt-500">
+                <a href={tool.website} target="_blank" rel="noopener" class="flex items-center gap-1 text-sm text-zinc-400 hover:text-hunt-500">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                   </svg>
@@ -175,23 +178,16 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-12 lg:col-span-2">
-        {/* Video Embed */}
-        {tool.video_id && (
-          <section>
-            <VideoEmbed client:visible id={tool.video_id} title={tool.video_title || `${tool.name} Overview`} />
-          </section>
-        )}
-
         {/* Review Summary */}
         {firstReview?.summary_markdown && (
-          <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 class="mb-4 text-lg font-semibold text-slate-900">Our Analysis</h2>
+          <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
+            <h2 class="mb-4 text-lg font-semibold text-zinc-100">Our Analysis</h2>
             <div class="prose prose-slate prose-sm max-w-none" set:html={simpleMarkdown(firstReview.summary_markdown)} />
 
             {/* Standout Features */}
             {firstReview.standout_features?.length > 0 && (
-              <div class="mt-6 border-t border-slate-100 pt-4">
-                <h3 class="text-sm font-medium text-slate-700 mb-2">Standout Features</h3>
+              <div class="mt-6 border-t border-zinc-800 pt-4">
+                <h3 class="text-sm font-medium text-zinc-300 mb-2">Standout Features</h3>
                 <div class="flex flex-wrap gap-2">
                   {firstReview.standout_features.map((feature: string) => (
                     <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
@@ -207,8 +203,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
             {/* Dealbreakers */}
             {firstReview.dealbreakers?.length > 0 && (
-              <div class="mt-4 border-t border-slate-100 pt-4">
-                <h3 class="text-sm font-medium text-slate-700 mb-2">Potential Dealbreakers</h3>
+              <div class="mt-4 border-t border-zinc-800 pt-4">
+                <h3 class="text-sm font-medium text-zinc-300 mb-2">Potential Dealbreakers</h3>
                 <div class="flex flex-wrap gap-2">
                   {firstReview.dealbreakers.map((dealbreaker: string) => (
                     <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
@@ -224,10 +220,10 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
             {/* Value Rating and Fit Score */}
             {(firstReview.value_rating || firstReview.fit_score) && (
-              <div class="mt-4 border-t border-slate-100 pt-4 flex flex-wrap gap-4">
+              <div class="mt-4 border-t border-zinc-800 pt-4 flex flex-wrap gap-4">
                 {firstReview.value_rating && (
                   <div class="flex items-center gap-2">
-                    <span class="text-sm text-slate-500">Value:</span>
+                    <span class="text-sm text-zinc-400">Value:</span>
                     <div class="flex">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <svg class={`h-4 w-4 ${star <= firstReview.value_rating ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20">
@@ -239,8 +235,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
                 )}
                 {firstReview.fit_score && (
                   <div class="flex items-center gap-2">
-                    <span class="text-sm text-slate-500">Context Fit:</span>
-                    <span class="text-sm font-medium text-slate-700">{firstReview.fit_score}%</span>
+                    <span class="text-sm text-zinc-400">Context Fit:</span>
+                    <span class="text-sm font-medium text-zinc-300">{firstReview.fit_score}%</span>
                   </div>
                 )}
               </div>
@@ -248,31 +244,31 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
             {/* Switching From */}
             {firstReview.switching_from?.length > 0 && (
-              <div class="mt-4 border-t border-slate-100 pt-4">
-                <span class="text-xs text-slate-500">Users often switch from: </span>
-                <span class="text-xs text-slate-600">{firstReview.switching_from.join(', ')}</span>
+              <div class="mt-4 border-t border-zinc-800 pt-4">
+                <span class="text-xs text-zinc-400">Users often switch from: </span>
+                <span class="text-xs text-zinc-300">{firstReview.switching_from.join(', ')}</span>
               </div>
             )}
 
             {firstReview.sentiment_tags?.length > 0 && (
-              <div class="mt-6 border-t border-slate-100 pt-4">
+              <div class="mt-6 border-t border-zinc-800 pt-4">
                 <SentimentTags tags={firstReview.sentiment_tags} />
               </div>
             )}
-            <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
-              <span class="text-sm text-slate-500">Was this helpful?</span>
+            <div class="mt-6 flex items-center justify-between border-t border-zinc-800 pt-4">
+              <span class="text-sm text-zinc-400">Was this helpful?</span>
               <VoteWidget client:visible reviewId={firstReview.id} initialUpvotes={firstReview.upvotes} initialDownvotes={firstReview.downvotes} turnstileSiteKey={turnstileSiteKey} />
             </div>
-            <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+            <div class="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
               {sourceDomains.length > 0 && (
-                <div class="flex items-center gap-2 text-xs text-slate-400">
+                <div class="flex items-center gap-2 text-xs text-zinc-500">
                   <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span>Sources: {sourceDomains.join(', ')}</span>
                 </div>
               )}
-              <button type="button" data-suggest-edit data-tool-id={tool.id} data-tool-name={tool.name} class="text-xs text-slate-400 hover:text-hunt-600 transition">
+              <button type="button" data-suggest-edit data-tool-id={tool.id} data-tool-name={tool.name} class="text-xs text-zinc-500 hover:text-hunt-600 transition">
                 See something wrong? Suggest an edit
               </button>
             </div>
@@ -281,9 +277,9 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         {/* About */}
         {tool.long_description && (
-          <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 class="mb-4 text-lg font-semibold text-slate-900">About {tool.name}</h2>
-            <div class="prose prose-slate max-w-none text-slate-700 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
+          <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
+            <h2 class="mb-4 text-lg font-semibold text-zinc-100">About {tool.name}</h2>
+            <div class="prose prose-slate max-w-none text-zinc-300 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
           </section>
         )}
 
@@ -291,15 +287,23 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
           <ProsCons pros={firstReview.pros || []} cons={firstReview.cons || []} title="Pros & Cons" />
         ) : (
-          <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 class="mb-4 text-lg font-semibold text-slate-900">Pros & Cons</h2>
-            <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+          <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
+            <h2 class="mb-4 text-lg font-semibold text-zinc-100">Pros & Cons</h2>
+            <div class="rounded-lg border border-dashed border-zinc-600 bg-zinc-900 p-6 text-center">
               <svg class="mx-auto h-10 w-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p class="text-sm text-slate-500 mb-2">No detailed pros and cons available yet.</p>
-              <p class="text-xs text-slate-400">We're working on analyzing this tool. Check back soon!</p>
+              <p class="text-sm text-zinc-400 mb-2">No detailed pros and cons available yet.</p>
+              <p class="text-xs text-zinc-500">We're working on analyzing this tool. Check back soon!</p>
             </div>
+          </section>
+        )}
+
+        {/* Video Embed - Bottom of content for better UX */}
+        {tool.video_id && (
+          <section>
+            <h2 class="mb-4 text-lg font-semibold text-zinc-100">Watch {tool.name} in Action</h2>
+            <VideoEmbed client:visible id={tool.video_id} title={tool.video_title || `${tool.name} Overview`} />
           </section>
         )}
       </div>
@@ -309,31 +313,31 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         {/* Specifications from Knowledge Card */}
         <SpecsGrid specs={tool.metadata as KnowledgeCard} />
 
-        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 class="mb-4 font-semibold text-slate-900">Quick Stats</h3>
+        <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+          <h3 class="mb-4 font-semibold text-zinc-100">Quick Stats</h3>
           <dl class="space-y-3">
             <div class="flex justify-between">
-              <dt class="text-sm text-slate-500">Overall Score</dt>
-              <dd class="text-sm font-medium text-slate-900">{tool.avg_score > 0 ? `${Math.round(tool.avg_score)}/100` : 'N/A'}</dd>
+              <dt class="text-sm text-zinc-400">Overall Score</dt>
+              <dd class="text-sm font-medium text-zinc-100">{tool.avg_score > 0 ? `${Math.round(tool.avg_score)}/100` : 'N/A'}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-slate-500">Pricing</dt>
-              <dd class="text-sm font-medium text-slate-900 capitalize">{tool.pricing_type.replace('_', ' ')}</dd>
+              <dt class="text-sm text-zinc-400">Pricing</dt>
+              <dd class="text-sm font-medium text-zinc-100 capitalize">{tool.pricing_type.replace('_', ' ')}</dd>
             </div>
             {tool.learning_curve && (
               <div class="flex justify-between">
-                <dt class="text-sm text-slate-500">Learning Curve</dt>
-                <dd class="text-sm font-medium text-slate-900 capitalize">{tool.learning_curve}</dd>
+                <dt class="text-sm text-zinc-400">Learning Curve</dt>
+                <dd class="text-sm font-medium text-zinc-100 capitalize">{tool.learning_curve}</dd>
               </div>
             )}
             <div class="flex justify-between">
-              <dt class="text-sm text-slate-500">Reviews</dt>
-              <dd class="text-sm font-medium text-slate-900">{tool.review_count}</dd>
+              <dt class="text-sm text-zinc-400">Reviews</dt>
+              <dd class="text-sm font-medium text-zinc-100">{tool.review_count}</dd>
             </div>
             {tool.category && (
               <div class="flex justify-between">
-                <dt class="text-sm text-slate-500">Category</dt>
-                <dd class="text-sm font-medium text-slate-900">{tool.category.name}</dd>
+                <dt class="text-sm text-zinc-400">Category</dt>
+                <dd class="text-sm font-medium text-zinc-100">{tool.category.name}</dd>
               </div>
             )}
           </dl>
@@ -347,13 +351,13 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           )}
         </div>
         {tool.affiliate_offers && tool.affiliate_offers.length > 1 && (
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 class="mb-4 font-semibold text-slate-900">Get {tool.name}</h3>
+          <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+            <h3 class="mb-4 font-semibold text-zinc-100">Get {tool.name}</h3>
             <div class="space-y-3">
               {tool.affiliate_offers.map((offer) => (
-                <a href={offer.url} target="_blank" rel={offer.is_affiliate ? 'nofollow sponsored noopener' : 'noopener'} class="flex items-center justify-between rounded-lg border border-slate-100 p-3 transition hover:border-hunt-200 hover:bg-hunt-50">
-                  <span class="text-sm font-medium text-slate-700">{offer.cta_text}</span>
-                  <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <a href={offer.url} target="_blank" rel={offer.is_affiliate ? 'nofollow sponsored noopener' : 'noopener'} class="flex items-center justify-between rounded-lg border border-zinc-800 p-3 transition hover:border-hunt-200 hover:bg-hunt-50">
+                  <span class="text-sm font-medium text-zinc-300">{offer.cta_text}</span>
+                  <svg class="h-4 w-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
@@ -369,8 +373,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       <div class="mt-16">
         <div class="mb-6 flex items-end justify-between">
           <div>
-            <h2 class="text-2xl font-semibold text-slate-900">Similar Tools</h2>
-            <p class="mt-1 text-sm text-slate-500">Other {tool.category?.name.toLowerCase()} tools you might like</p>
+            <h2 class="text-2xl font-semibold text-zinc-100">Similar Tools</h2>
+            <p class="mt-1 text-sm text-zinc-400">Other {tool.category?.name.toLowerCase()} tools you might like</p>
           </div>
           {tool.category && (
             <a href={`/categories/${tool.category.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
@@ -381,27 +385,27 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {similarTools.map((similar) => (
-            <a href={`/tool/${similar.slug}`} class="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+            <a href={`/tool/${similar.slug}`} class="group rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:border-zinc-600 hover:shadow-md">
               <div class="flex items-start gap-3">
                 {similar.logo_url ? (
                   <img src={similar.logo_url} alt={similar.name} class="h-10 w-10 rounded-lg object-contain" loading="lazy" />
                 ) : (
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-slate-400">
+                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-zinc-500">
                     {similar.name.charAt(0)}
                   </div>
                 )}
                 <div class="flex-1 min-w-0">
-                  <h3 class="font-medium text-slate-900 group-hover:text-hunt-600 line-clamp-1">{similar.name}</h3>
+                  <h3 class="font-medium text-zinc-100 group-hover:text-hunt-600 line-clamp-1">{similar.name}</h3>
                   {similar.avg_score > 0 && (
                     <div class="mt-1 flex items-center gap-1">
-                      <span class="text-xs font-medium text-slate-600">{Math.round(similar.avg_score)}</span>
-                      <span class="text-xs text-slate-400">/100</span>
+                      <span class="text-xs font-medium text-zinc-300">{Math.round(similar.avg_score)}</span>
+                      <span class="text-xs text-zinc-500">/100</span>
                     </div>
                   )}
                 </div>
               </div>
               {similar.short_description && (
-                <p class="mt-2 text-xs text-slate-600 line-clamp-2">{similar.short_description}</p>
+                <p class="mt-2 text-xs text-zinc-300 line-clamp-2">{similar.short_description}</p>
               )}
             </a>
           ))}
@@ -419,10 +423,10 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
   <!-- Suggest Edit Modal -->
   <div id="suggest-edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
-    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+    <div class="w-full max-w-md rounded-xl bg-zinc-900 p-6 shadow-xl">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-slate-900">Suggest an Edit</h3>
-        <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600">
+        <h3 class="text-lg font-semibold text-zinc-100">Suggest an Edit</h3>
+        <button type="button" data-close-modal class="text-zinc-500 hover:text-zinc-300">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -431,8 +435,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       <form id="suggest-edit-form" class="space-y-4">
         <input type="hidden" name="tool_id" value={tool.id} />
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">What needs correcting?</label>
-          <select name="field_name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20">
+          <label class="block text-sm font-medium text-zinc-300 mb-1">What needs correcting?</label>
+          <select name="field_name" class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20">
             <option value="pricing">Pricing information</option>
             <option value="pros">Pros</option>
             <option value="cons">Cons</option>
@@ -442,24 +446,24 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">What's the correct information?</label>
-          <textarea name="correction_text" rows="3" required placeholder="e.g., The pricing has changed to $15/month..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"></textarea>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">What's the correct information?</label>
+          <textarea name="correction_text" rows="3" required placeholder="e.g., The pricing has changed to $15/month..." class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Your email (optional)</label>
-          <input type="email" name="reporter_email" placeholder="you@example.com" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20" />
-          <p class="mt-1 text-xs text-slate-400">We'll notify you when the correction is reviewed</p>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Your email (optional)</label>
+          <input type="email" name="reporter_email" placeholder="you@example.com" class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20" />
+          <p class="mt-1 text-xs text-zinc-500">We'll notify you when the correction is reviewed</p>
         </div>
         <div class="flex items-center gap-3 pt-2">
           <button type="submit" class="flex-1 rounded-lg bg-hunt-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-hunt-700 transition">Submit Suggestion</button>
-          <button type="button" data-close-modal class="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Cancel</button>
+          <button type="button" data-close-modal class="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 hover:bg-zinc-900 transition">Cancel</button>
         </div>
       </form>
       <div id="suggest-edit-success" class="hidden text-center py-4">
         <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="mt-3 text-sm text-slate-600">Thanks! We'll review your suggestion.</p>
+        <p class="mt-3 text-sm text-zinc-300">Thanks! We'll review your suggestion.</p>
         <button type="button" data-close-modal class="mt-4 text-sm text-hunt-600 hover:text-hunt-700">Close</button>
       </div>
     </div>
