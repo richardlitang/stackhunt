@@ -60,26 +60,23 @@ const showFallback = !showCurated && !showComputed;
 const microDiff = computedDiff?.priceDiff || computedDiff?.learningDiff || computedDiff?.featureDiff;
 ---
 
-<a
-  href={`/tool/${alt.slug}`}
-  class="group flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:border-zinc-600 hover:shadow-md"
->
-  <div class="flex items-start gap-3">
+<div class="group flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:border-zinc-600 hover:shadow-md h-full cursor-pointer">
+  <a href={`/tool/${alt.slug}`} class="flex items-start gap-3 mb-3">
     <Logo domain={alt.logo_url} name={alt.name} size="md" class="shrink-0 rounded-lg" />
     <div class="flex-1 min-w-0">
-      <h3 class="font-medium text-zinc-100 group-hover:text-hunt-500 line-clamp-1">{alt.name}</h3>
-      <div class="mt-1 flex items-center gap-2">
+      <h3 class="font-medium text-zinc-100 group-hover:text-hunt-500 line-clamp-1 transition">{alt.name}</h3>
+      <div class="mt-1 flex items-center gap-2 flex-wrap">
         <PricingBadge type={alt.pricing_type} size="sm" />
-        {alt.avg_score && alt.avg_score > 0 && (
+        {alt.avg_score && alt.avg_score > 0 && Math.round(alt.avg_score) > 0 && (
           <span class="text-xs text-zinc-400">{Math.round(alt.avg_score)}/100</span>
         )}
       </div>
     </div>
-  </div>
+  </a>
 
   {/* Layer 1: Curated Verdict (Expert insight) */}
   {showCurated && (
-    <div class="mt-3 flex items-start gap-2 rounded-lg bg-purple-900/30 px-3 py-2 border border-purple-700/50">
+    <div class="mb-3 flex items-start gap-2 rounded-lg bg-purple-900/30 px-3 py-2 border border-purple-700/50">
       <svg class="h-4 w-4 mt-0.5 shrink-0 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
       </svg>
@@ -89,7 +86,7 @@ const microDiff = computedDiff?.priceDiff || computedDiff?.learningDiff || compu
 
   {/* Layer 2: Computed Micro-Diff */}
   {showComputed && microDiff && (
-    <div class="mt-3 flex items-center gap-2 text-xs text-zinc-400">
+    <div class="mb-3 flex items-center gap-2 text-xs text-zinc-400">
       <svg class="h-3.5 w-3.5 text-hunt-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
       </svg>
@@ -99,20 +96,22 @@ const microDiff = computedDiff?.priceDiff || computedDiff?.learningDiff || compu
 
   {/* Layer 3: Fallback */}
   {showFallback && alt.short_description && (
-    <p class="mt-2 text-xs text-zinc-400 line-clamp-2">{alt.short_description}</p>
+    <p class="mb-3 text-xs text-zinc-400 line-clamp-2">{alt.short_description}</p>
   )}
 
-  {/* Compare CTA */}
-  <div class="mt-3 pt-3 border-t border-zinc-800 flex items-center justify-between">
+  {/* Spacer to push footer to bottom */}
+  <div class="flex-1"></div>
+
+  {/* Compare CTA - Now properly inside the card */}
+  <div class="mt-auto pt-3 border-t border-zinc-800 flex items-center justify-between gap-2">
     <a
       href={compareUrl}
       class="text-xs text-hunt-400 hover:text-hunt-300 transition"
-      onclick={(e: MouseEvent) => e.stopPropagation()}
     >
-      Compare vs {main.name} →
+      Compare to {main.name} →
     </a>
     {alt.learning_curve && (
-      <span class="text-xs text-zinc-500 capitalize">~{alt.learning_curve} to learn</span>
+      <span class="text-xs text-zinc-500 capitalize shrink-0">~{alt.learning_curve} to learn</span>
     )}
   </div>
-</a>
+</div>

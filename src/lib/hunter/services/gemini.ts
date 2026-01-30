@@ -24,6 +24,9 @@ export interface ExtractKnowledgeCardInput {
   reviewsSnippets: string[];
   pricingSnippets: string[];
   alternativesSnippets: string[];
+  companySnippets: string[];      // Company info, funding, history
+  technicalSnippets: string[];    // API, export, integrations
+  pricingDeepContent?: string;    // Full page content from pricing pages (via Jina.ai)
 }
 
 export interface SynthesizeInput {
@@ -49,13 +52,18 @@ export class GeminiService {
   }
 
   /**
-   * Extract structured facts (Pass 1 - The Librarian)
+   * Extract structured facts (Pass 1 - The Librarian + Forensic Accountant)
    */
   async extractKnowledgeCard(
     input: ExtractKnowledgeCardInput,
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
   ): Promise<{ knowledgeCard: KnowledgeCard; tokensUsed: number }> {
-    const prompt = `You are a fact extraction system. Extract ONLY verifiable facts about "${input.toolName}" from the search results.
+    const toolSlug = input.toolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    const prompt = `You are a fact extraction system with THREE roles:
+1. THE LIBRARIAN: Extract verifiable facts about "${input.toolName}"
+2. THE FORENSIC ACCOUNTANT: Extract PRICING LOGIC (not just strings) for cost calculations
+3. THE INVESTIGATOR: Extract company info, competitors, and technical capabilities
 
 CRITICAL RULES:
 - Only extract facts that are explicitly mentioned or strongly implied in the sources
@@ -63,8 +71,107 @@ CRITICAL RULES:
 - Prefer verified information from official sources
 - Set data_quality to "high" if most facts are from official sources, "medium" if from reviews, "low" if limited data
 
+=== THE LIBRARIAN: COMPANY & PRODUCT FACTS ===
+
+Extract these fields INTO THE NESTED STRUCTURE:
+
+1. company object:
+   - name: Official company name (e.g., "Slack Technologies", "Notion Labs")
+   - founded_year: Year founded as NUMBER (e.g., 2013 not "2013")
+   - headquarters: City, Country (e.g., "San Francisco, USA")
+   - employee_count: "1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"
+   - funding_stage: "bootstrapped", "seed", "series-a", "series-b", "series-c+", "public", "acquired"
+
+2. features object:
+   - core: Array of 3-5 most important features
+   - unique: Array of 1-3 unique differentiating features
+
+3. competitive object:
+   - main_alternatives: Array of 3-5 direct competitors mentioned in sources
+   - differentiators: What makes this tool different
+   - best_for: "Best for X because Y"
+
+4. learning_curve: "minutes", "hours", "days", "weeks" - how long to get productive
+
+=== THE FORENSIC ACCOUNTANT: PRICING EXTRACTION (CRITICAL) ===
+
+Do NOT just extract "$10/mo" as a string. Extract the PRICING LOGIC.
+
+CHAIN OF THOUGHT (REQUIRED):
+Before filling pricing data, think through this analysis and put it in "pricing_analysis_log":
+1. "Found monthly price: $X" or "No monthly price found"
+2. "Found annual price: $Y" OR "Annual shown as $X/mo billed annually" OR "No annual price explicit"
+3. "CALCULATION: If annual is $X/mo billed annually -> total annual = X * 12 = Z"
+4. "SCALING: Price is per [user/seat/flat/usage]"
+5. "MODEL TYPE: [free/flat/per_seat/per_unit/tiered/hybrid/contact_sales]"
+
+ANNUAL PRICE RULES (CRITICAL - DO NOT SKIP):
+- SaaS pricing is often displayed as "$X/mo billed annually"
+- IF you see "$10/mo billed annually":
+  - price_monthly: 10
+  - price_annual: 120 (YOU MUST CALCULATE: 10 * 12)
+- IF you see "$100/year":
+  - price_monthly: 8.33 (Calculate: 100 / 12)
+  - price_annual: 100
+- DO NOT leave price_annual null if a monthly price exists and there's annual billing
+
+SCALING UNIT RULES (MANDATORY FOR PER_SEAT):
+- If the pricing model is "per_seat", scaling_unit CANNOT be null
+- Look for: "per user", "per seat", "per member", "per agent"
+- If the page says "$10/mo" in per-user context, set scaling_unit to "user"
+
+1. IDENTIFY THE PRICING MODEL:
+   - "free": Completely free forever
+   - "flat": Fixed price regardless of users (e.g., Basecamp $99/mo unlimited)
+   - "per_seat": Price scales with users (e.g., Slack $8.75/user/mo)
+   - "per_unit": Price scales with usage (e.g., Twilio per message)
+   - "tiered": Multiple plans with different feature sets (e.g., HubSpot Free → Starter → Pro)
+   - "hybrid": Combination (e.g., Notion has free tier + per-user paid)
+   - "contact_sales": Enterprise pricing not publicly available
+
+2. EXTRACT ALL PLANS (including FREE tier if exists) with their:
+   - Plan ID: Use format "${toolSlug}-{plan-name}" (e.g., "${toolSlug}-pro", "${toolSlug}-enterprise")
+   - price_monthly: Monthly price as NUMBER (e.g., 10 not "$10/mo"). Use 0 for free plans.
+   - price_annual: TOTAL annual price as NUMBER (e.g., 96 not "8/mo billed annually"). null if no annual option.
+   - For per-seat plans: extract scaling_unit ("user"/"seat") AND price_per_unit
+   - included_units: If plan includes X users for base price (e.g., "includes 5 users")
+   - max_users: User limit. null = unlimited.
+   - Feature flags: includes_sso, includes_api, includes_sla, includes_priority_support, is_enterprise
+
+3. DETECT HIDDEN COSTS:
+   - min_seats: Minimum seat purchase (e.g., "Min 5 seats")
+   - implementation_fee: One-time setup fee
+   - annual_discount_pct: % discount for annual billing (e.g., 20 means 20% off)
+
+4. SET CONFIDENCE:
+   - "high": Data from official pricing page or official website
+   - "medium": Data from review sites (G2, Capterra)
+   - "low": Inferred, incomplete, or potentially outdated
+
+=== THE INVESTIGATOR: TECHNICAL CAPABILITIES ===
+
+5. EXTRACT PORTABILITY DATA (most SaaS tools have these - look carefully):
+   - has_data_export: Can users export their data? (Most SaaS tools = true)
+   - export_formats: ["CSV", "JSON", "PDF", etc.] - common formats supported
+   - has_api_export: Can users programmatically export via API? (If API exists = true)
+   - migration_difficulty: How hard to leave? (trivial/easy/moderate/hard/locked)
+   - import_from: Tools that have import wizards INTO this tool
+   - export_to: Tools that have export wizards FROM this tool
+
+6. EXTRACT INTEGRATIONS:
+   - has_api: Does it have a public API? (Most modern SaaS tools = true)
+   - has_zapier: Does it integrate with Zapier/Make?
+   - has_webhooks: Does it support webhooks?
+   - notable: Array of notable integrations [{name, type, direction}]
+
+7. EXTRACT TAXONOMY:
+   - primary_function: Main category ("Project Management", "CRM", "Communication")
+   - secondary_functions: Other things it does
+   - likely_departments: Who typically pays? ["Engineering", "Marketing", "Sales", etc.]
+
 Search Results:
-## Official & Reviews:
+
+## Reviews & User Feedback:
 ${input.reviewsSnippets.join('\n')}
 
 ## Pricing & Features:
@@ -73,7 +180,18 @@ ${input.pricingSnippets.join('\n')}
 ## Alternatives & Comparisons:
 ${input.alternativesSnippets.join('\n')}
 
-Extract the knowledge card JSON:`;
+## Company Info & Background:
+${input.companySnippets.join('\n')}
+
+## Technical & Integrations:
+${input.technicalSnippets.join('\n')}
+${input.pricingDeepContent ? `
+=== DEEP DIVE: FULL PRICING PAGE CONTENT ===
+(Use this RICH DATA for the Forensic Accountant role - it contains the actual pricing tables)
+${input.pricingDeepContent}
+` : ''}
+Extract the knowledge card JSON with complete company info, smp_pricing, smp_taxonomy, smp_portability, and integrations sections.
+IMPORTANT: Include "pricing_analysis_log" field with your chain of thought reasoning about pricing.`;
 
     const model = this.client.getGenerativeModel({
       model: 'gemini-2.0-flash',
@@ -105,6 +223,33 @@ Extract the knowledge card JSON:`;
       ...parsed.meta,
       extraction_date: new Date().toISOString().split('T')[0],
     };
+
+    // Fix website_url: validate and remove if invalid
+    if (parsed.website_url) {
+      try {
+        new URL(parsed.website_url);
+      } catch {
+        if (typeof parsed.website_url === 'string' && !parsed.website_url.startsWith('http')) {
+          try {
+            new URL(`https://${parsed.website_url}`);
+            parsed.website_url = `https://${parsed.website_url}`;
+          } catch {
+            parsed.website_url = null;
+          }
+        } else {
+          parsed.website_url = null;
+        }
+      }
+    }
+
+    // Fix logo_url similarly
+    if (parsed.logo_url) {
+      try {
+        new URL(parsed.logo_url);
+      } catch {
+        parsed.logo_url = null;
+      }
+    }
 
     // Validate with Zod
     const validated = KnowledgeCardSchema.parse(parsed);
@@ -148,6 +293,71 @@ Extract the knowledge card JSON:`;
     if (!content) throw new Error('Empty response from Gemini');
 
     const parsed = JSON.parse(content);
+
+    // Fix common AI mistakes: source_type and claim_type confusion
+    // AI sometimes puts "fact"/"opinion" in source_type instead of claim_type
+    const validSourceTypes = ['official', 'editorial', 'community'];
+    const fixClaim = (claim: unknown) => {
+      if (typeof claim === 'object' && claim !== null) {
+        const c = claim as Record<string, unknown>;
+        // If source_type has a claim_type value, swap them
+        if (c.source_type && !validSourceTypes.includes(c.source_type as string)) {
+          // source_type has invalid value - check if it looks like a claim_type
+          if (c.source_type === 'fact' || c.source_type === 'opinion') {
+            // Move the value to claim_type if claim_type is missing
+            if (!c.claim_type) {
+              c.claim_type = c.source_type;
+            }
+            // Default source_type to 'editorial' (safe middle ground)
+            c.source_type = 'editorial';
+          }
+        }
+      }
+      return claim;
+    };
+    if (Array.isArray(parsed.pros)) {
+      parsed.pros = parsed.pros.map(fixClaim);
+    }
+    if (Array.isArray(parsed.cons)) {
+      parsed.cons = parsed.cons.map(fixClaim);
+    }
+
+    // Fix verdict: truncate if too long (max 200 chars)
+    if (parsed.verdict && typeof parsed.verdict === 'string' && parsed.verdict.length > 200) {
+      parsed.verdict = parsed.verdict.slice(0, 197) + '...';
+    }
+
+    // Fix shortDescription: truncate if too long (max 200 chars)
+    if (parsed.shortDescription && typeof parsed.shortDescription === 'string' && parsed.shortDescription.length > 200) {
+      parsed.shortDescription = parsed.shortDescription.slice(0, 197) + '...';
+    }
+
+    // Fix websiteUrl: validate and remove if invalid
+    if (parsed.websiteUrl) {
+      try {
+        new URL(parsed.websiteUrl);
+      } catch {
+        // Invalid URL - try to fix common issues
+        if (typeof parsed.websiteUrl === 'string') {
+          // Add https:// if missing
+          if (!parsed.websiteUrl.startsWith('http')) {
+            try {
+              new URL(`https://${parsed.websiteUrl}`);
+              parsed.websiteUrl = `https://${parsed.websiteUrl}`;
+            } catch {
+              // Still invalid, remove it
+              delete parsed.websiteUrl;
+            }
+          } else {
+            // Can't fix, remove it
+            delete parsed.websiteUrl;
+          }
+        } else {
+          delete parsed.websiteUrl;
+        }
+      }
+    }
+
     const validated = AnalysisSchema.parse(parsed);
 
     // Estimate token count

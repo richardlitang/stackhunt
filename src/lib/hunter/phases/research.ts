@@ -41,18 +41,135 @@ export async function executeResearchPhase(
 
   deps.log(`Scout completed: ${scoutResult.sources.length} sources found`);
 
-  // Step 2: Extract structured facts (Pass 1 - The Librarian)
+  // Step 2: Extract structured facts (Pass 1 - The Librarian + Forensic Accountant + Investigator)
   const { knowledgeCard, tokensUsed } = await deps.gemini.extractKnowledgeCard(
     {
       toolName: ctx.toolName,
       reviewsSnippets: scoutResult.reviewsSnippets,
       pricingSnippets: scoutResult.pricingSnippets,
       alternativesSnippets: scoutResult.alternativesSnippets,
+      companySnippets: scoutResult.companySnippets,
+      technicalSnippets: scoutResult.technicalSnippets,
+      pricingDeepContent: scoutResult.pricingDeepContent, // Full page content from pricing pages
     },
     deps.withRetry
   );
 
   deps.log(`[Pass 1] Knowledge Card extracted (quality: ${knowledgeCard.meta.data_quality})`);
+
+  // ========== QA LOGGING: COMPANY INFO (nested in company object) ==========
+  const company = knowledgeCard.company;
+  const companyFields = [];
+  if (company?.name) companyFields.push(`company=${company.name}`);
+  if (company?.founded_year) companyFields.push(`founded=${company.founded_year}`);
+  if (company?.headquarters) companyFields.push(`HQ=${company.headquarters}`);
+  if (company?.employee_count) companyFields.push(`employees=${company.employee_count}`);
+  if (company?.funding_stage) companyFields.push(`funding=${company.funding_stage}`);
+  if (companyFields.length > 0) {
+    deps.log(`[Company] ${companyFields.join(', ')}`);
+  } else {
+    deps.log(`[Company] ⚠️ No company info extracted`);
+  }
+
+  // ========== QA LOGGING: KEY FEATURES (nested in features object) ==========
+  const features = knowledgeCard.features;
+  const coreFeatures = features?.core || [];
+  const uniqueFeatures = features?.unique || [];
+  const allFeatures = [...coreFeatures, ...uniqueFeatures];
+  if (allFeatures.length > 0) {
+    deps.log(`[Features] ${allFeatures.length} features: ${allFeatures.slice(0, 3).join(', ')}${allFeatures.length > 3 ? '...' : ''}`);
+  } else {
+    deps.log(`[Features] ⚠️ No key features extracted`);
+  }
+
+  // ========== QA LOGGING: COMPETITORS (nested in competitive object) ==========
+  const competitors = knowledgeCard.competitive?.main_alternatives || [];
+  if (competitors.length > 0) {
+    deps.log(`[Competitors] ${competitors.join(', ')}`);
+  } else {
+    deps.log(`[Competitors] ⚠️ No competitors extracted`);
+  }
+
+  // ========== QA LOGGING: LEARNING CURVE ==========
+  if (knowledgeCard.learning_curve) {
+    deps.log(`[Learning] Time to productive: ${knowledgeCard.learning_curve}`);
+  }
+
+  // ========== QA LOGGING: INTEGRATIONS ==========
+  if (knowledgeCard.integrations) {
+    const int = knowledgeCard.integrations;
+    const intFlags = [];
+    if (int.has_api) intFlags.push('API');
+    if (int.has_zapier) intFlags.push('Zapier');
+    if (int.has_webhooks) intFlags.push('Webhooks');
+    deps.log(`[Integrations] ${intFlags.length > 0 ? intFlags.join(', ') : '⚠️ none detected'}${int.notable?.length ? `, notable: ${int.notable.map(n => n.name).join(', ')}` : ''}`);
+  } else {
+    deps.log(`[Integrations] ⚠️ Not extracted`);
+  }
+
+  // ========== QA LOGGING: PRICING ANALYSIS (Chain of Thought) ==========
+  if (knowledgeCard.pricing_analysis_log) {
+    deps.log(`[Pricing CoT] ${knowledgeCard.pricing_analysis_log.substring(0, 200)}${knowledgeCard.pricing_analysis_log.length > 200 ? '...' : ''}`);
+  }
+
+  // ========== QA LOGGING: SMP PRICING ==========
+  if (knowledgeCard.smp_pricing) {
+    const p = knowledgeCard.smp_pricing;
+    deps.log(`[SMP Pricing] Model: ${p.model}, Confidence: ${p.confidence}`);
+    deps.log(`[SMP Pricing] Currency: ${p.currency}, Billing: ${p.billing_cycles?.join(', ') || 'unknown'}`);
+    if (p.annual_discount_pct) deps.log(`[SMP Pricing] Annual discount: ${p.annual_discount_pct}%`);
+    if (p.min_seats) deps.log(`[SMP Pricing] Min seats: ${p.min_seats}`);
+    if (p.plans && p.plans.length > 0) {
+      deps.log(`[SMP Pricing] Plans (${p.plans.length}):`);
+      for (const plan of p.plans) {
+        const priceInfo = [];
+        if (plan.price_monthly !== null) priceInfo.push(`$${plan.price_monthly}/mo`);
+        if (plan.price_annual !== null) priceInfo.push(`$${plan.price_annual}/yr`);
+        if (plan.price_per_unit !== null) priceInfo.push(`$${plan.price_per_unit}/${plan.scaling_unit || 'unit'}`);
+        const features = [];
+        if (plan.includes_sso) features.push('SSO');
+        if (plan.includes_api) features.push('API');
+        if (plan.includes_sla) features.push('SLA');
+        if (plan.max_users !== null) features.push(`max ${plan.max_users} users`);
+        if (plan.included_units !== null) features.push(`includes ${plan.included_units} ${plan.scaling_unit || 'units'}`);
+        deps.log(`  - ${plan.name} (${plan.id}): ${priceInfo.join(', ') || 'custom'} ${features.length ? `[${features.join(', ')}]` : ''}`);
+      }
+    }
+  } else {
+    deps.log(`[SMP Pricing] ⚠️ Not extracted`);
+  }
+
+  // ========== QA LOGGING: SMP TAXONOMY ==========
+  if (knowledgeCard.smp_taxonomy) {
+    const t = knowledgeCard.smp_taxonomy;
+    deps.log(`[SMP Taxonomy] Primary: ${t.primary_function}`);
+    if (t.secondary_functions?.length) deps.log(`[SMP Taxonomy] Secondary: ${t.secondary_functions.join(', ')}`);
+    if (t.likely_departments?.length) deps.log(`[SMP Taxonomy] Departments: ${t.likely_departments.join(', ')}`);
+  } else {
+    deps.log(`[SMP Taxonomy] ⚠️ Not extracted`);
+  }
+
+  // ========== QA LOGGING: SMP PORTABILITY ==========
+  if (knowledgeCard.smp_portability) {
+    const port = knowledgeCard.smp_portability;
+    deps.log(`[SMP Portability] Export: ${port.has_data_export ? 'yes' : 'no'}, API Export: ${port.has_api_export ? 'yes' : 'no'}, Migration: ${port.migration_difficulty || 'unknown'}`);
+    if (port.export_formats?.length) deps.log(`[SMP Portability] Formats: ${port.export_formats.join(', ')}`);
+  } else {
+    deps.log(`[SMP Portability] ⚠️ Not extracted`);
+  }
+
+  // ========== QA SUMMARY ==========
+  const qaScore = [
+    knowledgeCard.company?.name ? 1 : 0,
+    knowledgeCard.company?.founded_year ? 1 : 0,
+    (knowledgeCard.features?.core?.length || knowledgeCard.features?.unique?.length) ? 1 : 0,
+    knowledgeCard.competitive?.main_alternatives?.length ? 1 : 0,
+    knowledgeCard.integrations?.has_api !== undefined ? 1 : 0,
+    knowledgeCard.smp_pricing ? 1 : 0,
+    knowledgeCard.smp_taxonomy ? 1 : 0,
+    knowledgeCard.smp_portability ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
+  deps.log(`[QA Score] ${qaScore}/8 data categories populated`);
 
   // Step 3: Check for duplicate tools (Gatekeeper)
   const existingTool = await checkForDuplicateTool(
@@ -68,6 +185,8 @@ export async function executeResearchPhase(
         reviewsSnippets: scoutResult.reviewsSnippets,
         pricingSnippets: scoutResult.pricingSnippets,
         alternativesSnippets: scoutResult.alternativesSnippets,
+        companySnippets: scoutResult.companySnippets,
+        technicalSnippets: scoutResult.technicalSnippets,
         sources: scoutResult.sources,
       },
       knowledgeCard,
@@ -84,6 +203,8 @@ export async function executeResearchPhase(
       reviewsSnippets: scoutResult.reviewsSnippets,
       pricingSnippets: scoutResult.pricingSnippets,
       alternativesSnippets: scoutResult.alternativesSnippets,
+      companySnippets: scoutResult.companySnippets,
+      technicalSnippets: scoutResult.technicalSnippets,
       sources: scoutResult.sources,
     },
     knowledgeCard,

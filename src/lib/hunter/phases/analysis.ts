@@ -86,9 +86,30 @@ export async function executeAnalysisPhase(
   deps.log(`Graph tags: functions=[${analysis.graphTags.functions.join(', ')}], audiences=[${analysis.graphTags.audiences.join(', ')}], platforms=[${analysis.graphTags.platforms.join(', ')}]`);
 
   // Step 6: Generate embedding for semantic search
-  const embeddingText = `${ctx.toolName} ${analysis.summary} ${analysis.pros.map(p => typeof p === 'string' ? p : p.text).join(' ')}`;
+  // Use "Functional Anchor" strategy: embed the SPEC not just the VIBE
+  // This prevents "semantic smudge" where Slack ≈ HubSpot due to generic B2B language
+  const kc = ctx.research.knowledgeCard;
+  const taxonomy = kc.smp_taxonomy;
+  const features = kc.features;
+  const competitive = kc.competitive;
+
+  const embeddingParts = [
+    `Tool: ${ctx.toolName}`,
+    taxonomy?.primary_function ? `Category: ${taxonomy.primary_function}` : '',
+    taxonomy?.secondary_functions?.length ? `Also: ${taxonomy.secondary_functions.join(', ')}` : '',
+    taxonomy?.likely_departments?.length ? `Department: ${taxonomy.likely_departments.join(', ')}` : '',
+    features?.core?.length ? `Core Features: ${features.core.slice(0, 5).join(', ')}` : '',
+    features?.unique?.length ? `Unique: ${features.unique.slice(0, 3).join(', ')}` : '',
+    competitive?.main_alternatives?.length ? `Alternatives: ${competitive.main_alternatives.slice(0, 3).join(', ')}` : '',
+    analysis.graphTags.functions.length ? `Functions: ${analysis.graphTags.functions.join(', ')}` : '',
+    analysis.graphTags.audiences.length ? `Audience: ${analysis.graphTags.audiences.join(', ')}` : '',
+    `Summary: ${analysis.summary.slice(0, 500)}`, // Truncate summary to leave room for anchors
+  ].filter(Boolean).join('\n');
+
+  deps.log(`[Embedding] Anchored text: ${embeddingParts.split('\n').slice(0, 4).join(' | ')}...`);
+
   const embedding = await deps.gemini.generateEmbedding(
-    embeddingText,
+    embeddingParts,
     deps.withRetry
   );
   deps.log(`Embedding generated (${embedding.length} dimensions)`);

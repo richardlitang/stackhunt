@@ -19,7 +19,7 @@ const FactWithConfidence = <T extends z.ZodTypeAny>(schema: T) =>
     source_url: z.string().url().optional(),
   });
 
-// Pricing tier structure
+// Pricing tier structure (legacy)
 export const PricingTierSchema = z.object({
   name: z.string(),                        // "Free", "Pro", "Enterprise"
   price: z.string().nullable(),            // "$9/mo", "Custom", null if unknown
@@ -27,6 +27,80 @@ export const PricingTierSchema = z.object({
   features: z.array(z.string()).default([]),
 });
 export type PricingTier = z.infer<typeof PricingTierSchema>;
+
+// V3: SMP Plan structure (for cost calculations)
+// Includes transforms for fallback calculations when LLM fails to compute
+export const SMPPlanSchema = z.object({
+  id: z.string(),                          // Deterministic: `${slug}-${plan_name_slug}`
+  name: z.string(),                         // "Free", "Pro", "Enterprise"
+  price_monthly: z.number().nullable().optional(),  // Monthly price (null/undefined = no monthly option)
+  price_annual: z.number().nullable().optional(),   // Total annual price (null/undefined = no annual option)
+  scaling_unit: z.enum(['user', 'seat', 'member', 'GB', 'message', 'request', 'project', 'workspace']).nullable().optional(),
+  price_per_unit: z.number().nullable().optional(),
+  included_units: z.number().nullable().optional(),
+  max_users: z.number().nullable().optional(),
+  max_storage_gb: z.number().nullable().optional(),
+  max_projects: z.number().nullable().optional(),
+  includes_sso: z.boolean().default(false),
+  includes_api: z.boolean().default(false),
+  includes_sla: z.boolean().default(false),
+  includes_priority_support: z.boolean().default(false),
+  is_enterprise: z.boolean().default(false),
+}).transform((plan) => {
+  // FALLBACK MATH: If LLM failed to calculate annual, we do it here
+  if (plan.price_monthly && plan.price_monthly > 0 && !plan.price_annual) {
+    plan.price_annual = plan.price_monthly * 12;
+  }
+
+  // REVERSE MATH: If we only have annual (rare, but happens)
+  if (!plan.price_monthly && plan.price_annual && plan.price_annual > 0) {
+    plan.price_monthly = parseFloat((plan.price_annual / 12).toFixed(2));
+  }
+
+  // NORMALIZE UNITS: Map 'member' to 'user' for consistency
+  if (plan.scaling_unit === 'member') {
+    plan.scaling_unit = 'user';
+  }
+
+  return plan;
+});
+export type SMPPlan = z.infer<typeof SMPPlanSchema>;
+
+// V3: SMP Pricing Data (for cost calculations)
+export const SMPPricingDataSchema = z.object({
+  model: z.enum(['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales']),
+  currency: z.enum(['USD', 'EUR', 'GBP']).default('USD'),
+  billing_cycles: z.array(z.enum(['monthly', 'annual', 'quarterly'])).default(['monthly']),
+  annual_discount_pct: z.number().nullable().optional(),
+  plans: z.array(SMPPlanSchema).default([]),
+  min_seats: z.number().nullable().optional(),
+  implementation_fee: z.number().nullable().optional(),
+  pricing_page_url: z.string().url().nullable().optional(),
+  confidence: z.enum(['high', 'medium', 'low']).default('medium'),
+  discounts_available: z.array(z.enum(['startup', 'nonprofit', 'education', 'government', 'annual_prepay'])).default([]),
+});
+export type SMPPricingData = z.infer<typeof SMPPricingDataSchema>;
+
+// V3: Taxonomy Data (for department budgets)
+export const SMPTaxonomySchema = z.object({
+  primary_function: z.string(),              // "Project Management", "CRM"
+  secondary_functions: z.array(z.string()).default([]),
+  likely_departments: z.array(z.string()).default([]),
+});
+export type SMPTaxonomy = z.infer<typeof SMPTaxonomySchema>;
+
+// V3: Portability Data (for switching analysis)
+export const SMPPortabilitySchema = z.object({
+  has_data_export: z.boolean().default(false),
+  export_formats: z.array(z.string()).default([]),
+  has_api_export: z.boolean().default(false),
+  migration_difficulty: z.enum(['trivial', 'easy', 'moderate', 'hard', 'locked']).nullable().optional(),
+  import_from: z.array(z.string()).default([]),    // Tools with import wizards
+  export_to: z.array(z.string()).default([]),      // Tools with export wizards
+  min_commitment_months: z.number().nullable().optional(),
+  cancellation_notice_days: z.number().nullable().optional(),
+});
+export type SMPPortability = z.infer<typeof SMPPortabilitySchema>;
 
 // Integration/connection
 export const IntegrationSchema = z.object({
@@ -148,6 +222,14 @@ export const KnowledgeCardSchema = z.object({
 
   // === LEARNING & ADOPTION ===
   learning_curve: z.enum(['minutes', 'hours', 'days', 'weeks', 'months']).nullable().optional(),
+
+  // === V3: SMP DATA (for SaaS Management Platform) ===
+  smp_pricing: SMPPricingDataSchema.optional(),
+  smp_taxonomy: SMPTaxonomySchema.optional(),
+  smp_portability: SMPPortabilitySchema.optional(),
+
+  // === CHAIN OF THOUGHT: Reasoning logs for QA ===
+  pricing_analysis_log: z.string().optional(), // LLM's reasoning about pricing extraction
 });
 
 export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>;
@@ -300,6 +382,78 @@ export const GeminiKnowledgeCardSchema = {
       required: ['data_quality'],
     },
     learning_curve: { type: 'string', nullable: true, enum: ['minutes', 'hours', 'days', 'weeks', 'months'] },
+    // V3: SMP Data for SaaS Management Platform
+    smp_pricing: {
+      type: 'object',
+      description: 'Structured pricing data for cost calculations. Extract pricing LOGIC, not just strings.',
+      properties: {
+        model: { type: 'string', enum: ['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales'], description: 'The pricing model: flat (Basecamp $99/mo), per_seat (Slack $8/user), per_unit (Twilio per message), tiered (HubSpot), hybrid (Notion free + per user), contact_sales (enterprise)' },
+        currency: { type: 'string', enum: ['USD', 'EUR', 'GBP'], default: 'USD' },
+        billing_cycles: { type: 'array', items: { type: 'string', enum: ['monthly', 'annual', 'quarterly'] }, description: 'Available billing options' },
+        annual_discount_pct: { type: 'number', nullable: true, description: 'Percentage discount for annual billing (e.g., 20 means 20% off)' },
+        plans: {
+          type: 'array',
+          description: 'All available pricing plans with their costs and limits',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: 'Plan identifier: tool-slug-plan-name-slug (e.g., "notion-plus")' },
+              name: { type: 'string', description: 'Display name: "Free", "Pro", "Enterprise"' },
+              price_monthly: { type: 'number', nullable: true, description: 'Monthly price in base currency units (e.g., 10 for $10/mo). null if no monthly option.' },
+              price_annual: { type: 'number', nullable: true, description: 'TOTAL annual price (e.g., 96 for $96/year). NOT monthly equivalent.' },
+              scaling_unit: { type: 'string', nullable: true, enum: ['user', 'seat', 'member', 'GB', 'message', 'request', 'project', 'workspace'], description: 'What the price scales with' },
+              price_per_unit: { type: 'number', nullable: true, description: 'Price per unit for per_seat/per_unit models' },
+              included_units: { type: 'number', nullable: true, description: 'Units included in base price (e.g., "includes 5 users")' },
+              max_users: { type: 'number', nullable: true, description: 'User limit for this plan. null = unlimited.' },
+              max_storage_gb: { type: 'number', nullable: true },
+              max_projects: { type: 'number', nullable: true },
+              includes_sso: { type: 'boolean', default: false },
+              includes_api: { type: 'boolean', default: false },
+              includes_sla: { type: 'boolean', default: false },
+              includes_priority_support: { type: 'boolean', default: false },
+              is_enterprise: { type: 'boolean', default: false, description: 'true if this is "Contact Sales" pricing' },
+            },
+            required: ['id', 'name'],
+          },
+        },
+        min_seats: { type: 'number', nullable: true, description: 'Minimum seat purchase (e.g., "Min 5 seats")' },
+        implementation_fee: { type: 'number', nullable: true, description: 'One-time setup/implementation fee' },
+        pricing_page_url: { type: 'string', nullable: true, description: 'URL to official pricing page for verification' },
+        confidence: { type: 'string', enum: ['high', 'medium', 'low'], description: 'How confident are you in this pricing data? high = from official pricing page, medium = from review sites, low = inferred or outdated' },
+        discounts_available: { type: 'array', items: { type: 'string', enum: ['startup', 'nonprofit', 'education', 'government', 'annual_prepay'] } },
+      },
+      required: ['model', 'confidence'],
+    },
+    smp_taxonomy: {
+      type: 'object',
+      description: 'Classification for spend-by-category analysis',
+      properties: {
+        primary_function: { type: 'string', description: 'Primary function: "Project Management", "CRM", "Communication", "Documentation", etc.' },
+        secondary_functions: { type: 'array', items: { type: 'string' }, description: 'Secondary functions the tool also serves' },
+        likely_departments: { type: 'array', items: { type: 'string' }, description: 'Departments that typically own/pay for this tool: "Engineering", "Product", "Marketing", "Sales", "Operations", "Finance", "HR", "Legal", "IT Security", "Customer Success"' },
+      },
+      required: ['primary_function'],
+    },
+    smp_portability: {
+      type: 'object',
+      description: 'Data for switching feasibility analysis',
+      properties: {
+        has_data_export: { type: 'boolean', description: 'Can users export their data?' },
+        export_formats: { type: 'array', items: { type: 'string' }, description: 'Available export formats: "CSV", "JSON", "XML", "PDF", "ZIP"' },
+        has_api_export: { type: 'boolean', description: 'Can users programmatically extract all their data via API?' },
+        migration_difficulty: { type: 'string', nullable: true, enum: ['trivial', 'easy', 'moderate', 'hard', 'locked'], description: 'How hard is it to migrate away from this tool?' },
+        import_from: { type: 'array', items: { type: 'string' }, description: 'Tool names that have import wizards INTO this tool' },
+        export_to: { type: 'array', items: { type: 'string' }, description: 'Tool names that have import wizards FROM this tool' },
+        min_commitment_months: { type: 'number', nullable: true, description: 'Minimum contract commitment in months. null = month-to-month.' },
+        cancellation_notice_days: { type: 'number', nullable: true, description: 'Required notice period for cancellation in days' },
+      },
+    },
+    // Chain of Thought: LLM reasoning about pricing extraction
+    pricing_analysis_log: {
+      type: 'string',
+      nullable: true,
+      description: 'Your step-by-step reasoning about pricing extraction. Format: "1. Found monthly: $X 2. Found annual: $Y or CALCULATED X*12=Z 3. Scaling: per user/seat/flat 4. Model: [type]"'
+    },
   },
   required: ['official_name', 'pricing', 'meta'],
 };

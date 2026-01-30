@@ -31,6 +31,7 @@ export interface HunterInput {
   contextTitle?: string;
   categorySlug?: string;
   queueItemId?: string; // If processing from queue
+  forceUpdate?: boolean; // Bypass duplicate detection and re-extract data
 }
 
 // Guidance for context hunt (optional hints for better articles)
@@ -178,6 +179,7 @@ export interface HunterContext {
   contextTitle?: string;
   categorySlug?: string;
   queueItemId?: string;
+  forceUpdate?: boolean;        // Bypass duplicate detection
 
   // Flags for early exits (cost optimization)
   skipAnalysis?: boolean;       // Set if duplicate found
@@ -201,6 +203,8 @@ export interface ResearchOutput {
     reviewsSnippets: string[];
     pricingSnippets: string[];
     alternativesSnippets: string[];
+    companySnippets: string[];      // Company info, funding, history
+    technicalSnippets: string[];    // API, export, integrations
     sources: Array<{
       url: string;
       title: string;

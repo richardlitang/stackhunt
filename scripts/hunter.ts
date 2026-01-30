@@ -30,6 +30,7 @@ async function main() {
       context: { type: 'string', short: 'c' },
       category: { type: 'string', short: 'g' },
       publish: { type: 'boolean', short: 'p' },  // Skip draft, publish immediately
+      rehunt: { type: 'boolean', short: 'r' },   // Force re-extraction for duplicates
       queue: { type: 'string', short: 'q' },      // 'add' | 'process' | 'batch' | 'cleanup' | 'status'
       strategy: { type: 'string', short: 's' },   // 'analyze' | 'import' | 'ahrefs' | 'classify' | 'approve' | 'status' | 'thresholds'
       file: { type: 'string', short: 'f' },       // CSV file for import
@@ -355,12 +356,14 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
 
 async function runHunt(values: Record<string, string | boolean | undefined>) {
   const isDraftMode = !values.publish;
+  const forceUpdate = !!values.rehunt;
 
   console.log('═'.repeat(60));
   console.log(`🎯 Starting hunt for: ${values.tool}`);
   if (values.context) console.log(`📋 Context: ${values.context}`);
   if (values.category) console.log(`📁 Category: ${values.category}`);
   console.log(`📝 Mode: ${isDraftMode ? 'DRAFT (requires review)' : 'PUBLISH (live immediately)'}`);
+  if (forceUpdate) console.log(`🔄 Force update: Re-extracting data for existing tool`);
   console.log('═'.repeat(60));
 
   // Import hunter dynamically (ESM module)
@@ -378,6 +381,7 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
     toolName: values.tool as string,
     contextTitle: values.context as string | undefined,
     categorySlug: values.category as string | undefined,
+    forceUpdate,
   });
 
   console.log('═'.repeat(60));

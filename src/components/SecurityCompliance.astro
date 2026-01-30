@@ -1,0 +1,93 @@
+---
+/**
+ * SecurityCompliance Component
+ * Displays security certifications and compliance features
+ * Only renders if any security data exists
+ */
+
+import type { KnowledgeCard } from '@/lib/knowledge-card';
+import CheckIcon from '@/components/icons/Check.astro';
+import XIcon from '@/components/icons/X.astro';
+
+interface Props {
+  security: KnowledgeCard['security'];
+}
+
+const { security } = Astro.props;
+
+// Check if we have any security data to display
+const hasData = security && (
+  security.soc2_certified !== null ||
+  security.gdpr_compliant !== null ||
+  security.hipaa_compliant !== null ||
+  security.sso_available !== null ||
+  security.two_factor !== null ||
+  security.data_encryption !== null ||
+  security.self_hosted_option === true
+);
+
+if (!hasData) return null;
+
+// Build certifications list
+const certifications = [];
+if (security.soc2_certified) certifications.push('SOC 2');
+if (security.gdpr_compliant) certifications.push('GDPR');
+if (security.hipaa_compliant) certifications.push('HIPAA');
+
+// Build security features list
+const features = [
+  { label: 'SSO', value: security.sso_available },
+  { label: '2FA/MFA', value: security.two_factor },
+  { label: 'Data Encryption', value: security.data_encryption ? security.data_encryption.replace('_', ' ') : null },
+  { label: 'Self-Hosted Option', value: security.self_hosted_option },
+];
+---
+
+<div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+  <h3 class="mb-4 font-semibold text-zinc-100">Security & Compliance</h3>
+
+  {/* Certifications */}
+  {certifications.length > 0 && (
+    <div class="mb-4">
+      <h4 class="mb-2 text-sm font-medium text-zinc-300">Certifications</h4>
+      <div class="flex flex-wrap gap-2">
+        {certifications.map((cert) => (
+          <span class="inline-flex items-center rounded-full bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-400 border border-green-700">
+            <CheckIcon class="mr-1 h-3 w-3" />
+            {cert}
+          </span>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {/* Security Features */}
+  <div>
+    <h4 class="mb-2 text-sm font-medium text-zinc-300">Security Features</h4>
+    <dl class="space-y-2">
+      {features.map(({ label, value }) => {
+        if (value === null || value === undefined) return null;
+
+        const isBoolean = typeof value === 'boolean';
+        const hasFeature = isBoolean ? value : true;
+
+        return (
+          <div class="flex items-center justify-between text-sm">
+            <dt class="text-zinc-400">{label}</dt>
+            <dd class="flex items-center">
+              {isBoolean ? (
+                hasFeature ? (
+                  <CheckIcon class="h-4 w-4 text-green-500" />
+                ) : (
+                  <XIcon class="h-4 w-4 text-zinc-600" />
+                )
+              ) : (
+                <span class="text-zinc-300 capitalize">{value}</span>
+              )}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
+  </div>
+</div>

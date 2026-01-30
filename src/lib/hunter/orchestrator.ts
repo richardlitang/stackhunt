@@ -121,6 +121,7 @@ export class Hunter {
       contextTitle: input.contextTitle,
       categorySlug: input.categorySlug,
       queueItemId: input.queueItemId,
+      forceUpdate: input.forceUpdate,
       skipAnalysis: false,
       skipPersistence: false,
       startTime,
@@ -146,8 +147,8 @@ export class Hunter {
       ctx.research = await executeResearchPhase(ctx, deps);
       ctx.tokensUsed += ctx.research.tokensUsed;
 
-      // Early exit: Hard duplicate detected
-      if (ctx.research.isDuplicate) {
+      // Early exit: Hard duplicate detected (unless forceUpdate)
+      if (ctx.research.isDuplicate && !ctx.forceUpdate) {
         ctx.skipAnalysis = true;
         this.log(`⚠️ Duplicate detected, skipping expensive analysis`);
         return {
@@ -156,6 +157,9 @@ export class Hunter {
           tokensUsed: ctx.tokensUsed,
           durationMs: Date.now() - ctx.startTime,
         };
+      }
+      if (ctx.research.isDuplicate && ctx.forceUpdate) {
+        this.log(`🔄 Duplicate detected, but forceUpdate=true - continuing with re-extraction`);
       }
 
       // ===================================================================

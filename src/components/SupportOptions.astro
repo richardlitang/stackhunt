@@ -1,0 +1,80 @@
+---
+/**
+ * SupportOptions Component
+ * Displays available support channels
+ * Only renders if any support options are available
+ */
+
+import type { KnowledgeCard } from '@/lib/knowledge-card';
+import CheckIcon from '@/components/icons/Check.astro';
+
+interface Props {
+  support: KnowledgeCard['support'];
+}
+
+const { support } = Astro.props;
+
+// Check if we have any support data to display
+const hasData = support && (
+  support.has_documentation ||
+  support.has_community ||
+  support.has_live_chat ||
+  support.has_phone_support ||
+  support.has_dedicated_support
+);
+
+if (!hasData) return null;
+
+// Build support options list
+const options = [
+  {
+    label: 'Documentation',
+    value: support.has_documentation,
+    icon: '📖',
+    description: 'Comprehensive docs'
+  },
+  {
+    label: 'Community Forum',
+    value: support.has_community,
+    icon: '👥',
+    description: 'Community support'
+  },
+  {
+    label: 'Live Chat',
+    value: support.has_live_chat,
+    icon: '💬',
+    description: 'Real-time chat'
+  },
+  {
+    label: 'Phone Support',
+    value: support.has_phone_support,
+    icon: '📞',
+    description: 'Direct phone line'
+  },
+  {
+    label: 'Dedicated Support',
+    value: support.has_dedicated_support,
+    icon: '⭐',
+    description: 'Enterprise tier'
+  },
+].filter(opt => opt.value);
+---
+
+<div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+  <h3 class="mb-4 font-semibold text-zinc-100">Support Options</h3>
+
+  <ul class="space-y-3">
+    {options.map(({ label, icon, description }) => (
+      <li class="flex items-start gap-3">
+        <span class="text-lg" role="img" aria-label={label}>{icon}</span>
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-zinc-200">{label}</span>
+            <CheckIcon class="h-4 w-4 text-green-500" />
+          </div>
+          <p class="text-xs text-zinc-400">{description}</p>
+        </div>
+      </li>
+    ))}
+  </ul>
+</div>

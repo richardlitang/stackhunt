@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Layers, ChevronDown, X } from 'lucide-react';
 
 interface StackTool {
   slug: string;
@@ -100,9 +101,7 @@ export default function MyStackWidget() {
           onClick={() => setIsMinimized(false)}
           className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
         >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-          </svg>
+          <Layers className="h-5 w-5" />
           <span className="font-medium">My Stack ({stackTools.length})</span>
           <span className="rounded-full bg-white/20 px-2 py-0.5 text-sm">
             ${totalCost.toFixed(0)}/mo
@@ -126,9 +125,7 @@ export default function MyStackWidget() {
                 onClick={() => setIsMinimized(true)}
                 className="text-white/80 hover:text-white"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -169,9 +166,7 @@ export default function MyStackWidget() {
                   className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition"
                   title="Remove from stack"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ))}

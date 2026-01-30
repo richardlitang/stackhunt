@@ -14,12 +14,14 @@ import ScoreBadge from '@/components/ScoreBadge.astro';
 import PricingBadge from '@/components/PricingBadge.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
 import SmartComparisonTable from '@/components/SmartComparisonTable';
+import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import { supabase } from '@/lib/supabase';
 import { getCanonicalUrl, getScoreColor, formatPricingType } from '@/lib/utils';
 import { computeComparison, getWinnerText, type ToolComparison } from '@/lib/analysis/comparator';
 import {
   generateBreadcrumbSchema,
 } from '@/lib/seo';
+import type { SMPPricingData } from '@/types/database';
 
 // Parse URL: /compare/slack-vs-discord
 const { slugs } = Astro.params;
@@ -719,6 +721,25 @@ const schemas = [
         </div>
       </section>
     )}
+
+    <!-- Pricing Crossover Chart - THE KILLER FEATURE -->
+    <section class="mt-12">
+      <PricingCrossoverChart
+        client:load
+        tools={[
+          {
+            name: toolA.name,
+            slug: toolA.slug,
+            pricingData: (toolA.specs?.pricing_data as SMPPricingData | undefined) || null,
+          },
+          {
+            name: toolB.name,
+            slug: toolB.slug,
+            pricingData: (toolB.specs?.pricing_data as SMPPricingData | undefined) || null,
+          },
+        ]}
+      />
+    </section>
 
     <!-- Smart Feature Comparison (using Knowledge Cards) -->
     <section class="mt-12">

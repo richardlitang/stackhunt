@@ -1,0 +1,264 @@
+---
+/**
+ * PricingPlansGrid Component
+ * Displays detailed pricing plans with all features and limits
+ * Supports both SMP pricing and legacy pricing tiers
+ * Only renders if pricing data exists
+ */
+
+import type { SMPPricingData, KnowledgeCard } from '@/lib/knowledge-card';
+import CheckIcon from '@/components/icons/Check.astro';
+
+interface Props {
+  smp_pricing?: SMPPricingData;
+  legacy_pricing?: KnowledgeCard['pricing'];
+  toolName: string;
+}
+
+const { smp_pricing, legacy_pricing, toolName } = Astro.props;
+
+// Determine which pricing data to use
+const hasSMPPricing = smp_pricing && smp_pricing.plans && smp_pricing.plans.length > 0;
+const hasLegacyPricing = legacy_pricing?.tiers && legacy_pricing.tiers.length > 0;
+
+if (!hasSMPPricing && !hasLegacyPricing) return null;
+
+// Pricing model labels
+const modelLabels = {
+  free: 'Free',
+  flat: 'Flat Rate',
+  per_seat: 'Per Seat',
+  per_unit: 'Per Unit',
+  tiered: 'Tiered',
+  hybrid: 'Hybrid',
+  contact_sales: 'Custom Pricing',
+  freemium: 'Freemium',
+  paid: 'Paid',
+  enterprise: 'Enterprise',
+  open_source: 'Open Source',
+};
+
+// Confidence indicator colors
+const confidenceColors = {
+  high: 'text-green-400',
+  medium: 'text-amber-400',
+  low: 'text-zinc-500',
+};
+
+// Discount badge labels
+const discountLabels = {
+  startup: 'Startup Discount',
+  nonprofit: 'Nonprofit Pricing',
+  education: 'Education Discount',
+  government: 'Government Pricing',
+  annual_prepay: 'Annual Discount',
+};
+---
+
+<section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
+  <h2 class="mb-4 text-lg font-semibold text-zinc-100">Pricing Plans</h2>
+
+  {/* Pricing Model Badge */}
+  {(smp_pricing?.model || legacy_pricing?.model) && (
+    <div class="mb-4">
+      <span class="inline-flex items-center rounded-full bg-hunt-900/30 px-3 py-1 text-xs font-medium text-hunt-400 border border-hunt-700">
+        {modelLabels[smp_pricing?.model || legacy_pricing?.model || 'paid']}
+      </span>
+    </div>
+  )}
+
+  {/* SMP Pricing Plans */}
+  {hasSMPPricing && (
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {smp_pricing.plans.map((plan) => (
+        <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-4 hover:border-zinc-600 transition">
+          {/* Plan Header */}
+          <div class="mb-4 border-b border-zinc-800 pb-4">
+            <div class="mb-2 flex items-baseline justify-between gap-2">
+              <h3 class="text-lg font-semibold text-zinc-100">{plan.name}</h3>
+              {plan.price_per_unit && plan.scaling_unit && (
+                <span class="text-xs text-zinc-500">per {plan.scaling_unit}</span>
+              )}
+            </div>
+            {plan.is_enterprise ? (
+              <p class="text-sm font-medium text-zinc-400">Contact Sales</p>
+            ) : (
+              <div>
+                {/* Only show price if plan name isn't "Free" AND price is 0, OR if there's actual pricing */}
+                {(plan.price_monthly === 0 && plan.name.toLowerCase() !== 'free') ? (
+                  <div class="mb-1">
+                    <span class="text-2xl font-bold text-green-400">$0</span>
+                    <span class="text-sm text-zinc-400">/month</span>
+                  </div>
+                ) : (plan.name.toLowerCase() === 'free' && !plan.price_monthly && !plan.price_annual) ? (
+                  <p class="text-sm text-zinc-500 italic">No additional costs</p>
+                ) : plan.price_monthly && plan.price_monthly > 0 ? (
+                  <div class="mb-1">
+                    <span class="text-2xl font-bold text-zinc-100">
+                      ${plan.price_monthly}
+                    </span>
+                    <span class="text-sm text-zinc-400">/month</span>
+                  </div>
+                ) : plan.price_annual ? (
+                  <div class="mb-1">
+                    <span class="text-2xl font-bold text-zinc-100">
+                      ${plan.price_annual}
+                    </span>
+                    <span class="text-sm text-zinc-400">/year</span>
+                  </div>
+                ) : null}
+                {plan.price_monthly && plan.price_monthly > 0 && plan.price_annual && (
+                  <div class="text-xs text-zinc-500">
+                    or ${plan.price_annual}/year
+                    <span class="ml-1">
+                      (save {Math.round((1 - (plan.price_annual / (plan.price_monthly * 12))) * 100)}%)
+                    </span>
+                  </div>
+                )}
+                {plan.price_per_unit && plan.included_units && (
+                  <p class="mt-1 text-xs text-zinc-400">
+                    ({plan.included_units} {plan.scaling_unit}{plan.included_units > 1 ? 's' : ''} included)
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Plan Limits - Don't show limits for free plans with zero values */}
+          {(plan.max_users || plan.max_storage_gb || plan.max_projects) &&
+           !(plan.name.toLowerCase() === 'free' && !plan.price_monthly && !plan.price_annual) && (
+            <div class="mb-4 space-y-2 text-sm">
+              {plan.max_users && plan.max_users > 0 && (
+                <div class="flex justify-between text-zinc-300">
+                  <span>Users:</span>
+                  <span class="font-medium">{plan.max_users === 999999 ? 'Unlimited' : plan.max_users}</span>
+                </div>
+              )}
+              {plan.max_storage_gb && plan.max_storage_gb > 0 && (
+                <div class="flex justify-between text-zinc-300">
+                  <span>Storage:</span>
+                  <span class="font-medium">{plan.max_storage_gb} GB</span>
+                </div>
+              )}
+              {plan.max_projects && plan.max_projects > 0 && (
+                <div class="flex justify-between text-zinc-300">
+                  <span>Projects:</span>
+                  <span class="font-medium">{plan.max_projects === 999999 ? 'Unlimited' : plan.max_projects}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Plan Features */}
+          {(plan.includes_sso || plan.includes_api || plan.includes_sla || plan.includes_priority_support) && (
+            <div class="space-y-2">
+              {plan.includes_sso && (
+                <div class="flex items-center gap-2 text-sm text-zinc-300">
+                  <CheckIcon class="h-4 w-4 text-green-500" />
+                  <span>SSO</span>
+                </div>
+              )}
+              {plan.includes_api && (
+                <div class="flex items-center gap-2 text-sm text-zinc-300">
+                  <CheckIcon class="h-4 w-4 text-green-500" />
+                  <span>API Access</span>
+                </div>
+              )}
+              {plan.includes_sla && (
+                <div class="flex items-center gap-2 text-sm text-zinc-300">
+                  <CheckIcon class="h-4 w-4 text-green-500" />
+                  <span>SLA</span>
+                </div>
+              )}
+              {plan.includes_priority_support && (
+                <div class="flex items-center gap-2 text-sm text-zinc-300">
+                  <CheckIcon class="h-4 w-4 text-green-500" />
+                  <span>Priority Support</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* Legacy Pricing Tiers (Fallback) */}
+  {!hasSMPPricing && hasLegacyPricing && (
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {legacy_pricing.tiers.map((tier) => (
+        <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-4 hover:border-zinc-600 transition">
+          <div class="mb-4 border-b border-zinc-800 pb-4">
+            <h3 class="mb-2 text-lg font-semibold text-zinc-100">{tier.name}</h3>
+            {tier.price ? (
+              <div>
+                <p class="text-xl font-bold text-zinc-100">{tier.price}</p>
+                {tier.billing_period && (
+                  <p class="text-xs text-zinc-500 capitalize">{tier.billing_period}</p>
+                )}
+              </div>
+            ) : (
+              <p class="text-sm font-medium text-zinc-400">Contact Sales</p>
+            )}
+          </div>
+
+          {tier.features && tier.features.length > 0 && (
+            <ul class="space-y-2">
+              {tier.features.map((feature) => (
+                <li class="flex items-start gap-2 text-sm text-zinc-300">
+                  <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* Additional Pricing Notes */}
+  {hasSMPPricing && (
+    <div class="mt-6 space-y-2 border-t border-zinc-800 pt-4">
+      {smp_pricing.min_seats && (
+        <p class="text-xs text-zinc-400">
+          <span class="font-medium">Minimum seats:</span> {smp_pricing.min_seats}
+        </p>
+      )}
+      {smp_pricing.implementation_fee && (
+        <p class="text-xs text-zinc-400">
+          <span class="font-medium">Implementation fee:</span> ${smp_pricing.implementation_fee} (one-time)
+        </p>
+      )}
+      {smp_pricing.discounts_available && smp_pricing.discounts_available.length > 0 && (
+        <div class="flex flex-wrap gap-2">
+          {smp_pricing.discounts_available.map((discount) => (
+            <span class="inline-flex items-center rounded-full bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-400 border border-green-700">
+              {discountLabels[discount]}
+            </span>
+          ))}
+        </div>
+      )}
+      {smp_pricing.confidence && (
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-zinc-500">Data confidence:</span>
+          <span class={`font-medium ${confidenceColors[smp_pricing.confidence]}`}>
+            {smp_pricing.confidence.charAt(0).toUpperCase() + smp_pricing.confidence.slice(1)}
+          </span>
+        </div>
+      )}
+      {smp_pricing.pricing_page_url && (
+        <p class="text-xs">
+          <a
+            href={smp_pricing.pricing_page_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-hunt-500 hover:text-hunt-400 transition"
+          >
+            View official pricing page →
+          </a>
+        </p>
+      )}
+    </div>
+  )}
+</section>

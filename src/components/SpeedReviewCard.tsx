@@ -8,6 +8,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { Check, X } from 'lucide-react';
 
 interface KnowledgeCard {
   official_name: string;
@@ -490,9 +491,7 @@ export default function SpeedReviewCard({
               {(review.pros || []).map((pro, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
                   <span className="text-green-500 mt-0.5">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <Check className="h-4 w-4" />
                   </span>
                   <EditableField
                     value={pro}
@@ -513,9 +512,7 @@ export default function SpeedReviewCard({
               {(review.cons || []).map((con, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
                   <span className="text-red-500 mt-0.5">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="h-4 w-4" />
                   </span>
                   <EditableField
                     value={con}

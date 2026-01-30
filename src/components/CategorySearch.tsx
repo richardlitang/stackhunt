@@ -4,6 +4,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { Search, X, ChevronRight } from 'lucide-react';
 
 interface Category {
   slug: string;
@@ -46,27 +47,13 @@ export default function CategorySearch({ categories }: Props) {
             onChange={(e) => setQuery(e.target.value)}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-3 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           />
-          <svg
-            className="absolute left-3 top-3.5 h-5 w-5 text-zinc-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <Search className="absolute left-3 top-3.5 h-5 w-5 text-zinc-500" />
           {query && (
             <button
               onClick={() => setQuery('')}
               className="absolute right-3 top-3.5 text-zinc-400 hover:text-zinc-100"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="h-5 w-5" />
             </button>
           )}
         </div>
@@ -136,14 +123,7 @@ export default function CategorySearch({ categories }: Props) {
                     {category.name}
                   </h3>
                 </div>
-                <svg
-                  className="h-5 w-5 text-zinc-600 transition group-hover:text-zinc-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <ChevronRight className="h-5 w-5 text-zinc-600 transition group-hover:text-zinc-400" />
               </a>
             ))}
           </div>
@@ -153,19 +133,7 @@ export default function CategorySearch({ categories }: Props) {
       {/* Empty State */}
       {filteredCategories.length === 0 && (
         <div className="rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-12 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-zinc-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <Search className="mx-auto h-12 w-12 text-zinc-600" />
           <h3 className="mt-4 text-lg font-medium text-zinc-100">No categories found</h3>
           <p className="mt-2 text-sm text-zinc-500">
             Try a different search term

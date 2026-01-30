@@ -9,6 +9,7 @@
 import axios from 'axios';
 import type { SerperResponse } from '../types';
 import { classifySerperError } from '../errors';
+import { scrapeUrl, identifyPricingUrls } from '../utils/scraper';
 
 export interface SerperConfig {
   apiKey: string;
@@ -25,6 +26,8 @@ export interface SearchResult {
   reviewsSnippets: string[];
   pricingSnippets: string[];
   alternativesSnippets: string[];
+  companySnippets: string[];      // Company info, funding, history
+  technicalSnippets: string[];    // API, export, integrations
   rawResponses: SerperResponse[];
   sources: Array<{
     url: string;
@@ -33,6 +36,8 @@ export interface SearchResult {
     domain: string;
   }>;
   video?: VideoResult;
+  // Deep-dive content for pricing pages (full markdown, not just snippets)
+  pricingDeepContent?: string;
 }
 
 export class SerperService {
@@ -155,7 +160,20 @@ export class SerperService {
   }
 
   /**
-   * Scout for tool information with 3 specialized queries + video search
+   * Scout for tool information with 6 specialized queries + video search + deep scraping
+   *
+   * Queries cover:
+   * 1. Reviews and user feedback
+   * 2. Pricing and features
+   * 3. Pricing comparison (annual vs monthly) - catches hidden annual pricing
+   * 4. Alternatives and competitors
+   * 5. Company info (funding, founded, HQ)
+   * 6. Technical capabilities (API, export, integrations)
+   *
+   * Deep Scraping:
+   * - Identifies pricing pages from results
+   * - Fetches full page content via Jina.ai Reader
+   * - Returns markdown for LLM to extract pricing tables
    */
   async scout(
     toolName: string,
@@ -164,8 +182,11 @@ export class SerperService {
   ): Promise<SearchResult> {
     const queries = [
       `${toolName} reviews ${contextTitle || ''}`.trim(),
-      `${toolName} pricing features`,
-      `${toolName} alternatives comparison`,
+      `${toolName} pricing plans features`,
+      `${toolName} pricing annual vs monthly cost`, // NEW: Catches comparison snippets
+      `${toolName} alternatives competitors vs`,
+      `${toolName} company founded funding headquarters`,
+      `${toolName} API integrations data export import`,
     ];
 
     // Execute searches in parallel (with retry if provided)
@@ -205,13 +226,44 @@ export class SerperService {
       }
     }
 
+    // DEEP DIVE: Scrape pricing pages for full content
+    // Combine results from pricing queries (index 1 and 2)
+    const pricingResults = [
+      ...(results[1]?.organic || []),
+      ...(results[2]?.organic || []),
+    ];
+    const pricingUrls = identifyPricingUrls(pricingResults, 3);
+
+    let pricingDeepContent: string | undefined;
+    if (pricingUrls.length > 0) {
+      console.log(`[Serper] Deep diving into ${pricingUrls.length} pricing pages...`);
+      const scrapedPages = await Promise.all(
+        pricingUrls.map(async (url) => {
+          const content = await scrapeUrl(url);
+          if (content) {
+            return `\n=== PRICING PAGE: ${url} ===\n${content}\n`;
+          }
+          return null;
+        })
+      );
+
+      const validContent = scrapedPages.filter(Boolean).join('\n');
+      if (validContent) {
+        pricingDeepContent = validContent;
+        console.log(`[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingUrls.length} pricing pages successfully`);
+      }
+    }
+
     return {
       reviewsSnippets: extractSnippets(results[0]),
       pricingSnippets: extractSnippets(results[1]),
-      alternativesSnippets: extractSnippets(results[2]),
+      alternativesSnippets: extractSnippets(results[3]), // Shifted index
+      companySnippets: extractSnippets(results[4]),      // Shifted index
+      technicalSnippets: extractSnippets(results[5]),    // Shifted index
       rawResponses: results,
       sources: Array.from(sourceMap.values()),
       video: video || undefined,
+      pricingDeepContent,
     };
   }
 

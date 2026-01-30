@@ -18,6 +18,7 @@ import type {
   ClaimWithSource,
 } from '../types';
 import { slugify, classifySourceType } from '../utils';
+import { normalizeCategory } from '../../config/taxonomy';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -63,12 +64,70 @@ export async function executePersistencePhase(
   const analysis = ctx.analysis.analysis;
   const knowledgeCard = ctx.research.knowledgeCard;
 
-  // Build V2 specs from analysis
+  // Build V2/V3 specs from analysis + Knowledge Card
   const specs: Record<string, unknown> = {
     pricing_model: analysis.pricingType,
     platforms: analysis.graphTags?.platforms || [],
     integrations: knowledgeCard?.integrations || [],
   };
+
+  // V3: Add SMP pricing data if extracted
+  if (knowledgeCard?.smp_pricing) {
+    specs.pricing_data = knowledgeCard.smp_pricing;
+  }
+
+  // V3: Add SMP taxonomy data if extracted (with normalization)
+  if (knowledgeCard?.smp_taxonomy) {
+    const rawFunction = knowledgeCard.smp_taxonomy.primary_function;
+    const canonicalFunction = normalizeCategory(rawFunction);
+
+    specs.taxonomy = {
+      ...knowledgeCard.smp_taxonomy,
+      primary_function: canonicalFunction,
+    };
+
+    // Preserve original label if normalized (for display purposes)
+    if (canonicalFunction !== rawFunction) {
+      specs.taxonomy.original_function = rawFunction;
+      deps.log(`[Taxonomy] Normalized: "${rawFunction}" → "${canonicalFunction}"`);
+    }
+  }
+
+  // V3: Add SMP portability data if extracted
+  if (knowledgeCard?.smp_portability) {
+    specs.portability = knowledgeCard.smp_portability;
+  }
+
+  // V4: Add pros/cons to item (not just contextual reviews)
+  // This ensures every tool has pros/cons regardless of context
+  if (analysis.pros?.length || analysis.cons?.length) {
+    const sources = ctx.research.scoutResult.sources;
+
+    // Normalize pros with source attribution
+    const normalizedPros = (analysis.pros || []).map((claim: string | ClaimWithSource) =>
+      normalizeClaim(claim, sources, analysis.websiteUrl)
+    );
+
+    // Normalize cons with source attribution and guardrail
+    const rawNormalizedCons = (analysis.cons || []).map((claim: string | ClaimWithSource) =>
+      normalizeClaim(claim, sources, analysis.websiteUrl)
+    );
+
+    // Apply negative sentiment guardrail to cons
+    const validCons: ClaimWithSource[] = [];
+    for (const con of rawNormalizedCons) {
+      const validation = validateNegativeClaim(con, sources);
+      if (validation.isValid) {
+        validCons.push(con);
+      } else {
+        deps.log(`[Item Guardrail] Filtered: "${con.text.substring(0, 40)}..." - insufficient sources`);
+      }
+    }
+
+    specs.pros = normalizedPros;
+    specs.cons = validCons;
+    deps.log(`[Item Content] Saved ${normalizedPros.length} pros, ${validCons.length} cons`);
+  }
 
   // Build V2 metadata (Knowledge Card + extended fields)
   const metadata: Record<string, unknown> = {
@@ -105,6 +164,9 @@ export async function executePersistencePhase(
     // Migration 022: New fields
     data_confidence: dataConfidence,
     learning_curve: knowledgeCard?.learning_curve || null,
+    // Migration 025: SMP pricing verification
+    pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
+    pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
   };
 
   const { data: item, error: itemError } = await deps.supabase
@@ -116,6 +178,18 @@ export async function executePersistencePhase(
   if (itemError) throw new Error(`Failed to save item: ${itemError.message}`);
 
   deps.log(`Item saved: ${ctx.toolName} (id: ${item.id})`);
+
+  // Log persisted SMP data for QA
+  if (specs.pricing_data) {
+    const pd = specs.pricing_data as Record<string, unknown>;
+    deps.log(`[Persisted] SMP Pricing: model=${pd.model}, confidence=${pd.confidence}, plans=${(pd.plans as unknown[])?.length || 0}`);
+  }
+  if (specs.taxonomy) {
+    deps.log(`[Persisted] SMP Taxonomy: saved`);
+  }
+  if (specs.portability) {
+    deps.log(`[Persisted] SMP Portability: saved`);
+  }
 
   // Step 3: Create Knowledge Graph links
   await createGraphLinks(item.id, ctx.analysis.analysis.graphTags, deps);

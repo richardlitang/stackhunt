@@ -26,7 +26,7 @@ export type HuntSource = 'admin' | 'api' | 'suggestion' | 'competitor_scan' | 'u
 
 export type MarketSourceType = 'api' | 'scrape' | 'manual';
 
-export type CategoryType = 'function' | 'audience' | 'platform';
+export type CategoryType = 'function' | 'audience' | 'platform' | 'department';
 
 export type TitleTemplate = 'best' | 'top_10' | 'alternatives' | 'vs' | 'free' | 'open_source';
 
@@ -39,17 +39,137 @@ export type LearningCurve = 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
 
 export type AudienceFitType = 'ideal' | 'good' | 'neutral' | 'poor' | 'avoid';
 
+// V3: SaaS Management Platform (SMP) types
+export type SMPPricingModel = 'free' | 'flat' | 'per_seat' | 'per_unit' | 'tiered' | 'hybrid' | 'contact_sales';
+
+export type BillingCycle = 'monthly' | 'annual' | 'quarterly';
+
+export type ScalingUnit = 'user' | 'seat' | 'member' | 'GB' | 'message' | 'request' | 'project' | 'workspace';
+
+export type PricingConfidence = 'high' | 'medium' | 'low';
+
+export type MigrationDifficulty = 'trivial' | 'easy' | 'moderate' | 'hard' | 'locked';
+
+export type DiscountType = 'startup' | 'nonprofit' | 'education' | 'government' | 'annual_prepay';
+
+// ============================================================================
+// V3: SMP PRICING & TAXONOMY SCHEMAS (for SaaS Management Platform)
+// ============================================================================
+
+/**
+ * Individual pricing plan (for dropdown selection in future user dashboard)
+ * ID format: `${item_slug}-${slugify(name)}` for deterministic matching
+ */
+export interface SMPPlanData {
+  id: string;                              // Deterministic: `${item_slug}-${slugify(name)}`
+  name: string;                            // "Free", "Pro", "Enterprise"
+
+  // Pricing (null = not available at this cycle)
+  price_monthly: number | null;            // Monthly price, null if no monthly option
+  price_annual: number | null;             // Total annual price (NOT monthly equivalent)
+
+  // For per-seat/per-unit models
+  scaling_unit: ScalingUnit | null;
+  price_per_unit: number | null;           // e.g., $8.75/user
+  included_units: number | null;           // e.g., "Includes 5 users"
+
+  // Limits (for plan comparison)
+  max_users: number | null;                // null = unlimited
+  max_storage_gb: number | null;
+  max_projects: number | null;
+
+  // Key features (for plan comparison and recommendations)
+  includes_sso: boolean;
+  includes_api: boolean;
+  includes_sla: boolean;
+  includes_priority_support: boolean;
+
+  // Enterprise flag
+  is_enterprise: boolean;                  // true = "Contact Sales"
+}
+
+/**
+ * Structured pricing data for SMP cost calculations
+ * Stored in items.specs.pricing_data
+ */
+export interface SMPPricingData {
+  // Model & Currency
+  model: SMPPricingModel;
+  currency: 'USD' | 'EUR' | 'GBP';         // Strict enum, normalize to USD internally
+
+  // Billing options
+  billing_cycles: BillingCycle[];
+  annual_discount_pct: number | null;      // e.g., 20 = 20% off
+
+  // Plans array (the money data)
+  plans: SMPPlanData[];
+
+  // Hidden costs
+  min_seats: number | null;                // e.g., "Min 5 seats"
+  implementation_fee: number | null;       // One-time setup cost
+
+  // Verification & Confidence
+  pricing_page_url: string | null;         // For user reference & verification
+  last_verified: string | null;            // ISO date when pricing was verified
+  confidence: PricingConfidence;           // How certain we are about this data
+
+  // Discounts available
+  discounts_available: DiscountType[];
+}
+
+/**
+ * Taxonomy data for "spend by category" analysis
+ * Used for department budgets and function-based filtering
+ */
+export interface SMPTaxonomyData {
+  // Primary classification
+  primary_function: string;                // e.g., "Project Management", "CRM", "Chat"
+  secondary_functions: string[];           // e.g., ["Documentation", "Wiki"]
+
+  // Department ownership (who pays)
+  likely_departments: string[];            // e.g., ["Engineering", "Product"]
+}
+
+/**
+ * Portability data for switching recommendations
+ * Determines if switching is feasible and how hard it is
+ */
+export interface SMPPortabilityData {
+  // Export capabilities
+  has_data_export: boolean;
+  export_formats: string[];                // ['csv', 'json', 'xml', 'pdf']
+  has_api_export: boolean;                 // Can programmatically extract all data
+
+  // Migration analysis
+  migration_difficulty: MigrationDifficulty;
+  import_from: string[];                   // Tool slugs with import wizards FROM
+  export_to: string[];                     // Tool slugs with export wizards TO
+
+  // Contract terms (for switching timing)
+  min_commitment_months: number | null;    // null = month-to-month
+  cancellation_notice_days: number | null;
+}
+
 // ============================================================================
 // SPECS TYPES (Type-specific structured data in JSONB)
 // ============================================================================
 
 /** Specs schema for software tools */
 export interface ToolSpecs {
-  // Pricing
+  // Pricing (legacy - kept for backward compatibility)
   pricing_model?: PricingModel;
   starting_price?: string | null; // e.g., "$12/mo"
   free_tier_limits?: string | null; // e.g., "5 projects, 10 users"
   trial_days?: number | null; // e.g., 14
+
+  // V3: SMP Pricing Data (structured for cost calculations)
+  pricing_data?: SMPPricingData;
+
+  // V3: SMP Taxonomy (for spend-by-category analysis)
+  taxonomy?: SMPTaxonomyData;
+
+  // V3: SMP Portability (for switching recommendations)
+  portability?: SMPPortabilityData;
 
   // Platform & Integration
   integrations?: string[]; // e.g., ["Slack", "Zapier", "Google Drive"]
@@ -65,7 +185,7 @@ export interface ToolSpecs {
   api_available?: boolean;
   open_source_repo?: string | null; // GitHub URL if applicable
 
-  // V2.2: Migration & Portability
+  // V2.2: Migration & Portability (legacy - use portability for new data)
   data_import_from?: string[]; // Slugs of tools that can be imported from
   migration_out_difficulty?: 1 | 2 | 3 | 4 | 5; // 1=trivial, 5=very hard
   proprietary_features?: string[]; // Features that won't transfer on migration
@@ -193,6 +313,10 @@ export interface Item {
   // V2.2: Comparison infrastructure
   data_confidence: number | null; // 0.0-1.0, hedge claims below 0.8
   learning_curve: LearningCurve | null; // Time to basic proficiency
+
+  // V3: SMP pricing verification
+  pricing_verified_at: string | null; // When pricing was last verified
+  pricing_confidence: PricingConfidence | null; // How confident we are in pricing data
 
   created_at: string;
   updated_at: string;
@@ -542,6 +666,9 @@ export interface ItemInsert {
   // V2.2: Comparison infrastructure
   data_confidence?: number | null;
   learning_curve?: LearningCurve | null;
+  // V3: SMP pricing verification
+  pricing_verified_at?: string | null;
+  pricing_confidence?: PricingConfidence | null;
 }
 
 /** @deprecated Use ItemInsert instead */
