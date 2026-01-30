@@ -53,7 +53,7 @@ const schemas = [
   generateListSchema(
     context,
     sortedReviews.map((r, i) => ({
-      tool: r.tool,
+      tool: r.item,
       score: r.score || 0,
       position: i + 1,
     }))

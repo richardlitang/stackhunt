@@ -212,6 +212,11 @@ export interface ResearchOutput {
   tokensUsed: number;
   isDuplicate?: boolean;        // Gatekeeper: hard duplicate detected
   existingToolId?: string;      // If duplicate, reference to existing
+  video?: {                     // Best video found for the tool
+    videoId: string;
+    title: string;
+    channel: string;
+  };
 }
 
 /**

@@ -13,10 +13,12 @@ import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import SpiderwebGrid from '@/components/SpiderwebGrid.astro';
 import SentimentTags from '@/components/SentimentTags.astro';
+import SpecsGrid from '@/components/SpecsGrid.astro';
 import VoteWidget from '@/components/VoteWidget';
 import CompareButton from '@/components/CompareButton';
 import AddToStackButton from '@/components/AddToStackButton';
 import VideoEmbed from '@/components/VideoEmbed';
+import type { KnowledgeCard } from '@/lib/knowledge-card';
 import {
   getToolBySlugAndType,
   getToolContexts,
@@ -67,7 +69,15 @@ const sourceDomains = firstReview?.sources
     }))].slice(0, 5)
   : [];
 
-const meta = generateToolMeta(tool, tool.review_count);
+// SEO: noindex pages with insufficient data (thin content prevention)
+const hasKnowledgeCard = tool.metadata && Object.keys(tool.metadata).length > 0;
+const hasReviewContent = firstReview?.summary_markdown || (firstReview?.pros?.length > 0);
+const isThinContent = !hasKnowledgeCard && !hasReviewContent && !tool.avg_score;
+
+const meta = {
+  ...generateToolMeta(tool, tool.review_count),
+  noindex: isThinContent,
+};
 const schemas = [
   generateToolSchema(tool, primaryOffer, tool.review_count),
   generateBreadcrumbSchema([
@@ -296,6 +306,9 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
       <!-- Sidebar -->
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
+        {/* Specifications from Knowledge Card */}
+        <SpecsGrid specs={tool.metadata as KnowledgeCard} />
+
         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 class="mb-4 font-semibold text-slate-900">Quick Stats</h3>
           <dl class="space-y-3">

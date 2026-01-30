@@ -19,8 +19,29 @@ const PROTECTED_PREFIXES = ['/admin', '/api/admin'];
 // Login page is public
 const LOGIN_PAGE = '/admin/login';
 
+// Aggressive bot blocklist - these ignore robots.txt
+const BLOCKED_BOTS = [
+  'bytespider',
+  'meta-externalagent',
+  'facebookbot',
+  'gptbot',
+  'chatgpt-user',
+  'ccbot',
+  'anthropic-ai',
+  'claudebot',
+  'claude-web',
+  'amazonbot',
+  'omgilibot',
+];
+
 export const onRequest = defineMiddleware(async ({ request, cookies, redirect, url }, next) => {
   const pathname = url.pathname;
+
+  // Bot blocking - return 403 immediately to save CPU cycles
+  const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
+  if (BLOCKED_BOTS.some(bot => userAgent.includes(bot))) {
+    return new Response('Forbidden', { status: 403 });
+  }
 
   // Check if route requires protection
   const isProtectedRoute = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix));

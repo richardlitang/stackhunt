@@ -31,6 +31,12 @@ if (slugParts.length !== 2) {
 
 const [slugA, slugB] = slugParts.map(s => s.trim());
 
+// SEO: Enforce alphabetical ordering to prevent duplicate content
+// /compare/notion-vs-linear should redirect to /compare/linear-vs-notion
+if (slugA > slugB) {
+  return Astro.redirect(`/compare/${slugB}-vs-${slugA}`, 301);
+}
+
 // Fetch both tools with their reviews, offers, and metadata (Knowledge Cards)
 const { data: tools } = await supabase
   .from('tools')

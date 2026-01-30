@@ -1,19 +1,64 @@
 # StackHunt robots.txt
 
 User-agent: *
-
-# Allow all public content
 Allow: /
 
-# Block admin pages
+# --- The "Good" Crawlers (Allow) ---
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# --- AI Scrapers (Block) ---
+# They take your data and give no traffic back
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Omgilibot
+Disallow: /
+
+# --- Protected Routes ---
+User-agent: *
 Disallow: /admin/
 Disallow: /admin
-
-# Block API routes
 Disallow: /api/
-
-# Block affiliate redirect tracking (prevent link scheme perception)
 Disallow: /go/
 
-# Sitemap location
+# --- Crawl Rate Limiting ---
+User-agent: *
+Crawl-delay: 5
+
+# Sitemap
 Sitemap: https://stackhunt.io/sitemap-index.xml

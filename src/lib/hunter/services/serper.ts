@@ -14,6 +14,13 @@ export interface SerperConfig {
   apiKey: string;
 }
 
+export interface VideoResult {
+  videoId: string;
+  title: string;
+  channel: string;
+  duration?: string;
+}
+
 export interface SearchResult {
   reviewsSnippets: string[];
   pricingSnippets: string[];
@@ -25,6 +32,7 @@ export interface SearchResult {
     snippet: string;
     domain: string;
   }>;
+  video?: VideoResult;
 }
 
 export class SerperService {
@@ -57,7 +65,97 @@ export class SerperService {
   }
 
   /**
-   * Scout for tool information with 3 specialized queries
+   * Search for YouTube videos
+   */
+  async searchVideos(query: string): Promise<VideoResult | null> {
+    try {
+      const response = await axios.post<{
+        videos?: Array<{
+          title: string;
+          link: string;
+          channel: string;
+          duration?: string;
+        }>;
+      }>(
+        'https://google.serper.dev/videos',
+        { q: query, num: 5 },
+        {
+          headers: {
+            'X-API-KEY': this.apiKey,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000,
+        }
+      );
+
+      // Find best video: prefer official channels, demos, reviews, tutorials
+      const videos = response.data.videos || [];
+      const priorityKeywords = ['official', 'demo', 'review', 'tutorial', 'walkthrough', 'overview', 'getting started'];
+
+      // Score and sort videos
+      const scoredVideos = videos
+        .filter(v => v.link.includes('youtube.com/watch'))
+        .map(v => {
+          let score = 0;
+          const titleLower = v.title.toLowerCase();
+          const channelLower = v.channel.toLowerCase();
+
+          // Boost for priority keywords
+          for (const keyword of priorityKeywords) {
+            if (titleLower.includes(keyword)) score += 2;
+          }
+
+          // Boost for official channels (channel name matches query)
+          const queryWords = query.toLowerCase().split(' ');
+          for (const word of queryWords) {
+            if (word.length > 3 && channelLower.includes(word)) {
+              score += 3; // Strong preference for official channels
+            }
+          }
+
+          // Slight penalty for very long videos (likely full courses)
+          if (v.duration) {
+            const match = v.duration.match(/(\d+):(\d+)/);
+            if (match) {
+              const minutes = parseInt(match[1]);
+              if (minutes > 30) score -= 1;
+              if (minutes >= 5 && minutes <= 15) score += 1; // Sweet spot
+            }
+          }
+
+          return { ...v, score };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      if (scoredVideos.length === 0) return null;
+
+      const best = scoredVideos[0];
+      const videoId = this.extractYouTubeId(best.link);
+
+      if (!videoId) return null;
+
+      return {
+        videoId,
+        title: best.title,
+        channel: best.channel,
+        duration: best.duration,
+      };
+    } catch {
+      // Video search is optional - don't fail the whole hunt
+      return null;
+    }
+  }
+
+  /**
+   * Extract YouTube video ID from URL
+   */
+  private extractYouTubeId(url: string): string | null {
+    const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Scout for tool information with 3 specialized queries + video search
    */
   async scout(
     toolName: string,
@@ -70,13 +168,18 @@ export class SerperService {
       `${toolName} alternatives comparison`,
     ];
 
-    // Execute searches (with retry if provided)
-    const results = await Promise.all(
-      queries.map((q) => {
-        const searchFn = () => this.search(q);
-        return withRetry ? withRetry(searchFn, `Search: ${q}`) : searchFn();
-      })
-    );
+    // Execute searches in parallel (with retry if provided)
+    const [results, video] = await Promise.all([
+      // Web searches
+      Promise.all(
+        queries.map((q) => {
+          const searchFn = () => this.search(q);
+          return withRetry ? withRetry(searchFn, `Search: ${q}`) : searchFn();
+        })
+      ),
+      // Video search (runs in parallel with web searches)
+      this.searchVideos(`${toolName} demo tutorial overview`),
+    ]);
 
     // Include URL in snippets so AI can cite sources
     const extractSnippets = (response: SerperResponse): string[] =>
@@ -108,6 +211,7 @@ export class SerperService {
       alternativesSnippets: extractSnippets(results[2]),
       rawResponses: results,
       sources: Array.from(sourceMap.values()),
+      video: video || undefined,
     };
   }
 
