@@ -89,7 +89,4 @@
     --chart-5: oklch(0.645 0.246 16.439);
   }
 
-  body {
-    @apply bg-background text-foreground;
-  }
 }
