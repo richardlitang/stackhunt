@@ -18,7 +18,9 @@ import VoteWidget from '@/components/VoteWidget';
 import CompareButton from '@/components/CompareButton';
 import AddToStackButton from '@/components/AddToStackButton';
 import VideoEmbed from '@/components/VideoEmbed';
+import AlternativeCard from '@/components/AlternativeCard.astro';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
+import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
 import {
   getToolBySlugAndType,
   getToolContexts,
@@ -53,15 +55,44 @@ const tags = await getToolTags(tool.id);
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
 const firstReview = tool.reviews?.[0];
 
-// Fetch similar tools from same category
-const { data: similarTools } = tool.category_id ? await supabase
+// Fetch alternatives with data needed for micro-diffs
+const { data: alternatives } = tool.category_id ? await supabase
   .from('items')
-  .select('id, name, slug, logo_url, short_description, avg_score, pricing_type')
+  .select('id, name, slug, logo_url, short_description, avg_score, pricing_type, learning_curve, base_score, specs')
   .eq('category_id', tool.category_id)
   .eq('type', 'tool')
   .neq('id', tool.id)
   .order('avg_score', { ascending: false, nullsFirst: false })
-  .limit(4) : { data: [] };
+  .limit(6) : { data: [] };
+
+// Compute micro-diffs for alternatives (Layer 2 - Computed)
+const microDiffs = alternatives?.length
+  ? computeMicroDiffs(
+      { slug: tool.slug, name: tool.name, pricing_type: tool.pricing_type, learning_curve: tool.learning_curve, base_score: tool.base_score, specs: tool.specs },
+      alternatives.map(alt => ({ slug: alt.slug, name: alt.name, pricing_type: alt.pricing_type, learning_curve: alt.learning_curve, base_score: alt.base_score, specs: alt.specs }))
+    )
+  : new Map();
+
+// Fetch curated verdicts for alternatives (Layer 1 - Human Intelligence)
+const altSlugs = alternatives?.map(a => a.slug) || [];
+const curatedVerdicts = new Map<string, string>();
+
+if (altSlugs.length > 0) {
+  // Query comparison_insights where either slug is our tool
+  const { data: insights } = await supabase
+    .from('comparison_insights')
+    .select('item_a_slug, item_b_slug, verdict')
+    .or(`item_a_slug.eq.${tool.slug},item_b_slug.eq.${tool.slug}`)
+    .not('verdict', 'is', null);
+
+  for (const insight of insights || []) {
+    // Determine which slug is the alternative
+    const altSlug = insight.item_a_slug === tool.slug ? insight.item_b_slug : insight.item_a_slug;
+    if (altSlugs.includes(altSlug) && insight.verdict) {
+      curatedVerdicts.set(altSlug, insight.verdict);
+    }
+  }
+}
 
 const sourceDomains = firstReview?.sources
   ? [...new Set((firstReview.sources as Array<{domain: string}>).map(s => {
@@ -368,13 +399,13 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       </div>
     </div>
 
-    {/* Similar Tools */}
-    {similarTools && similarTools.length > 0 && (
+    {/* Alternatives Section - Waterfall Strategy */}
+    {alternatives && alternatives.length > 0 && (
       <div class="mt-16">
         <div class="mb-6 flex items-end justify-between">
           <div>
-            <h2 class="text-2xl font-semibold text-zinc-100">Similar Tools</h2>
-            <p class="mt-1 text-sm text-zinc-400">Other {tool.category?.name.toLowerCase()} tools you might like</p>
+            <h2 class="text-2xl font-semibold text-zinc-100">Alternatives to {tool.name}</h2>
+            <p class="mt-1 text-sm text-zinc-400">Other {tool.category?.name.toLowerCase()} tools to consider</p>
           </div>
           {tool.category && (
             <a href={`/categories/${tool.category.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
@@ -383,31 +414,14 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           )}
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {similarTools.map((similar) => (
-            <a href={`/tool/${similar.slug}`} class="group rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:border-zinc-600 hover:shadow-md">
-              <div class="flex items-start gap-3">
-                {similar.logo_url ? (
-                  <img src={similar.logo_url} alt={similar.name} class="h-10 w-10 rounded-lg object-contain" loading="lazy" />
-                ) : (
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-zinc-500">
-                    {similar.name.charAt(0)}
-                  </div>
-                )}
-                <div class="flex-1 min-w-0">
-                  <h3 class="font-medium text-zinc-100 group-hover:text-hunt-600 line-clamp-1">{similar.name}</h3>
-                  {similar.avg_score > 0 && (
-                    <div class="mt-1 flex items-center gap-1">
-                      <span class="text-xs font-medium text-zinc-300">{Math.round(similar.avg_score)}</span>
-                      <span class="text-xs text-zinc-500">/100</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {similar.short_description && (
-                <p class="mt-2 text-xs text-zinc-300 line-clamp-2">{similar.short_description}</p>
-              )}
-            </a>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {alternatives.map((alt) => (
+            <AlternativeCard
+              main={{ slug: tool.slug, name: tool.name, pricing_type: tool.pricing_type, learning_curve: tool.learning_curve, base_score: tool.base_score }}
+              alt={alt}
+              curatedVerdict={curatedVerdicts.get(alt.slug)}
+              computedDiff={microDiffs.get(alt.slug)}
+            />
           ))}
         </div>
       </div>

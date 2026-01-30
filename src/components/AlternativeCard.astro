@@ -1,0 +1,118 @@
+---
+/**
+ * AlternativeCard - Waterfall Strategy for Alternatives
+ *
+ * Three-layer intelligence:
+ * 1. BEST: Human-curated verdict from comparison_insights table
+ * 2. COMPUTED: Auto-generated micro-diff from comparator.ts
+ * 3. FALLBACK: Generic "Compare" link
+ *
+ * @module components/AlternativeCard
+ */
+
+import Logo from './Logo.astro';
+import ScoreBadge from './ScoreBadge.astro';
+import PricingBadge from './PricingBadge.astro';
+
+interface Props {
+  /** The main item we're comparing FROM */
+  main: {
+    slug: string;
+    name: string;
+    pricing_type: string;
+    learning_curve?: string | null;
+    base_score?: number | null;
+  };
+  /** The alternative item */
+  alt: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_url?: string | null;
+    short_description?: string | null;
+    avg_score?: number | null;
+    pricing_type: string;
+    learning_curve?: string | null;
+    base_score?: number | null;
+  };
+  /** Curated insight (if available) - Layer 1 */
+  curatedVerdict?: string | null;
+  /** Computed micro-diffs - Layer 2 */
+  computedDiff?: {
+    priceDiff?: string; // e.g., "Free vs $15/mo"
+    learningDiff?: string; // e.g., "Easier to learn"
+    featureDiff?: string; // e.g., "More integrations"
+  } | null;
+}
+
+const { main, alt, curatedVerdict, computedDiff } = Astro.props;
+
+// Determine compare URL (alphabetical order)
+const [slugA, slugB] = main.slug < alt.slug ? [main.slug, alt.slug] : [alt.slug, main.slug];
+const compareUrl = `/compare/${slugA}-vs-${slugB}`;
+
+// Determine what to show (waterfall)
+const showCurated = !!curatedVerdict;
+const showComputed = !showCurated && computedDiff && (computedDiff.priceDiff || computedDiff.learningDiff || computedDiff.featureDiff);
+const showFallback = !showCurated && !showComputed;
+
+// Get a single most relevant micro-diff for compact display
+const microDiff = computedDiff?.priceDiff || computedDiff?.learningDiff || computedDiff?.featureDiff;
+---
+
+<a
+  href={`/tool/${alt.slug}`}
+  class="group flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:border-zinc-600 hover:shadow-md"
+>
+  <div class="flex items-start gap-3">
+    <Logo domain={alt.logo_url} name={alt.name} size="md" class="shrink-0 rounded-lg" />
+    <div class="flex-1 min-w-0">
+      <h3 class="font-medium text-zinc-100 group-hover:text-hunt-500 line-clamp-1">{alt.name}</h3>
+      <div class="mt-1 flex items-center gap-2">
+        <PricingBadge type={alt.pricing_type} size="sm" />
+        {alt.avg_score && alt.avg_score > 0 && (
+          <span class="text-xs text-zinc-400">{Math.round(alt.avg_score)}/100</span>
+        )}
+      </div>
+    </div>
+  </div>
+
+  {/* Layer 1: Curated Verdict (Expert insight) */}
+  {showCurated && (
+    <div class="mt-3 flex items-start gap-2 rounded-lg bg-purple-900/30 px-3 py-2 border border-purple-700/50">
+      <svg class="h-4 w-4 mt-0.5 shrink-0 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+      </svg>
+      <p class="text-xs text-purple-200 line-clamp-2">{curatedVerdict}</p>
+    </div>
+  )}
+
+  {/* Layer 2: Computed Micro-Diff */}
+  {showComputed && microDiff && (
+    <div class="mt-3 flex items-center gap-2 text-xs text-zinc-400">
+      <svg class="h-3.5 w-3.5 text-hunt-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+      </svg>
+      <span class="line-clamp-1">{microDiff}</span>
+    </div>
+  )}
+
+  {/* Layer 3: Fallback */}
+  {showFallback && alt.short_description && (
+    <p class="mt-2 text-xs text-zinc-400 line-clamp-2">{alt.short_description}</p>
+  )}
+
+  {/* Compare CTA */}
+  <div class="mt-3 pt-3 border-t border-zinc-800 flex items-center justify-between">
+    <a
+      href={compareUrl}
+      class="text-xs text-hunt-400 hover:text-hunt-300 transition"
+      onclick={(e: MouseEvent) => e.stopPropagation()}
+    >
+      Compare vs {main.name} →
+    </a>
+    {alt.learning_curve && (
+      <span class="text-xs text-zinc-500 capitalize">~{alt.learning_curve} to learn</span>
+    )}
+  </div>
+</a>
