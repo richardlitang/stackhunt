@@ -9,6 +9,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Check, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface KnowledgeCard {
   official_name: string;
@@ -161,9 +163,6 @@ function EditableField({
   };
 
   if (isEditing) {
-    const baseClass =
-      'w-full rounded border border-hunt-300 px-2 py-1 text-sm focus:border-hunt-500 focus:outline-none focus:ring-1 focus:ring-hunt-500';
-
     return type === 'textarea' ? (
       <textarea
         ref={inputRef as React.RefObject<HTMLTextAreaElement>}
@@ -171,18 +170,18 @@ function EditableField({
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
-        className={`${baseClass} ${className}`}
+        className={`w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${className}`}
         rows={3}
       />
     ) : (
-      <input
+      <Input
         ref={inputRef as React.RefObject<HTMLInputElement>}
         type={type}
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
-        className={`${baseClass} ${className}`}
+        className={className}
       />
     );
   }
@@ -344,7 +343,7 @@ export default function SpeedReviewCard({
               <h2 className="text-xl font-bold text-slate-900">{tool.name}</h2>
               {/* Editable Score */}
               {editingScore ? (
-                <input
+                <Input
                   ref={scoreInputRef}
                   type="number"
                   min={0}
@@ -359,7 +358,7 @@ export default function SpeedReviewCard({
                       setEditingScore(false);
                     }
                   }}
-                  className="w-20 rounded-lg border border-hunt-300 px-2 py-1 text-center font-semibold focus:border-hunt-500 focus:outline-none focus:ring-1 focus:ring-hunt-500"
+                  className="w-20 text-center font-semibold"
                 />
               ) : (
                 <button
@@ -568,22 +567,23 @@ export default function SpeedReviewCard({
             Full editor →
           </a>
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => onReject(review.id)}
               disabled={isLoading}
-              className="rounded-lg border border-red-200 bg-white px-6 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 transition disabled:opacity-50"
+              variant="outline"
+              className="border-red-200 text-red-700 hover:bg-red-50"
             >
               Reject
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => onPublish(review.id)}
               disabled={isLoading}
-              className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition disabled:opacity-50"
+              className="bg-green-600 hover:bg-green-700"
             >
               Publish
-            </button>
+            </Button>
           </div>
         </div>
       </div>

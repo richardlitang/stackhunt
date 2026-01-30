@@ -3,6 +3,10 @@ import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   site: process.env.PUBLIC_SITE_URL || 'https://stackhunt.io',
@@ -21,6 +25,11 @@ export default defineConfig({
     }),
   ],
   vite: {
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     ssr: {
       noExternal: ['lucide-react'],
     },
