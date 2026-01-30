@@ -19,9 +19,8 @@
  */
 
 import { parseArgs } from 'util';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
-import type { Database } from '../src/types/database';
 
 // Load environment variables
 config();
@@ -106,7 +105,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   process.exit(1);
 }
 
-const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 // Configuration defaults
 const DEFAULT_STALE_DAYS = 60;

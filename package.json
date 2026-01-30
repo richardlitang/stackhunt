@@ -12,6 +12,7 @@
     "queue:worker": "npx tsx scripts/queue-worker.ts",
     "qa": "npx tsx scripts/qa-check.ts",
     "qa:improve": "npx tsx scripts/qa-improve.ts",
+    "qa:quality-review": "npx tsx scripts/qa-quality-review.ts",
     "verify-corrections": "npx tsx scripts/verify-corrections.ts",
     "verify-affiliates": "npx tsx scripts/verify-affiliate-links.ts",
     "discover-topics": "npx tsx scripts/discover-topics.ts",
