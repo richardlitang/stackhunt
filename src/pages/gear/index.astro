@@ -1,0 +1,188 @@
+---
+/**
+ * Gear Index - /gear
+ * Browse all hardware items
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ToolCard from '@/components/ToolCard.astro';
+import { supabase, getCategories } from '@/lib/supabase';
+import { getCanonicalUrl } from '@/lib/utils';
+
+// Cache for 5 minutes (SSR)
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+
+const ITEMS_PER_PAGE = 24;
+
+const url = new URL(Astro.request.url);
+const categoryFilter = url.searchParams.get('category');
+const sortBy = url.searchParams.get('sort') || 'score';
+const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
+const offset = (page - 1) * ITEMS_PER_PAGE;
+
+// Count query - filter by type='gear'
+let countQuery = supabase
+  .from('tools')
+  .select('id', { count: 'exact', head: true })
+  .eq('type', 'gear');
+
+if (categoryFilter) {
+  countQuery = countQuery.eq('category_id', categoryFilter);
+}
+
+const { count: totalCount } = await countQuery;
+const totalPages = Math.ceil((totalCount || 0) / ITEMS_PER_PAGE);
+
+// Fetch gear with pagination
+let query = supabase
+  .from('tools')
+  .select(`
+    id, name, slug, logo_url, short_description, avg_score, pricing_type, type,
+    category:categories(name, slug)
+  `)
+  .eq('type', 'gear');
+
+if (categoryFilter) {
+  query = query.eq('category.slug', categoryFilter);
+}
+
+if (sortBy === 'score') {
+  query = query.order('avg_score', { ascending: false, nullsFirst: false });
+} else if (sortBy === 'name') {
+  query = query.order('name', { ascending: true });
+} else if (sortBy === 'newest') {
+  query = query.order('created_at', { ascending: false });
+}
+
+const { data: gear } = await query.range(offset, offset + ITEMS_PER_PAGE - 1);
+const categories = await getCategories();
+
+function buildPageUrl(pageNum: number) {
+  const params = new URLSearchParams();
+  if (categoryFilter) params.set('category', categoryFilter);
+  if (sortBy !== 'score') params.set('sort', sortBy);
+  if (pageNum > 1) params.set('page', pageNum.toString());
+  const queryString = params.toString();
+  return queryString ? `/gear?${queryString}` : '/gear';
+}
+
+const meta = {
+  title: page > 1
+    ? `Hardware & Gear - Page ${page} | StackHunt`
+    : 'Hardware & Gear - Browse Our Directory | StackHunt',
+  description: 'Browse our complete directory of hardware and gear. Compare specs, read reviews, and find the best gear for your setup.',
+  canonical: getCanonicalUrl(buildPageUrl(page)),
+  ogType: 'website' as const,
+};
+---
+
+<BaseLayout meta={meta}>
+  <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <header class="mb-8">
+      <div class="flex items-center gap-3">
+        <h1 class="text-3xl font-semibold text-zinc-100">Hardware & Gear</h1>
+        <span class="flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+          </svg>
+          Hardware
+        </span>
+      </div>
+      <p class="mt-2 text-zinc-400">
+        {totalCount && totalCount > 0
+          ? `Browse ${totalCount} hardware items in our directory`
+          : 'Hardware reviews coming soon'}
+      </p>
+    </header>
+
+    {gear && gear.length > 0 ? (
+      <>
+        <div class="mb-8 flex flex-wrap items-center gap-4">
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-zinc-400">Category:</label>
+            <select
+              id="category-filter"
+              class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              onchange="window.location.href = this.value ? `?category=${this.value}&sort=${new URLSearchParams(window.location.search).get('sort') || 'score'}` : `?sort=${new URLSearchParams(window.location.search).get('sort') || 'score'}`"
+            >
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option value={cat.slug} selected={categoryFilter === cat.slug}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-zinc-400">Sort by:</label>
+            <select
+              id="sort-filter"
+              class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              onchange="window.location.href = `?category=${new URLSearchParams(window.location.search).get('category') || ''}&sort=${this.value}`"
+            >
+              <option value="score" selected={sortBy === 'score'}>Highest Score</option>
+              <option value="name" selected={sortBy === 'name'}>Name (A-Z)</option>
+              <option value="newest" selected={sortBy === 'newest'}>Newest</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {gear.map((item) => (
+            <ToolCard tool={item} category={item.category} />
+          ))}
+        </div>
+
+        {totalPages > 1 && (
+          <nav class="mt-10 flex items-center justify-center gap-2" aria-label="Pagination">
+            {page > 1 ? (
+              <a href={buildPageUrl(page - 1)} class="rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100">
+                ← Previous
+              </a>
+            ) : (
+              <span class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed">
+                ← Previous
+              </span>
+            )}
+            <div class="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1))
+                .map((p, idx, arr) => (
+                  <>
+                    {idx > 0 && arr[idx - 1] !== p - 1 && <span class="px-2 text-zinc-600">...</span>}
+                    {p === page ? (
+                      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 text-sm font-medium text-white">{p}</span>
+                    ) : (
+                      <a href={buildPageUrl(p)} class="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900/50 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100">{p}</a>
+                    )}
+                  </>
+                ))}
+            </div>
+            {page < totalPages ? (
+              <a href={buildPageUrl(page + 1)} class="rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100">
+                Next →
+              </a>
+            ) : (
+              <span class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed">
+                Next →
+              </span>
+            )}
+          </nav>
+        )}
+      </>
+    ) : (
+      <div class="rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-zinc-100">No gear yet</h3>
+        <p class="mt-2 text-sm text-zinc-500">
+          Hardware reviews are coming soon. Check back later!
+        </p>
+        <a href="/tools" class="mt-4 inline-block text-sm text-indigo-400 hover:text-indigo-300">
+          Browse software tools →
+        </a>
+      </div>
+    )}
+  </div>
+</BaseLayout>

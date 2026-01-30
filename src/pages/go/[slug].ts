@@ -106,6 +106,8 @@ export const GET: APIRoute = async ({ params, request }) => {
       headers: {
         Location: redirectUrl,
         'Cache-Control': 'private, max-age=0',
+        // Prevent search engines from indexing redirect URLs
+        'X-Robots-Tag': 'noindex, nofollow',
         // Indicate this is an affiliate redirect (for transparency)
         'X-Redirect-Type': offer?.is_affiliate ? 'affiliate' : 'direct',
       },

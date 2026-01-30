@@ -1,13 +1,7 @@
 ---
 /**
- * Tool Detail Page - /tools/[slug]
- * The "Hub" in our Hub & Spoke model
- *
- * Features:
- * - ProductHunt-style layout
- * - SEO: SoftwareApplication JSON-LD
- * - Spiderweb internal linking to all contexts
- * - Affiliate CTA with proper disclosure
+ * Tool Detail Page - /tool/[slug] (singular)
+ * Software tools only (type='tool')
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -22,11 +16,12 @@ import SentimentTags from '@/components/SentimentTags.astro';
 import VoteWidget from '@/components/VoteWidget';
 import CompareButton from '@/components/CompareButton';
 import AddToStackButton from '@/components/AddToStackButton';
+import VideoEmbed from '@/components/VideoEmbed';
 import {
-  getToolBySlug,
+  getToolBySlugAndType,
   getToolContexts,
   getToolTags,
-  getAllToolSlugs,
+  getToolSlugsByType,
 } from '@/lib/supabase';
 import {
   generateToolMeta,
@@ -35,36 +30,25 @@ import {
 } from '@/lib/seo';
 import { simpleMarkdown } from '@/lib/utils';
 
-// Prerender for sitemap inclusion and performance
 export const prerender = true;
 
 export async function getStaticPaths() {
-  const slugs = await getAllToolSlugs();
+  const slugs = await getToolSlugsByType('tool');
   return slugs.map((slug) => ({ params: { slug } }));
 }
 
 const { slug } = Astro.params;
-
-// Fetch tool data
-const tool = await getToolBySlug(slug);
+const tool = await getToolBySlugAndType(slug, 'tool');
 
 if (!tool) {
   return Astro.redirect('/404');
 }
 
-// Fetch all contexts this tool appears in (the "Spiderweb")
 const contextLinks = await getToolContexts(tool.id);
-
-// Fetch Knowledge Graph tags
 const tags = await getToolTags(tool.id);
-
-// Get primary affiliate offer
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
-
-// Get the first review for pros/cons (or aggregate later)
 const firstReview = tool.reviews?.[0];
 
-// Extract unique source domains for display (text-only, no links)
 const sourceDomains = firstReview?.sources
   ? [...new Set((firstReview.sources as Array<{domain: string}>).map(s => {
       const domain = s.domain.replace(/\.(com|org|net|io|co)$/, '');
@@ -72,7 +56,6 @@ const sourceDomains = firstReview?.sources
     }))].slice(0, 5)
   : [];
 
-// Generate SEO
 const meta = generateToolMeta(tool, tool.review_count);
 const schemas = [
   generateToolSchema(tool, primaryOffer, tool.review_count),
@@ -80,7 +63,7 @@ const schemas = [
     { name: 'Home', url: '/' },
     { name: 'Tools', url: '/tools' },
     ...(tool.category ? [{ name: tool.category.name, url: `/categories/${tool.category.slug}` }] : []),
-    { name: tool.name, url: `/tools/${tool.slug}` },
+    { name: tool.name, url: `/tool/${tool.slug}` },
   ]),
 ];
 
@@ -88,7 +71,6 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
-  {/* FTC Affiliate Disclosure - Above the fold */}
   <AffiliateDisclosure variant="banner" hasAffiliateLinks={primaryOffer?.is_affiliate || false} />
 
   <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -112,15 +94,11 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     <!-- Hero Section -->
     <header class="mb-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 sm:p-8">
       <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-        <!-- Left: Logo & Info -->
         <div class="flex items-start gap-5">
           <Logo domain={tool.logo_url} name={tool.name} size="xl" class="shrink-0 rounded-2xl border border-slate-200 shadow-sm" />
-
           <div>
             <div class="flex items-center gap-3">
-              <h1 class="text-2xl font-bold text-slate-900 sm:text-3xl">
-                {tool.name}
-              </h1>
+              <h1 class="text-2xl font-bold text-slate-900 sm:text-3xl">{tool.name}</h1>
               {tool.is_verified && (
                 <span class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                   <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -130,30 +108,16 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
                 </span>
               )}
             </div>
-
-            {tool.short_description && (
-              <p class="mt-2 text-slate-600">{tool.short_description}</p>
-            )}
-
+            {tool.short_description && <p class="mt-2 text-slate-600">{tool.short_description}</p>}
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <PricingBadge type={tool.pricing_type} />
-
               {tool.category && (
-                <a
-                  href={`/categories/${tool.category.slug}`}
-                  class="text-sm text-slate-500 hover:text-hunt-500"
-                >
+                <a href={`/categories/${tool.category.slug}`} class="text-sm text-slate-500 hover:text-hunt-500">
                   {tool.category.name}
                 </a>
               )}
-
               {tool.website && (
-                <a
-                  href={tool.website}
-                  target="_blank"
-                  rel="noopener"
-                  class="flex items-center gap-1 text-sm text-slate-500 hover:text-hunt-500"
-                >
+                <a href={tool.website} target="_blank" rel="noopener" class="flex items-center gap-1 text-sm text-slate-500 hover:text-hunt-500">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                   </svg>
@@ -161,59 +125,27 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
                 </a>
               )}
             </div>
-
-            {/* Knowledge Graph Tags */}
             {(tags.functions.length > 0 || tags.audiences.length > 0 || tags.platforms.length > 0) && (
               <div class="mt-4 flex flex-wrap gap-2">
                 {tags.functions.map((tag) => (
-                  <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                    {tag.name}
-                  </span>
+                  <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">{tag.name}</span>
                 ))}
                 {tags.audiences.map((tag) => (
-                  <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                    {tag.name}
-                  </span>
+                  <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">{tag.name}</span>
                 ))}
                 {tags.platforms.map((tag) => (
-                  <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                    {tag.name}
-                  </span>
+                  <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">{tag.name}</span>
                 ))}
               </div>
             )}
           </div>
         </div>
-
-        <!-- Right: Score & CTA -->
         <div class="flex flex-col items-center gap-4 sm:items-end">
-          {tool.avg_score > 0 && (
-            <ScoreBadge score={Math.round(tool.avg_score)} size="lg" showLabel />
-          )}
-
-          {primaryOffer && (
-            <AffiliateButton offer={primaryOffer} toolName={tool.name} size="md" />
-          )}
-
+          {tool.avg_score > 0 && <ScoreBadge score={Math.round(tool.avg_score)} size="lg" showLabel />}
+          {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="md" />}
           <div class="flex gap-2">
-            <CompareButton
-              client:load
-              toolSlug={tool.slug}
-              toolName={tool.name}
-              toolLogo={tool.logo_url}
-              categorySlug={tool.category?.slug}
-              categoryName={tool.category?.name}
-            />
-            <AddToStackButton
-              client:load
-              toolSlug={tool.slug}
-              toolName={tool.name}
-              toolLogo={tool.logo_url}
-              pricing={{
-                starting_price: (tool.metadata as Record<string, unknown>)?.pricing?.starting_price ?? null,
-                model: (tool.metadata as Record<string, unknown>)?.pricing?.model ?? tool.pricing_type,
-              }}
-            />
+            <CompareButton client:load toolSlug={tool.slug} toolName={tool.name} toolLogo={tool.logo_url} categorySlug={tool.category?.slug} categoryName={tool.category?.name} />
+            <AddToStackButton client:load toolSlug={tool.slug} toolName={tool.name} toolLogo={tool.logo_url} pricing={{ starting_price: (tool.metadata as Record<string, unknown>)?.pricing?.starting_price ?? null, model: (tool.metadata as Record<string, unknown>)?.pricing?.model ?? tool.pricing_type }} />
           </div>
         </div>
       </div>
@@ -221,15 +153,17 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
     <!-- Main Content Grid -->
     <div class="grid gap-8 lg:grid-cols-3">
-      <!-- Left Column (2/3) -->
       <div class="space-y-8 lg:col-span-2">
-        <!-- Pros & Cons - Always show, even if empty -->
+        {/* Video Embed */}
+        {tool.video_id && (
+          <section>
+            <VideoEmbed client:visible id={tool.video_id} title={tool.video_title || `${tool.name} Overview`} />
+          </section>
+        )}
+
+        {/* Pros & Cons */}
         {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
-          <ProsCons
-            pros={firstReview.pros || []}
-            cons={firstReview.cons || []}
-            title="Pros & Cons"
-          />
+          <ProsCons pros={firstReview.pros || []} cons={firstReview.cons || []} title="Pros & Cons" />
         ) : (
           <section class="rounded-xl border border-slate-200 bg-white p-6">
             <h2 class="mb-4 text-lg font-semibold text-slate-900">Pros & Cons</h2>
@@ -243,36 +177,21 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           </section>
         )}
 
-        <!-- Review Summary -->
+        {/* Review Summary */}
         {firstReview?.summary_markdown && (
           <section class="rounded-xl border border-slate-200 bg-white p-6">
             <h2 class="mb-4 text-lg font-semibold text-slate-900">Our Analysis</h2>
-            <div
-              class="prose prose-slate prose-sm max-w-none"
-              set:html={simpleMarkdown(firstReview.summary_markdown)}
-            />
-
+            <div class="prose prose-slate prose-sm max-w-none" set:html={simpleMarkdown(firstReview.summary_markdown)} />
             {firstReview.sentiment_tags?.length > 0 && (
               <div class="mt-6 border-t border-slate-100 pt-4">
                 <SentimentTags tags={firstReview.sentiment_tags} />
               </div>
             )}
-
-            {/* Vote Widget for this review */}
             <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
               <span class="text-sm text-slate-500">Was this helpful?</span>
-              <VoteWidget
-                client:visible
-                reviewId={firstReview.id}
-                initialUpvotes={firstReview.upvotes}
-                initialDownvotes={firstReview.downvotes}
-                turnstileSiteKey={turnstileSiteKey}
-              />
+              <VoteWidget client:visible reviewId={firstReview.id} initialUpvotes={firstReview.upvotes} initialDownvotes={firstReview.downvotes} turnstileSiteKey={turnstileSiteKey} />
             </div>
-
-            {/* Sources & Suggest Edit */}
             <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-              {/* Sources - text only, no links to competitors */}
               {sourceDomains.length > 0 && (
                 <div class="flex items-center gap-2 text-xs text-slate-400">
                   <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -281,50 +200,34 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
                   <span>Sources: {sourceDomains.join(', ')}</span>
                 </div>
               )}
-
-              {/* Suggest Edit link */}
-              <button
-                type="button"
-                data-suggest-edit
-                data-tool-id={tool.id}
-                data-tool-name={tool.name}
-                class="text-xs text-slate-400 hover:text-hunt-600 transition"
-              >
+              <button type="button" data-suggest-edit data-tool-id={tool.id} data-tool-name={tool.name} class="text-xs text-slate-400 hover:text-hunt-600 transition">
                 See something wrong? Suggest an edit
               </button>
             </div>
           </section>
         )}
 
-        <!-- Detailed Description -->
+        {/* About */}
         {tool.long_description && (
           <section class="rounded-xl border border-slate-200 bg-white p-6">
             <h2 class="mb-4 text-lg font-semibold text-slate-900">About {tool.name}</h2>
-            <div
-              class="prose prose-slate max-w-none text-slate-700 leading-relaxed"
-              set:html={simpleMarkdown(tool.long_description)}
-            />
+            <div class="prose prose-slate max-w-none text-slate-700 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
           </section>
         )}
       </div>
 
-      <!-- Right Column (1/3) - Sidebar -->
+      <!-- Sidebar -->
       <div class="space-y-6">
-        <!-- Quick Stats -->
         <div class="rounded-xl border border-slate-200 bg-white p-5">
           <h3 class="mb-4 font-semibold text-slate-900">Quick Stats</h3>
           <dl class="space-y-3">
             <div class="flex justify-between">
               <dt class="text-sm text-slate-500">Overall Score</dt>
-              <dd class="text-sm font-medium text-slate-900">
-                {tool.avg_score > 0 ? `${Math.round(tool.avg_score)}/100` : 'N/A'}
-              </dd>
+              <dd class="text-sm font-medium text-slate-900">{tool.avg_score > 0 ? `${Math.round(tool.avg_score)}/100` : 'N/A'}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-slate-500">Pricing</dt>
-              <dd class="text-sm font-medium text-slate-900 capitalize">
-                {tool.pricing_type.replace('_', ' ')}
-              </dd>
+              <dd class="text-sm font-medium text-slate-900 capitalize">{tool.pricing_type.replace('_', ' ')}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-slate-500">Reviews</dt>
@@ -338,19 +241,12 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             )}
           </dl>
         </div>
-
-        <!-- Alternative Offers -->
         {tool.affiliate_offers && tool.affiliate_offers.length > 1 && (
           <div class="rounded-xl border border-slate-200 bg-white p-5">
             <h3 class="mb-4 font-semibold text-slate-900">Get {tool.name}</h3>
             <div class="space-y-3">
               {tool.affiliate_offers.map((offer) => (
-                <a
-                  href={offer.url}
-                  target="_blank"
-                  rel={offer.is_affiliate ? 'nofollow sponsored noopener' : 'noopener'}
-                  class="flex items-center justify-between rounded-lg border border-slate-100 p-3 transition hover:border-hunt-200 hover:bg-hunt-50"
-                >
+                <a href={offer.url} target="_blank" rel={offer.is_affiliate ? 'nofollow sponsored noopener' : 'noopener'} class="flex items-center justify-between rounded-lg border border-slate-100 p-3 transition hover:border-hunt-200 hover:bg-hunt-50">
                   <span class="text-sm font-medium text-slate-700">{offer.cta_text}</span>
                   <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -363,20 +259,10 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       </div>
     </div>
 
-    <!-- Spiderweb Section: All contexts this tool appears in -->
+    {/* Spiderweb */}
     {contextLinks && contextLinks.length > 0 && (
       <div class="mt-10">
-        <SpiderwebGrid
-          contexts={contextLinks.map((cl) => ({
-            id: cl.context.id,
-            title: cl.context.title,
-            slug: cl.context.slug,
-            score: cl.score,
-            tool_count: cl.context.tool_count,
-          }))}
-          currentToolName={tool.name}
-          limit={9}
-        />
+        <SpiderwebGrid contexts={contextLinks.map((cl) => ({ id: cl.context.id, title: cl.context.title, slug: cl.context.slug, score: cl.score, tool_count: cl.context.tool_count }))} currentToolName={tool.name} limit={9} />
       </div>
     )}
   </div>
@@ -392,10 +278,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           </svg>
         </button>
       </div>
-
       <form id="suggest-edit-form" class="space-y-4">
         <input type="hidden" name="tool_id" value={tool.id} />
-
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">What needs correcting?</label>
           <select name="field_name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20">
@@ -407,46 +291,20 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             <option value="other">Other</option>
           </select>
         </div>
-
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">What's the correct information?</label>
-          <textarea
-            name="correction_text"
-            rows="3"
-            required
-            placeholder="e.g., The pricing has changed to $15/month..."
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
-          ></textarea>
+          <textarea name="correction_text" rows="3" required placeholder="e.g., The pricing has changed to $15/month..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"></textarea>
         </div>
-
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Your email (optional)</label>
-          <input
-            type="email"
-            name="reporter_email"
-            placeholder="you@example.com"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
-          />
+          <input type="email" name="reporter_email" placeholder="you@example.com" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20" />
           <p class="mt-1 text-xs text-slate-400">We'll notify you when the correction is reviewed</p>
         </div>
-
         <div class="flex items-center gap-3 pt-2">
-          <button
-            type="submit"
-            class="flex-1 rounded-lg bg-hunt-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-hunt-700 transition"
-          >
-            Submit Suggestion
-          </button>
-          <button
-            type="button"
-            data-close-modal
-            class="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
-          >
-            Cancel
-          </button>
+          <button type="submit" class="flex-1 rounded-lg bg-hunt-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-hunt-700 transition">Submit Suggestion</button>
+          <button type="button" data-close-modal class="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Cancel</button>
         </div>
       </form>
-
       <div id="suggest-edit-success" class="hidden text-center py-4">
         <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -458,12 +316,9 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
   </div>
 
   <script is:inline>
-    // Suggest Edit Modal Logic
     const modal = document.getElementById('suggest-edit-modal');
     const form = document.getElementById('suggest-edit-form');
     const success = document.getElementById('suggest-edit-success');
-
-    // Open modal
     document.querySelectorAll('[data-suggest-edit]').forEach(btn => {
       btn.addEventListener('click', () => {
         modal?.classList.remove('hidden');
@@ -472,36 +327,28 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         success?.classList.add('hidden');
       });
     });
-
-    // Close modal
     document.querySelectorAll('[data-close-modal]').forEach(btn => {
       btn.addEventListener('click', () => {
         modal?.classList.add('hidden');
         modal?.classList.remove('flex');
       });
     });
-
-    // Close on backdrop click
     modal?.addEventListener('click', (e) => {
       if (e.target === modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
       }
     });
-
-    // Form submission
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
       const data = Object.fromEntries(formData);
-
       try {
         const res = await fetch('/api/corrections', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-
         if (res.ok) {
           form.classList.add('hidden');
           success?.classList.remove('hidden');

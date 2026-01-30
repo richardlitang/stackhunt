@@ -2,10 +2,10 @@
 import ScoreBadge from './ScoreBadge.astro';
 import PricingBadge from './PricingBadge.astro';
 import Logo from './Logo.astro';
-import type { Tool } from '@/types/database';
+import type { Tool, ItemType } from '@/types/database';
 
 interface Props {
-  tool: Pick<Tool, 'name' | 'slug' | 'logo_url' | 'short_description' | 'avg_score' | 'pricing_type'>;
+  tool: Pick<Tool, 'name' | 'slug' | 'logo_url' | 'short_description' | 'avg_score' | 'pricing_type'> & { type?: ItemType };
   category?: { name: string; slug: string } | null;
   score?: number;
   rank?: number;
@@ -13,10 +13,11 @@ interface Props {
 
 const { tool, category, score, rank } = Astro.props;
 const displayScore = score ?? tool.avg_score;
+const basePath = tool.type === 'gear' ? '/gear' : '/tool';
 ---
 
 <a
-  href={`/tools/${tool.slug}`}
+  href={`${basePath}/${tool.slug}`}
   class="group relative flex flex-col rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700 hover:bg-gradient-to-b hover:from-zinc-800/50 hover:to-zinc-900/50"
 >
   {rank && (

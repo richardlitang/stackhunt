@@ -1,244 +1,567 @@
 # StackHunt Product Summary
 
-**Last Updated:** January 21, 2026
+**Last Updated:** January 30, 2026
 
 ## Overview
 
-StackHunt is an AI-powered software review platform that automatically researches, analyzes, and generates contextual tool reviews. The platform targets SEO-rich "best X for Y" queries with data-driven content.
+StackHunt is an AI-powered programmatic SEO platform that automatically researches, analyzes, and generates contextual software reviews. The platform targets SEO-rich "best X for Y" queries with data-driven content generation.
 
 ## Core Value Proposition
 
-1. **Automated Content Generation** - Hunter agent researches tools and generates reviews
+1. **Automated Content Generation** - Hunter agent researches tools via web search and generates reviews using AI
 2. **Contextual Reviews** - Tools reviewed in specific use-case contexts (e.g., "Best CRM for Startups")
-3. **Strategy Gatekeeper** - Data-driven keyword selection from Ahrefs/SEMrush CSV imports
+3. **Strategy Gatekeeper** - Data-driven keyword selection with ROI scoring before spending API credits
 4. **Knowledge Graph** - Multi-dimensional categorization (Function + Audience + Platform)
+5. **Draft-First Workflow** - AI generates drafts, humans review and publish
 
 ---
 
 ## Architecture
 
 ### Tech Stack
-- **Frontend**: Astro + React (TypeScript) + Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + RLS)
-- **AI**: Google Gemini 2.0 Flash (analysis) + Serper API (search)
-- **Hosting**: Vercel (serverless)
-- **CLI**: Node.js hunter script for batch processing
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Astro v5 + React (Islands Architecture) + Tailwind CSS |
+| Database | Supabase (PostgreSQL + pgvector + RLS) |
+| AI Analysis | Google Gemini 2.0 Flash |
+| Web Search | Serper API |
+| Logo Service | Brandfetch (hotlinked) |
+| Anti-Spam | Cloudflare Turnstile (invisible captcha) |
+| Hosting | Vercel (serverless) |
+| Notifications | Discord webhooks, Slack webhooks |
 
 ### Directory Structure
+
 ```
-src/
-├── components/          # React/Astro UI components
-├── layouts/             # BaseLayout, AdminLayout
-├── lib/
-│   ├── hunter/          # Modular hunter system (services, phases)
-│   ├── hunter.ts        # Legacy hunter entry point
-│   ├── knowledge-card.ts # Knowledge Card extraction
-│   └── supabase.ts      # Database client
-├── pages/
-│   ├── admin/           # Admin dashboard (strategy, review, create, queue)
-│   ├── api/             # REST endpoints
-│   ├── best/            # Context pages (/best/[slug])
-│   ├── tools/           # Tool pages (/tools/[slug])
-│   ├── categories/      # Category pages
-│   └── compare/         # Comparison pages
-└── types/               # TypeScript definitions
-
-scripts/
-└── hunter.ts            # CLI for batch hunting and strategy operations
-
-supabase/
-└── migrations/          # 12 SQL migrations
+stackhunt/
+├── src/
+│   ├── components/           # React/Astro UI components
+│   │   ├── *.astro          # Static/SSR components
+│   │   └── *.tsx            # Interactive React islands
+│   ├── layouts/             # BaseLayout, AdminLayout
+│   ├── lib/
+│   │   ├── hunter/          # Modular Hunter system
+│   │   │   ├── orchestrator.ts   # Main 3-phase coordinator
+│   │   │   ├── phases/           # Research, Analysis, Persistence
+│   │   │   ├── services/         # Gemini, Serper, Logo, Queue
+│   │   │   ├── types.ts          # TypeScript interfaces
+│   │   │   └── errors.ts         # Error classification
+│   │   ├── notifications/   # Discord, Slack webhooks
+│   │   ├── verification/    # AI correction verification
+│   │   ├── supabase.ts      # Database client
+│   │   ├── auth.ts          # Admin authentication
+│   │   └── rate-limit.ts    # API rate limiting
+│   ├── pages/
+│   │   ├── admin/           # Admin dashboard pages
+│   │   ├── api/             # REST endpoints + cron handlers
+│   │   │   ├── cron/        # Vercel cron endpoints
+│   │   │   └── admin/       # Protected admin APIs
+│   │   ├── best/            # Context pages (/best/[slug])
+│   │   ├── tools/           # Tool pages (/tools/[slug])
+│   │   ├── categories/      # Category pages
+│   │   ├── compare/         # Comparison pages
+│   │   └── go/              # Affiliate redirect
+│   └── types/               # TypeScript definitions
+│
+├── scripts/                  # CLI tools for batch operations
+│   ├── hunter.ts            # Main CLI (hunt, strategy, queue)
+│   ├── queue-worker.ts      # Continuous queue processor
+│   ├── hunt-worker.ts       # Alternative worker
+│   ├── import-content-ideas.ts
+│   ├── queue-content-ideas.ts
+│   ├── verify-corrections.ts
+│   ├── verify-affiliate-links.ts
+│   └── discover-topics.ts
+│
+├── supabase/
+│   └── migrations/          # 19 SQL migration files
+│
+└── vercel.json              # Deployment + cron config
 ```
 
 ---
 
-## Database Schema (22 Tables)
+## Database Schema
 
-### Core Content
-| Table | Rows | Purpose |
-|-------|------|---------|
-| `tools` | 4 | Software tools with metadata, Knowledge Card |
-| `contexts` | 4 | Use-case contexts ("Best X for Y") |
-| `reviews` | 4 | Tool reviews within contexts |
-| `categories` | 0 | Taxonomy (function/audience/platform) |
-| `tool_category_links` | 33 | Many-to-many tool-category |
+### Hub & Spoke Model
 
-### Hunt Queue System
-| Table | Rows | Purpose |
-|-------|------|---------|
-| `hunt_queue` | 10 | Pending hunts with priority, status, worker tracking |
-| `content_ideas` | 10 | Strategy gatekeeper staging area (pre-hunt) |
-| `import_batches` | 1 | CSV import batch tracking |
-
-### Keyword Intelligence
-| Table | Rows | Purpose |
-|-------|------|---------|
-| `system_settings` | 2 | Configurable thresholds and weights |
-| `keyword_performance` | 0 | Track rankings over time (GSC/Ahrefs) |
-| `competitors` | 0 | Competitor domains |
-| `competitor_pages` | 0 | Competitor top pages for gap analysis |
-
-### Monetization (Future)
-| Table | Rows | Purpose |
-|-------|------|---------|
-| `affiliate_offers` | 0 | Affiliate links with priority |
-| `click_events` | 0 | Click tracking with attribution |
-| `market_state` | 0 | Current pricing state |
-| `price_history` | 0 | Price changes over time |
-
-### User Feedback
-| Table | Rows | Purpose |
-|-------|------|---------|
-| `votes` | 0 | Review upvotes/downvotes |
-| `corrections` | 0 | User-submitted corrections |
-
-### Admin
-| Table | Rows | Purpose |
-|-------|------|---------|
-| `admin_sessions` | 1 | Session tokens |
-| `admin_users` | 0 | Admin accounts |
-| `rate_limits` | 0 | API rate limiting |
-
-### Prompts (Optional)
-| Table | Rows | Purpose |
-|-------|------|---------|
-| `prompts` | 0 | Editable prompts (fallbacks in code) |
-| `prompt_versions` | 0 | Version history |
-
----
-
-## Key Workflows
-
-### 1. Strategy Gatekeeper Pipeline
 ```
-Ahrefs CSV → Import → Filter (volume/difficulty/CPC) → AI Classify → Approve → Hunt Queue
+TOOLS (Hub)                    CONTEXTS (Spoke)
+    │                              │
+    └──────── REVIEWS ─────────────┘
+                  │
+            CATEGORIES
+         (Knowledge Graph)
 ```
 
-**CLI Commands:**
-```bash
-npx tsx scripts/hunter.ts --strategy import keywords.csv    # Import keywords
-npx tsx scripts/hunter.ts --strategy analyze               # Calculate ROI scores
-npx tsx scripts/hunter.ts --strategy classify              # AI classify keyword types
-npx tsx scripts/hunter.ts --strategy competitors data.csv  # Import competitor pages
-npx tsx scripts/hunter.ts --strategy gaps                  # Show keyword gaps
-```
+### Core Tables
 
-**Keyword Types:**
-- `best_list` - "best crm software" (1.5x multiplier)
-- `comparison` - "notion vs obsidian" (1.3x)
-- `alternatives` - "figma alternatives" (1.2x)
-- `single_tool` - "figma pricing" (1.0x)
-- `informational` - "how to use figma" (skip)
-
-**ROI Formula:**
-```
-(Volume × CPC_weight) / (Difficulty + 10) × Type_multiplier
-```
-
-### 2. Hunter Pipeline
-```
-Hunt Queue → Claim → Research (Serper) → Analyze (Gemini) → Persist → Complete
-```
-
-**Phases:**
-1. **Research Phase** - 3 parallel Serper searches (reviews, pricing, alternatives)
-2. **Analysis Phase** - Two-pass Gemini analysis:
-   - Pass 1: Knowledge Card extraction (structured facts)
-   - Pass 2: Full synthesis (score, pros, cons, summary)
-3. **Persistence Phase** - Create/update tool, context, review, categories
-
-**CLI Commands:**
-```bash
-npx tsx scripts/hunter.ts "Notion"                    # Single tool
-npx tsx scripts/hunter.ts --context "for Startups"   # With context
-npx tsx scripts/hunter.ts --process-queue            # Process hunt queue
-```
-
-### 3. Review Workflow
-```
-Hunt → Draft Review → Admin Review → Publish
-```
-
-**Admin Pages:**
-- `/admin/strategy` - Import keywords, approve hunts
-- `/admin/create` - Single hunt, queue management
-- `/admin/review` - Review drafts, inline editing
-- `/admin/queue` - View/manage hunt queue
-
----
-
-## Public Pages
-
-| Route | Purpose |
+| Table | Purpose |
 |-------|---------|
-| `/` | Homepage with featured contexts |
-| `/best/[slug]` | Context page (e.g., /best/crm-for-startups) |
-| `/tools/[slug]` | Tool detail page |
-| `/tools` | All tools listing |
-| `/categories/[slug]` | Category page |
-| `/categories` | All categories |
-| `/compare/[...slugs]` | Tool comparison |
-| `/go/[slug]` | Affiliate redirect |
+| `tools` | Software products with metadata, Knowledge Card, embeddings |
+| `contexts` | Use-case contexts ("Best X for Y") with title templates |
+| `reviews` | Contextual tool analysis with score, pros, cons, sources |
+| `categories` | Multi-dimensional taxonomy (function/audience/platform) |
+| `tool_category_links` | Many-to-many tool-category relationships |
+
+### Content Pipeline Tables
+
+| Table | Purpose |
+|-------|---------|
+| `hunt_queue` | Job queue with priority, status, worker tracking, heartbeat |
+| `content_ideas` | Strategy gatekeeper staging area (pre-hunt) |
+| `import_batches` | CSV import batch tracking and audit |
+
+### Intelligence Tables
+
+| Table | Purpose |
+|-------|---------|
+| `keyword_performance` | Track rankings over time (GSC/Ahrefs) |
+| `competitors` | Competitor domains for gap analysis |
+| `competitor_pages` | Competitor top pages with traffic data |
+| `system_settings` | Configurable thresholds and weights |
+
+### Monetization Tables (Future-Ready)
+
+| Table | Purpose |
+|-------|---------|
+| `affiliate_offers` | Affiliate links with network tier, verification status |
+| `click_events` | Click tracking with attribution |
+| `market_state` | Current pricing state |
+| `price_history` | Price changes over time |
+
+### User Feedback Tables
+
+| Table | Purpose |
+|-------|---------|
+| `votes` | Review upvotes/downvotes with anti-gaming (IP hash, fingerprint, Turnstile) |
+| `corrections` | User-submitted corrections with AI verification |
+| `verification_batches` | Tracks AI verification runs |
+
+### Admin Tables
+
+| Table | Purpose |
+|-------|---------|
+| `admin_sessions` | Token-based auth with expiry |
+| `admin_users` | Admin accounts (future multi-user) |
+| `rate_limits` | API rate limiting |
+| `prompts` | Editable prompts (fallbacks in code) |
 
 ---
 
-## Key Files
+## System Flows
 
-### Hunter System
-- `src/lib/hunter/orchestrator.ts` - Main orchestration
-- `src/lib/hunter/phases/research.ts` - Serper searches
-- `src/lib/hunter/phases/analysis.ts` - Gemini AI analysis
-- `src/lib/hunter/phases/persistence.ts` - Database writes
-- `src/lib/hunter/services/gemini.ts` - AI client
-- `src/lib/hunter/services/logo.ts` - Logo fetching with fallbacks
-- `src/lib/hunter/constants.ts` - Fallback prompts
+### 1. Strategy Gatekeeper Flow
 
-### Strategy System
-- `scripts/hunter.ts` - CLI with strategy operations
-- `supabase/migrations/010_strategic_architecture.sql` - Queue system
-- `supabase/migrations/012_keyword_intelligence.sql` - Keyword system
+Controls what content gets created before spending API credits.
 
-### Type Definitions
-- `src/types/database.ts` - All database types
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    STRATEGY GATEKEEPER                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Ahrefs/SEMrush CSV                                            │
+│         │                                                       │
+│         ▼                                                       │
+│  ┌─────────────┐     ┌──────────────┐     ┌───────────────┐   │
+│  │   Import    │────▶│   Filter     │────▶│  AI Classify  │   │
+│  │  (staging)  │     │ (thresholds) │     │ (keyword type)│   │
+│  └─────────────┘     └──────────────┘     └───────────────┘   │
+│                                                   │             │
+│                                                   ▼             │
+│  ┌─────────────┐     ┌──────────────┐     ┌───────────────┐   │
+│  │ Hunt Queue  │◀────│   Approve    │◀────│ Calculate ROI │   │
+│  │  (ready)    │     │  (manual/    │     │    Score      │   │
+│  └─────────────┘     │   auto)      │     └───────────────┘   │
+│                      └──────────────┘                          │
+└─────────────────────────────────────────────────────────────────┘
+
+Thresholds (configurable):
+  - Min Volume: 50
+  - Max Difficulty: 70
+  - Min CPC: $0.10
+
+ROI Formula:
+  (Volume × CPC_weight) / (Difficulty + 10) × Type_multiplier
+
+Type Multipliers:
+  - best_list: 1.5x
+  - comparison: 1.3x
+  - alternatives: 1.2x
+  - single_tool: 1.0x
+  - informational: skip
+```
+
+**CLI Commands:**
+```bash
+npm run hunt -- --strategy ahrefs --file="export.csv"   # Import Ahrefs CSV
+npm run hunt -- --strategy classify --limit 50          # AI classify keywords
+npm run hunt -- --strategy analyze                      # Calculate ROI scores
+npm run hunt -- --strategy approve --priority 5         # Auto-approve high ROI
+npm run hunt -- --strategy status                       # View dashboard
+```
+
+### 2. Hunter Pipeline Flow
+
+3-phase AI pipeline with cost optimization and early exits.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      HUNTER PIPELINE                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  PHASE 1: RESEARCH                                             │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Serper API (3 parallel searches)                      │    │
+│  │    ├─ [tool] reviews                                   │    │
+│  │    ├─ [tool] pricing features                          │    │
+│  │    └─ [tool] alternatives                              │    │
+│  │                                                        │    │
+│  │  Outputs: Search results, Knowledge Card extraction    │    │
+│  │  Early Exit: Hard duplicate detected → skip analysis   │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                           │                                     │
+│                           ▼                                     │
+│  PHASE 2: ANALYSIS                                             │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Gemini AI (two-pass analysis)                         │    │
+│  │    Pass 1: Knowledge Card (structured facts)           │    │
+│  │    Pass 2: Full synthesis                              │    │
+│  │      - Score (0-100)                                   │    │
+│  │      - Pros/Cons with source attribution               │    │
+│  │      - Summary markdown                                │    │
+│  │      - Sentiment tags                                  │    │
+│  │                                                        │    │
+│  │  + Vector embedding (pgvector)                         │    │
+│  │  + Logo fetch (Brandfetch)                             │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                           │                                     │
+│                           ▼                                     │
+│  PHASE 3: PERSISTENCE                                          │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Database Operations                                   │    │
+│  │    ├─ Upsert tool (fuzzy dedup by name)               │    │
+│  │    ├─ Upsert context (fuzzy dedup by title)           │    │
+│  │    ├─ Create review (draft or published)              │    │
+│  │    ├─ Link categories (function, audience, platform)  │    │
+│  │    └─ Create default affiliate offer                  │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3. Queue Worker Flow
+
+Continuous processing with heartbeat monitoring and failure handling.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      QUEUE WORKER                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────┐                                          │
+│  │  Claim Item      │  (Atomic via RPC: claim_hunt_queue_item) │
+│  │  (pending→claimed)│                                          │
+│  └────────┬─────────┘                                          │
+│           │                                                     │
+│           ▼                                                     │
+│  ┌──────────────────┐     ┌──────────────────┐                 │
+│  │  Start Heartbeat │────▶│  Execute Hunt    │                 │
+│  │  (every 30s)     │     │  (3-phase)       │                 │
+│  └──────────────────┘     └────────┬─────────┘                 │
+│                                    │                            │
+│           ┌────────────────────────┼────────────────────────┐  │
+│           │                        │                        │  │
+│           ▼                        ▼                        ▼  │
+│  ┌──────────────┐        ┌──────────────┐        ┌──────────┐ │
+│  │   Success    │        │   Failure    │        │  Stale   │ │
+│  │  (completed) │        │   (failed)   │        │ (>5 min) │ │
+│  └──────────────┘        └──────────────┘        └──────────┘ │
+│                                    │                        │  │
+│                                    │     Retry Logic:       │  │
+│                                    │     - Max 3 attempts   │  │
+│                                    │     - Exponential      │  │
+│                                    │       backoff          │  │
+│                                    │     - Released by      │  │
+│                                    │       cleanup job      │  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Worker Modes:
+  Continuous:  npm run queue:worker -- --interval 6h --batch 5
+  Single run:  npm run queue:worker -- --once
+  With topics: npm run queue:worker -- --discover
+```
+
+### 4. Review Workflow
+
+Draft-first workflow with human review gate.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    REVIEW WORKFLOW                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Hunt Complete                                                  │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────────┐  │
+│  │   Draft     │────▶│   Review    │────▶│    Published    │  │
+│  │  (created)  │     │  (in admin) │     │   (live site)   │  │
+│  └─────────────┘     └─────────────┘     └─────────────────┘  │
+│                            │                                    │
+│                            │ or                                 │
+│                            ▼                                    │
+│                      ┌─────────────┐                           │
+│                      │  Rejected   │                           │
+│                      │  (archived) │                           │
+│                      └─────────────┘                           │
+│                                                                 │
+│  Admin Actions:                                                 │
+│    - Inline edit (score, pros, cons, summary)                  │
+│    - Bulk approve (high confidence threshold)                  │
+│    - Keyboard shortcuts (planned)                              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 5. Corrections Verification Flow
+
+Weekly batch verification of user-submitted corrections.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│               CORRECTIONS VERIFICATION                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  User Submits Correction                                        │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌─────────────┐                                               │
+│  │  Pending    │  (stored in corrections table)                │
+│  └─────────────┘                                               │
+│       │                                                         │
+│       │  Weekly Check (verify-corrections script):              │
+│       │    IF pending >= 50 OR oldest > 30 days                │
+│       │    THEN run AI verification                            │
+│       ▼                                                         │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  AI Verification (per tool, per field type)             │   │
+│  │    1. Search for current data (Serper)                  │   │
+│  │    2. Compare claim vs search results (Gemini)          │   │
+│  │    3. Mark as: confirmed / rejected / inconclusive      │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────────┐  │
+│  │  Confirmed  │     │  Rejected   │     │  Inconclusive   │  │
+│  │ (apply fix) │     │  (discard)  │     │ (manual review) │  │
+│  └─────────────┘     └─────────────┘     └─────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Scripts & CLI
+
+### npm Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Start Astro dev server (port 4321) |
+| `npm run build` | Production build |
+| `npm run hunt -- [args]` | Main Hunter CLI |
+| `npm run queue:worker` | Continuous queue processor |
+| `npm run hunt:worker` | Alternative queue worker |
+| `npm run import-ideas -- <csv>` | Import content ideas from CSV |
+| `npm run queue-ideas` | Auto-queue high-priority ideas |
+| `npm run verify-corrections` | Run AI correction verification |
+| `npm run verify-affiliates` | Check affiliate link health |
+
+### Hunter CLI Commands
+
+```bash
+# Direct hunt (bypass queue)
+npm run hunt -- --tool="Notion"
+npm run hunt -- --tool="Slack" --context="Best for Remote Teams"
+npm run hunt -- --tool="Figma" --publish  # Skip draft, publish immediately
+
+# Queue operations
+npm run hunt -- --queue add --tool="Airtable" --priority 80
+npm run hunt -- --queue process            # Process next item
+npm run hunt -- --queue batch --priority 5 # Process multiple
+npm run hunt -- --queue cleanup            # Release stale claims
+npm run hunt -- --queue status             # View queue dashboard
+
+# Strategy gatekeeper
+npm run hunt -- --strategy import --file="keywords.csv"
+npm run hunt -- --strategy ahrefs --file="ahrefs-export.csv"
+npm run hunt -- --strategy classify --limit 50
+npm run hunt -- --strategy analyze
+npm run hunt -- --strategy approve --priority 5
+npm run hunt -- --strategy thresholds --min-volume 100
+npm run hunt -- --strategy competitors --file="pages.csv" --domain="competitor.com"
+npm run hunt -- --strategy gaps
+npm run hunt -- --strategy status
+```
+
+---
+
+## Cron Jobs & Scheduled Tasks
+
+### Vercel Crons (vercel.json)
+
+| Schedule | Endpoint | Purpose |
+|----------|----------|---------|
+| `0 0 * * *` (daily midnight) | `/api/cron/cleanup-rate-limits` | Clean expired rate limit entries |
+
+### Available Cron Endpoints
+
+| Endpoint | Purpose | Trigger |
+|----------|---------|---------|
+| `/api/cron/hunt` | Process hunt queue (max 3 items) | Protected by CRON_SECRET |
+| `/api/cron/discover-topics` | Discover new content topics | Manual or scheduled |
+| `/api/cron/verify-corrections` | Batch verify user corrections | Manual or scheduled |
+| `/api/cron/cleanup-rate-limits` | Clean rate limit table | Daily via Vercel cron |
+
+### Local Worker (Alternative to Vercel Cron)
+
+For VPS or always-on servers:
+
+```bash
+# Continuous processing (recommended for VPS)
+npm run queue:worker -- --interval 6h --batch 5
+
+# With topic discovery
+npm run queue:worker -- --interval 6h --batch 5 --discover
+
+# Single run (for external cron like GitHub Actions)
+npm run queue:worker -- --once
+```
+
+**VPS Crontab Example:**
+```cron
+*/5 * * * *  cd /app && npm run hunt -- --queue process
+0 * * * *    cd /app && npm run hunt -- --queue cleanup
+```
+
+---
+
+## Notifications
+
+### Discord Webhooks
+
+Used for critical alerts and queue summaries.
+
+| Alert Type | Trigger |
+|------------|---------|
+| `alertCritical` | API key failures, quota exceeded, authentication errors |
+| `alertQueueSummary` | After batch processing (success/failure counts) |
+| `alertApiError` | Service-specific errors (Serper, Gemini) |
+
+### Slack Webhooks
+
+Used for weekly summaries and correction verification results.
+
+**Environment Variables:**
+```bash
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+```
 
 ---
 
 ## Environment Variables
 
 ```bash
-# Supabase
-PUBLIC_SUPABASE_URL=
-PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+# Supabase (required)
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-# AI/Search
-GEMINI_API_KEY=
-SERPER_API_KEY=
+# AI Services (required for hunting)
+GEMINI_API_KEY=AIza...
+SERPER_API_KEY=...
 
-# Admin
-ADMIN_SECRET=
+# Logos (optional, falls back to favicon)
+PUBLIC_BRANDFETCH_CLIENT_ID=...
 
-# Optional
-REPLICATE_API_TOKEN=  # OG image generation
+# Anti-spam (optional)
+PUBLIC_TURNSTILE_SITE_KEY=...
+TURNSTILE_SECRET_KEY=...
+
+# Admin (required)
+ADMIN_SECRET=your-secret-for-login
+
+# Notifications (optional)
+DISCORD_WEBHOOK_URL=...
+SLACK_WEBHOOK_URL=...
+
+# Vercel Cron (auto-set by Vercel)
+CRON_SECRET=...
+
+# Optional services
+REPLICATE_API_TOKEN=...  # OG image generation
+PUBLIC_SITE_URL=https://stackhunt.co
 ```
 
 ---
 
-## Current Status
+## Key Services
 
-**Working:**
-- Hunter pipeline (single tool, context, queue processing)
-- Knowledge Card extraction
-- Strategy gatekeeper (CSV import, filtering, ROI scoring)
-- Admin dashboard (strategy, review, queue)
-- Public pages (best, tools, categories)
+### Hunter Services (`src/lib/hunter/services/`)
 
-**Ready for Future:**
-- Affiliate tracking (tables exist)
-- Price monitoring (tables exist)
-- User voting/corrections (tables exist)
-- Keyword performance tracking (tables exist)
-- Competitor gap analysis (tables exist)
+| Service | Responsibility |
+|---------|----------------|
+| `SerperService` | Web search API with rate limiting |
+| `GeminiService` | AI analysis with structured output, retry logic |
+| `LogoService` | Logo fetching (Brandfetch → favicon fallback) |
+| `QueueService` | Atomic claiming, heartbeat, status management |
+
+### Database RPCs
+
+| Function | Purpose |
+|----------|---------|
+| `claim_hunt_queue_item(p_worker_id)` | Atomically claim next pending item |
+| `start_hunt(p_queue_id)` | Mark item as processing |
+| `complete_hunt(...)` | Mark success with results |
+| `fail_hunt(...)` | Mark failure with error |
+| `heartbeat_hunt(p_queue_id)` | Update heartbeat timestamp |
+| `release_stale_hunt_claims(p_stale_minutes)` | Release stale items |
+| `analyze_content_ideas(p_limit)` | Calculate ROI, check duplicates |
+| `bulk_approve_ideas(...)` | Move ideas to hunt queue |
+| `import_ahrefs_keywords(...)` | Bulk import with filtering |
+| `get_verification_stats()` | Get correction verification stats |
+
+---
+
+## Public Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Homepage with featured contexts |
+| `/best/[slug]` | Context page (e.g., /best/crm-for-startups) |
+| `/tools` | All tools listing |
+| `/tools/[slug]` | Tool detail page |
+| `/categories` | All categories |
+| `/categories/[slug]` | Category page |
+| `/compare` | Comparison tool selection |
+| `/compare/[...slugs]` | Side-by-side comparison |
+| `/go/[slug]` | Affiliate redirect with click tracking |
+
+## Admin Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/admin` | Dashboard with stats |
+| `/admin/strategy` | Import & manage content ideas |
+| `/admin/hunt-queue` | Monitor queue, view errors |
+| `/admin/create` | Single tool hunt interface |
+| `/admin/review` | Review drafts queue |
+| `/admin/review/[id]` | Edit individual review |
+| `/admin/corrections` | Manage user corrections |
+| `/admin/affiliate-links` | Manage affiliate offers |
 
 ---
 
@@ -255,5 +578,23 @@ REPLICATE_API_TOKEN=  # OG image generation
 9. `009_og_images.sql` - OG image generation
 10. `010_strategic_architecture.sql` - Hunt queue, market state, click tracking
 11. `011_intelligence_engine.sql` - Content ideas, import batches
-12. `012_keyword_intelligence.sql` - Ahrefs data, keyword types, performance tracking
-13. `014_cleanup_deprecated_tables.sql` - Removed content_queue, hunt_logs (superseded)
+12. `012_keyword_intelligence.sql` - Ahrefs data, keyword types, performance
+13. `013_affiliate_network_tiers.sql` - Network tier classification
+14. `014_category_expansion.sql` - Category pillar field
+15. `014_corrections_ai_verification.sql` - AI verification for corrections
+16. `015_content_ideas_format.sql` - Source format field
+17. `015_hunt_queue.sql` - Queue enhancements
+18. `016_expand_target_audiences.sql` - More audience types
+19. `017_security_hardening.sql` - Security improvements
+
+---
+
+## Future-Ready Infrastructure
+
+The following features have database tables and basic infrastructure but are not yet fully integrated:
+
+- **Price Monitoring** - `market_state`, `price_history` tables ready
+- **Affiliate Analytics** - `click_events` table ready, tracking partial
+- **Semantic Search** - pgvector embeddings stored, `match_tools()` RPC exists
+- **Keyword Performance** - `keyword_performance` table ready for GSC/Ahrefs data
+- **Competitor Gap Analysis** - `competitors`, `competitor_pages` tables populated via CLI

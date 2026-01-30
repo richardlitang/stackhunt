@@ -1,6 +1,11 @@
 /**
  * StackHunt Database Types
  * Auto-generated from Supabase schema - keep in sync with migrations
+ *
+ * V2 REFACTOR: tools → items
+ * - Item is the new canonical type (supports tool/gear polymorphism)
+ * - Tool is kept as an alias for backward compatibility
+ * - All tool_id fields renamed to item_id
  */
 
 // ============================================================================
@@ -8,6 +13,8 @@
 // ============================================================================
 
 export type PricingModel = 'free' | 'freemium' | 'paid' | 'enterprise' | 'open_source';
+
+export type ItemType = 'tool' | 'gear';
 
 export type HuntStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
@@ -27,6 +34,100 @@ export type ContentIdeaStatus = 'pending' | 'analyzed' | 'approved' | 'rejected'
 
 export type ImportBatchStatus = 'processing' | 'completed' | 'completed_with_errors' | 'failed';
 
+// V2.2: Comparison infrastructure
+export type LearningCurve = 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
+
+export type AudienceFitType = 'ideal' | 'good' | 'neutral' | 'poor' | 'avoid';
+
+// ============================================================================
+// SPECS TYPES (Type-specific structured data in JSONB)
+// ============================================================================
+
+/** Specs schema for software tools */
+export interface ToolSpecs {
+  // Pricing
+  pricing_model?: PricingModel;
+  starting_price?: string | null; // e.g., "$12/mo"
+  free_tier_limits?: string | null; // e.g., "5 projects, 10 users"
+  trial_days?: number | null; // e.g., 14
+
+  // Platform & Integration
+  integrations?: string[]; // e.g., ["Slack", "Zapier", "Google Drive"]
+  platforms?: string[]; // e.g., ["Web", "iOS", "Mac", "Windows", "Linux"]
+  support_options?: string[]; // e.g., ["Chat", "Email", "Phone", "Docs"]
+
+  // Security & Compliance
+  security?: string[]; // e.g., ["SSO", "SOC2", "GDPR", "HIPAA"]
+  sso_providers?: string[]; // e.g., ["Google", "Microsoft", "SAML", "Okta"]
+  data_export_formats?: string[]; // e.g., ["CSV", "JSON", "PDF"]
+
+  // Developer
+  api_available?: boolean;
+  open_source_repo?: string | null; // GitHub URL if applicable
+
+  // V2.2: Migration & Portability
+  data_import_from?: string[]; // Slugs of tools that can be imported from
+  migration_out_difficulty?: 1 | 2 | 3 | 4 | 5; // 1=trivial, 5=very hard
+  proprietary_features?: string[]; // Features that won't transfer on migration
+}
+
+/** Specs schema for hardware gear */
+export interface GearSpecs {
+  weight?: string; // e.g., "2.5 lbs"
+  dimensions?: string; // e.g., "12 x 8 x 4 inches"
+  battery_life?: string; // e.g., "8 hours"
+  warranty?: string; // e.g., "2 years"
+  connectivity?: string[]; // e.g., ["USB-C", "Bluetooth 5.0", "WiFi 6"]
+  materials?: string[]; // e.g., ["Aluminum", "Gorilla Glass"]
+  certifications?: string[]; // e.g., ["IP67", "MIL-STD-810G"]
+  in_box?: string[]; // e.g., ["Device", "Cable", "Manual"]
+}
+
+/** Union type for all specs */
+export type ItemSpecs = ToolSpecs | GearSpecs | Record<string, unknown>;
+
+/** Base score breakdown for objective quality metrics (JSONB) */
+export interface BaseScoreBreakdown {
+  reliability?: number; // 0-100: uptime, stability
+  features?: number; // 0-100: feature completeness
+  value?: number; // 0-100: price-to-value ratio
+  support?: number; // 0-100: customer support quality
+  ux?: number; // 0-100: user experience
+  documentation?: number; // 0-100: docs quality
+  data_portability?: number; // 0-100: ease of export/migration
+}
+
+/** Company info stored in metadata JSONB */
+export interface CompanyInfo {
+  founded_year?: number; // e.g., 2015
+  headquarters?: string; // e.g., "San Francisco, CA"
+  funding_stage?: 'bootstrapped' | 'seed' | 'series_a' | 'series_b' | 'series_c' | 'public' | 'acquired';
+  employee_range?: '1-10' | '10-50' | '50-100' | '100-500' | '500-1000' | '1000+';
+  owned_by?: string | null; // Parent company if acquired
+  publicly_traded?: boolean;
+}
+
+/** Extended metadata schema (Knowledge Card + company + competitors) */
+export interface ItemMetadata {
+  // Knowledge Card fields (from existing schema)
+  website_url?: string;
+  pricing_type?: PricingModel;
+  short_description?: string;
+  features?: string[];
+  target_audiences?: string[];
+  meta?: {
+    data_quality: 'high' | 'medium' | 'low';
+    extraction_date: string;
+  };
+
+  // V2: Company info
+  company?: CompanyInfo;
+
+  // V2: Related items (slugs)
+  competitors?: string[]; // Direct competitors
+  related_items?: string[]; // Complementary tools
+}
+
 // ============================================================================
 // BASE TYPES (Raw database rows)
 // ============================================================================
@@ -44,15 +145,22 @@ export interface Category {
   updated_at: string;
 }
 
-export interface ToolCategoryLink {
+export interface ItemCategoryLink {
   id: string;
-  tool_id: string;
+  item_id: string;
   category_id: string;
   relevance_score: number;
   created_at: string;
 }
 
-export interface Tool {
+/** @deprecated Use ItemCategoryLink instead */
+export type ToolCategoryLink = ItemCategoryLink;
+
+/**
+ * Item - The core entity type (formerly "Tool")
+ * Supports polymorphic types: tool (software), gear (hardware)
+ */
+export interface Item {
   id: string;
   name: string;
   slug: string;
@@ -63,15 +171,37 @@ export interface Tool {
   long_description: string | null;
   category_id: string | null;
   pricing_type: PricingModel;
-  avg_score: number;
+  avg_score: number; // Aggregated from contextual reviews
   review_count: number;
   embedding: number[] | null; // vector(1536)
-  metadata: Record<string, unknown> | null; // Knowledge Card JSONB
+  metadata: ItemMetadata | null; // Knowledge Card + company + competitors
   is_featured: boolean;
   is_verified: boolean;
+  type: ItemType; // Discriminator: 'tool' (software) or 'gear' (hardware)
+  video_id: string | null; // YouTube video ID
+  video_title: string | null;
+
+  // V2: New columns (queryable)
+  verdict: string | null; // One-line bottom-line conclusion
+  base_score: number | null; // Objective quality score (0-100)
+  last_major_update: string | null; // ISO date string
+
+  // V2: New JSONB fields
+  specs: ItemSpecs; // Type-specific structured data
+  base_score_breakdown: BaseScoreBreakdown; // Detailed scoring components
+
+  // V2.2: Comparison infrastructure
+  data_confidence: number | null; // 0.0-1.0, hedge claims below 0.8
+  learning_curve: LearningCurve | null; // Time to basic proficiency
+
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * @deprecated Use Item instead. Kept for backward compatibility.
+ */
+export type Tool = Item;
 
 export interface RateLimit {
   id: string;
@@ -99,8 +229,8 @@ export interface Context {
   intro_text: string | null;
   meta_description: string | null;
   category_id: string | null;
-  primary_tool_id: string | null;
-  tool_count: number;
+  primary_item_id: string | null; // V2: renamed from primary_tool_id
+  tool_count: number; // Kept as tool_count for semantic clarity
   is_featured: boolean;
   // Knowledge Graph fields
   title_template: TitleTemplate;
@@ -115,9 +245,9 @@ export interface Context {
 
 export interface Review {
   id: string;
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   context_id: string;
-  score: number | null;
+  score: number | null; // Contextual score (different from item.base_score)
   summary_markdown: string | null;
   pros: string[];
   cons: string[];
@@ -125,13 +255,66 @@ export interface Review {
   upvotes: number;
   downvotes: number;
   display_order: number;
+
+  // V2.2: Contextual fit enhancements
+  fit_score: number | null; // 0-100, how well item fits THIS context
+  value_rating: number | null; // 1-5, value for money for this audience
+  standout_features: string[]; // Features especially relevant to this context
+  dealbreakers: string[]; // Concerns that might be dealbreakers for this audience
+  switching_from: string[]; // Common tools this audience switches FROM
+
+  created_at: string;
+  updated_at: string;
+}
+
+// V2.2: Item-Audience Fit (links items to audience categories)
+export interface ItemAudienceFit {
+  id: string;
+  item_id: string;
+  category_id: string; // Reference to audience category
+  fit_type: AudienceFitType;
+  reason: string | null;
+  created_at: string;
+}
+
+// V2.2: Comparison Insights (sparse, curated for high-traffic pairs)
+export interface ComparisonInsight {
+  id: string;
+  item_a_slug: string; // Alphabetically ordered (a < b)
+  item_b_slug: string;
+  item_a_id: string | null;
+  item_b_id: string | null;
+
+  // Curated insights
+  verdict: string | null; // "Notion for teams, Obsidian for power users"
+  choose_a_if: string[]; // ["You need real-time collaboration"]
+  choose_b_if: string[]; // ["You want local-first"]
+  migration_notes_a_to_b: string | null;
+  migration_notes_b_to_a: string | null;
+  why_switch_a_to_b: string[]; // Reasons people switch
+  why_switch_b_to_a: string[];
+
+  // Context-specific winners
+  // { "students": { "winner": "a", "confidence": 0.9, "reason": "Free .edu plan" } }
+  winner_by_context: Record<string, {
+    winner: 'a' | 'b' | 'tie';
+    confidence: number;
+    reason?: string;
+  }>;
+
+  // Metadata
+  is_curated: boolean;
+  curator_notes: string | null;
+  data_sources: string[];
+  generated_at: string | null;
+  curated_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface AffiliateOffer {
   id: string;
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   url: string;
   cta_text: string;
   is_affiliate: boolean;
@@ -171,7 +354,7 @@ export interface Vote {
 
 export interface MarketState {
   id: string;
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   // Pricing
   price_cents: number | null;
   price_currency: string;
@@ -205,7 +388,7 @@ export interface MarketState {
 
 export interface PriceHistory {
   id: string;
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   price_cents: number | null;
   price_currency: string;
   price_display: string | null;
@@ -217,7 +400,7 @@ export interface PriceHistory {
 export interface ClickEvent {
   id: string;
   offer_id: string;
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   referrer: string | null;
   user_agent: string | null;
   ip_hash: string | null;
@@ -253,7 +436,7 @@ export interface HuntQueue {
   claimed_at: string | null;
   heartbeat_at: string | null;
   // Results
-  tool_id: string | null;
+  item_id: string | null; // V2: renamed from tool_id
   context_id: string | null;
   review_id: string | null;
   // Errors
@@ -332,7 +515,7 @@ export interface CategoryInsert {
   is_featured?: boolean;
 }
 
-export interface ToolInsert {
+export interface ItemInsert {
   name: string;
   slug: string;
   website?: string | null;
@@ -343,10 +526,26 @@ export interface ToolInsert {
   category_id?: string | null;
   pricing_type?: PricingModel;
   embedding?: number[] | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: ItemMetadata | null;
   is_featured?: boolean;
   is_verified?: boolean;
+  type?: ItemType;
+  video_id?: string | null;
+  video_title?: string | null;
+  // V2: New columns
+  verdict?: string | null;
+  base_score?: number | null;
+  last_major_update?: string | null; // ISO date
+  // V2: New JSONB
+  specs?: ItemSpecs;
+  base_score_breakdown?: BaseScoreBreakdown;
+  // V2.2: Comparison infrastructure
+  data_confidence?: number | null;
+  learning_curve?: LearningCurve | null;
 }
+
+/** @deprecated Use ItemInsert instead */
+export type ToolInsert = ItemInsert;
 
 export interface ContextInsert {
   title: string;
@@ -354,12 +553,12 @@ export interface ContextInsert {
   intro_text?: string | null;
   meta_description?: string | null;
   category_id?: string | null;
-  primary_tool_id?: string | null;
+  primary_item_id?: string | null; // V2: renamed from primary_tool_id
   is_featured?: boolean;
 }
 
 export interface ReviewInsert {
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   context_id: string;
   score?: number | null;
   summary_markdown?: string | null;
@@ -367,10 +566,16 @@ export interface ReviewInsert {
   cons?: string[];
   sentiment_tags?: string[];
   display_order?: number;
+  // V2.2: Contextual fit
+  fit_score?: number | null;
+  value_rating?: number | null;
+  standout_features?: string[];
+  dealbreakers?: string[];
+  switching_from?: string[];
 }
 
 export interface AffiliateOfferInsert {
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   url: string;
   cta_text?: string;
   is_affiliate?: boolean;
@@ -388,7 +593,7 @@ export interface AffiliateOfferInsert {
 }
 
 export interface MarketStateInsert {
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   source_type: MarketSourceType;
   price_cents?: number | null;
   price_currency?: string;
@@ -425,7 +630,7 @@ export interface HuntQueueInsert {
 
 export interface ClickEventInsert {
   offer_id: string;
-  tool_id: string;
+  item_id: string; // V2: renamed from tool_id
   referrer?: string | null;
   user_agent?: string | null;
   ip_hash?: string | null;
@@ -455,27 +660,60 @@ export interface ImportBatchInsert {
   notes?: string | null;
 }
 
+// V2.2: Comparison infrastructure inserts
+export interface ItemAudienceFitInsert {
+  item_id: string;
+  category_id: string;
+  fit_type: AudienceFitType;
+  reason?: string | null;
+}
+
+export interface ComparisonInsightInsert {
+  item_a_slug: string; // Must be < item_b_slug (alphabetical)
+  item_b_slug: string;
+  item_a_id?: string | null;
+  item_b_id?: string | null;
+  verdict?: string | null;
+  choose_a_if?: string[];
+  choose_b_if?: string[];
+  migration_notes_a_to_b?: string | null;
+  migration_notes_b_to_a?: string | null;
+  why_switch_a_to_b?: string[];
+  why_switch_b_to_a?: string[];
+  winner_by_context?: Record<string, { winner: 'a' | 'b' | 'tie'; confidence: number; reason?: string }>;
+  is_curated?: boolean;
+  curator_notes?: string | null;
+  data_sources?: string[];
+}
+
 // ============================================================================
 // UPDATE TYPES (For partial updates)
 // ============================================================================
 
 export type CategoryUpdate = Partial<Omit<Category, 'id' | 'created_at' | 'updated_at'>>;
-export type ToolUpdate = Partial<Omit<Tool, 'id' | 'created_at' | 'updated_at'>>;
+export type ItemUpdate = Partial<Omit<Item, 'id' | 'created_at' | 'updated_at'>>;
+/** @deprecated Use ItemUpdate instead */
+export type ToolUpdate = ItemUpdate;
 export type ContextUpdate = Partial<Omit<Context, 'id' | 'created_at' | 'updated_at'>>;
 export type ReviewUpdate = Partial<Omit<Review, 'id' | 'created_at' | 'updated_at'>>;
 export type AffiliateOfferUpdate = Partial<Omit<AffiliateOffer, 'id' | 'created_at' | 'updated_at'>>;
-export type MarketStateUpdate = Partial<Omit<MarketState, 'id' | 'tool_id' | 'created_at' | 'updated_at'>>;
+export type MarketStateUpdate = Partial<Omit<MarketState, 'id' | 'item_id' | 'created_at' | 'updated_at'>>;
 export type HuntQueueUpdate = Partial<Omit<HuntQueue, 'id' | 'created_at' | 'updated_at'>>;
 export type ContentIdeaUpdate = Partial<Omit<ContentIdea, 'id' | 'created_at' | 'updated_at'>>;
 export type ImportBatchUpdate = Partial<Omit<ImportBatch, 'id' | 'created_at'>>;
+// V2.2: Comparison infrastructure updates
+export type ItemAudienceFitUpdate = Partial<Omit<ItemAudienceFit, 'id' | 'item_id' | 'category_id' | 'created_at'>>;
+export type ComparisonInsightUpdate = Partial<Omit<ComparisonInsight, 'id' | 'item_a_slug' | 'item_b_slug' | 'created_at' | 'updated_at'>>;
 
 // ============================================================================
 // JOINED/ENRICHED TYPES (For queries with relations)
 // ============================================================================
 
-export interface ToolWithCategory extends Tool {
+export interface ItemWithCategory extends Item {
   category: Category | null;
 }
+/** @deprecated Use ItemWithCategory instead */
+export type ToolWithCategory = ItemWithCategory;
 
 export interface CategoryTag {
   id: string;
@@ -484,13 +722,15 @@ export interface CategoryTag {
   slug: string;
 }
 
-export interface ToolWithTags extends Tool {
+export interface ItemWithTags extends Item {
   function_tags: CategoryTag[];
   audience_tags: CategoryTag[];
   platform_tags: CategoryTag[];
 }
+/** @deprecated Use ItemWithTags instead */
+export type ToolWithTags = ItemWithTags;
 
-export interface ToolWithDetails extends Tool {
+export interface ItemWithDetails extends Item {
   category: Category | null;
   affiliate_offers: AffiliateOffer[];
   reviews: ReviewWithContext[];
@@ -498,24 +738,28 @@ export interface ToolWithDetails extends Tool {
   audience_tags?: CategoryTag[];
   platform_tags?: CategoryTag[];
 }
+/** @deprecated Use ItemWithDetails instead */
+export type ToolWithDetails = ItemWithDetails;
 
-export interface ReviewWithTool extends Review {
-  tool: Tool;
+export interface ReviewWithItem extends Review {
+  item: Item;
 }
+/** @deprecated Use ReviewWithItem instead */
+export type ReviewWithTool = ReviewWithItem;
 
 export interface ReviewWithContext extends Review {
   context: Context;
 }
 
 export interface ReviewFull extends Review {
-  tool: Tool;
+  item: Item;
   context: Context;
 }
 
 export interface ContextWithReviews extends Context {
   category: Category | null;
-  primary_tool: Tool | null;
-  reviews: ReviewWithTool[];
+  primary_item: Item | null;
+  reviews: ReviewWithItem[];
   // Knowledge Graph relations
   function_category?: Category | null;
   audience_category?: Category | null;
@@ -524,7 +768,7 @@ export interface ContextWithReviews extends Context {
 
 export interface ContextListItem extends Context {
   category: Category | null;
-  top_tools: Pick<Tool, 'id' | 'name' | 'slug' | 'logo_url'>[];
+  top_items: Pick<Item, 'id' | 'name' | 'slug' | 'logo_url'>[];
 }
 
 // ============================================================================
@@ -591,10 +835,22 @@ export interface Database {
         Insert: CategoryInsert;
         Update: CategoryUpdate;
       };
+      // V2: items is the new canonical table (tools view still works)
+      items: {
+        Row: Item;
+        Insert: ItemInsert;
+        Update: ItemUpdate;
+      };
+      /** @deprecated Use items instead */
       tools: {
-        Row: Tool;
-        Insert: ToolInsert;
-        Update: ToolUpdate;
+        Row: Item;
+        Insert: ItemInsert;
+        Update: ItemUpdate;
+      };
+      item_category_links: {
+        Row: ItemCategoryLink;
+        Insert: Omit<ItemCategoryLink, 'id' | 'created_at'>;
+        Update: Partial<Pick<ItemCategoryLink, 'relevance_score'>>;
       };
       contexts: {
         Row: Context;
@@ -637,6 +893,17 @@ export interface Database {
         Insert: HuntQueueInsert;
         Update: HuntQueueUpdate;
       };
+      // V2.2: Comparison infrastructure
+      item_audience_fit: {
+        Row: ItemAudienceFit;
+        Insert: ItemAudienceFitInsert;
+        Update: ItemAudienceFitUpdate;
+      };
+      comparison_insights: {
+        Row: ComparisonInsight;
+        Insert: ComparisonInsightInsert;
+        Update: ComparisonInsightUpdate;
+      };
     };
     Functions: {
       cast_vote: {
@@ -649,6 +916,16 @@ export interface Database {
         };
         Returns: VoteResult;
       };
+      // V2: New canonical function
+      match_items: {
+        Args: {
+          query_embedding: number[];
+          match_threshold?: number;
+          match_count?: number;
+        };
+        Returns: SearchResult[];
+      };
+      /** @deprecated Use match_items instead */
       match_tools: {
         Args: {
           query_embedding: number[];
@@ -657,6 +934,12 @@ export interface Database {
         };
         Returns: SearchResult[];
       };
+      // V2: New canonical function
+      update_item_metrics: {
+        Args: { p_item_id: string };
+        Returns: void;
+      };
+      /** @deprecated Use update_item_metrics instead */
       update_tool_metrics: {
         Args: { p_tool_id: string };
         Returns: void;
@@ -664,6 +947,35 @@ export interface Database {
       update_context_metrics: {
         Args: { p_context_id: string };
         Returns: void;
+      };
+      // V2: New canonical function
+      link_item_to_category: {
+        Args: {
+          p_item_id: string;
+          p_category_name: string;
+          p_category_type: CategoryType;
+          p_relevance?: number;
+        };
+        Returns: string; // category_id
+      };
+      /** @deprecated Use link_item_to_category instead */
+      link_tool_to_category: {
+        Args: {
+          p_tool_id: string;
+          p_category_name: string;
+          p_category_type: CategoryType;
+          p_relevance?: number;
+        };
+        Returns: string; // category_id
+      };
+      // V2: New function
+      get_item_tags: {
+        Args: { p_item_id: string };
+        Returns: {
+          functions: CategoryTag[];
+          audiences: CategoryTag[];
+          platforms: CategoryTag[];
+        };
       };
       check_rate_limit: {
         Args: {
@@ -702,9 +1014,9 @@ export interface Database {
         Args: { p_token_hash: string };
         Returns: boolean;
       };
-      // New strategic architecture functions
+      // Strategic architecture functions (V2: p_tool_id → p_item_id)
       get_priority_affiliate: {
-        Args: { p_tool_id: string };
+        Args: { p_item_id: string };
         Returns: {
           offer_id: string;
           url: string;
@@ -716,7 +1028,7 @@ export interface Database {
       log_click: {
         Args: {
           p_offer_id: string;
-          p_tool_id: string;
+          p_item_id: string;
           p_referrer?: string | null;
           p_user_agent?: string | null;
           p_ip_hash?: string | null;
@@ -741,7 +1053,7 @@ export interface Database {
       complete_hunt: {
         Args: {
           p_queue_id: string;
-          p_tool_id: string;
+          p_item_id: string;
           p_context_id?: string | null;
           p_review_id?: string | null;
           p_tokens_used?: number | null;
@@ -760,12 +1072,20 @@ export interface Database {
         Args: { p_stale_minutes?: number };
         Returns: number; // count of released items
       };
+      // V2.2: Comparison helper
+      get_or_create_comparison: {
+        Args: { p_slug_1: string; p_slug_2: string };
+        Returns: ComparisonInsight;
+      };
     };
     Enums: {
       pricing_model: PricingModel;
       hunt_status: HuntStatus;
       hunt_queue_status: HuntQueueStatus;
       market_source_type: MarketSourceType;
+      // V2.2
+      learning_curve: LearningCurve;
+      audience_fit_type: AudienceFitType;
     };
   };
 }

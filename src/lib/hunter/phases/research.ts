@@ -108,12 +108,12 @@ async function checkForDuplicateTool(
   knowledgeCard: KnowledgeCard,
   deps: HunterDependencies
 ): Promise<{ id: string; name: string } | null> {
-  const { data: tools } = await deps.supabase
-    .from('tools')
+  const { data: items } = await deps.supabase
+    .from('items')
     .select('id, name, website')
     .limit(1000);
 
-  if (!tools || tools.length === 0) return null;
+  if (!items || items.length === 0) return null;
 
   const normalize = (str: string) =>
     str.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -123,27 +123,27 @@ async function checkForDuplicateTool(
     ? normalize(new URL(knowledgeCard.website_url).hostname)
     : null;
 
-  for (const tool of tools) {
+  for (const item of items) {
     // Check 1: Exact name match (normalized)
-    if (normalize(tool.name) === normalizedInput) {
-      deps.log(`Duplicate found by name: "${tool.name}"`);
-      return { id: tool.id, name: tool.name };
+    if (normalize(item.name) === normalizedInput) {
+      deps.log(`Duplicate found by name: "${item.name}"`);
+      return { id: item.id, name: item.name };
     }
 
     // Check 2: Website URL match
-    if (inputWebsite && tool.website) {
-      const toolWebsite = normalize(new URL(tool.website).hostname);
-      if (toolWebsite === inputWebsite) {
-        deps.log(`Duplicate found by website: ${tool.website}`);
-        return { id: tool.id, name: tool.name };
+    if (inputWebsite && item.website) {
+      const itemWebsite = normalize(new URL(item.website).hostname);
+      if (itemWebsite === inputWebsite) {
+        deps.log(`Duplicate found by website: ${item.website}`);
+        return { id: item.id, name: item.name };
       }
     }
 
     // Check 3: High similarity (Levenshtein-like)
-    const similarity = calculateSimilarity(normalizedInput, normalize(tool.name));
+    const similarity = calculateSimilarity(normalizedInput, normalize(item.name));
     if (similarity >= 0.9) {
-      deps.log(`Duplicate found by similarity (${(similarity * 100).toFixed(1)}%): "${tool.name}"`);
-      return { id: tool.id, name: tool.name };
+      deps.log(`Duplicate found by similarity (${(similarity * 100).toFixed(1)}%): "${item.name}"`);
+      return { id: item.id, name: item.name };
     }
   }
 

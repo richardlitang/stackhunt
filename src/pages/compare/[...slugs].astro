@@ -219,7 +219,7 @@ const schemas = [
             )}
           </div>
           <div class="flex-1">
-            <a href={`/tools/${toolA.slug}`} class="text-xl font-bold text-slate-900 hover:text-hunt-600">
+            <a href={`/tool/${toolA.slug}`} class="text-xl font-bold text-slate-900 hover:text-hunt-600">
               {toolA.name}
             </a>
             <div class="mt-1 flex items-center gap-2">
@@ -316,7 +316,7 @@ const schemas = [
             )}
           </div>
           <div class="flex-1">
-            <a href={`/tools/${toolB.slug}`} class="text-xl font-bold text-slate-900 hover:text-hunt-600">
+            <a href={`/tool/${toolB.slug}`} class="text-xl font-bold text-slate-900 hover:text-hunt-600">
               {toolB.name}
             </a>
             <div class="mt-1 flex items-center gap-2">
@@ -480,11 +480,11 @@ const schemas = [
     <section class="mt-10">
       <h2 class="mb-4 text-lg font-semibold text-slate-900">Related Comparisons</h2>
       <div class="flex flex-wrap gap-2">
-        <a href={`/tools/${toolA.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+        <a href={`/tool/${toolA.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
           More about {toolA.name} →
         </a>
         <span class="text-slate-300">|</span>
-        <a href={`/tools/${toolB.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+        <a href={`/tool/${toolB.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
           More about {toolB.name} →
         </a>
         {toolA.category && (

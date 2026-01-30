@@ -1,0 +1,19 @@
+# StackHunt robots.txt
+
+User-agent: *
+
+# Allow all public content
+Allow: /
+
+# Block admin pages
+Disallow: /admin/
+Disallow: /admin
+
+# Block API routes
+Disallow: /api/
+
+# Block affiliate redirect tracking (prevent link scheme perception)
+Disallow: /go/
+
+# Sitemap location
+Sitemap: https://stackhunt.io/sitemap-index.xml

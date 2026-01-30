@@ -59,46 +59,64 @@ export async function executePersistencePhase(
     categoryId = cat?.id || null;
   }
 
-  // Step 2: Upsert Tool (with Knowledge Card as metadata)
-  const toolData: Record<string, unknown> = {
-    name: ctx.toolName,
-    slug: toolSlug,
-    website: ctx.analysis.analysis.websiteUrl || null,
-    logo_path: ctx.analysis.logo?.path || null,
-    logo_url: ctx.analysis.logo?.url || null,
-    short_description: ctx.analysis.analysis.shortDescription || null,
-    category_id: categoryId,
-    pricing_type: ctx.analysis.analysis.pricingType,
-    embedding: ctx.analysis.embedding,
-    // Store Knowledge Card for comparison tables
-    metadata: ctx.research.knowledgeCard || null,
+  // Step 2: Upsert Item (with Knowledge Card + V2 fields)
+  const analysis = ctx.analysis.analysis;
+  const knowledgeCard = ctx.research.knowledgeCard;
+
+  // Build V2 specs from analysis
+  const specs: Record<string, unknown> = {
+    pricing_model: analysis.pricingType,
+    platforms: analysis.graphTags?.platforms || [],
+    integrations: knowledgeCard?.integrations || [],
   };
 
-  const { data: tool, error: toolError } = await deps.supabase
-    .from('tools')
-    .upsert(toolData, { onConflict: 'slug' })
+  // Build V2 metadata (Knowledge Card + extended fields)
+  const metadata: Record<string, unknown> = {
+    ...knowledgeCard,
+    // Space for company info and competitors to be added later
+  };
+
+  const itemData: Record<string, unknown> = {
+    name: ctx.toolName,
+    slug: toolSlug,
+    website: analysis.websiteUrl || null,
+    logo_path: ctx.analysis.logo?.path || null,
+    logo_url: ctx.analysis.logo?.url || null,
+    short_description: analysis.shortDescription || null,
+    category_id: categoryId,
+    pricing_type: analysis.pricingType,
+    embedding: ctx.analysis.embedding,
+    // V2: Enhanced fields
+    metadata,
+    specs,
+    verdict: analysis.verdict || null, // One-line conclusion if provided
+  };
+
+  const { data: item, error: itemError } = await deps.supabase
+    .from('items')
+    .upsert(itemData, { onConflict: 'slug' })
     .select('id')
     .single();
 
-  if (toolError) throw new Error(`Failed to save tool: ${toolError.message}`);
+  if (itemError) throw new Error(`Failed to save item: ${itemError.message}`);
 
-  deps.log(`Tool saved: ${ctx.toolName} (id: ${tool.id})`);
+  deps.log(`Item saved: ${ctx.toolName} (id: ${item.id})`);
 
   // Step 3: Create Knowledge Graph links
-  await createGraphLinks(tool.id, ctx.analysis.analysis.graphTags, deps);
+  await createGraphLinks(item.id, ctx.analysis.analysis.graphTags, deps);
 
   // Step 4: Create default affiliate offer
-  if (ctx.analysis.analysis.websiteUrl) {
+  if (analysis.websiteUrl) {
     const offerData: Record<string, unknown> = {
-      tool_id: tool.id,
-      url: ctx.analysis.analysis.websiteUrl,
+      item_id: item.id,
+      url: analysis.websiteUrl,
       cta_text: 'Visit Website',
       is_affiliate: false,
       is_primary: true,
     };
 
     await deps.supabase.from('affiliate_offers').upsert(offerData, {
-      onConflict: 'tool_id,is_primary',
+      onConflict: 'item_id,is_primary',
       ignoreDuplicates: true,
     });
   }
@@ -107,7 +125,7 @@ export async function executePersistencePhase(
   if (!ctx.contextTitle) {
     deps.log('[Phase 3] Complete - No context provided');
     return {
-      toolId: tool.id,
+      toolId: item.id, // Keep as toolId for backward compat in return type
       contextId: null,
       reviewId: null,
       wasReused: false,
@@ -134,9 +152,9 @@ export async function executePersistencePhase(
     deps.log(`Created new context: ${ctx.contextTitle} (id: ${contextId})`);
   }
 
-  // Step 7: Create Review (links tool to context)
+  // Step 7: Create Review (links item to context)
   const reviewId = await createReview(
-    tool.id,
+    item.id,
     contextId,
     ctx.analysis.analysis,
     ctx.research.scoutResult.sources,
@@ -148,7 +166,7 @@ export async function executePersistencePhase(
   deps.log(`[Phase 3] Complete`);
 
   return {
-    toolId: tool.id,
+    toolId: item.id, // Keep as toolId for backward compat in return type
     contextId,
     reviewId,
     wasReused,
@@ -156,10 +174,10 @@ export async function executePersistencePhase(
 }
 
 /**
- * Create Knowledge Graph links for a tool
+ * Create Knowledge Graph links for an item
  */
 async function createGraphLinks(
-  toolId: string,
+  itemId: string,
   graphTags: {
     functions: string[];
     audiences: string[];
@@ -171,8 +189,8 @@ async function createGraphLinks(
 
   // Link functions
   for (const fn of graphTags.functions) {
-    await deps.supabase.rpc('link_tool_to_category', {
-      p_tool_id: toolId,
+    await deps.supabase.rpc('link_item_to_category', {
+      p_item_id: itemId,
       p_category_name: fn,
       p_category_type: 'function',
     });
@@ -180,8 +198,8 @@ async function createGraphLinks(
 
   // Link audiences
   for (const aud of graphTags.audiences) {
-    await deps.supabase.rpc('link_tool_to_category', {
-      p_tool_id: toolId,
+    await deps.supabase.rpc('link_item_to_category', {
+      p_item_id: itemId,
       p_category_name: aud,
       p_category_type: 'audience',
     });
@@ -189,8 +207,8 @@ async function createGraphLinks(
 
   // Link platforms
   for (const plat of graphTags.platforms) {
-    await deps.supabase.rpc('link_tool_to_category', {
-      p_tool_id: toolId,
+    await deps.supabase.rpc('link_item_to_category', {
+      p_item_id: itemId,
       p_category_name: plat,
       p_category_type: 'platform',
     });
@@ -424,7 +442,7 @@ function validateNegativeClaim(
 }
 
 /**
- * Create a review linking tool to context
+ * Create a review linking item to context
  *
  * Includes full source attribution for legal protection:
  * - Normalizes all claims to include source_url, source_type, claim_type
@@ -434,7 +452,7 @@ function validateNegativeClaim(
  * - Auto-publishes if high confidence (quality="high", score 70+, minimal filtered claims)
  */
 async function createReview(
-  toolId: string,
+  itemId: string,
   contextId: string,
   analysis: any,
   sources: Array<{ url: string; title: string; snippet: string; domain: string }>,
@@ -470,7 +488,7 @@ async function createReview(
   }
 
   const reviewData: Record<string, unknown> = {
-    tool_id: toolId,
+    item_id: itemId, // V2: renamed from tool_id
     context_id: contextId,
     score: analysis.score,
     summary_markdown: analysis.summary,
@@ -507,7 +525,7 @@ async function createReview(
 
   const { data: review, error: reviewError } = await deps.supabase
     .from('reviews')
-    .upsert(reviewData, { onConflict: 'tool_id,context_id' })
+    .upsert(reviewData, { onConflict: 'item_id,context_id' })
     .select('id')
     .single();
 

@@ -24,10 +24,11 @@ const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
 // Calculate offset
 const offset = (page - 1) * ITEMS_PER_PAGE;
 
-// First get total count
+// First get total count (software tools only)
 let countQuery = supabase
   .from('tools')
-  .select('id', { count: 'exact', head: true });
+  .select('id', { count: 'exact', head: true })
+  .eq('type', 'tool');
 
 if (categoryFilter) {
   countQuery = countQuery.eq('category_id', categoryFilter);
@@ -36,13 +37,14 @@ if (categoryFilter) {
 const { count: totalCount } = await countQuery;
 const totalPages = Math.ceil((totalCount || 0) / ITEMS_PER_PAGE);
 
-// Fetch tools with pagination
+// Fetch tools with pagination (software tools only)
 let query = supabase
   .from('tools')
   .select(`
-    id, name, slug, logo_url, short_description, avg_score, pricing_type,
+    id, name, slug, logo_url, short_description, avg_score, pricing_type, type,
     category:categories(name, slug)
-  `);
+  `)
+  .eq('type', 'tool');
 
 if (categoryFilter) {
   query = query.eq('category.slug', categoryFilter);

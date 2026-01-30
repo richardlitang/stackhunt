@@ -63,14 +63,16 @@ export function getAdminClient() {
 
 // ============================================================================
 // QUERY HELPERS
+// V2: Updated to use `items` table (backward-compat views exist for `tools`)
 // ============================================================================
 
 /**
- * Fetch a single tool by slug with all related data
+ * Fetch a single item by slug with all related data
+ * @param slug - Item slug
  */
-export async function getToolBySlug(slug: string) {
+export async function getItemBySlug(slug: string) {
   const { data, error } = await supabase
-    .from('tools')
+    .from('items')
     .select(`
       *,
       category:categories(*),
@@ -87,8 +89,11 @@ export async function getToolBySlug(slug: string) {
   return data;
 }
 
+/** @deprecated Use getItemBySlug instead */
+export const getToolBySlug = getItemBySlug;
+
 /**
- * Fetch a context/list page by slug with ranked tools
+ * Fetch a context/list page by slug with ranked items
  */
 export async function getContextBySlug(slug: string) {
   const { data, error } = await supabase
@@ -99,10 +104,10 @@ export async function getContextBySlug(slug: string) {
       function_category:categories!contexts_function_category_id_fkey(*),
       audience_category:categories!contexts_audience_category_id_fkey(*),
       platform_category:categories!contexts_platform_category_id_fkey(*),
-      primary_tool:tools!contexts_primary_tool_id_fkey(*),
+      primary_item:items!contexts_primary_item_id_fkey(*),
       reviews(
         *,
-        tool:tools(
+        item:items(
           *,
           affiliate_offers(*)
         )
@@ -117,11 +122,11 @@ export async function getContextBySlug(slug: string) {
 }
 
 /**
- * Fetch all tools for a category
+ * Fetch all items for a category
  */
-export async function getToolsByCategory(categorySlug: string) {
+export async function getItemsByCategory(categorySlug: string) {
   const { data, error } = await supabase
-    .from('tools')
+    .from('items')
     .select(`
       *,
       category:categories!inner(*)
@@ -133,16 +138,19 @@ export async function getToolsByCategory(categorySlug: string) {
   return data;
 }
 
+/** @deprecated Use getItemsByCategory instead */
+export const getToolsByCategory = getItemsByCategory;
+
 /**
- * Fetch featured tools for homepage
- * Falls back to top-rated tools if no featured items exist
+ * Fetch featured items for homepage
+ * Falls back to top-rated items if no featured exist
  */
-export async function getFeaturedTools(limit = 12) {
-  // First try featured tools
+export async function getFeaturedItems(limit = 12) {
+  // First try featured items
   const { data: featured, error: featuredError } = await supabase
-    .from('tools')
+    .from('items')
     .select(`
-      id, name, slug, logo_url, short_description, avg_score, pricing_type,
+      id, name, slug, logo_url, short_description, avg_score, pricing_type, verdict, base_score,
       category:categories(name, slug)
     `)
     .eq('is_featured', true)
@@ -151,16 +159,16 @@ export async function getFeaturedTools(limit = 12) {
 
   if (featuredError) throw featuredError;
 
-  // If we have featured tools, return them
+  // If we have featured items, return them
   if (featured && featured.length > 0) {
     return featured;
   }
 
-  // Fallback: get top-rated tools (by avg_score, then by created_at)
+  // Fallback: get top-rated items (by avg_score, then by created_at)
   const { data: topRated, error: topRatedError } = await supabase
-    .from('tools')
+    .from('items')
     .select(`
-      id, name, slug, logo_url, short_description, avg_score, pricing_type,
+      id, name, slug, logo_url, short_description, avg_score, pricing_type, verdict, base_score,
       category:categories(name, slug)
     `)
     .order('avg_score', { ascending: false, nullsFirst: false })
@@ -170,6 +178,9 @@ export async function getFeaturedTools(limit = 12) {
   if (topRatedError) throw topRatedError;
   return topRated;
 }
+
+/** @deprecated Use getFeaturedItems instead */
+export const getFeaturedTools = getFeaturedItems;
 
 /**
  * Fetch featured contexts/lists for homepage
@@ -241,29 +252,32 @@ export async function getContextsByCategory(categorySlug: string) {
 }
 
 /**
- * Get "Spiderweb" - all contexts a tool appears in
+ * Get "Spiderweb" - all contexts an item appears in
  */
-export async function getToolContexts(toolId: string) {
+export async function getItemContexts(itemId: string) {
   const { data, error } = await supabase
     .from('reviews')
     .select(`
       score,
       context:contexts(id, title, slug, tool_count)
     `)
-    .eq('tool_id', toolId)
+    .eq('item_id', itemId)
     .order('score', { ascending: false });
 
   if (error) throw error;
   return data;
 }
 
+/** @deprecated Use getItemContexts instead */
+export const getToolContexts = getItemContexts;
+
 /**
  * Fuzzy text search (fallback when no embedding)
  */
-export async function searchToolsByText(query: string, limit = 10) {
+export async function searchItemsByText(query: string, limit = 10) {
   const { data, error } = await supabase
-    .from('tools')
-    .select('id, name, slug, short_description, logo_url, avg_score')
+    .from('items')
+    .select('id, name, slug, short_description, logo_url, avg_score, verdict')
     .ilike('name', `%${query}%`)
     .limit(limit);
 
@@ -271,17 +285,65 @@ export async function searchToolsByText(query: string, limit = 10) {
   return data;
 }
 
+/** @deprecated Use searchItemsByText instead */
+export const searchToolsByText = searchItemsByText;
+
 /**
- * Get all tool slugs for static generation
+ * Get all item slugs for static generation
  */
-export async function getAllToolSlugs() {
+export async function getAllItemSlugs() {
   const { data, error } = await supabase
-    .from('tools')
+    .from('items')
     .select('slug');
 
   if (error) throw error;
-  return data?.map(t => t.slug) || [];
+  return data?.map(i => i.slug) || [];
 }
+
+/** @deprecated Use getAllItemSlugs instead */
+export const getAllToolSlugs = getAllItemSlugs;
+
+/**
+ * Get item slugs by type (for singular routing)
+ */
+export async function getItemSlugsByType(type: 'tool' | 'gear') {
+  const { data, error } = await supabase
+    .from('items')
+    .select('slug')
+    .eq('type', type);
+
+  if (error) throw error;
+  return data?.map(i => i.slug) || [];
+}
+
+/** @deprecated Use getItemSlugsByType instead */
+export const getToolSlugsByType = getItemSlugsByType;
+
+/**
+ * Fetch a single item by slug and type
+ */
+export async function getItemBySlugAndType(slug: string, type: 'tool' | 'gear') {
+  const { data, error } = await supabase
+    .from('items')
+    .select(`
+      *,
+      category:categories(*),
+      affiliate_offers(*),
+      reviews(
+        *,
+        context:contexts(*)
+      )
+    `)
+    .eq('slug', slug)
+    .eq('type', type)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/** @deprecated Use getItemBySlugAndType instead */
+export const getToolBySlugAndType = getItemBySlugAndType;
 
 /**
  * Get all context slugs for static generation
@@ -308,15 +370,15 @@ export async function getAllCategorySlugs() {
 }
 
 /**
- * Get Knowledge Graph tags for a tool
+ * Get Knowledge Graph tags for an item
  */
-export async function getToolTags(toolId: string) {
+export async function getItemTags(itemId: string) {
   const { data, error } = await supabase
-    .from('tool_category_links')
+    .from('item_category_links')
     .select(`
       category:categories(id, name, slug, type)
     `)
-    .eq('tool_id', toolId);
+    .eq('item_id', itemId);
 
   if (error) throw error;
 
@@ -338,6 +400,9 @@ export async function getToolTags(toolId: string) {
 
   return result;
 }
+
+/** @deprecated Use getItemTags instead */
+export const getToolTags = getItemTags;
 
 /**
  * Get categories by type (for Knowledge Graph)
@@ -365,4 +430,103 @@ export async function getPrompt(key: string): Promise<{ template: string; variab
   }
 
   return data[0];
+}
+
+// ============================================================================
+// V2: NEW QUERY HELPERS
+// ============================================================================
+
+/**
+ * Get item with its competitors loaded
+ */
+export async function getItemWithCompetitors(slug: string) {
+  const { data: item, error } = await supabase
+    .from('items')
+    .select('*')
+    .eq('slug', slug)
+    .single();
+
+  if (error) throw error;
+  if (!item) return null;
+
+  // Load competitors if they exist in metadata
+  const competitorSlugs = (item.metadata as any)?.competitors || [];
+  if (competitorSlugs.length === 0) {
+    return { ...item, competitors: [] };
+  }
+
+  const { data: competitors } = await supabase
+    .from('items')
+    .select('id, name, slug, logo_url, short_description, avg_score, verdict, base_score')
+    .in('slug', competitorSlugs);
+
+  return { ...item, competitors: competitors || [] };
+}
+
+/**
+ * Get items that need freshness check (stale data)
+ */
+export async function getStaleItems(olderThanDays = 30, limit = 50) {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+
+  const { data, error } = await supabase
+    .from('items')
+    .select('id, name, slug, last_major_update, updated_at')
+    .or(`last_major_update.is.null,last_major_update.lt.${cutoffDate.toISOString()}`)
+    .order('updated_at', { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get items by base_score range (for quality filtering)
+ */
+export async function getItemsByQuality(minScore: number, maxScore = 100, limit = 50) {
+  const { data, error } = await supabase
+    .from('items')
+    .select('id, name, slug, logo_url, short_description, base_score, avg_score, verdict')
+    .gte('base_score', minScore)
+    .lte('base_score', maxScore)
+    .order('base_score', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Search items with specs filter (e.g., find all items with SSO)
+ */
+export async function searchItemsBySpecs(specFilter: Record<string, unknown>, limit = 50) {
+  const { data, error } = await supabase
+    .from('items')
+    .select('id, name, slug, logo_url, short_description, specs, avg_score')
+    .contains('specs', specFilter)
+    .order('avg_score', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get items for comparison (used by /compare page)
+ */
+export async function getItemsForComparison(slugs: string[]) {
+  const { data, error } = await supabase
+    .from('items')
+    .select(`
+      *,
+      affiliate_offers(*)
+    `)
+    .in('slug', slugs);
+
+  if (error) throw error;
+
+  // Sort to match input order
+  const slugOrder = new Map(slugs.map((s, i) => [s, i]));
+  return (data || []).sort((a, b) => (slugOrder.get(a.slug) || 0) - (slugOrder.get(b.slug) || 0));
 }
