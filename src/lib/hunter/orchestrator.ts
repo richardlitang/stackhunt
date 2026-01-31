@@ -122,6 +122,7 @@ export class Hunter {
       categorySlug: input.categorySlug,
       queueItemId: input.queueItemId,
       forceUpdate: input.forceUpdate,
+      huntType: input.huntType || 'full',
       skipAnalysis: false,
       skipPersistence: false,
       startTime,
@@ -165,6 +166,11 @@ export class Hunter {
       // ===================================================================
       // PHASE 2: ANALYSIS (Synthesize + Embed + Logo)
       // ===================================================================
+      if (ctx.huntType === 'price_only') {
+        ctx.skipAnalysis = true;
+        this.log(`🧾 price_only hunt: skipping analysis phase`);
+      }
+
       if (!ctx.skipAnalysis) {
         ctx.analysis = await executeAnalysisPhase(ctx, deps);
         ctx.tokensUsed += ctx.analysis.tokensUsed;
@@ -241,6 +247,8 @@ export class Hunter {
         contextTitle: queueItem.context_title || undefined,
         categorySlug: queueItem.category_slug || undefined,
         queueItemId: queueItem.id,
+        huntType: (queueItem.hunt_type as any) || 'full',
+        forceUpdate: queueItem.force_regenerate, // Pass force_regenerate flag to override duplicate detection
       });
 
       // Stop heartbeat

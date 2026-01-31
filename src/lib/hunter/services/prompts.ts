@@ -48,7 +48,7 @@ Output ONLY valid JSON matching this exact schema:
       "source_type": "<official|editorial|community>",
       "claim_type": "<fact|opinion>"
     }
-  ],
+  ],  // MAXIMUM 5 pros - prioritize most important if you have more
   "cons": [
     {
       "text": "<specific drawback - write as neutral statement>",
@@ -56,9 +56,9 @@ Output ONLY valid JSON matching this exact schema:
       "source_type": "<official|editorial|community>",
       "claim_type": "<fact|opinion>"
     }
-  ],
+  ],  // MAXIMUM 5 cons - prioritize most important if you have more
   "summary": "<150-300 word Markdown summary explaining who this tool is best for and why people might switch away>",
-  "sentimentTags": [<1-5 lowercase tags like "easy-to-use", "expensive", "feature-rich">],
+  "sentimentTags": [<EXACTLY 3-5 lowercase tags like "easy-to-use", "expensive", "feature-rich". NO MORE THAN 5>],
   "pricingType": "<free|freemium|paid|enterprise|open_source>",
   "websiteUrl": "<official website URL if found>",
   "shortDescription": "<one sentence, max 200 chars describing what the tool does>",
@@ -80,13 +80,13 @@ Output ONLY valid JSON matching this exact schema:
   "reviewContext": {
     "humanVerdict": "<2-sentence summary in 'Coffee Shop Speak' - NO jargon like 'seamless', 'empowers', 'robust'>",
     "budgetAnalyst": {
-      "costDrivers": [<factual TCO factors like "SSO requires Enterprise", "Guests are billable">],
-      "oneTimeFees": [<implementation/setup fees>],
-      "commitmentTerms": "<contract constraints like 'Annual only', '30-day notice', or null>",
-      "roiThreshold": "<when premium becomes worth it, e.g., 'Team of 20+', or null>"
+      "costDrivers": [<0-5 factual TCO factors like "SSO requires Enterprise", "Guests are billable". Extract from Budget Analyst snippets. If insufficient data, use empty array []>],
+      "oneTimeFees": [<implementation/setup fees, or empty array if none>],
+      "commitmentTerms": "<contract constraints like 'Annual only', '30-day notice', or null if unknown>",
+      "roiThreshold": "<when premium becomes worth it, e.g., 'Team of 20+', or null if unclear>"
     },
     "userAdvocate": {
-      "vibe": "<2-3 words describing the soul: 'Enterprise Grey', 'Hacker Chic', 'Playful'>",
+      "vibe": "<2-3 words describing the soul. PREFER creative: 'Enterprise Grey', 'Hacker Chic', 'Scrappy Startup', 'Buttoned-Up'. AVOID: 'Professional', 'Simple', 'Modern'. If insufficient data for a creative vibe, use 'Unknown Vibe' as placeholder>",
       "originStory": "<one sentence context, e.g., 'Started as game chat', or null>",
       "idealFor": [<specific personas: "Solo founders", "Async-first teams">],
       "avoidIf": [<deal-breakers: "Need offline access", "Hate keyboard shortcuts">],
@@ -190,6 +190,12 @@ Context: Evaluating specifically for "{{contextTitle}}"
 
 ### Alternatives & Comparisons:
 {{alternativesSnippets}}
+
+### Budget Analyst Data (Hidden Costs, Implementation Fees, Billing Logic):
+{{budgetAnalystSnippets}}
+
+### Tribal Knowledge (Reddit Reviews, Power Tips, Honest Opinions):
+{{tribalKnowledgeSnippets}}
 
 IMPORTANT:
 - Base your analysis primarily on the VERIFIED FACTS above

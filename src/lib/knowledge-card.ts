@@ -83,6 +83,39 @@ export const SMPPricingDataSchema = z.object({
   pricing_page_url: z.string().url().nullable().optional(),
   confidence: z.enum(['high', 'medium', 'low']).default('medium'),
   discounts_available: z.array(z.enum(['startup', 'nonprofit', 'education', 'government', 'annual_prepay'])).default([]),
+
+  // Seat types (member/guest/viewer)
+  seat_types: z.array(z.object({
+    type: z.enum(['member', 'guest', 'viewer', 'contractor', 'admin']),
+    price_per_unit: z.number().nullable().optional(),
+    free_units: z.number().nullable().optional(),
+    notes: z.string().nullable().optional(),
+  })).optional(),
+
+  // Volume tiers (seat ranges with price overrides)
+  volume_tiers: z.array(z.object({
+    min_units: z.number(),
+    max_units: z.number().nullable().optional(),
+    price_per_unit: z.number(),
+    applies_to: z.enum(['member', 'seat', 'workspace', 'gb', 'request']).nullable().optional(),
+  })).optional(),
+
+  // Usage meters (GB/requests/messages)
+  usage_meters: z.array(z.object({
+    unit: z.enum(['gb', 'message', 'request', 'minute', 'api_call']),
+    price_per_unit: z.number(),
+    included_units: z.number().nullable().optional(),
+    billing_cycle: z.enum(['monthly', 'annual', 'quarterly']),
+  })).optional(),
+
+  // Add-ons (SSO, audit logs, storage)
+  add_ons: z.array(z.object({
+    name: z.string(),
+    price: z.number(),
+    unit: z.enum(['seat', 'account', 'org', 'gb', 'request']),
+    required: z.boolean().default(false),
+    notes: z.string().nullable().optional(),
+  })).optional(),
 });
 export type SMPPricingData = z.infer<typeof SMPPricingDataSchema>;
 
@@ -477,13 +510,14 @@ export const GeminiKnowledgeCardSchema = {
               max_users: { type: 'number', nullable: true, description: 'User limit for this plan. null = unlimited.' },
               max_storage_gb: { type: 'number', nullable: true },
               max_projects: { type: 'number', nullable: true },
+              target_audience: { type: 'string', enum: ['individual', 'team', 'business', 'enterprise'], nullable: true, description: 'REQUIRED: Who is this plan for? individual=solo/freelancer (1 user), team=2-10 people, business=10-100, enterprise=100+. Infer from features: Free/Personal→individual, Starter/Team→team, Professional/Business→business, Enterprise/Premium→enterprise' },
               includes_sso: { type: 'boolean', default: false },
               includes_api: { type: 'boolean', default: false },
               includes_sla: { type: 'boolean', default: false },
               includes_priority_support: { type: 'boolean', default: false },
               is_enterprise: { type: 'boolean', default: false, description: 'true if this is "Contact Sales" pricing' },
             },
-            required: ['id', 'name'],
+            required: ['id', 'name', 'target_audience'],
           },
         },
         min_seats: { type: 'number', nullable: true, description: 'Minimum seat purchase (e.g., "Min 5 seats")' },
