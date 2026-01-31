@@ -14,10 +14,13 @@ AI-powered programmatic SEO platform. Researches tools via web search, generates
 | **Roadmap V1** | `.claude/docs/ROADMAP_V1.md` |
 | **Hunter Extension** | `.claude/docs/HUNTER_EXTENSION.md` |
 | **Quick Context** | `.claude/docs/QUICK_CONTEXT.md` |
+| **Supabase Project ID** | `.claude/SUPABASE_PROJECT_ID.md` |
 
 ## Tech Stack
 
 Astro 5 (Islands) | React 18 | Tailwind | Supabase (Postgres + pgvector) | Gemini 2.0 Flash | Serper API | Vercel
+
+**Supabase Project ID:** `vhelpqzbtzwiddoebnyy` (see `.claude/SUPABASE_PROJECT_ID.md`)
 
 ## Project Structure
 
