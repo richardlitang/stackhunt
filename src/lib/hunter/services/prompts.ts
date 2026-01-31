@@ -198,4 +198,3 @@ IMPORTANT:
 - Do NOT fabricate URLs - only use URLs that appear in the search results
 
 Provide your structured JSON analysis (JSON only, no markdown code blocks):`;
-`;

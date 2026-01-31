@@ -1,0 +1,369 @@
+---
+/**
+ * Admin: Content Quality Dashboard
+ *
+ * Lists all tools with low confidence scores / noindexed status.
+ * Allows bulk re-hunting to improve data quality.
+ */
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { supabase } from '@/lib/supabase';
+import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
+import type { Tool, Review } from '@/types/database';
+
+// Fetch all tools with their first review
+const { data: tools, error } = await supabase
+  .from('items')
+  .select(`
+    id,
+    slug,
+    name,
+    short_description,
+    pricing_type,
+    avg_score,
+    review_count,
+    view_count,
+    learning_curve,
+    last_verified_at,
+    metadata,
+    specs,
+    reviews:reviews(
+      id,
+      summary_markdown,
+      pros,
+      cons,
+      sources
+    )
+  `)
+  .eq('type', 'tool')
+  .order('name');
+
+if (error) {
+  console.error('Error fetching tools:', error);
+}
+
+// Evaluate confidence for each tool
+const toolsWithConfidence = (tools || []).map((tool) => {
+  const firstReview = tool.reviews?.[0] as Review | undefined;
+  const confidence = evaluateContentConfidence(tool as Tool, firstReview);
+  return {
+    ...tool,
+    confidence,
+    confidenceLevel: getConfidenceLevel(confidence.score),
+  };
+});
+
+// Separate by status
+const noindexed = toolsWithConfidence.filter(t => t.confidence.shouldNoindex);
+const lowQuality = toolsWithConfidence.filter(t => !t.confidence.shouldNoindex && t.confidence.score < 7);
+const highQuality = toolsWithConfidence.filter(t => t.confidence.score >= 7);
+
+// Sort by confidence score (lowest first)
+noindexed.sort((a, b) => a.confidence.score - b.confidence.score);
+lowQuality.sort((a, b) => a.confidence.score - b.confidence.score);
+
+// Stats
+const totalTools = toolsWithConfidence.length;
+const noindexedCount = noindexed.length;
+const lowQualityCount = lowQuality.length;
+const noindexedPercent = ((noindexedCount / totalTools) * 100).toFixed(1);
+---
+
+<AdminLayout title="Content Quality Dashboard">
+  <div class="space-y-8">
+    <!-- Header -->
+    <div>
+      <h1 class="text-3xl font-bold text-zinc-100">Content Quality Dashboard</h1>
+      <p class="mt-2 text-zinc-400">
+        Monitor and improve tool data quality. Low confidence pages are automatically noindexed to protect SEO.
+      </p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid gap-6 md:grid-cols-4">
+      <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-6">
+        <div class="text-sm font-medium text-zinc-400">Total Tools</div>
+        <div class="mt-2 text-3xl font-bold text-zinc-100">{totalTools}</div>
+      </div>
+
+      <div class="rounded-lg border border-red-500/30 bg-red-500/5 p-6">
+        <div class="text-sm font-medium text-red-400">Noindexed</div>
+        <div class="mt-2 text-3xl font-bold text-red-400">{noindexedCount}</div>
+        <div class="mt-1 text-xs text-red-400/70">{noindexedPercent}% of tools</div>
+      </div>
+
+      <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-6">
+        <div class="text-sm font-medium text-amber-400">Low Quality</div>
+        <div class="mt-2 text-3xl font-bold text-amber-400">{lowQualityCount}</div>
+        <div class="mt-1 text-xs text-amber-400/70">Score &lt; 7/10</div>
+      </div>
+
+      <div class="rounded-lg border border-green-500/30 bg-green-500/5 p-6">
+        <div class="text-sm font-medium text-green-400">High Quality</div>
+        <div class="mt-2 text-3xl font-bold text-green-400">{highQuality.length}</div>
+        <div class="mt-1 text-xs text-green-400/70">Score ≥ 7/10</div>
+      </div>
+    </div>
+
+    <!-- Noindexed Tools -->
+    {noindexedCount > 0 && (
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-semibold text-red-400">🚫 Noindexed Pages ({noindexedCount})</h2>
+            <p class="mt-1 text-sm text-zinc-400">
+              These tools are hidden from search engines due to low data quality.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition"
+            onclick="queueAllForRehunt('noindexed')"
+          >
+            Queue All for Re-Hunt
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          {noindexed.map((tool) => (
+            <div class="rounded-lg border border-red-500/20 bg-zinc-900 p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3">
+                    <a
+                      href={`/tool/${tool.slug}`}
+                      class="text-lg font-medium text-zinc-100 hover:text-red-400 transition"
+                      target="_blank"
+                    >
+                      {tool.name}
+                    </a>
+                    <span class="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-400">
+                      {tool.confidence.score.toFixed(1)}/10
+                    </span>
+                  </div>
+
+                  <div class="mt-2 space-y-1">
+                    <div class="text-sm text-zinc-400">
+                      <span class="font-medium text-red-400">Issues:</span>
+                      {tool.confidence.reasons.map((reason, idx) => (
+                        <span>
+                          {idx > 0 && ' • '}
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                      <span>Desc: {tool.confidence.signals.hasShortDescription ? '✓' : '✗'}</span>
+                      <span>KC: {tool.confidence.signals.hasKnowledgeCard ? '✓' : '✗'}</span>
+                      <span>Review: {tool.confidence.signals.hasReviewContent ? '✓' : '✗'}</span>
+                      <span>Sources: {tool.confidence.signals.sourceCount}</span>
+                      <span>QA: {tool.confidence.signals.qaScore}/8</span>
+                      <span>Pricing: {tool.confidence.signals.pricingConfidence || 'none'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex gap-2">
+                  <a
+                    href={`/admin/review/${tool.id}`}
+                    class="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-700 transition"
+                  >
+                    Review
+                  </a>
+                  <button
+                    type="button"
+                    class="rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 transition"
+                    onclick={`queueForRehunt('${tool.id}', '${tool.name}')`}
+                  >
+                    Re-Hunt
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Low Quality Tools -->
+    {lowQualityCount > 0 && (
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-semibold text-amber-400">⚠️ Low Quality (Indexed) ({lowQualityCount})</h2>
+            <p class="mt-1 text-sm text-zinc-400">
+              These tools are indexed but could benefit from improved data.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="rounded-lg border border-amber-500 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-400 hover:bg-amber-500/20 transition"
+            onclick="queueAllForRehunt('low-quality')"
+          >
+            Queue All for Re-Hunt
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          {lowQuality.slice(0, 20).map((tool) => (
+            <div class="rounded-lg border border-amber-500/20 bg-zinc-900 p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3">
+                    <a
+                      href={`/tool/${tool.slug}`}
+                      class="text-lg font-medium text-zinc-100 hover:text-amber-400 transition"
+                      target="_blank"
+                    >
+                      {tool.name}
+                    </a>
+                    <span class="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-400">
+                      {tool.confidence.score.toFixed(1)}/10
+                    </span>
+                  </div>
+
+                  <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                    <span>Desc: {tool.confidence.signals.hasShortDescription ? '✓' : '✗'}</span>
+                    <span>KC: {tool.confidence.signals.hasKnowledgeCard ? '✓' : '✗'}</span>
+                    <span>Review: {tool.confidence.signals.hasReviewContent ? '✓' : '✗'}</span>
+                    <span>Sources: {tool.confidence.signals.sourceCount}</span>
+                    <span>QA: {tool.confidence.signals.qaScore}/8</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  class="rounded-lg border border-amber-500 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-400 hover:bg-amber-500/20 transition"
+                  onclick={`queueForRehunt('${tool.id}', '${tool.name}')`}
+                >
+                  Re-Hunt
+                </button>
+              </div>
+            </div>
+          ))}
+          {lowQualityCount > 20 && (
+            <div class="text-center text-sm text-zinc-500">
+              ... and {lowQualityCount - 20} more
+            </div>
+          )}
+        </div>
+      </section>
+    )}
+
+    <!-- High Quality Sample -->
+    <section class="space-y-4">
+      <div>
+        <h2 class="text-xl font-semibold text-green-400">✅ High Quality Sample</h2>
+        <p class="mt-1 text-sm text-zinc-400">
+          Examples of well-documented tools with strong data quality.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+        {highQuality.slice(0, 5).map((tool) => (
+          <div class="rounded-lg border border-green-500/20 bg-zinc-900 p-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <a
+                  href={`/tool/${tool.slug}`}
+                  class="text-lg font-medium text-zinc-100 hover:text-green-400 transition"
+                  target="_blank"
+                >
+                  {tool.name}
+                </a>
+                <span class="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-400">
+                  {tool.confidence.score.toFixed(1)}/10
+                </span>
+              </div>
+
+              <div class="flex gap-x-4 text-xs text-zinc-500">
+                <span>Sources: {tool.confidence.signals.sourceCount}</span>
+                <span>QA: {tool.confidence.signals.qaScore}/8</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  </div>
+</AdminLayout>
+
+<script>
+  // Queue single tool for re-hunt
+  async function queueForRehunt(toolId: string, toolName: string) {
+    if (!confirm(`Queue ${toolName} for re-hunt?`)) return;
+
+    try {
+      const response = await fetch('/api/admin/queue-tool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolId,
+          toolName,
+          priority: 7,
+          huntType: 'refresh',
+          source: 'quality_improvement',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to queue tool');
+
+      alert(`✅ ${toolName} queued for re-hunt`);
+    } catch (error) {
+      console.error('Error queuing tool:', error);
+      alert('❌ Failed to queue tool. Check console for details.');
+    }
+  }
+
+  // Queue all tools in a category
+  async function queueAllForRehunt(category: string) {
+    const confirmMsg = category === 'noindexed'
+      ? 'Queue ALL noindexed tools for re-hunt? This may take a while.'
+      : 'Queue ALL low-quality tools for re-hunt? This may take a while.';
+
+    if (!confirm(confirmMsg)) return;
+
+    // Get all tool IDs from the current page
+    const tools = Array.from(document.querySelectorAll(`[onclick*="queueForRehunt"]`))
+      .map(btn => {
+        const match = btn.getAttribute('onclick')?.match(/queueForRehunt\('([^']+)', '([^']+)'/);
+        return match ? { id: match[1], name: match[2] } : null;
+      })
+      .filter(Boolean);
+
+    let queued = 0;
+    let failed = 0;
+
+    for (const tool of tools) {
+      try {
+        const response = await fetch('/api/admin/queue-tool', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            toolId: tool.id,
+            toolName: tool.name,
+            priority: category === 'noindexed' ? 8 : 6,
+            huntType: 'refresh',
+            source: 'quality_improvement',
+          }),
+        });
+
+        if (response.ok) {
+          queued++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        failed++;
+      }
+    }
+
+    alert(`✅ Queued ${queued} tools for re-hunt${failed > 0 ? ` (${failed} failed)` : ''}`);
+    location.reload();
+  }
+
+  // Make functions global
+  (window as any).queueForRehunt = queueForRehunt;
+  (window as any).queueAllForRehunt = queueAllForRehunt;
+</script>

@@ -19,13 +19,16 @@ import AddToStackButton from '@/components/AddToStackButton';
 import VideoEmbed from '@/components/VideoEmbed';
 import AlternativeCard from '@/components/AlternativeCard.astro';
 import CompanyInfo from '@/components/CompanyInfo.astro';
-import PricingSummary from '@/components/PricingSummary.astro';
 import SecurityCompliance from '@/components/SecurityCompliance.astro';
 import SupportOptions from '@/components/SupportOptions.astro';
 import PortabilityCard from '@/components/PortabilityCard.astro';
 import PlatformIntegrations from '@/components/PlatformIntegrations.astro';
 import FeaturesShowcase from '@/components/FeaturesShowcase.astro';
 import PricingPlansGrid from '@/components/PricingPlansGrid.astro';
+import VerifiedBadge from '@/components/VerifiedBadge.astro';
+import PricingInsights from '@/components/PricingInsights.astro';
+import TribalKnowledge from '@/components/TribalKnowledge.astro';
+import PriceVerification from '@/components/PriceVerification';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
 import {
@@ -42,6 +45,7 @@ import {
 } from '@/lib/seo';
 import { simpleMarkdown } from '@/lib/utils';
 import { getAlternatives } from '@/lib/analysis/alternatives';
+import { evaluateContentConfidence } from '@/lib/confidence';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -65,12 +69,15 @@ const globalPros = Array.isArray(toolSpecs?.pros) ? toolSpecs?.pros : [];
 const globalCons = Array.isArray(toolSpecs?.cons) ? toolSpecs?.cons : [];
 const reviewContext = tool.review_context as Record<string, unknown> | null;
 const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<string, unknown> | null;
+const budgetAnalyst = (reviewContext?.budgetAnalyst || reviewContext?.budget_analyst) as Record<string, unknown> | null;
 const humanVerdict = (reviewContext?.humanVerdict || reviewContext?.human_verdict) as string | null;
 const delighters = Array.isArray(userAdvocate?.delighters) ? userAdvocate?.delighters : [];
 const frustrations = Array.isArray(userAdvocate?.frustrations) ? userAdvocate?.frustrations : [];
 const powerTip = (userAdvocate?.powerTip || userAdvocate?.power_tip) as string | null;
 const vibe = userAdvocate?.vibe as string | null;
 const originStory = (userAdvocate?.originStory || userAdvocate?.origin_story) as string | null;
+const idealFor = Array.isArray(userAdvocate?.idealFor || userAdvocate?.ideal_for) ? (userAdvocate?.idealFor || userAdvocate?.ideal_for) : [];
+const avoidIf = Array.isArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if) ? (userAdvocate?.avoidIf || userAdvocate?.avoid_if) : [];
 
 // Fetch alternatives using hybrid search (vector similarity + category guardrails)
 // Strategy: Compute live, cache at edge - no DB storage of computed relationships
@@ -130,14 +137,12 @@ const sourceDomains = firstReview?.sources
     }))].slice(0, 5)
   : [];
 
-// SEO: noindex pages with insufficient data (thin content prevention)
-const hasKnowledgeCard = tool.metadata && Object.keys(tool.metadata).length > 0;
-const hasReviewContent = firstReview?.summary_markdown || (firstReview?.pros?.length > 0);
-const isThinContent = !hasKnowledgeCard && !hasReviewContent && !tool.avg_score;
+// SEO: Automated confidence scoring for noindex decision
+const confidence = evaluateContentConfidence(tool, firstReview);
 
 const meta = {
   ...generateToolMeta(tool, tool.review_count),
-  noindex: isThinContent,
+  noindex: confidence.shouldNoindex,
 };
 const schemas = [
   generateToolSchema(tool, primaryOffer, tool.review_count),
@@ -174,6 +179,41 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       <span>/</span>
       <span class="text-zinc-300">{tool.name}</span>
     </nav>
+
+    <!-- Verification Badge -->
+    <div class="mb-6 flex flex-wrap items-start gap-4">
+      <VerifiedBadge
+        lastVerifiedAt={tool.last_verified_at}
+        sourceCount={firstReview?.sources?.length || 0}
+        size="md"
+      />
+
+      {/* Content Confidence Indicator (shown when noindexed or low confidence) */}
+      {(confidence.shouldNoindex || confidence.score < 7) && (
+        <div class:list={[
+          'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium',
+          confidence.shouldNoindex
+            ? 'border-red-500/30 bg-red-500/10 text-red-400'
+            : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+        ]}>
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {confidence.shouldNoindex ? (
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            ) : (
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            )}
+          </svg>
+          <span>
+            {confidence.shouldNoindex ? 'Noindexed' : 'Low Quality'}: {confidence.score.toFixed(1)}/10
+          </span>
+          {confidence.shouldNoindex && (
+            <span class="text-xs opacity-75">
+              ({confidence.reasons[0]})
+            </span>
+          )}
+        </div>
+      )}
+    </div>
 
     <!-- Hero Section -->
     <header class="mb-12 rounded-2xl border-2 border-zinc-600 bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 shadow-lg">
@@ -265,7 +305,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
             <h2 class="mb-2 text-lg font-semibold text-zinc-100">Technical Highlights</h2>
             <p class="mb-4 text-sm text-zinc-400">Objective capabilities and limitations (universally true).</p>
-            <ProsCons pros={globalPros} cons={globalCons} showSources={false} />
+            <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="toggle" />
           </section>
         )}
 
@@ -374,61 +414,19 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           </section>
         )}
 
-        {/* User Experience (Contextual, subjective) */}
-        {(humanVerdict || vibe || originStory || delighters.length > 0 || frustrations.length > 0 || powerTip) && (
-          <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 class="mb-2 text-lg font-semibold text-zinc-100">The User Experience</h2>
-            <p class="mb-4 text-sm text-zinc-400">Subjective insights from user feedback and tribal knowledge.</p>
-
-            {humanVerdict && (
-              <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-200">
-                “{humanVerdict}”
-              </div>
-            )}
-
-            {(vibe || originStory) && (
-              <div class="mb-4 text-sm text-zinc-300">
-                {vibe && <span class="mr-2 inline-flex items-center rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">Vibe: {vibe}</span>}
-                {originStory && <span class="text-zinc-400">{originStory}</span>}
-              </div>
-            )}
-
-            <div class="grid gap-6 md:grid-cols-2">
-              {delighters.length > 0 && (
-                <div>
-                  <h3 class="mb-2 text-sm font-medium text-emerald-300">Delighters</h3>
-                  <ul class="space-y-2 text-sm text-zinc-300">
-                    {delighters.map((item: string) => (
-                      <li class="flex items-start gap-2">
-                        <span class="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {frustrations.length > 0 && (
-                <div>
-                  <h3 class="mb-2 text-sm font-medium text-rose-300">Frustrations</h3>
-                  <ul class="space-y-2 text-sm text-zinc-300">
-                    {frustrations.map((item: string) => (
-                      <li class="flex items-start gap-2">
-                        <span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400"></span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {powerTip && (
-              <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-                <span class="text-amber-300">Power tip:</span> {powerTip}
-              </div>
-            )}
-          </section>
-        )}
+        {/* Tribal Knowledge (V3.1: Split-Brain Intelligence) */}
+        <TribalKnowledge
+          userAdvocate={userAdvocate ? {
+            vibe,
+            originStory,
+            idealFor,
+            avoidIf,
+            powerTip,
+            delighters,
+            frustrations,
+          } : undefined}
+          humanVerdict={humanVerdict}
+        />
 
         {/* Contextual Pros & Cons (for SEO + audience-specific signal) */}
         {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) && (
@@ -436,6 +434,15 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             pros={firstReview.pros || []}
             cons={firstReview.cons || []}
             title="Contextual Pros & Cons"
+            sourceDisplay="toggle"
+          />
+        )}
+
+        {/* Features Showcase */}
+        {(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0) && (
+          <FeaturesShowcase
+            features={knowledgeCard.features}
+            toolName={tool.name}
           />
         )}
 
@@ -446,16 +453,19 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
               smp_pricing={knowledgeCard?.smp_pricing}
               legacy_pricing={knowledgeCard?.pricing}
               toolName={tool.name}
-            />
+            >
+              <PriceVerification
+                slot="verification"
+                client:visible
+                toolId={tool.id}
+                toolName={tool.name}
+                currentPrice={knowledgeCard?.pricing?.starting_price}
+                pricingType={tool.pricing_type}
+                verificationCount={tool.user_verifications_this_week || 0}
+                variant="inline"
+              />
+            </PricingPlansGrid>
           </div>
-        )}
-
-        {/* Features Showcase */}
-        {(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0) && (
-          <FeaturesShowcase
-            features={knowledgeCard.features}
-            toolName={tool.name}
-          />
         )}
 
         {/* Platform Support & Integrations */}
@@ -516,13 +526,13 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           />
         )}
 
-        {/* Pricing Summary */}
-        {knowledgeCard?.pricing && (
-          <PricingSummary
-            pricing={knowledgeCard.pricing}
-            pricingType={tool.pricing_type}
-          />
-        )}
+        {/* Pricing Insights (Budget Analyst) */}
+        <PricingInsights budgetAnalyst={budgetAnalyst ? {
+          costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) ? (budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) : [],
+          oneTimeFees: Array.isArray(budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) ? (budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) : [],
+          commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
+          roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
+        } : undefined} />
 
         {/* Security & Compliance */}
         {knowledgeCard?.security && (
@@ -601,37 +611,37 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       </div>
     )}
 
-    {/* Feedback Widget */}
-    <div class="mt-16 rounded-xl border border-zinc-700 bg-zinc-900 p-6">
+    {/* Content Update Request */}
+    <div class="mt-16 rounded-xl border border-amber-700/50 bg-amber-900/20 p-6">
       <div class="flex items-start gap-4">
         <div class="flex-1">
-          <h3 class="text-lg font-semibold text-zinc-100 mb-2">Help us improve this page</h3>
+          <h3 class="text-lg font-semibold text-zinc-100 mb-2">Notice outdated information?</h3>
           <p class="text-sm text-zinc-400 mb-4">
-            Found outdated information, missing details, or have suggestions? Let us know!
+            Help us keep {tool.name} up to date. Report outdated pricing, features, or other inaccuracies and we'll re-verify the data.
           </p>
           <button
             type="button"
             data-feedback-toggle
-            class="inline-flex items-center gap-2 rounded-lg bg-hunt-600 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-700 transition"
+            class="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            Send Feedback
+            Report Outdated Info
           </button>
         </div>
-        <svg class="h-12 w-12 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg class="h-12 w-12 text-amber-700/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       </div>
     </div>
   </div>
 
-  <!-- Feedback Modal -->
+  <!-- Content Update Modal -->
   <div id="feedback-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-    <div class="w-full max-w-lg rounded-xl bg-zinc-900 border border-zinc-700 p-6 shadow-2xl">
+    <div class="w-full max-w-lg rounded-xl bg-zinc-900 border border-amber-700/50 p-6 shadow-2xl">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-zinc-100">Send Feedback</h3>
+        <h3 class="text-lg font-semibold text-zinc-100">Report Outdated Information</h3>
         <button type="button" data-feedback-close class="text-zinc-500 hover:text-zinc-300 transition">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -645,36 +655,34 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         <input type="hidden" name="page_url" value={`/tool/${tool.slug}`} />
 
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-2">What type of feedback is this?</label>
+          <label class="block text-sm font-medium text-zinc-300 mb-2">What's outdated?</label>
           <select
             name="feedback_type"
             required
-            class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+            class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
           >
-            <option value="">Select a category...</option>
-            <option value="outdated_info">Outdated information</option>
-            <option value="missing_info">Missing information</option>
-            <option value="incorrect_pricing">Incorrect pricing</option>
-            <option value="incorrect_features">Incorrect features</option>
+            <option value="">Select what needs updating...</option>
+            <option value="incorrect_pricing">Pricing changed</option>
+            <option value="incorrect_features">Features changed</option>
+            <option value="outdated_info">General info is outdated</option>
+            <option value="missing_info">Missing important details</option>
             <option value="broken_link">Broken link</option>
-            <option value="suggestion">General suggestion</option>
-            <option value="other">Other</option>
           </select>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-2">
-            Details <span class="text-zinc-500">(required)</span>
+            What's the current/correct information? <span class="text-zinc-500">(required)</span>
           </label>
           <textarea
             name="feedback_text"
             rows="4"
             required
             maxlength="1000"
-            placeholder="Please provide specific details about what needs to be updated or improved..."
-            class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+            placeholder="e.g., 'Pricing is now $29/month, not $19/month' or 'They added SSO support in the Pro plan'"
+            class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
           ></textarea>
-          <p class="mt-1 text-xs text-zinc-500">Maximum 1000 characters</p>
+          <p class="mt-1 text-xs text-zinc-500">Be specific so we can verify and update quickly</p>
         </div>
 
         <div>
@@ -685,17 +693,17 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             type="email"
             name="reporter_email"
             placeholder="you@example.com"
-            class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+            class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
           />
-          <p class="mt-1 text-xs text-zinc-500">We'll notify you when we review your feedback</p>
+          <p class="mt-1 text-xs text-zinc-500">We'll notify you when we've updated the information</p>
         </div>
 
         <div class="flex items-center gap-3 pt-2">
           <button
             type="submit"
-            class="flex-1 rounded-lg bg-hunt-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-hunt-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit Feedback
+            Submit Report
           </button>
           <button
             type="button"
@@ -711,12 +719,12 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="mt-4 text-sm text-zinc-300">Thanks for your feedback!</p>
-        <p class="mt-1 text-xs text-zinc-500">We'll review it shortly.</p>
+        <p class="mt-4 text-sm text-zinc-300">Thanks for the report!</p>
+        <p class="mt-1 text-xs text-zinc-500">We'll re-verify this information within 24-48 hours.</p>
         <button
           type="button"
           data-feedback-close
-          class="mt-4 text-sm text-hunt-500 hover:text-hunt-400 transition"
+          class="mt-4 text-sm text-amber-500 hover:text-amber-400 transition"
         >
           Close
         </button>

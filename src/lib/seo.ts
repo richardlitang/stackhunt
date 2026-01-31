@@ -72,6 +72,7 @@ export function generateCategoryMeta(
 
 /**
  * Organization schema (site-wide)
+ * Updated for EEAT compliance - organization as publisher, not individual authors
  */
 export function generateOrganizationSchema() {
   return {
@@ -80,9 +81,9 @@ export function generateOrganizationSchema() {
     name: 'StackHunt',
     url: getCanonicalUrl('/'),
     logo: getCanonicalUrl('/logo.png'),
+    description: 'AI-powered software research platform that helps teams discover, compare, and choose the right tools. We combine automated research with human verification to provide trustworthy software recommendations.',
     sameAs: [
-      'https://twitter.com/stackhunt',
-      'https://github.com/stackhunt',
+      'https://www.linkedin.com/company/stackhunt-research',
     ],
   };
 }
@@ -250,6 +251,7 @@ export function generateFAQSchema(
 
 /**
  * Review schema for individual tool reviews
+ * Uses 'publisher' not 'author' per EEAT best practices for organization-led content
  */
 export function generateReviewSchema(
   tool: Tool,
@@ -272,14 +274,13 @@ export function generateReviewSchema(
     },
     name: `${tool.name} Review for ${contextTitle}`,
     reviewBody: review.summary_markdown,
-    author: {
-      '@type': 'Organization',
-      name: 'StackHunt',
-    },
     publisher: {
       '@type': 'Organization',
       name: 'StackHunt',
+      url: getCanonicalUrl('/'),
+      logo: getCanonicalUrl('/logo.png'),
     },
+    datePublished: review.created_at,
   };
 }
 

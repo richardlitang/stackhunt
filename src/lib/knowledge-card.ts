@@ -33,6 +33,8 @@ export type PricingTier = z.infer<typeof PricingTierSchema>;
 export const SMPPlanSchema = z.object({
   id: z.string(),                          // Deterministic: `${slug}-${plan_name_slug}`
   name: z.string(),                         // "Free", "Pro", "Enterprise"
+  target_audience: z.enum(['individual', 'team', 'business', 'enterprise']).nullable().optional()
+    .describe("Who is this plan for? individual=solo users, team=2-10, business=10-100, enterprise=100+"),
   price_monthly: z.number().nullable().optional(),  // Monthly price (null/undefined = no monthly option)
   price_annual: z.number().nullable().optional(),   // Total annual price (null/undefined = no annual option)
   scaling_unit: z.enum(['user', 'seat', 'member', 'GB', 'message', 'request', 'project', 'workspace']).nullable().optional(),

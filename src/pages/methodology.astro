@@ -1,0 +1,350 @@
+---
+/**
+ * Methodology Page - Explains the Hunter research process
+ *
+ * Transparency page explaining how StackHunt researches and evaluates tools.
+ * Critical for building EEAT (Expertise, Authoritativeness, Trustworthiness)
+ * when individual human authors are unavailable.
+ *
+ * @module pages/methodology
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  meta={{
+    title: "Research Methodology | StackHunt",
+    description: "Learn how StackHunt researches, evaluates, and verifies software recommendations using AI-powered analysis and human oversight.",
+    canonical: "https://stackhunt.co/methodology"
+  }}
+>
+  <div class="container mx-auto max-w-4xl px-4 py-12">
+    <article class="prose prose-invert max-w-none prose-headings:text-zinc-100 prose-p:text-zinc-400 prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-strong:text-zinc-200 prose-li:text-zinc-400">
+      <h1>How StackHunt Works</h1>
+
+      <p class="lead text-xl text-zinc-400">
+        We use AI to research, humans to verify. Every recommendation is backed by sources,
+        and every claim is verifiable. Here's exactly how our process works.
+      </p>
+
+      <div class="not-prose my-8 rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-6">
+        <div class="flex items-start gap-3">
+          <svg class="h-6 w-6 flex-shrink-0 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 class="text-lg font-semibold text-zinc-100">Our Commitment</h3>
+            <p class="mt-2 text-sm text-zinc-400">
+              We use AI to research at scale, but we don't blindly trust it. Every tool review
+              is created as a draft, verified for accuracy, and linked to original sources.
+              We clearly label opinions and distinguish them from facts.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <h2>The "Hunter" Research Process</h2>
+
+      <p>
+        StackHunt uses a three-phase pipeline we call "The Hunter" to research and evaluate
+        software tools. The entire process is automated for efficiency, but designed with
+        human verification in mind.
+      </p>
+
+      <h3>Phase 1: Research (The Scout)</h3>
+
+      <p>
+        When we research a tool, we don't just look at the official website. We run
+        <strong>12 parallel Google searches</strong> to gather comprehensive information
+        from multiple perspectives:
+      </p>
+
+      <div class="not-prose my-6 grid gap-4 md:grid-cols-2">
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <h4 class="font-semibold text-zinc-100">Factual Queries (6)</h4>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-400">
+            <li>• User reviews and feedback</li>
+            <li>• Pricing plans and features</li>
+            <li>• Annual vs monthly pricing comparison</li>
+            <li>• Alternatives and competitors</li>
+            <li>• Company info (funding, history)</li>
+            <li>• Technical capabilities (API, integrations)</li>
+          </ul>
+        </div>
+
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <h4 class="font-semibold text-zinc-100">Tribal Knowledge (6)</h4>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-400">
+            <li>• Hidden costs and billing gotchas</li>
+            <li>• Implementation and setup fees</li>
+            <li>• Reddit reviews and honest feedback</li>
+            <li>• "What I wish I knew before" insights</li>
+            <li>• Power user tips and shortcuts</li>
+            <li>• "Is it worth it?" discussions</li>
+          </ul>
+        </div>
+      </div>
+
+      <p>
+        In addition to search snippets, we perform <strong>deep scraping</strong> of
+        official pricing pages to capture full pricing tables, tier comparisons, and
+        fine print that might not appear in search results.
+      </p>
+
+      <p>
+        We also search for relevant YouTube videos (demos, tutorials, reviews) to
+        provide visual context for users who prefer video content.
+      </p>
+
+      <h3>Phase 2: Analysis (Two-Pass AI Synthesis)</h3>
+
+      <p>
+        Once we've gathered information, we use Google's Gemini 2.0 Flash to analyze
+        it in two distinct passes:
+      </p>
+
+      <h4>Pass 1: The Librarian (Knowledge Card Extraction)</h4>
+
+      <p>
+        The first pass acts as a meticulous fact-checker. It extracts structured,
+        verifiable information:
+      </p>
+
+      <ul>
+        <li><strong>Core features</strong> - What the tool does</li>
+        <li><strong>Pricing tiers</strong> - Plans, costs, billing cycles</li>
+        <li><strong>Platform support</strong> - Web, mobile, desktop availability</li>
+        <li><strong>Integrations</strong> - Connected apps and services</li>
+        <li><strong>Company information</strong> - Founded, headquarters, funding stage</li>
+        <li><strong>Competitors</strong> - Main alternatives in the market</li>
+        <li><strong>Learning curve</strong> - Time to become productive</li>
+      </ul>
+
+      <p>
+        This pass focuses on <em>facts</em>, not opinions. Everything must be
+        verifiable from the search results.
+      </p>
+
+      <h4>Pass 2: The Architect (Contextual Synthesis)</h4>
+
+      <p>
+        The second pass synthesizes a contextual review that goes beyond the spec sheet.
+        It wears three "hats" to provide different perspectives:
+      </p>
+
+      <div class="not-prose my-6 space-y-4">
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <div class="flex items-start gap-3">
+            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+              <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h5 class="font-semibold text-zinc-100">The Budget Analyst</h5>
+              <p class="mt-1 text-sm text-zinc-400">
+                Explains the total cost of ownership without judgment. Identifies cost drivers,
+                one-time fees, commitment terms, and when the premium tier becomes worth it.
+                No "gotcha" language - just facts about how the bill works.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <div class="flex items-start gap-3">
+            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-500/10">
+              <svg class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h5 class="font-semibold text-zinc-100">The User Advocate</h5>
+              <p class="mt-1 text-sm text-zinc-400">
+                Captures the "vibe" and tribal knowledge. Who's it ideal for? Who should avoid it?
+                What do power users love? What are common frustrations? Includes insider tips
+                from Reddit, forums, and community discussions.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <div class="flex items-start gap-3">
+            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-500/10">
+              <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h5 class="font-semibold text-zinc-100">The Human Verdict</h5>
+              <p class="mt-1 text-sm text-zinc-400">
+                A plain-English summary in "Coffee Shop Speak" - no corporate jargon like
+                "seamless," "empowers," or "robust." Just honest, clear language about what
+                this tool actually does and who it's best for.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        Every pro and con includes three pieces of metadata for legal protection and transparency:
+      </p>
+
+      <ul>
+        <li><strong>source_url</strong> - The exact URL where this claim is supported</li>
+        <li><strong>source_type</strong> - Official website, editorial review, or community discussion</li>
+        <li><strong>claim_type</strong> - Fact (verifiable) or opinion (subjective)</li>
+      </ul>
+
+      <h3>Phase 3: Persistence (Draft-First Publishing)</h3>
+
+      <p>
+        After analysis, we don't immediately publish. Instead, we:
+      </p>
+
+      <ol>
+        <li><strong>Create a draft review</strong> - Every review starts unpublished</li>
+        <li><strong>Upsert the tool</strong> - Add to our database with metadata and knowledge card</li>
+        <li><strong>Link to sources</strong> - Store all citation URLs for verification</li>
+        <li><strong>Human verification</strong> - Our team reviews before publishing</li>
+      </ol>
+
+      <p>
+        This draft-first workflow ensures that AI-generated content is always verified
+        by humans before it reaches our users.
+      </p>
+
+      <h2>Source Attribution & Legal Protection</h2>
+
+      <p>
+        Every claim on StackHunt is linked to its source. We classify sources into three
+        categories to help you assess credibility:
+      </p>
+
+      <div class="not-prose my-6 space-y-3">
+        <div class="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-green-500/10">
+            <span class="text-xs font-semibold text-green-400">OFF</span>
+          </div>
+          <div>
+            <div class="font-medium text-zinc-100">Official Sources</div>
+            <div class="text-sm text-zinc-400">
+              The tool's own website, blog, documentation, or official announcements.
+              Highest authority for factual claims about features and pricing.
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-blue-500/10">
+            <span class="text-xs font-semibold text-blue-400">EDI</span>
+          </div>
+          <div>
+            <div class="font-medium text-zinc-100">Editorial Sources</div>
+            <div class="text-sm text-zinc-400">
+              Professional review sites (G2, Capterra, Gartner) and tech publications
+              (PCMag, TechRadar). Can include both facts and expert opinions.
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3">
+          <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-purple-500/10">
+            <span class="text-xs font-semibold text-purple-400">COM</span>
+          </div>
+          <div>
+            <div class="font-medium text-zinc-100">Community Sources</div>
+            <div class="text-sm text-zinc-400">
+              Reddit discussions, HackerNews threads, user forums, and personal blogs.
+              Valuable for "vibe" and real-world experiences, but subjective by nature.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Data Freshness Policy</h2>
+
+      <p>
+        Software changes fast. Pricing updates, features get added, companies get acquired.
+        Here's how we keep information current:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Verification dates</strong> - Every tool page shows when it was last verified
+        </li>
+        <li>
+          <strong>Stale data alerts</strong> - If data is over 60 days old, we display a warning banner
+        </li>
+        <li>
+          <strong>Community verification</strong> - Users can report outdated information, which
+          automatically queues the tool for re-research
+        </li>
+        <li>
+          <strong>Automatic re-hunts</strong> - High-traffic tools are periodically re-researched
+          to ensure accuracy
+        </li>
+      </ul>
+
+      <h2>What We Don't Do</h2>
+
+      <p>
+        Transparency includes being clear about our limitations:
+      </p>
+
+      <ul>
+        <li>
+          <strong>We don't test tools hands-on</strong> - Our reviews are based on publicly
+          available information, not direct usage. This means we can cover more tools, but
+          can't provide first-hand experience insights.
+        </li>
+        <li>
+          <strong>We don't contact vendors</strong> - All information comes from public sources
+          (websites, reviews, community discussions). We don't get special access or briefings.
+        </li>
+        <li>
+          <strong>We don't have NDAs or partnerships</strong> - We maintain editorial independence
+          by not entering into special relationships with vendors (beyond standard affiliate programs).
+        </li>
+        <li>
+          <strong>We can't guarantee 100% accuracy</strong> - We verify everything we can, but
+          software changes rapidly and sources can be outdated or incorrect. If you spot an error,
+          please let us know.
+        </li>
+      </ul>
+
+      <h2>Report Inaccuracies</h2>
+
+      <p>
+        Found something wrong? We take corrections seriously. Every report is reviewed,
+        and if we confirm an error, we'll update the content and re-verify the tool.
+      </p>
+
+      <p>
+        <a href="/corrections" class="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 transition no-underline">
+          Submit a correction
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
+      </p>
+
+      <hr class="my-8" />
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+        <h3 class="mt-0 text-lg font-semibold text-zinc-100">Questions About Our Process?</h3>
+        <p class="mb-0 text-sm text-zinc-400">
+          We're happy to clarify how we research tools, verify information, or handle
+          corrections. Our methodology is designed to be transparent and continuously improving.
+        </p>
+      </div>
+
+      <p class="text-sm text-zinc-500">
+        Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+      </p>
+    </article>
+  </div>
+</BaseLayout>

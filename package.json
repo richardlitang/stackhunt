@@ -18,6 +18,7 @@
     "discover-topics": "npx tsx scripts/discover-topics.ts",
     "import-ideas": "npx tsx scripts/import-content-ideas.ts",
     "queue-ideas": "npx tsx scripts/queue-content-ideas.ts",
+    "regenerate-embeddings": "npx tsx scripts/regenerate-embeddings.ts",
     "db:migrate": "supabase db push",
     "db:reset": "supabase db reset",
     "typecheck": "tsc --noEmit",

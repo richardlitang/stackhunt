@@ -173,6 +173,11 @@ SCALING UNIT RULES (MANDATORY FOR PER_SEAT):
 
 2. EXTRACT ALL PLANS (including FREE tier if exists) with their:
    - Plan ID: Use format "${toolSlug}-{plan-name}" (e.g., "${toolSlug}-pro", "${toolSlug}-enterprise")
+   - target_audience: Who is this plan for?
+     * "individual" - Solo users, freelancers (usually 1 user, basic features)
+     * "team" - Small teams 2-10 people (collaboration features)
+     * "business" - Medium businesses 10-100 (advanced features, some compliance)
+     * "enterprise" - Large organizations 100+ (SSO, SLA, custom contracts)
    - price_monthly: Monthly price as NUMBER (e.g., 10 not "$10/mo"). Use 0 for free plans.
    - price_annual: TOTAL annual price as NUMBER (e.g., 96 not "8/mo billed annually"). null if no annual option.
    - For per-seat plans: extract scaling_unit ("user"/"seat") AND price_per_unit

@@ -11,6 +11,9 @@ AI-powered programmatic SEO platform. Researches tools via web search, generates
 | DB schema | `supabase/migrations/001_foundation.sql` |
 | Queue system | `supabase/migrations/010_strategic_architecture.sql` |
 | Type definitions | `src/types/database.ts` |
+| **Roadmap V1** | `.claude/docs/ROADMAP_V1.md` |
+| **Hunter Extension** | `.claude/docs/HUNTER_EXTENSION.md` |
+| **Quick Context** | `.claude/docs/QUICK_CONTEXT.md` |
 
 ## Tech Stack
 
@@ -65,9 +68,11 @@ npm run test         # Vitest tests
 
 ## Hunter Pipeline (3-Phase)
 
-1. **Research** - Serper search (3 parallel queries) → Knowledge Card extraction
-2. **Analysis** - Gemini (two-pass: facts → synthesis) → Score, Pros/Cons, Summary
+1. **Research** - Serper search (12 parallel queries + deep scrape) → Knowledge Card extraction
+2. **Analysis** - Gemini (two-pass: facts → synthesis) → Score, Pros/Cons, Tribal Knowledge
 3. **Persistence** - Upsert tool → Upsert context → Create review (draft)
+
+The 12 queries cover: reviews, pricing, alternatives, company info, technical/API, hidden costs, Reddit opinions, power tips, and "is it worth it" discussions.
 
 ## Patterns & Conventions
 

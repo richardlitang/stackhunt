@@ -152,8 +152,8 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
         className={cn(
           "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition",
           isAdded
-            ? "bg-hunt-100 text-hunt-700 hover:bg-hunt-200 data-[state=on]:bg-hunt-100 data-[state=on]:text-hunt-700 dark:bg-hunt-900 dark:text-hunt-100"
-            : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+            ? "bg-hunt-100 text-hunt-700 hover:bg-hunt-200/80 data-[state=on]:bg-hunt-100 data-[state=on]:text-hunt-700 dark:bg-hunt-900 dark:text-hunt-100 dark:hover:bg-hunt-800"
+            : "bg-slate-100 text-slate-700 hover:bg-slate-200/70 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700/80"
         )}
       >
         {isAdded ? (
