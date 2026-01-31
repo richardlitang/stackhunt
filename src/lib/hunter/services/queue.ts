@@ -21,6 +21,9 @@ export interface QueueItem {
   hunt_type?: string | null;
   priority: number;
   status: string;
+  is_discovery_hunt?: boolean;
+  context_id?: string | null;
+  force_regenerate?: boolean;
 }
 
 export interface QueueResult {

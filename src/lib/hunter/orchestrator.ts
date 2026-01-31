@@ -266,6 +266,36 @@ export class Hunter {
           },
           this.log.bind(this)
         );
+
+        // Cross-pollinate discovery hunts to other relevant contexts
+        if (queueItem.is_discovery_hunt && result.toolId && result.contextId) {
+          this.log(
+            `[Queue] Discovery hunt completed, checking for cross-pollination opportunities...`
+          );
+
+          try {
+            const { assignToRelevantContexts } = await import(
+              './services/context-matcher.js'
+            );
+            const crossPollinationResult = await assignToRelevantContexts(
+              result.toolId,
+              result.contextId,
+              this.supabase
+            );
+
+            if (crossPollinationResult.reviews_created > 0) {
+              this.log(
+                `[Queue] ✅ Cross-pollinated to ${crossPollinationResult.reviews_created} additional contexts`
+              );
+            } else {
+              this.log(`[Queue] No additional contexts matched (threshold: 70%)`);
+            }
+          } catch (error) {
+            // Don't fail the hunt if cross-pollination fails
+            const err = error as Error;
+            this.log(`[Queue] ⚠️ Cross-pollination failed: ${err.message}`);
+          }
+        }
       } else {
         await this.queue.markFailed(
           queueItem.id,
