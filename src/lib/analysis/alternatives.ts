@@ -101,7 +101,7 @@ export async function getAlternativesBySlug(
     .from('items')
     .select('id, slug, name, embedding, specs')
     .eq('slug', slug)
-    .single();
+    .maybeSingle();
 
   if (!tool) {
     return { type: 'related', items: [] };

@@ -83,7 +83,7 @@ export async function getItemBySlug(slug: string) {
       )
     `)
     .eq('slug', slug)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -115,7 +115,7 @@ export async function getContextBySlug(slug: string) {
     `)
     .eq('slug', slug)
     .order('score', { foreignTable: 'reviews', ascending: false })
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -336,7 +336,7 @@ export async function getItemBySlugAndType(slug: string, type: 'tool' | 'gear') 
     `)
     .eq('slug', slug)
     .eq('type', type)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -444,7 +444,7 @@ export async function getItemWithCompetitors(slug: string) {
     .from('items')
     .select('*')
     .eq('slug', slug)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   if (!item) return null;
@@ -539,7 +539,7 @@ export async function getCategoryBySlug(slug: string) {
     .from('categories')
     .select('*')
     .eq('slug', slug)
-    .single();
+    .maybeSingle();
 
   if (categoryError) throw categoryError;
   if (!category) return null;

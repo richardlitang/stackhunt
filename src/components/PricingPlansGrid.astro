@@ -56,16 +56,15 @@ const discountLabels = {
 ---
 
 <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-  <h2 class="mb-4 text-lg font-semibold text-zinc-100">Pricing Plans</h2>
-
-  {/* Pricing Model Badge */}
-  {(smp_pricing?.model || legacy_pricing?.model) && (
-    <div class="mb-4">
+  {/* Header with Pricing Model Badge */}
+  <div class="mb-4 flex items-center justify-between gap-4">
+    <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
+    {(smp_pricing?.model || legacy_pricing?.model) && (
       <span class="inline-flex items-center rounded-full bg-hunt-900/30 px-3 py-1 text-xs font-medium text-hunt-400 border border-hunt-700">
         {modelLabels[smp_pricing?.model || legacy_pricing?.model || 'paid']}
       </span>
-    </div>
-  )}
+    )}
+  </div>
 
   {/* SMP Pricing Plans */}
   {hasSMPPricing && (
@@ -84,37 +83,39 @@ const discountLabels = {
               <p class="text-sm font-medium text-zinc-400">Contact Sales</p>
             ) : (
               <div>
-                {/* Only show price if plan name isn't "Free" AND price is 0, OR if there's actual pricing */}
-                {(plan.price_monthly === 0 && plan.name.toLowerCase() !== 'free') ? (
-                  <div class="mb-1">
-                    <span class="text-2xl font-bold text-green-400">$0</span>
-                    <span class="text-sm text-zinc-400">/month</span>
-                  </div>
-                ) : (plan.name.toLowerCase() === 'free' && !plan.price_monthly && !plan.price_annual) ? (
+                {/* Handle Free plans */}
+                {plan.name.toLowerCase() === 'free' || (plan.price_monthly === 0 && plan.price_annual === 0) ? (
                   <p class="text-sm text-zinc-500 italic">No additional costs</p>
                 ) : plan.price_monthly && plan.price_monthly > 0 ? (
-                  <div class="mb-1">
-                    <span class="text-2xl font-bold text-zinc-100">
-                      ${plan.price_monthly}
-                    </span>
-                    <span class="text-sm text-zinc-400">/month</span>
+                  <div>
+                    <div class="mb-1">
+                      <span class="text-2xl font-bold text-zinc-100">
+                        ${plan.price_monthly}
+                      </span>
+                      <span class="text-sm text-zinc-400">/month</span>
+                    </div>
+                    {plan.price_annual && (
+                      <div class="text-xs text-zinc-500">
+                        or ${plan.price_annual}/year
+                        <span class="ml-1">
+                          (save {Math.round((1 - (plan.price_annual / (plan.price_monthly * 12))) * 100)}%)
+                        </span>
+                      </div>
+                    )}
                   </div>
-                ) : plan.price_annual ? (
+                ) : plan.price_annual && plan.price_annual > 0 ? (
                   <div class="mb-1">
                     <span class="text-2xl font-bold text-zinc-100">
                       ${plan.price_annual}
                     </span>
                     <span class="text-sm text-zinc-400">/year</span>
                   </div>
-                ) : null}
-                {plan.price_monthly && plan.price_monthly > 0 && plan.price_annual && (
-                  <div class="text-xs text-zinc-500">
-                    or ${plan.price_annual}/year
-                    <span class="ml-1">
-                      (save {Math.round((1 - (plan.price_annual / (plan.price_monthly * 12))) * 100)}%)
-                    </span>
+                ) : plan.price_monthly === 0 ? (
+                  <div class="mb-1">
+                    <span class="text-2xl font-bold text-green-400">$0</span>
+                    <span class="text-sm text-zinc-400">/month</span>
                   </div>
-                )}
+                ) : null}
                 {plan.price_per_unit && plan.included_units && (
                   <p class="mt-1 text-xs text-zinc-400">
                     ({plan.included_units} {plan.scaling_unit}{plan.included_units > 1 ? 's' : ''} included)

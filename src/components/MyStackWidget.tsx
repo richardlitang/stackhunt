@@ -5,7 +5,7 @@
  * and calculates total monthly software costs based on Knowledge Card pricing.
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layers, ChevronDown, X } from 'lucide-react';
 
 interface StackTool {

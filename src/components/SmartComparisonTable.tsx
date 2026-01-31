@@ -5,7 +5,7 @@
  * Highlights differences between tools with visual indicators.
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Check, X, HelpCircle } from 'lucide-react';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 
@@ -40,20 +40,20 @@ function formatValue(value: string | boolean | null | undefined): string {
 function getBooleanIcon(value: boolean | null | undefined) {
   if (value === true) {
     return (
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600">
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-900/30 text-green-400 border border-green-700">
         <Check className="w-4 h-4" />
       </span>
     );
   }
   if (value === false) {
     return (
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600">
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-900/30 text-red-400 border border-red-700">
         <X className="w-4 h-4" />
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-400">
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700">
       <HelpCircle className="w-4 h-4" />
     </span>
   );
@@ -219,8 +219,8 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
 
   if (!hasMetadata) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-        <p className="text-slate-500">
+      <div className="rounded-xl border border-dashed border-zinc-700 bg-zinc-900/50 p-8 text-center">
+        <p className="text-zinc-500">
           Detailed comparison data not available yet. Check back after these tools are re-analyzed.
         </p>
       </div>
@@ -240,21 +240,21 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
   const differenceCount = rows.filter(r => r.isDifferent).length;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+    <div className="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm">
       {/* Header */}
-      <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+      <div className="border-b border-zinc-800 bg-zinc-900/50 px-6 py-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Feature Comparison</h3>
-          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+          <h3 className="text-lg font-semibold text-zinc-100">Feature Comparison</h3>
+          <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer hover:text-zinc-300 transition">
             <input
               type="checkbox"
               checked={showOnlyDifferences}
               onChange={(e) => setShowOnlyDifferences(e.target.checked)}
-              className="rounded border-slate-300 text-hunt-600 focus:ring-hunt-500"
+              className="rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500/50"
             />
             Show differences only
             {differenceCount > 0 && (
-              <span className="rounded-full bg-hunt-100 px-2 py-0.5 text-xs font-medium text-hunt-700">
+              <span className="rounded-full bg-indigo-900/30 px-2 py-0.5 text-xs font-medium text-indigo-400 border border-indigo-700">
                 {differenceCount}
               </span>
             )}
@@ -269,8 +269,8 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
               onClick={() => setActiveCategory(cat.id)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 activeCategory === cat.id
-                  ? 'bg-hunt-500 text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-100'
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
               }`}
             >
               <span className="mr-1">{cat.icon}</span>
@@ -283,33 +283,37 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-slate-50 border-b border-slate-200">
+          <thead className="bg-zinc-800/50 border-b border-zinc-700">
             <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700 w-1/3">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-300 w-1/3">
                 Feature
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-slate-700 w-1/3">
+              <th className="px-6 py-3 text-center text-sm font-semibold text-zinc-300 w-1/3">
                 <div className="flex items-center justify-center gap-2">
                   {toolA.logo_url && (
-                    <img src={toolA.logo_url} alt="" className="h-5 w-5 rounded" />
+                    <div className="h-6 w-6 rounded bg-white flex items-center justify-center overflow-hidden border border-zinc-700/50">
+                      <img src={toolA.logo_url} alt={toolA.name} className="h-full w-full object-contain p-0.5" />
+                    </div>
                   )}
-                  {toolA.name}
+                  <span>{toolA.name}</span>
                 </div>
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-slate-700 w-1/3">
+              <th className="px-6 py-3 text-center text-sm font-semibold text-zinc-300 w-1/3">
                 <div className="flex items-center justify-center gap-2">
                   {toolB.logo_url && (
-                    <img src={toolB.logo_url} alt="" className="h-5 w-5 rounded" />
+                    <div className="h-6 w-6 rounded bg-white flex items-center justify-center overflow-hidden border border-zinc-700/50">
+                      <img src={toolB.logo_url} alt={toolB.name} className="h-full w-full object-contain p-0.5" />
+                    </div>
                   )}
-                  {toolB.name}
+                  <span>{toolB.name}</span>
                 </div>
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-zinc-800">
             {displayRows.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-6 py-8 text-center text-slate-500">
+                <td colSpan={3} className="px-6 py-8 text-center text-zinc-500">
                   No differences found in this category.
                 </td>
               </tr>
@@ -317,12 +321,12 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
               displayRows.map((row, idx) => (
                 <tr
                   key={idx}
-                  className={row.isDifferent ? 'bg-yellow-50/50' : ''}
+                  className={row.isDifferent ? 'bg-amber-900/10' : ''}
                 >
-                  <td className="px-6 py-3 text-sm font-medium text-slate-700">
+                  <td className="px-6 py-3 text-sm font-medium text-zinc-300">
                     {row.label}
                     {row.isDifferent && (
-                      <span className="ml-2 text-yellow-600" title="Different">
+                      <span className="ml-2 text-amber-400" title="Different">
                         ⚡
                       </span>
                     )}
@@ -331,14 +335,14 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
                     {typeof row.valueA === 'boolean' || row.valueA === null ? (
                       getBooleanIcon(row.valueA as boolean | null)
                     ) : (
-                      <span className="text-sm text-slate-700">{formatValue(row.valueA)}</span>
+                      <span className="text-sm text-zinc-300">{formatValue(row.valueA)}</span>
                     )}
                   </td>
                   <td className="px-6 py-3 text-center">
                     {typeof row.valueB === 'boolean' || row.valueB === null ? (
                       getBooleanIcon(row.valueB as boolean | null)
                     ) : (
-                      <span className="text-sm text-slate-700">{formatValue(row.valueB)}</span>
+                      <span className="text-sm text-zinc-300">{formatValue(row.valueB)}</span>
                     )}
                   </td>
                 </tr>
@@ -349,10 +353,10 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
       </div>
 
       {/* Data Quality Note */}
-      <div className="border-t border-slate-100 bg-slate-50 px-6 py-3">
-        <p className="text-xs text-slate-500">
+      <div className="border-t border-zinc-800 bg-zinc-900/30 px-6 py-3">
+        <p className="text-xs text-zinc-500">
           Data extracted from public sources. Quality:{' '}
-          <span className="font-medium">
+          <span className="font-medium text-zinc-400">
             {metaA?.meta?.data_quality || 'unknown'} / {metaB?.meta?.data_quality || 'unknown'}
           </span>
         </p>

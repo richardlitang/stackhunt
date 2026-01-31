@@ -79,13 +79,6 @@ if (!tools || tools.length !== 2) {
   return Astro.redirect('/404');
 }
 
-// Validate same category - only allow sensible comparisons
-const categoryA = tools[0].category?.slug;
-const categoryB = tools[1].category?.slug;
-if (!categoryA || !categoryB || categoryA !== categoryB) {
-  return Astro.redirect('/compare');
-}
-
 // Ensure correct order (A then B)
 const toolA = tools.find(t => t.slug === slugA)!;
 const toolB = tools.find(t => t.slug === slugB)!;
@@ -277,9 +270,9 @@ const schemas = [
     <!-- Side-by-Side Comparison -->
     <div class="grid gap-8 lg:grid-cols-2">
       <!-- Tool A -->
-      <div class={`rounded-2xl border-2 ${winner === 'A' ? 'border-green-300 bg-green-50/30 shadow-lg' : 'border-zinc-700 bg-white shadow-sm'} p-6 transition-shadow`}>
+      <div class={`rounded-xl border-2 ${winner === 'A' ? 'border-green-500/50 bg-green-900/10 shadow-lg' : 'border-zinc-800 bg-zinc-900/50 shadow-sm'} p-6 transition-shadow`}>
         {winner === 'A' && (
-          <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+          <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-green-900/30 px-3 py-1 text-xs font-medium text-green-400 border border-green-700">
             <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
@@ -289,15 +282,15 @@ const schemas = [
 
         <!-- Header -->
         <div class="flex items-start gap-4">
-          <Logo domain={toolA.logo_url} name={toolA.name} size="xl" class="shrink-0 rounded-xl border border-zinc-700 shadow-sm" />
+          <Logo domain={toolA.logo_url} name={toolA.name} size="xl" class="shrink-0" />
           <div class="flex-1">
-            <a href={`/tool/${toolA.slug}`} class="text-xl font-bold text-zinc-100 hover:text-hunt-600">
+            <a href={`/tool/${toolA.slug}`} class="text-xl font-bold text-zinc-100 hover:text-indigo-400 transition">
               {toolA.name}
             </a>
             <div class="mt-1 flex items-center gap-2">
               <PricingBadge type={toolA.pricing_type} size="sm" />
               {toolA.category && (
-                <span class="text-xs text-zinc-400">{toolA.category.name}</span>
+                <span class="text-xs text-zinc-500">{toolA.category.name}</span>
               )}
             </div>
           </div>
@@ -307,14 +300,15 @@ const schemas = [
         <!-- About -->
         {toolA.short_description && (
           <div class="mt-6">
-            <h3 class="font-semibold text-zinc-300">About</h3>
-            <p class="mt-2 text-sm text-zinc-300">{toolA.short_description}</p>
+            <h3 class="font-semibold text-zinc-100">About</h3>
+            <p class="mt-2 text-sm text-zinc-400">{toolA.short_description}</p>
           </div>
         )}
 
         <!-- Pros -->
+        {prosA.length > 0 && (
         <div class="mt-6">
-          <h3 class="flex items-center gap-2 font-semibold text-green-700">
+          <h3 class="flex items-center gap-2 font-semibold text-green-400">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
@@ -323,16 +317,18 @@ const schemas = [
           <ul class="mt-2 space-y-1">
             {prosA.map(pro => (
               <li class="flex items-start gap-2 text-sm text-zinc-300">
-                <span class="mt-1 text-green-500">+</span>
+                <span class="mt-1 text-green-400">+</span>
                 {pro}
               </li>
             ))}
           </ul>
         </div>
+        )}
 
         <!-- Cons -->
+        {consA.length > 0 && (
         <div class="mt-4">
-          <h3 class="flex items-center gap-2 font-semibold text-red-700">
+          <h3 class="flex items-center gap-2 font-semibold text-red-400">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -341,18 +337,19 @@ const schemas = [
           <ul class="mt-2 space-y-1">
             {consA.map(con => (
               <li class="flex items-start gap-2 text-sm text-zinc-300">
-                <span class="mt-1 text-red-500">-</span>
+                <span class="mt-1 text-red-400">-</span>
                 {con}
               </li>
             ))}
           </ul>
         </div>
+        )}
 
         <!-- Tags -->
         {tagsA.length > 0 && (
           <div class="mt-4 flex flex-wrap gap-1">
             {tagsA.map(tag => (
-              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-zinc-300">
+              <span class="rounded-full bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
                 {tag.replace(/-/g, ' ')}
               </span>
             ))}
@@ -368,9 +365,9 @@ const schemas = [
       </div>
 
       <!-- Tool B -->
-      <div class={`rounded-2xl border-2 ${winner === 'B' ? 'border-blue-300 bg-blue-50/30 shadow-lg' : 'border-zinc-700 bg-white shadow-sm'} p-6 transition-shadow`}>
+      <div class={`rounded-xl border-2 ${winner === 'B' ? 'border-blue-500/50 bg-blue-900/10 shadow-lg' : 'border-zinc-800 bg-zinc-900/50 shadow-sm'} p-6 transition-shadow`}>
         {winner === 'B' && (
-          <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+          <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-blue-900/30 px-3 py-1 text-xs font-medium text-blue-400 border border-blue-700">
             <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
@@ -380,15 +377,15 @@ const schemas = [
 
         <!-- Header -->
         <div class="flex items-start gap-4">
-          <Logo domain={toolB.logo_url} name={toolB.name} size="xl" class="shrink-0 rounded-xl border border-zinc-700 shadow-sm" />
+          <Logo domain={toolB.logo_url} name={toolB.name} size="xl" class="shrink-0" />
           <div class="flex-1">
-            <a href={`/tool/${toolB.slug}`} class="text-xl font-bold text-zinc-100 hover:text-hunt-600">
+            <a href={`/tool/${toolB.slug}`} class="text-xl font-bold text-zinc-100 hover:text-indigo-400 transition">
               {toolB.name}
             </a>
             <div class="mt-1 flex items-center gap-2">
               <PricingBadge type={toolB.pricing_type} size="sm" />
               {toolB.category && (
-                <span class="text-xs text-zinc-400">{toolB.category.name}</span>
+                <span class="text-xs text-zinc-500">{toolB.category.name}</span>
               )}
             </div>
           </div>
@@ -398,14 +395,15 @@ const schemas = [
         <!-- About -->
         {toolB.short_description && (
           <div class="mt-6">
-            <h3 class="font-semibold text-zinc-300">About</h3>
-            <p class="mt-2 text-sm text-zinc-300">{toolB.short_description}</p>
+            <h3 class="font-semibold text-zinc-100">About</h3>
+            <p class="mt-2 text-sm text-zinc-400">{toolB.short_description}</p>
           </div>
         )}
 
         <!-- Pros -->
+        {prosB.length > 0 && (
         <div class="mt-6">
-          <h3 class="flex items-center gap-2 font-semibold text-green-700">
+          <h3 class="flex items-center gap-2 font-semibold text-green-400">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
@@ -414,16 +412,18 @@ const schemas = [
           <ul class="mt-2 space-y-1">
             {prosB.map(pro => (
               <li class="flex items-start gap-2 text-sm text-zinc-300">
-                <span class="mt-1 text-green-500">+</span>
+                <span class="mt-1 text-green-400">+</span>
                 {pro}
               </li>
             ))}
           </ul>
         </div>
+        )}
 
         <!-- Cons -->
+        {consB.length > 0 && (
         <div class="mt-4">
-          <h3 class="flex items-center gap-2 font-semibold text-red-700">
+          <h3 class="flex items-center gap-2 font-semibold text-red-400">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -432,18 +432,19 @@ const schemas = [
           <ul class="mt-2 space-y-1">
             {consB.map(con => (
               <li class="flex items-start gap-2 text-sm text-zinc-300">
-                <span class="mt-1 text-red-500">-</span>
+                <span class="mt-1 text-red-400">-</span>
                 {con}
               </li>
             ))}
           </ul>
         </div>
+        )}
 
         <!-- Tags -->
         {tagsB.length > 0 && (
           <div class="mt-4 flex flex-wrap gap-1">
             {tagsB.map(tag => (
-              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-zinc-300">
+              <span class="rounded-full bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
                 {tag.replace(/-/g, ' ')}
               </span>
             ))}

@@ -18,10 +18,10 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
   }}
 >
   <main class="container mx-auto max-w-3xl px-4 py-12">
-    <article class="prose prose-slate max-w-none">
+    <article class="prose prose-invert max-w-none prose-headings:text-zinc-100 prose-p:text-zinc-400 prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-strong:text-zinc-200 prose-li:text-zinc-400">
       <h1>Affiliate Disclosure Policy</h1>
 
-      <p class="lead text-xl text-slate-600">
+      <p class="lead text-xl text-zinc-400">
         Transparency is important to us. This page explains how StackHunt earns revenue
         and how it affects (and doesn't affect) our content.
       </p>
@@ -86,7 +86,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
       </p>
 
       <p>
-        <a href="/corrections" class="text-hunt-600 hover:text-hunt-700">
+        <a href="/corrections" class="text-indigo-400 hover:text-indigo-300">
           Submit a correction request
         </a>
       </p>
@@ -100,7 +100,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 
       <hr class="my-8" />
 
-      <p class="text-sm text-slate-500">
+      <p class="text-sm text-zinc-500">
         Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
       </p>
     </article>

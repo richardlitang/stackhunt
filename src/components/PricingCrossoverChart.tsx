@@ -11,7 +11,7 @@
  * Answers: "At MY team size, which tool is cheaper? And when does that change?"
  */
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   LineChart,
   Line,

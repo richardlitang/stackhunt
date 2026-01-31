@@ -16,6 +16,19 @@ const { portability, toolName } = Astro.props;
 
 if (!portability) return null;
 
+// Check if portability has any meaningful data
+const hasMeaningfulData =
+  portability.migration_difficulty ||
+  (portability.export_formats && portability.export_formats.length > 0) ||
+  portability.has_api_export ||
+  portability.min_commitment_months ||
+  portability.cancellation_notice_days ||
+  (portability.import_from && portability.import_from.length > 0) ||
+  (portability.export_to && portability.export_to.length > 0);
+
+// Don't render if no meaningful data
+if (!hasMeaningfulData) return null;
+
 // Migration difficulty badge colors
 const difficultyColors = {
   trivial: 'bg-green-900/30 text-green-400 border-green-700',

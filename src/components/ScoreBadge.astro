@@ -8,6 +8,10 @@ interface Props {
 }
 
 const { score, size = 'md', showLabel = false } = Astro.props;
+
+// Don't render if score is 0 or invalid
+if (!score || score === 0) return null;
+
 const colors = getScoreColor(score);
 
 const sizeClasses = {

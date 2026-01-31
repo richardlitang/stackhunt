@@ -117,11 +117,11 @@ function computeLearningDiff(main: ItemForDiff, alt: ItemForDiff): string | unde
 
   // If alt is easier to learn (lower index)
   if (altIndex < mainIndex) {
-    return `Easier to learn (~${LEARNING_CURVE_LABELS[altCurve]})`;
+    return `${alt.name} is easier to learn (~${LEARNING_CURVE_LABELS[altCurve]})`;
   }
   // If main is easier (alt is harder)
   if (mainIndex < altIndex) {
-    return `Steeper learning curve (~${LEARNING_CURVE_LABELS[altCurve]})`;
+    return `${alt.name} has steeper learning curve (~${LEARNING_CURVE_LABELS[altCurve]})`;
   }
 
   return undefined;
@@ -136,10 +136,10 @@ function computeFeatureDiff(main: ItemForDiff, alt: ItemForDiff): string | undef
   const altIntegrations = altSpecs?.integrations?.length || 0;
 
   if (altIntegrations > mainIntegrations + 5) {
-    return `${altIntegrations - mainIntegrations}+ more integrations`;
+    return `${alt.name} has ${altIntegrations - mainIntegrations}+ more integrations`;
   }
   if (mainIntegrations > altIntegrations + 5) {
-    return `Fewer integrations`;
+    return `${alt.name} has fewer integrations`;
   }
 
   // Compare platforms

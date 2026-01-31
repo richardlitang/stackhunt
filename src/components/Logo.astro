@@ -78,15 +78,15 @@ const primarySrc = directUrl || brandfetchUrl || googleUrl;
 ---
 
 {!domain ? (
-  <div class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-zinc-900`}>
-    <span class="text-xl font-bold text-zinc-500">{initials}</span>
+  <div class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700`}>
+    <span class="text-xl font-bold text-zinc-400">{initials}</span>
   </div>
 ) : (
-  <div class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-zinc-900`}>
+  <div class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-white border border-zinc-700/50`}>
     <img
       src={primarySrc}
       alt={`${name} logo`}
-      class="h-full w-full object-contain p-1"
+      class="h-full w-full object-contain p-2"
       loading="lazy"
       onerror={`
         if (this.src.includes('supabase') || this.src.includes('brandfetch')) {
