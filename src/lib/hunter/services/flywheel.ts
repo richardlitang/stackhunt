@@ -132,7 +132,6 @@ async function createOrGetContext(
     .insert({
       title: context.title,
       slug: context.slug,
-      status: 'draft',
     })
     .select('id')
     .single();
