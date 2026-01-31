@@ -5,6 +5,8 @@
 
 import { useState, useMemo } from 'react';
 import { Search, X, ChevronRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface Category {
   slug: string;
@@ -40,21 +42,23 @@ export default function CategorySearch({ categories }: Props) {
       {/* Search Input */}
       <div className="mb-8">
         <div className="relative">
-          <input
+          <Search className="absolute left-3 top-3.5 h-5 w-5 text-zinc-500 pointer-events-none" />
+          <Input
             type="text"
             placeholder="Search categories..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-3 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-zinc-100 placeholder-zinc-500 focus:border-indigo-500 focus:ring-indigo-500/20"
           />
-          <Search className="absolute left-3 top-3.5 h-5 w-5 text-zinc-500" />
           {query && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setQuery('')}
-              className="absolute right-3 top-3.5 text-zinc-400 hover:text-zinc-100"
+              className="absolute right-1 top-1.5 h-7 w-7 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
             >
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           )}
         </div>
         {query && (
@@ -138,12 +142,13 @@ export default function CategorySearch({ categories }: Props) {
           <p className="mt-2 text-sm text-zinc-500">
             Try a different search term
           </p>
-          <button
+          <Button
+            variant="link"
             onClick={() => setQuery('')}
             className="mt-4 text-sm text-hunt-500 hover:text-hunt-600"
           >
             Clear search
-          </button>
+          </Button>
         </div>
       )}
     </div>

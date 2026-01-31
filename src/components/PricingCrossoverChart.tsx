@@ -24,6 +24,9 @@ import {
   ReferenceLine,
 } from 'recharts';
 import type { SMPPricingData } from '@/types/database';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 // Color palette for up to 5 tools (first is main tool, others are alternatives)
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -276,28 +279,25 @@ export default function PricingCrossoverChart({
         </div>
 
         {/* Billing Cycle Toggle */}
-        <div className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 p-1">
-          <button
-            onClick={() => setBillingCycle('monthly')}
-            className={`rounded px-3 py-1.5 text-xs font-medium transition ${
-              billingCycle === 'monthly'
-                ? 'bg-hunt-600 text-white'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+        <ToggleGroup
+          type="single"
+          value={billingCycle}
+          onValueChange={(v) => v && setBillingCycle(v as 'monthly' | 'annual')}
+          className="border border-zinc-700 bg-zinc-800 p-1"
+        >
+          <ToggleGroupItem
+            value="monthly"
+            className="text-xs data-[state=on]:bg-hunt-600 data-[state=on]:text-white"
           >
             Monthly
-          </button>
-          <button
-            onClick={() => setBillingCycle('annual')}
-            className={`rounded px-3 py-1.5 text-xs font-medium transition ${
-              billingCycle === 'annual'
-                ? 'bg-hunt-600 text-white'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="annual"
+            className="text-xs data-[state=on]:bg-hunt-600 data-[state=on]:text-white"
           >
             Annual
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {/* Chart */}
@@ -399,27 +399,31 @@ export default function PricingCrossoverChart({
         {/* Current Costs at Selected Team Size */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {currentCosts.map((tool, index) => (
-            <div
+            <Card
               key={tool.name}
-              className={`rounded-lg border p-3 transition-all ${
+              className={`transition-all ${
                 index === 0
                   ? 'border-green-500 bg-green-500/10 ring-2 ring-green-500/20'
                   : 'border-zinc-700 bg-zinc-800'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-zinc-400">{tool.name}</div>
-                {index === 0 && (
-                  <span className="text-xs font-medium text-green-500">Cheapest</span>
-                )}
-              </div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-xl font-bold text-zinc-100">
-                  ${tool.cost.toFixed(2)}
-                </span>
-                <span className="text-sm text-zinc-400">/mo</span>
-              </div>
-            </div>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-zinc-400">{tool.name}</div>
+                  {index === 0 && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-500 border-green-500/30">
+                      Cheapest
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="text-xl font-bold text-zinc-100">
+                    ${tool.cost.toFixed(2)}
+                  </span>
+                  <span className="text-sm text-zinc-400">/mo</span>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>

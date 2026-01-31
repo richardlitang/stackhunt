@@ -6,6 +6,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface VoteWidgetProps {
   reviewId: string;
@@ -196,48 +198,48 @@ export default function VoteWidget({
       <div id={`turnstile-${reviewId}`} className="hidden" />
 
       {/* Upvote button */}
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => handleVote('up')}
         disabled={isLoading}
-        className={`
-          flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition
-          ${userVote === 'up'
-            ? 'bg-green-100 text-green-700'
-            : 'bg-slate-100 text-slate-600 hover:bg-green-50 hover:text-green-600'
-          }
-          ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+        className={cn(
+          "gap-1.5",
+          userVote === 'up'
+            ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-100'
+            : 'bg-slate-100 text-slate-600 hover:bg-green-50 hover:text-green-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-green-950'
+        )}
         aria-label="Upvote"
       >
-        <ThumbsUp className={`h-4 w-4 ${userVote === 'up' ? 'fill-current' : ''}`} />
+        <ThumbsUp className={cn("h-4 w-4", userVote === 'up' && "fill-current")} />
         <span>{upvotes}</span>
-      </button>
+      </Button>
 
       {/* Score */}
-      <span className={`
-        min-w-[2rem] text-center text-sm font-semibold
-        ${netScore > 0 ? 'text-green-600' : netScore < 0 ? 'text-red-600' : 'text-slate-400'}
-      `}>
+      <span className={cn(
+        "min-w-[2rem] text-center text-sm font-semibold",
+        netScore > 0 ? 'text-green-600 dark:text-green-400' : netScore < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400 dark:text-zinc-500'
+      )}>
         {netScore > 0 ? '+' : ''}{netScore}
       </span>
 
       {/* Downvote button */}
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => handleVote('down')}
         disabled={isLoading}
-        className={`
-          flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition
-          ${userVote === 'down'
-            ? 'bg-red-100 text-red-700'
-            : 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600'
-          }
-          ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+        className={cn(
+          "gap-1.5",
+          userVote === 'down'
+            ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-100'
+            : 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-red-950'
+        )}
         aria-label="Downvote"
       >
-        <ThumbsDown className={`h-4 w-4 ${userVote === 'down' ? 'fill-current' : ''}`} />
+        <ThumbsDown className={cn("h-4 w-4", userVote === 'down' && "fill-current")} />
         <span>{downvotes}</span>
-      </button>
+      </Button>
     </div>
   );
 }

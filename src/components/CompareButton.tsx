@@ -7,6 +7,11 @@
 
 import { useState, useEffect } from 'react';
 import { Check, Clipboard, X, Trash2 } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface Props {
   toolSlug: string;
@@ -65,10 +70,10 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
     return () => window.removeEventListener('compare-tools-changed', handleChange as EventListener);
   }, [toolSlug]);
 
-  const handleToggle = () => {
+  const handleToggle = (pressed: boolean) => {
     const tools = getCompareTools();
 
-    if (isAdded) {
+    if (!pressed) {
       // Remove
       const newTools = tools.filter(t => t.slug !== toolSlug);
       setCompareTools(newTools);
@@ -116,13 +121,15 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
   return (
     <>
       {/* Add to Compare Button */}
-      <button
-        onClick={handleToggle}
-        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
+      <Toggle
+        pressed={isAdded}
+        onPressedChange={handleToggle}
+        className={cn(
+          "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition",
           isAdded
-            ? 'bg-hunt-100 text-hunt-700 hover:bg-hunt-200'
-            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-        }`}
+            ? "bg-hunt-100 text-hunt-700 hover:bg-hunt-200 data-[state=on]:bg-hunt-100 data-[state=on]:text-hunt-700 dark:bg-hunt-900 dark:text-hunt-100"
+            : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+        )}
       >
         {isAdded ? (
           <>
@@ -135,53 +142,62 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
             Add to Compare
           </>
         )}
-      </button>
+      </Toggle>
 
       {/* Floating Comparison Bar */}
       {compareTools.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 shadow-xl">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 shadow-xl border border-zinc-800">
           {/* Selected Tools */}
           <div className="flex items-center gap-2">
             {compareTools.map((tool, idx) => (
               <div key={tool.slug} className="flex items-center">
                 {idx > 0 && <span className="mx-1 text-slate-500">vs</span>}
-                <div className="group relative flex items-center gap-1.5 rounded-lg bg-slate-800 px-2 py-1">
+                <Badge
+                  variant="secondary"
+                  className="group relative flex items-center gap-1.5 bg-slate-800 text-white hover:bg-slate-700"
+                >
                   {tool.logo && (
                     <img src={tool.logo} alt="" className="h-5 w-5 rounded" />
                   )}
-                  <span className="text-sm text-white">{tool.name}</span>
-                  <button
+                  <span className="text-sm">{tool.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleRemove(tool.slug)}
-                    className="ml-1 text-slate-400 hover:text-white"
+                    className="ml-1 h-auto w-auto p-0 text-slate-400 hover:text-white hover:bg-transparent"
                     title="Remove"
                   >
                     <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                  </Button>
+                </Badge>
               </div>
             ))}
           </div>
 
+          <Separator orientation="vertical" className="h-6 bg-slate-700" />
+
           {/* Actions */}
-          <div className="flex items-center gap-2 border-l border-slate-700 pl-3">
-            <button
+          <div className="flex items-center gap-2">
+            <Button
+              variant="hunt"
+              size="sm"
               onClick={handleCompare}
               disabled={compareTools.length < 2}
-              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
-                compareTools.length >= 2
-                  ? 'bg-hunt-500 text-white hover:bg-hunt-600'
-                  : 'bg-slate-700 text-slate-400 cursor-not-allowed'
-              }`}
+              className={cn(
+                compareTools.length < 2 && "bg-slate-700 text-slate-400 cursor-not-allowed hover:bg-slate-700"
+              )}
             >
               Compare ({compareTools.length})
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleClear}
-              className="rounded-lg px-2 py-1.5 text-sm text-slate-400 hover:text-white"
+              className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800"
               title="Clear all"
             >
               <Trash2 className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       )}

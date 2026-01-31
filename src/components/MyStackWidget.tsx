@@ -7,6 +7,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Layers, ChevronDown, X } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 interface StackTool {
   slug: string;
@@ -57,7 +60,6 @@ export function isInStack(slug: string): boolean {
 export default function MyStackWidget() {
   const [stackTools, setStackToolsState] = useState<StackTool[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(true);
 
   useEffect(() => {
     // Initial load
@@ -94,111 +96,103 @@ export default function MyStackWidget() {
   if (stackTools.length === 0) return null;
 
   return (
-    <>
-      {/* Minimized Floating Button */}
-      {isMinimized && (
-        <button
-          onClick={() => setIsMinimized(false)}
-          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
-        >
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 hover:from-emerald-600 hover:to-teal-600">
           <Layers className="h-5 w-5" />
           <span className="font-medium">My Stack ({stackTools.length})</span>
           <span className="rounded-full bg-white/20 px-2 py-0.5 text-sm">
             ${totalCost.toFixed(0)}/mo
           </span>
-        </button>
-      )}
+        </Button>
+      </SheetTrigger>
 
-      {/* Expanded Panel */}
-      {!isMinimized && (
-        <div className="fixed bottom-4 right-4 z-50 w-80 rounded-xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span className="font-semibold">My Stack</span>
+      <SheetContent side="right" className="w-80 p-0 bg-white">
+        {/* Header */}
+        <SheetHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-white">
+          <SheetTitle className="flex items-center gap-2 text-white">
+            <Layers className="h-5 w-5" />
+            <span className="font-semibold">My Stack</span>
+          </SheetTitle>
+        </SheetHeader>
+
+        {/* Tools List */}
+        <div className="max-h-64 overflow-y-auto p-2">
+          {stackTools.map((tool) => (
+            <div
+              key={tool.slug}
+              className="flex items-center gap-3 rounded-lg p-2 hover:bg-slate-50 group"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                {tool.logo ? (
+                  <img src={tool.logo} alt="" className="h-full w-full object-contain p-1" />
+                ) : (
+                  <span className="text-xs font-bold text-slate-400">{tool.name.charAt(0)}</span>
+                )}
               </div>
-              <button
-                onClick={() => setIsMinimized(true)}
-                className="text-white/80 hover:text-white"
-              >
-                <ChevronDown className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Tools List */}
-          <div className="max-h-64 overflow-y-auto p-2">
-            {stackTools.map((tool) => (
-              <div
-                key={tool.slug}
-                className="flex items-center gap-3 rounded-lg p-2 hover:bg-slate-50 group"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
-                  {tool.logo ? (
-                    <img src={tool.logo} alt="" className="h-full w-full object-contain p-1" />
-                  ) : (
-                    <span className="text-xs font-bold text-slate-400">{tool.name.charAt(0)}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <a
-                    href={`/tools/${tool.slug}`}
-                    className="block text-sm font-medium text-slate-900 truncate hover:text-emerald-600"
-                  >
-                    {tool.name}
-                  </a>
-                  <span className="text-xs text-slate-500">
-                    {tool.pricing?.starting_price != null ? (
-                      `$${tool.pricing.starting_price}/mo`
-                    ) : tool.pricing?.model === 'free' || tool.pricing?.model === 'open_source' ? (
-                      'Free'
-                    ) : (
-                      'Price unknown'
-                    )}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleRemove(tool.slug)}
-                  className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition"
-                  title="Remove from stack"
+              <div className="flex-1 min-w-0">
+                <a
+                  href={`/tools/${tool.slug}`}
+                  className="block text-sm font-medium text-slate-900 truncate hover:text-emerald-600"
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  {tool.name}
+                </a>
+                <span className="text-xs text-slate-500">
+                  {tool.pricing?.starting_price != null ? (
+                    `$${tool.pricing.starting_price}/mo`
+                  ) : tool.pricing?.model === 'free' || tool.pricing?.model === 'open_source' ? (
+                    'Free'
+                  ) : (
+                    'Price unknown'
+                  )}
+                </span>
               </div>
-            ))}
-          </div>
-
-          {/* Cost Summary */}
-          <div className="border-t border-slate-200 bg-slate-50 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-600">Estimated Monthly Cost</span>
-              <span className="text-lg font-bold text-emerald-600">
-                ${totalCost.toFixed(2)}
-              </span>
-            </div>
-            {toolsWithoutPricing > 0 && (
-              <p className="text-xs text-slate-500">
-                * {toolsWithoutPricing} tool{toolsWithoutPricing > 1 ? 's' : ''} with unknown pricing
-              </p>
-            )}
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
-              <span className="text-xs text-slate-500">
-                Annual: ~${(totalCost * 12).toFixed(0)}
-              </span>
-              <button
-                onClick={handleClear}
-                className="text-xs text-red-500 hover:text-red-600"
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemove(tool.slug)}
+                className="h-auto w-auto p-1 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-transparent"
+                title="Remove from stack"
               >
-                Clear Stack
-              </button>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
+          ))}
+        </div>
+
+        <Separator />
+
+        {/* Cost Summary */}
+        <div className="bg-slate-50 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-slate-600">Estimated Monthly Cost</span>
+            <span className="text-lg font-bold text-emerald-600">
+              ${totalCost.toFixed(2)}
+            </span>
+          </div>
+          {toolsWithoutPricing > 0 && (
+            <p className="text-xs text-slate-500">
+              * {toolsWithoutPricing} tool{toolsWithoutPricing > 1 ? 's' : ''} with unknown pricing
+            </p>
+          )}
+
+          <Separator className="my-3" />
+
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500">
+              Annual: ~${(totalCost * 12).toFixed(0)}
+            </span>
+            <Button
+              variant="link"
+              size="sm"
+              onClick={handleClear}
+              className="h-auto p-0 text-xs text-red-500 hover:text-red-600"
+            >
+              Clear Stack
+            </Button>
           </div>
         </div>
-      )}
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

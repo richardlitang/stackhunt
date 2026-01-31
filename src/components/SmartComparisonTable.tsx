@@ -8,6 +8,9 @@
 import React, { useState } from 'react';
 import { Check, X, HelpCircle } from 'lucide-react';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 interface Tool {
   name: string;
@@ -240,44 +243,40 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
   const differenceCount = rows.filter(r => r.isDifferent).length;
 
   return (
-    <div className="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm">
+    <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as ComparisonCategory)} className="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm">
       {/* Header */}
       <div className="border-b border-zinc-800 bg-zinc-900/50 px-6 py-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-zinc-100">Feature Comparison</h3>
           <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer hover:text-zinc-300 transition">
-            <input
-              type="checkbox"
+            <Checkbox
+              id="show-diff"
               checked={showOnlyDifferences}
-              onChange={(e) => setShowOnlyDifferences(e.target.checked)}
-              className="rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500/50"
+              onCheckedChange={(checked) => setShowOnlyDifferences(checked as boolean)}
+              className="border-zinc-600 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
             />
-            Show differences only
+            <span>Show differences only</span>
             {differenceCount > 0 && (
-              <span className="rounded-full bg-indigo-900/30 px-2 py-0.5 text-xs font-medium text-indigo-400 border border-indigo-700">
+              <Badge variant="secondary" className="bg-indigo-900/30 text-indigo-400 border-indigo-700">
                 {differenceCount}
-              </span>
+              </Badge>
             )}
           </label>
         </div>
 
         {/* Category Tabs */}
-        <div className="mt-4 flex flex-wrap gap-2">
+        <TabsList className="mt-4 bg-zinc-800 h-auto gap-2 p-0 flex flex-wrap">
           {categories.map((cat) => (
-            <button
+            <TabsTrigger
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                activeCategory === cat.id
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
-              }`}
+              value={cat.id}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=inactive]:bg-zinc-800 data-[state=inactive]:text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
             >
               <span className="mr-1">{cat.icon}</span>
               {cat.label}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+        </TabsList>
       </div>
 
       {/* Table */}
@@ -361,6 +360,6 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
           </span>
         </p>
       </div>
-    </div>
+    </Tabs>
   );
 }
