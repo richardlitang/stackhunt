@@ -15,6 +15,7 @@ import type {
   HunterDependencies,
   ResearchOutput,
 } from '../types';
+import { detectDefunctTool, extractSearchSnippets } from '../services/defunct-detector.js';
 
 /**
  * Execute the Research Phase
@@ -40,6 +41,24 @@ export async function executeResearchPhase(
   );
 
   deps.log(`Scout completed: ${scoutResult.sources.length} sources found`);
+
+  // Step 1.5: Check if tool is defunct (save API costs on dead tools)
+  const searchSnippets = extractSearchSnippets(scoutResult.sources);
+  const defunctStatus = await detectDefunctTool(ctx.toolName, searchSnippets);
+
+  if (defunctStatus.isDefunct && defunctStatus.confidence === 'high') {
+    deps.log(`⚠️  Tool appears to be defunct: ${defunctStatus.reason || 'No longer available'}`);
+    deps.log(`   Evidence: ${defunctStatus.evidence || 'Multiple shutdown indicators found'}`);
+
+    // Return early - don't waste API credits on knowledge extraction
+    return {
+      scoutResult,
+      knowledgeCard: null as any, // Will not be used
+      isDuplicate: false,
+      tokensUsed: 0,
+      defunctStatus, // Pass defunct info to orchestrator
+    };
+  }
 
   // Step 2: Extract structured facts (Pass 1 - The Librarian + Forensic Accountant + Investigator)
   const { knowledgeCard, tokensUsed } = await deps.gemini.extractKnowledgeCard(

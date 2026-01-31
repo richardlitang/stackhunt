@@ -4,9 +4,24 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Search, X, ChevronRight } from 'lucide-react';
+import { Search, X, ChevronRight, Package } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+
+// Convert kebab-case icon name to PascalCase component name
+function getIconComponent(iconName: string | undefined) {
+  if (!iconName) return Package;
+
+  // Convert "message-circle" to "MessageCircle"
+  const pascalCase = iconName
+    .split('-')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
+
+  const IconComponent = (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[pascalCase];
+  return IconComponent || Package;
+}
 
 interface Category {
   slug: string;
@@ -82,9 +97,14 @@ export default function CategorySearch({ categories }: Props) {
                 className="group relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/50 p-5 transition-all duration-200 hover:border-zinc-700 hover:bg-gradient-to-b hover:from-zinc-800/50 hover:to-zinc-900/50"
               >
                 <div className="flex items-start gap-4">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-800/50 text-2xl transition group-hover:bg-zinc-800">
-                    {category.icon || '📦'}
-                  </span>
+                  {(() => {
+                    const IconComponent = getIconComponent(category.icon);
+                    return (
+                      <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-800/50 transition group-hover:bg-zinc-800">
+                        <IconComponent className="h-6 w-6 text-zinc-400 group-hover:text-zinc-300" />
+                      </span>
+                    );
+                  })()}
                   <div className="flex-1">
                     <h3 className="font-medium text-zinc-100 group-hover:text-white">
                       {category.name}
@@ -119,9 +139,14 @@ export default function CategorySearch({ categories }: Props) {
                 href={`/categories/${category.slug}`}
                 className="group flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700 hover:bg-zinc-800/50"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-800/50 text-lg transition group-hover:bg-zinc-800">
-                  {category.icon || '📦'}
-                </span>
+                {(() => {
+                  const IconComponent = getIconComponent(category.icon);
+                  return (
+                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-800/50 transition group-hover:bg-zinc-800">
+                      <IconComponent className="h-5 w-5 text-zinc-400 group-hover:text-zinc-300" />
+                    </span>
+                  );
+                })()}
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate font-medium text-zinc-100 group-hover:text-white">
                     {category.name}

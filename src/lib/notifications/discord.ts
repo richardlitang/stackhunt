@@ -129,20 +129,24 @@ export async function alertQueueSummary(
   };
 
   if (options.errors.length > 0) {
+    // Extract key error message (before stack trace, after error type)
+    const extractKeyMessage = (error: string): string => {
+      // Remove stack traces
+      const firstLine = error.split('\n')[0];
+      // Remove "Error: " prefix if present
+      const cleaned = firstLine.replace(/^(Error|TypeError|ValidationError|ApiError):\s*/i, '');
+      // Truncate to 80 chars max
+      return cleaned.length > 80 ? cleaned.slice(0, 77) + '...' : cleaned;
+    };
+
     const errorList = options.errors
-      .slice(0, 5)
-      .map((e) => {
-        // Smart truncation: keep max 200 chars, but try to break at word boundaries
-        const maxLen = 200;
-        const errorText = e.error.length > maxLen
-          ? e.error.slice(0, maxLen).trim() + '...'
-          : e.error;
-        return `- **${e.tool}**: ${errorText}`;
-      })
+      .slice(0, 8) // Show more errors since they're compact
+      .map((e) => `• **${e.tool}**: ${extractKeyMessage(e.error)}`)
       .join('\n');
+
     embed.fields!.push({
-      name: 'Errors',
-      value: errorList + (options.errors.length > 5 ? `\n... and ${options.errors.length - 5} more` : ''),
+      name: `Failures (${options.errors.length})`,
+      value: errorList + (options.errors.length > 8 ? `\n_...and ${options.errors.length - 8} more_` : ''),
       inline: false,
     });
   }

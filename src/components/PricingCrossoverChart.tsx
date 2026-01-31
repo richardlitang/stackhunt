@@ -28,6 +28,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
+import { computeMonthlyCost } from '@/lib/pricing/cost';
 
 // Color palette for up to 5 tools (first is main tool, others are alternatives)
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -60,66 +61,6 @@ interface CrossoverPoint {
  * Calculate monthly cost for a given tool at a specific team size
  * Uses Gemini's simpler approach: Find cheapest valid plan
  */
-function calculateMonthlyCost(
-  pricingData: SMPPricingData | null,
-  userCount: number,
-  billingCycle: 'monthly' | 'annual'
-): number | null {
-  if (!pricingData || pricingData.plans.length === 0) return null;
-
-  // Find valid plans for this user count
-  const validPlans = pricingData.plans.filter((plan) => {
-    // Skip enterprise "Contact Sales" plans
-    if (plan.is_enterprise) return false;
-
-    // Skip plans with no pricing
-    const basePrice = billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual;
-    if (basePrice === null || basePrice <= 0) return false;
-
-    // Check user limits
-    if (plan.max_users !== null && userCount > plan.max_users) return false;
-
-    // Check minimum seats
-    if (pricingData.min_seats && userCount < pricingData.min_seats) return false;
-
-    return true;
-  });
-
-  if (validPlans.length === 0) return null;
-
-  // Calculate cost for each plan and pick the cheapest
-  const planCosts = validPlans.map((plan) => {
-    const basePrice = billingCycle === 'monthly' ? plan.price_monthly! : plan.price_annual!;
-
-    if (pricingData.model === 'flat') {
-      // Flat rate - same cost regardless of users
-      return billingCycle === 'monthly' ? basePrice : basePrice / 12;
-    } else if (pricingData.model === 'per_seat' || pricingData.model === 'per_unit') {
-      // Per-seat pricing
-      const pricePerUnit = plan.price_per_unit || basePrice;
-      const includedUnits = plan.included_units || 0;
-      const minSeats = pricingData.min_seats || 0;
-
-      const effectiveUsers = Math.max(userCount, minSeats);
-      const billableUsers = Math.max(effectiveUsers - includedUnits, 0);
-
-      const cost = billableUsers * pricePerUnit;
-      return billingCycle === 'monthly' ? cost : cost / 12;
-    } else if (pricingData.model === 'tiered') {
-      // Tiered - use base price for this tier
-      return billingCycle === 'monthly' ? basePrice : basePrice / 12;
-    } else if (pricingData.model === 'free') {
-      return 0;
-    } else {
-      // Freemium, hybrid, default to per-seat
-      const cost = basePrice * userCount;
-      return billingCycle === 'monthly' ? cost : cost / 12;
-    }
-  });
-
-  // Return cheapest valid plan
-  return Math.min(...planCosts);
-}
 
 export default function PricingCrossoverChart({
   tools,
@@ -139,8 +80,8 @@ export default function PricingCrossoverChart({
     for (let users = 1; users <= maxUsers; users++) {
       const dataPoint: DataPoint = { users };
 
-      displayTools.forEach((tool) => {
-        const cost = calculateMonthlyCost(tool.pricingData, users, billingCycle);
+        displayTools.forEach((tool) => {
+        const cost = computeMonthlyCost(tool.pricingData, users, billingCycle).cost;
         dataPoint[tool.name] = cost ?? 0;
       });
 
@@ -189,6 +130,7 @@ export default function PricingCrossoverChart({
       .map((tool) => ({
         name: tool.name,
         cost: point[tool.name] as number,
+        detail: computeMonthlyCost(tool.pricingData, teamSize, billingCycle),
         color: COLORS[displayTools.indexOf(tool) % COLORS.length],
       }))
       .sort((a, b) => a.cost - b.cost); // Sort by cost (cheapest first)
@@ -423,6 +365,14 @@ export default function PricingCrossoverChart({
                   </span>
                   <span className="text-sm text-zinc-400">/mo</span>
                 </div>
+                {tool.detail.planName && (
+                  <div className="mt-1 text-xs text-zinc-500">Plan: {tool.detail.planName}</div>
+                )}
+                {tool.detail.notes.length > 0 && (
+                  <div className="mt-1 text-[11px] text-zinc-600">
+                    {tool.detail.notes[0]}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -501,6 +451,11 @@ export default function PricingCrossoverChart({
           <span className="text-red-400">✕</span> marks indicate where pricing crosses over
         </div>
       )}
+
+      {/* Assumptions */}
+      <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-500">
+        Assumptions: all seats are paid members, add-ons and usage overages excluded, cheapest non-enterprise plan selected.
+      </div>
     </div>
   );
 }

@@ -29,6 +29,11 @@ import VerifiedBadge from '@/components/VerifiedBadge.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
 import TribalKnowledge from '@/components/TribalKnowledge.astro';
 import PriceVerification from '@/components/PriceVerification';
+import SuiteNavigation from '@/components/SuiteNavigation.astro';
+import IncludedTools from '@/components/IncludedTools.astro';
+import RelatedLinks from '@/components/RelatedLinks.astro';
+import SignalReportWidget from '@/components/SignalReportWidget';
+import SignalAggregatesBadge from '@/components/SignalAggregatesBadge';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
 import {
@@ -57,8 +62,43 @@ if (!tool) {
   return Astro.redirect('/404');
 }
 
+// Fetch parent tool info if this tool is part of a suite
+let parentTool = null;
+if (tool.parent_id) {
+  const { data } = await supabase
+    .from('items')
+    .select('id, name, slug')
+    .eq('id', tool.parent_id)
+    .single();
+  parentTool = data;
+}
+
 const contextLinks = await getToolContexts(tool.id);
 const tags = await getToolTags(tool.id);
+
+// Build related links for internal linking (SEO)
+const relatedLinks: Array<{ href: string; title: string; description?: string; icon: 'category' | 'list' | 'tool' | 'compare' }> = [];
+
+// Add category link
+if (tool.category) {
+  relatedLinks.push({
+    href: `/categories/${tool.category.slug}`,
+    title: tool.category.name,
+    description: `Browse all ${tool.category.name.toLowerCase()} tools`,
+    icon: 'category',
+  });
+}
+
+// Add top 3 context links (best-of lists)
+const topContexts = contextLinks?.slice(0, 3) || [];
+for (const ctx of topContexts) {
+  relatedLinks.push({
+    href: `/best/${ctx.context.slug}`,
+    title: ctx.context.title,
+    description: `${ctx.context.tool_count} tools compared`,
+    icon: 'list',
+  });
+}
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
 const firstReview = tool.reviews?.[0];
 
@@ -136,6 +176,31 @@ const sourceDomains = firstReview?.sources
       return domain.charAt(0).toUpperCase() + domain.slice(1);
     }))].slice(0, 5)
   : [];
+
+// Fetch signal aggregates for community signals
+// Note: Fetching via API to avoid TypeScript issues with complex joins
+let signalAggregates: Array<{
+  signal_key: string;
+  signal_label: string;
+  signal_category: string;
+  option_key?: string;
+  option_label?: string;
+  count_total: number;
+  count_positive: number;
+  count_negative: number;
+}> = [];
+
+try {
+  const signalResponse = await fetch(
+    `${Astro.url.origin}/api/signals/aggregates?itemId=${tool.id}`
+  );
+  if (signalResponse.ok) {
+    const result = await signalResponse.json();
+    signalAggregates = result.aggregates || [];
+  }
+} catch (err) {
+  console.error('Failed to fetch signal aggregates:', err);
+}
 
 // SEO: Automated confidence scoring for noindex decision
 const confidence = evaluateContentConfidence(tool, firstReview);
@@ -308,6 +373,14 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="toggle" />
           </section>
         )}
+
+        {/* Community Signals - Aggregates (Read-only) */}
+        {signalAggregates.length > 0 && (
+          <SignalAggregatesBadge client:visible aggregates={signalAggregates} />
+        )}
+
+        {/* Community Signals - Report Widget (Phase 1) */}
+        <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
 
         {/* Review Summary */}
         {firstReview?.summary_markdown && (
@@ -484,6 +557,9 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             <VideoEmbed client:visible id={tool.video_id} title={tool.video_title || `${tool.name} Overview`} />
           </section>
         )}
+
+        {/* Included Tools (if this is a parent suite) */}
+        <IncludedTools toolId={tool.id} toolName={tool.name} />
       </div>
 
       <!-- Sidebar -->
@@ -533,6 +609,24 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
           roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
         } : undefined} />
+
+        {/* Suite Navigation (if part of a bundle) */}
+        {parentTool && (
+          <SuiteNavigation
+            currentToolId={tool.id}
+            parentId={parentTool.id}
+            parentName={parentTool.name}
+          />
+        )}
+
+        {/* Related Links (SEO internal linking) */}
+        {relatedLinks.length > 0 && (
+          <RelatedLinks
+            title="Related Pages"
+            links={relatedLinks}
+            variant="compact"
+          />
+        )}
 
         {/* Security & Compliance */}
         {knowledgeCard?.security && (

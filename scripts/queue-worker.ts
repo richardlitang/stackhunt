@@ -138,14 +138,14 @@ async function processQueue(): Promise<void> {
 
         // Log full error to console for debugging
         console.error(`\n❌ Queue item failed:`);
+        console.error(`   Tool: ${r.toolName || 'Unknown'}`);
         console.error(`   Category: ${formatted.category}`);
         console.error(`   Summary: ${formatted.summary}`);
         console.error(`   Full details: ${formatted.details}`);
 
         errors.push({
-          tool: formatted.category,
-          error: formatted.summary,
-          category: formatted.category
+          tool: r.toolName || 'Unknown',
+          error: `[${formatted.category}] ${formatted.summary}`,
         });
       }
     }

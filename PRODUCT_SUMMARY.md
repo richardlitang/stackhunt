@@ -67,7 +67,7 @@ stackhunt/
 ├── scripts/                  # CLI tools for batch operations
 │   ├── hunter.ts            # Main CLI (hunt, strategy, queue)
 │   ├── queue-worker.ts      # Continuous queue processor
-│   ├── hunt-worker.ts       # Alternative worker
+│   ├── queue-worker.ts      # Continuous queue processor
 │   ├── import-content-ideas.ts
 │   ├── queue-content-ideas.ts
 │   ├── verify-corrections.ts

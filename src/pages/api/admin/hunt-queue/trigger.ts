@@ -103,7 +103,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Collect errors
       for (const r of batchResult.results) {
         if (!r.success && r.error) {
-          errors.push({ tool: 'Unknown', error: r.error });
+          errors.push({ tool: r.toolName || 'Unknown', error: r.error });
         }
       }
     } catch (error) {

@@ -55,8 +55,8 @@ npm run import-ideas
 # Queue high-priority ideas
 npm run queue-ideas -- --min-priority 85 --limit 50
 
-# Run the Hunter to process queue
-npm run hunt:worker
+# Run the queue worker to process queue
+npm run queue:worker
 
 # Check queue status
 # Go to /admin dashboard
@@ -82,6 +82,6 @@ Located at `/admin/strategy`:
 ## Next Steps
 
 1. Check admin dashboard - should show "50 In Queue"
-2. Run hunter: `npm run hunt:worker`
+2. Run worker: `npm run queue:worker`
 3. Monitor results in admin review queue
 4. Queue more ideas as needed with `npm run queue-ideas`

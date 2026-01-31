@@ -60,7 +60,10 @@ const modelBadgeColors: Record<string, string> = {
     {pricing.starting_price && (
       <div class="flex justify-between">
         <dt class="text-sm text-zinc-400">Starting at</dt>
-        <dd class="text-sm font-medium text-zinc-100">{pricing.starting_price}</dd>
+        <dd class="text-sm font-medium text-zinc-100">
+          {pricing.starting_price}
+          {pricing.model === 'per_seat' && <span class="text-zinc-500">/seat</span>}
+        </dd>
       </div>
     )}
 

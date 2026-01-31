@@ -3,6 +3,7 @@ import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
+import icon from 'astro-icon';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -17,6 +18,11 @@ export default defineConfig({
   integrations: [
     tailwind(),
     react(),
+    icon({
+      include: {
+        lucide: ['*'], // Include all Lucide icons
+      },
+    }),
     sitemap({
       filter: (page) => {
         // Exclude API routes and admin pages from sitemap

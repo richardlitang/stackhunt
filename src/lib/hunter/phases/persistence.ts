@@ -42,28 +42,99 @@ export async function executePersistencePhase(
   ctx: HunterContext,
   deps: HunterDependencies
 ): Promise<PersistenceOutput> {
-  if (!ctx.research || !ctx.analysis) {
-    throw new Error('[Phase 3] Cannot persist without research and analysis data');
+  if (!ctx.research) {
+    throw new Error('[Phase 3] Cannot persist without research data');
+  }
+
+  if (ctx.huntType === 'price_only') {
+    return await updatePricingOnly(ctx, deps);
+  }
+
+  if (!ctx.analysis) {
+    throw new Error('[Phase 3] Cannot persist without analysis data');
   }
 
   deps.log(`[Phase 3: Persistence] Starting for: ${ctx.toolName}`);
 
   const toolSlug = slugify(ctx.toolName);
 
-  // Step 1: Find legacy category (backwards compatibility)
+  // Step 1: Find category (auto-map from taxonomy or use explicit categorySlug)
   let categoryId: string | null = null;
+  const analysis = ctx.analysis.analysis;
+  const knowledgeCard = ctx.research.knowledgeCard;
+
   if (ctx.categorySlug) {
+    // Legacy: explicit category slug provided
     const { data: cat } = await deps.supabase
       .from('categories')
       .select('id')
       .eq('slug', ctx.categorySlug)
       .single();
     categoryId = cat?.id || null;
+  } else if (knowledgeCard?.smp_taxonomy?.primary_function) {
+    // Auto-map from extracted taxonomy
+    const primaryFunction = knowledgeCard.smp_taxonomy.primary_function;
+    deps.log(`[Category] Auto-mapping from taxonomy: "${primaryFunction}"`);
+
+    // Map primary_function to category slug
+    const funcToCategory: Record<string, string> = {
+      'Project Management': 'project-management',
+      'Communication': 'communication',
+      'Notetaking': 'notetaking',
+      'Note-Taking': 'notetaking',
+      'Developer Tools': 'developer-tools',
+      'Code Editor': 'developer-tools',
+      'Development': 'developer-tools',
+      'Design': 'design',
+      'CRM': 'crm-sales',
+      'Collaboration': 'collaboration',
+      'Productivity': 'productivity',
+      'AI & Automation': 'ai-automation',
+      'AI Code Assistant': 'ai-automation',
+      'AI Tools': 'ai-automation',
+      'AI Audio Platform': 'ai-automation',
+      'Analytics': 'seo-analytics',
+      'SEO': 'seo-analytics',
+      'SEO Tools': 'seo-analytics',
+      'Email Marketing': 'email-marketing',
+      'Social Media': 'social-media',
+      'Customer Support': 'customer-support',
+      'HR': 'hr-recruiting',
+      'HR & Payroll': 'hr-recruiting',
+      'Accounting': 'accounting',
+      'Accounting Software': 'accounting',
+      'Finance': 'accounting',
+      'Spend Management': 'accounting',
+      'Business Banking': 'payments',
+      'Payments': 'payments',
+      'Video Editing': 'video-editing',
+      'Practice Management': 'healthcare',
+      'Dental Practice Management': 'healthcare',
+      'Automation': 'ai-automation',
+      'Website Builder': 'no-code',
+    };
+
+    const categorySlug = funcToCategory[primaryFunction];
+    if (categorySlug) {
+      const { data: cat } = await deps.supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', categorySlug)
+        .eq('type', 'function')
+        .maybeSingle();
+
+      if (cat) {
+        categoryId = cat.id;
+        deps.log(`[Category] Mapped "${primaryFunction}" → ${categorySlug}`);
+      } else {
+        deps.log(`[Category] Warning: No category found for slug "${categorySlug}"`);
+      }
+    } else {
+      deps.log(`[Category] Warning: No mapping for "${primaryFunction}"`);
+    }
   }
 
   // Step 2: Upsert Item (with Knowledge Card + V2 fields)
-  const analysis = ctx.analysis.analysis;
-  const knowledgeCard = ctx.research.knowledgeCard;
 
   // Build V2/V3 specs from analysis + Knowledge Card
   const specs: Record<string, unknown> = {
@@ -298,6 +369,79 @@ export async function executePersistencePhase(
     contextId,
     reviewId,
     wasReused,
+  };
+}
+
+async function updatePricingOnly(
+  ctx: HunterContext,
+  deps: HunterDependencies
+): Promise<PersistenceOutput> {
+  deps.log(`[Phase 3: Persistence] price_only update for: ${ctx.toolName}`);
+
+  const toolSlug = slugify(ctx.toolName);
+  const knowledgeCard = ctx.research!.knowledgeCard;
+
+  const { data: existingBySlug } = await deps.supabase
+    .from('items')
+    .select('id, specs')
+    .eq('slug', toolSlug)
+    .maybeSingle();
+
+  let itemId = existingBySlug?.id as string | undefined;
+  let specs = (existingBySlug?.specs as Record<string, unknown>) || {};
+
+  if (!itemId) {
+    const { data: existingByName } = await deps.supabase
+      .from('items')
+      .select('id, specs')
+      .ilike('name', ctx.toolName)
+      .limit(1)
+      .maybeSingle();
+
+    itemId = existingByName?.id as string | undefined;
+    specs = (existingByName?.specs as Record<string, unknown>) || specs;
+  }
+
+  if (!itemId) {
+    throw new Error(`[price_only] No existing item found for ${ctx.toolName}`);
+  }
+
+  if (knowledgeCard?.smp_pricing) {
+    specs = { ...specs, pricing_data: knowledgeCard.smp_pricing };
+  }
+
+  let parentId: string | null = null;
+  const bundledIn = knowledgeCard?.smp_pricing?.bundled_in;
+  if (bundledIn) {
+    try {
+      parentId = await ensureParentSuite(deps.supabase, bundledIn);
+      deps.log(`[Suite] Linked to parent suite (ID: ${parentId})`);
+    } catch (error) {
+      deps.log(`[Suite] Warning: Failed to link to parent suite: ${error}`);
+    }
+  }
+
+  const { data: updated, error } = await deps.supabase
+    .from('items')
+    .update({
+      specs,
+      pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
+      pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
+      parent_id: parentId,
+    })
+    .eq('id', itemId)
+    .select('id')
+    .single();
+
+  if (error) throw new Error(`Failed to update pricing: ${error.message}`);
+
+  deps.log(`[price_only] Pricing updated for item ${updated.id}`);
+
+  return {
+    toolId: updated.id,
+    contextId: null,
+    reviewId: null,
+    wasReused: true,
   };
 }
 

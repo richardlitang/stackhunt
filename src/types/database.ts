@@ -106,6 +106,39 @@ export interface SMPPricingData {
   // Plans array (the money data)
   plans: SMPPlanData[];
 
+  // Seat types (member/guest/viewer) with pricing overrides
+  seat_types?: Array<{
+    type: 'member' | 'guest' | 'viewer' | 'contractor' | 'admin';
+    price_per_unit: number | null;
+    free_units: number | null;
+    notes?: string | null;
+  }>;
+
+  // Volume tiers (seat ranges with price overrides)
+  volume_tiers?: Array<{
+    min_units: number;
+    max_units: number | null;
+    price_per_unit: number;
+    applies_to?: 'member' | 'seat' | 'workspace' | 'gb' | 'request' | null;
+  }>;
+
+  // Usage meters (GB/requests/messages)
+  usage_meters?: Array<{
+    unit: 'gb' | 'message' | 'request' | 'minute' | 'api_call';
+    price_per_unit: number;
+    included_units: number | null;
+    billing_cycle: BillingCycle;
+  }>;
+
+  // Add-ons (SSO, audit logs, storage)
+  add_ons?: Array<{
+    name: string;
+    price: number;
+    unit: 'seat' | 'account' | 'org' | 'gb' | 'request';
+    required: boolean;
+    notes?: string | null;
+  }>;
+
   // Hidden costs
   min_seats: number | null;                // e.g., "Min 5 seats"
   implementation_fee: number | null;       // One-time setup cost

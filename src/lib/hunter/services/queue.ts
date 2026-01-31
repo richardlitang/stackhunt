@@ -18,6 +18,7 @@ export interface QueueItem {
   tool_name: string;
   context_title: string | null;
   category_slug: string | null;
+  hunt_type?: string | null;
   priority: number;
   status: string;
 }

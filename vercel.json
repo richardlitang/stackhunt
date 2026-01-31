@@ -21,6 +21,14 @@
     {
       "path": "/api/cron/cleanup-rate-limits",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/hunt",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/pricing-refresh",
+      "schedule": "0 3 * * 1"
     }
   ],
   "headers": [

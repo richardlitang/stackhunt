@@ -275,7 +275,12 @@ export class Hunter {
         );
       }
 
-      return { ...result, queueItemId: queueItem.id };
+      return {
+        ...result,
+        queueItemId: queueItem.id,
+        toolName: queueItem.tool_name,
+        contextTitle: queueItem.context_title || undefined,
+      };
     } catch (error) {
       // Stop heartbeat on error
       this.queue.stopHeartbeat();
@@ -292,6 +297,8 @@ export class Hunter {
         success: false,
         error: err.message,
         queueItemId: queueItem.id,
+        toolName: queueItem.tool_name,
+        contextTitle: queueItem.context_title || undefined,
       };
     }
   }

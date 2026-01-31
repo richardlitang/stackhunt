@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import type { KnowledgeCard } from '../knowledge-card';
-import type { PricingModel } from '@/types/database';
+import type { PricingModel, HuntType } from '@/types/database';
 
 // ============================================================================
 // CONFIGURATION
@@ -32,6 +32,7 @@ export interface HunterInput {
   categorySlug?: string;
   queueItemId?: string; // If processing from queue
   forceUpdate?: boolean; // Bypass duplicate detection and re-extract data
+  huntType?: HuntType; // 'full' | 'refresh' | 'price_only'
 }
 
 // Guidance for context hunt (optional hints for better articles)
@@ -55,7 +56,9 @@ export interface ContextHuntInput {
 export interface HunterResult {
   success: boolean;
   toolId?: string;
+  toolName?: string;
   contextId?: string;
+  contextTitle?: string;
   reviewId?: string;
   error?: string;
   tokensUsed?: number;
@@ -199,6 +202,7 @@ export interface HunterContext {
   categorySlug?: string;
   queueItemId?: string;
   forceUpdate?: boolean;        // Bypass duplicate detection
+  huntType?: HuntType;
 
   // Flags for early exits (cost optimization)
   skipAnalysis?: boolean;       // Set if duplicate found
@@ -238,6 +242,13 @@ export interface ResearchOutput {
   tokensUsed: number;
   isDuplicate?: boolean;        // Gatekeeper: hard duplicate detected
   existingToolId?: string;      // If duplicate, reference to existing
+  defunctStatus?: {             // Defunct tool detection
+    isDefunct: boolean;
+    confidence: 'high' | 'medium' | 'low';
+    shutdownDate?: string;
+    reason?: string;
+    evidence?: string;
+  };
   video?: {                     // Best video found for the tool
     videoId: string;
     title: string;

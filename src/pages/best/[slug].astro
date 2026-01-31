@@ -19,7 +19,8 @@ import ProsCons from '@/components/ProsCons.astro';
 import SentimentTags from '@/components/SentimentTags.astro';
 import VoteWidget from '@/components/VoteWidget';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
-import { getContextBySlug, getAllContextSlugs } from '@/lib/supabase';
+import RelatedLinks from '@/components/RelatedLinks.astro';
+import { getContextBySlug, getAllContextSlugs, supabase } from '@/lib/supabase';
 import {
   generateContextMeta,
   generateListSchema,
@@ -44,6 +45,49 @@ if (!context) {
 
 // Sort reviews by score
 const sortedReviews = [...(context.reviews || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+// Fetch related contexts (same category, different slug)
+const { data: relatedContexts } = context.category_id
+  ? await supabase
+      .from('contexts')
+      .select('id, slug, title, tool_count')
+      .eq('category_id', context.category_id)
+      .neq('id', context.id)
+      .limit(5)
+  : { data: [] };
+
+// Build related links for internal linking (SEO)
+const relatedLinks: Array<{ href: string; title: string; description?: string; icon: 'category' | 'list' | 'tool' | 'compare' }> = [];
+
+// Add category link
+if (context.category) {
+  relatedLinks.push({
+    href: `/categories/${context.category.slug}`,
+    title: context.category.name,
+    description: `Browse all ${context.category.name.toLowerCase()} tools`,
+    icon: 'category',
+  });
+}
+
+// Add related lists (same category)
+for (const ctx of (relatedContexts || []).slice(0, 4)) {
+  relatedLinks.push({
+    href: `/best/${ctx.slug}`,
+    title: ctx.title,
+    description: `${ctx.tool_count} tools compared`,
+    icon: 'list',
+  });
+}
+
+// Add top tools from this list
+for (const review of sortedReviews.slice(0, 3)) {
+  relatedLinks.push({
+    href: `/tool/${review.item.slug}`,
+    title: review.item.name,
+    description: review.item.short_description || undefined,
+    icon: 'tool',
+  });
+}
 
 // Generate SEO
 const meta = generateContextMeta(context, context.category?.name);
@@ -262,7 +306,7 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
 
                     {/* Technical Highlights (global factual) */}
                     {(() => {
-                      const highlights = extractHighlights(review.item.specs as Record<string, unknown> | null);
+                      const highlights = extractHighlights(review.item.specs);
                       if (highlights.pros.length === 0 && highlights.cons.length === 0) return null;
                       return (
                         <div class="mt-3 text-sm text-zinc-300">
@@ -365,6 +409,17 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
         <p class="mt-2 text-sm text-zinc-400">
           We're still researching tools for this category. Check back soon!
         </p>
+      </div>
+    )}
+
+    <!-- Related Links (SEO) -->
+    {relatedLinks.length > 0 && (
+      <div class="mt-12">
+        <RelatedLinks
+          title="Related Pages"
+          links={relatedLinks}
+          variant="detailed"
+        />
       </div>
     )}
   </div>

@@ -8,6 +8,8 @@
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ToolCard from '@/components/ToolCard.astro';
+import RelatedLinks from '@/components/RelatedLinks.astro';
+import { Icon } from 'astro-icon/components';
 import {
   getToolsByCategory,
   getContextsByCategory,
@@ -51,6 +53,29 @@ const schemas = [
 const topTools = tools.slice(0, 6);
 const featuredLists = contexts.slice(0, 6);
 
+// Build related links for internal linking (SEO)
+const relatedLinks: Array<{ href: string; title: string; description?: string; icon: 'category' | 'list' | 'tool' | 'compare' }> = [];
+
+// Add featured best-of lists
+for (const ctx of featuredLists) {
+  relatedLinks.push({
+    href: `/best/${ctx.slug}`,
+    title: ctx.title,
+    description: `Compare ${ctx.tool_count} tools`,
+    icon: 'list',
+  });
+}
+
+// Add top tools
+for (const tool of topTools.slice(0, 4)) {
+  relatedLinks.push({
+    href: `/tool/${tool.slug}`,
+    title: tool.name,
+    description: tool.short_description || undefined,
+    icon: 'tool',
+  });
+}
+
 function extractHighlights(specs: Record<string, unknown> | null | undefined, limit = 2) {
   const pros = Array.isArray((specs as any)?.pros) ? (specs as any).pros : [];
   const cons = Array.isArray((specs as any)?.cons) ? (specs as any).cons : [];
@@ -77,8 +102,8 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
     <!-- Header -->
     <header class="mb-10">
       <div class="flex items-center gap-4">
-        <span class="flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-800/50 text-3xl">
-          {category.icon || '📦'}
+        <span class="flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-800/50">
+          <Icon name={category.icon ? `lucide:${category.icon}` : 'lucide:package'} class="h-7 w-7 text-zinc-400" />
         </span>
         <div>
           <h1 class="text-3xl font-semibold text-zinc-100">{category.name}</h1>
@@ -154,7 +179,7 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
 
             <div class="grid gap-4 sm:grid-cols-2">
               {topTools.map((tool) => {
-                const highlights = extractHighlights(tool.specs as Record<string, unknown> | null);
+                const highlights = extractHighlights(tool.specs);
                 return (
                   <a
                     href={`/tool/${tool.slug}`}
@@ -248,12 +273,21 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
                   href={`/categories/${cat.slug}`}
                   class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-sm text-zinc-400 transition hover:border-zinc-700 hover:bg-zinc-800/50 hover:text-zinc-100"
                 >
-                  {cat.icon && <span>{cat.icon}</span>}
+                  {cat.icon && <Icon name={`lucide:${cat.icon}`} class="h-4 w-4" />}
                   {cat.name}
                 </a>
               ))}
           </div>
         </section>
+
+        <!-- Related Links (SEO) -->
+        {relatedLinks.length > 0 && (
+          <RelatedLinks
+            title="Quick Links"
+            links={relatedLinks}
+            variant="compact"
+          />
+        )}
       </aside>
     </div>
   </div>
