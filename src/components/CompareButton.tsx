@@ -11,6 +11,13 @@ import { Toggle } from '@/components/ui/toggle';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -52,6 +59,7 @@ function setCompareTools(tools: CompareTool[]) {
 export default function CompareButton({ toolSlug, toolName, toolLogo, categorySlug, categoryName }: Props) {
   const [isAdded, setIsAdded] = useState(false);
   const [compareTools, setCompareToolsState] = useState<CompareTool[]>([]);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Initial load
@@ -81,7 +89,7 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
     } else {
       // Add (if not at max)
       if (tools.length >= MAX_COMPARE_TOOLS) {
-        alert(`You can compare up to ${MAX_COMPARE_TOOLS} tools at once. Remove one to add another.`);
+        setAlertMessage(`You can compare up to ${MAX_COMPARE_TOOLS} tools at once. Remove one to add another.`);
         return;
       }
 
@@ -89,7 +97,7 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
       if (tools.length > 0 && categorySlug) {
         const existingCategories = new Set(tools.map(t => t.categorySlug).filter(Boolean));
         if (existingCategories.size > 0 && !existingCategories.has(categorySlug)) {
-          alert(`You can only compare tools from the same category. Clear your selection to compare ${toolName} with other ${categoryName || 'similar'} tools.`);
+          setAlertMessage(`You can only compare tools from the same category. Clear your selection to compare ${toolName} with other ${categoryName || 'similar'} tools.`);
           return;
         }
       }
@@ -107,7 +115,7 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
 
   const handleCompare = () => {
     if (compareTools.length < 2) {
-      alert('Select at least 2 tools to compare');
+      setAlertMessage('Select at least 2 tools to compare');
       return;
     }
     const [a, b] = compareTools;
@@ -120,6 +128,23 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
 
   return (
     <>
+      {/* Alert Dialog */}
+      <Dialog open={!!alertMessage} onOpenChange={(open) => !open && setAlertMessage(null)}>
+        <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-100">Compare Tools</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              {alertMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={() => setAlertMessage(null)} variant="default">
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Add to Compare Button */}
       <Toggle
         pressed={isAdded}

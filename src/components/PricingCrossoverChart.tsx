@@ -27,6 +27,7 @@ import type { SMPPricingData } from '@/types/database';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 
 // Color palette for up to 5 tools (first is main tool, others are alternatives)
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -387,13 +388,13 @@ export default function PricingCrossoverChart({
           <label className="text-sm font-medium text-zinc-300">Your Team Size</label>
           <span className="text-lg font-bold text-hunt-500">{teamSize} users</span>
         </div>
-        <input
-          type="range"
-          min="1"
+        <Slider
+          min={1}
           max={maxUsers}
-          value={teamSize}
-          onChange={(e) => setTeamSize(Number(e.target.value))}
-          className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-hunt-600"
+          step={1}
+          value={[teamSize]}
+          onValueChange={(value) => setTeamSize(value[0])}
+          className="w-full [&_[role=slider]]:bg-hunt-500 [&_[role=slider]]:border-hunt-600"
         />
 
         {/* Current Costs at Selected Team Size */}

@@ -10,6 +10,14 @@ import { Layers, ChevronDown, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface StackTool {
   slug: string;
@@ -60,6 +68,7 @@ export function isInStack(slug: string): boolean {
 export default function MyStackWidget() {
   const [stackTools, setStackToolsState] = useState<StackTool[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     // Initial load
@@ -90,14 +99,36 @@ export default function MyStackWidget() {
 
   const handleClear = () => {
     setStackTools([]);
+    setShowClearConfirm(false);
   };
 
   // Don't render if no tools
   if (stackTools.length === 0) return null;
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
+    <>
+      {/* Clear Confirmation Dialog */}
+      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <DialogContent className="bg-white border-slate-200">
+          <DialogHeader>
+            <DialogTitle>Clear Your Stack?</DialogTitle>
+            <DialogDescription>
+              This will remove all {stackTools.length} tool{stackTools.length !== 1 ? 's' : ''} from your stack. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowClearConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleClear}>
+              Clear Stack
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetTrigger asChild>
         <Button className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 hover:from-emerald-600 hover:to-teal-600">
           <Layers className="h-5 w-5" />
           <span className="font-medium">My Stack ({stackTools.length})</span>
@@ -185,7 +216,7 @@ export default function MyStackWidget() {
             <Button
               variant="link"
               size="sm"
-              onClick={handleClear}
+              onClick={() => setShowClearConfirm(true)}
               className="h-auto p-0 text-xs text-red-500 hover:text-red-600"
             >
               Clear Stack
@@ -194,5 +225,6 @@ export default function MyStackWidget() {
         </div>
       </SheetContent>
     </Sheet>
+    </>
   );
 }
