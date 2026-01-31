@@ -13,12 +13,13 @@ import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import SpiderwebGrid from '@/components/SpiderwebGrid.astro';
 import SentimentTags from '@/components/SentimentTags.astro';
-import SpecsGrid from '@/components/SpecsGrid.astro';
 import VoteWidget from '@/components/VoteWidget';
 import CompareButton from '@/components/CompareButton';
 import AddToStackButton from '@/components/AddToStackButton';
 import VideoEmbed from '@/components/VideoEmbed';
 import AlternativeCard from '@/components/AlternativeCard.astro';
+import CompanyInfo from '@/components/CompanyInfo.astro';
+import PricingSummary from '@/components/PricingSummary.astro';
 import SecurityCompliance from '@/components/SecurityCompliance.astro';
 import SupportOptions from '@/components/SupportOptions.astro';
 import PortabilityCard from '@/components/PortabilityCard.astro';
@@ -59,6 +60,17 @@ const firstReview = tool.reviews?.[0];
 
 // Extract Knowledge Card data for new components
 const knowledgeCard = tool.metadata as KnowledgeCard | null;
+const toolSpecs = tool.specs as Record<string, unknown> | null;
+const globalPros = Array.isArray(toolSpecs?.pros) ? toolSpecs?.pros : [];
+const globalCons = Array.isArray(toolSpecs?.cons) ? toolSpecs?.cons : [];
+const reviewContext = tool.review_context as Record<string, unknown> | null;
+const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<string, unknown> | null;
+const humanVerdict = (reviewContext?.humanVerdict || reviewContext?.human_verdict) as string | null;
+const delighters = Array.isArray(userAdvocate?.delighters) ? userAdvocate?.delighters : [];
+const frustrations = Array.isArray(userAdvocate?.frustrations) ? userAdvocate?.frustrations : [];
+const powerTip = (userAdvocate?.powerTip || userAdvocate?.power_tip) as string | null;
+const vibe = userAdvocate?.vibe as string | null;
+const originStory = (userAdvocate?.originStory || userAdvocate?.origin_story) as string | null;
 
 // Fetch alternatives using hybrid search (vector similarity + category guardrails)
 // Strategy: Compute live, cache at edge - no DB storage of computed relationships
@@ -248,6 +260,15 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-12 lg:col-span-2">
+        {/* Technical Highlights (Global, factual pros/cons) */}
+        {(globalPros.length > 0 || globalCons.length > 0) && (
+          <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
+            <h2 class="mb-2 text-lg font-semibold text-zinc-100">Technical Highlights</h2>
+            <p class="mb-4 text-sm text-zinc-400">Objective capabilities and limitations (universally true).</p>
+            <ProsCons pros={globalPros} cons={globalCons} showSources={false} />
+          </section>
+        )}
+
         {/* Review Summary */}
         {firstReview?.summary_markdown && (
           <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -353,29 +374,80 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           </section>
         )}
 
-        {/* Pros & Cons */}
-        {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
-          <ProsCons pros={firstReview.pros || []} cons={firstReview.cons || []} title="Pros & Cons" />
-        ) : (
+        {/* User Experience (Contextual, subjective) */}
+        {(humanVerdict || vibe || originStory || delighters.length > 0 || frustrations.length > 0 || powerTip) && (
           <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 class="mb-4 text-lg font-semibold text-zinc-100">Pros & Cons</h2>
-            <div class="rounded-lg border border-dashed border-zinc-600 bg-zinc-900 p-6 text-center">
-              <svg class="mx-auto h-10 w-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p class="text-sm text-zinc-400 mb-2">No detailed pros and cons available yet.</p>
-              <p class="text-xs text-zinc-500">We're working on analyzing this tool. Check back soon!</p>
+            <h2 class="mb-2 text-lg font-semibold text-zinc-100">The User Experience</h2>
+            <p class="mb-4 text-sm text-zinc-400">Subjective insights from user feedback and tribal knowledge.</p>
+
+            {humanVerdict && (
+              <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-200">
+                “{humanVerdict}”
+              </div>
+            )}
+
+            {(vibe || originStory) && (
+              <div class="mb-4 text-sm text-zinc-300">
+                {vibe && <span class="mr-2 inline-flex items-center rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">Vibe: {vibe}</span>}
+                {originStory && <span class="text-zinc-400">{originStory}</span>}
+              </div>
+            )}
+
+            <div class="grid gap-6 md:grid-cols-2">
+              {delighters.length > 0 && (
+                <div>
+                  <h3 class="mb-2 text-sm font-medium text-emerald-300">Delighters</h3>
+                  <ul class="space-y-2 text-sm text-zinc-300">
+                    {delighters.map((item: string) => (
+                      <li class="flex items-start gap-2">
+                        <span class="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {frustrations.length > 0 && (
+                <div>
+                  <h3 class="mb-2 text-sm font-medium text-rose-300">Frustrations</h3>
+                  <ul class="space-y-2 text-sm text-zinc-300">
+                    {frustrations.map((item: string) => (
+                      <li class="flex items-start gap-2">
+                        <span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400"></span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
+
+            {powerTip && (
+              <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
+                <span class="text-amber-300">Power tip:</span> {powerTip}
+              </div>
+            )}
           </section>
+        )}
+
+        {/* Contextual Pros & Cons (for SEO + audience-specific signal) */}
+        {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) && (
+          <ProsCons
+            pros={firstReview.pros || []}
+            cons={firstReview.cons || []}
+            title="Contextual Pros & Cons"
+          />
         )}
 
         {/* Pricing Plans */}
         {(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) && (
-          <PricingPlansGrid
-            smp_pricing={knowledgeCard?.smp_pricing}
-            legacy_pricing={knowledgeCard?.pricing}
-            toolName={tool.name}
-          />
+          <div id="pricing-plans">
+            <PricingPlansGrid
+              smp_pricing={knowledgeCard?.smp_pricing}
+              legacy_pricing={knowledgeCard?.pricing}
+              toolName={tool.name}
+            />
+          </div>
         )}
 
         {/* Features Showcase */}
@@ -406,9 +478,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
       <!-- Sidebar -->
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
-        {/* Specifications from Knowledge Card */}
-        <SpecsGrid specs={tool.metadata as KnowledgeCard} />
-
+        {/* Quick Stats - Moved to top for quick scanning */}
         <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
           <h3 class="mb-4 font-semibold text-zinc-100">Quick Stats</h3>
           <dl class="space-y-3">
@@ -416,28 +486,6 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
               <dt class="text-sm text-zinc-400">Overall Score</dt>
               <dd class="text-sm font-medium text-zinc-100">{tool.avg_score > 0 ? `${Math.round(tool.avg_score)}/100` : 'N/A'}</dd>
             </div>
-            <div class="flex justify-between">
-              <dt class="text-sm text-zinc-400">Pricing</dt>
-              <dd class="text-sm font-medium text-zinc-100 capitalize">{tool.pricing_type.replace('_', ' ')}</dd>
-            </div>
-            {tool.learning_curve && (
-              <div class="flex justify-between">
-                <dt class="text-sm text-zinc-400">Learning Curve</dt>
-                <dd class="text-sm font-medium text-zinc-100 capitalize">{tool.learning_curve}</dd>
-              </div>
-            )}
-            {knowledgeCard?.audience?.team_size && (
-              <div class="flex justify-between">
-                <dt class="text-sm text-zinc-400">Team Size</dt>
-                <dd class="text-sm font-medium text-zinc-100 capitalize">{knowledgeCard.audience.team_size}</dd>
-              </div>
-            )}
-            {knowledgeCard?.company?.founded_year && (
-              <div class="flex justify-between">
-                <dt class="text-sm text-zinc-400">Founded</dt>
-                <dd class="text-sm font-medium text-zinc-100">{knowledgeCard.company.founded_year}</dd>
-              </div>
-            )}
             <div class="flex justify-between">
               <dt class="text-sm text-zinc-400">Reviews</dt>
               <dd class="text-sm font-medium text-zinc-100">{tool.review_count}</dd>
@@ -450,7 +498,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             )}
           </dl>
           {tool.data_confidence && tool.data_confidence < 0.8 && (
-            <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <div class="mt-4 rounded-lg border border-amber-700 bg-amber-900/30 px-3 py-2 text-xs text-amber-400">
               <svg class="inline-block h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
               </svg>
@@ -458,6 +506,23 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             </div>
           )}
         </div>
+
+        {/* Company Info */}
+        {knowledgeCard && (
+          <CompanyInfo
+            company={knowledgeCard.company}
+            audience={knowledgeCard.audience}
+            learningCurve={tool.learning_curve}
+          />
+        )}
+
+        {/* Pricing Summary */}
+        {knowledgeCard?.pricing && (
+          <PricingSummary
+            pricing={knowledgeCard.pricing}
+            pricingType={tool.pricing_type}
+          />
+        )}
 
         {/* Security & Compliance */}
         {knowledgeCard?.security && (

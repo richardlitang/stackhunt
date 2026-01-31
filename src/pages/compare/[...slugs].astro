@@ -87,12 +87,14 @@ const toolB = tools.find(t => t.slug === slugB)!;
 const offerA = toolA.affiliate_offers?.find(o => o.is_primary) || toolA.affiliate_offers?.[0];
 const offerB = toolB.affiliate_offers?.find(o => o.is_primary) || toolB.affiliate_offers?.[0];
 
-// Aggregate pros/cons from all reviews
+// Aggregate pros/cons from all reviews (normalize to text)
+type ClaimItem = string | { text?: string };
+const claimText = (item: ClaimItem) => (typeof item === 'string' ? item : item?.text) || '';
 const aggregatePros = (reviews: typeof toolA.reviews) =>
-  [...new Set(reviews?.flatMap(r => r.pros || []) || [])].slice(0, 5);
+  [...new Set((reviews?.flatMap(r => (r.pros || []).map(claimText)) || []).filter(Boolean))].slice(0, 5);
 
 const aggregateCons = (reviews: typeof toolA.reviews) =>
-  [...new Set(reviews?.flatMap(r => r.cons || []) || [])].slice(0, 5);
+  [...new Set((reviews?.flatMap(r => (r.cons || []).map(claimText)) || []).filter(Boolean))].slice(0, 5);
 
 const aggregateTags = (reviews: typeof toolA.reviews) =>
   [...new Set(reviews?.flatMap(r => r.sentiment_tags || []) || [])].slice(0, 6);
@@ -104,6 +106,20 @@ const tagsA = aggregateTags(toolA.reviews);
 const prosB = aggregatePros(toolB.reviews);
 const consB = aggregateCons(toolB.reviews);
 const tagsB = aggregateTags(toolB.reviews);
+
+const extractHighlights = (specs: Record<string, unknown> | null | undefined, limit = 2) => {
+  const pros = Array.isArray((specs as any)?.pros) ? (specs as any).pros : [];
+  const cons = Array.isArray((specs as any)?.cons) ? (specs as any).cons : [];
+  const pickText = (items: any[]) =>
+    items
+      .map((item) => (typeof item === 'string' ? item : item?.text))
+      .filter(Boolean)
+      .slice(0, limit);
+  return { pros: pickText(pros), cons: pickText(cons).slice(0, 1) };
+};
+
+const techA = extractHighlights(toolA.specs as Record<string, unknown> | null);
+const techB = extractHighlights(toolB.specs as Record<string, unknown> | null);
 
 // Find contrasting tags (A has "expensive", B has "affordable" = highlight)
 const contrastingTags = [
@@ -305,14 +321,35 @@ const schemas = [
           </div>
         )}
 
-        <!-- Pros -->
+        <!-- Technical Highlights (global factual) -->
+        {(techA.pros.length > 0 || techA.cons.length > 0) && (
+          <div class="mt-6">
+            <h3 class="font-semibold text-zinc-100">Technical Highlights</h3>
+            <ul class="mt-2 space-y-1">
+              {techA.pros.map((pro) => (
+                <li class="flex items-start gap-2 text-sm text-zinc-300">
+                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  {pro}
+                </li>
+              ))}
+              {techA.cons.map((con) => (
+                <li class="flex items-start gap-2 text-sm text-zinc-300">
+                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400"></span>
+                  {con}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <!-- Contextual Pros -->
         {prosA.length > 0 && (
         <div class="mt-6">
           <h3 class="flex items-center gap-2 font-semibold text-green-400">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            Pros
+            Contextual Pros
           </h3>
           <ul class="mt-2 space-y-1">
             {prosA.map(pro => (
@@ -325,14 +362,14 @@ const schemas = [
         </div>
         )}
 
-        <!-- Cons -->
+        <!-- Contextual Cons -->
         {consA.length > 0 && (
         <div class="mt-4">
           <h3 class="flex items-center gap-2 font-semibold text-red-400">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-            Cons
+            Contextual Cons
           </h3>
           <ul class="mt-2 space-y-1">
             {consA.map(con => (
@@ -400,14 +437,35 @@ const schemas = [
           </div>
         )}
 
-        <!-- Pros -->
+        <!-- Technical Highlights (global factual) -->
+        {(techB.pros.length > 0 || techB.cons.length > 0) && (
+          <div class="mt-6">
+            <h3 class="font-semibold text-zinc-100">Technical Highlights</h3>
+            <ul class="mt-2 space-y-1">
+              {techB.pros.map((pro) => (
+                <li class="flex items-start gap-2 text-sm text-zinc-300">
+                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  {pro}
+                </li>
+              ))}
+              {techB.cons.map((con) => (
+                <li class="flex items-start gap-2 text-sm text-zinc-300">
+                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400"></span>
+                  {con}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <!-- Contextual Pros -->
         {prosB.length > 0 && (
         <div class="mt-6">
           <h3 class="flex items-center gap-2 font-semibold text-green-400">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            Pros
+            Contextual Pros
           </h3>
           <ul class="mt-2 space-y-1">
             {prosB.map(pro => (
@@ -420,14 +478,14 @@ const schemas = [
         </div>
         )}
 
-        <!-- Cons -->
+        <!-- Contextual Cons -->
         {consB.length > 0 && (
         <div class="mt-4">
           <h3 class="flex items-center gap-2 font-semibold text-red-400">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-            Cons
+            Contextual Cons
           </h3>
           <ul class="mt-2 space-y-1">
             {consB.map(con => (

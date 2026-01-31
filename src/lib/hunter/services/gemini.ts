@@ -35,6 +35,9 @@ export interface SynthesizeInput {
   reviewsSnippets: string[];
   pricingSnippets: string[];
   alternativesSnippets: string[];
+  // V3.1: Tribal Knowledge Snippets
+  budgetAnalystSnippets: string[];      // Hidden costs, billing logic, implementation fees
+  tribalKnowledgeSnippets: string[];    // Reddit reviews, honest feedback, power tips
   knowledgeCardFacts: string;
   existingCategories: {
     functions: string[];
@@ -96,6 +99,45 @@ Extract these fields INTO THE NESTED STRUCTURE:
 === THE FORENSIC ACCOUNTANT: PRICING EXTRACTION (CRITICAL) ===
 
 Do NOT just extract "$10/mo" as a string. Extract the PRICING LOGIC.
+
+BUNDLE DETECTION (CRITICAL):
+BEFORE extracting pricing, ask: "Can this tool be purchased ALONE, or is it only available as part of a larger suite?"
+
+Detection criteria:
+- If pricing pages say "Included in [Suite]" or "Part of [Suite]" → BUNDLED
+- If you can't find a standalone pricing page for THIS tool → BUNDLED
+- If the only prices are for a parent product (e.g., Workspace, Microsoft 365) → BUNDLED
+
+Known BUNDLED tools (NOT standalone):
+- Google Meet → bundled in Google Workspace
+- Microsoft Teams → bundled in Microsoft 365
+- Google Drive → bundled in Google Workspace
+- OneDrive → bundled in Microsoft 365
+- Google Calendar → bundled in Google Workspace
+- Outlook → bundled in Microsoft 365
+
+If the tool is BUNDLED (cannot be purchased alone):
+1. In pricing_analysis_log, write: "BUNDLE DETECTED: ${input.toolName} is bundled in [Suite Name] and cannot be purchased separately. Extracting parent suite pricing."
+2. Set is_standalone: false
+3. Set bundled_in: "[Suite Name]" (e.g., "Google Workspace", "Microsoft 365")
+4. Extract the PARENT suite's pricing (e.g., "Google Workspace Business Starter: $6/user/mo")
+5. Set pricing_model to the parent suite's model (usually "per_seat")
+6. In plan names, use the parent suite slug (e.g., "workspace-business-starter" NOT "meet-business-starter")
+7. DO NOT use "${toolSlug}" in plan IDs - use the parent suite slug instead
+
+UNIT NORMALIZATION (CRITICAL):
+DO NOT multiply prices by team size. Extract the PER-UNIT price only.
+
+Common mistakes to avoid:
+- Slack Standard is ~$7.25/user/mo, NOT $72+ (that's 10 users × $7.25)
+- Notion Plus is ~$10/user/mo, NOT $100+ (that's 10 users × $10)
+- If you see $70-100 for a tool that's obviously per-user pricing, CHECK:
+  1. Did you accidentally multiply by team size? (WRONG - extract just $7.25)
+  2. Is this the annual total? (Calculate monthly: $87/year ÷ 12 = $7.25/mo)
+  3. Is this enterprise pricing with minimums? (Extract the per-user rate, note minimums separately)
+
+NEVER calculate team costs in price_monthly - that field is the per-unit price ONLY.
+If there's a minimum seat purchase (e.g., "Min 10 seats"), extract that in min_seats field.
 
 CHAIN OF THOUGHT (REQUIRED):
 Before filling pricing data, think through this analysis and put it in "pricing_analysis_log":

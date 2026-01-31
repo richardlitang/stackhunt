@@ -81,13 +81,13 @@ function getDomain(url: string): string {
 function getSourceBadgeClass(sourceType?: SourceType): string {
   switch (sourceType) {
     case 'official':
-      return 'bg-blue-50 text-blue-600 border-blue-200';
+      return 'bg-blue-900/30 text-blue-400 border-blue-700';
     case 'editorial':
-      return 'bg-purple-50 text-purple-600 border-purple-200';
+      return 'bg-purple-900/30 text-purple-400 border-purple-700';
     case 'community':
-      return 'bg-amber-50 text-amber-600 border-amber-200';
+      return 'bg-amber-900/30 text-amber-400 border-amber-700';
     default:
-      return 'bg-slate-50 text-slate-500 border-slate-200';
+      return 'bg-zinc-800 text-zinc-400 border-zinc-700';
   }
 }
 
@@ -159,28 +159,26 @@ import XIcon from '@/components/icons/X.astro';
 import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
 ---
 
-<div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+<div class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
   {title && (
-    <div class="border-b border-slate-200 bg-slate-50 px-6 py-3">
-      <h3 class="font-semibold text-slate-900">{title}</h3>
-    </div>
+    <h2 class="mb-4 text-lg font-semibold text-zinc-100">{title}</h2>
   )}
 
-  <div class="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+  <div class="grid md:grid-cols-2 gap-6">
     <!-- Pros -->
-    <div class="p-6">
+    <div>
       <div class="flex items-center gap-2 mb-4">
-        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
-          <CheckIcon class="h-4 w-4 text-green-600" />
+        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-900/30">
+          <CheckIcon class="h-4 w-4 text-green-400" />
         </div>
-        <span class="font-semibold text-green-700">Pros</span>
+        <span class="font-semibold text-green-400">Pros</span>
       </div>
 
       <ul class="space-y-3">
         {normalizedPros.map((pro) => (
-          <li class="text-sm text-slate-700">
+          <li class="text-sm text-zinc-300">
             <div class="flex items-start gap-3">
-              <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+              <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
               <div class="flex-1">
                 <span>{pro.displayText}</span>
                 {showSources && pro.source_url && (
@@ -195,7 +193,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                       href={pro.source_url}
                       target="_blank"
                       rel={getSourceRelAttribute(pro.source_type)}
-                      class="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-hunt-600 transition"
+                      class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
                       title={`View source: ${getDomain(pro.source_url)}${pro.formattedDate ? ` (retrieved ${pro.formattedDate})` : ''}`}
                     >
                       <ExternalLinkIcon class="h-3 w-3" />
@@ -210,19 +208,19 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
     </div>
 
     <!-- Cons -->
-    <div class="p-6">
+    <div>
       <div class="flex items-center gap-2 mb-4">
-        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
-          <XIcon class="h-4 w-4 text-red-600" />
+        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-red-900/30">
+          <XIcon class="h-4 w-4 text-red-400" />
         </div>
-        <span class="font-semibold text-red-700">Cons</span>
+        <span class="font-semibold text-red-400">Cons</span>
       </div>
 
       <ul class="space-y-3">
         {normalizedCons.map((con) => (
-          <li class="text-sm text-slate-700">
+          <li class="text-sm text-zinc-300">
             <div class="flex items-start gap-3">
-              <XIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+              <XIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
               <div class="flex-1">
                 <span>{con.displayText}</span>
                 {showSources && con.source_url && (
@@ -237,7 +235,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                       href={con.source_url}
                       target="_blank"
                       rel={getSourceRelAttribute(con.source_type)}
-                      class="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-hunt-600 transition"
+                      class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
                       title={`View source: ${getDomain(con.source_url)}${con.formattedDate ? ` (retrieved ${con.formattedDate})` : ''}`}
                     >
                       <ExternalLinkIcon class="h-3 w-3" />

@@ -1,0 +1,102 @@
+---
+/**
+ * PricingSummary Component
+ * Quick pricing snapshot for sidebar
+ * Only renders if pricing data exists
+ */
+
+import type { KnowledgeCard } from '@/lib/knowledge-card';
+
+interface Props {
+  pricing: KnowledgeCard['pricing'];
+  pricingType?: string;
+}
+
+const { pricing, pricingType } = Astro.props;
+
+// Check if we have any pricing data to display
+const hasData = pricing && (pricing.model || pricing.starting_price || pricing.has_free_tier || pricing.has_free_trial);
+
+if (!hasData) return null;
+
+// Pricing model labels
+const modelLabels: Record<string, string> = {
+  free: 'Free',
+  freemium: 'Freemium',
+  flat: 'Flat Rate',
+  per_seat: 'Per Seat',
+  per_unit: 'Per Unit',
+  tiered: 'Tiered',
+  hybrid: 'Hybrid',
+  contact_sales: 'Custom',
+  paid: 'Paid',
+  enterprise: 'Enterprise',
+  open_source: 'Open Source',
+};
+
+const modelBadgeColors: Record<string, string> = {
+  free: 'bg-green-900/30 text-green-400 border-green-700',
+  freemium: 'bg-blue-900/30 text-blue-400 border-blue-700',
+  paid: 'bg-amber-900/30 text-amber-400 border-amber-700',
+  enterprise: 'bg-purple-900/30 text-purple-400 border-purple-700',
+  open_source: 'bg-green-900/30 text-green-400 border-green-700',
+};
+---
+
+<div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+  <h3 class="mb-4 font-semibold text-zinc-100">Pricing</h3>
+
+  {/* Pricing Model Badge */}
+  {pricing.model && (
+    <div class="mb-3">
+      <span class={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border ${modelBadgeColors[pricing.model] || 'bg-zinc-800 text-zinc-300 border-zinc-700'}`}>
+        {modelLabels[pricing.model] || pricing.model}
+      </span>
+    </div>
+  )}
+
+  <dl class="space-y-3">
+    {/* Starting Price */}
+    {pricing.starting_price && (
+      <div class="flex justify-between">
+        <dt class="text-sm text-zinc-400">Starting at</dt>
+        <dd class="text-sm font-medium text-zinc-100">{pricing.starting_price}</dd>
+      </div>
+    )}
+
+    {/* Free Tier */}
+    {pricing.has_free_tier !== undefined && (
+      <div class="flex justify-between">
+        <dt class="text-sm text-zinc-400">Free Tier</dt>
+        <dd class="text-sm font-medium text-zinc-100">
+          {pricing.has_free_tier ? (
+            <span class="text-green-400">Yes</span>
+          ) : (
+            <span class="text-zinc-500">No</span>
+          )}
+        </dd>
+      </div>
+    )}
+
+    {/* Free Trial */}
+    {pricing.has_free_trial && (
+      <div class="flex justify-between">
+        <dt class="text-sm text-zinc-400">Free Trial</dt>
+        <dd class="text-sm font-medium text-zinc-100">
+          {pricing.trial_days ? (
+            <span class="text-green-400">{pricing.trial_days} days</span>
+          ) : (
+            <span class="text-green-400">Yes</span>
+          )}
+        </dd>
+      </div>
+    )}
+  </dl>
+
+  {/* Link to detailed pricing */}
+  <div class="mt-4 border-t border-zinc-800 pt-3">
+    <a href="#pricing-plans" class="text-xs text-hunt-500 hover:text-hunt-400 transition">
+      View detailed pricing →
+    </a>
+  </div>
+</div>

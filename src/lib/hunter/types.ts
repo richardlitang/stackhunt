@@ -149,6 +149,25 @@ export interface HunterAnalysis {
   standoutFeatures?: string[];    // Features especially relevant to this context
   dealbreakers?: string[];        // Concerns that might be dealbreakers
   switchingFrom?: string[];       // Common tools this audience switches FROM
+  // V3.1: Review Context (The "Human Touch" Layer)
+  reviewContext?: {
+    humanVerdict?: string | null;
+    budgetAnalyst?: {
+      costDrivers: string[];
+      oneTimeFees: string[];
+      commitmentTerms?: string | null;
+      roiThreshold?: string | null;
+    };
+    userAdvocate?: {
+      vibe?: string | null;
+      originStory?: string | null;
+      idealFor: string[];
+      avoidIf: string[];
+      powerTip?: string | null;
+      delighters: string[];
+      frustrations: string[];
+    };
+  };
 }
 
 // ============================================================================
@@ -205,6 +224,9 @@ export interface ResearchOutput {
     alternativesSnippets: string[];
     companySnippets: string[];      // Company info, funding, history
     technicalSnippets: string[];    // API, export, integrations
+    // V3.1: Tribal Knowledge Snippets (The "Human Touch")
+    budgetAnalystSnippets: string[];    // Hidden costs, billing logic, implementation fees
+    tribalKnowledgeSnippets: string[];  // Reddit reviews, honest feedback, power tips, "worth it" discussions
     sources: Array<{
       url: string;
       title: string;
@@ -331,4 +353,23 @@ export const AnalysisSchema = z.object({
   standoutFeatures: z.array(z.string()).max(5).optional(),
   dealbreakers: z.array(z.string()).max(5).optional(),
   switchingFrom: z.array(z.string()).max(5).optional(),
+  // V3.1: Review Context (The "Human Touch" Layer) - extracted from tribal knowledge
+  reviewContext: z.object({
+    humanVerdict: z.string().nullable().optional(),
+    budgetAnalyst: z.object({
+      costDrivers: z.array(z.string()).default([]),
+      oneTimeFees: z.array(z.string()).default([]),
+      commitmentTerms: z.string().nullable().optional(),
+      roiThreshold: z.string().nullable().optional(),
+    }).optional(),
+    userAdvocate: z.object({
+      vibe: z.string().nullable().optional(),
+      originStory: z.string().nullable().optional(),
+      idealFor: z.array(z.string()).default([]),
+      avoidIf: z.array(z.string()).default([]),
+      powerTip: z.string().nullable().optional(),
+      delighters: z.array(z.string()).default([]),
+      frustrations: z.array(z.string()).default([]),
+    }).optional(),
+  }).optional(),
 });

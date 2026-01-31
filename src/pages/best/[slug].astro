@@ -70,6 +70,17 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 const hasAffiliateLinks = sortedReviews.some(
   (review) => review.item.affiliate_offers?.some((offer) => offer.is_affiliate)
 );
+
+function extractHighlights(specs: Record<string, unknown> | null | undefined, limit = 2) {
+  const pros = Array.isArray((specs as any)?.pros) ? (specs as any).pros : [];
+  const cons = Array.isArray((specs as any)?.cons) ? (specs as any).cons : [];
+  const pickText = (items: any[]) =>
+    items
+      .map((item) => (typeof item === 'string' ? item : item?.text))
+      .filter(Boolean)
+      .slice(0, limit);
+  return { pros: pickText(pros), cons: pickText(cons).slice(0, 1) };
+}
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -248,6 +259,31 @@ const hasAffiliateLinks = sortedReviews.some(
                         </a>
                       )}
                     </div>
+
+                    {/* Technical Highlights (global factual) */}
+                    {(() => {
+                      const highlights = extractHighlights(review.item.specs as Record<string, unknown> | null);
+                      if (highlights.pros.length === 0 && highlights.cons.length === 0) return null;
+                      return (
+                        <div class="mt-3 text-sm text-zinc-300">
+                          <span class="text-zinc-400">Technical highlights:</span>
+                          <ul class="mt-2 space-y-1">
+                            {highlights.pros.map((text: string) => (
+                              <li class="flex items-start gap-2">
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                                <span>{text}</span>
+                              </li>
+                            ))}
+                            {highlights.cons.map((text: string) => (
+                              <li class="flex items-start gap-2">
+                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400"></span>
+                                <span>{text}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })()}
 
                     {/* Tags */}
                     {review.sentiment_tags?.length > 0 && (

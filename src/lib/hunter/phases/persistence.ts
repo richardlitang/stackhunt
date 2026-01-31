@@ -19,6 +19,7 @@ import type {
 } from '../types';
 import { slugify, classifySourceType } from '../utils';
 import { normalizeCategory } from '../../config/taxonomy';
+import { ensureParentSuite } from '../utils/suite-manager';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -144,6 +145,21 @@ export async function executePersistencePhase(
   };
   const dataConfidence = dataConfidenceMap[knowledgeCard?.meta?.data_quality || 'low'] || 0.5;
 
+  // Step 2.5: Handle suite bundling (parent/child relationship)
+  let parentId: string | null = null;
+  const bundledIn = knowledgeCard?.smp_pricing?.bundled_in;
+
+  if (bundledIn) {
+    deps.log(`[Suite] Tool is bundled in: ${bundledIn}`);
+    try {
+      parentId = await ensureParentSuite(deps.supabase, bundledIn);
+      deps.log(`[Suite] Linked to parent suite (ID: ${parentId})`);
+    } catch (error) {
+      deps.log(`[Suite] Warning: Failed to link to parent suite: ${error}`);
+      // Continue without parent link - non-fatal error
+    }
+  }
+
   const itemData: Record<string, unknown> = {
     name: ctx.toolName,
     slug: toolSlug,
@@ -167,6 +183,10 @@ export async function executePersistencePhase(
     // Migration 025: SMP pricing verification
     pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
     pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
+    // V3.1: Review Context (The "Human Touch" Layer)
+    review_context: analysis.reviewContext || null,
+    // V3.2: Parent/Child Relationship (Suite Bundling)
+    parent_id: parentId,
   };
 
   const { data: item, error: itemError } = await deps.supabase
@@ -189,6 +209,25 @@ export async function executePersistencePhase(
   }
   if (specs.portability) {
     deps.log(`[Persisted] SMP Portability: saved`);
+  }
+
+  // Log persisted Review Context (V3.1: Human Touch Layer)
+  if (analysis.reviewContext) {
+    const rc = analysis.reviewContext;
+    if (rc.humanVerdict) {
+      deps.log(`[Persisted] Human Verdict: "${rc.humanVerdict}"`);
+    }
+    if (rc.budgetAnalyst) {
+      const ba = rc.budgetAnalyst;
+      deps.log(`[Persisted] Budget Analyst: ${ba.costDrivers.length} cost drivers, ${ba.oneTimeFees.length} one-time fees`);
+    }
+    if (rc.userAdvocate) {
+      const ua = rc.userAdvocate;
+      deps.log(`[Persisted] User Advocate: vibe="${ua.vibe || 'none'}", ${ua.idealFor.length} ideal-for, ${ua.avoidIf.length} avoid-if`);
+      if (ua.powerTip) {
+        deps.log(`[Persisted] Power Tip: "${ua.powerTip}"`);
+      }
+    }
   }
 
   // Step 3: Create Knowledge Graph links

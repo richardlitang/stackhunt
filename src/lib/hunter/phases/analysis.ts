@@ -15,7 +15,7 @@ import type {
   AnalysisOutput,
 } from '../types';
 import { buildFactSummary, interpolateTemplate } from '../utils';
-import { FALLBACK_SYNTHESIS_PROMPT } from '../constants';
+import { SYNTHESIS_PROMPT } from '../services/prompts';
 
 /**
  * Execute the Analysis Phase
@@ -41,12 +41,8 @@ export async function executeAnalysisPhase(
   const existingCategories = await getExistingCategories(deps);
   deps.log(`Loaded ${existingCategories.functions.length} functions, ${existingCategories.audiences.length} audiences, ${existingCategories.platforms.length} platforms`);
 
-  // Step 2: Load or use fallback prompt
-  let promptTemplate = await getPromptTemplate('hunter_synthesis', deps);
-  if (!promptTemplate) {
-    deps.log('Using fallback synthesis prompt');
-    promptTemplate = FALLBACK_SYNTHESIS_PROMPT;
-  }
+  // Step 2: Use in-code synthesis prompt (no database dependency)
+  const promptTemplate = SYNTHESIS_PROMPT;
 
   // Step 3: Build fact summary from Knowledge Card
   const factSummary = buildFactSummary(ctx.research.knowledgeCard);
@@ -61,10 +57,12 @@ export async function executeAnalysisPhase(
     reviewsSnippets: ctx.research.scoutResult.reviewsSnippets.join('\n'),
     pricingSnippets: ctx.research.scoutResult.pricingSnippets.join('\n'),
     alternativesSnippets: ctx.research.scoutResult.alternativesSnippets.join('\n'),
+    budgetAnalystSnippets: ctx.research.scoutResult.budgetAnalystSnippets.join('\n'),
+    tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets.join('\n'),
     knowledgeCardFacts: factSummary,
   });
 
-  // Step 5: Synthesize analysis (Pass 2 - The Architect)
+  // Step 5: Synthesize analysis (Pass 2 - The Architect + Human Context Roles)
   const { analysis, tokensUsed: synthesisTokens } = await deps.gemini.synthesize(
     {
       toolName: ctx.toolName,
@@ -72,6 +70,8 @@ export async function executeAnalysisPhase(
       reviewsSnippets: ctx.research.scoutResult.reviewsSnippets,
       pricingSnippets: ctx.research.scoutResult.pricingSnippets,
       alternativesSnippets: ctx.research.scoutResult.alternativesSnippets,
+      budgetAnalystSnippets: ctx.research.scoutResult.budgetAnalystSnippets,
+      tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets,
       knowledgeCardFacts: factSummary,
       existingCategories,
       promptTemplate: interpolatedPrompt,
@@ -95,6 +95,8 @@ export async function executeAnalysisPhase(
 
   const embeddingParts = [
     `Tool: ${ctx.toolName}`,
+    // Include suite relationship for better semantic search
+    kc.smp_pricing?.bundled_in ? `Part of the ${kc.smp_pricing.bundled_in} suite` : '',
     taxonomy?.primary_function ? `Category: ${taxonomy.primary_function}` : '',
     taxonomy?.secondary_functions?.length ? `Also: ${taxonomy.secondary_functions.join(', ')}` : '',
     taxonomy?.likely_departments?.length ? `Department: ${taxonomy.likely_departments.join(', ')}` : '',
@@ -167,13 +169,4 @@ async function getExistingCategories(
   return result;
 }
 
-/**
- * Load prompt template from database
- */
-async function getPromptTemplate(
-  key: string,
-  deps: HunterDependencies
-): Promise<string | null> {
-  const { data } = await deps.supabase.rpc('get_prompt', { p_key: key });
-  return data?.[0]?.template || null;
-}
+// Prompts are stored in code (no DB access required).

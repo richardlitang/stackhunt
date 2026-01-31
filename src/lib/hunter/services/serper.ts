@@ -28,6 +28,9 @@ export interface SearchResult {
   alternativesSnippets: string[];
   companySnippets: string[];      // Company info, funding, history
   technicalSnippets: string[];    // API, export, integrations
+  // V3.1: Tribal Knowledge Snippets (The "Human Touch")
+  budgetAnalystSnippets: string[];  // Hidden costs, billing logic, implementation fees
+  tribalKnowledgeSnippets: string[]; // Reddit reviews, honest feedback, power tips, "worth it" discussions
   rawResponses: SerperResponse[];
   sources: Array<{
     url: string;
@@ -160,7 +163,7 @@ export class SerperService {
   }
 
   /**
-   * Scout for tool information with 6 specialized queries + video search + deep scraping
+   * Scout for tool information with 12 specialized queries + video search + deep scraping
    *
    * Queries cover:
    * 1. Reviews and user feedback
@@ -169,6 +172,14 @@ export class SerperService {
    * 4. Alternatives and competitors
    * 5. Company info (funding, founded, HQ)
    * 6. Technical capabilities (API, export, integrations)
+   *
+   * V3.1: Tribal Knowledge Queries (The "Human Touch")
+   * 7. Hidden costs and billing logic (Budget Analyst)
+   * 8. Implementation fees and setup costs (Budget Analyst)
+   * 9. Reddit reviews and honest feedback (User Advocate - Vibe)
+   * 10. "What I wish I knew before" gotchas (User Advocate)
+   * 11. Advanced tips and power user tricks (User Advocate - Power Tip)
+   * 12. Value perception and ROI discussions (User Advocate - Worth It)
    *
    * Deep Scraping:
    * - Identifies pricing pages from results
@@ -181,12 +192,23 @@ export class SerperService {
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
   ): Promise<SearchResult> {
     const queries = [
+      // Factual queries (existing)
       `${toolName} reviews ${contextTitle || ''}`.trim(),
       `${toolName} pricing plans features`,
-      `${toolName} pricing annual vs monthly cost`, // NEW: Catches comparison snippets
+      `${toolName} pricing annual vs monthly cost`,
       `${toolName} alternatives competitors vs`,
       `${toolName} company founded funding headquarters`,
       `${toolName} API integrations data export import`,
+
+      // Budget Analyst queries (TCO & hidden costs)
+      `${toolName} hidden costs billing logic`,
+      `${toolName} implementation fees setup cost minimum seats`,
+
+      // User Advocate queries (tribal knowledge & vibe)
+      `${toolName} reddit review pros cons`,
+      `${toolName} what I wish I knew before using`,
+      `${toolName} advanced tips tricks shortcuts power user`,
+      `is ${toolName} worth it reddit honest review`,
     ];
 
     // Execute searches in parallel (with retry if provided)
@@ -254,12 +276,28 @@ export class SerperService {
       }
     }
 
+    // Combine Budget Analyst queries (hidden costs + implementation fees)
+    const budgetAnalystSnippets = [
+      ...extractSnippets(results[6]),  // hidden costs
+      ...extractSnippets(results[7]),  // implementation fees
+    ];
+
+    // Combine User Advocate queries (Reddit + gotchas + power tips + worth it)
+    const tribalKnowledgeSnippets = [
+      ...extractSnippets(results[8]),   // reddit reviews
+      ...extractSnippets(results[9]),   // what I wish I knew
+      ...extractSnippets(results[10]),  // advanced tips/tricks
+      ...extractSnippets(results[11]),  // is it worth it
+    ];
+
     return {
       reviewsSnippets: extractSnippets(results[0]),
       pricingSnippets: extractSnippets(results[1]),
-      alternativesSnippets: extractSnippets(results[3]), // Shifted index
-      companySnippets: extractSnippets(results[4]),      // Shifted index
-      technicalSnippets: extractSnippets(results[5]),    // Shifted index
+      alternativesSnippets: extractSnippets(results[3]),
+      companySnippets: extractSnippets(results[4]),
+      technicalSnippets: extractSnippets(results[5]),
+      budgetAnalystSnippets,
+      tribalKnowledgeSnippets,
       rawResponses: results,
       sources: Array.from(sourceMap.values()),
       video: video || undefined,

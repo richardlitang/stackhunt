@@ -34,7 +34,6 @@ const navItems = [
   { href: '/admin/create', label: 'Create', icon: 'plus', match: ['/admin/create', '/admin/hunt', '/admin/queue'] },
   { href: '/admin/review', label: 'Review', icon: 'check', badge: draftCount || 0, match: ['/admin/review'] },
   { href: '/admin/editorial', label: 'Editorial', icon: 'brain', match: ['/admin/editorial'] },
-  { href: '/admin/prompts', label: 'Settings', icon: 'cog', match: ['/admin/prompts'] },
 ];
 
 function isActive(item: typeof navItems[0]): boolean {
@@ -453,8 +452,6 @@ function isActive(item: typeof navItems[0]): boolean {
           window.location.href = '/admin/create';
         } else if (keySequence === 'gr') {
           window.location.href = '/admin/review';
-        } else if (keySequence === 'gs') {
-          window.location.href = '/admin/prompts';
         }
 
         // Single key shortcuts (dispatched as custom events for pages to handle)

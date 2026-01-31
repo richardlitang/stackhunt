@@ -69,6 +69,9 @@ export type SMPPlan = z.infer<typeof SMPPlanSchema>;
 // V3: SMP Pricing Data (for cost calculations)
 export const SMPPricingDataSchema = z.object({
   model: z.enum(['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales']),
+  // Suite bundling (V3.2)
+  is_standalone: z.boolean().describe("False if primarily sold as part of a suite (e.g., Google Meet, Teams)").default(true),
+  bundled_in: z.string().nullable().describe("Parent suite name (e.g., 'Google Workspace', 'Microsoft 365')").optional(),
   currency: z.enum(['USD', 'EUR', 'GBP']).default('USD'),
   billing_cycles: z.array(z.enum(['monthly', 'annual', 'quarterly'])).default(['monthly']),
   annual_discount_pct: z.number().nullable().optional(),
@@ -101,6 +104,65 @@ export const SMPPortabilitySchema = z.object({
   cancellation_notice_days: z.number().nullable().optional(),
 });
 export type SMPPortability = z.infer<typeof SMPPortabilitySchema>;
+
+// =============================================================================
+// V3.1: REVIEW CONTEXT SCHEMA (The "Human Touch" Layer)
+// =============================================================================
+
+// --- Role 1: The Budget Analyst (The CFO) ---
+export const BudgetAnalystSchema = z.object({
+  cost_drivers: z.array(z.string())
+    .describe("Factual factors that increase TCO. e.g., 'SSO requires Enterprise', 'Guests are billable', 'Storage overage fees'")
+    .default([]),
+  one_time_fees: z.array(z.string())
+    .describe("Implementation, Setup, or Mandatory Training fees")
+    .default([]),
+  commitment_terms: z.string().nullable()
+    .describe("Contract constraints. e.g., 'Annual only', '30-day cancellation notice'")
+    .optional(),
+  roi_threshold: z.string().nullable()
+    .describe("At what scale does the paid plan become worth it? e.g., 'Team of 20+', 'Need Audit Logs'")
+    .optional(),
+});
+export type BudgetAnalyst = z.infer<typeof BudgetAnalystSchema>;
+
+// --- Role 2: The User Advocate (The Senior Engineer) ---
+export const UserAdvocateSchema = z.object({
+  vibe: z.string()
+    .describe("2-3 words on the 'soul' of the tool. e.g., 'Enterprise Grey', 'Hacker Chic', 'Friendly & Slow'")
+    .nullable()
+    .optional(),
+  origin_story: z.string().nullable()
+    .describe("One sentence on context. e.g., 'Started as a game chat, now used for work'")
+    .optional(),
+  ideal_for: z.array(z.string())
+    .describe("Specific personas. e.g., 'Solo founders', 'Async-first teams', 'Design teams'")
+    .default([]),
+  avoid_if: z.array(z.string())
+    .describe("Deal-breakers. e.g., 'Need HIPAA compliance', 'Offline-heavy workflow', 'You hate keyboard shortcuts'")
+    .default([]),
+  power_tip: z.string().nullable()
+    .describe("One specific 'insider' shortcut or feature regular users might miss. e.g., 'Use Cmd+K to navigate'")
+    .optional(),
+  delighters: z.array(z.string())
+    .describe("Specific features users rave about. e.g., 'The command palette', 'Dark mode', 'Real-time collaboration'")
+    .default([]),
+  frustrations: z.array(z.string())
+    .describe("Specific UX complaints (NOT price complaints, those go in Budget Analyst). e.g., 'Search is slow', 'Mobile app is buggy'")
+    .default([]),
+});
+export type UserAdvocate = z.infer<typeof UserAdvocateSchema>;
+
+// --- Main Context Schema ---
+export const ReviewContextSchema = z.object({
+  human_verdict: z.string()
+    .describe("A 2-sentence summary in 'Coffee Shop Speak'. No corporate jargon like 'seamless', 'empowers', 'robust'. Honest assessment of who it's for. Example: 'It's basically a glorified spreadsheet, but the automation engine is so good you won't care.'")
+    .nullable()
+    .optional(),
+  budget_analyst: BudgetAnalystSchema.default({}),
+  user_advocate: UserAdvocateSchema.default({}),
+});
+export type ReviewContext = z.infer<typeof ReviewContextSchema>;
 
 // Integration/connection
 export const IntegrationSchema = z.object({
@@ -227,6 +289,9 @@ export const KnowledgeCardSchema = z.object({
   smp_pricing: SMPPricingDataSchema.optional(),
   smp_taxonomy: SMPTaxonomySchema.optional(),
   smp_portability: SMPPortabilitySchema.optional(),
+
+  // === V3.1: REVIEW CONTEXT (The "Human Touch" Layer) ===
+  review_context: ReviewContextSchema.optional(),
 
   // === CHAIN OF THOUGHT: Reasoning logs for QA ===
   pricing_analysis_log: z.string().optional(), // LLM's reasoning about pricing extraction
@@ -388,6 +453,9 @@ export const GeminiKnowledgeCardSchema = {
       description: 'Structured pricing data for cost calculations. Extract pricing LOGIC, not just strings.',
       properties: {
         model: { type: 'string', enum: ['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales'], description: 'The pricing model: flat (Basecamp $99/mo), per_seat (Slack $8/user), per_unit (Twilio per message), tiered (HubSpot), hybrid (Notion free + per user), contact_sales (enterprise)' },
+        // Suite bundling (V3.2)
+        is_standalone: { type: 'boolean', default: true, description: 'False if primarily sold as part of a suite (e.g., Google Meet, Microsoft Teams cannot be purchased alone)' },
+        bundled_in: { type: 'string', nullable: true, description: 'Parent suite name if bundled (e.g., "Google Workspace", "Microsoft 365"). null for standalone tools.' },
         currency: { type: 'string', enum: ['USD', 'EUR', 'GBP'], default: 'USD' },
         billing_cycles: { type: 'array', items: { type: 'string', enum: ['monthly', 'annual', 'quarterly'] }, description: 'Available billing options' },
         annual_discount_pct: { type: 'number', nullable: true, description: 'Percentage discount for annual billing (e.g., 20 means 20% off)' },
@@ -446,6 +514,85 @@ export const GeminiKnowledgeCardSchema = {
         export_to: { type: 'array', items: { type: 'string' }, description: 'Tool names that have import wizards FROM this tool' },
         min_commitment_months: { type: 'number', nullable: true, description: 'Minimum contract commitment in months. null = month-to-month.' },
         cancellation_notice_days: { type: 'number', nullable: true, description: 'Required notice period for cancellation in days' },
+      },
+    },
+    // V3.1: Review Context (The "Human Touch" Layer)
+    review_context: {
+      type: 'object',
+      description: 'Tribal knowledge, vibe, and opinionated guidance extracted from Reddit, forums, and honest user reviews.',
+      properties: {
+        human_verdict: {
+          type: 'string',
+          nullable: true,
+          description: 'A 2-sentence summary in "Coffee Shop Speak". NO corporate jargon like "seamless", "empowers", "robust", "game-changer". Write as if texting a founder friend. Example: "It\'s basically a glorified spreadsheet, but the automation engine is so good you won\'t care."'
+        },
+        budget_analyst: {
+          type: 'object',
+          description: 'The CFO perspective: How the bill works (factual, no judgment)',
+          properties: {
+            cost_drivers: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Factual factors that increase TCO. Examples: "SSO requires Enterprise tier", "Guests count as billable users", "Storage overage fees after 100GB", "Implementation fee for Enterprise"'
+            },
+            one_time_fees: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'One-time costs. Examples: "$500 implementation fee", "Mandatory onboarding training at $200/hr"'
+            },
+            commitment_terms: {
+              type: 'string',
+              nullable: true,
+              description: 'Contract constraints. Examples: "Annual only, no monthly option", "30-day cancellation notice required", "Auto-renews unless cancelled 60 days prior"'
+            },
+            roi_threshold: {
+              type: 'string',
+              nullable: true,
+              description: 'When does premium become worth it? Examples: "Worth it at 20+ team members", "Only if you need audit logs", "Makes sense if you use webhooks heavily"'
+            },
+          },
+        },
+        user_advocate: {
+          type: 'object',
+          description: 'The Senior Engineer perspective: Vibe, tribal knowledge, and honest experience',
+          properties: {
+            vibe: {
+              type: 'string',
+              nullable: true,
+              description: '2-3 words on the "soul" of the tool. Examples: "Enterprise Grey", "Hacker Chic", "Friendly & Slow", "Blazing Fast", "Playful", "Corporate", "Minimalist"'
+            },
+            origin_story: {
+              type: 'string',
+              nullable: true,
+              description: 'One sentence on context. Examples: "Started as game chat for WoW guilds, now used by startups", "Built by designer frustrated with Jira", "Originally an internal tool at Spotify"'
+            },
+            ideal_for: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Specific personas who thrive. Examples: "Solo founders", "Async-first remote teams", "Design teams at scale", "Developers who love keyboard shortcuts"'
+            },
+            avoid_if: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Deal-breaker scenarios. Examples: "You need offline access", "You work in a regulated industry (HIPAA)", "Your team hates keyboard shortcuts", "You prefer visual/GUI workflows"'
+            },
+            power_tip: {
+              type: 'string',
+              nullable: true,
+              description: 'One specific insider shortcut or hidden feature. Examples: "Use /collapse to hide all gifs in Slack", "Cmd+K opens command palette", "Enable vim mode in settings"'
+            },
+            delighters: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Specific features users rave about. Examples: "The command palette is chef\'s kiss", "Dark mode actually looks good", "Real-time collaboration just works"'
+            },
+            frustrations: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Specific UX complaints (NOT pricing). Examples: "Search is painfully slow after 10k messages", "Mobile app crashes frequently", "No offline mode"'
+            },
+          },
+        },
       },
     },
     // Chain of Thought: LLM reasoning about pricing extraction

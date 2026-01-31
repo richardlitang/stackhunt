@@ -1,6 +1,6 @@
 # StackHunt Product Summary
 
-**Last Updated:** January 30, 2026
+**Last Updated:** January 31, 2026
 
 ## Overview
 
@@ -75,7 +75,7 @@ stackhunt/
 │   └── discover-topics.ts
 │
 ├── supabase/
-│   └── migrations/          # 19 SQL migration files
+│   └── migrations/          # 30 SQL migration files
 │
 └── vercel.json              # Deployment + cron config
 ```
@@ -87,23 +87,23 @@ stackhunt/
 ### Hub & Spoke Model
 
 ```
-TOOLS (Hub)                    CONTEXTS (Spoke)
+ITEMS (Hub)                    CONTEXTS (Spoke)
     │                              │
     └──────── REVIEWS ─────────────┘
-                  │
-            CATEGORIES
-         (Knowledge Graph)
+          │           │
+    CATEGORIES    PARENT_ID
+ (Knowledge Graph)  (Suites)
 ```
 
 ### Core Tables
 
 | Table | Purpose |
 |-------|---------|
-| `tools` | Software products with metadata, Knowledge Card, embeddings |
+| `items` | Software products (tools/gear) with metadata, Knowledge Card, embeddings, parent/child relationships |
 | `contexts` | Use-case contexts ("Best X for Y") with title templates |
-| `reviews` | Contextual tool analysis with score, pros, cons, sources |
+| `reviews` | Contextual tool analysis with score, pros, cons, sources, review_context |
 | `categories` | Multi-dimensional taxonomy (function/audience/platform) |
-| `tool_category_links` | Many-to-many tool-category relationships |
+| `item_category_links` | Many-to-many item-category relationships |
 
 ### Content Pipeline Tables
 
@@ -204,19 +204,40 @@ npm run hunt -- --strategy status                       # View dashboard
 
 ### 2. Hunter Pipeline Flow
 
-3-phase AI pipeline with cost optimization and early exits.
+3-phase AI pipeline with cost optimization, early exits, and tribal knowledge extraction.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      HUNTER PIPELINE                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  PHASE 1: RESEARCH                                             │
+│  PHASE 1: RESEARCH (12 Parallel Searches)                      │
 │  ┌────────────────────────────────────────────────────────┐    │
-│  │  Serper API (3 parallel searches)                      │    │
+│  │  Serper API (3 groups)                                 │    │
+│  │                                                        │    │
+│  │  Factual Queries (6):                                  │    │
 │  │    ├─ [tool] reviews                                   │    │
-│  │    ├─ [tool] pricing features                          │    │
-│  │    └─ [tool] alternatives                              │    │
+│  │    ├─ [tool] pricing plans features                    │    │
+│  │    ├─ [tool] pricing annual vs monthly cost            │    │
+│  │    ├─ [tool] alternatives competitors vs               │    │
+│  │    ├─ [tool] company founded funding headquarters      │    │
+│  │    └─ [tool] API integrations data export import       │    │
+│  │                                                        │    │
+│  │  Budget Analyst Queries (2):                           │    │
+│  │    ├─ [tool] hidden costs billing logic                │    │
+│  │    └─ [tool] implementation fees setup cost minimums   │    │
+│  │                                                        │    │
+│  │  Tribal Knowledge Queries (4):                         │    │
+│  │    ├─ [tool] reddit review pros cons                   │    │
+│  │    ├─ [tool] what I wish I knew before using           │    │
+│  │    ├─ [tool] advanced tips tricks shortcuts power user │    │
+│  │    └─ is [tool] worth it reddit honest review          │    │
+│  │                                                        │    │
+│  │  Pass 1: Knowledge Card (The Librarian)                │    │
+│  │    - Gemini extracts structured facts                  │    │
+│  │    - Pricing logic (not just strings)                  │    │
+│  │    - Bundle detection (Google Meet → Workspace)        │    │
+│  │    - Company info, competitors, technical capabilities │    │
 │  │                                                        │    │
 │  │  Outputs: Search results, Knowledge Card extraction    │    │
 │  │  Early Exit: Hard duplicate detected → skip analysis   │    │
@@ -225,15 +246,35 @@ npm run hunt -- --strategy status                       # View dashboard
 │                           ▼                                     │
 │  PHASE 2: ANALYSIS                                             │
 │  ┌────────────────────────────────────────────────────────┐    │
-│  │  Gemini AI (two-pass analysis)                         │    │
-│  │    Pass 1: Knowledge Card (structured facts)           │    │
-│  │    Pass 2: Full synthesis                              │    │
-│  │      - Score (0-100)                                   │    │
-│  │      - Pros/Cons with source attribution               │    │
-│  │      - Summary markdown                                │    │
-│  │      - Sentiment tags                                  │    │
+│  │  Pass 2: Full Synthesis (The Architect + Human Roles)  │    │
 │  │                                                        │    │
-│  │  + Vector embedding (pgvector)                         │    │
+│  │  The Architect:                                        │    │
+│  │    - Score (0-100)                                     │    │
+│  │    - Pros/Cons with source attribution                 │    │
+│  │    - Summary markdown                                  │    │
+│  │    - Sentiment tags                                    │    │
+│  │    - Knowledge Graph tags (function, audience, platform)│   │
+│  │                                                        │    │
+│  │  The Budget Analyst (CFO):                             │    │
+│  │    - Cost drivers (factual TCO)                        │    │
+│  │    - One-time fees                                     │    │
+│  │    - Commitment terms                                  │    │
+│  │    - ROI threshold                                     │    │
+│  │                                                        │    │
+│  │  The User Advocate (Senior Engineer):                  │    │
+│  │    - Vibe (2-3 words on the soul)                      │    │
+│  │    - Origin story                                      │    │
+│  │    - Ideal for / Avoid if                              │    │
+│  │    - Power tip (insider shortcut)                      │    │
+│  │    - Delighters / Frustrations                         │    │
+│  │                                                        │    │
+│  │  The Human Verdict:                                    │    │
+│  │    - 2-sentence "Coffee Shop Speak" summary            │    │
+│  │    - NO jargon: "seamless", "empowers", "robust" banned│   │
+│  │                                                        │    │
+│  │  + Vector embedding (Functional Anchor strategy)       │    │
+│  │    - Embeds SPEC not VIBE                              │    │
+│  │    - Includes "Part of [Suite]" for bundled tools      │    │
 │  │  + Logo fetch (Brandfetch)                             │    │
 │  └────────────────────────────────────────────────────────┘    │
 │                           │                                     │
@@ -241,11 +282,14 @@ npm run hunt -- --strategy status                       # View dashboard
 │  PHASE 3: PERSISTENCE                                          │
 │  ┌────────────────────────────────────────────────────────┐    │
 │  │  Database Operations                                   │    │
-│  │    ├─ Upsert tool (fuzzy dedup by name)               │    │
-│  │    ├─ Upsert context (fuzzy dedup by title)           │    │
-│  │    ├─ Create review (draft or published)              │    │
-│  │    ├─ Link categories (function, audience, platform)  │    │
-│  │    └─ Create default affiliate offer                  │    │
+│  │    ├─ Check for bundling (suite relationship)          │    │
+│  │    ├─ Create parent suite stub if needed               │    │
+│  │    ├─ Upsert item (fuzzy dedup by name)                │    │
+│  │    ├─ Set parent_id for bundled tools                  │    │
+│  │    ├─ Upsert context (fuzzy dedup by title)            │    │
+│  │    ├─ Create review (draft or published)               │    │
+│  │    ├─ Link categories (function, audience, platform)   │    │
+│  │    └─ Create default affiliate offer                   │    │
 │  └────────────────────────────────────────────────────────┘    │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -294,7 +338,169 @@ Worker Modes:
   With topics: npm run queue:worker -- --discover
 ```
 
-### 4. Review Workflow
+### 4. V3.1: Review Context ("The Human Touch")
+
+Tribal knowledge extraction from Reddit, forums, and honest user reviews.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    REVIEW CONTEXT EXTRACTION                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Input: Tribal Knowledge Snippets                              │
+│    ├─ Reddit reviews: "What I wish I knew before..."           │
+│    ├─ HackerNews discussions: Honest pros/cons                 │
+│    ├─ Forum posts: Power tips, hidden features                 │
+│    └─ "Is it worth it?" discussions                            │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────┐     │
+│  │  ROLE 1: THE BUDGET ANALYST (The CFO)                │     │
+│  │  ────────────────────────────────────────────────     │     │
+│  │  Goal: Explain "How the Bill Works" without judgment  │     │
+│  │                                                       │     │
+│  │  Extracts:                                            │     │
+│  │    • Cost drivers: "SSO requires Enterprise tier"    │     │
+│  │    • One-time fees: "$2,000 implementation fee"      │     │
+│  │    • Commitment terms: "Annual contract only"        │     │
+│  │    • ROI threshold: "Worth it for teams of 20+"     │     │
+│  │                                                       │     │
+│  │  RULES:                                               │     │
+│  │    ✓ Factual statements only                         │     │
+│  │    ✗ NO words like "trap", "scam", "gotcha"          │     │
+│  └───────────────────────────────────────────────────────┘     │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────┐     │
+│  │  ROLE 2: THE USER ADVOCATE (Senior Engineer)         │     │
+│  │  ────────────────────────────────────────────────     │     │
+│  │  Goal: Capture tribal knowledge and vibe              │     │
+│  │                                                       │     │
+│  │  Extracts:                                            │     │
+│  │    • Vibe: "Enterprise Grey", "Hacker Chic"          │     │
+│  │    • Origin story: "Started as game dev tool"        │     │
+│  │    • Ideal for: "Async-first remote teams"           │     │
+│  │    • Avoid if: "Need offline access"                 │     │
+│  │    • Power tip: "Use /collapse to hide gifs"         │     │
+│  │    • Delighters: Specific features users rave about  │     │
+│  │    • Frustrations: UX complaints (NOT pricing)       │     │
+│  └───────────────────────────────────────────────────────┘     │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────┐     │
+│  │  ROLE 3: THE HUMAN VERDICT                           │     │
+│  │  ────────────────────────────────────────────────     │     │
+│  │  Goal: 2-sentence "Coffee Shop Speak" summary         │     │
+│  │                                                       │     │
+│  │  Tone: Candid, Expert, Casual                        │     │
+│  │  BANNED: "seamless", "empowers", "robust",           │     │
+│  │          "game-changer", "intuitive"                 │     │
+│  │                                                       │     │
+│  │  Example:                                             │     │
+│  │  "It's basically a glorified spreadsheet, but the    │     │
+│  │   automation engine is so good you won't care.       │     │
+│  │   Great for small teams, but gets messy at scale."   │     │
+│  └───────────────────────────────────────────────────────┘     │
+│                                                                 │
+│  Output: review_context JSONB                                  │
+│    Stored on items table (universal, not contextual)           │
+│    Enables differentiation from commodity spec sheets          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Why This Matters:**
+- Differentiation: Can't be scraped from feature lists
+- SEO Value: Answers "is [tool] worth it" queries
+- User Trust: Honest, opinionated guidance
+- Content Moat: Tribal knowledge is time-intensive to replicate
+
+### 5. V3.2: Parent/Child Relationship (Suite Bundling)
+
+Handles tools sold as part of larger suites (Google Meet → Workspace).
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  SUITE BUNDLING ARCHITECTURE                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Detection (Forensic Accountant in Phase 1):                   │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Criteria:                                             │    │
+│  │    • Pricing pages say "Included in [Suite]"          │    │
+│  │    • No standalone pricing page exists                │    │
+│  │    • Only parent suite prices found                   │    │
+│  │                                                       │    │
+│  │  Known bundles:                                        │    │
+│  │    • Google Meet/Calendar/Drive → Google Workspace    │    │
+│  │    • Microsoft Teams/OneDrive → Microsoft 365         │    │
+│  │                                                       │    │
+│  │  Output:                                               │    │
+│  │    is_standalone: false                                │    │
+│  │    bundled_in: "Google Workspace"                      │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                           │                                     │
+│                           ▼                                     │
+│  Persistence (Phase 3):                                        │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  1. Call: ensureParentSuite("Google Workspace")       │    │
+│  │                                                       │    │
+│  │  2. If suite doesn't exist, create stub:              │    │
+│  │     {                                                  │    │
+│  │       name: "Google Workspace",                        │    │
+│  │       slug: "google-workspace",                        │    │
+│  │       short_description: "Suite pricing placeholder",  │    │
+│  │       specs: { taxonomy: { primary_function: "Suite" }}│   │
+│  │     }                                                  │    │
+│  │                                                       │    │
+│  │  3. Return parent UUID                                 │    │
+│  │                                                       │    │
+│  │  4. Set parent_id on child item:                      │    │
+│  │     items.parent_id = workspace_uuid                   │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                           │                                     │
+│                           ▼                                     │
+│  Embedding Strategy (Phase 2):                                 │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │  Include suite context in embedding:                   │    │
+│  │                                                       │    │
+│  │  "Tool: Google Calendar                                │    │
+│  │   Part of the Google Workspace suite                   │    │
+│  │   Category: Scheduling                                 │    │
+│  │   Features: Event scheduling, shared calendars..."     │    │
+│  │                                                       │    │
+│  │  Why: Enables search for "Google Workspace calendar"  │    │
+│  │       without re-embedding on price changes            │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Benefits Enabled:**
+
+1. **Single Source of Truth**
+   - Update Google Workspace pricing once
+   - All child tools (Meet, Calendar, Drive) automatically updated
+
+2. **Ecosystem Navigation**
+   ```sql
+   SELECT name, slug FROM items WHERE parent_id = :workspace_id
+   -- Returns: Calendar, Meet, Drive, Docs, Gmail
+   ```
+
+3. **Inherited Compliance**
+   - SOC2, HIPAA compliance set on parent
+   - All children inherit security certifications
+
+4. **"Already Paid For" Calculator**
+   ```typescript
+   if (tool.parent_id && userStack.includes(tool.parent_id)) {
+     return { price: 0, note: "Included in your Workspace subscription" };
+   }
+   ```
+
+5. **Sibling Discovery**
+   - "Also in Google Workspace" sidebar
+   - Keeps users clicking through site (SEO + engagement)
+
+### 6. Review Workflow
 
 Draft-first workflow with human review gate.
 

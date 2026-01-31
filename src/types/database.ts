@@ -8,6 +8,8 @@
  * - All tool_id fields renamed to item_id
  */
 
+import type { ReviewContext } from '@/lib/knowledge-card';
+
 // ============================================================================
 // ENUMS
 // ============================================================================
@@ -317,6 +319,12 @@ export interface Item {
   // V3: SMP pricing verification
   pricing_verified_at: string | null; // When pricing was last verified
   pricing_confidence: PricingConfidence | null; // How confident we are in pricing data
+
+  // V3.1: Review Context (The "Human Touch" Layer)
+  review_context: ReviewContext | null; // Tribal knowledge, vibe, and opinionated guidance
+
+  // V3.2: Parent/Child Relationship (Suite Bundling)
+  parent_id: string | null; // References parent suite (e.g., Google Meet → Google Workspace)
 
   created_at: string;
   updated_at: string;
@@ -669,6 +677,10 @@ export interface ItemInsert {
   // V3: SMP pricing verification
   pricing_verified_at?: string | null;
   pricing_confidence?: PricingConfidence | null;
+  // V3.1: Review Context
+  review_context?: ReviewContext | null;
+  // V3.2: Parent/Child Relationship
+  parent_id?: string | null;
 }
 
 /** @deprecated Use ItemInsert instead */
