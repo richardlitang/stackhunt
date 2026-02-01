@@ -218,6 +218,13 @@ async function queueDiscoveryHunt(
   supabase: SupabaseClient<Database>
 ): Promise<string | null> {
   try {
+    // Get context title for the hunt
+    const { data: context } = (await supabase
+      .from('contexts')
+      .select('title')
+      .eq('id', contextId)
+      .single()) as any;
+
     const { data, error } = await supabase
       .from('hunt_queue')
       .insert({
@@ -227,6 +234,7 @@ async function queueDiscoveryHunt(
         source: 'suggestion',
         status: 'pending',
         context_id: contextId,
+        context_title: context?.title || null, // Add context title for orchestrator
         is_discovery_hunt: true,
       })
       .select('id')
