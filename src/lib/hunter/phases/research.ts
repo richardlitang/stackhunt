@@ -64,6 +64,7 @@ export async function executeResearchPhase(
   const { knowledgeCard, tokensUsed } = await deps.gemini.extractKnowledgeCard(
     {
       toolName: ctx.toolName,
+      contextTitle: ctx.contextTitle, // Pass context for audience-aware extraction
       reviewsSnippets: scoutResult.reviewsSnippets,
       pricingSnippets: scoutResult.pricingSnippets,
       alternativesSnippets: scoutResult.alternativesSnippets,

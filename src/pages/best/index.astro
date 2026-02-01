@@ -12,13 +12,18 @@ import { getCanonicalUrl } from '@/lib/utils';
 Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
 
 // Fetch all contexts with categories
-const { data: contexts } = await supabase
+const { data: contexts, error } = await supabase
   .from('contexts')
   .select(`
     *,
-    category:categories(name, slug, icon)
+    category:categories!contexts_category_id_fkey(name, slug, icon)
   `)
+  .gt('tool_count', 0)
   .order('tool_count', { ascending: false });
+
+if (error) {
+  console.error('Error fetching contexts:', error);
+}
 
 const meta = {
   title: 'Best Software Lists & Comparisons | StackHunt',

@@ -37,7 +37,7 @@ export const SMPPlanSchema = z.object({
     .describe("Who is this plan for? individual=solo users, team=2-10, business=10-100, enterprise=100+"),
   price_monthly: z.number().nullable().optional(),  // Monthly price (null/undefined = no monthly option)
   price_annual: z.number().nullable().optional(),   // Total annual price (null/undefined = no annual option)
-  scaling_unit: z.enum(['user', 'seat', 'member', 'GB', 'message', 'request', 'project', 'workspace']).nullable().optional(),
+  scaling_unit: z.enum(['user', 'seat', 'member', 'GB', 'message', 'request', 'project', 'workspace', 'hour']).nullable().optional(),
   price_per_unit: z.number().nullable().optional(),
   included_units: z.number().nullable().optional(),
   max_users: z.number().nullable().optional(),
@@ -48,6 +48,11 @@ export const SMPPlanSchema = z.object({
   includes_sla: z.boolean().default(false),
   includes_priority_support: z.boolean().default(false),
   is_enterprise: z.boolean().default(false),
+
+  // Variable pricing (for ad_spend and usage_based models)
+  variable_unit: z.string().nullable().optional(),           // e.g., "click", "1k impressions", "1M tokens"
+  variable_price: z.number().nullable().optional(),          // e.g., 0.50, 0.02
+  variable_logic_desc: z.string().nullable().optional(),     // e.g., "Bidding based, $0.40-$2.00 avg CPC"
 }).transform((plan) => {
   // FALLBACK MATH: If LLM failed to calculate annual, we do it here
   if (plan.price_monthly && plan.price_monthly > 0 && !plan.price_annual) {
@@ -70,7 +75,7 @@ export type SMPPlan = z.infer<typeof SMPPlanSchema>;
 
 // V3: SMP Pricing Data (for cost calculations)
 export const SMPPricingDataSchema = z.object({
-  model: z.enum(['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales']),
+  model: z.enum(['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales', 'ad_spend', 'usage_based']),
   // Suite bundling (V3.2)
   is_standalone: z.boolean().describe("False if primarily sold as part of a suite (e.g., Google Meet, Teams)").default(true),
   bundled_in: z.string().nullable().describe("Parent suite name (e.g., 'Google Workspace', 'Microsoft 365')").optional(),
@@ -487,7 +492,7 @@ export const GeminiKnowledgeCardSchema = {
       type: 'object',
       description: 'Structured pricing data for cost calculations. Extract pricing LOGIC, not just strings.',
       properties: {
-        model: { type: 'string', enum: ['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales'], description: 'The pricing model: flat (Basecamp $99/mo), per_seat (Slack $8/user), per_unit (Twilio per message), tiered (HubSpot), hybrid (Notion free + per user), contact_sales (enterprise)' },
+        model: { type: 'string', description: 'The pricing model. Valid values: free, flat (Basecamp $99/mo), per_seat (Slack $8/user), per_unit (Twilio per message), tiered (HubSpot), hybrid (Notion free + per user), contact_sales (enterprise), ad_spend (Google Ads, Meta Ads - CPC/CPM bidding), usage_based (OpenAI API, AWS - pay per token/GB/request)' },
         // Suite bundling (V3.2)
         is_standalone: { type: 'boolean', default: true, description: 'False if primarily sold as part of a suite (e.g., Google Meet, Microsoft Teams cannot be purchased alone)' },
         bundled_in: { type: 'string', nullable: true, description: 'Parent suite name if bundled (e.g., "Google Workspace", "Microsoft 365"). null for standalone tools.' },
@@ -504,7 +509,7 @@ export const GeminiKnowledgeCardSchema = {
               name: { type: 'string', description: 'Display name: "Free", "Pro", "Enterprise"' },
               price_monthly: { type: 'number', nullable: true, description: 'Monthly price in base currency units (e.g., 10 for $10/mo). null if no monthly option.' },
               price_annual: { type: 'number', nullable: true, description: 'TOTAL annual price (e.g., 96 for $96/year). NOT monthly equivalent.' },
-              scaling_unit: { type: 'string', nullable: true, enum: ['user', 'seat', 'member', 'GB', 'message', 'request', 'project', 'workspace'], description: 'What the price scales with' },
+              scaling_unit: { type: 'string', nullable: true, description: 'What the price scales with: user, seat, member, GB, message, request, project, workspace, hour' },
               price_per_unit: { type: 'number', nullable: true, description: 'Price per unit for per_seat/per_unit models' },
               included_units: { type: 'number', nullable: true, description: 'Units included in base price (e.g., "includes 5 users")' },
               max_users: { type: 'number', nullable: true, description: 'User limit for this plan. null = unlimited.' },
@@ -516,6 +521,10 @@ export const GeminiKnowledgeCardSchema = {
               includes_sla: { type: 'boolean', default: false },
               includes_priority_support: { type: 'boolean', default: false },
               is_enterprise: { type: 'boolean', default: false, description: 'true if this is "Contact Sales" pricing' },
+              // Variable pricing fields (for ad_spend and usage_based models)
+              variable_unit: { type: 'string', nullable: true, description: 'Unit for variable pricing: "click", "1k impressions", "1M tokens", "GB", "API call". Only for ad_spend/usage_based models.' },
+              variable_price: { type: 'number', nullable: true, description: 'Price per variable_unit (e.g., 0.50 for "$0.50 per click"). Only for ad_spend/usage_based models.' },
+              variable_logic_desc: { type: 'string', nullable: true, description: 'Human-readable explanation of variable pricing (e.g., "Bidding based, typically $0.40-$2.00 CPC depending on targeting"). Only for ad_spend/usage_based models.' },
             },
             required: ['id', 'name', 'target_audience'],
           },

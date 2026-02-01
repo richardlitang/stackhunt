@@ -207,6 +207,7 @@ export interface HunterContext {
   // Flags for early exits (cost optimization)
   skipAnalysis?: boolean;       // Set if duplicate found
   skipPersistence?: boolean;    // Set if validation fails
+  insufficientSources?: boolean; // Set if not enough snippets for quality review
 
   // Accumulated data
   research?: ResearchOutput;

@@ -21,6 +21,7 @@ export interface GeminiConfig {
 
 export interface ExtractKnowledgeCardInput {
   toolName: string;
+  contextTitle?: string;          // Context for audience-aware extraction (e.g., "Google Ads alternatives")
   reviewsSnippets: string[];
   pricingSnippets: string[];
   alternativesSnippets: string[];
@@ -68,6 +69,22 @@ export class GeminiService {
 2. THE FORENSIC ACCOUNTANT: Extract PRICING LOGIC (not just strings) for cost calculations
 3. THE INVESTIGATOR: Extract company info, competitors, and technical capabilities
 
+${input.contextTitle ? `
+CONTEXT-AWARE EXTRACTION (CRITICAL):
+You are researching "${input.toolName}" specifically for the context: "${input.contextTitle}".
+
+TARGET AUDIENCE ALIGNMENT:
+- Only extract pricing and features relevant to this context
+- If the context is about BUSINESS/MARKETING/TEAMS/ENTERPRISE or mentions "alternatives" to ad platforms:
+  * Focus on business pricing (seat-based, ad spend, enterprise tiers)
+  * IGNORE consumer-only plans (ad-free browsing, personal entertainment subscriptions)
+  * Example: For "Reddit" in "Google Ads alternatives" context → Extract "Reddit Ads" (advertising platform)
+
+- If the context is about PERSONAL/STUDENT/INDIVIDUAL use or entertainment:
+  * Focus on low-cost individual plans, free tiers, student discounts
+  * Example: For "Reddit" in student/entertainment context → Extract "Reddit Premium" (consumer subscription)
+` : ''}
+
 CRITICAL RULES:
 - Only extract facts that are explicitly mentioned or strongly implied in the sources
 - Use null for any field where information is not available
@@ -100,21 +117,135 @@ Extract these fields INTO THE NESTED STRUCTURE:
 
 Do NOT just extract "$10/mo" as a string. Extract the PRICING LOGIC.
 
+STEP 1: IDENTIFY THE BUSINESS MODEL (CRITICAL - DO THIS FIRST)
+
+Ask yourself: "What type of product is this?" Use the Financial & Functional Signals below:
+
+1. AD PLATFORM? (Check for these signals in the content)
+   Financial Signals: Pricing mentions 'CPC', 'CPM', 'CPA', 'Bidding', 'Daily Budget', 'Campaign Budget', 'Ad Spend'
+   Functional Signals: Features include 'Audience targeting', 'Ad campaigns', 'Impressions', 'Conversions', 'Pixel tracking'
+   → If these signals are present: Set model: 'ad_spend'
+   → These products sell ADVERTISING, not software subscriptions
+   → CRITICAL: Ignore consumer subscription pricing if you see both (e.g., Reddit Premium $5.99/mo vs Reddit Ads with CPC)
+
+2. USAGE-BASED API/CLOUD? (Check for these signals in the content)
+   Financial Signals: Pricing shows 'per request', 'per token', 'per GB', 'per message', 'pay as you go', variable unit costs
+   Functional Signals: Features include 'API access', 'Rate limits', 'Consumption-based', 'Free tier quotas'
+   → If these signals are present: Set model: 'usage_based'
+   → These charge per unit consumed (messages, tokens, requests, GB, API calls)
+
+3. SAAS SUBSCRIPTION? (Default for most business software)
+   Financial Signals: Fixed monthly/annual pricing, 'per seat', 'per user', 'per member', tiered plans (Starter/Pro/Enterprise)
+   Functional Signals: Features include 'Team collaboration', 'Workspaces', 'Admin controls', 'User management'
+   → If these signals are present: Use standard models: 'per_seat', 'flat', 'tiered', 'hybrid', etc.
+
+CONSUMER VS. BUSINESS PRODUCTS (IMPORTANT DISTINCTION):
+Many platforms have BOTH consumer and business products as SEPARATE offerings:
+- Reddit Premium ($5.99/mo) vs Reddit Ads (ad platform) → These are DIFFERENT PRODUCTS
+- YouTube Premium ($11.99/mo) vs YouTube Ads (ad platform) → These are DIFFERENT PRODUCTS
+- LinkedIn Premium ($29.99/mo) vs LinkedIn Ads (ad platform) → These are DIFFERENT PRODUCTS
+
+IF the tool has both a consumer subscription AND a business product:
+→ They are likely SEPARATE products - focus on what matches the context
+→ If context is "Google Ads alternatives" → Extract "Reddit Ads" (business product)
+→ If context is "Netflix alternatives" → Extract "Reddit Premium" (consumer product)
+
+=== PRODUCT DNA IDENTIFICATION (MANDATORY FOR MULTI-PRODUCT BRANDS) ===
+
+Before extracting, identify the 'Product DNA' from the actual content you're reading:
+
+1. AD PLATFORM SIGNALS (if ALL of these are present, this is an ad platform):
+   Financial Signals:
+   - Pricing uses terms: 'Bidding', 'CPC', 'CPM', 'CPA', 'Ad Spend', 'Daily Budget', 'Campaign Budget'
+   - Pricing is variable/auction-based, not fixed monthly subscriptions
+   - Mentions 'Minimum spend' or 'Budget recommendations'
+
+   Functional Signals:
+   - Features include: 'Audience targeting', 'Campaign management', 'Ad formats', 'Pixel tracking', 'Conversion tracking'
+   - Focuses on 'Reach', 'Impressions', 'Clicks', 'Conversions'
+   - Mentions 'Advertisers', 'Ad accounts', 'Campaign objectives'
+
+   → If these signals match: Name the tool "[Brand] Ads" (e.g., "Reddit Ads", "LinkedIn Ads")
+   → Set pricing model to 'ad_spend'
+   → Website selection: Look for business/ads URLs in your sources:
+     * Prefer: business.domain.com, ads.domain.com, advertising.domain.com, or /business/ads paths
+     * Examples: business.reddit.com (not www.reddit.com), ads.google.com (not google.com)
+     * If multiple URLs found, choose the one that's specifically for advertisers/business
+     * If only generic domain found (www.domain.com), use it but this is acceptable
+
+2. SAAS/BUSINESS TOOL SIGNALS (if these are present, this is a SaaS product):
+   Financial Signals:
+   - Pricing uses: 'Per Seat', 'Per User', 'Per Member', '/month', '/year'
+   - Fixed monthly/annual subscription tiers
+   - Pricing scales with team size
+
+   Functional Signals:
+   - Features include: 'Collaboration', 'Team workspaces', 'Project management', 'Admin controls', 'Permissions'
+   - Focuses on 'Productivity', 'Workflows', 'Integrations', 'Automation'
+   - Mentions 'Teams', 'Organizations', 'Departments'
+
+   → If these signals match: Name the tool "[Brand]" or "[Brand] [Product]" (e.g., "Slack", "LinkedIn Sales Navigator")
+   → Set pricing model to 'per_seat', 'tiered', or appropriate SaaS model
+
+3. CONSUMER PRODUCT SIGNALS (if these are present, this is a consumer subscription):
+   Financial Signals:
+   - Pricing for 'Individual', 'Family', 'Student' plans
+   - Single-user pricing (not per-seat)
+   - No team/business tiers
+
+   Functional Signals:
+   - Features include: 'Ad-free', 'Premium content', 'Personal storage', 'Downloads', 'Offline access'
+   - Focuses on entertainment, personal use, content consumption
+   - No collaboration or team features
+
+   → If these signals match: Check context alignment:
+     * If context is BUSINESS/MARKETING → DISCARD this product (wrong variant)
+     * If context is CONSUMER/STUDENT → Name it "[Brand] Premium" or "[Brand] Plus"
+
+VERIFICATION CHECKLIST (Use Signals, Not URLs):
+
+Step 1: READ the pricing language in your sources
+   - Does it say "CPC" and "Campaigns"? → Ad Platform
+   - Does it say "Per User" and "Teams"? → SaaS
+   - Does it say "Individual" and "Ad-free"? → Consumer
+
+Step 2: CHECK the feature list against Product DNA signals above
+   - Count how many signals match each category
+   - The category with most matches = Product Type
+
+Step 3: VALIDATE against context
+   - If context is "Google Ads alternatives" but you found "$5.99/mo Individual Premium" → WRONG PRODUCT
+   - If context is "Netflix alternatives" but you found "CPC bidding" → WRONG PRODUCT
+
+Step 4: SELECT THE RIGHT WEBSITE URL:
+   - If identified as AD PLATFORM → Look for business/ads URLs in your sources (business.domain.com, ads.domain.com)
+   - If identified as SAAS → Look for platform/app URLs (app.domain.com, platform.domain.com) or use primary domain
+   - If multiple URLs available, choose the one most specific to the product variant you're extracting
+   - If only generic URL available (www.domain.com), that's acceptable
+
+Step 5: IF SIGNALS DON'T MATCH CONTEXT:
+   - Note in pricing_analysis_log: "Found [Product Type] signals but context requires [Expected Type]"
+   - Set confidence to 'low'
+   - Extract whatever data is available but flag: "May need re-hunt with explicit product name (e.g., 'Reddit Ads' instead of 'Reddit')"
+
+However, if the tool has multiple PRICING TIERS for the same product:
+→ Extract ALL tiers (Free, Team, Business, Enterprise)
+→ Tag each tier with appropriate target_audience
+→ Example: Notion has Free (individual), Plus (team), Business (business), Enterprise (enterprise)
+
 BUNDLE DETECTION (CRITICAL):
 BEFORE extracting pricing, ask: "Can this tool be purchased ALONE, or is it only available as part of a larger suite?"
 
-Detection criteria:
+Detection criteria (Use ONLY these signals, not brand recognition):
 - If pricing pages say "Included in [Suite]" or "Part of [Suite]" → BUNDLED
 - If you can't find a standalone pricing page for THIS tool → BUNDLED
-- If the only prices are for a parent product (e.g., Workspace, Microsoft 365) → BUNDLED
+- If the only prices are for a parent product (e.g., showing "Workspace Business Starter $6/user" but no standalone pricing) → BUNDLED
+- If the product description mentions "included with" or "part of" a larger offering → BUNDLED
 
-Known BUNDLED tools (NOT standalone):
-- Google Meet → bundled in Google Workspace
-- Microsoft Teams → bundled in Microsoft 365
-- Google Drive → bundled in Google Workspace
-- OneDrive → bundled in Microsoft 365
-- Google Calendar → bundled in Google Workspace
-- Outlook → bundled in Microsoft 365
+Common examples (for reference, but rely on signals above):
+- Communication tools bundled in suites: Google Meet (in Workspace), Microsoft Teams (in 365)
+- Storage tools bundled in suites: Google Drive (in Workspace), OneDrive (in 365)
+- Productivity tools bundled in suites: Google Calendar (in Workspace), Outlook (in 365)
 
 If the tool is BUNDLED (cannot be purchased alone):
 1. In pricing_analysis_log, write: "BUNDLE DETECTED: ${input.toolName} is bundled in [Suite Name] and cannot be purchased separately. Extracting parent suite pricing."
@@ -141,11 +272,16 @@ If there's a minimum seat purchase (e.g., "Min 10 seats"), extract that in min_s
 
 CHAIN OF THOUGHT (REQUIRED):
 Before filling pricing data, think through this analysis and put it in "pricing_analysis_log":
-1. "Found monthly price: $X" or "No monthly price found"
-2. "Found annual price: $Y" OR "Annual shown as $X/mo billed annually" OR "No annual price explicit"
-3. "CALCULATION: If annual is $X/mo billed annually -> total annual = X * 12 = Z"
-4. "SCALING: Price is per [user/seat/flat/usage]"
-5. "MODEL TYPE: [free/flat/per_seat/per_unit/tiered/hybrid/contact_sales]"
+1. "BUSINESS MODEL: [ad_platform / usage_api / saas_subscription]"
+2. "CONSUMER FILTER: Found consumer pricing at $X/mo, discarding. Looking for business pricing."
+   OR "No consumer pricing confusion detected."
+3. For SaaS: "Found monthly price: $X" or "No monthly price found"
+4. For SaaS: "Found annual price: $Y" OR "Annual shown as $X/mo billed annually"
+5. For Ad Platforms: "Found minimum daily budget: $X/day → monthly = $Y" OR "Minimum budget: $X/mo"
+6. For Ad Platforms: "Average CPC/CPM: $X per [unit]"
+7. For Usage-Based: "Per-unit rate: $X per [unit]" OR "Free tier: X units, then $Y per unit"
+8. "SCALING: Price is per [user/seat/flat/usage/click/token]"
+9. "MODEL TYPE: [free/flat/per_seat/per_unit/tiered/hybrid/contact_sales/ad_spend/usage_based]"
 
 ANNUAL PRICE RULES (CRITICAL - DO NOT SKIP):
 - SaaS pricing is often displayed as "$X/mo billed annually"
@@ -162,7 +298,7 @@ SCALING UNIT RULES (MANDATORY FOR PER_SEAT):
 - Look for: "per user", "per seat", "per member", "per agent"
 - If the page says "$10/mo" in per-user context, set scaling_unit to "user"
 
-1. IDENTIFY THE PRICING MODEL:
+1. IDENTIFY THE PRICING MODEL (from STEP 1 above):
    - "free": Completely free forever
    - "flat": Fixed price regardless of users (e.g., Basecamp $99/mo unlimited)
    - "per_seat": Price scales with users (e.g., Slack $8.75/user/mo)
@@ -170,8 +306,41 @@ SCALING UNIT RULES (MANDATORY FOR PER_SEAT):
    - "tiered": Multiple plans with different feature sets (e.g., HubSpot Free → Starter → Pro)
    - "hybrid": Combination (e.g., Notion has free tier + per-user paid)
    - "contact_sales": Enterprise pricing not publicly available
+   - "ad_spend": Advertising platform with variable budgets (CPC/CPM bidding)
+   - "usage_based": Pay-as-you-go API/cloud (per token, per request, per GB)
 
-2. EXTRACT ALL PLANS (including FREE tier if exists) with their:
+1a. SPECIAL HANDLING FOR AD_SPEND MODELS:
+If model is 'ad_spend', extract variable pricing data:
+- Look for "Minimum Daily Budget" or "Minimum Monthly Budget"
+  * If found "$5/day minimum", calculate: price_monthly = 5 * 30 = 150
+  * Put this in the plan's price_monthly field
+- Look for average CPC (Cost Per Click) or CPM (Cost Per 1000 Impressions)
+  * Extract the unit: variable_unit = "click" or "1k impressions"
+  * Extract average price: variable_price = 0.50 (if "$0.50 per click")
+  * Describe the range: variable_logic_desc = "Bidding based, typically $0.40-$2.00 CPC depending on targeting"
+- Create one plan called "Self-Service" or "Advertising" with this data
+- List platform features in the plan's features array (e.g., ["Pixel tracking", "Audience targeting", "A/B testing"])
+
+1b. SPECIAL HANDLING FOR USAGE_BASED MODELS:
+If model is 'usage_based', extract per-unit pricing:
+- Look for the base unit (e.g., "per 1,000 requests", "per 1M tokens", "per GB")
+  * Extract: variable_unit = "1k requests" or "1M tokens"
+  * Extract: variable_price = 0.02 (if "$0.02 per 1M tokens")
+- Look for "Monthly Minimum" or "Free Tier" limits
+  * If "$0/mo up to 10k requests", create a Free plan with max limits
+  * If "$10/mo minimum", put that in price_monthly
+- Describe the logic: variable_logic_desc = "Pay as you go, $0.02/1M tokens after free tier"
+
+2. EXTRACT ALL PLANS (STORE EVERYTHING - UI will filter later):
+
+CRITICAL: Extract EVERY pricing tier you find, regardless of context.
+- If you find Free, Team, Business, Enterprise → Extract all 4
+- If researching for business context but tool has a Free tier → Still extract the Free tier
+- If researching for student context but tool has Enterprise → Still extract Enterprise tier
+
+The UI will filter plans based on page context. Your job is to capture ALL the data.
+
+For each plan extracted:
    - Plan ID: Use format "${toolSlug}-{plan-name}" (e.g., "${toolSlug}-pro", "${toolSlug}-enterprise")
    - target_audience: REQUIRED field. Infer who this plan targets based on features/pricing:
      * "individual" - Solo users, freelancers (usually 1 user, basic features, personal/hobby tier)

@@ -163,6 +163,38 @@ export class Hunter {
         this.log(`🔄 Duplicate detected, but forceUpdate=true - continuing with re-extraction`);
       }
 
+      // Pre-flight check: Validate sufficient source material before analysis
+      // Saves research for dedup, but skips analysis if insufficient data
+      if (!ctx.skipAnalysis && ctx.research) {
+        const scout = ctx.research.scoutResult;
+        const reviewCount = scout.reviewsSnippets.length;
+        const tribalCount = scout.tribalKnowledgeSnippets.length;
+        const pricingCount = scout.pricingSnippets.length;
+        const totalSnippets = reviewCount + tribalCount + pricingCount;
+
+        // Thresholds for quality review generation:
+        // - Discovery hunts: Need at least 5 total snippets with 3+ from reviews/tribal
+        // - Contextual hunts: Need at least 4 total snippets with 2+ from reviews/tribal
+        const minTotalSnippets = ctx.contextTitle ? 4 : 5;
+        const minReviewTribal = ctx.contextTitle ? 2 : 3;
+        const actualReviewTribal = reviewCount + tribalCount;
+
+        if (totalSnippets < minTotalSnippets || actualReviewTribal < minReviewTribal) {
+          const huntType = ctx.contextTitle ? 'contextual' : 'discovery';
+          this.log(`⚠️  Pre-flight: Insufficient source material for ${huntType} hunt`);
+          this.log(`   Found: ${totalSnippets} total snippets (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing)`);
+          this.log(`   Required: ${minTotalSnippets}+ total with ${minReviewTribal}+ reviews/tribal`);
+          this.log(`   Saving research data but skipping analysis to save API credits`);
+          this.log(`   Re-run later to check if more sources available`);
+
+          // Skip analysis but continue to persistence to save Knowledge Card
+          ctx.skipAnalysis = true;
+          ctx.insufficientSources = true; // Flag for persistence phase
+        } else {
+          this.log(`✅ Pre-flight passed: ${totalSnippets} snippets (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing)`);
+        }
+      }
+
       // ===================================================================
       // PHASE 2: ANALYSIS (Synthesize + Embed + Logo)
       // ===================================================================

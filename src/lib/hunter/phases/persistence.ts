@@ -29,6 +29,39 @@ export interface DatabaseTypes {
 }
 
 /**
+ * Infer target_market from pricing plans
+ * Logic:
+ * - Has business/enterprise plans → 'business'
+ * - Only individual/free plans → 'consumer'
+ * - Has both individual AND team/business → 'prosumer'
+ */
+function inferTargetMarket(plans: any[]): 'consumer' | 'prosumer' | 'business' | 'enterprise' {
+  if (!plans || plans.length === 0) return 'business'; // Default for tools without pricing
+
+  const audiences = plans.map(p => p.target_audience).filter(Boolean);
+
+  const hasEnterprise = audiences.includes('enterprise');
+  const hasBusiness = audiences.includes('business');
+  const hasTeam = audiences.includes('team');
+  const hasIndividual = audiences.includes('individual');
+
+  // Enterprise-focused tools
+  if (hasEnterprise && !hasIndividual) return 'enterprise';
+
+  // Business-focused tools
+  if ((hasBusiness || hasEnterprise) && !hasIndividual) return 'business';
+
+  // Prosumer tools (serve both individuals and businesses)
+  if (hasIndividual && (hasTeam || hasBusiness || hasEnterprise)) return 'prosumer';
+
+  // Consumer-only tools
+  if (hasIndividual && !hasTeam && !hasBusiness && !hasEnterprise) return 'consumer';
+
+  // Default to business if unclear
+  return 'business';
+}
+
+/**
  * Execute the Persistence Phase
  *
  * Saves all data to database with deduplication and graph linking.
@@ -258,6 +291,8 @@ export async function executePersistencePhase(
     review_context: analysis.reviewContext || null,
     // V3.2: Parent/Child Relationship (Suite Bundling)
     parent_id: parentId,
+    // Infer target_market from pricing plans
+    target_market: inferTargetMarket(knowledgeCard?.smp_pricing?.plans || []),
   };
 
   const { data: item, error: itemError } = await deps.supabase
@@ -320,13 +355,58 @@ export async function executePersistencePhase(
     });
   }
 
-  // Step 5: If no context, we're done
+  // Step 5: If no context, create a general/discovery review
   if (!ctx.contextTitle) {
-    deps.log('[Phase 3] Complete - No context provided');
+    deps.log('[Discovery Hunt] Creating general review (no context)');
+
+    // Extract sources from pros/cons
+    const allClaims = [...normalizedPros, ...validCons];
+    const sources = allClaims
+      .filter(claim => claim.source_url)
+      .map(claim => ({
+        url: claim.source_url,
+        type: claim.source_type,
+      }));
+
+    // Deduplicate sources
+    const uniqueSources = Array.from(
+      new Map(sources.map(s => [s.url, s])).values()
+    );
+
+    // Auto-publish if high quality and robust sources
+    const dataQuality = knowledgeCard?.meta?.data_quality || 'medium';
+    const shouldAutoPublish = dataQuality === 'high' && uniqueSources.length >= 2;
+    const reviewStatus = shouldAutoPublish ? 'published' : 'draft';
+
+    deps.log(`[Discovery Review] Quality: ${dataQuality}, Sources: ${uniqueSources.length}, Status: ${reviewStatus}`);
+
+    // Create review with null context (discovery review)
+    const { data: review, error: reviewError } = await deps.supabase
+      .from('reviews')
+      .insert({
+        item_id: item.id,
+        context_id: null, // Discovery review
+        score: ctx.analysis.analysis?.score || null,
+        pros: normalizedPros,
+        cons: validCons,
+        sources: uniqueSources,
+        quality: dataQuality,
+        status: reviewStatus,
+      })
+      .select('id')
+      .single();
+
+    if (reviewError) {
+      deps.log(`[Discovery Review] Warning: Failed to create review: ${reviewError.message}`);
+    } else {
+      deps.log(`[Discovery Review] Created: ${review.id} (${reviewStatus})`);
+    }
+
+    deps.log('[Phase 3] Complete - Discovery review created');
     return {
-      toolId: item.id, // Keep as toolId for backward compat in return type
+      toolId: item.id,
       contextId: null,
-      reviewId: null,
+      reviewId: review?.id || null,
       wasReused: false,
     };
   }

@@ -304,30 +304,55 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
                       )}
                     </div>
 
-                    {/* Technical Highlights (global factual) */}
-                    {(() => {
-                      const highlights = extractHighlights(review.item.specs);
-                      if (highlights.pros.length === 0 && highlights.cons.length === 0) return null;
-                      return (
-                        <div class="mt-3 text-sm text-zinc-300">
-                          <span class="text-zinc-400">Technical highlights:</span>
-                          <ul class="mt-2 space-y-1">
-                            {highlights.pros.map((text: string) => (
-                              <li class="flex items-start gap-2">
-                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                                <span>{text}</span>
-                              </li>
-                            ))}
-                            {highlights.cons.map((text: string) => (
-                              <li class="flex items-start gap-2">
-                                <span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400"></span>
-                                <span>{text}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      );
-                    })()}
+                    {/* Highlights - Contextual pros/cons for this use case */}
+                    {(review.pros?.length > 0 || review.cons?.length > 0) && (
+                      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                        {review.pros?.length > 0 && (
+                          <div class="space-y-2">
+                            {review.pros.slice(0, 2).map((pro: any) => {
+                              const text = typeof pro === 'string' ? pro : pro?.text;
+                              const source = typeof pro === 'object' ? pro?.source_url : null;
+                              if (!text) return null;
+                              return (
+                                <div class="flex items-start gap-2 text-sm">
+                                  <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400"></span>
+                                  <div>
+                                    <span class="text-zinc-300">{text}</span>
+                                    {source && (
+                                      <a href={source} target="_blank" rel="nofollow noopener" class="ml-1.5 text-xs text-zinc-500 hover:text-zinc-400">
+                                        [source]
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {review.cons?.length > 0 && (
+                          <div class="space-y-2">
+                            {review.cons.slice(0, 2).map((con: any) => {
+                              const text = typeof con === 'string' ? con : con?.text;
+                              const source = typeof con === 'object' ? con?.source_url : null;
+                              if (!text) return null;
+                              return (
+                                <div class="flex items-start gap-2 text-sm">
+                                  <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
+                                  <div>
+                                    <span class="text-zinc-300">{text}</span>
+                                    {source && (
+                                      <a href={source} target="_blank" rel="nofollow noopener" class="ml-1.5 text-xs text-zinc-500 hover:text-zinc-400">
+                                        [source]
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Tags */}
                     {review.sentiment_tags?.length > 0 && (
@@ -338,21 +363,21 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
                   </div>
                 </div>
 
-                {/* Pros/Cons */}
-                {(review.pros?.length > 0 || review.cons?.length > 0) && (
+                {/* Full Pros/Cons - expandable */}
+                {(review.pros?.length > 2 || review.cons?.length > 2) && (
                   <details class="mt-4 group">
                     <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100">
                       <svg class="h-4 w-4 transition group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                       </svg>
-                      View pros & cons
+                      View all pros & cons
                     </summary>
 
                     <div class="mt-4">
                       <ProsCons
                         pros={review.pros || []}
                         cons={review.cons || []}
-                        sourceDisplay="toggle"
+                        sourceDisplay="inline"
                       />
                     </div>
                   </details>

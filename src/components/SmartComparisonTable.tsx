@@ -265,14 +265,14 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
         </div>
 
         {/* Category Tabs */}
-        <TabsList className="mt-4 bg-zinc-800 h-auto gap-2 p-0 flex flex-wrap">
+        <TabsList className="mt-4 bg-zinc-800/50 h-auto p-1 flex flex-wrap gap-1 rounded-lg">
           {categories.map((cat) => (
             <TabsTrigger
               key={cat.id}
               value={cat.id}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium data-[state=active]:bg-indigo-500 data-[state=active]:text-white data-[state=inactive]:bg-zinc-800 data-[state=inactive]:text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+              className="rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer data-[state=active]:bg-indigo-500 data-[state=active]:text-white text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
             >
-              <span className="mr-1">{cat.icon}</span>
+              <span className="mr-1.5">{cat.icon}</span>
               {cat.label}
             </TabsTrigger>
           ))}
