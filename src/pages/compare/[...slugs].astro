@@ -197,6 +197,73 @@ const priceWinner = computed?.price.winner;
 const learningWinner = computed?.learning_curve.easier;
 const audienceFits = computed?.audience_fits || [];
 
+// Fetch suggested comparisons (tools in same category + switching patterns)
+const { data: suggestedComparisons } = await supabase
+  .from('tools')
+  .select('id, name, slug, logo_url, avg_score, category:categories(slug)')
+  .eq('category.slug', toolA.category?.slug || toolB.category?.slug)
+  .not('slug', 'in', `(${slugA},${slugB})`)
+  .gt('avg_score', 0)
+  .order('avg_score', { ascending: false })
+  .limit(6);
+
+// Extract tools mentioned in switching_from across reviews
+const switchingTools = new Set<string>();
+for (const review of [...(toolA.reviews || []), ...(toolB.reviews || [])]) {
+  for (const tool of review.switching_from || []) {
+    if (tool && tool !== toolA.slug && tool !== toolB.slug) {
+      switchingTools.add(tool);
+    }
+  }
+}
+
+// Build suggested comparison links
+interface SuggestedComparison {
+  toolA: { name: string; slug: string; logo_url: string | null };
+  toolB: { name: string; slug: string; logo_url: string | null };
+  reason: 'category' | 'switching';
+}
+
+const suggestions: SuggestedComparison[] = [];
+
+// Add category-based suggestions (compare other tools in same category with current tools)
+const sameCategoryTools = (suggestedComparisons || []).slice(0, 3);
+for (const tool of sameCategoryTools) {
+  // Suggest comparing this tool with toolA
+  suggestions.push({
+    toolA: { name: toolA.name, slug: toolA.slug, logo_url: toolA.logo_url },
+    toolB: { name: tool.name, slug: tool.slug, logo_url: tool.logo_url },
+    reason: 'category',
+  });
+}
+
+// Add switching-based suggestions (if we have switching data)
+if (switchingTools.size > 0) {
+  const switchingSlugs = Array.from(switchingTools).slice(0, 2);
+  const { data: switchingToolsData } = await supabase
+    .from('tools')
+    .select('name, slug, logo_url')
+    .in('slug', switchingSlugs);
+
+  for (const tool of switchingToolsData || []) {
+    suggestions.push({
+      toolA: { name: toolA.name, slug: toolA.slug, logo_url: toolA.logo_url },
+      toolB: { name: tool.name, slug: tool.slug, logo_url: tool.logo_url },
+      reason: 'switching',
+    });
+  }
+}
+
+// Deduplicate and limit
+const uniqueSuggestions = suggestions
+  .filter((s, i, arr) =>
+    arr.findIndex(x =>
+      (x.toolA.slug === s.toolA.slug && x.toolB.slug === s.toolB.slug) ||
+      (x.toolA.slug === s.toolB.slug && x.toolB.slug === s.toolA.slug)
+    ) === i
+  )
+  .slice(0, 4);
+
 // SEO
 const title = `${toolA.name} vs ${toolB.name}: Which is Better? (${new Date().getFullYear()}) | StackHunt`;
 const description = `Compare ${toolA.name} and ${toolB.name} side by side. See pricing, features, pros & cons to find the best choice for your needs.`;
@@ -772,21 +839,93 @@ const schemas = [
       />
     </section>
 
-    <!-- Related Comparisons -->
-    <section class="mt-12">
-      <h2 class="mb-4 text-lg font-semibold text-zinc-100">Related Comparisons</h2>
-      <div class="flex flex-wrap gap-2">
-        <a href={`/tool/${toolA.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+    <!-- You Might Also Compare -->
+    {uniqueSuggestions.length > 0 && (
+      <section class="mt-12">
+        <div class="mb-6 flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-zinc-100">You Might Also Compare</h2>
+          {toolA.category && (
+            <a
+              href={`/categories/${toolA.category.slug}`}
+              class="text-sm text-indigo-400 transition hover:text-indigo-300"
+            >
+              All {toolA.category.name} →
+            </a>
+          )}
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          {uniqueSuggestions.map((suggestion) => {
+            // Ensure alphabetical order for URL
+            const [first, second] = suggestion.toolA.slug < suggestion.toolB.slug
+              ? [suggestion.toolA, suggestion.toolB]
+              : [suggestion.toolB, suggestion.toolA];
+
+            return (
+              <a
+                href={`/compare/${first.slug}-vs-${second.slug}`}
+                class="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition hover:border-indigo-500/50 hover:bg-zinc-900/80"
+              >
+                {/* Reason Badge */}
+                <div class="absolute right-3 top-3">
+                  {suggestion.reason === 'switching' ? (
+                    <span class="inline-flex items-center gap-1 rounded-full bg-purple-900/30 px-2 py-0.5 text-xs text-purple-400 border border-purple-700">
+                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                      Often switched
+                    </span>
+                  ) : (
+                    <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500 border border-zinc-700">
+                      Similar category
+                    </span>
+                  )}
+                </div>
+
+                {/* Comparison Preview */}
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2">
+                    <Logo domain={suggestion.toolA.logo_url} name={suggestion.toolA.name} size="md" />
+                    <span class="font-medium text-zinc-200 text-sm">{suggestion.toolA.name}</span>
+                  </div>
+
+                  <svg class="h-4 w-4 shrink-0 text-zinc-600 transition group-hover:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+
+                  <div class="flex items-center gap-2">
+                    <Logo domain={suggestion.toolB.logo_url} name={suggestion.toolB.name} size="md" />
+                    <span class="font-medium text-zinc-200 text-sm">{suggestion.toolB.name}</span>
+                  </div>
+                </div>
+
+                {/* Hover Arrow */}
+                <div class="absolute bottom-3 right-3 opacity-0 transition group-hover:opacity-100">
+                  <svg class="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </section>
+    )}
+
+    <!-- Quick Links -->
+    <section class="mt-8 border-t border-zinc-800 pt-6">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-400">
+        <a href={`/tool/${toolA.slug}`} class="hover:text-indigo-400 transition">
           More about {toolA.name} →
         </a>
-        <span class="text-slate-300">|</span>
-        <a href={`/tool/${toolB.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+        <span class="text-zinc-700">|</span>
+        <a href={`/tool/${toolB.slug}`} class="hover:text-indigo-400 transition">
           More about {toolB.name} →
         </a>
         {toolA.category && (
           <>
-            <span class="text-slate-300">|</span>
-            <a href={`/categories/${toolA.category.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
+            <span class="text-zinc-700">|</span>
+            <a href={`/categories/${toolA.category.slug}`} class="hover:text-indigo-400 transition">
               All {toolA.category.name} tools →
             </a>
           </>
