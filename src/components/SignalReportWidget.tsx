@@ -67,6 +67,16 @@ async function getIpHash(): Promise<string> {
 
 const PHASE_1_SIGNALS: SignalDefinition[] = [
   {
+    key: 'review_helpful',
+    label: 'Was this review helpful?',
+    category: 'pros',
+    options: [
+      { key: 'yes', label: 'Yes', icon: <Check className="h-4 w-4" /> },
+      { key: 'partially', label: 'Partially', icon: <AlertTriangle className="h-4 w-4" /> },
+      { key: 'no', label: 'No', icon: <X className="h-4 w-4" /> },
+    ],
+  },
+  {
     key: 'agree_pros',
     label: 'Do you agree with the pros?',
     category: 'pros',
