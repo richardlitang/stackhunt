@@ -396,13 +396,16 @@ const schemas = [
     <!-- Quick Verdict Banner -->
     {winner !== 'tie' && !curatedVerdict && (
       <div class={`mb-10 rounded-xl p-5 text-center shadow-md ${winner === 'A' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300'}`}>
-        <span class="text-sm font-medium text-zinc-300">Our Recommendation:</span>
+        <span class="text-sm font-medium text-zinc-300">Higher Overall Score:</span>
         <span class={`ml-2 font-bold ${winner === 'A' ? 'text-green-700' : 'text-blue-700'}`}>
           {winner === 'A' ? toolA.name : toolB.name}
         </span>
         <span class="text-sm text-zinc-400 ml-1">
-          scores {winner === 'A' ? scoreA : scoreB}/100
+          ({winner === 'A' ? scoreA : scoreB}/100)
         </span>
+        <p class="mt-2 text-xs text-zinc-500">
+          Best choice depends on your specific needs — see detailed comparison below
+        </p>
       </div>
     )}
 
@@ -415,7 +418,7 @@ const schemas = [
             <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
-            Recommended
+            Higher Score
           </div>
         )}
 
@@ -444,38 +447,14 @@ const schemas = [
           </div>
         )}
 
-        <!-- Highlights (global factual) -->
-        {(techA.pros.length > 0 || techA.cons.length > 0) && (
-          <div class="mt-6">
-            <h3 class="font-semibold text-zinc-100">Highlights</h3>
-            <ul class="mt-2 space-y-1">
-              {techA.pros.map((pro) => (
-                <li class="flex items-start gap-2 text-sm text-zinc-300">
-                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                  {pro}
-                </li>
-              ))}
-              {techA.cons.map((con) => (
-                <li class="flex items-start gap-2 text-sm text-zinc-300">
-                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400"></span>
-                  {con}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         {/* Pros & Cons from Reviews */}
-        {(prosA.length > 0 || consA.length > 0) && (
-          <div class="mt-6">
-            <ProsCons
-              pros={prosA}
-              cons={consA}
-              title="Pros & Cons"
-              sourceDisplay="inline"
-            />
-          </div>
-        )}
+        <div class="mt-6">
+          <ProsCons
+            pros={prosA}
+            cons={consA}
+            sourceDisplay="inline"
+          />
+        </div>
 
         <!-- Tags -->
         {tagsA.length > 0 && (
@@ -503,7 +482,7 @@ const schemas = [
             <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
-            Recommended
+            Higher Score
           </div>
         )}
 
@@ -532,38 +511,14 @@ const schemas = [
           </div>
         )}
 
-        <!-- Highlights (global factual) -->
-        {(techB.pros.length > 0 || techB.cons.length > 0) && (
-          <div class="mt-6">
-            <h3 class="font-semibold text-zinc-100">Highlights</h3>
-            <ul class="mt-2 space-y-1">
-              {techB.pros.map((pro) => (
-                <li class="flex items-start gap-2 text-sm text-zinc-300">
-                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                  {pro}
-                </li>
-              ))}
-              {techB.cons.map((con) => (
-                <li class="flex items-start gap-2 text-sm text-zinc-300">
-                  <span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400"></span>
-                  {con}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         {/* Pros & Cons from Reviews */}
-        {(prosB.length > 0 || consB.length > 0) && (
-          <div class="mt-6">
-            <ProsCons
-              pros={prosB}
-              cons={consB}
-              title="Pros & Cons"
-              sourceDisplay="inline"
-            />
-          </div>
-        )}
+        <div class="mt-6">
+          <ProsCons
+            pros={prosB}
+            cons={consB}
+            sourceDisplay="inline"
+          />
+        </div>
 
         <!-- Tags -->
         {tagsB.length > 0 && (
