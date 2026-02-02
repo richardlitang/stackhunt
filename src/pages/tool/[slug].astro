@@ -89,16 +89,7 @@ if (tool.category) {
   });
 }
 
-// Add top 3 context links (best-of lists)
-const topContexts = contextLinks?.slice(0, 3) || [];
-for (const ctx of topContexts) {
-  relatedLinks.push({
-    href: `/best/${ctx.context.slug}`,
-    title: ctx.context.title,
-    description: `${ctx.context.tool_count} tools compared`,
-    icon: 'list',
-  });
-}
+// Note: Context links shown in SpiderwebGrid below, not duplicated here
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
 const firstReview = tool.reviews?.[0];
 
