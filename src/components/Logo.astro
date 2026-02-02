@@ -19,15 +19,23 @@ interface Props {
   name: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   class?: string;
+  priority?: boolean; // For fetchpriority="high" on LCP images
 }
 
-const { domain, name, size = 'md', class: className = '' } = Astro.props;
+const { domain, name, size = 'md', class: className = '', priority = false } = Astro.props;
 
 const sizeClasses = {
   sm: 'h-8 w-8',
   md: 'h-12 w-12',
   lg: 'h-16 w-16',
   xl: 'h-20 w-20',
+};
+
+const sizePx = {
+  sm: 32,
+  md: 48,
+  lg: 64,
+  xl: 80,
 };
 
 const sizeClass = sizeClasses[size];
@@ -86,8 +94,11 @@ const primarySrc = directUrl || brandfetchUrl || googleUrl;
     <img
       src={primarySrc}
       alt={`${name} logo`}
+      width={sizePx[size]}
+      height={sizePx[size]}
       class="h-full w-full object-contain p-2"
-      loading="lazy"
+      loading={priority ? 'eager' : 'lazy'}
+      fetchpriority={priority ? 'high' : undefined}
       onerror={`
         if (this.src.includes('supabase') || this.src.includes('brandfetch')) {
           this.src = '${googleUrl}';

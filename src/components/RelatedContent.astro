@@ -1,0 +1,76 @@
+---
+/**
+ * Related Content Component
+ * Shows related articles, lists, comparisons for internal linking
+ * Supports SEO topic clustering strategy
+ */
+
+interface RelatedItem {
+  href: string;
+  title: string;
+  description?: string;
+  type: 'list' | 'comparison' | 'category' | 'tool';
+}
+
+interface Props {
+  items: RelatedItem[];
+  title?: string;
+  className?: string;
+}
+
+const { items, title = 'Related Articles', className = '' } = Astro.props;
+
+if (items.length === 0) return null;
+
+const typeIcons = {
+  list: '📋',
+  comparison: '⚖️',
+  category: '📂',
+  tool: '🔧',
+};
+
+const typeLabels = {
+  list: 'List',
+  comparison: 'Comparison',
+  category: 'Category',
+  tool: 'Tool',
+};
+---
+
+<section class={`rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 ${className}`}>
+  <div class="mb-4 flex items-center gap-2">
+    <svg class="h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <h2 class="text-lg font-semibold text-zinc-100">{title}</h2>
+  </div>
+
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {items.map((item) => (
+      <a
+        href={item.href}
+        class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4 transition-all hover:border-indigo-500/50 hover:bg-zinc-800"
+      >
+        <div class="flex items-start gap-3">
+          <span class="flex-shrink-0 text-2xl">{typeIcons[item.type]}</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="text-sm font-medium text-zinc-200 group-hover:text-indigo-400 transition line-clamp-2">
+                {item.title}
+              </h3>
+            </div>
+            {item.description && (
+              <p class="text-xs text-zinc-500 line-clamp-2">{item.description}</p>
+            )}
+            <span class="mt-2 inline-flex items-center text-xs text-zinc-500">
+              {typeLabels[item.type]}
+              <svg class="ml-1 h-3 w-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+          </div>
+        </div>
+      </a>
+    ))}
+  </div>
+</section>

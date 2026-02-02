@@ -20,11 +20,13 @@ import SentimentTags from '@/components/SentimentTags.astro';
 import VoteWidget from '@/components/VoteWidget';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
+import RelatedContent from '@/components/RelatedContent.astro';
 import { getContextBySlug, getAllContextSlugs, supabase } from '@/lib/supabase';
 import {
   generateContextMeta,
   generateListSchema,
   generateBreadcrumbSchema,
+  generateContextReviewSchemas,
 } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
 
@@ -106,6 +108,8 @@ const schemas = [
     ...(context.category ? [{ name: context.category.name, url: `/categories/${context.category.slug}` }] : []),
     { name: context.title, url: `/best/${context.slug}` },
   ]),
+  // Add Review schemas for top 3 tools (eligible for review rich snippets)
+  ...generateContextReviewSchemas(context.title, sortedReviews, 3),
 ];
 
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
@@ -124,6 +128,51 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
       .filter(Boolean)
       .slice(0, limit);
   return { pros: pickText(pros), cons: pickText(cons).slice(0, 1) };
+}
+
+// Build related content for topic clustering
+const relatedContentItems: Array<{ href: string; title: string; description?: string; type: 'list' | 'comparison' | 'category' | 'tool' }> = [];
+
+// Add related contexts from same category
+for (const ctx of (relatedContexts || []).slice(0, 3)) {
+  relatedContentItems.push({
+    href: `/best/${ctx.slug}`,
+    title: ctx.title,
+    description: `${ctx.tool_count} tools compared`,
+    type: 'list',
+  });
+}
+
+// Add category page
+if (context.category) {
+  relatedContentItems.push({
+    href: `/categories/${context.category.slug}`,
+    title: `All ${context.category.name} Tools`,
+    description: `Browse the complete ${context.category.name.toLowerCase()} category`,
+    type: 'category',
+  });
+}
+
+// Add top 2 tools as in-depth articles
+for (const review of sortedReviews.slice(0, 2)) {
+  relatedContentItems.push({
+    href: `/tool/${review.item.slug}`,
+    title: `${review.item.name} Review`,
+    description: review.item.short_description || undefined,
+    type: 'tool',
+  });
+}
+
+// Add comparison between #1 and #2
+if (sortedReviews.length >= 2) {
+  const tool1 = sortedReviews[0].item;
+  const tool2 = sortedReviews[1].item;
+  relatedContentItems.push({
+    href: `/compare/${tool1.slug}-vs-${tool2.slug}`,
+    title: `${tool1.name} vs ${tool2.name}`,
+    description: 'Head-to-head comparison of top picks',
+    type: 'comparison',
+  });
 }
 ---
 
@@ -446,6 +495,15 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
           variant="detailed"
         />
       </div>
+    )}
+
+    <!-- Related Content - Topic Clustering for SEO -->
+    {relatedContentItems.length > 0 && (
+      <RelatedContent
+        items={relatedContentItems}
+        title="Explore Related Topics"
+        className="mt-12"
+      />
     )}
   </div>
 </BaseLayout>

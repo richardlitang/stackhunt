@@ -22,7 +22,7 @@ export function generateToolMeta(
   tool: Tool,
   reviewCount?: number
 ): MetaProps {
-  const title = `${tool.name} Review & Alternatives 2025 | StackHunt`;
+  const title = `${tool.name} Review & Alternatives ${new Date().getFullYear()} | StackHunt`;
   const description = tool.short_description
     ? `${tool.short_description} Compare ${tool.name} with alternatives, see pricing, pros & cons.`
     : `Discover ${tool.name} alternatives, read reviews, compare features and pricing. Find the best ${tool.name} replacement for your needs.`;
@@ -30,7 +30,7 @@ export function generateToolMeta(
   return {
     title,
     description: description.slice(0, 160),
-    canonical: getCanonicalUrl(`/tools/${tool.slug}`),
+    canonical: getCanonicalUrl(`/tool/${tool.slug}`),
     ogImage: tool.logo_url || undefined,
     ogType: 'website',
   };
@@ -109,29 +109,51 @@ export function generateWebSiteSchema() {
 }
 
 /**
- * SoftwareApplication schema for tool pages
+ * SoftwareApplication schema for tool pages (Enhanced for 2026)
  */
 export function generateToolSchema(
   tool: Tool,
   offer?: AffiliateOffer,
   reviewCount?: number
 ) {
+  const metadata = tool.metadata as Record<string, unknown> | null;
+
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: tool.name,
-    url: tool.website || getCanonicalUrl(`/tools/${tool.slug}`),
+    url: tool.website || getCanonicalUrl(`/tool/${tool.slug}`),
     description: tool.short_description,
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web, iOS, Android',
   };
+
+  // Add more specific sub-category if available
+  if (tool.category?.name) {
+    schema.applicationSubCategory = tool.category.name;
+  }
+
+  // Add software version if available in metadata
+  const version = metadata?.company_info?.['latest_version'] || metadata?.version;
+  if (version && typeof version === 'string') {
+    schema.softwareVersion = version;
+  }
 
   // Add logo
   if (tool.logo_url) {
     schema.image = tool.logo_url;
   }
 
-  // Add offers
+  // Add author/creator organization
+  if (metadata?.company?.name || metadata?.company_info?.name) {
+    const companyName = (metadata.company as any)?.name || (metadata.company_info as any)?.name;
+    schema.author = {
+      '@type': 'Organization',
+      name: companyName,
+    };
+  }
+
+  // Add offers with more detail
   if (offer) {
     schema.offers = {
       '@type': 'Offer',
@@ -139,6 +161,11 @@ export function generateToolSchema(
       priceCurrency: 'USD',
       url: offer.url,
       availability: 'https://schema.org/InStock',
+      priceSpecification: tool.pricing_type === 'freemium' ? {
+        '@type': 'UnitPriceSpecification',
+        price: '0',
+        priceCurrency: 'USD',
+      } : undefined,
     };
   }
 
@@ -151,6 +178,12 @@ export function generateToolSchema(
       worstRating: '1',
       ratingCount: reviewCount || tool.review_count,
     };
+  }
+
+  // Add features if available
+  const features = (metadata?.features as any)?.core || (metadata as any)?.key_features;
+  if (Array.isArray(features) && features.length > 0) {
+    schema.featureList = features.slice(0, 5).map(f => typeof f === 'string' ? f : f?.name || f?.title).filter(Boolean);
   }
 
   return schema;
@@ -178,7 +211,7 @@ export function generateListSchema(
       item: {
         '@type': 'SoftwareApplication',
         name: item.tool.name,
-        url: item.tool.website || getCanonicalUrl(`/tools/${item.tool.slug}`),
+        url: item.tool.website || getCanonicalUrl(`/tool/${item.tool.slug}`),
         description: item.tool.short_description,
         image: item.tool.logo_url,
       },
@@ -224,7 +257,7 @@ export function generateVideoSchema(
     author: {
       '@type': 'Organization',
       name: tool.name,
-      url: tool.website || getCanonicalUrl(`/tools/${tool.slug}`),
+      url: tool.website || getCanonicalUrl(`/tool/${tool.slug}`),
     },
   };
 }
@@ -282,6 +315,85 @@ export function generateReviewSchema(
     },
     datePublished: review.created_at,
   };
+}
+
+/**
+ * Generate Review schemas for context/list pages (top tools only to avoid bloat)
+ */
+export function generateContextReviewSchemas(
+  contextTitle: string,
+  reviews: Array<{ item: Tool; score: number; summary_markdown?: string; created_at?: string }>,
+  limit = 3
+) {
+  return reviews.slice(0, limit).map((review) => ({
+    '@context': 'https://schema.org',
+    '@type': 'Review',
+    itemReviewed: {
+      '@type': 'SoftwareApplication',
+      name: review.item.name,
+      url: review.item.website || getCanonicalUrl(`/tool/${review.item.slug}`),
+      image: review.item.logo_url,
+    },
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: (review.score / 20).toFixed(1), // Convert 0-100 to 0-5
+      bestRating: '5',
+      worstRating: '1',
+    },
+    name: `${review.item.name} for ${contextTitle}`,
+    reviewBody: review.summary_markdown || review.item.short_description || `Analysis of ${review.item.name} for ${contextTitle}`,
+    publisher: {
+      '@type': 'Organization',
+      name: 'StackHunt',
+      url: getCanonicalUrl('/'),
+      logo: getCanonicalUrl('/logo.png'),
+    },
+    datePublished: review.created_at || new Date().toISOString(),
+  }));
+}
+
+/**
+ * Generate FAQ schema for tool pages with common questions
+ */
+export function generateToolFAQSchema(tool: Tool) {
+  const faqs: Array<{ question: string; answer: string }> = [];
+
+  // Pricing question (always relevant)
+  if (tool.pricing_type) {
+    const pricingAnswer = tool.pricing_type === 'free'
+      ? `${tool.name} is completely free to use.`
+      : tool.pricing_type === 'freemium'
+        ? `${tool.name} offers a free tier with paid plans available for additional features.`
+        : tool.pricing_type === 'paid'
+          ? `${tool.name} is a paid service. Check their official pricing page for current rates.`
+          : `${tool.name} offers various pricing options. Visit their website for detailed pricing information.`;
+
+    faqs.push({
+      question: `How much does ${tool.name} cost?`,
+      answer: pricingAnswer
+    });
+  }
+
+  // Description question (if available)
+  if (tool.short_description) {
+    faqs.push({
+      question: `What is ${tool.name}?`,
+      answer: tool.short_description
+    });
+  }
+
+  // Category question (if available)
+  if (tool.category?.name) {
+    faqs.push({
+      question: `What type of software is ${tool.name}?`,
+      answer: `${tool.name} is ${tool.category.name} software that helps teams and individuals with their workflow.`
+    });
+  }
+
+  // Only generate FAQ schema if we have questions
+  if (faqs.length === 0) return null;
+
+  return generateFAQSchema(faqs);
 }
 
 /**
