@@ -13,6 +13,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../../types/database';
+import { ContextMatchSchema } from '../types';
 
 export interface ContextMatch {
   context_id: string;
@@ -160,9 +161,26 @@ export async function analyzeContextRelevance(
     const text = result.response.text();
     const parsed = JSON.parse(text);
 
-    console.log(`[ContextMatcher] Found ${parsed.matches?.length || 0} relevant contexts`);
+    // Validate with Zod
+    if (!parsed.matches || !Array.isArray(parsed.matches)) {
+      console.error('[ContextMatcher] Validation failed: No matches array in response');
+      return [];
+    }
 
-    return parsed.matches || [];
+    const validated = parsed.matches
+      .map((match: unknown) => {
+        const result = ContextMatchSchema.safeParse(match);
+        if (!result.success) {
+          console.error('[ContextMatcher] Validation failed for match:', result.error.issues);
+          return null;
+        }
+        return result.data;
+      })
+      .filter((m): m is ContextMatch => m !== null);
+
+    console.log(`[ContextMatcher] Found ${validated.length} relevant contexts`);
+
+    return validated;
   } catch (error: any) {
     console.error('[ContextMatcher] Analysis failed:', error.message);
     return [];

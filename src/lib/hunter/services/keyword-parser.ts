@@ -6,6 +6,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { KeywordIntentSchema } from '../types';
 
 export type KeywordType =
   | 'CONTEXT'           // "best X for Y"
@@ -127,14 +128,16 @@ export async function parseKeywordIntent(keyword: string): Promise<KeywordIntent
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const parsed = JSON.parse(text) as KeywordIntent;
+    const parsed = JSON.parse(text);
 
-    // Validate required fields
-    if (!parsed.type || !parsed.tools || !parsed.actionPlan) {
-      throw new Error('Invalid response from Gemini: missing required fields');
+    // Validate with Zod
+    const validated = KeywordIntentSchema.safeParse(parsed);
+    if (!validated.success) {
+      console.error('[KeywordParser] Validation failed:', validated.error.issues);
+      throw new Error('Invalid response from Gemini: validation failed');
     }
 
-    return parsed;
+    return validated.data as KeywordIntent;
   } catch (error) {
     console.error('[KeywordParser] Error parsing keyword:', keyword, error);
     throw error;

@@ -2,8 +2,8 @@
 /**
  * PricingInsights Component (Budget Analyst)
  *
- * Displays cost mechanics and TCO factors without judgment.
- * Shows the "how the bill works" information from Budget Analyst persona.
+ * Compact callout showing cost mechanics and TCO factors.
+ * Designed to be integrated within pricing sections as a helpful tip.
  *
  * @module components/PricingInsights
  */
@@ -15,9 +15,10 @@ interface Props {
     commitmentTerms?: string | null;
     roiThreshold?: string | null;
   };
+  variant?: 'full' | 'compact';
 }
 
-const { budgetAnalyst } = Astro.props;
+const { budgetAnalyst, variant = 'compact' } = Astro.props;
 
 // Don't render if no budget analyst data
 if (!budgetAnalyst) return null;
@@ -40,47 +41,30 @@ if (
 }
 ---
 
-<div class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-  <div class="mb-4 flex items-start gap-3">
-    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-      <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-        />
-      </svg>
-    </div>
+<div class={variant === 'compact'
+  ? "mt-4 rounded-lg border border-blue-500/20 bg-blue-500/5 p-4"
+  : "rounded-lg border border-zinc-800 bg-zinc-900/50 p-6"
+}>
+  <div class="mb-3 flex items-start gap-2">
+    <svg class="h-4 w-4 flex-shrink-0 mt-0.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
     <div class="flex-1">
-      <h3 class="text-lg font-semibold text-zinc-100">Price Mechanics</h3>
-      <p class="mt-1 text-sm text-zinc-400">
-        Understanding the total cost of ownership
+      <h4 class="text-sm font-medium text-blue-300">💡 Price Mechanics</h4>
+      <p class="mt-0.5 text-xs text-zinc-400">
+        What affects your bill
       </p>
     </div>
   </div>
 
-  <div class="space-y-4">
+  <div class="space-y-2.5">
     <!-- Cost Drivers -->
     {costDrivers.length > 0 && (
       <div>
-        <h4 class="mb-2 text-sm font-medium text-zinc-300">Cost Drivers</h4>
-        <ul class="space-y-1.5">
+        <ul class="space-y-1">
           {costDrivers.map((driver) => (
-            <li class="flex items-start gap-2 text-sm text-zinc-400">
-              <svg
-                class="h-4 w-4 flex-shrink-0 mt-0.5 text-blue-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
+            <li class="flex items-start gap-1.5 text-xs text-zinc-300">
+              <span class="text-blue-400">•</span>
               <span>{driver}</span>
             </li>
           ))}
@@ -90,61 +74,32 @@ if (
 
     <!-- One-Time Fees -->
     {oneTimeFees.length > 0 && (
-      <div class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
-        <h4 class="mb-2 flex items-center gap-2 text-sm font-medium text-amber-400">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
-          Setup Costs
-        </h4>
-        <ul class="space-y-1">
+      <div class="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
+        <p class="text-xs font-medium text-amber-300 mb-1">⚠️ Setup Costs</p>
+        <ul class="space-y-0.5">
           {oneTimeFees.map((fee) => (
-            <li class="text-sm text-amber-400/90">{fee}</li>
+            <li class="text-xs text-amber-200/90">{fee}</li>
           ))}
         </ul>
       </div>
     )}
 
-    <!-- Bottom row: Commitment Terms & ROI Threshold -->
-    <div class="grid gap-3 md:grid-cols-2">
-      {commitmentTerms && (
-        <div class="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
-          <div class="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            Contract
+    <!-- Commitment & ROI (compact inline) -->}
+    {(commitmentTerms || roiThreshold) && (
+      <div class="space-y-1.5 text-xs">
+        {commitmentTerms && (
+          <div class="flex items-start gap-1.5">
+            <span class="text-zinc-500">📅</span>
+            <span class="text-zinc-300"><strong class="text-zinc-200">Contract:</strong> {commitmentTerms}</span>
           </div>
-          <p class="text-sm text-zinc-300">{commitmentTerms}</p>
-        </div>
-      )}
-
-      {roiThreshold && (
-        <div class="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
-          <div class="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-              />
-            </svg>
-            Worth It When
+        )}
+        {roiThreshold && (
+          <div class="flex items-start gap-1.5">
+            <span class="text-zinc-500">📈</span>
+            <span class="text-zinc-300"><strong class="text-zinc-200">Worth it when:</strong> {roiThreshold}</span>
           </div>
-          <p class="text-sm text-zinc-300">{roiThreshold}</p>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    )}
   </div>
 </div>

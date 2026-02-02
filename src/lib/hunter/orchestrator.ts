@@ -18,6 +18,7 @@ import {
   LogoService,
   QueueService,
 } from './services';
+import { HunterLogger } from './services/logger';
 import {
   executeResearchPhase,
   executeAnalysisPhase,
@@ -30,6 +31,7 @@ import type {
   HunterContext,
   HunterDependencies,
 } from './types';
+import { classifyErrorForDlq } from './errors';
 
 export class Hunter {
   private supabase: SupabaseClient<Database>;
@@ -38,7 +40,7 @@ export class Hunter {
   private logo: LogoService;
   private queue: QueueService;
   private config: HunterConfig;
-  private logs: string[] = [];
+  private logger: HunterLogger | null = null;
 
   constructor(config: HunterConfig) {
     this.config = config;
@@ -56,19 +58,33 @@ export class Hunter {
   }
 
   /**
-   * Log a message with timestamp
+   * Log a message (backwards compatible wrapper)
    */
   private log(message: string): void {
-    const timestamp = new Date().toISOString();
-    this.logs.push(`[${timestamp}] ${message}`);
-    console.log(`[Hunter] ${message}`);
+    if (this.logger) {
+      this.logger.info(message);
+    } else {
+      console.log(`[Hunter] ${message}`);
+    }
   }
 
   /**
    * Get all logs from the current hunt
    */
   getLogs(): string[] {
-    return this.logs;
+    if (this.logger) {
+      return this.logger.getLogs().map(entry =>
+        `[${entry.timestamp}] ${entry.message}`
+      );
+    }
+    return [];
+  }
+
+  /**
+   * Get logger instance (for structured logs)
+   */
+  getLogger(): HunterLogger | null {
+    return this.logger;
   }
 
   /**
@@ -109,7 +125,7 @@ export class Hunter {
    */
   async hunt(input: HunterInput): Promise<HunterResult> {
     const startTime = Date.now();
-    this.logs = [];
+    this.logger = new HunterLogger();
 
     this.log(`Starting hunt for: ${input.toolName}`);
     if (input.contextTitle) this.log(`Context: ${input.contextTitle}`);
@@ -127,7 +143,7 @@ export class Hunter {
       skipPersistence: false,
       startTime,
       tokensUsed: 0,
-      logs: this.logs,
+      logs: [],
     };
 
     // Create dependencies for injection into phases
@@ -141,12 +157,68 @@ export class Hunter {
       log: this.log.bind(this),
     };
 
+    // Track checkpoint version for optimistic locking
+    let checkpointVersion: number | undefined;
+
     try {
+      // ===================================================================
+      // CHECKPOINT RECOVERY: Resume from last completed phase if available
+      // ===================================================================
+      if (ctx.queueItemId) {
+        const checkpoint = await this.queue.getCheckpoint(ctx.queueItemId);
+        if (checkpoint) {
+          checkpointVersion = checkpoint.version;  // Track for version validation
+          this.log(`🔄 Resuming from checkpoint (version ${checkpointVersion})`);
+          if (checkpoint.research) {
+            this.log(`   Phase 1 (Research) already completed - reusing data`);
+            ctx.research = checkpoint.research;
+            ctx.tokensUsed += checkpoint.research.tokensUsed;
+            ctx.skipAnalysis = checkpoint.research.isDuplicate && !ctx.forceUpdate;
+          }
+          if (checkpoint.analysis) {
+            this.log(`   Phase 2 (Analysis) already completed - reusing data`);
+            ctx.analysis = checkpoint.analysis;
+            ctx.tokensUsed += checkpoint.analysis.tokensUsed;
+          }
+        }
+      }
+
       // ===================================================================
       // PHASE 1: RESEARCH (Scout + Extract Knowledge Card)
       // ===================================================================
-      ctx.research = await executeResearchPhase(ctx, deps);
-      ctx.tokensUsed += ctx.research.tokensUsed;
+      if (!ctx.research) {
+        this.logger?.startPhase('research');
+        ctx.research = await executeResearchPhase(ctx, deps);
+        ctx.tokensUsed += ctx.research.tokensUsed;
+        this.logger?.endPhase({
+          tokens_used: ctx.research.tokensUsed,
+          sources_found: ctx.research.scoutResult.sources.length,
+        });
+
+        // Save checkpoint after Phase 1 with version check
+        if (ctx.queueItemId) {
+          const saved = await this.queue.saveCheckpoint(
+            ctx.queueItemId,
+            1,
+            { research: ctx.research },
+            checkpointVersion,  // Expected version for conflict detection
+            this.log.bind(this)
+          );
+
+          if (!saved) {
+            this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
+            // Abort to prevent duplicate work
+            return {
+              success: false,
+              error: 'Checkpoint version conflict - item may have been processed by another worker',
+              tokensUsed: ctx.tokensUsed,
+              durationMs: Date.now() - ctx.startTime,
+            };
+          }
+
+          checkpointVersion = (checkpointVersion ?? 0) + 1;  // Update local version
+        }
+      }
 
       // Early exit: Hard duplicate detected (unless forceUpdate)
       if (ctx.research.isDuplicate && !ctx.forceUpdate) {
@@ -203,20 +275,60 @@ export class Hunter {
         this.log(`🧾 price_only hunt: skipping analysis phase`);
       }
 
-      if (!ctx.skipAnalysis) {
+      if (!ctx.skipAnalysis && !ctx.analysis) {
+        this.logger?.startPhase('analysis');
         ctx.analysis = await executeAnalysisPhase(ctx, deps);
         ctx.tokensUsed += ctx.analysis.tokensUsed;
+        this.logger?.endPhase({
+          tokens_used: ctx.analysis.tokensUsed,
+          score: ctx.analysis.analysis.score,
+          pros_count: ctx.analysis.analysis.pros.length,
+          cons_count: ctx.analysis.analysis.cons.length,
+        });
+
+        // Save checkpoint after Phase 2 with version check
+        if (ctx.queueItemId) {
+          const saved = await this.queue.saveCheckpoint(
+            ctx.queueItemId,
+            2,
+            { research: ctx.research, analysis: ctx.analysis },
+            checkpointVersion,  // Expected version for conflict detection
+            this.log.bind(this)
+          );
+
+          if (!saved) {
+            this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
+            return {
+              success: false,
+              error: 'Checkpoint version conflict - item may have been processed by another worker',
+              tokensUsed: ctx.tokensUsed,
+              durationMs: Date.now() - ctx.startTime,
+            };
+          }
+
+          checkpointVersion = (checkpointVersion ?? 0) + 1;  // Update local version
+        }
       }
 
       // ===================================================================
       // PHASE 3: PERSISTENCE (Dedup + Save + Graph)
       // ===================================================================
       if (!ctx.skipPersistence) {
+        this.logger?.startPhase('persistence');
         const persistence = await executePersistencePhase(ctx, deps);
+        this.logger?.endPhase({
+          tool_created: persistence.wasReused ? 0 : 1,
+          review_created: persistence.reviewId ? 1 : 0,
+        });
 
         this.log(`✅ Hunt complete: ${input.toolName}`);
         this.log(`Tool: ${persistence.toolId}, Context: ${persistence.contextId || 'none'}, Review: ${persistence.reviewId || 'none'}`);
         this.log(`Tokens: ${ctx.tokensUsed}, Duration: ${Date.now() - ctx.startTime}ms`);
+
+        // Clear checkpoint on successful completion
+        if (ctx.queueItemId) {
+          await this.queue.clearCheckpoint(ctx.queueItemId, this.log.bind(this));
+        }
 
         return {
           success: true,
@@ -329,10 +441,12 @@ export class Hunter {
           }
         }
       } else {
+        const dlqReason = classifyErrorForDlq(new Error(result.error || 'Unknown error'));
         await this.queue.markFailed(
           queueItem.id,
           result.error || 'Unknown error',
           undefined,
+          dlqReason,
           this.log.bind(this)
         );
       }
@@ -348,10 +462,12 @@ export class Hunter {
       this.queue.stopHeartbeat();
 
       const err = error as Error;
+      const dlqReason = classifyErrorForDlq(err);
       await this.queue.markFailed(
         queueItem.id,
         err.message,
         { stack: err.stack },
+        dlqReason,
         this.log.bind(this)
       );
 

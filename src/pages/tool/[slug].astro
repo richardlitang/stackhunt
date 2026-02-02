@@ -34,7 +34,6 @@ import IncludedTools from '@/components/IncludedTools.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import SignalAggregatesBadge from '@/components/SignalAggregatesBadge';
-import RelatedContent from '@/components/RelatedContent.astro';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
 import {
@@ -90,8 +89,6 @@ if (tool.category) {
     icon: 'category',
   });
 }
-
-// Note: Context links shown in SpiderwebGrid below, not duplicated here
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
 const firstReview = tool.reviews?.[0];
 
@@ -218,50 +215,6 @@ const schemas = [
 ];
 
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
-
-// Build related content for topic clustering & internal linking
-const relatedContentItems: Array<{ href: string; title: string; description?: string; type: 'list' | 'comparison' | 'category' | 'tool' }> = [];
-
-// Add top 3 contexts (lists) this tool appears in
-for (const ctx of contextLinks.slice(0, 3)) {
-  relatedContentItems.push({
-    href: `/best/${ctx.context.slug}`,
-    title: ctx.context.title,
-    description: `${ctx.context.tool_count} tools compared`,
-    type: 'list',
-  });
-}
-
-// Add comparison with top alternative (if available)
-if (orderedAlternatives.length > 0) {
-  const topAlt = orderedAlternatives[0];
-  relatedContentItems.push({
-    href: `/compare/${tool.slug}-vs-${topAlt.slug}`,
-    title: `${tool.name} vs ${topAlt.name}`,
-    description: 'Side-by-side comparison',
-    type: 'comparison',
-  });
-}
-
-// Add category page for broader exploration
-if (tool.category) {
-  relatedContentItems.push({
-    href: `/categories/${tool.category.slug}`,
-    title: `All ${tool.category.name} Tools`,
-    description: `Explore more ${tool.category.name.toLowerCase()} options`,
-    type: 'category',
-  });
-}
-
-// Add 2 more alternatives as tool links (topic cluster depth)
-for (const alt of orderedAlternatives.slice(1, 3)) {
-  relatedContentItems.push({
-    href: `/tool/${alt.slug}`,
-    title: alt.name,
-    description: alt.short_description || undefined,
-    type: 'tool',
-  });
-}
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -525,7 +478,7 @@ for (const alt of orderedAlternatives.slice(1, 3)) {
 
         {/* Pricing Plans */}
         {(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) && (
-          <div id="pricing-plans">
+          <div id="pricing-plans" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
             <PricingPlansGrid
               smp_pricing={knowledgeCard?.smp_pricing}
               legacy_pricing={knowledgeCard?.pricing}
@@ -542,16 +495,19 @@ for (const alt of orderedAlternatives.slice(1, 3)) {
                 variant="inline"
               />
             </PricingPlansGrid>
+
+            {/* Price Mechanics - Helpful tip integrated with pricing */}
+            <PricingInsights
+              variant="compact"
+              budgetAnalyst={budgetAnalyst ? {
+                costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) ? (budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) : [],
+                oneTimeFees: Array.isArray(budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) ? (budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) : [],
+                commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
+                roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
+              } : undefined}
+            />
           </div>
         )}
-
-        {/* Pricing Insights (Budget Analyst) - Right after pricing for context */}
-        <PricingInsights budgetAnalyst={budgetAnalyst ? {
-          costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) ? (budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) : [],
-          oneTimeFees: Array.isArray(budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) ? (budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) : [],
-          commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
-          roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
-        } : undefined} />
 
         {/* Tribal Knowledge (Real user insights) */}
         <TribalKnowledge
@@ -716,36 +672,24 @@ for (const alt of orderedAlternatives.slice(1, 3)) {
       </section>
     )}
 
-    {/* Spiderweb */}
-    {contextLinks && contextLinks.length > 0 && (
-      <div class="mt-16">
-        <SpiderwebGrid contexts={contextLinks.map((cl) => ({ id: cl.context.id, title: cl.context.title, slug: cl.context.slug, score: cl.score, tool_count: cl.context.tool_count }))} currentToolName={tool.name} limit={9} />
-      </div>
-    )}
-
-    {/* Related Content - Topic Clustering for SEO */}
-    {relatedContentItems.length > 0 && (
-      <RelatedContent
-        items={relatedContentItems}
-        title="Related Articles & Comparisons"
-        className="mt-12"
-      />
-    )}
-
-    {/* Help us improve this page */}
-    <div class="mt-12">
-      <div class="mb-4">
-        <h3 class="text-base font-semibold text-zinc-100">Help us improve this page</h3>
+    {/* Help us improve - Consolidated feedback section */}
+    <section class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold text-zinc-100">Help us improve</h2>
         <p class="text-sm text-zinc-400 mt-1">
-          Share feedback or report corrections
+          Quick feedback from real users or report detailed corrections
         </p>
       </div>
 
-      {/* Signal Widget - has its own card styling */}
-      <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
+      {/* Community Signals - Quick feedback */}
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-zinc-300 mb-3">Community Signals</h3>
+        <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
+      </div>
 
       {/* Correction Button */}
-      <div class="mt-4">
+      <div class="border-t border-zinc-800 pt-6">
+        <h3 class="text-sm font-medium text-zinc-300 mb-3">Report Corrections</h3>
         <button
           type="button"
           data-suggest-edit
@@ -762,7 +706,7 @@ for (const alt of orderedAlternatives.slice(1, 3)) {
           Report outdated pricing, features, or other inaccuracies for manual review.
         </p>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- Suggest Edit Modal -->

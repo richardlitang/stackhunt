@@ -260,3 +260,76 @@ function isAxiosError(error: unknown): error is AxiosLikeError {
     'message' in error
   );
 }
+
+/**
+ * Dead Letter Queue reason types
+ */
+export type DlqReason =
+  | 'rate_limit_exhausted'
+  | 'auth_error'
+  | 'quota_exceeded'
+  | 'validation_failed'
+  | 'timeout'
+  | 'network_error'
+  | 'content_blocked'
+  | 'insufficient_data'
+  | 'circuit_open'
+  | 'unknown';
+
+/**
+ * Classify an error for Dead Letter Queue routing
+ * Maps errors to DLQ reasons for better monitoring and debugging
+ */
+export function classifyErrorForDlq(error: unknown): DlqReason {
+  // Handle ApiError instances
+  if (error instanceof ApiError) {
+    switch (error.type) {
+      case 'rate_limit':
+        return 'rate_limit_exhausted';
+      case 'auth_error':
+        return 'auth_error';
+      case 'quota_exceeded':
+        return 'quota_exceeded';
+      case 'network_error':
+        return 'network_error';
+      case 'invalid_request':
+        // Check if it's content blocked (Gemini safety filters)
+        if (error.message.toLowerCase().includes('blocked') ||
+            error.message.toLowerCase().includes('safety')) {
+          return 'content_blocked';
+        }
+        return 'validation_failed';
+      case 'server_error':
+        return 'network_error';
+      default:
+        return 'unknown';
+    }
+  }
+
+  // Handle circuit breaker errors
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+
+    if (message.includes('circuit') && message.includes('open')) {
+      return 'circuit_open';
+    }
+
+    if (message.includes('timeout') || message.includes('timed out')) {
+      return 'timeout';
+    }
+
+    if (message.includes('validation') || message.includes('invalid')) {
+      return 'validation_failed';
+    }
+
+    if (message.includes('insufficient') || message.includes('not enough')) {
+      return 'insufficient_data';
+    }
+
+    if (message.includes('network') || message.includes('econnrefused')) {
+      return 'network_error';
+    }
+  }
+
+  return 'unknown';
+}

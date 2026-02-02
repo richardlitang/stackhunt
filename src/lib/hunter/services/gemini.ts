@@ -14,6 +14,7 @@ import {
 } from '../../knowledge-card';
 import { AnalysisSchema, type HunterAnalysis } from '../types';
 import { classifyGeminiError } from '../errors';
+import { geminiCircuit } from './circuit-breaker';
 
 export interface GeminiConfig {
   apiKey: string;
@@ -420,11 +421,13 @@ IMPORTANT: Include "pricing_analysis_log" field with your chain of thought reaso
     });
 
     const generateFn = async () => {
-      try {
-        return await model.generateContent(prompt);
-      } catch (error) {
-        throw classifyGeminiError(error);
-      }
+      return geminiCircuit.execute(async () => {
+        try {
+          return await model.generateContent(prompt);
+        } catch (error) {
+          throw classifyGeminiError(error);
+        }
+      });
     };
     const response = withRetry
       ? await withRetry(generateFn, 'Gemini fact extraction')
@@ -495,11 +498,13 @@ IMPORTANT: Include "pricing_analysis_log" field with your chain of thought reaso
     });
 
     const generateFn = async () => {
-      try {
-        return await model.generateContent(prompt);
-      } catch (error) {
-        throw classifyGeminiError(error);
-      }
+      return geminiCircuit.execute(async () => {
+        try {
+          return await model.generateContent(prompt);
+        } catch (error) {
+          throw classifyGeminiError(error);
+        }
+      });
     };
     const response = withRetry
       ? await withRetry(generateFn, 'Gemini synthesis')
@@ -596,11 +601,13 @@ IMPORTANT: Include "pricing_analysis_log" field with your chain of thought reaso
     const model = this.client.getGenerativeModel({ model: 'text-embedding-004' });
 
     const embedFn = async () => {
-      try {
-        return await model.embedContent(text);
-      } catch (error) {
-        throw classifyGeminiError(error);
-      }
+      return geminiCircuit.execute(async () => {
+        try {
+          return await model.embedContent(text);
+        } catch (error) {
+          throw classifyGeminiError(error);
+        }
+      });
     };
     const response = withRetry
       ? await withRetry(embedFn, 'Gemini embedding')

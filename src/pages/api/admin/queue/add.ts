@@ -71,6 +71,27 @@ export const POST: APIRoute = async ({ request }) => {
         });
       }
 
+      if (error.code === 'P0001' || error.message?.includes('Queue depth limit')) {
+        // Backpressure activated - queue is full
+        if (isJson) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'Queue is full - backpressure activated',
+            hint: 'Please wait for queue to drain and retry',
+          }), {
+            status: 429,  // Too Many Requests
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': '300',  // Suggest retry after 5 minutes
+            },
+          });
+        }
+        return new Response(null, {
+          status: 302,
+          headers: { Location: '/admin/queue?error=queue_full' },
+        });
+      }
+
       console.error('Queue add error:', error);
 
       if (isJson) {

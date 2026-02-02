@@ -8,6 +8,14 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
+import type { DlqReason } from '../errors';
+import type { ResearchOutput, AnalysisOutput } from '../types';
+
+export interface PhaseCheckpoint {
+  version: number;  // Optimistic locking to detect concurrent updates
+  research?: ResearchOutput;
+  analysis?: AnalysisOutput;
+}
 
 export interface QueueConfig {
   supabase: SupabaseClient<Database>;
@@ -113,12 +121,13 @@ export class QueueService {
   }
 
   /**
-   * Mark a queue item as failed
+   * Mark a queue item as failed with DLQ classification
    */
   async markFailed(
     queueId: string,
     error: string,
     errorDetails?: Record<string, unknown>,
+    dlqReason?: DlqReason,
     onLog?: (message: string) => void
   ): Promise<void> {
     const log = onLog || (() => {});
@@ -126,8 +135,9 @@ export class QueueService {
       p_queue_id: queueId,
       p_error: error,
       p_error_details: errorDetails || null,
+      p_dlq_reason: dlqReason || 'unknown',
     });
-    log(`Queue item failed: ${queueId}`);
+    log(`Queue item failed: ${queueId} (reason: ${dlqReason || 'unknown'})`);
   }
 
   /**
@@ -159,6 +169,78 @@ export class QueueService {
       this.heartbeatInterval = null;
     }
     this.currentQueueId = null;
+  }
+
+  /**
+   * Save checkpoint after completing a phase with version locking
+   */
+  async saveCheckpoint(
+    queueId: string,
+    phase: 1 | 2 | 3,
+    data: Omit<PhaseCheckpoint, 'version'>,
+    expectedVersion?: number,
+    onLog?: (message: string) => void
+  ): Promise<boolean> {
+    const log = onLog || (() => {});
+
+    // Get current checkpoint to determine next version
+    const current = await this.getCheckpoint(queueId);
+    const currentVersion = current?.version ?? 0;
+
+    // If expectedVersion provided, verify no concurrent update occurred
+    if (expectedVersion !== undefined && currentVersion !== expectedVersion) {
+      log(`⚠️  Checkpoint conflict detected: expected v${expectedVersion}, found v${currentVersion}`);
+      return false;  // Conflict - another worker updated checkpoint
+    }
+
+    const newVersion = currentVersion + 1;
+    const checkpointWithVersion: PhaseCheckpoint = {
+      version: newVersion,
+      ...data,
+    };
+
+    await this.supabase.rpc('save_hunt_checkpoint', {
+      p_queue_id: queueId,
+      p_phase: phase,
+      p_checkpoint: checkpointWithVersion as any,
+    });
+    log(`Checkpoint saved: phase ${phase}, version ${newVersion}`);
+    return true;
+  }
+
+  /**
+   * Get checkpoint for resuming a hunt
+   */
+  async getCheckpoint(queueId: string): Promise<PhaseCheckpoint | null> {
+    const { data, error } = await this.supabase
+      .from('hunt_queue')
+      .select('phase_checkpoint, last_completed_phase')
+      .eq('id', queueId)
+      .single();
+
+    if (error || !data || !data.phase_checkpoint) {
+      return null;
+    }
+
+    const checkpoint = data.phase_checkpoint as PhaseCheckpoint;
+
+    // Ensure version field exists (backwards compatibility)
+    if (checkpoint && !checkpoint.version) {
+      checkpoint.version = 0;
+    }
+
+    return checkpoint;
+  }
+
+  /**
+   * Clear checkpoint after successful completion
+   */
+  async clearCheckpoint(queueId: string, onLog?: (message: string) => void): Promise<void> {
+    const log = onLog || (() => {});
+    await this.supabase.rpc('clear_hunt_checkpoint', {
+      p_queue_id: queueId,
+    });
+    log(`Checkpoint cleared`);
   }
 
   /**

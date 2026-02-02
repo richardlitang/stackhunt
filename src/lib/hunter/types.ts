@@ -385,3 +385,43 @@ export const AnalysisSchema = z.object({
     }).optional(),
   }).optional(),
 });
+
+// ============================================================================
+// ROBUSTNESS: Additional validation schemas for service outputs
+// ============================================================================
+
+// Schema for tool discovery output from scout service
+export const DiscoveredToolSchema = z.object({
+  name: z.string().min(1),
+  domain: z.string().min(3),
+  confidence: z.enum(['high', 'medium', 'low']),
+});
+
+// Schema for context matching output
+export const ContextMatchSchema = z.object({
+  context_id: z.string().uuid(),
+  context_title: z.string().min(1),
+  relevance_score: z.number().min(0).max(100),
+  reasoning: z.string().min(10),
+});
+
+// Schema for defunct tool detection
+export const DefunctStatusSchema = z.object({
+  isDefunct: z.boolean(),
+  confidence: z.enum(['high', 'medium', 'low']),
+  shutdownDate: z.string().optional(),
+  reason: z.string().optional(),
+  evidence: z.string().optional(),
+});
+
+// Schema for keyword intent parsing
+export const KeywordIntentSchema = z.object({
+  type: z.enum(['CONTEXT', 'TOOL_REVIEW', 'COMPARISON', 'ALTERNATIVES', 'MULTI_COMPARISON']),
+  tools: z.array(z.string()),
+  context: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  actionPlan: z.array(z.object({
+    type: z.string(),
+    params: z.record(z.any()),
+  })).min(1),
+});

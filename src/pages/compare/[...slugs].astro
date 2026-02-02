@@ -282,12 +282,15 @@ for (const tool of sameCategoryTools) {
 }
 
 // Add switching-based suggestions (if we have switching data)
+// Only include if they're in same category as current tools
 if (switchingTools.size > 0) {
   const switchingSlugs = Array.from(switchingTools).slice(0, 2);
   const { data: switchingToolsData } = await supabase
     .from('tools')
-    .select('name, slug, logo_url')
-    .in('slug', switchingSlugs);
+    .select('name, slug, logo_url, category:categories(id)')
+    .in('slug', switchingSlugs)
+    // Filter to same category to prevent nonsensical comparisons
+    .eq('category.id', toolA.category?.id || toolB.category?.id);
 
   for (const tool of switchingToolsData || []) {
     suggestions.push({
@@ -298,9 +301,10 @@ if (switchingTools.size > 0) {
   }
 }
 
-// Deduplicate and limit
+// Deduplicate, validate, and limit
 const uniqueSuggestions = suggestions
   .filter((s, i, arr) =>
+    // Deduplicate
     arr.findIndex(x =>
       (x.toolA.slug === s.toolA.slug && x.toolB.slug === s.toolB.slug) ||
       (x.toolA.slug === s.toolB.slug && x.toolB.slug === s.toolA.slug)
@@ -461,13 +465,13 @@ const schemas = [
           </div>
         )}
 
-        {/* Contextual Pros & Cons */}
+        {/* Pros & Cons from Reviews */}
         {(prosA.length > 0 || consA.length > 0) && (
           <div class="mt-6">
             <ProsCons
               pros={prosA}
               cons={consA}
-              title="Contextual Pros & Cons"
+              title="Pros & Cons"
               sourceDisplay="inline"
             />
           </div>
@@ -549,13 +553,13 @@ const schemas = [
           </div>
         )}
 
-        {/* Contextual Pros & Cons */}
+        {/* Pros & Cons from Reviews */}
         {(prosB.length > 0 || consB.length > 0) && (
           <div class="mt-6">
             <ProsCons
               pros={prosB}
               cons={consB}
-              title="Contextual Pros & Cons"
+              title="Pros & Cons"
               sourceDisplay="inline"
             />
           </div>
@@ -908,6 +912,7 @@ const schemas = [
             return (
               <a
                 href={`/compare/${first.slug}-vs-${second.slug}`}
+                rel="nofollow"
                 class="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition hover:border-indigo-500/50 hover:bg-zinc-900/80"
               >
                 {/* Reason Badge */}

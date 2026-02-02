@@ -8,6 +8,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { DiscoveredToolSchema } from '../types';
 
 export interface DiscoveredTool {
   name: string;
@@ -85,10 +86,27 @@ export async function discoverTools(
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const tools = JSON.parse(text) as DiscoveredTool[];
+    const parsed = JSON.parse(text);
+
+    // Validate with Zod
+    if (!Array.isArray(parsed)) {
+      console.error('[Scout] Validation failed: Response is not an array');
+      return [];
+    }
+
+    const validated = parsed
+      .map(item => {
+        const result = DiscoveredToolSchema.safeParse(item);
+        if (!result.success) {
+          console.error('[Scout] Validation failed for tool:', result.error.issues);
+          return null;
+        }
+        return result.data;
+      })
+      .filter((t): t is DiscoveredTool => t !== null);
 
     // Filter out low confidence results
-    return tools.filter(t => t.confidence !== 'low');
+    return validated.filter(t => t.confidence !== 'low');
   } catch (error) {
     console.error('[Scout] Error discovering tools:', error);
     return [];

@@ -6,6 +6,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { DefunctStatusSchema } from '../types';
 
 export interface DefunctStatus {
   isDefunct: boolean;
@@ -84,14 +85,20 @@ export async function detectDefunctTool(
   try {
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    const parsed = JSON.parse(text) as DefunctStatus;
+    const parsed = JSON.parse(text);
 
-    // Validate required fields
-    if (typeof parsed.isDefunct !== 'boolean' || !parsed.confidence) {
-      throw new Error('Invalid response from Gemini: missing required fields');
+    // Validate with Zod
+    const validated = DefunctStatusSchema.safeParse(parsed);
+    if (!validated.success) {
+      console.error('[DefunctDetector] Validation failed:', validated.error.issues);
+      // On error, assume tool is active (fail safe)
+      return {
+        isDefunct: false,
+        confidence: 'low',
+      };
     }
 
-    return parsed;
+    return validated.data;
   } catch (error) {
     console.error('[DefunctDetector] Error detecting defunct status:', toolName, error);
     // On error, assume tool is active (fail safe)

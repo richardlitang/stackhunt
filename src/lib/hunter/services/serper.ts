@@ -10,6 +10,8 @@ import axios from 'axios';
 import type { SerperResponse } from '../types';
 import { classifySerperError } from '../errors';
 import { scrapeUrl, identifyPricingUrls } from '../utils/scraper';
+import { serperRateLimiter } from './rate-limiter';
+import { serperCircuit } from './circuit-breaker';
 
 export interface SerperConfig {
   apiKey: string;
@@ -54,22 +56,24 @@ export class SerperService {
    * Perform a single search query
    */
   async search(query: string): Promise<SerperResponse> {
-    try {
-      const response = await axios.post<SerperResponse>(
-        'https://google.serper.dev/search',
-        { q: query, num: 10 },
-        {
-          headers: {
-            'X-API-KEY': this.apiKey,
-            'Content-Type': 'application/json',
-          },
-          timeout: 30000, // 30 second timeout
-        }
-      );
-      return response.data;
-    } catch (error) {
-      throw classifySerperError(error);
-    }
+    return serperCircuit.execute(async () => {
+      try {
+        const response = await axios.post<SerperResponse>(
+          'https://google.serper.dev/search',
+          { q: query, num: 10 },
+          {
+            headers: {
+              'X-API-KEY': this.apiKey,
+              'Content-Type': 'application/json',
+            },
+            timeout: 30000, // 30 second timeout
+          }
+        );
+        return response.data;
+      } catch (error) {
+        throw classifySerperError(error);
+      }
+    });
   }
 
   /**
@@ -211,11 +215,11 @@ export class SerperService {
       `is ${toolName} worth it reddit honest review`,
     ];
 
-    // Execute searches in parallel (with retry if provided)
+    // Execute searches with rate limiting (with retry if provided)
     const [results, video] = await Promise.all([
-      // Web searches
-      Promise.all(
-        queries.map((q) => {
+      // Web searches - rate limited to prevent API throttling
+      serperRateLimiter.executeAll(
+        queries.map((q) => () => {
           const searchFn = () => this.search(q);
           return withRetry ? withRetry(searchFn, `Search: ${q}`) : searchFn();
         })
