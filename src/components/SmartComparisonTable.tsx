@@ -351,14 +351,36 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
         </table>
       </div>
 
-      {/* Data Quality Note */}
+      {/* Data Quality & Sources */}
       <div className="border-t border-zinc-800 bg-zinc-900/30 px-6 py-3">
-        <p className="text-xs text-zinc-500">
-          Data extracted from public sources. Quality:{' '}
-          <span className="font-medium text-zinc-400">
-            {metaA?.meta?.data_quality || 'unknown'} / {metaB?.meta?.data_quality || 'unknown'}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+          <span>
+            Data quality:{' '}
+            <span className="font-medium text-zinc-400">
+              {metaA?.meta?.data_quality || 'unknown'} / {metaB?.meta?.data_quality || 'unknown'}
+            </span>
           </span>
-        </p>
+          <span className="hidden sm:inline">•</span>
+          <span>
+            Sources:{' '}
+            {[
+              metaA?.company?.website && (
+                <a key="a" href={metaA.company.website} target="_blank" rel="nofollow noopener" className="text-zinc-400 hover:text-hunt-400">
+                  {toolA.name}
+                </a>
+              ),
+              metaB?.company?.website && (
+                <a key="b" href={metaB.company.website} target="_blank" rel="nofollow noopener" className="text-zinc-400 hover:text-hunt-400">
+                  {toolB.name}
+                </a>
+              ),
+            ].filter(Boolean).reduce((acc: React.ReactNode[], curr, i) => {
+              if (i > 0) acc.push(<span key={`sep-${i}`}>, </span>);
+              acc.push(curr);
+              return acc;
+            }, []) || <span className="text-zinc-500">official websites</span>}
+          </span>
+        </div>
       </div>
     </Tabs>
   );

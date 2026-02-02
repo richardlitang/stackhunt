@@ -84,6 +84,50 @@ if (!tools || tools.length !== 2) {
 const toolA = tools.find(t => t.slug === slugA)!;
 const toolB = tools.find(t => t.slug === slugB)!;
 
+// Validation: Prevent nonsensical comparisons (Canva vs LinkedIn Ads)
+// Check if tools are comparable based on category or function similarity
+const sameCategory = toolA.category?.id === toolB.category?.id && toolA.category?.id != null;
+const functionA = (toolA.metadata as any)?.smp_taxonomy?.primary_function;
+const functionB = (toolB.metadata as any)?.smp_taxonomy?.primary_function;
+
+// Define comparable function groups (tools in these groups can be compared)
+const comparableFunctions = [
+  ['Project Management', 'Task Management', 'Work Management'],
+  ['Communication', 'Team Chat', 'Messaging'],
+  ['Design', 'Graphic Design', 'Video Editing', 'Creative'],
+  ['Note-Taking', 'Knowledge Management', 'Documentation'],
+  ['CRM', 'Sales', 'Marketing Automation', 'Email Marketing', 'Lead Generation'],
+  ['Accounting', 'Finance', 'Expense Management', 'Invoicing'],
+  ['HR', 'Payroll', 'Recruitment'],
+  ['Analytics', 'Business Intelligence', 'Data Visualization'],
+  ['Advertising Platform', 'Ad Management', 'Marketing'],
+];
+
+const areFunctionsComparable = (funcA: string | undefined, funcB: string | undefined): boolean => {
+  if (!funcA || !funcB) return false;
+  if (funcA === funcB) return true;
+
+  // Check if both functions are in the same comparable group
+  for (const group of comparableFunctions) {
+    const aInGroup = group.some(f => funcA.toLowerCase().includes(f.toLowerCase()));
+    const bInGroup = group.some(f => funcB.toLowerCase().includes(f.toLowerCase()));
+    if (aInGroup && bInGroup) return true;
+  }
+
+  return false;
+};
+
+const functionsComparable = areFunctionsComparable(functionA, functionB);
+
+// Check substitutability score from comparison insights (if exists)
+const hasHighSubstitutability = (comparisonInsights?.substitutability_score || 0) >= 30;
+
+// Redirect to 404 if tools are not comparable
+if (!sameCategory && !functionsComparable && !hasHighSubstitutability) {
+  console.log(`[Comparison blocked] ${toolA.name} vs ${toolB.name} - Category: ${sameCategory}, Function: ${functionsComparable}, Substitutability: ${comparisonInsights?.substitutability_score || 0}`);
+  return Astro.redirect('/404');
+}
+
 // Get primary offers
 const offerA = toolA.affiliate_offers?.find(o => o.is_primary) || toolA.affiliate_offers?.[0];
 const offerB = toolB.affiliate_offers?.find(o => o.is_primary) || toolB.affiliate_offers?.[0];
