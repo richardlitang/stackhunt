@@ -11,15 +11,43 @@ import { getCanonicalUrl } from '@/lib/utils';
 // Cache for 5 minutes (SSR)
 Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
 
-// Fetch all contexts with categories
-const { data: contexts, error } = await supabase
-  .from('contexts')
-  .select(`
-    *,
-    category:categories!contexts_category_id_fkey(name, slug, icon)
-  `)
-  .gt('tool_count', 0)
-  .order('tool_count', { ascending: false });
+// Fetch contexts with parallel queries for performance
+const [allContextsResult, popularResult, recentResult] = await Promise.all([
+  // All contexts for category grouping
+  supabase
+    .from('contexts')
+    .select(`
+      *,
+      category:categories!contexts_category_id_fkey(name, slug, icon)
+    `)
+    .gt('tool_count', 0)
+    .order('tool_count', { ascending: false }),
+
+  // Popular comparisons (most comprehensive lists)
+  supabase
+    .from('contexts')
+    .select(`
+      *,
+      category:categories!contexts_category_id_fkey(name, slug, icon)
+    `)
+    .gte('tool_count', 5)
+    .order('tool_count', { ascending: false })
+    .limit(9),
+
+  // Recently updated (freshness signal for SEO)
+  supabase
+    .from('contexts')
+    .select(`
+      *,
+      category:categories!contexts_category_id_fkey(name, slug, icon)
+    `)
+    .order('updated_at', { ascending: false })
+    .limit(6),
+]);
+
+const { data: contexts, error } = allContextsResult;
+const { data: popularContexts } = popularResult;
+const { data: recentContexts } = recentResult;
 
 if (error) {
   console.error('Error fetching contexts:', error);
@@ -46,7 +74,7 @@ const categoryNames = Object.keys(byCategory).sort();
 <BaseLayout meta={meta}>
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Header -->
-    <header class="text-center">
+    <header class="text-center mb-12">
       <h1 class="text-3xl font-semibold text-zinc-100 sm:text-4xl">
         Best Software Lists
       </h1>
@@ -55,17 +83,98 @@ const categoryNames = Object.keys(byCategory).sort();
       </p>
     </header>
 
-    <!-- Lists by Category -->
-    {categoryNames.length > 0 ? (
-      <div class="mt-12 space-y-12">
-        {categoryNames.map((catName) => (
-          <section>
-            <h2 class="mb-6 flex items-center gap-2 text-xl font-semibold text-zinc-100">
-              {byCategory[catName][0]?.category?.icon && (
-                <span>{byCategory[catName][0].category.icon}</span>
+    <!-- Popular Comparisons -->
+    {popularContexts && popularContexts.length > 0 && (
+      <section class="mb-16">
+        <div class="flex items-end justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-semibold text-zinc-100">Popular Comparisons</h2>
+            <p class="mt-1 text-sm text-zinc-400">Most comprehensive tool lists</p>
+          </div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {popularContexts.map((ctx) => (
+            <a
+              href={`/best/${ctx.slug}`}
+              class="group relative rounded-lg border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-900/50 p-5 transition-all duration-200 hover:border-hunt-500/50 hover:shadow-lg hover:shadow-hunt-500/10"
+            >
+              <div class="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-hunt-500/10 px-2 py-0.5 text-xs font-medium text-hunt-400">
+                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                {ctx.tool_count} tools
+              </div>
+              <h3 class="font-semibold text-zinc-100 group-hover:text-white line-clamp-2 pr-16">
+                {ctx.title}
+              </h3>
+              {ctx.category && (
+                <div class="mt-2 flex items-center gap-1 text-xs text-zinc-500">
+                  <span>{ctx.category.icon || '📁'}</span>
+                  <span>{ctx.category.name}</span>
+                </div>
               )}
-              {catName}
-            </h2>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Recently Updated -->
+    {recentContexts && recentContexts.length > 0 && (
+      <section class="mb-16">
+        <div class="flex items-end justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-semibold text-zinc-100">Recently Updated</h2>
+            <p class="mt-1 text-sm text-zinc-400">Fresh insights and new tools</p>
+          </div>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {recentContexts.map((ctx) => (
+            <a
+              href={`/best/${ctx.slug}`}
+              class="group flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700 hover:bg-zinc-900"
+            >
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="font-medium text-zinc-100 group-hover:text-white line-clamp-2">
+                  {ctx.title}
+                </h3>
+                <div class="mt-1 flex items-center gap-2 text-xs text-zinc-500">
+                  <span>{ctx.tool_count} tools</span>
+                  {ctx.category && (
+                    <>
+                      <span>•</span>
+                      <span>{ctx.category.name}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- All Lists by Category -->
+    {categoryNames.length > 0 ? (
+      <section>
+        <div class="mb-8">
+          <h2 class="text-2xl font-semibold text-zinc-100">Browse All Lists</h2>
+          <p class="mt-1 text-sm text-zinc-400">Organized by category</p>
+        </div>
+        <div class="space-y-12">
+          {categoryNames.map((catName) => (
+            <div>
+              <h3 class="mb-6 flex items-center gap-2 text-xl font-semibold text-zinc-100">
+                {byCategory[catName][0]?.category?.icon && (
+                  <span>{byCategory[catName][0].category.icon}</span>
+                )}
+                {catName}
+              </h3>
 
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {byCategory[catName].map((ctx) => (
@@ -88,9 +197,10 @@ const categoryNames = Object.keys(byCategory).sort();
                 </a>
               ))}
             </div>
-          </section>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
+      </section>
     ) : (
       <div class="mt-12 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-12 text-center">
         <svg class="mx-auto h-12 w-12 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

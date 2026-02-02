@@ -58,36 +58,59 @@ const { data: relatedContexts } = context.category_id
       .limit(5)
   : { data: [] };
 
-// Build related links for internal linking (SEO)
-const relatedLinks: Array<{ href: string; title: string; description?: string; icon: 'category' | 'list' | 'tool' | 'compare' }> = [];
+// Build deduplicated related content for internal linking (SEO)
+// Merged from previous relatedLinks + relatedContentItems to eliminate duplication
+const exploreMoreItems: Array<{
+  href: string;
+  title: string;
+  description?: string;
+  type: 'list' | 'comparison' | 'category' | 'tool';
+  priority: number;
+}> = [];
 
-// Add category link
-if (context.category) {
-  relatedLinks.push({
-    href: `/categories/${context.category.slug}`,
-    title: context.category.name,
-    description: `Browse all ${context.category.name.toLowerCase()} tools`,
-    icon: 'category',
+// Priority 1: Comparison between top 2 (unique, high-intent SEO)
+if (sortedReviews.length >= 2) {
+  const tool1 = sortedReviews[0].item;
+  const tool2 = sortedReviews[1].item;
+  exploreMoreItems.push({
+    href: `/compare/${tool1.slug}-vs-${tool2.slug}`,
+    title: `${tool1.name} vs ${tool2.name}`,
+    description: 'Head-to-head comparison of top picks',
+    type: 'comparison',
+    priority: 100,
   });
 }
 
-// Add related lists (same category)
+// Priority 2: Category link
+if (context.category) {
+  exploreMoreItems.push({
+    href: `/categories/${context.category.slug}`,
+    title: `All ${context.category.name} Tools`,
+    description: `Browse the complete ${context.category.name.toLowerCase()} category`,
+    type: 'category',
+    priority: 90,
+  });
+}
+
+// Priority 3: Related lists (same category)
 for (const ctx of (relatedContexts || []).slice(0, 4)) {
-  relatedLinks.push({
+  exploreMoreItems.push({
     href: `/best/${ctx.slug}`,
     title: ctx.title,
     description: `${ctx.tool_count} tools compared`,
-    icon: 'list',
+    type: 'list',
+    priority: 80,
   });
 }
 
-// Add top tools from this list
-for (const review of sortedReviews.slice(0, 3)) {
-  relatedLinks.push({
+// Priority 4: Top tools from this list
+for (const review of sortedReviews.slice(0, 2)) {
+  exploreMoreItems.push({
     href: `/tool/${review.item.slug}`,
-    title: review.item.name,
+    title: `${review.item.name} Review`,
     description: review.item.short_description || undefined,
-    icon: 'tool',
+    type: 'tool',
+    priority: 70,
   });
 }
 
@@ -128,51 +151,6 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
       .filter(Boolean)
       .slice(0, limit);
   return { pros: pickText(pros), cons: pickText(cons).slice(0, 1) };
-}
-
-// Build related content for topic clustering
-const relatedContentItems: Array<{ href: string; title: string; description?: string; type: 'list' | 'comparison' | 'category' | 'tool' }> = [];
-
-// Add related contexts from same category
-for (const ctx of (relatedContexts || []).slice(0, 3)) {
-  relatedContentItems.push({
-    href: `/best/${ctx.slug}`,
-    title: ctx.title,
-    description: `${ctx.tool_count} tools compared`,
-    type: 'list',
-  });
-}
-
-// Add category page
-if (context.category) {
-  relatedContentItems.push({
-    href: `/categories/${context.category.slug}`,
-    title: `All ${context.category.name} Tools`,
-    description: `Browse the complete ${context.category.name.toLowerCase()} category`,
-    type: 'category',
-  });
-}
-
-// Add top 2 tools as in-depth articles
-for (const review of sortedReviews.slice(0, 2)) {
-  relatedContentItems.push({
-    href: `/tool/${review.item.slug}`,
-    title: `${review.item.name} Review`,
-    description: review.item.short_description || undefined,
-    type: 'tool',
-  });
-}
-
-// Add comparison between #1 and #2
-if (sortedReviews.length >= 2) {
-  const tool1 = sortedReviews[0].item;
-  const tool2 = sortedReviews[1].item;
-  relatedContentItems.push({
-    href: `/compare/${tool1.slug}-vs-${tool2.slug}`,
-    title: `${tool1.name} vs ${tool2.name}`,
-    description: 'Head-to-head comparison of top picks',
-    type: 'comparison',
-  });
 }
 ---
 
@@ -493,24 +471,15 @@ if (sortedReviews.length >= 2) {
       </div>
     )}
 
-    <!-- Related Links (SEO) -->
-    {relatedLinks.length > 0 && (
-      <div class="mt-12">
-        <RelatedLinks
-          title="Related Pages"
-          links={relatedLinks}
-          variant="detailed"
+    <!-- Explore More - Merged related content for better UX and SEO -->
+    {exploreMoreItems.length > 0 && (
+      <aside class="mt-12">
+        <RelatedContent
+          items={exploreMoreItems}
+          title="Explore More"
+          className=""
         />
-      </div>
-    )}
-
-    <!-- Related Content - Topic Clustering for SEO -->
-    {relatedContentItems.length > 0 && (
-      <RelatedContent
-        items={relatedContentItems}
-        title="Explore Related Topics"
-        className="mt-12"
-      />
+      </aside>
     )}
   </div>
 </BaseLayout>
