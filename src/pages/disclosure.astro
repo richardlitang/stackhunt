@@ -17,20 +17,47 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
     description: "Learn about our affiliate relationships, how we make money, and our commitment to editorial independence."
   }}
 >
-  <main class="container mx-auto max-w-3xl px-4 py-12">
-    <article class="prose prose-invert max-w-none prose-headings:text-zinc-100 prose-p:text-zinc-400 prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-strong:text-zinc-200 prose-li:text-zinc-400">
-      <h1>Affiliate & Data Disclosure</h1>
+  <main class="min-h-screen bg-gradient-to-b from-zinc-950 to-zinc-900">
+    <!-- Header -->
+    <div class="border-b border-zinc-800 bg-zinc-950/50 backdrop-blur-sm">
+      <div class="container mx-auto max-w-5xl px-4 py-8">
+        <!-- Breadcrumbs -->
+        <nav class="mb-4 flex items-center gap-2 text-sm text-zinc-500">
+          <a href="/" class="hover:text-indigo-400 transition">Home</a>
+          <span>/</span>
+          <span class="text-zinc-400">Disclosure</span>
+        </nav>
 
-      <p class="text-sm text-zinc-500 -mt-2 mb-8">
-        Last Updated: February 2026
-      </p>
+        <h1 class="text-4xl font-bold text-zinc-100 mb-3">Affiliate & Data Disclosure</h1>
+        <p class="text-lg text-zinc-400 mb-4">
+          Transparency is our core currency. This page explains how StackHunt earns revenue,
+          how we generate our data, and the boundaries of our research.
+        </p>
+        <p class="text-sm text-zinc-600">Last Updated: February 2026</p>
+      </div>
+    </div>
 
-      <p class="lead text-xl text-zinc-300">
-        Transparency is our core currency. This page explains how StackHunt earns revenue,
-        how we generate our data, and the boundaries of our research.
-      </p>
+    <div class="container mx-auto max-w-5xl px-4 py-12">
+      <div class="grid gap-8 lg:grid-cols-[240px_1fr]">
+        <!-- Table of Contents (Sticky) -->
+        <aside class="hidden lg:block">
+          <div class="sticky top-20">
+            <h2 class="text-sm font-semibold text-zinc-400 mb-3">On This Page</h2>
+            <nav class="space-y-2 text-sm">
+              <a href="#revenue" class="block text-zinc-500 hover:text-indigo-400 transition">How We Earn Revenue</a>
+              <a href="#independence" class="block text-zinc-500 hover:text-indigo-400 transition">Editorial Independence</a>
+              <a href="#ai-integrity" class="block text-zinc-500 hover:text-indigo-400 transition">AI & Data Integrity</a>
+              <a href="#liability" class="block text-zinc-500 hover:text-indigo-400 transition">Limitation of Liability</a>
+              <a href="#research" class="block text-zinc-500 hover:text-indigo-400 transition">How Our Research Works</a>
+              <a href="#roadmap" class="block text-zinc-500 hover:text-indigo-400 transition">Future Features</a>
+            </nav>
+          </div>
+        </aside>
 
-      <h2>1. How We Earn Revenue</h2>
+        <!-- Content -->
+        <article class="prose prose-invert max-w-none prose-headings:text-zinc-100 prose-p:text-zinc-400 prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-strong:text-zinc-200 prose-li:text-zinc-400 prose-h2:border-b prose-h2:border-zinc-800 prose-h2:pb-3 prose-h2:mb-6 prose-h2:scroll-mt-20 prose-h3:scroll-mt-20">{/* Sections now have IDs for anchor links */}
+
+      <h2 id="revenue">1. How We Earn Revenue</h2>
 
       <p>
         StackHunt is a free resource for software buyers. To keep the lights on, we participate
@@ -47,7 +74,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
         our relationships allow us to unlock better deals or extended trials for you.
       </p>
 
-      <h2>2. The "Chinese Wall" (Editorial Independence)</h2>
+      <h2 id="independence">2. The "Chinese Wall" (Editorial Independence)</h2>
 
       <p>
         <strong>Our revenue model does not dictate our rankings.</strong>
@@ -69,7 +96,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
         </li>
       </ul>
 
-      <h2>3. AI & Data Integrity</h2>
+      <h2 id="ai-integrity">3. AI & Data Integrity</h2>
 
       <p>
         StackHunt is an <strong>AI-Powered Research Lab</strong>, not a manual blog.
@@ -90,7 +117,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
         data freshness.
       </p>
 
-      <h2>4. Limitation of Liability</h2>
+      <h2 id="liability">4. Limitation of Liability</h2>
 
       <p>
         StackHunt provides data for <strong>informational and research purposes only</strong>.
@@ -129,7 +156,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
         to direct damages not exceeding $100.
       </p>
 
-      <h2>5. How Our Research Works</h2>
+      <h2 id="research">5. How Our Research Works</h2>
 
       <p>
         Our "Hunter" system performs comprehensive research on each tool:
@@ -254,7 +281,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
         </a>
       </p>
 
-      <h2>6. Future Features & Roadmap</h2>
+      <h2 id="roadmap">6. Future Features & Roadmap</h2>
 
       <p>
         StackHunt is evolving from a research platform into a comprehensive spend management tool.
@@ -289,6 +316,15 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
       <p class="text-xs text-zinc-600">
         Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
       </p>
-    </article>
+        </article>
+      </div>
+    </div>
   </main>
+
+  <style>
+    /* Smooth scroll for anchor links */
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
 </BaseLayout>

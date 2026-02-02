@@ -15,6 +15,7 @@ AI-powered programmatic SEO platform. Researches tools via web search, generates
 | **Hunter Extension** | `.claude/docs/HUNTER_EXTENSION.md` |
 | **Quick Context** | `.claude/docs/QUICK_CONTEXT.md` |
 | **Supabase Project ID** | `.claude/SUPABASE_PROJECT_ID.md` |
+| **Legal Compliance** | `.claude/docs/LEGAL_COMPLIANCE.md` |
 
 ## Tech Stack
 
