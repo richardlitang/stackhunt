@@ -75,7 +75,7 @@ const discountLabels = {
           <div class="mb-4 border-b border-zinc-800 pb-4">
             <div class="mb-2 flex items-baseline justify-between gap-2">
               <h3 class="text-lg font-semibold text-zinc-100">{plan.name}</h3>
-              {plan.price_per_unit && plan.scaling_unit && (
+              {plan.scaling_unit && (
                 <span class="text-xs text-zinc-500">per {plan.scaling_unit}</span>
               )}
             </div>
@@ -119,9 +119,9 @@ const discountLabels = {
                     <span class="text-2xl font-bold text-green-400">Free</span>
                   </div>
                 ) : null}
-                {plan.price_per_unit && plan.included_units && (
+                {plan.included_units && plan.scaling_unit && (
                   <p class="mt-1 text-xs text-zinc-400">
-                    ({plan.included_units} {plan.scaling_unit}{plan.included_units > 1 ? 's' : ''} included)
+                    ({plan.included_units.toLocaleString()} {plan.scaling_unit}{plan.included_units > 1 ? 's' : ''} included)
                   </p>
                 )}
               </div>
