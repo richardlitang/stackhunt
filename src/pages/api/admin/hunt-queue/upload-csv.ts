@@ -17,8 +17,22 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { parse } from 'csv-parse/sync';
+import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken } from '@/lib/auth';
 
 export const prerender = false;
+
+// Helper to validate admin auth
+async function validateAdminAuth(cookies: any): Promise<boolean> {
+  const sessionToken = cookies.get(COOKIE_NAME)?.value;
+  if (!sessionToken) return false;
+
+  if (isLegacyToken(sessionToken)) {
+    return validateLegacyToken(sessionToken);
+  }
+
+  const session = await validateSession(sessionToken);
+  return session.valid;
+}
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const MAX_ROWS = 1000;
@@ -135,8 +149,31 @@ function validateRows(rows: CSVRow[]): ValidationError[] {
   return errors;
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
+  // Validate admin session
+  if (!await validateAdminAuth(cookies)) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
+    // Early content-length check to reject oversized requests before parsing
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_FILE_SIZE * 2) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Request too large',
+        }),
+        {
+          status: 413,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const contentType = request.headers.get('content-type') || '';
 
     if (!contentType.includes('multipart/form-data')) {

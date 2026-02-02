@@ -78,14 +78,15 @@ export async function checkRateLimit(
     });
 
     if (error) {
-      console.error('Rate limit check failed:', error);
-      // Fail open - allow request if DB is unavailable
+      console.error('Rate limit check failed:', error.code || error.message);
+      // SECURITY: Fail CLOSED - deny requests if DB is unavailable
+      // This prevents abuse during outages
       return {
-        allowed: true,
-        remaining: limits.maxRequests,
-        current: 0,
+        allowed: false,
+        remaining: 0,
+        current: limits.maxRequests + 1,
         limit: limits.maxRequests,
-        resetAt: new Date(Date.now() + limits.windowSeconds * 1000),
+        resetAt: new Date(Date.now() + 60000), // 1 minute retry
       };
     }
 
@@ -99,14 +100,14 @@ export async function checkRateLimit(
       resetAt: new Date(result.reset_at),
     };
   } catch (err) {
-    console.error('Rate limit error:', err);
-    // Fail open
+    console.error('Rate limit error:', err instanceof Error ? err.message : err);
+    // SECURITY: Fail CLOSED - deny requests on errors
     return {
-      allowed: true,
-      remaining: limits.maxRequests,
-      current: 0,
+      allowed: false,
+      remaining: 0,
+      current: limits.maxRequests + 1,
       limit: limits.maxRequests,
-      resetAt: new Date(Date.now() + limits.windowSeconds * 1000),
+      resetAt: new Date(Date.now() + 60000), // 1 minute retry
     };
   }
 }

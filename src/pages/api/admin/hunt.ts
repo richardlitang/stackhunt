@@ -40,6 +40,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     const body: HuntRequest = await request.json();
     const { toolName, contextTitle, categorySlug, priority, huntType } = body;
 
+    // Validate toolName
     if (!toolName || typeof toolName !== 'string') {
       return addRateLimitHeaders(
         new Response(JSON.stringify({ success: false, error: 'Tool name is required' }), {
@@ -50,6 +51,56 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       );
     }
 
+    // Input length validation to prevent DoS
+    const MAX_TOOL_NAME_LENGTH = 255;
+    const MAX_CONTEXT_TITLE_LENGTH = 500;
+    const MAX_CATEGORY_SLUG_LENGTH = 100;
+
+    if (toolName.length > MAX_TOOL_NAME_LENGTH) {
+      return addRateLimitHeaders(
+        new Response(JSON.stringify({ success: false, error: `Tool name exceeds ${MAX_TOOL_NAME_LENGTH} characters` }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        rateLimit
+      );
+    }
+
+    if (contextTitle && contextTitle.length > MAX_CONTEXT_TITLE_LENGTH) {
+      return addRateLimitHeaders(
+        new Response(JSON.stringify({ success: false, error: `Context title exceeds ${MAX_CONTEXT_TITLE_LENGTH} characters` }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        rateLimit
+      );
+    }
+
+    if (categorySlug && categorySlug.length > MAX_CATEGORY_SLUG_LENGTH) {
+      return addRateLimitHeaders(
+        new Response(JSON.stringify({ success: false, error: `Category slug exceeds ${MAX_CATEGORY_SLUG_LENGTH} characters` }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        rateLimit
+      );
+    }
+
+    // Validate huntType enum
+    const validHuntTypes = ['full', 'refresh', 'price_only'];
+    if (huntType && !validHuntTypes.includes(huntType)) {
+      return addRateLimitHeaders(
+        new Response(JSON.stringify({ success: false, error: 'Invalid hunt type' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        rateLimit
+      );
+    }
+
+    // Validate and constrain priority
+    const safePriority = Math.max(0, Math.min(100, priority ?? 50));
+
     const adminClient = getAdminClient();
 
     // Insert into hunt_queue instead of running hunter directly
@@ -59,7 +110,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
         tool_name: toolName.trim(),
         context_title: contextTitle?.trim() || null,
         category_slug: categorySlug?.trim() || null,
-        priority: priority ?? 50,
+        priority: safePriority,
         hunt_type: huntType || 'full',
         source: 'admin',
       })
@@ -101,10 +152,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       rateLimit
     );
   } catch (err) {
-    console.error('Hunt queue API error:', err);
+    console.error('Hunt queue API error:', (err as Error).message);
     return addRateLimitHeaders(
       new Response(
-        JSON.stringify({ success: false, error: (err as Error).message }),
+        JSON.stringify({ success: false, error: 'Failed to add to queue' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       ),
       rateLimit
@@ -164,9 +215,10 @@ export const GET: APIRoute = async ({ request, clientAddress }) => {
       rateLimit
     );
   } catch (err) {
+    console.error('Hunt queue status error:', (err as Error).message);
     return addRateLimitHeaders(
       new Response(
-        JSON.stringify({ success: false, error: (err as Error).message }),
+        JSON.stringify({ success: false, error: 'Failed to fetch queue status' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       ),
       rateLimit

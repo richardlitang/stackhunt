@@ -26,10 +26,29 @@ import { getAdminClient } from '@/lib/supabase';
 import { Hunter } from '@/lib/hunter';
 import { ApiError } from '@/lib/hunter/errors';
 import { alertCritical, alertQueueSummary } from '@/lib/notifications/discord';
+import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken } from '@/lib/auth';
+import { timingSafeEqual } from 'crypto';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request }) => {
+// Helper to do timing-safe comparison
+function safeCompareSecrets(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return false;
+  try {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) {
+      // Still do comparison to prevent timing leak
+      timingSafeEqual(bufA, bufA);
+      return false;
+    }
+    return timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+}
+
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     // Parse request body
     const body = await request.json().catch(() => ({}));
@@ -39,37 +58,41 @@ export const POST: APIRoute = async ({ request }) => {
     // Auth check - either session-based or webhook secret
     // For webhook calls (e.g., from cron services), use QUEUE_WEBHOOK_SECRET
     const envWebhookSecret = import.meta.env.QUEUE_WEBHOOK_SECRET;
+    let isAuthenticated = false;
 
     if (webhookSecret) {
-      // Webhook auth
-      if (!envWebhookSecret || webhookSecret !== envWebhookSecret) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Invalid webhook secret' }),
-          { status: 401, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
+      // Webhook auth with timing-safe comparison
+      isAuthenticated = safeCompareSecrets(webhookSecret, envWebhookSecret);
     } else {
-      // Session auth - would normally check admin session here
-      // For now, just verify we're in a valid environment
-      const admin = getAdminClient();
-      const { error: authError } = await admin.from('hunt_queue').select('id').limit(1);
-      if (authError) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Unauthorized' }),
-          { status: 401, headers: { 'Content-Type': 'application/json' } }
-        );
+      // Session auth - validate admin session properly
+      const sessionToken = cookies.get(COOKIE_NAME)?.value;
+      if (sessionToken) {
+        if (isLegacyToken(sessionToken)) {
+          isAuthenticated = validateLegacyToken(sessionToken);
+        } else {
+          const session = await validateSession(sessionToken);
+          isAuthenticated = session.valid;
+        }
       }
     }
 
-    // Check required env vars
+    if (!isAuthenticated) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check required env vars (don't leak which ones are missing)
     const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GEMINI_API_KEY', 'SERPER_API_KEY'];
     const missing = required.filter((k) => !import.meta.env[k] && !process.env[k]);
 
     if (missing.length > 0) {
+      console.error('Missing environment variables:', missing.join(', '));
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Missing environment variables: ${missing.join(', ')}`,
+          error: 'Server configuration error',
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
@@ -125,7 +148,7 @@ export const POST: APIRoute = async ({ request }) => {
         return new Response(
           JSON.stringify({
             success: false,
-            error: error.message,
+            error: 'Critical API failure',
             errorType: error.type,
             isCritical: true,
           }),
@@ -158,10 +181,9 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Queue trigger error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
+    console.error('Queue trigger error:', error instanceof Error ? error.message : error);
     return new Response(
-      JSON.stringify({ success: false, error: message }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

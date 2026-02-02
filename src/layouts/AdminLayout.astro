@@ -51,6 +51,8 @@ function isActive(item: typeof navItems[0]): boolean {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>{title} | StackHunt Admin</title>
+    <!-- CSRF Token for API requests -->
+    <meta name="csrf-token" content="" id="csrf-token" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -320,6 +322,47 @@ function isActive(item: typeof navItems[0]): boolean {
     </main>
 
     <script is:inline>
+      // CSRF Token Management
+      (function() {
+        // Read CSRF token from cookie
+        function getCsrfToken() {
+          const match = document.cookie.match(/stackhunt_csrf=([^;]+)/);
+          return match ? match[1] : null;
+        }
+
+        // Update meta tag with CSRF token (for reference)
+        const token = getCsrfToken();
+        const metaTag = document.getElementById('csrf-token');
+        if (metaTag && token) {
+          metaTag.setAttribute('content', token);
+        }
+
+        // Wrap fetch to automatically include CSRF token for admin API requests
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+          const urlStr = typeof url === 'string' ? url : url.toString();
+
+          // Only add CSRF token for admin API requests with state-changing methods
+          if (urlStr.includes('/api/admin') && !urlStr.includes('/api/admin/login')) {
+            const method = (options.method || 'GET').toUpperCase();
+            if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+              const csrfToken = getCsrfToken();
+              if (csrfToken) {
+                options.headers = {
+                  ...options.headers,
+                  'x-csrf-token': csrfToken,
+                };
+              }
+            }
+          }
+
+          return originalFetch.call(this, url, options);
+        };
+
+        // Also make token available globally
+        window.getCsrfToken = getCsrfToken;
+      })();
+
       // Toast System
       window.toast = {
         show(message, type = 'success', duration = 3000) {

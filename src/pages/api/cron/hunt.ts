@@ -18,10 +18,23 @@ const MAX_ITEMS_PER_RUN = 3;
 
 export const GET: APIRoute = async ({ request }) => {
   // Verify cron secret (Vercel sets this header)
+  // SECURITY: Fail CLOSED - require secret always (no bypass if unset)
   const authHeader = request.headers.get('authorization');
   const cronSecret = import.meta.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  // Require CRON_SECRET in production
+  if (!cronSecret && import.meta.env.PROD) {
+    console.error('CRITICAL: CRON_SECRET not configured in production');
+    return new Response(JSON.stringify({ error: 'Server misconfiguration' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // In development without secret, allow (for local testing only)
+  const requiresAuth = cronSecret || import.meta.env.PROD;
+
+  if (requiresAuth && authHeader !== `Bearer ${cronSecret}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -75,13 +88,13 @@ export const GET: APIRoute = async ({ request }) => {
     );
   } catch (error) {
     const err = error as Error;
-    console.error('Cron hunt error:', err);
+    console.error('Cron hunt error:', err.message);
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: err.message,
-        results,
+        error: 'Internal processing error',
+        processed: results.length,
         timestamp: new Date().toISOString(),
       }),
       {

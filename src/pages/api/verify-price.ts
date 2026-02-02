@@ -3,117 +3,117 @@
  *
  * Records community price verification votes.
  * When users report inaccurate pricing, automatically queues the tool for re-research.
+ *
+ * SECURITY: Uses public Supabase client with RLS enforcement.
+ * Rate limited to prevent abuse.
  */
 
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import {
+  checkRateLimit,
+  hashIdentifier,
+  getClientIP,
+  rateLimitResponse,
+  addRateLimitHeaders,
+} from '@/lib/rate-limit';
 
-const supabaseUrl = import.meta.env.SUPABASE_URL;
-const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+// Rate limit: 10 verifications per minute per IP
+const RATE_LIMIT_CONFIG = { maxRequests: 10, windowSeconds: 60 };
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, clientAddress }) => {
   try {
+    // Rate limiting first
+    const clientIp = getClientIP(request, clientAddress);
+    const ipHash = hashIdentifier(clientIp);
+
+    const rateLimit = await checkRateLimit(ipHash, '/api/verify-price', RATE_LIMIT_CONFIG);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit);
+    }
+
     const { toolId, toolName, accurate } = await request.json();
 
     if (!toolId || typeof accurate !== 'boolean') {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      return addRateLimitHeaders(
+        new Response(
+          JSON.stringify({ error: 'Missing required fields' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        ),
+        rateLimit
       );
     }
 
-    // Get client IP for deduplication (hash it for privacy)
-    const clientIp = request.headers.get('cf-connecting-ip')
-      || request.headers.get('x-forwarded-for')
-      || 'unknown';
-
-    const ipHash = clientIp !== 'unknown'
-      ? await hashString(clientIp)
-      : null;
-
-    // Record the verification
-    const { error: insertError } = await supabase
-      .from('price_verifications')
-      .insert({
-        item_id: toolId,
-        is_accurate: accurate,
-        ip_hash: ipHash,
-      });
-
-    if (insertError) {
-      console.error('Error recording price verification:', insertError);
-      // Don't fail the request if logging fails
+    // Validate toolId format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(toolId)) {
+      return addRateLimitHeaders(
+        new Response(
+          JSON.stringify({ error: 'Invalid tool ID format' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        ),
+        rateLimit
+      );
     }
 
-    // If inaccurate, queue for re-hunt with high priority
-    if (!accurate) {
-      const { error: queueError } = await supabase
-        .from('hunt_queue')
-        .insert({
-          item_id: toolId,
-          item_name: toolName,
-          priority: 8, // High priority for user-reported issues
-          source: 'user_request',
-          hunt_type: 'refresh',
-          metadata: {
-            reason: 'user_reported_pricing_change',
-            reported_at: new Date().toISOString(),
-          },
-        });
-
-      if (queueError) {
-        console.error('Error queuing tool for re-hunt:', queueError);
+    // Record the verification using RPC (handles RLS properly)
+    // The RPC function will:
+    // 1. Record the verification
+    // 2. Check for duplicate votes from same IP
+    // 3. Queue for re-hunt if inaccurate (via trigger or RPC logic)
+    const { data, error: verifyError } = await (supabase.rpc as Function)(
+      'record_price_verification',
+      {
+        p_item_id: toolId,
+        p_item_name: toolName || null,
+        p_is_accurate: accurate,
+        p_ip_hash: ipHash,
       }
-    } else {
-      // If accurate, update verification timestamp and counter
-      const { error: updateError } = await supabase
-        .from('items')
-        .update({
-          last_user_verified_at: new Date().toISOString(),
-        })
-        .eq('id', toolId);
+    );
 
-      if (updateError) {
-        console.error('Error updating verification timestamp:', updateError);
+    if (verifyError) {
+      // Check for specific error codes
+      if (verifyError.code === '23505') {
+        // Duplicate vote from same IP
+        return addRateLimitHeaders(
+          new Response(
+            JSON.stringify({
+              success: false,
+              error: 'You have already verified this tool recently',
+            }),
+            { status: 409, headers: { 'Content-Type': 'application/json' } }
+          ),
+          rateLimit
+        );
       }
 
-      // Increment weekly counter (using SQL for atomic operation)
-      await supabase.rpc('increment_weekly_verifications', { p_item_id: toolId });
+      console.error('Error recording price verification:', verifyError.code);
+      return addRateLimitHeaders(
+        new Response(
+          JSON.stringify({ error: 'Failed to record verification' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        ),
+        rateLimit
+      );
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: accurate
-          ? 'Thank you for verifying!'
-          : 'Thanks for reporting! We\'ll verify this within 24 hours.',
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    return addRateLimitHeaders(
+      new Response(
+        JSON.stringify({
+          success: true,
+          message: accurate
+            ? 'Thank you for verifying!'
+            : 'Thanks for reporting! We\'ll verify this within 24 hours.',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      ),
+      rateLimit
     );
   } catch (error) {
-    console.error('Error in verify-price API:', error);
+    console.error('Error in verify-price API');
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };
-
-/**
- * Simple hash function for IP addresses (privacy-preserving)
- */
-async function hashString(str: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}

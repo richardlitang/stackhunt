@@ -13,25 +13,51 @@ import { ApiResponse } from '@/lib/api-response';
 export const prerender = false;
 
 // Verify cron secret for security
-function verifyCronSecret(request: Request): boolean {
+// SECURITY: Fail CLOSED - require secret in production
+function verifyCronSecret(request: Request): { valid: boolean; error?: string } {
   const secret = import.meta.env.CRON_SECRET;
 
-  // In development, allow without secret
+  // Require secret in production
+  if (!secret && import.meta.env.PROD) {
+    console.error('CRITICAL: CRON_SECRET not configured in production');
+    return { valid: false, error: 'Server misconfiguration' };
+  }
+
+  // In development without secret, allow for local testing
   if (!secret && import.meta.env.DEV) {
-    return true;
+    return { valid: true };
   }
 
   const authHeader = request.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    return false;
+    return { valid: false, error: 'Invalid cron secret' };
   }
 
-  return authHeader.slice(7) === secret;
+  // Use timing-safe comparison
+  const providedSecret = authHeader.slice(7);
+  try {
+    const secretBuffer = Buffer.from(secret);
+    const providedBuffer = Buffer.from(providedSecret);
+    if (secretBuffer.length !== providedBuffer.length) {
+      return { valid: false, error: 'Invalid cron secret' };
+    }
+    const { timingSafeEqual } = require('crypto');
+    if (!timingSafeEqual(secretBuffer, providedBuffer)) {
+      return { valid: false, error: 'Invalid cron secret' };
+    }
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Invalid cron secret' };
+  }
 }
 
 export const POST: APIRoute = async ({ request }) => {
   // Verify authorization
-  if (!verifyCronSecret(request)) {
+  const authResult = verifyCronSecret(request);
+  if (!authResult.valid) {
+    if (authResult.error === 'Server misconfiguration') {
+      return ApiResponse.internalError('Server misconfiguration');
+    }
     return ApiResponse.unauthorized('Invalid cron secret');
   }
 

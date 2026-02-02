@@ -2,37 +2,61 @@
  * API Endpoint: POST /api/admin/queue-tool
  *
  * Queue a tool for re-hunting to improve data quality.
- * Admin-only endpoint.
+ * Admin-only endpoint with proper session validation.
+ *
+ * SECURITY: Validates session token from cookie, not just cookie presence.
  */
 
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabase';
+import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken } from '@/lib/auth';
+import { timingSafeEqual } from 'crypto';
 
-const supabaseUrl = import.meta.env.SUPABASE_URL;
-const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
-const adminSecret = import.meta.env.ADMIN_SECRET;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    // Simple admin auth check (enhance with proper auth later)
+    // Proper session validation - check actual token, not just cookie presence
+    const sessionToken = cookies.get(COOKIE_NAME)?.value;
     const authHeader = request.headers.get('authorization');
-    const adminCookie = request.headers.get('cookie')?.includes('admin-session');
+    const adminSecret = import.meta.env.ADMIN_SECRET;
 
-    // Allow if admin session or valid auth header
-    if (!adminCookie && authHeader !== `Bearer ${adminSecret}`) {
+    let isAuthenticated = false;
+
+    // Method 1: Validate session token from cookie
+    if (sessionToken) {
+      // Check legacy token format first (backwards compatibility)
+      if (isLegacyToken(sessionToken)) {
+        isAuthenticated = validateLegacyToken(sessionToken);
+      } else {
+        // Validate against database
+        const session = await validateSession(sessionToken);
+        isAuthenticated = session.valid;
+      }
+    }
+
+    // Method 2: Bearer token auth (for programmatic access)
+    if (!isAuthenticated && authHeader && adminSecret) {
+      const providedToken = authHeader.replace('Bearer ', '');
+      try {
+        // Use timing-safe comparison to prevent timing attacks
+        const secretBuffer = Buffer.from(adminSecret);
+        const providedBuffer = Buffer.from(providedToken);
+        if (secretBuffer.length === providedBuffer.length) {
+          isAuthenticated = timingSafeEqual(secretBuffer, providedBuffer);
+        }
+      } catch {
+        isAuthenticated = false;
+      }
+    }
+
+    if (!isAuthenticated) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    // Use admin client for operations (now that we've verified auth)
+    const supabase = getAdminClient();
 
     const {
       toolId,
@@ -87,9 +111,9 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
 
     if (queueError) {
-      console.error('Error queueing tool:', queueError);
+      console.error('Error queueing tool:', queueError.code);
       return new Response(
-        JSON.stringify({ error: 'Failed to queue tool', details: queueError.message }),
+        JSON.stringify({ error: 'Failed to queue tool' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }

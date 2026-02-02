@@ -3,6 +3,8 @@
  * POST /api/admin/generate-og
  *
  * Generates OG images for tools or comparison pages using Replicate Flux.
+ *
+ * SECURITY: Requires valid admin session. This endpoint costs money (Replicate API).
  */
 
 import type { APIRoute } from 'astro';
@@ -12,6 +14,7 @@ import {
   generateComparisonOGImage,
   updateToolOGImage,
 } from '@/lib/replicate';
+import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken } from '@/lib/auth';
 
 export const prerender = false;
 
@@ -25,7 +28,28 @@ interface GenerateRequest {
   style?: 'futuristic' | 'minimal' | 'gradient';
 }
 
-export const POST: APIRoute = async ({ request }) => {
+// Helper to validate admin auth
+async function validateAdminAuth(cookies: any): Promise<boolean> {
+  const sessionToken = cookies.get(COOKIE_NAME)?.value;
+  if (!sessionToken) return false;
+
+  if (isLegacyToken(sessionToken)) {
+    return validateLegacyToken(sessionToken);
+  }
+
+  const session = await validateSession(sessionToken);
+  return session.valid;
+}
+
+export const POST: APIRoute = async ({ request, cookies }) => {
+  // Validate admin session
+  if (!await validateAdminAuth(cookies)) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const body: GenerateRequest = await request.json();
 
@@ -85,11 +109,11 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('OG generation error:', error);
+    console.error('OG generation error:', (error as Error).message);
     return new Response(
       JSON.stringify({
         success: false,
-        error: (error as Error).message,
+        error: 'Failed to generate OG image',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -97,7 +121,14 @@ export const POST: APIRoute = async ({ request }) => {
 };
 
 // GET: Generate OG for a tool by slug (convenience endpoint)
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ url, cookies }) => {
+  // Validate admin session
+  if (!await validateAdminAuth(cookies)) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
   const toolSlug = url.searchParams.get('slug');
   const style = url.searchParams.get('style') as 'futuristic' | 'minimal' | 'gradient' | null;
 
@@ -142,11 +173,11 @@ export const GET: APIRoute = async ({ url }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('OG generation error:', error);
+    console.error('OG generation error:', (error as Error).message);
     return new Response(
       JSON.stringify({
         success: false,
-        error: (error as Error).message,
+        error: 'Failed to generate OG image',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

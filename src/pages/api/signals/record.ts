@@ -6,15 +6,7 @@
 
 import type { APIRoute } from 'astro';
 import { supabase } from '@/lib/supabase';
-
-// Simple IP hashing for anti-spam (same as votes)
-async function hashIp(ip: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(ip + process.env.HASH_SALT || 'stackhunt-signals');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+import { hashIdentifier, getClientIP } from '@/lib/rate-limit';
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   try {
@@ -41,8 +33,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     }
 
     // Hash IP server-side for better security
-    const ip = clientAddress || request.headers.get('x-forwarded-for') || '0.0.0.0';
-    const ipHash = await hashIp(ip);
+    const ip = getClientIP(request, clientAddress);
+    const ipHash = hashIdentifier(ip);
 
     // Check rate limit: Max 5 signals per IP per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -115,9 +107,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     });
 
     if (error) {
-      console.error('Failed to record signal:', error);
+      console.error('Failed to record signal:', error.code || error.message);
       return new Response(
-        JSON.stringify({ success: false, error: error.message }),
+        JSON.stringify({ success: false, error: 'Failed to record signal' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }

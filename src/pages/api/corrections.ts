@@ -5,19 +5,9 @@
 
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
+import { hashIdentifier, getClientIP } from '@/lib/rate-limit';
 
 export const prerender = false;
-
-// Simple hash function for IP (privacy-preserving)
-function hashIP(ip: string): string {
-  let hash = 0;
-  for (let i = 0; i < ip.length; i++) {
-    const char = ip.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return hash.toString(16);
-}
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   try {
@@ -49,7 +39,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     const admin = getAdminClient();
 
     // Rate limiting: Check if this IP has submitted recently
-    const ipHash = hashIP(clientAddress || 'unknown');
+    const clientIp = getClientIP(request, clientAddress);
+    const ipHash = hashIdentifier(clientIp);
     const { data: recentSubmissions } = await admin
       .from('corrections')
       .select('id')

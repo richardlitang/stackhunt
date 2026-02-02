@@ -15,9 +15,11 @@ const env = loadEnv('', process.cwd(), '');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Fetch dynamic pages for sitemap at build time
+// SECURITY: Only use anon key here - RLS allows public read access to these tables
 async function getDynamicPages() {
   const supabaseUrl = env.SUPABASE_URL || env.PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY || env.PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // SECURITY: Only use anon key for build-time queries (not service role)
+  const supabaseKey = env.PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     console.warn('[Sitemap] Missing Supabase credentials, skipping dynamic pages');
