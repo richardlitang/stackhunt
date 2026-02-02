@@ -92,6 +92,71 @@ The 12 queries cover: reviews, pricing, alternatives, company info, technical/AP
 - Hardcoding IDs in migrations (use references)
 - Adding dependencies without checking `package.json` first
 
+## Backend/Frontend Best Practices
+
+### Database Query Limits (Security & Performance)
+
+**ALWAYS enforce limits at the backend, not just frontend.**
+
+✅ **Good:**
+```typescript
+// Backend: Limit at source
+export async function getItemContexts(itemId: string, limit = 50) {
+  return await supabase
+    .from('reviews')
+    .select('...')
+    .limit(limit);  // ✅ Backend protection
+}
+
+// Frontend: Display subset if needed
+const contexts = await getItemContexts(tool.id);
+const displayed = contexts.slice(0, 3);
+```
+
+❌ **Bad:**
+```typescript
+// Backend: No limit (fetches everything!)
+export async function getItemContexts(itemId: string) {
+  return await supabase
+    .from('reviews')
+    .select('...');  // ⚠️ Could fetch 1000+ rows
+}
+
+// Frontend: Slice wastes bandwidth/memory
+const contexts = await getItemContexts(tool.id);
+const displayed = contexts.slice(0, 3);  // Too late!
+```
+
+### Query Pattern Rules
+
+1. **All Supabase queries MUST have `.limit()`** unless fetching a single item
+2. **Use parameters for configurable limits** (e.g., `limit = 50`)
+3. **Nested queries need `foreignTable` limits:**
+   ```typescript
+   .limit(10, { foreignTable: 'reviews' })
+   ```
+4. **Frontend `.slice()` is OK** for display logic, but backend must limit first
+5. **Default limits should be conservative** (10-50 rows)
+
+### When to Use What
+
+| Scenario | Backend | Frontend |
+|----------|---------|----------|
+| Fetch all contexts | `.limit(50)` | Display all |
+| Show top 3 contexts | `.limit(50)` | `.slice(0, 3)` |
+| Paginated lists | `.limit(20)` per page | Show current page |
+| Single tool | `.maybeSingle()` | Display it |
+| User input search | `.limit(10)` | Display all results |
+
+### Security Checklist
+
+- [ ] All public queries use `supabase` client (RLS enforced)
+- [ ] Admin operations use `supabaseAdmin` (service role)
+- [ ] Every list query has `.limit()`
+- [ ] Nested queries use `foreignTable` limits
+- [ ] User input is sanitized (Supabase client handles this)
+- [ ] No raw SQL with user input
+
 ### Supabase MCP
 Use `mcp__supabase__*` tools for database operations:
 - `execute_sql` for queries
