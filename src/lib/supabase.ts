@@ -69,20 +69,23 @@ export function getAdminClient() {
 /**
  * Fetch a single item by slug with all related data
  * @param slug - Item slug
+ * @param reviewLimit - Max reviews to fetch (default 10 for performance)
  */
-export async function getItemBySlug(slug: string) {
+export async function getItemBySlug(slug: string, reviewLimit = 10) {
   const { data, error } = await supabase
     .from('items')
     .select(`
       *,
       category:categories(*),
       affiliate_offers(*),
-      reviews(
+      reviews!inner(
         *,
         context:contexts(*)
       )
     `)
     .eq('slug', slug)
+    .order('score', { foreignTable: 'reviews', ascending: false })
+    .limit(reviewLimit, { foreignTable: 'reviews' })
     .maybeSingle();
 
   if (error) throw error;
@@ -254,7 +257,7 @@ export async function getContextsByCategory(categorySlug: string) {
 /**
  * Get "Spiderweb" - all contexts an item appears in
  */
-export async function getItemContexts(itemId: string) {
+export async function getItemContexts(itemId: string, limit = 50) {
   const { data, error } = await supabase
     .from('reviews')
     .select(`
@@ -262,7 +265,8 @@ export async function getItemContexts(itemId: string) {
       context:contexts(id, title, slug, tool_count)
     `)
     .eq('item_id', itemId)
-    .order('score', { ascending: false });
+    .order('score', { ascending: false })
+    .limit(limit);
 
   if (error) throw error;
   return data;
