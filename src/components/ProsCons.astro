@@ -157,7 +157,7 @@ function getSourceIcon(url?: string): string | null {
 }
 
 import CheckIcon from '@/components/icons/Check.astro';
-import XIcon from '@/components/icons/X.astro';
+import MinusIcon from '@/components/icons/Minus.astro';
 import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
 ---
 
@@ -238,7 +238,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
     <div>
       <div class="flex items-center gap-2 mb-4">
         <div class="flex h-6 w-6 items-center justify-center rounded-full bg-red-900/30">
-          <XIcon class="h-4 w-4 text-red-400" />
+          <MinusIcon class="h-4 w-4 text-red-400" />
         </div>
         <span class="font-semibold text-red-400">Cons</span>
       </div>
@@ -247,7 +247,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
         {normalizedCons.map((con) => (
           <li class="text-sm text-zinc-300">
             <div class="flex items-start gap-3">
-              <XIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+              <MinusIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
               <div class="flex-1">
                 <span>{con.displayText}</span>
                 {resolvedSourceDisplay !== 'hidden' && con.source_url && (

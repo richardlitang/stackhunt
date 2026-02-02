@@ -215,13 +215,15 @@ export default function VoteWidget({
         <span>{upvotes}</span>
       </Button>
 
-      {/* Score */}
-      <span className={cn(
-        "min-w-[2rem] text-center text-sm font-semibold",
-        netScore > 0 ? 'text-green-600 dark:text-green-400' : netScore < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400 dark:text-zinc-500'
-      )}>
-        {netScore > 0 ? '+' : ''}{netScore}
-      </span>
+      {/* Score - hide when 0 to reduce clutter */}
+      {netScore !== 0 && (
+        <span className={cn(
+          "min-w-[2rem] text-center text-sm font-semibold",
+          netScore > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+        )}>
+          {netScore > 0 ? '+' : ''}{netScore}
+        </span>
+      )}
 
       {/* Downvote button */}
       <Button
