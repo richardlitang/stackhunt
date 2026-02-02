@@ -21,6 +21,7 @@ export const GET: APIRoute = async () => {
     { loc: `${SITE_URL}/sitemap-best.xml`, lastmod: today },
     { loc: `${SITE_URL}/sitemap-categories.xml`, lastmod: today },
     { loc: `${SITE_URL}/sitemap-compare.xml`, lastmod: today },
+    { loc: `${SITE_URL}/sitemap-gear.xml`, lastmod: today },
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
