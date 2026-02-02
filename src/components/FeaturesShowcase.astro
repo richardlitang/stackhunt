@@ -43,7 +43,10 @@ const statusLabels = {
 ---
 
 <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-  <h2 class="mb-4 text-lg font-semibold text-zinc-100">Features</h2>
+  <h2 class="mb-2 text-lg font-semibold text-zinc-100">Features</h2>
+  <p class="mb-6 text-sm text-zinc-400">
+    Key capabilities and functionality that {toolName} offers
+  </p>
 
   {/* Core Features */}
   {features.core && features.core.length > 0 && (
@@ -80,15 +83,16 @@ const statusLabels = {
   {/* Feature Capabilities Table */}
   {features.capabilities && features.capabilities.length > 0 && (
     <div>
-      <h3 class="mb-3 text-sm font-medium text-zinc-300">Feature Capabilities</h3>
+      <h3 class="mb-1 text-sm font-medium text-zinc-300">Feature Capabilities</h3>
+      <p class="mb-3 text-xs text-zinc-500">Detailed availability and implementation status</p>
       <div class="space-y-2">
         {features.capabilities.map(({ name, status, notes }) => (
-          <div class="flex items-center justify-between py-2 px-3 rounded-lg border border-zinc-800 bg-zinc-900">
+          <div class="flex items-start justify-between py-2 px-3 rounded-lg border border-zinc-800 bg-zinc-900">
             <div class="flex-1 min-w-0 pr-3">
-              <span class="text-sm text-zinc-200">{name}</span>
-              {notes && <span class="ml-2 text-xs text-zinc-500">({notes})</span>}
+              <div class="text-sm text-zinc-200">{name}</div>
+              {notes && <div class="mt-0.5 text-xs text-zinc-400">{notes}</div>}
             </div>
-            <span class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border whitespace-nowrap ${statusColors[status]}`}>
+            <span class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border whitespace-nowrap shrink-0 ${statusColors[status]}`}>
               {statusLabels[status]}
             </span>
           </div>

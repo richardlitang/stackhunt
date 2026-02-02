@@ -461,31 +461,25 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           </section>
         )}
 
-        {/* Strengths & Weaknesses - Combined view */}
+        {/* Strengths & Weaknesses - Prefer contextual over global */}
         {((globalPros.length > 0 || globalCons.length > 0) || (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0))) && (
           <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
             <h2 class="mb-2 text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
-            <p class="mb-4 text-sm text-zinc-400">What {tool.name} does well and where it falls short</p>
+            <p class="mb-4 text-sm text-zinc-400">
+              {firstReview?.context?.title
+                ? `How ${tool.name} performs for ${firstReview.context.title.replace(/^(Best|Top\s+\d+)\s+/i, '').toLowerCase()}`
+                : `What ${tool.name} does well and where it falls short`}
+            </p>
 
-            {/* Global pros/cons (universally true) */}
-            {(globalPros.length > 0 || globalCons.length > 0) && (
+            {/* Show contextual pros/cons if available (more specific), otherwise global */}
+            {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
+              <ProsCons
+                pros={firstReview.pros || []}
+                cons={firstReview.cons || []}
+                sourceDisplay="toggle"
+              />
+            ) : (globalPros.length > 0 || globalCons.length > 0) && (
               <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="toggle" />
-            )}
-
-            {/* Contextual pros/cons (if different from global) */}
-            {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) && (
-              <div class="mt-6 pt-6 border-t border-zinc-800">
-                <h3 class="mb-3 text-sm font-medium text-zinc-300">
-                  {firstReview.context?.title
-                    ? `For ${firstReview.context.title.replace(/^(Best|Top\s+\d+)\s+/i, '')}`
-                    : 'Additional Considerations'}
-                </h3>
-                <ProsCons
-                  pros={firstReview.pros || []}
-                  cons={firstReview.cons || []}
-                  sourceDisplay="toggle"
-                />
-              </div>
             )}
           </section>
         )}
@@ -519,6 +513,14 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             </PricingPlansGrid>
           </div>
         )}
+
+        {/* Pricing Insights (Budget Analyst) - Right after pricing for context */}
+        <PricingInsights budgetAnalyst={budgetAnalyst ? {
+          costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) ? (budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) : [],
+          oneTimeFees: Array.isArray(budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) ? (budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) : [],
+          commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
+          roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
+        } : undefined} />
 
         {/* Tribal Knowledge (Real user insights) */}
         <TribalKnowledge
@@ -594,14 +596,6 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             learningCurve={tool.learning_curve}
           />
         )}
-
-        {/* Pricing Insights (Budget Analyst) */}
-        <PricingInsights budgetAnalyst={budgetAnalyst ? {
-          costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) ? (budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) : [],
-          oneTimeFees: Array.isArray(budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) ? (budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) : [],
-          commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
-          roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
-        } : undefined} />
 
         {/* Suite Navigation (if part of a bundle) */}
         {parentTool && (
