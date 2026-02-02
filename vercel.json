@@ -15,6 +15,16 @@
       "source": "/tools/:slug",
       "destination": "/tool/:slug",
       "permanent": true
+    },
+    {
+      "source": "/lists",
+      "destination": "/best",
+      "permanent": true
+    },
+    {
+      "source": "/lists/:path*",
+      "destination": "/best/:path*",
+      "permanent": true
     }
   ],
   "crons": [

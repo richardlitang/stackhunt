@@ -126,10 +126,21 @@ const meta = {
         </a>
       </div>
 
-      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {featuredTools.map((tool) => (
-          <ToolCard tool={tool} category={tool.category} />
+      <div id="featured-tools-grid" class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {featuredTools.map((tool, index) => (
+          <div class:list={[index >= 6 && 'hidden-on-mobile']}>
+            <ToolCard tool={tool} category={tool.category} />
+          </div>
         ))}
+      </div>
+
+      <div class="mt-6 text-center lg:hidden">
+        <button
+          id="show-more-tools"
+          class="rounded-lg border border-zinc-800 bg-zinc-900/50 px-6 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800/50"
+        >
+          Show more tools
+        </button>
       </div>
     </div>
   </section>
@@ -174,4 +185,31 @@ const meta = {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Show more functionality */
+  @media (max-width: 1023px) {
+    .hidden-on-mobile {
+      display: none;
+    }
+    #featured-tools-grid.expanded .hidden-on-mobile {
+      display: block;
+    }
+  }
 </style>
+
+<script is:inline>
+  // Show more tools button
+  document.addEventListener('DOMContentLoaded', () => {
+    const showMoreBtn = document.getElementById('show-more-tools');
+    const grid = document.getElementById('featured-tools-grid');
+
+    if (showMoreBtn && grid) {
+      showMoreBtn.addEventListener('click', () => {
+        grid.classList.toggle('expanded');
+        showMoreBtn.textContent = grid.classList.contains('expanded')
+          ? 'Show less'
+          : 'Show more tools';
+      });
+    }
+  });
+</script>

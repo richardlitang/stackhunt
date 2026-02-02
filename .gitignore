@@ -37,3 +37,10 @@ yarn-error.log*
 # Data imports
 data/
 logs
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+tests/e2e/screenshots/

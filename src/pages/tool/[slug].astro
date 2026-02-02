@@ -359,10 +359,15 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       <div class="space-y-8 lg:col-span-2">
         {/* About - What is it? (FIRST for users learning about the tool) */}
         {tool.long_description && (
-          <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 class="mb-4 text-lg font-semibold text-zinc-100">About {tool.name}</h2>
-            <div class="prose prose-slate max-w-none text-zinc-300 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
-          </section>
+          <details class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
+            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+              <h2 class="text-lg font-semibold text-zinc-100">About {tool.name}</h2>
+              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </summary>
+            <div class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
+          </details>
         )}
 
         {/* Our Verdict - Quick summary with key points */}
@@ -447,89 +452,138 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         {/* Strengths & Weaknesses - Prefer contextual over global */}
         {((globalPros.length > 0 || globalCons.length > 0) || (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0))) && (
-          <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 class="mb-2 text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
-            <p class="mb-4 text-sm text-zinc-400">
-              {firstReview?.context?.title
-                ? `How ${tool.name} performs for ${firstReview.context.title.replace(/^(Best|Top\s+\d+)\s+/i, '').toLowerCase()}`
-                : `What ${tool.name} does well and where it falls short`}
-            </p>
+          <details class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
+            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+              <div>
+                <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
+                <p class="mt-1 text-sm text-zinc-400">
+                  {firstReview?.context?.title
+                    ? `How ${tool.name} performs for ${firstReview.context.title.replace(/^(Best|Top\s+\d+)\s+/i, '').toLowerCase()}`
+                    : `What ${tool.name} does well and where it falls short`}
+                </p>
+              </div>
+              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </summary>
 
-            {/* Show contextual pros/cons if available (more specific), otherwise global */}
-            {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
-              <ProsCons
-                pros={firstReview.pros || []}
-                cons={firstReview.cons || []}
-                sourceDisplay="inline"
-              />
-            ) : (globalPros.length > 0 || globalCons.length > 0) && (
-              <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="inline" />
-            )}
-          </section>
+            <div class="mt-4">
+              {/* Show contextual pros/cons if available (more specific), otherwise global */}
+              {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
+                <ProsCons
+                  pros={firstReview.pros || []}
+                  cons={firstReview.cons || []}
+                  sourceDisplay="inline"
+                />
+              ) : (globalPros.length > 0 || globalCons.length > 0) && (
+                <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="inline" />
+              )}
+            </div>
+          </details>
         )}
 
         {/* Features Showcase */}
         {(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0) && (
-          <FeaturesShowcase
-            features={knowledgeCard.features}
-            toolName={tool.name}
-          />
+          <details class="group" open>
+            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
+              <h2 class="text-lg font-semibold text-zinc-100">Features</h2>
+              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </summary>
+            <div>
+              <FeaturesShowcase
+                features={knowledgeCard.features}
+                toolName={tool.name}
+              />
+            </div>
+          </details>
         )}
 
         {/* Pricing Plans */}
         {(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) && (
-          <div id="pricing-plans" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <PricingPlansGrid
-              smp_pricing={knowledgeCard?.smp_pricing}
-              legacy_pricing={knowledgeCard?.pricing}
-              toolName={tool.name}
-            >
-              <PriceVerification
-                slot="verification"
-                client:visible
-                toolId={tool.id}
+          <details id="pricing-plans" class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
+            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+              <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
+              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </summary>
+            <div class="mt-4">
+              <PricingPlansGrid
+                smp_pricing={knowledgeCard?.smp_pricing}
+                legacy_pricing={knowledgeCard?.pricing}
                 toolName={tool.name}
-                currentPrice={knowledgeCard?.pricing?.starting_price}
-                pricingType={tool.pricing_type}
-                verificationCount={tool.user_verifications_this_week || 0}
-                variant="inline"
-              />
-            </PricingPlansGrid>
+              >
+                <PriceVerification
+                  slot="verification"
+                  client:visible
+                  toolId={tool.id}
+                  toolName={tool.name}
+                  currentPrice={knowledgeCard?.pricing?.starting_price}
+                  pricingType={tool.pricing_type}
+                  verificationCount={tool.user_verifications_this_week || 0}
+                  variant="inline"
+                />
+              </PricingPlansGrid>
 
-            {/* Price Mechanics - Helpful tip integrated with pricing */}
-            <PricingInsights
-              variant="compact"
-              budgetAnalyst={budgetAnalyst ? {
-                costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) ? (budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) : [],
-                oneTimeFees: Array.isArray(budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) ? (budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) : [],
-                commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
-                roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
-              } : undefined}
-            />
-          </div>
+              {/* Price Mechanics - Helpful tip integrated with pricing */}
+              <PricingInsights
+                variant="compact"
+                budgetAnalyst={budgetAnalyst ? {
+                  costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) ? (budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) : [],
+                  oneTimeFees: Array.isArray(budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) ? (budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) : [],
+                  commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
+                  roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
+                } : undefined}
+              />
+            </div>
+          </details>
         )}
 
         {/* Tribal Knowledge (Real user insights) */}
-        <TribalKnowledge
-          userAdvocate={userAdvocate ? {
-            vibe,
-            originStory,
-            idealFor,
-            avoidIf,
-            powerTip,
-            delighters,
-            frustrations,
-          } : undefined}
-          humanVerdict={humanVerdict}
-        />
+        {(userAdvocate || humanVerdict) && (
+          <details class="group" open>
+            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
+              <h2 class="text-lg font-semibold text-zinc-100">Tribal Knowledge</h2>
+              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </summary>
+            <div>
+              <TribalKnowledge
+                userAdvocate={userAdvocate ? {
+                  vibe,
+                  originStory,
+                  idealFor,
+                  avoidIf,
+                  powerTip,
+                  delighters,
+                  frustrations,
+                } : undefined}
+                humanVerdict={humanVerdict}
+              />
+            </div>
+          </details>
+        )}
 
         {/* Platform Support & Integrations */}
         {(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
-          <PlatformIntegrations
-            platforms={knowledgeCard.platforms || []}
-            integrations={knowledgeCard.integrations}
-            toolName={tool.name}
-          />
+          <details class="group" open>
+            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
+              <h2 class="text-lg font-semibold text-zinc-100">Platform & Integrations</h2>
+              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </summary>
+            <div>
+              <PlatformIntegrations
+                platforms={knowledgeCard.platforms || []}
+                integrations={knowledgeCard.integrations}
+                toolName={tool.name}
+              />
+            </div>
+          </details>
         )}
 
         {/* Video Embed - Bottom of content for better UX */}
@@ -758,6 +812,11 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
   </div>
 
   <script is:inline>
+    // Auto-expand details on desktop
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      document.querySelectorAll('details').forEach(d => d.open = true);
+    }
+
     // Suggest Edit Modal
     const modal = document.getElementById('suggest-edit-modal');
     const form = document.getElementById('suggest-edit-form');

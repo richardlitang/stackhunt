@@ -260,14 +260,19 @@ if (sortedReviews.length >= 2) {
     <section>
       <div class="mb-6 flex items-center justify-between">
         <h2 class="text-xl font-semibold text-zinc-100">
-          Top {Math.min(sortedReviews.length, 10)} Picks
+          {sortedReviews.length === 1 ? 'Our Top Pick' :
+           sortedReviews.length === 2 ? 'Our Top 2 Picks' :
+           `Top ${Math.min(sortedReviews.length, 10)} Picks`}
         </h2>
         <span class="text-sm text-zinc-400">
           Sorted by contextual score
         </span>
       </div>
 
-      <div class="space-y-8">
+      <div class:list={[
+        "space-y-8",
+        sortedReviews.length === 1 && "max-w-2xl mx-auto"
+      ]}>
         {sortedReviews.map((review, index) => {
           const rank = index + 1;
           const scoreColors = getScoreColor(review.score || 0);
@@ -280,9 +285,11 @@ if (sortedReviews.length >= 2) {
               <!-- Rank Header -->
               <div class={`flex items-center justify-between px-6 py-3 ${rank === 1 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100' : 'bg-zinc-900 border-b border-zinc-800'}`}>
                 <div class="flex items-center gap-3">
-                  <span class={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${rank === 1 ? 'bg-amber-500 text-white' : rank === 2 ? 'bg-zinc-600 text-white' : rank === 3 ? 'bg-amber-700 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
-                    #{rank}
-                  </span>
+                  {sortedReviews.length > 1 && (
+                    <span class={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${rank === 1 ? 'bg-amber-500 text-white' : rank === 2 ? 'bg-zinc-600 text-white' : rank === 3 ? 'bg-amber-700 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
+                      #{rank}
+                    </span>
+                  )}
                   {rank === 1 && (
                     <span class="text-xs font-medium text-amber-700">Top Pick</span>
                   )}
