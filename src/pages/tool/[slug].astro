@@ -475,7 +475,11 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             {/* Contextual pros/cons (if different from global) */}
             {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) && (
               <div class="mt-6 pt-6 border-t border-zinc-800">
-                <h3 class="mb-3 text-sm font-medium text-zinc-300">Context-Specific Considerations</h3>
+                <h3 class="mb-3 text-sm font-medium text-zinc-300">
+                  {firstReview.context?.title
+                    ? `For ${firstReview.context.title.replace(/^(Best|Top\s+\d+)\s+/i, '')}`
+                    : 'Additional Considerations'}
+                </h3>
                 <ProsCons
                   pros={firstReview.pros || []}
                   cons={firstReview.cons || []}
