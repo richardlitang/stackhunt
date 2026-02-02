@@ -693,19 +693,19 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     )}
 
     {/* Help us improve this page */}
-    <div class="mt-16 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
-      <div class="mb-6">
-        <h3 class="text-lg font-semibold text-zinc-100 mb-2">Help us improve this page</h3>
-        <p class="text-sm text-zinc-400">
-          Share quick feedback or report corrections to keep {tool.name}'s information accurate.
+    <div class="mt-12">
+      <div class="mb-4">
+        <h3 class="text-base font-semibold text-zinc-100">Help us improve this page</h3>
+        <p class="text-sm text-zinc-400 mt-1">
+          Share feedback or report corrections
         </p>
       </div>
 
-      {/* Signal Widget */}
+      {/* Signal Widget - has its own card styling */}
       <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
 
       {/* Correction Button */}
-      <div class="mt-6 pt-6 border-t border-zinc-800">
+      <div class="mt-4">
         <button
           type="button"
           data-suggest-edit
