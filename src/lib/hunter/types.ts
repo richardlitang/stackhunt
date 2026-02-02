@@ -171,6 +171,10 @@ export interface HunterAnalysis {
       frustrations: string[];
     };
   };
+  // V4: Smart Schema - Category-specific extracted data
+  categorySpecificData?: Record<string, unknown>;
+  // V4: Tool Hints - VIP tool-specific extracted data
+  specifics?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -384,6 +388,10 @@ export const AnalysisSchema = z.object({
       frustrations: z.array(z.string()).default([]),
     }).optional(),
   }).optional(),
+  // V4: Smart Schema - Category-specific extracted data
+  categorySpecificData: z.record(z.string(), z.unknown()).optional(),
+  // V4: Tool Hints - VIP tool-specific extracted data
+  specifics: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ============================================================================

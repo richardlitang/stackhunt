@@ -20,6 +20,7 @@ import type {
 import { slugify, classifySourceType } from '../utils';
 import { normalizeCategory } from '../../config/taxonomy';
 import { ensureParentSuite } from '../utils/suite-manager';
+import { updateNormalizedPricing } from '../../pricing/persist';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -203,6 +204,18 @@ export async function executePersistencePhase(
     specs.portability = knowledgeCard.smp_portability;
   }
 
+  // V4: Smart Schema - Add category-specific extracted data
+  if (analysis.categorySpecificData && Object.keys(analysis.categorySpecificData).length > 0) {
+    specs.categorySpecificData = analysis.categorySpecificData;
+    deps.log(`[Smart Schema] Saved ${Object.keys(analysis.categorySpecificData).length} category-specific fields`);
+  }
+
+  // V4: Tool Hints - Add VIP tool-specific data
+  if (analysis.specifics && Object.keys(analysis.specifics).length > 0) {
+    specs.specifics = analysis.specifics;
+    deps.log(`[Tool Hints] Saved ${Object.keys(analysis.specifics).length} VIP-specific fields`);
+  }
+
   // V4: Add pros/cons to item (not just contextual reviews)
   // This ensures every tool has pros/cons regardless of context
   if (analysis.pros?.length || analysis.cons?.length) {
@@ -305,6 +318,14 @@ export async function executePersistencePhase(
 
   deps.log(`Item saved: ${ctx.toolName} (id: ${item.id})`);
 
+  // Update normalized pricing columns (for apples-to-apples comparison)
+  const pricingResult = await updateNormalizedPricing(deps.supabase, item.id, specs);
+  if (pricingResult.success) {
+    deps.log(`✓ Normalized pricing computed`);
+  } else {
+    deps.log(`⚠️  Failed to compute normalized pricing: ${pricingResult.error}`);
+  }
+
   // Log persisted SMP data for QA
   if (specs.pricing_data) {
     const pd = specs.pricing_data as Record<string, unknown>;
@@ -315,6 +336,14 @@ export async function executePersistencePhase(
   }
   if (specs.portability) {
     deps.log(`[Persisted] SMP Portability: saved`);
+  }
+  if (specs.categorySpecificData) {
+    const fields = Object.keys(specs.categorySpecificData as Record<string, unknown>);
+    deps.log(`[Persisted] Category Data: ${fields.slice(0, 5).join(', ')}${fields.length > 5 ? '...' : ''}`);
+  }
+  if (specs.specifics) {
+    const fields = Object.keys(specs.specifics as Record<string, unknown>);
+    deps.log(`[Persisted] VIP Specifics: ${fields.join(', ')}`);
   }
 
   // Log persisted Review Context (V3.1: Human Touch Layer)

@@ -27,13 +27,9 @@ test.describe('UI Audit Screenshots', () => {
   });
 
   test('capture compare page', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const compareLink = page.locator('a[href^="/compare/"]').first();
-    if (await compareLink.count() > 0) {
-      await compareLink.click();
-      await page.waitForLoadState('networkidle');
-      await page.screenshot({ path: 'tests/e2e/screenshots/audit-compare-page.png', fullPage: true });
-    }
+    // Go directly to a compare page that should exist
+    await page.goto('/compare/klaviyo-vs-omnisend', { waitUntil: 'networkidle' });
+    await page.screenshot({ path: 'tests/e2e/screenshots/audit-compare-page.png', fullPage: true });
   });
 
   test('capture categories page', async ({ page }) => {

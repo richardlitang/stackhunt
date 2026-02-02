@@ -2,6 +2,167 @@
  * Hunter prompts stored in code (no database dependency).
  */
 
+import {
+  getCategoryDefinition,
+  resolveFullSchema,
+  BaseToolSchema,
+} from '../schemas';
+
+/**
+ * Build category-specific extraction instructions.
+ * Returns additional fields to extract based on tool category.
+ */
+export function buildCategoryExtractionFields(categorySlug?: string): string {
+  if (!categorySlug) return '';
+
+  const def = getCategoryDefinition(categorySlug);
+  if (!def) return '';
+
+  // Get the full schema for this category
+  const fullSchema = resolveFullSchema(categorySlug);
+  const baseShape = BaseToolSchema.shape;
+
+  // Find fields that are NOT in base schema (category-specific fields)
+  const fieldDescriptions: string[] = [];
+  const fullShape = fullSchema.shape as Record<string, { _def?: { description?: string } }>;
+
+  for (const [key, field] of Object.entries(fullShape)) {
+    // Skip fields that exist in base schema
+    if (key in baseShape) continue;
+    // @ts-ignore - accessing Zod internals for description
+    const desc = field?._def?.description || '';
+    fieldDescriptions.push(`- ${key}${desc ? `: ${desc}` : ''}`);
+  }
+
+  if (fieldDescriptions.length === 0) return '';
+
+  return `
+## CATEGORY-SPECIFIC EXTRACTION (${def.name})
+
+This tool is categorized as "${def.name}". Extract these additional fields in the "categorySpecificData" object:
+
+${fieldDescriptions.join('\n')}
+
+IMPORTANT: Store these in a "categorySpecificData" field in your response. Example:
+{
+  ...standardFields,
+  "categorySpecificData": {
+    "free_tier_hard_cap": true,
+    "data_residency": ["US", "EU"],
+    ...
+  }
+}
+`;
+}
+
+/**
+ * Build adaptive tool-specific discovery prompt.
+ * Uses citation-based grounding to prevent hallucination.
+ */
+export function buildAdaptiveSpecificsPrompt(): string {
+  return `
+## TOOL-SPECIFIC DISCOVERIES (Adaptive Extraction)
+
+You are a **Forensic Software Analyst**. Your job is to ignore marketing fluff and find the hard, quantifiable "edges" of this tool.
+
+### THE MISSION
+Identify 4-8 **unique, high-signal details** about THIS SPECIFIC TOOL that distinguish it from generic competitors.
+
+### WHAT COUNTS AS A "SPECIFIC"?
+
+(YES - Include these)
+- **Hard Limits:** "60 hours free/month", "10k API calls", "5 users max"
+- **Pricing Quirks:** "1% payout fee", "SAML SSO costs +100%", "Free tier pauses after 7 days"
+- **Unique Tech:** "Native vector database", "Uses Firecracker microVMs", "Offline-first sync"
+- **Platform Constraints:** "Mac-only", "Self-hosted requires Docker"
+
+(NO - Do NOT include)
+- **Standard Plan Prices:** "Pro plan is $29/mo", "Team tier costs $99" (already captured in pricing)
+- **Plan Names/Tiers:** "Has Free, Pro, and Enterprise tiers" (standard info)
+- **Generic Limits Already in Pricing:** "Max 5 users", "10GB storage" (unless there's a quirk)
+- Generic Pros: "Easy to use", "Great support", "Scalable" (useless fluff)
+- Standard Features: "Has a dashboard", "Secure login" (everyone has this)
+- Vague Claims: "Fast performance", "Modern UI", "Enterprise-ready"
+
+**KEY DISTINCTION:** Pricing data is ALREADY extracted separately. Only include pricing-related specifics if there's a QUIRK or TRAP not obvious from the standard price (e.g., "1% payout fee", "Tasks over 10k cost $0.01 each", "Free tier pauses after 7 days inactive").
+
+### CRITICAL RULES (Chain of Verification)
+
+1. **Evidence is Mandatory:** For every specific you extract, you MUST have found the exact text or number in the search results above. If you cannot point to where you saw it, do not include it.
+
+2. **No Math/Inference:**
+   - If the text says "$10/mo", extract "$10/mo"
+   - If the text says "$100/yr", extract "$100/yr"
+   - If BOTH are listed, extract BOTH as separate specifics
+   - Do NOT calculate "$120/yr" from "$10/mo" yourself - only record what is written
+
+3. **No Rounding/Estimating:** If you see "approximately 50ms", use "~50ms". Do not round to "50ms" or guess "under 100ms".
+
+4. **Null Check:** If you cannot find at least 3 high-quality specifics with evidence from the sources, return an EMPTY specifics object: \`"specifics": {}\`. Do not force low-quality data.
+
+### OUTPUT FORMAT
+
+Return specifics as a JSON object with:
+- Keys: Short, Title Case, Human-Readable labels
+- Values: Concise facts with exact units/conditions from sources
+
+Example:
+{
+  "specifics": {
+    "Free Tier Cap": "60 hours/month (pauses afterwards)",
+    "Instant Payout Fee": "1% (min $0.50)",
+    "Database Type": "Postgres (Supabase-managed)",
+    "Cold Start Time": "~300ms for free instances"
+  }
+}
+
+If insufficient evidence found:
+{
+  "specifics": {}
+}
+`;
+}
+
+/**
+ * Get persona context for category.
+ * Helps the AI understand who is reading this review.
+ */
+export function getPersonaContext(categorySlug?: string): string {
+  if (!categorySlug) return '';
+
+  const def = getCategoryDefinition(categorySlug);
+  if (!def || !def.personas.length) return '';
+
+  const personaDescriptions: Record<string, string> = {
+    developer: 'Senior Engineers and technical leads who care about API quality, SDK support, and extensibility',
+    cto: 'CTOs/VPs of Engineering who care about scalability, security compliance, and total cost of ownership',
+    founder: 'Startup founders who care about speed to market, pricing flexibility, and growth scalability',
+    marketer: 'Marketing managers who care about ease of use, integrations with ad platforms, and reporting',
+    designer: 'Product designers who care about collaboration features, asset management, and version history',
+    hr: 'HR Directors who care about compliance, global payroll, and employee experience',
+    finance: 'CFOs/Controllers who care about audit trails, multi-entity support, and bank integrations',
+    ops: 'Operations managers who care about automation, workflow efficiency, and visibility',
+    sales: 'Sales leaders who care about pipeline visibility, calling features, and CRM integrations',
+    support: 'Support managers who care about ticket volume, automation, and customer satisfaction metrics',
+    security: 'CISOs who care about zero-knowledge encryption, compliance certs, and audit logs',
+  };
+
+  const personas = def.personas
+    .map(p => personaDescriptions[p] || p)
+    .filter(Boolean);
+
+  if (personas.length === 0) return '';
+
+  return `
+## TARGET READERS
+
+The primary audience for this review includes:
+${personas.map(p => `- ${p}`).join('\n')}
+
+Prioritize information that matters most to these readers.
+`;
+}
+
 export const SYNTHESIS_PROMPT = `You are the StackHunt Analyst, an expert at evaluating software tools with rigorous source attribution.
 
 Your task is to analyze search results and provide a structured assessment with FULL SOURCE ATTRIBUTION for legal protection.

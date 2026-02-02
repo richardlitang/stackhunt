@@ -30,6 +30,7 @@ import PricingInsights from '@/components/PricingInsights.astro';
 import TribalKnowledge from '@/components/TribalKnowledge.astro';
 import PriceVerification from '@/components/PriceVerification';
 import SuiteNavigation from '@/components/SuiteNavigation.astro';
+import DynamicSpecs from '@/components/DynamicSpecs.astro';
 import IncludedTools from '@/components/IncludedTools.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
@@ -97,6 +98,9 @@ const knowledgeCard = tool.metadata as KnowledgeCard | null;
 const toolSpecs = tool.specs as Record<string, unknown> | null;
 const globalPros = Array.isArray(toolSpecs?.pros) ? toolSpecs?.pros : [];
 const globalCons = Array.isArray(toolSpecs?.cons) ? toolSpecs?.cons : [];
+// V4: Smart Schema - Category-specific and VIP tool-specific data
+const categorySpecificData = toolSpecs?.categorySpecificData as Record<string, unknown> | undefined;
+const vipSpecifics = toolSpecs?.specifics as Record<string, unknown> | undefined;
 const reviewContext = tool.review_context as Record<string, unknown> | null;
 const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<string, unknown> | null;
 const budgetAnalyst = (reviewContext?.budgetAnalyst || reviewContext?.budget_analyst) as Record<string, unknown> | null;
@@ -465,6 +469,14 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             </div>
           </details>
         )}
+
+        {/* Technical Specs - Category-specific and VIP tool details */}
+        <DynamicSpecs
+          categorySpecificData={categorySpecificData}
+          specifics={vipSpecifics}
+          toolName={tool.name}
+          categoryName={tool.category?.name}
+        />
 
         {/* Pricing Plans */}
         {(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) && (

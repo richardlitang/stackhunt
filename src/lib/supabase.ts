@@ -10,9 +10,10 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
 // Environment variables
-const supabaseUrl = import.meta.env.SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+// In Astro/Vite: use import.meta.env, in Node scripts: use process.env
+const supabaseUrl = (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_URL : null) || process.env.SUPABASE_URL;
+const supabaseAnonKey = (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_ANON_KEY : null) || process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_SERVICE_ROLE_KEY : null) || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
   throw new Error('Missing SUPABASE_URL environment variable');

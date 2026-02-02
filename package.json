@@ -15,6 +15,7 @@
     "import-ideas": "npx tsx scripts/import-content-ideas.ts",
     "queue-ideas": "npx tsx scripts/queue-content-ideas.ts",
     "regenerate-embeddings": "npx tsx scripts/regenerate-embeddings.ts",
+    "pricing:backfill": "npx tsx scripts/pricing-backfill.ts",
     "db:migrate": "supabase db push",
     "db:reset": "supabase db reset",
     "typecheck": "tsc --noEmit",
