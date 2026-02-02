@@ -46,7 +46,10 @@ export type SMPPricingModel = 'free' | 'flat' | 'per_seat' | 'per_unit' | 'tiere
 
 export type BillingCycle = 'monthly' | 'annual' | 'quarterly';
 
-export type ScalingUnit = 'user' | 'seat' | 'member' | 'GB' | 'message' | 'request' | 'project' | 'workspace';
+// Tolerant Reader: ScalingUnit is now a string to avoid pipeline failures on novel units
+// Common values: user, seat, contact, subscriber, GB, message, request, token, project
+// The display layer (display.ts) categorizes these into team/audience/resource/usage
+export type ScalingUnit = string;
 
 export type PricingConfidence = 'high' | 'medium' | 'low';
 
@@ -57,6 +60,60 @@ export type DiscountType = 'startup' | 'nonprofit' | 'education' | 'government' 
 // ============================================================================
 // V3: SMP PRICING & TAXONOMY SCHEMAS (for SaaS Management Platform)
 // ============================================================================
+
+/**
+ * Data Governance for compliance and data sovereignty
+ * Used by Journey 1 (Compliance-First) and Journey 6 (Data Sovereign European)
+ */
+export interface DataGovernanceData {
+  // Data location (Journey 1 & 6)
+  data_residency: string[];                // ["US", "EU (Frankfurt)", "UK", "Global"]
+  residency_configurable: boolean;         // Can you choose your region?
+
+  // Self-hosting (Journey 6)
+  self_hostable: boolean;
+  self_host_complexity?: 'docker' | 'k8s' | 'vm' | 'enterprise_only';
+
+  // Sub-processors disclosure (Journey 6 - GDPR Article 28)
+  sub_processors?: Array<{
+    name: string;                          // e.g., "OpenAI", "AWS", "Stripe"
+    purpose: string;                       // e.g., "AI features", "Hosting", "Payments"
+    data_location: string;                 // e.g., "US", "EU", "Global"
+    data_types: string[];                  // e.g., ["user content", "metadata only"]
+    can_disable: boolean;                  // Can you opt out of this sub-processor?
+  }>;
+
+  // Compliance (Journey 1)
+  gdpr_compliant: boolean;
+  gdpr_notes?: string;                     // "DPA available on request", "EU representative: ..."
+  dpa_available: boolean;                  // Data Processing Agreement available
+  compliance_certifications: string[];     // ["SOC2 Type II", "ISO 27001", "HIPAA BAA"]
+  encryption_options: string[];            // ["AES-256", "BYOK", "Customer Managed Keys"]
+}
+
+/**
+ * Setup complexity for non-technical buyers
+ * Used by Journey 4 (Non-Technical Agency Owner)
+ */
+export interface SetupComplexityData {
+  requires_developer: boolean;
+  requires_it_admin: boolean;
+  implementation_partner_needed: boolean;
+  estimated_setup_time: 'minutes' | 'hours' | 'days' | 'weeks';
+  technical_blockers?: string[];           // ["API configuration", "DNS setup", "Custom SMTP"]
+}
+
+/**
+ * Migration warning for hostage migrators
+ * Used by Journey 3 (Hostage Migrator)
+ */
+export interface MigrationWarning {
+  feature: string;                         // "Notion Synced Blocks"
+  breaks_on_export_to: string[];           // ["obsidian", "roam-research"]
+  becomes: string;                         // "static text (no longer syncs)"
+  workaround?: string | null;
+  severity: 'critical' | 'major' | 'minor'; // Data loss vs cosmetic
+}
 
 /**
  * Individual pricing plan (for dropdown selection in future user dashboard)
@@ -80,11 +137,27 @@ export interface SMPPlanData {
   max_storage_gb: number | null;
   max_projects: number | null;
 
+  // V3.3: Free Tier Safety (Journey 2 - Bootstrapped Solo Dev)
+  free_tier_behavior?: 'hard_limit' | 'soft_limit' | 'throttle' | 'pay_as_you_go';
+  overage_policy?: {
+    auto_charges: boolean;                 // 🚨 DANGER FLAG - Does it auto-charge your credit card?
+    charge_per_unit?: number;              // e.g., $0.10 per 1k requests
+    max_overage_pct?: number;              // e.g., 20 = can't exceed 120% of included quota
+    grace_period_days?: number;
+    hard_cap_available: boolean;           // Can you set a spending limit?
+  } | null;
+
   // Key features (for plan comparison and recommendations)
   includes_sso: boolean;
   includes_api: boolean;
   includes_sla: boolean;
   includes_priority_support: boolean;
+
+  // V3.3: Enterprise Features (Journey 5 - Scale-Up CTO)
+  includes_audit_logs?: boolean;
+  audit_log_retention_days?: number;       // 90, 365, etc.
+  uptime_sla?: string;                     // "99.9%", "99.99%", "none"
+  support_response_time?: string;          // "1 hour", "4 hours", "24 hours", "best effort"
 
   // Enterprise flag
   is_enterprise: boolean;                  // true = "Contact Sales"
@@ -180,6 +253,9 @@ export interface SMPPortabilityData {
   import_from: string[];                   // Tool slugs with import wizards FROM
   export_to: string[];                     // Tool slugs with export wizards TO
 
+  // V3.3: Migration Warnings (Journey 3 - Hostage Migrator)
+  migration_warnings?: MigrationWarning[]; // What breaks when you migrate
+
   // Contract terms (for switching timing)
   min_commitment_months: number | null;    // null = month-to-month
   cancellation_notice_days: number | null;
@@ -192,7 +268,7 @@ export interface SMPPortabilityData {
 /** Specs schema for software tools */
 export interface ToolSpecs {
   // Pricing (legacy - kept for backward compatibility)
-  pricing_model?: PricingModel;
+  pricing_model?: PricingModel; // ⚠️ DEPRECATED: Use pricing_type column instead
   starting_price?: string | null; // e.g., "$12/mo"
   free_tier_limits?: string | null; // e.g., "5 projects, 10 users"
   trial_days?: number | null; // e.g., 14
@@ -206,12 +282,18 @@ export interface ToolSpecs {
   // V3: SMP Portability (for switching recommendations)
   portability?: SMPPortabilityData;
 
+  // V3.2: Data Governance (Journey 1 & 6 - Compliance-First & Data Sovereign)
+  data_governance?: DataGovernanceData;
+
+  // V3.2: Setup Complexity (Journey 4 - Non-Technical Agency Owner)
+  setup_complexity?: SetupComplexityData;
+
   // Platform & Integration
   integrations?: string[]; // e.g., ["Slack", "Zapier", "Google Drive"]
   platforms?: string[]; // e.g., ["Web", "iOS", "Mac", "Windows", "Linux"]
   support_options?: string[]; // e.g., ["Chat", "Email", "Phone", "Docs"]
 
-  // Security & Compliance
+  // Security & Compliance (legacy - use data_governance for new data)
   security?: string[]; // e.g., ["SSO", "SOC2", "GDPR", "HIPAA"]
   sso_providers?: string[]; // e.g., ["Google", "Microsoft", "SAML", "Okta"]
   data_export_formats?: string[]; // e.g., ["CSV", "JSON", "PDF"]
@@ -224,6 +306,10 @@ export interface ToolSpecs {
   data_import_from?: string[]; // Slugs of tools that can be imported from
   migration_out_difficulty?: 1 | 2 | 3 | 4 | 5; // 1=trivial, 5=very hard
   proprietary_features?: string[]; // Features that won't transfer on migration
+
+  // ⚠️ REMOVED: pros/cons - These are context-specific and belong in reviews table only
+  // pros?: any[]; // DELETED - Use reviews.pros instead
+  // cons?: any[]; // DELETED - Use reviews.cons instead
 }
 
 /** Specs schema for hardware gear */
@@ -358,6 +444,14 @@ export interface Item {
 
   // V3.2: Parent/Child Relationship (Suite Bundling)
   parent_id: string | null; // References parent suite (e.g., Google Meet → Google Workspace)
+
+  // V3.3: Pricing Normalization (Computed fields for apples-to-apples comparison)
+  effective_starting_price_monthly: number | null; // True minimum monthly cost (accounts for min_seats)
+  effective_starting_price_annual: number | null; // True minimum annual cost
+  pricing_comparison_tier: 'individual' | 'team' | 'business' | 'enterprise' | null; // Which plan tier used for comparison
+  pricing_comparison_plan_id: string | null; // Plan ID from specs.pricing_data.plans[].id
+  normalized_price_per_seat_monthly: number | null; // Per-seat monthly price (null for flat-rate)
+  normalized_price_per_seat_annual: number | null; // Per-seat annual price
 
   created_at: string;
   updated_at: string;

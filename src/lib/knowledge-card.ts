@@ -37,7 +37,11 @@ export const SMPPlanSchema = z.object({
     .describe("Who is this plan for? individual=solo users, team=2-10, business=10-100, enterprise=100+"),
   price_monthly: z.number().nullable().optional(),  // Monthly price (null/undefined = no monthly option)
   price_annual: z.number().nullable().optional(),   // Total annual price (null/undefined = no annual option)
-  scaling_unit: z.enum(['user', 'seat', 'member', 'GB', 'message', 'request', 'project', 'workspace', 'hour']).nullable().optional(),
+  // Tolerant Reader: Accept any string to avoid pipeline failures on novel units
+  // Common units: user, seat, contact, subscriber, GB, message, request, token, project
+  // Unique units preserved as-is: zap, credit, compute, invocation, etc.
+  scaling_unit: z.string().nullable().optional()
+    .describe("The noun being counted. Use standard units (user, contact, gb) where possible, but preserve unique terms (zap, token, credit) if the tool uses them."),
   price_per_unit: z.number().nullable().optional(),
   included_units: z.number().nullable().optional(),
   max_users: z.number().nullable().optional(),
