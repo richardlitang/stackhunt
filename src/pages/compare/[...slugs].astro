@@ -18,7 +18,7 @@ import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import ProsCons from '@/components/ProsCons.astro';
 import { supabase } from '@/lib/supabase';
 import { getCanonicalUrl, getScoreColor, formatPricingType } from '@/lib/utils';
-import { computeComparison, getWinnerText, type ToolComparison } from '@/lib/analysis/comparator';
+import { computeComparison, getWinnerText, areToolsComparable, type ToolComparison } from '@/lib/analysis/comparator';
 import {
   generateBreadcrumbSchema,
 } from '@/lib/seo';
@@ -85,46 +85,18 @@ const toolA = tools.find(t => t.slug === slugA)!;
 const toolB = tools.find(t => t.slug === slugB)!;
 
 // Validation: Prevent nonsensical comparisons (Canva vs LinkedIn Ads)
-// Check if tools are comparable based on category or function similarity
-const sameCategory = toolA.category?.id === toolB.category?.id && toolA.category?.id != null;
-const functionA = (toolA.metadata as any)?.smp_taxonomy?.primary_function;
-const functionB = (toolB.metadata as any)?.smp_taxonomy?.primary_function;
+// Uses shared validation logic from comparator.ts
+const toolsAreComparable = areToolsComparable(
+  { slug: toolA.slug, category_id: toolA.category?.id, metadata: toolA.metadata as any },
+  { slug: toolB.slug, category_id: toolB.category?.id, metadata: toolB.metadata as any }
+);
 
-// Define comparable function groups (tools in these groups can be compared)
-const comparableFunctions = [
-  ['Project Management', 'Task Management', 'Work Management'],
-  ['Communication', 'Team Chat', 'Messaging'],
-  ['Design', 'Graphic Design', 'Video Editing', 'Creative'],
-  ['Note-Taking', 'Knowledge Management', 'Documentation'],
-  ['CRM', 'Sales', 'Marketing Automation', 'Email Marketing', 'Lead Generation'],
-  ['Accounting', 'Finance', 'Expense Management', 'Invoicing'],
-  ['HR', 'Payroll', 'Recruitment'],
-  ['Analytics', 'Business Intelligence', 'Data Visualization'],
-  ['Advertising Platform', 'Ad Management', 'Marketing'],
-];
-
-const areFunctionsComparable = (funcA: string | undefined, funcB: string | undefined): boolean => {
-  if (!funcA || !funcB) return false;
-  if (funcA === funcB) return true;
-
-  // Check if both functions are in the same comparable group
-  for (const group of comparableFunctions) {
-    const aInGroup = group.some(f => funcA.toLowerCase().includes(f.toLowerCase()));
-    const bInGroup = group.some(f => funcB.toLowerCase().includes(f.toLowerCase()));
-    if (aInGroup && bInGroup) return true;
-  }
-
-  return false;
-};
-
-const functionsComparable = areFunctionsComparable(functionA, functionB);
-
-// Check substitutability score from comparison insights (if exists)
+// Additional escape hatch: high substitutability score from curated comparison_insights
 const hasHighSubstitutability = (comparisonInsights?.substitutability_score || 0) >= 30;
 
 // Redirect to 404 if tools are not comparable
-if (!sameCategory && !functionsComparable && !hasHighSubstitutability) {
-  console.log(`[Comparison blocked] ${toolA.name} vs ${toolB.name} - Category: ${sameCategory}, Function: ${functionsComparable}, Substitutability: ${comparisonInsights?.substitutability_score || 0}`);
+if (!toolsAreComparable && !hasHighSubstitutability) {
+  console.log(`[Comparison blocked] ${toolA.name} vs ${toolB.name} - Comparable: ${toolsAreComparable}, Substitutability: ${comparisonInsights?.substitutability_score || 0}`);
   return Astro.redirect('/404');
 }
 
@@ -242,14 +214,15 @@ const learningWinner = computed?.learning_curve.easier;
 const audienceFits = computed?.audience_fits || [];
 
 // Fetch suggested comparisons (tools in same category + switching patterns)
+// Include category_id and metadata for proper comparability validation
 const { data: suggestedComparisons } = await supabase
   .from('tools')
-  .select('id, name, slug, logo_url, avg_score, category:categories(slug)')
+  .select('id, name, slug, logo_url, avg_score, category_id, metadata, category:categories(slug)')
   .eq('category.slug', toolA.category?.slug || toolB.category?.slug)
   .not('slug', 'in', `(${slugA},${slugB})`)
   .gt('avg_score', 0)
   .order('avg_score', { ascending: false })
-  .limit(6);
+  .limit(10); // Fetch more to have buffer after filtering
 
 // Extract tools mentioned in switching_from across reviews
 const switchingTools = new Set<string>();
@@ -270,38 +243,65 @@ interface SuggestedComparison {
 
 const suggestions: SuggestedComparison[] = [];
 
-// Add category-based suggestions (compare other tools in same category with current tools)
-const sameCategoryTools = (suggestedComparisons || []).slice(0, 3);
-for (const tool of sameCategoryTools) {
-  // Suggest comparing this tool with toolA
-  suggestions.push({
-    toolA: { name: toolA.name, slug: toolA.slug, logo_url: toolA.logo_url },
-    toolB: { name: tool.name, slug: tool.slug, logo_url: tool.logo_url },
-    reason: 'category',
-  });
-}
+// Prep main tools for comparability check
+const mainToolAInfo = { slug: toolA.slug, category_id: toolA.category?.id, metadata: toolA.metadata as any };
+const mainToolBInfo = { slug: toolB.slug, category_id: toolB.category?.id, metadata: toolB.metadata as any };
 
-// Add switching-based suggestions (if we have switching data)
-// Only include if they're in same category as current tools
-if (switchingTools.size > 0) {
-  const switchingSlugs = Array.from(switchingTools).slice(0, 2);
-  const { data: switchingToolsData } = await supabase
-    .from('tools')
-    .select('name, slug, logo_url, category:categories(id)')
-    .in('slug', switchingSlugs)
-    // Filter to same category to prevent nonsensical comparisons
-    .eq('category.id', toolA.category?.id || toolB.category?.id);
+// Add category-based suggestions - only if comparable with one of the main tools
+for (const tool of suggestedComparisons || []) {
+  const toolInfo = { slug: tool.slug, category_id: tool.category_id, metadata: tool.metadata as any };
 
-  for (const tool of switchingToolsData || []) {
+  // Check if this tool is comparable with toolA
+  if (areToolsComparable(mainToolAInfo, toolInfo)) {
     suggestions.push({
       toolA: { name: toolA.name, slug: toolA.slug, logo_url: toolA.logo_url },
       toolB: { name: tool.name, slug: tool.slug, logo_url: tool.logo_url },
-      reason: 'switching',
+      reason: 'category',
     });
+  }
+  // Also check if comparable with toolB (might be different category)
+  else if (areToolsComparable(mainToolBInfo, toolInfo)) {
+    suggestions.push({
+      toolA: { name: toolB.name, slug: toolB.slug, logo_url: toolB.logo_url },
+      toolB: { name: tool.name, slug: tool.slug, logo_url: tool.logo_url },
+      reason: 'category',
+    });
+  }
+
+  if (suggestions.length >= 4) break;
+}
+
+// Add switching-based suggestions (if we have switching data and need more suggestions)
+if (switchingTools.size > 0 && suggestions.length < 4) {
+  const switchingSlugs = Array.from(switchingTools).slice(0, 4);
+  const { data: switchingToolsData } = await supabase
+    .from('tools')
+    .select('name, slug, logo_url, category_id, metadata')
+    .in('slug', switchingSlugs);
+
+  for (const tool of switchingToolsData || []) {
+    const toolInfo = { slug: tool.slug, category_id: tool.category_id, metadata: tool.metadata as any };
+
+    // Only add if comparable with one of the main tools
+    if (areToolsComparable(mainToolAInfo, toolInfo)) {
+      suggestions.push({
+        toolA: { name: toolA.name, slug: toolA.slug, logo_url: toolA.logo_url },
+        toolB: { name: tool.name, slug: tool.slug, logo_url: tool.logo_url },
+        reason: 'switching',
+      });
+    } else if (areToolsComparable(mainToolBInfo, toolInfo)) {
+      suggestions.push({
+        toolA: { name: toolB.name, slug: toolB.slug, logo_url: toolB.logo_url },
+        toolB: { name: tool.name, slug: tool.slug, logo_url: tool.logo_url },
+        reason: 'switching',
+      });
+    }
+
+    if (suggestions.length >= 6) break;
   }
 }
 
-// Deduplicate, validate, and limit
+// Deduplicate and limit
 const uniqueSuggestions = suggestions
   .filter((s, i, arr) =>
     // Deduplicate

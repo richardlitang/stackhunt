@@ -446,3 +446,85 @@ export function orderSlugsAlphabetically(
   }
   return { slugA: slug2, slugB: slug1, swapped: true };
 }
+
+// ============================================================================
+// COMPARISON VALIDATION
+// ============================================================================
+
+/**
+ * Comparable function groups - tools in these groups can be compared
+ */
+const COMPARABLE_FUNCTION_GROUPS = [
+  ['Project Management', 'Task Management', 'Work Management'],
+  ['Communication', 'Team Chat', 'Messaging'],
+  ['Design', 'Graphic Design', 'Video Editing', 'Creative'],
+  ['Note-Taking', 'Knowledge Management', 'Documentation'],
+  ['CRM', 'Sales', 'Marketing Automation', 'Email Marketing', 'Lead Generation'],
+  ['Accounting', 'Finance', 'Expense Management', 'Invoicing'],
+  ['HR', 'Payroll', 'Recruitment'],
+  ['Analytics', 'Business Intelligence', 'Data Visualization'],
+  ['Advertising Platform', 'Ad Management', 'Marketing'],
+];
+
+/**
+ * Check if two primary functions are comparable
+ */
+function areFunctionsComparable(funcA: string | undefined, funcB: string | undefined): boolean {
+  if (!funcA || !funcB) return false;
+  if (funcA === funcB) return true;
+
+  // Check if both functions are in the same comparable group
+  for (const group of COMPARABLE_FUNCTION_GROUPS) {
+    const aInGroup = group.some(f => funcA.toLowerCase().includes(f.toLowerCase()));
+    const bInGroup = group.some(f => funcB.toLowerCase().includes(f.toLowerCase()));
+    if (aInGroup && bInGroup) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Minimal tool info needed for comparison validation
+ */
+export interface ComparableToolInfo {
+  slug: string;
+  category_id?: string | null;
+  metadata?: {
+    smp_taxonomy?: {
+      primary_function?: string;
+    };
+  } | null;
+}
+
+/**
+ * Check if two tools are comparable and should have a comparison link
+ *
+ * Criteria:
+ * 1. Same category (category_id matches)
+ * 2. OR comparable functions (from smp_taxonomy.primary_function)
+ *
+ * @param toolA - First tool
+ * @param toolB - Second tool
+ * @returns true if tools are comparable
+ */
+export function areToolsComparable(
+  toolA: ComparableToolInfo,
+  toolB: ComparableToolInfo
+): boolean {
+  // Same tool is not comparable to itself
+  if (toolA.slug === toolB.slug) return false;
+
+  // Check same category
+  const sameCategory =
+    toolA.category_id != null &&
+    toolB.category_id != null &&
+    toolA.category_id === toolB.category_id;
+
+  if (sameCategory) return true;
+
+  // Check comparable functions
+  const functionA = toolA.metadata?.smp_taxonomy?.primary_function;
+  const functionB = toolB.metadata?.smp_taxonomy?.primary_function;
+
+  return areFunctionsComparable(functionA, functionB);
+}

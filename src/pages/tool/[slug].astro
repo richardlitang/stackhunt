@@ -37,6 +37,7 @@ import SignalReportWidget from '@/components/SignalReportWidget';
 import SignalAggregatesBadge from '@/components/SignalAggregatesBadge';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
+import { areToolsComparable } from '@/lib/analysis/comparator';
 import {
   getToolBySlugAndType,
   getToolContexts,
@@ -118,10 +119,10 @@ const avoidIf = Array.isArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if) ?
 const alternativesResponse = await getAlternatives(tool, { matchThreshold: 0.40, matchCount: 6 });
 const alternativeIds = alternativesResponse.items.map(a => a.id);
 
-// Fetch full data for alternatives (needed for micro-diffs and display)
+// Fetch full data for alternatives (needed for micro-diffs, display, and comparison validation)
 const { data: alternatives } = alternativeIds.length > 0 ? await supabase
   .from('items')
-  .select('id, name, slug, logo_url, short_description, avg_score, pricing_type, learning_curve, base_score, specs')
+  .select('id, name, slug, logo_url, short_description, avg_score, pricing_type, learning_curve, base_score, specs, category_id, metadata')
   .in('id', alternativeIds)
   .eq('type', 'tool') : { data: [] };
 
@@ -692,14 +693,21 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         </header>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {orderedAlternatives.map((alt) => (
-            <AlternativeCard
-              main={{ slug: tool.slug, name: tool.name, pricing_type: tool.pricing_type, learning_curve: tool.learning_curve, base_score: tool.base_score }}
-              alt={alt}
-              curatedVerdict={curatedVerdicts.get(alt.slug)}
-              computedDiff={microDiffs.get(alt.slug)}
-            />
-          ))}
+          {orderedAlternatives.map((alt) => {
+            const canCompare = areToolsComparable(
+              { slug: tool.slug, category_id: tool.category_id, metadata: tool.metadata as any },
+              { slug: alt.slug, category_id: alt.category_id, metadata: alt.metadata as any }
+            );
+            return (
+              <AlternativeCard
+                main={{ slug: tool.slug, name: tool.name, pricing_type: tool.pricing_type, learning_curve: tool.learning_curve, base_score: tool.base_score }}
+                alt={alt}
+                curatedVerdict={curatedVerdicts.get(alt.slug)}
+                computedDiff={microDiffs.get(alt.slug)}
+                showCompareLink={canCompare}
+              />
+            );
+          })}
         </div>
       </section>
     )}

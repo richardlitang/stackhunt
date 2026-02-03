@@ -29,6 +29,7 @@ import {
   generateContextReviewSchemas,
 } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
+import { areToolsComparable } from '@/lib/analysis/comparator';
 
 // Server-render for fresh data (switch to prerender = true for production if needed)
 export const prerender = false;
@@ -69,16 +70,23 @@ const exploreMoreItems: Array<{
 }> = [];
 
 // Priority 1: Comparison between top 2 (unique, high-intent SEO)
+// Only add if tools are comparable (same category or comparable functions)
 if (sortedReviews.length >= 2) {
   const tool1 = sortedReviews[0].item;
   const tool2 = sortedReviews[1].item;
-  exploreMoreItems.push({
-    href: `/compare/${tool1.slug}-vs-${tool2.slug}`,
-    title: `${tool1.name} vs ${tool2.name}`,
-    description: 'Head-to-head comparison of top picks',
-    type: 'comparison',
-    priority: 100,
-  });
+  const canCompare = areToolsComparable(
+    { slug: tool1.slug, category_id: tool1.category_id, metadata: tool1.metadata as any },
+    { slug: tool2.slug, category_id: tool2.category_id, metadata: tool2.metadata as any }
+  );
+  if (canCompare) {
+    exploreMoreItems.push({
+      href: `/compare/${tool1.slug}-vs-${tool2.slug}`,
+      title: `${tool1.name} vs ${tool2.name}`,
+      description: 'Head-to-head comparison of top picks',
+      type: 'comparison',
+      priority: 100,
+    });
+  }
 }
 
 // Priority 2: Category link
