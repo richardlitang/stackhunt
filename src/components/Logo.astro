@@ -64,29 +64,21 @@ function cleanDomain(input: string | null): string | null {
 
 const cleanedDomain = isDirectImageUrl ? null : cleanDomain(domain);
 
-// Brandfetch Client ID (from env)
-const brandfetchId = import.meta.env.PUBLIC_BRANDFETCH_CLIENT_ID || '';
-
 // Construct URLs dynamically
 const directUrl = isDirectImageUrl ? domain : null;
 
-// Brandfetch Logo Link - simple format per docs
-const brandfetchUrl = cleanedDomain && brandfetchId
-  ? `https://cdn.brandfetch.io/${cleanedDomain}?c=${brandfetchId}`
-  : null;
-
-// Google favicons as fallback
+// Google favicons - reliable and free (128px for good quality)
 const googleUrl = cleanedDomain
   ? `https://www.google.com/s2/favicons?domain=${cleanedDomain}&sz=128`
   : null;
 
-// DuckDuckGo as last resort
+// DuckDuckGo as fallback
 const duckduckgoUrl = cleanedDomain
   ? `https://icons.duckduckgo.com/ip3/${cleanedDomain}.ico`
   : null;
 
-// Primary: Direct URL > Brandfetch > Google favicons
-const primarySrc = directUrl || brandfetchUrl || googleUrl;
+// Primary: Direct URL (Supabase storage) > Google favicons
+const primarySrc = directUrl || googleUrl;
 ---
 
 {!domain ? (
@@ -104,18 +96,13 @@ const primarySrc = directUrl || brandfetchUrl || googleUrl;
       loading={priority ? 'eager' : 'lazy'}
       fetchpriority={priority ? 'high' : undefined}
       onerror={`
-        if (this.src.includes('brandfetch')) {
-          this.src = '${googleUrl}';
-        } else if (this.src.includes('google') || this.src.includes('gstatic')) {
+        if (this.src.includes('google') || this.src.includes('gstatic')) {
           this.src = '${duckduckgoUrl}';
-        } else {
+        } else if (this.src.includes('duckduckgo')) {
           this.style.display = 'none';
           this.nextElementSibling.style.display = 'flex';
-        }
-      `}
-      onload={`
-        if (this.naturalWidth === 0 || this.naturalHeight === 0) {
-          this.onerror();
+        } else {
+          this.src = '${googleUrl}';
         }
       `}
     />
