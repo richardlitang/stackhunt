@@ -12,7 +12,7 @@ test.describe('Pricing Display Features', () => {
     await expect(page.getByText(/\d+ products with usage-based pricing/)).toBeVisible({ timeout: 10000 });
 
     // Should have a table (not card grid) for pricing
-    const pricingTable = page.locator('section:has-text("Pricing Plans") table');
+    const pricingTable = page.locator('details:has-text("Pricing Plans") table');
     await expect(pricingTable).toBeVisible();
 
     // Table should have Product, Price, Unit columns
@@ -36,7 +36,7 @@ test.describe('Pricing Display Features', () => {
     await expect(page.getByText(/\d+ products with usage-based pricing/)).not.toBeVisible({ timeout: 5000 });
 
     // Should have card grid layout (not table)
-    const pricingSection = page.locator('section:has-text("Pricing Plans")');
+    const pricingSection = page.locator('details:has-text("Pricing Plans")');
     await expect(pricingSection).toBeVisible({ timeout: 10000 });
 
     // Should show plan cards with names like "Free", "Pro", etc.
@@ -50,7 +50,7 @@ test.describe('Pricing Display Features', () => {
   test('Mailchimp shows contact-based pricing', async ({ page }) => {
     await page.goto('/tool/mailchimp', { waitUntil: 'domcontentloaded' });
 
-    const pricingSection = page.locator('section:has-text("Pricing Plans")');
+    const pricingSection = page.locator('details:has-text("Pricing Plans")');
     await expect(pricingSection).toBeVisible({ timeout: 10000 });
 
     // Should show "per contact" unit
@@ -128,7 +128,7 @@ test.describe('Pricing Display Features', () => {
 
     // Twilio has diverse units like "verification", "execution", "invocation"
     // These should pass through the tolerant reader and display
-    const pricingSection = page.locator('section:has-text("Pricing Plans")');
+    const pricingSection = page.locator('details:has-text("Pricing Plans")');
     await expect(pricingSection).toBeVisible({ timeout: 10000 });
 
     // At least some of these should be visible
