@@ -59,16 +59,15 @@ const discountLabels = {
 };
 ---
 
-<section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-  {/* Header with Pricing Model Badge */}
-  <div class="mb-4 flex items-center justify-between gap-4">
-    <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
-    {(smp_pricing?.model || legacy_pricing?.model) && (
+<div>
+  {/* Pricing Model Badge - no wrapper/header (parent provides those) */}
+  {(smp_pricing?.model || legacy_pricing?.model) && (
+    <div class="mb-4 flex justify-end">
       <span class="inline-flex items-center rounded-full bg-hunt-900/30 px-3 py-1 text-xs font-medium text-hunt-400 border border-hunt-700">
         {modelLabels[smp_pricing?.model || legacy_pricing?.model || 'paid']}
       </span>
-    )}
-  </div>
+    </div>
+  )}
 
   {/* SMP Pricing Plans - Compact Table View for Multi-Product Platforms */}
   {hasSMPPricing && useCompactView && (
@@ -316,4 +315,4 @@ const discountLabels = {
       )}
     </div>
   )}
-</section>
+</div>

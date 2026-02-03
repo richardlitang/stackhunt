@@ -69,8 +69,12 @@ const brandfetchId = import.meta.env.PUBLIC_BRANDFETCH_CLIENT_ID || '';
 // Construct URLs dynamically
 const directUrl = isDirectImageUrl ? domain : null;
 
+// Brandfetch URL with proper parameters:
+// - icon type for consistent square format
+// - dark theme for dark mode UI
+// - lettermark fallback (shows first letter if logo not found)
 const brandfetchUrl = cleanedDomain && brandfetchId
-  ? `https://cdn.brandfetch.io/${cleanedDomain}?c=${brandfetchId}`
+  ? `https://cdn.brandfetch.io/${cleanedDomain}/icon/dark/fallback/lettermark?c=${brandfetchId}`
   : null;
 
 const googleUrl = cleanedDomain
