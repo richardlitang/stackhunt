@@ -315,7 +315,7 @@ async function main() {
     .limit(limit);
 
   if (filterCategory) {
-    query = query.eq('specs->taxonomy->primary_function', filterCategory);
+    query = query.filter('specs->taxonomy->>primary_function', 'eq', filterCategory);
   }
 
   const { data: tools, error } = await query;

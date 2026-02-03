@@ -99,8 +99,9 @@ export async function getAlternatives(
     preferSubCategory: boolean
   ): AlternativeResult[] => {
     // First, filter by pricing model compatibility
+    // Note: similarity may come as string from Postgres, ensure numeric comparison
     const compatible = data.filter(item =>
-      arePricingModelsCompatible(sourcePricingModel, item.pricing_model, item.similarity)
+      arePricingModelsCompatible(sourcePricingModel, item.pricing_model, Number(item.similarity))
     );
 
     if (preferSubCategory && subCategory) {
@@ -110,7 +111,7 @@ export async function getAlternatives(
           const aMatchesSub = a.sub_category === subCategory ? 1 : 0;
           const bMatchesSub = b.sub_category === subCategory ? 1 : 0;
           if (aMatchesSub !== bMatchesSub) return bMatchesSub - aMatchesSub;
-          return b.similarity - a.similarity;
+          return Number(b.similarity) - Number(a.similarity);
         })
         .slice(0, matchCount);
     }
