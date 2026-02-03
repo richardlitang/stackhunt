@@ -350,8 +350,24 @@ CATEGORY-SPECIFIC RULES:
 3. API / DEVELOPER TOOLS (Twilio, SendGrid, Stripe, OpenAI):
    - scaling_unit: "message", "request", "token", "call", "event", "invocation"
    - Include free tier limits in included_units
-   - Example: "Free: 100 emails/day, Pro: $0.001/email"
-     → Free plan: included_units: 3000 (100/day × 30), scaling_unit: "message"
+
+   CRITICAL: MULTI-PRODUCT PLATFORMS ("Service-as-a-Plan" Strategy)
+   If a tool sells MULTIPLE DISTINCT API PRODUCTS (not tiers), treat each PRODUCT as a separate PLAN.
+
+   DO NOT jam all products into one generic plan. Split them so users can calculate costs per service.
+
+   Example for Twilio (extract as SEPARATE plans):
+   - Plan 1: { id: "twilio-sms", name: "Programmable SMS", price_monthly: 0, price_per_unit: 0.0079, scaling_unit: "message" }
+   - Plan 2: { id: "twilio-voice", name: "Voice API", price_monthly: 0, price_per_unit: 0.013, scaling_unit: "minute" }
+   - Plan 3: { id: "twilio-whatsapp", name: "WhatsApp Business", price_monthly: 0, price_per_unit: 0.005, scaling_unit: "message" }
+   - Plan 4: { id: "twilio-email", name: "SendGrid Email", price_monthly: 19.95, scaling_unit: "contact", included_units: 50000 }
+
+   Example for AWS (extract as SEPARATE plans):
+   - Plan 1: { id: "aws-ec2", name: "EC2 Compute", price_per_unit: 0.023, scaling_unit: "hour" }
+   - Plan 2: { id: "aws-s3", name: "S3 Storage", price_per_unit: 0.023, scaling_unit: "GB" }
+   - Plan 3: { id: "aws-lambda", name: "Lambda Functions", price_per_unit: 0.0000002, scaling_unit: "invocation" }
+
+   WHY: This enables the cost calculator to work. Users select a service, enter quantity, get accurate estimate.
 
 4. PROJECT MANAGEMENT (Asana, Monday, Notion):
    - Usually per_seat pricing: scaling_unit: "user" or "seat" or "member"
