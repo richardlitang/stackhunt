@@ -15,6 +15,7 @@
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ToolCard from '@/components/ToolCard.astro';
+import Logo from '@/components/Logo.astro';
 import ProsCons from '@/components/ProsCons.astro';
 import SentimentTags from '@/components/SentimentTags.astro';
 import VoteWidget from '@/components/VoteWidget';
@@ -298,22 +299,12 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
               <div class="p-6">
                 <div class="flex items-start gap-5">
                   <!-- Logo -->
-                  <a
-                    href={`/tool/${review.item.slug}`}
-                    class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900"
-                  >
-                    {review.item.logo_url ? (
-                      <img
-                        src={review.item.logo_url}
-                        alt={`${review.item.name} logo`}
-                        class="h-full w-full object-contain p-2"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span class="text-2xl font-bold text-slate-300">
-                        {review.item.name.charAt(0)}
-                      </span>
-                    )}
+                  <a href={`/tool/${review.item.slug}`} class="shrink-0">
+                    <Logo
+                      domain={review.item.logo_url}
+                      name={review.item.name}
+                      size="lg"
+                    />
                   </a>
 
                   <!-- Info -->

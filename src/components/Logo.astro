@@ -64,21 +64,29 @@ function cleanDomain(input: string | null): string | null {
 
 const cleanedDomain = isDirectImageUrl ? null : cleanDomain(domain);
 
+// Brandfetch client ID
+const brandfetchClientId = '1idk7evwtIGYuqraybx';
+
 // Construct URLs dynamically
 const directUrl = isDirectImageUrl ? domain : null;
 
-// Google favicons - reliable and free (128px for good quality)
+// Brandfetch Logo Link - high quality logos
+const brandfetchUrl = cleanedDomain
+  ? `https://cdn.brandfetch.io/${cleanedDomain}?c=${brandfetchClientId}`
+  : null;
+
+// Google favicons - reliable fallback (128px for good quality)
 const googleUrl = cleanedDomain
   ? `https://www.google.com/s2/favicons?domain=${cleanedDomain}&sz=128`
   : null;
 
-// DuckDuckGo as fallback
+// DuckDuckGo as last resort
 const duckduckgoUrl = cleanedDomain
   ? `https://icons.duckduckgo.com/ip3/${cleanedDomain}.ico`
   : null;
 
-// Primary: Direct URL (Supabase storage) > Google favicons
-const primarySrc = directUrl || googleUrl;
+// Primary: Direct URL (Supabase storage) > Brandfetch > Google favicons
+const primarySrc = directUrl || brandfetchUrl || googleUrl;
 ---
 
 {!domain ? (
@@ -96,13 +104,27 @@ const primarySrc = directUrl || googleUrl;
       loading={priority ? 'eager' : 'lazy'}
       fetchpriority={priority ? 'high' : undefined}
       onerror={`
-        if (this.src.includes('google') || this.src.includes('gstatic')) {
+        if (this.src.includes('brandfetch')) {
+          this.src = '${googleUrl}';
+        } else if (this.src.includes('google') || this.src.includes('gstatic')) {
           this.src = '${duckduckgoUrl}';
         } else if (this.src.includes('duckduckgo')) {
           this.style.display = 'none';
           this.nextElementSibling.style.display = 'flex';
         } else {
           this.src = '${googleUrl}';
+        }
+      `}
+      onload={`
+        if (this.naturalWidth === 0 || this.naturalHeight === 0) {
+          if (this.src.includes('brandfetch')) {
+            this.src = '${googleUrl}';
+          } else if (this.src.includes('google') || this.src.includes('gstatic')) {
+            this.src = '${duckduckgoUrl}';
+          } else if (this.src.includes('duckduckgo')) {
+            this.style.display = 'none';
+            this.nextElementSibling.style.display = 'flex';
+          }
         }
       `}
     />
