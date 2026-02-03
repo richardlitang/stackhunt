@@ -7,8 +7,9 @@
  * - Gemini's multi-tool support (2-5 tools)
  * - My billing cycle toggle
  * - Gemini's inline insight generation
+ * - Adaptive Axis: Dynamic scaling based on primary unit (users, contacts, etc.)
  *
- * Answers: "At MY team size, which tool is cheaper? And when does that change?"
+ * Answers: "At MY scale, which tool is cheaper? And when does that change?"
  */
 
 import React, { useState, useMemo } from 'react';
@@ -29,10 +30,96 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { computeMonthlyCost } from '@/lib/pricing/cost';
-import { isTeamBasedPricing, formatScalingUnit } from '@/lib/pricing/display';
+import { formatScalingUnit, getScalingUnit, getScalingCategory, type ScalingCategory } from '@/lib/pricing/display';
 
 // Color palette for up to 5 tools (first is main tool, others are alternatives)
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+
+/**
+ * Axis configurations for different scaling dimensions
+ * This is the "Adaptive Axis" feature - chart adapts to the primary unit type
+ */
+interface AxisConfig {
+  label: string;
+  unitLabel: string;
+  min: number;
+  max: number;
+  step: number;
+  defaultValue: number;
+}
+
+const AXIS_CONFIGS: Record<ScalingCategory | 'default', AxisConfig> = {
+  // Team-based: users, seats, members
+  team: {
+    label: 'Team Size',
+    unitLabel: 'users',
+    min: 1,
+    max: 50,
+    step: 1,
+    defaultValue: 10,
+  },
+  // Audience-based: contacts, subscribers, leads
+  audience: {
+    label: 'Contacts',
+    unitLabel: 'contacts',
+    min: 500,
+    max: 50000,
+    step: 500,
+    defaultValue: 2500,
+  },
+  // Resource-based: GB, projects, workspaces
+  resource: {
+    label: 'Resources',
+    unitLabel: 'units',
+    min: 1,
+    max: 100,
+    step: 5,
+    defaultValue: 10,
+  },
+  // Usage-based: API calls, messages (fallback - usually shows table instead)
+  usage: {
+    label: 'Usage',
+    unitLabel: 'units',
+    min: 100,
+    max: 10000,
+    step: 100,
+    defaultValue: 1000,
+  },
+  // Default fallback
+  default: {
+    label: 'Quantity',
+    unitLabel: 'units',
+    min: 1,
+    max: 100,
+    step: 1,
+    defaultValue: 10,
+  },
+};
+
+/**
+ * Get the primary scaling unit from a tool's pricing data
+ */
+function getPrimaryScalingUnit(pricingData: SMPPricingData | null): string | null {
+  if (!pricingData?.plans?.length) return null;
+  return pricingData.plans[0]?.scaling_unit || null;
+}
+
+/**
+ * Check if two tools have compatible scaling units (can be meaningfully compared on same axis)
+ */
+function hasCompatibleScaling(toolA: SMPPricingData | null, toolB: SMPPricingData | null): boolean {
+  const unitA = getPrimaryScalingUnit(toolA);
+  const unitB = getPrimaryScalingUnit(toolB);
+
+  // Both null = both default to team-based
+  if (!unitA && !unitB) return true;
+
+  // Get categories and compare
+  const categoryA = getScalingCategory(unitA);
+  const categoryB = getScalingCategory(unitB);
+
+  return categoryA === categoryB;
+}
 
 interface ToolPricingInput {
   name: string;
@@ -42,17 +129,17 @@ interface ToolPricingInput {
 
 interface PricingCrossoverChartProps {
   tools: ToolPricingInput[]; // 2-5 tools (first is "main" tool)
-  maxUsers?: number; // Max X-axis (default: 50)
-  defaultTeamSize?: number; // Initial slider position (default: 10)
+  maxUsers?: number; // Max X-axis (default: auto from axis config)
+  defaultTeamSize?: number; // Initial slider position (default: auto from axis config)
 }
 
 interface DataPoint {
-  users: number;
+  quantity: number; // Renamed from 'users' to be unit-agnostic
   [toolName: string]: number; // Dynamic keys for each tool
 }
 
 interface CrossoverPoint {
-  users: number;
+  quantity: number; // Renamed from 'users' to be unit-agnostic
   toolA: string;
   toolB: string;
   wasMoreExpensive: string; // Which tool was more expensive before crossover
@@ -65,24 +152,46 @@ interface CrossoverPoint {
 
 export default function PricingCrossoverChart({
   tools,
-  maxUsers = 50,
-  defaultTeamSize = 10,
+  maxUsers,
+  defaultTeamSize,
 }: PricingCrossoverChartProps) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const [teamSize, setTeamSize] = useState<number>(defaultTeamSize);
+
+  // Get the primary tool (first one) and its scaling unit
+  const primaryTool = tools[0];
+  const primaryUnit = getPrimaryScalingUnit(primaryTool?.pricingData);
+  const primaryCategory = getScalingCategory(primaryUnit);
+
+  // Get the axis configuration based on the primary unit category
+  const axisConfig = AXIS_CONFIGS[primaryCategory] || AXIS_CONFIGS.default;
+
+  // Use provided values or fall back to axis config defaults
+  const effectiveMax = maxUsers || axisConfig.max;
+  const effectiveDefault = defaultTeamSize || axisConfig.defaultValue;
+
+  const [quantity, setQuantity] = useState<number>(effectiveDefault);
+
+  // Filter tools to only those with compatible scaling (apples-to-apples comparison)
+  const compatibleTools = useMemo(() => {
+    return tools.filter((tool) => hasCompatibleScaling(primaryTool?.pricingData, tool.pricingData));
+  }, [tools, primaryTool]);
 
   // Limit to top 5 tools to avoid chart clutter
-  const displayTools = tools.slice(0, 5);
+  const displayTools = compatibleTools.slice(0, 5);
 
-  // Generate chart data (1 to maxUsers)
+  // Tools that were filtered out (incompatible scaling)
+  const incompatibleTools = tools.filter((tool) => !compatibleTools.includes(tool));
+
+  // Generate chart data using the axis config range
   const chartData = useMemo<DataPoint[]>(() => {
     const data: DataPoint[] = [];
+    const step = axisConfig.step;
 
-    for (let users = 1; users <= maxUsers; users++) {
-      const dataPoint: DataPoint = { users };
+    for (let q = axisConfig.min; q <= effectiveMax; q += step) {
+      const dataPoint: DataPoint = { quantity: q };
 
-        displayTools.forEach((tool) => {
-        const cost = computeMonthlyCost(tool.pricingData, users, billingCycle).cost;
+      displayTools.forEach((tool) => {
+        const cost = computeMonthlyCost(tool.pricingData, q, billingCycle).cost;
         dataPoint[tool.name] = cost ?? 0;
       });
 
@@ -90,7 +199,7 @@ export default function PricingCrossoverChart({
     }
 
     return data;
-  }, [displayTools, maxUsers, billingCycle]);
+  }, [displayTools, effectiveMax, billingCycle, axisConfig]);
 
   // Detect crossover points (where lines intersect) - THE KILLER FEATURE
   const crossoverPoints = useMemo<CrossoverPoint[]>(() => {
@@ -110,7 +219,7 @@ export default function PricingCrossoverChart({
         // Sign change indicates crossover
         if (prevDiff * currDiff < 0) {
           points.push({
-            users: curr.users,
+            quantity: curr.quantity,
             toolA: toolA.name,
             toolB: toolB.name,
             wasMoreExpensive: prevDiff > 0 ? toolA.name : toolB.name,
@@ -122,20 +231,24 @@ export default function PricingCrossoverChart({
     return points;
   }, [chartData, displayTools]);
 
-  // Get costs at current team size
+  // Get costs at current quantity (find closest data point)
   const currentCosts = useMemo(() => {
-    const point = chartData.find((d) => d.users === teamSize);
+    // Find the closest data point to the current quantity
+    const point = chartData.reduce((closest, curr) => {
+      return Math.abs(curr.quantity - quantity) < Math.abs(closest.quantity - quantity) ? curr : closest;
+    }, chartData[0]);
+
     if (!point) return [];
 
     return displayTools
       .map((tool) => ({
         name: tool.name,
         cost: point[tool.name] as number,
-        detail: computeMonthlyCost(tool.pricingData, teamSize, billingCycle),
+        detail: computeMonthlyCost(tool.pricingData, quantity, billingCycle),
         color: COLORS[displayTools.indexOf(tool) % COLORS.length],
       }))
       .sort((a, b) => a.cost - b.cost); // Sort by cost (cheapest first)
-  }, [chartData, teamSize, displayTools]);
+  }, [chartData, quantity, displayTools, billingCycle]);
 
   // Generate insight (Gemini's approach + my crossover enhancement)
   const insight = useMemo(() => {
@@ -151,7 +264,7 @@ export default function PricingCrossoverChart({
     if (cheapest.name === mainTool.name) {
       return {
         type: 'winner' as const,
-        text: `${mainTool.name} is the most affordable option at this team size`,
+        text: `${mainTool.name} is the most affordable option at this scale`,
       };
     }
 
@@ -167,10 +280,10 @@ export default function PricingCrossoverChart({
     );
 
     if (relevantCrossover) {
-      if (teamSize < relevantCrossover.users) {
+      if (quantity < relevantCrossover.quantity) {
         return {
           type: 'savings_with_future' as const,
-          text: `Save $${savings.toFixed(0)}/mo (${savingsPercent}%) with ${cheapest.name} now, but ${mainTool.name} becomes cheaper at ${relevantCrossover.users} users`,
+          text: `Save $${savings.toFixed(0)}/mo (${savingsPercent}%) with ${cheapest.name} now, but ${mainTool.name} becomes cheaper at ${relevantCrossover.quantity.toLocaleString()} ${axisConfig.unitLabel}`,
         };
       } else {
         return {
@@ -184,19 +297,22 @@ export default function PricingCrossoverChart({
       type: 'savings' as const,
       text: `You could save $${savings.toFixed(0)}/mo (${savingsPercent}%) with ${cheapest.name}`,
     };
-  }, [currentCosts, displayTools, teamSize, crossoverPoints]);
+  }, [currentCosts, displayTools, quantity, crossoverPoints, axisConfig]);
 
   // Check if any tool has valid pricing data
   const hasPricingData = displayTools.some((t) => t.pricingData && t.pricingData.plans.length > 0);
 
-  // Check if all tools have team-based pricing (can use the team size slider)
-  const allTeamBased = displayTools.every((t) => isTeamBasedPricing(t.pricingData));
+  // Determine if we should show the chart or the usage-based fallback
+  // Show chart for: team-based, audience-based, resource-based (chartable categories)
+  // Show table for: usage-based (API calls, messages - too variable to chart)
+  const isChartableCategory = primaryCategory !== 'usage';
 
-  // For usage-based tools, get their per-unit pricing for display
+  // For usage-based tools (and incompatible comparisons), get their per-unit pricing for display
   const usageBasedPricing = useMemo(() => {
-    return displayTools.map((tool) => {
+    // Include all original tools in the fallback view
+    return tools.map((tool) => {
       if (!tool.pricingData || !tool.pricingData.plans.length) {
-        return { name: tool.name, plans: [] };
+        return { name: tool.name, plans: [], isCompatible: compatibleTools.includes(tool) };
       }
 
       // Get plans with per-unit pricing
@@ -210,9 +326,9 @@ export default function PricingCrossoverChart({
           isPerUnit: !!plan.price_per_unit,
         }));
 
-      return { name: tool.name, plans: plansWithPricing };
+      return { name: tool.name, plans: plansWithPricing, isCompatible: compatibleTools.includes(tool) };
     });
-  }, [displayTools]);
+  }, [tools, compatibleTools]);
 
   if (!hasPricingData) {
     return (
@@ -238,14 +354,18 @@ export default function PricingCrossoverChart({
     );
   }
 
-  // Show usage-based pricing comparison when tools don't scale with team size
-  if (!allTeamBased) {
+  // Show usage-based pricing comparison when:
+  // 1. Primary tool uses usage-based pricing (API calls, messages - too variable to chart)
+  // 2. No compatible tools found (can't compare apples to oranges)
+  if (!isChartableCategory || displayTools.length < 2) {
     return (
       <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-zinc-100">Pricing Comparison</h3>
           <p className="mt-1 text-sm text-zinc-400">
-            These tools use usage-based pricing — costs depend on consumption, not team size
+            {!isChartableCategory
+              ? 'These tools use usage-based pricing — costs depend on consumption volume'
+              : 'These tools have different pricing models and cannot be directly compared on the same scale'}
           </p>
         </div>
 
@@ -275,7 +395,9 @@ export default function PricingCrossoverChart({
         </div>
 
         <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-500">
-          Usage-based pricing varies by consumption. Visit each tool's pricing page for calculators and volume discounts.
+          {!isChartableCategory
+            ? 'Usage-based pricing varies by consumption. Visit each tool\'s pricing page for calculators and volume discounts.'
+            : 'These tools scale differently (e.g., per-user vs per-contact). Compare based on your specific usage pattern.'}
         </div>
       </div>
     );
@@ -287,7 +409,9 @@ export default function PricingCrossoverChart({
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-zinc-100">Cost Scaling Comparison</h3>
-          <p className="mt-1 text-sm text-zinc-400">How costs change as your team grows</p>
+          <p className="mt-1 text-sm text-zinc-400">
+            How costs change as your {axisConfig.unitLabel} grow
+          </p>
         </div>
 
         {/* Billing Cycle Toggle */}
@@ -318,13 +442,14 @@ export default function PricingCrossoverChart({
           <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" />
             <XAxis
-              dataKey="users"
+              dataKey="quantity"
               stroke="#a1a1aa"
               fontSize={12}
               tickLine={false}
               axisLine={false}
               tickMargin={10}
-              label={{ value: 'Team Size', position: 'insideBottom', offset: -5 }}
+              tickFormatter={(value) => value.toLocaleString()}
+              label={{ value: axisConfig.label, position: 'insideBottom', offset: -5 }}
             />
             <YAxis
               stroke="#a1a1aa"
@@ -341,7 +466,7 @@ export default function PricingCrossoverChart({
                 color: '#fafafa',
               }}
               formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
-              labelFormatter={(label) => `${label} users`}
+              labelFormatter={(label) => `${Number(label).toLocaleString()} ${axisConfig.unitLabel}`}
             />
             <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
@@ -358,9 +483,9 @@ export default function PricingCrossoverChart({
               />
             ))}
 
-            {/* Reference line for current team size */}
+            {/* Reference line for current quantity */}
             <ReferenceLine
-              x={teamSize}
+              x={quantity}
               stroke="#f59e0b"
               strokeWidth={2}
               strokeDasharray="5 5"
@@ -377,7 +502,7 @@ export default function PricingCrossoverChart({
             {crossoverPoints.map((cp, idx) => (
               <ReferenceLine
                 key={idx}
-                x={cp.users}
+                x={cp.quantity}
                 stroke="#ef4444"
                 strokeWidth={1}
                 strokeDasharray="3 3"
@@ -396,15 +521,17 @@ export default function PricingCrossoverChart({
       {/* Interactive Slider */}
       <div className="mt-6 border-t border-zinc-800 pt-6">
         <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-medium text-zinc-300">Your Team Size</label>
-          <span className="text-lg font-bold text-hunt-500">{teamSize} users</span>
+          <label className="text-sm font-medium text-zinc-300">Your {axisConfig.label}</label>
+          <span className="text-lg font-bold text-hunt-500">
+            {quantity.toLocaleString()} {axisConfig.unitLabel}
+          </span>
         </div>
         <Slider
-          min={1}
-          max={maxUsers}
-          step={1}
-          value={[teamSize]}
-          onValueChange={(value) => setTeamSize(value[0])}
+          min={axisConfig.min}
+          max={effectiveMax}
+          step={axisConfig.step}
+          value={[quantity]}
+          onValueChange={(value) => setQuantity(value[0])}
           className="w-full [&_[role=slider]]:bg-hunt-500 [&_[role=slider]]:border-hunt-600"
         />
 
