@@ -33,6 +33,8 @@ export interface SearchResult {
   // V3.1: Tribal Knowledge Snippets (The "Human Touch")
   budgetAnalystSnippets: string[];  // Hidden costs, billing logic, implementation fees
   tribalKnowledgeSnippets: string[]; // Reddit reviews, honest feedback, power tips, "worth it" discussions
+  // V4: Corporate Profiler Snippets (prevents employee count hallucination)
+  corporateProfilerSnippets: string[];  // Crunchbase, LinkedIn, stock ticker, official company data
   rawResponses: SerperResponse[];
   sources: Array<{
     url: string;
@@ -213,6 +215,9 @@ export class SerperService {
       `${toolName} what I wish I knew before using`,
       `${toolName} advanced tips tricks shortcuts power user`,
       `is ${toolName} worth it reddit honest review`,
+
+      // V4: Corporate Profiler query (prevents employee count hallucination)
+      `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
     ];
 
     // Execute searches with rate limiting (with retry if provided)
@@ -294,6 +299,9 @@ export class SerperService {
       ...extractSnippets(results[11]),  // is it worth it
     ];
 
+    // V4: Corporate Profiler query (employee counts, stock ticker, official data)
+    const corporateProfilerSnippets = extractSnippets(results[12]);
+
     return {
       reviewsSnippets: extractSnippets(results[0]),
       pricingSnippets: extractSnippets(results[1]),
@@ -302,6 +310,7 @@ export class SerperService {
       technicalSnippets: extractSnippets(results[5]),
       budgetAnalystSnippets,
       tribalKnowledgeSnippets,
+      corporateProfilerSnippets,
       rawResponses: results,
       sources: Array.from(sourceMap.values()),
       video: video || undefined,

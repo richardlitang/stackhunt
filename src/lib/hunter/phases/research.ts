@@ -60,7 +60,7 @@ export async function executeResearchPhase(
     };
   }
 
-  // Step 2: Extract structured facts (Pass 1 - The Librarian + Forensic Accountant + Investigator)
+  // Step 2: Extract structured facts (Pass 1 - The Librarian + Forensic Accountant + Investigator + Corporate Profiler)
   const { knowledgeCard, tokensUsed } = await deps.gemini.extractKnowledgeCard(
     {
       toolName: ctx.toolName,
@@ -70,6 +70,7 @@ export async function executeResearchPhase(
       alternativesSnippets: scoutResult.alternativesSnippets,
       companySnippets: scoutResult.companySnippets,
       technicalSnippets: scoutResult.technicalSnippets,
+      corporateProfilerSnippets: scoutResult.corporateProfilerSnippets, // V4: Crunchbase/LinkedIn/stock data
       pricingDeepContent: scoutResult.pricingDeepContent, // Full page content from pricing pages
     },
     deps.withRetry

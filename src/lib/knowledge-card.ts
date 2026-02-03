@@ -131,6 +131,10 @@ export type SMPPricingData = z.infer<typeof SMPPricingDataSchema>;
 // V3: Taxonomy Data (for department budgets)
 export const SMPTaxonomySchema = z.object({
   primary_function: z.string(),              // "Project Management", "CRM"
+  // V4: Sub-category for deeper comparison granularity
+  // Prevents comparing APIs (Twilio) with SaaS apps (Slack) just because both are "Communication"
+  sub_category: z.string().nullable().optional()
+    .describe('Technical sub-category for comparison granularity. Examples: "CPaaS" vs "Team Chat", "Infrastructure API" vs "SaaS Application", "Marketing Automation" vs "Email Client"'),
   secondary_functions: z.array(z.string()).default([]),
   likely_departments: z.array(z.string()).default([]),
 });
@@ -546,6 +550,7 @@ export const GeminiKnowledgeCardSchema = {
       description: 'Classification for spend-by-category analysis',
       properties: {
         primary_function: { type: 'string', description: 'Primary function: "Project Management", "CRM", "Communication", "Documentation", etc.' },
+        sub_category: { type: 'string', nullable: true, description: 'Technical sub-category for comparison granularity. Use to distinguish technical types within the same category. Examples: For "Communication": "CPaaS" (Twilio) vs "Team Chat" (Slack) vs "Video Conferencing" (Zoom). For "Marketing": "Marketing Automation" vs "Email Service Provider" vs "Ad Platform". For "Data": "Data Warehouse" vs "ETL Tool" vs "BI Dashboard".' },
         secondary_functions: { type: 'array', items: { type: 'string' }, description: 'Secondary functions the tool also serves' },
         likely_departments: { type: 'array', items: { type: 'string' }, description: 'Departments that typically own/pay for this tool: "Engineering", "Product", "Marketing", "Sales", "Operations", "Finance", "HR", "Legal", "IT Security", "Customer Success"' },
       },

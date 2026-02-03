@@ -76,15 +76,23 @@ Identify 4-8 **unique, high-signal details** about THIS SPECIFIC TOOL that disti
 - **Unique Tech:** "Native vector database", "Uses Firecracker microVMs", "Offline-first sync"
 - **Platform Constraints:** "Mac-only", "Self-hosted requires Docker"
 
-(NO - Do NOT include)
-- **Standard Plan Prices:** "Pro plan is $29/mo", "Team tier costs $99" (already captured in pricing)
-- **Plan Names/Tiers:** "Has Free, Pro, and Enterprise tiers" (standard info)
-- **Generic Limits Already in Pricing:** "Max 5 users", "10GB storage" (unless there's a quirk)
+(NO - Do NOT include - DUPLICATES PRICING DATA)
+- **Standard Plan Prices:** "Pro plan is $29/mo", "Team tier costs $99"
+- **Plan Names/Tiers:** "Has Free, Pro, and Enterprise tiers"
+- **Included Units:** "Free plan has 3,000 emails", "Pro includes 50k requests", "10GB storage"
+- **Per-Unit Costs:** "$0.90 per 1k emails", "$0.01 per API call" (already in pricing plans)
+- **Plan Features:** "Pro Plan Support", "Free Plan Retention", "Enterprise SLA"
 - Generic Pros: "Easy to use", "Great support", "Scalable" (useless fluff)
 - Standard Features: "Has a dashboard", "Secure login" (everyone has this)
 - Vague Claims: "Fast performance", "Modern UI", "Enterprise-ready"
 
-**KEY DISTINCTION:** Pricing data is ALREADY extracted separately. Only include pricing-related specifics if there's a QUIRK or TRAP not obvious from the standard price (e.g., "1% payout fee", "Tasks over 10k cost $0.01 each", "Free tier pauses after 7 days inactive").
+**CRITICAL: PRICING IS EXTRACTED SEPARATELY.** Do NOT duplicate anything that belongs in pricing plans:
+- Monthly/annual prices → Already in smp_pricing.plans[].price_monthly
+- Included units (emails, requests, storage) → Already in smp_pricing.plans[].included_units
+- Per-unit costs → Already in smp_pricing.plans[].price_per_unit
+- Plan feature flags (SSO, API, SLA) → Already in smp_pricing.plans[].includes_*
+
+Only include pricing-related specifics if there's a **HIDDEN QUIRK/TRAP** not obvious from standard pricing (e.g., "1% payout fee on withdrawals", "Free tier pauses after 7 days inactive", "Overage rate 2x the normal rate").
 
 ### CRITICAL RULES (Chain of Verification)
 

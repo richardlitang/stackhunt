@@ -34,6 +34,7 @@ export interface ExtractKnowledgeCardInput {
   alternativesSnippets: string[];
   companySnippets: string[];      // Company info, funding, history
   technicalSnippets: string[];    // API, export, integrations
+  corporateProfilerSnippets?: string[];  // V4: Crunchbase, LinkedIn, stock ticker (prevents employee hallucination)
   pricingDeepContent?: string;    // Full page content from pricing pages (via Jina.ai)
 }
 
@@ -81,6 +82,7 @@ export class GeminiService {
       alternativesSnippets: input.alternativesSnippets,
       companySnippets: input.companySnippets,
       technicalSnippets: input.technicalSnippets,
+      corporateProfilerSnippets: input.corporateProfilerSnippets,
       pricingDeepContent: input.pricingDeepContent,
     });
 

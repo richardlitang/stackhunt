@@ -4,11 +4,14 @@
  * Uses semantic similarity + category guardrails to find relevant alternatives.
  * Prevents "semantic smudge" where HubSpot is recommended as a Slack alternative.
  *
+ * V4: Added sub_category matching and pricing model constraints to prevent
+ * "apples to oranges" comparisons (e.g., Twilio API vs Slack SaaS app).
+ *
  * @module analysis/alternatives
  */
 
 import { supabase } from '../supabase';
-import type { Item } from '@/types/database';
+import type { Item, SMPPricingData } from '@/types/database';
 
 export interface AlternativeResult {
   id: string;
@@ -16,6 +19,8 @@ export interface AlternativeResult {
   name: string;
   base_score: number | null;
   similarity: number;
+  sub_category?: string | null;
+  pricing_model?: string | null;
 }
 
 export interface AlternativesResponse {
@@ -24,11 +29,48 @@ export interface AlternativesResponse {
 }
 
 /**
+ * Check if two pricing models are compatible for comparison.
+ * Usage-based tools (Twilio, OpenAI) shouldn't be primary alternatives
+ * for per-seat tools (Slack, Notion) unless similarity is very high.
+ */
+function arePricingModelsCompatible(
+  sourceModel: string | null | undefined,
+  targetModel: string | null | undefined,
+  similarity: number
+): boolean {
+  // If no pricing data, allow (be permissive)
+  if (!sourceModel || !targetModel) return true;
+
+  // Group 1: Subscription-based (predictable costs)
+  const subscriptionModels = ['per_seat', 'flat', 'tiered', 'hybrid', 'free', 'freemium'];
+
+  // Group 2: Variable/consumption-based (unpredictable costs)
+  const consumptionModels = ['usage_based', 'ad_spend', 'per_unit'];
+
+  const sourceIsSubscription = subscriptionModels.includes(sourceModel);
+  const targetIsSubscription = subscriptionModels.includes(targetModel);
+  const sourceIsConsumption = consumptionModels.includes(sourceModel);
+  const targetIsConsumption = consumptionModels.includes(targetModel);
+
+  // Same group: always compatible
+  if ((sourceIsSubscription && targetIsSubscription) ||
+      (sourceIsConsumption && targetIsConsumption)) {
+    return true;
+  }
+
+  // Different groups: only allow if similarity is very high (>0.85)
+  // This catches the case where tools truly serve the same purpose despite different pricing
+  return similarity >= 0.85;
+}
+
+/**
  * Get alternatives for a tool using hybrid search
  *
  * Strategy:
- * 1. First, try strict filter by primary_function (same category only)
- * 2. If no results, fallback to pure semantic search (show "related" instead)
+ * 1. First, try strict filter by primary_function + sub_category (same category AND type)
+ * 2. If insufficient results, try primary_function only (same category)
+ * 3. If no results, fallback to pure semantic search (show "related" instead)
+ * 4. Apply pricing model compatibility filter throughout
  *
  * @param tool - The source tool to find alternatives for
  * @param options - Search options
@@ -43,24 +85,77 @@ export async function getAlternatives(
 ): Promise<AlternativesResponse> {
   const { matchThreshold = 0.45, matchCount = 6 } = options;
 
-  // Get the tool's primary function from taxonomy
+  // Get the tool's taxonomy and pricing model
   const primaryFunction = tool.specs?.taxonomy?.primary_function;
+  const subCategory = tool.specs?.taxonomy?.sub_category;
+  const sourcePricingModel = (tool.specs?.pricing_data as SMPPricingData | undefined)?.model;
+
+  // Fetch more candidates than needed, then filter by pricing model
+  const fetchCount = matchCount * 2;
+
+  // Helper to filter and rank results
+  const processResults = (
+    data: AlternativeResult[],
+    preferSubCategory: boolean
+  ): AlternativeResult[] => {
+    // First, filter by pricing model compatibility
+    const compatible = data.filter(item =>
+      arePricingModelsCompatible(sourcePricingModel, item.pricing_model, item.similarity)
+    );
+
+    if (preferSubCategory && subCategory) {
+      // Sort: sub_category matches first, then by similarity
+      return compatible
+        .sort((a, b) => {
+          const aMatchesSub = a.sub_category === subCategory ? 1 : 0;
+          const bMatchesSub = b.sub_category === subCategory ? 1 : 0;
+          if (aMatchesSub !== bMatchesSub) return bMatchesSub - aMatchesSub;
+          return b.similarity - a.similarity;
+        })
+        .slice(0, matchCount);
+    }
+
+    return compatible.slice(0, matchCount);
+  };
 
   // Step 1: Try strict category filter (the "Safety Net")
   if (primaryFunction && tool.embedding) {
-    const { data, error } = await supabase.rpc('match_items', {
+    const { data, error } = await supabase.rpc('match_items_v2', {
       query_embedding: tool.embedding,
       match_threshold: matchThreshold,
-      match_count: matchCount,
+      match_count: fetchCount,
       filter_category: primaryFunction,
+      filter_sub_category: subCategory, // V4: Also try sub_category filter
       exclude_item_id: tool.id,
     });
 
     if (!error && data && data.length > 0) {
-      return {
-        type: 'alternatives',
-        items: data as AlternativeResult[],
-      };
+      const processed = processResults(data as AlternativeResult[], true);
+      if (processed.length > 0) {
+        return {
+          type: 'alternatives',
+          items: processed,
+        };
+      }
+    }
+
+    // Step 1b: Try with just primary_function (no sub_category filter)
+    const { data: broadData, error: broadError } = await supabase.rpc('match_items', {
+      query_embedding: tool.embedding,
+      match_threshold: matchThreshold,
+      match_count: fetchCount,
+      filter_category: primaryFunction,
+      exclude_item_id: tool.id,
+    });
+
+    if (!broadError && broadData && broadData.length > 0) {
+      const processed = processResults(broadData as AlternativeResult[], true);
+      if (processed.length > 0) {
+        return {
+          type: 'alternatives',
+          items: processed,
+        };
+      }
     }
   }
 
@@ -70,16 +165,19 @@ export async function getAlternatives(
     const { data, error } = await supabase.rpc('match_items', {
       query_embedding: tool.embedding,
       match_threshold: matchThreshold,
-      match_count: matchCount,
+      match_count: fetchCount,
       filter_category: null, // Remove the guardrail
       exclude_item_id: tool.id,
     });
 
     if (!error && data && data.length > 0) {
-      return {
-        type: 'related',
-        items: data as AlternativeResult[],
-      };
+      const processed = processResults(data as AlternativeResult[], false);
+      if (processed.length > 0) {
+        return {
+          type: 'related',
+          items: processed,
+        };
+      }
     }
   }
 
