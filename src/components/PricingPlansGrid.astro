@@ -23,6 +23,10 @@ const hasLegacyPricing = legacy_pricing?.tiers && legacy_pricing.tiers.length > 
 
 if (!hasSMPPricing && !hasLegacyPricing) return null;
 
+// Use compact table view for multi-product platforms (>6 plans)
+const useCompactView = hasSMPPricing && smp_pricing.plans.length > 6;
+const planCount = hasSMPPricing ? smp_pricing.plans.length : 0;
+
 // Pricing model labels
 const modelLabels = {
   free: 'Free',
@@ -66,8 +70,51 @@ const discountLabels = {
     )}
   </div>
 
-  {/* SMP Pricing Plans */}
-  {hasSMPPricing && (
+  {/* SMP Pricing Plans - Compact Table View for Multi-Product Platforms */}
+  {hasSMPPricing && useCompactView && (
+    <div>
+      <p class="mb-4 text-sm text-zinc-400">
+        {planCount} products with usage-based pricing
+      </p>
+      <div class="overflow-hidden rounded-lg border border-zinc-700">
+        <table class="w-full text-sm">
+          <thead class="bg-zinc-800/50">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-zinc-300">Product</th>
+              <th class="px-4 py-3 text-right font-medium text-zinc-300">Price</th>
+              <th class="px-4 py-3 text-left font-medium text-zinc-300">Unit</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-800">
+            {smp_pricing.plans.map((plan) => (
+              <tr class="hover:bg-zinc-800/30 transition-colors">
+                <td class="px-4 py-3 font-medium text-zinc-100">{plan.name}</td>
+                <td class="px-4 py-3 text-right tabular-nums">
+                  {plan.is_enterprise ? (
+                    <span class="text-zinc-400">Contact Sales</span>
+                  ) : plan.price_per_unit ? (
+                    <span class="text-zinc-100">${plan.price_per_unit}</span>
+                  ) : plan.price_monthly && plan.price_monthly > 0 ? (
+                    <span class="text-zinc-100">${plan.price_monthly}<span class="text-zinc-500">/mo</span></span>
+                  ) : plan.price_monthly === 0 ? (
+                    <span class="text-green-400">Free</span>
+                  ) : (
+                    <span class="text-zinc-500">—</span>
+                  )}
+                </td>
+                <td class="px-4 py-3 text-zinc-400">
+                  {plan.scaling_unit ? `per ${plan.scaling_unit}` : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
+
+  {/* SMP Pricing Plans - Card Grid View for Traditional Tiers */}
+  {hasSMPPricing && !useCompactView && (
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {smp_pricing.plans.map((plan) => (
         <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-4 hover:border-zinc-600 transition">

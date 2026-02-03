@@ -29,6 +29,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { computeMonthlyCost } from '@/lib/pricing/cost';
+import { isTeamBasedPricing, formatScalingUnit } from '@/lib/pricing/display';
 
 // Color palette for up to 5 tools (first is main tool, others are alternatives)
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -188,6 +189,31 @@ export default function PricingCrossoverChart({
   // Check if any tool has valid pricing data
   const hasPricingData = displayTools.some((t) => t.pricingData && t.pricingData.plans.length > 0);
 
+  // Check if all tools have team-based pricing (can use the team size slider)
+  const allTeamBased = displayTools.every((t) => isTeamBasedPricing(t.pricingData));
+
+  // For usage-based tools, get their per-unit pricing for display
+  const usageBasedPricing = useMemo(() => {
+    return displayTools.map((tool) => {
+      if (!tool.pricingData || !tool.pricingData.plans.length) {
+        return { name: tool.name, plans: [] };
+      }
+
+      // Get plans with per-unit pricing
+      const plansWithPricing = tool.pricingData.plans
+        .filter((plan) => plan.price_per_unit || plan.price_monthly)
+        .slice(0, 5) // Limit to top 5 plans for display
+        .map((plan) => ({
+          name: plan.name,
+          price: plan.price_per_unit || plan.price_monthly || 0,
+          unit: plan.scaling_unit || 'unit',
+          isPerUnit: !!plan.price_per_unit,
+        }));
+
+      return { name: tool.name, plans: plansWithPricing };
+    });
+  }, [displayTools]);
+
   if (!hasPricingData) {
     return (
       <div className="rounded-xl border border-dashed border-zinc-600 bg-zinc-900 p-8 text-center">
@@ -208,6 +234,49 @@ export default function PricingCrossoverChart({
         <p className="text-xs text-zinc-500">
           We're actively collecting structured pricing. Check back soon!
         </p>
+      </div>
+    );
+  }
+
+  // Show usage-based pricing comparison when tools don't scale with team size
+  if (!allTeamBased) {
+    return (
+      <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-zinc-100">Pricing Comparison</h3>
+          <p className="mt-1 text-sm text-zinc-400">
+            These tools use usage-based pricing — costs depend on consumption, not team size
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {usageBasedPricing.map((tool, toolIndex) => (
+            <div key={tool.name} className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4">
+              <h4 className="font-semibold text-zinc-100 mb-3" style={{ color: COLORS[toolIndex % COLORS.length] }}>
+                {tool.name}
+              </h4>
+              {tool.plans.length > 0 ? (
+                <div className="space-y-2">
+                  {tool.plans.map((plan, planIndex) => (
+                    <div key={planIndex} className="flex items-center justify-between text-sm">
+                      <span className="text-zinc-400">{plan.name}</span>
+                      <span className="font-mono text-zinc-100">
+                        ${plan.price.toFixed(plan.price < 1 ? 4 : 2)}
+                        <span className="text-zinc-500">/{formatScalingUnit(plan.unit)}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500">Contact sales for pricing</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-500">
+          Usage-based pricing varies by consumption. Visit each tool's pricing page for calculators and volume discounts.
+        </div>
       </div>
     );
   }
