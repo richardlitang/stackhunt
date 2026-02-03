@@ -1,59 +1,67 @@
 ---
 /**
  * Compare Index - /compare
- * Category-based tool selection for comparisons
- * Only allows comparing tools within the same category
+ * Simplified single-form tool comparison selector
  *
- * Design System: Professional Dark Mode (Zinc palette)
+ * Design: Single card with category dropdown that filters tool options
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import Logo from '@/components/Logo.astro';
 import { supabase } from '@/lib/supabase';
 import { getCanonicalUrl } from '@/lib/utils';
 
-// Fetch tools with categories, grouped by category
+// Fetch tools with categories
 const { data: tools } = await supabase
   .from('tools')
   .select(`
-    id, name, slug, logo_url, avg_score, pricing_type,
+    id, name, slug, logo_url, avg_score,
     category:categories(id, name, slug)
   `)
   .gt('avg_score', 0)
-  .order('avg_score', { ascending: false })
-  .limit(200);
+  .order('name', { ascending: true })
+  .limit(300);
 
 // Group tools by category (only categories with 2+ tools)
 interface CategoryGroup {
+  id: string;
   name: string;
   slug: string;
-  tools: typeof tools;
+  tools: Array<{ name: string; slug: string; logo_url: string | null; avg_score: number | null }>;
 }
 
-const categoryGroups: CategoryGroup[] = [];
-const byCategory: Record<string, typeof tools> = {};
+const categoryMap = new Map<string, CategoryGroup>();
 
 for (const tool of tools || []) {
-  if (!tool.category?.slug) continue;
-  const catSlug = tool.category.slug;
-  if (!byCategory[catSlug]) {
-    byCategory[catSlug] = [];
-  }
-  byCategory[catSlug].push(tool);
-}
+  if (!tool.category?.id) continue;
+  const catId = tool.category.id;
 
-// Only include categories with 2+ tools for comparison
-for (const [slug, categoryTools] of Object.entries(byCategory)) {
-  if (categoryTools.length >= 2) {
-    categoryGroups.push({
-      name: categoryTools[0].category?.name || slug,
-      slug,
-      tools: categoryTools,
+  if (!categoryMap.has(catId)) {
+    categoryMap.set(catId, {
+      id: catId,
+      name: tool.category.name || '',
+      slug: tool.category.slug || '',
+      tools: [],
     });
   }
+
+  categoryMap.get(catId)!.tools.push({
+    name: tool.name,
+    slug: tool.slug,
+    logo_url: tool.logo_url,
+    avg_score: tool.avg_score,
+  });
 }
 
-// Sort categories by tool count (most tools first)
-categoryGroups.sort((a, b) => b.tools.length - a.tools.length);
+// Filter to categories with 2+ tools and sort by name
+const categories = Array.from(categoryMap.values())
+  .filter(c => c.tools.length >= 2)
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+// Prepare data for client-side
+const toolsByCategory = Object.fromEntries(
+  categories.map(c => [c.slug, c.tools])
+);
 
 const meta = {
   title: 'Compare Software Tools Side by Side | StackHunt',
@@ -64,141 +72,171 @@ const meta = {
 ---
 
 <BaseLayout meta={meta}>
-  <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Header -->
-    <header class="text-center">
-      <div class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/50 px-3 py-1 text-sm text-zinc-400">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-        Side-by-Side Comparison
-      </div>
-
-      <h1 class="mt-4 text-3xl font-semibold text-zinc-100 sm:text-4xl">
+    <header class="text-center mb-8">
+      <h1 class="text-3xl font-semibold text-zinc-100 sm:text-4xl">
         Compare Tools
       </h1>
-      <p class="mx-auto mt-4 max-w-2xl text-base text-zinc-400">
-        Select two tools from the same category to see a detailed side-by-side comparison of features, pricing, and performance.
+      <p class="mx-auto mt-3 max-w-lg text-base text-zinc-400">
+        Select a category and two tools to see a detailed side-by-side comparison.
       </p>
     </header>
 
-    <!-- Category-based Tool Lists -->
-    <div class="mt-12 space-y-8">
-      {categoryGroups.map(({ name, slug, tools: categoryTools }) => (
-        <section>
-          <h2 class="mb-4 flex items-center gap-2 text-xl font-semibold text-zinc-100">
-            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/50 text-sm">
-              {categoryTools.length}
-            </span>
-            {name}
-          </h2>
+    <!-- Single Comparison Form -->
+    <div class="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+      <!-- Category Selector -->
+      <div class="p-5 border-b border-zinc-800">
+        <label for="category-select" class="block text-sm font-medium text-zinc-300 mb-2">
+          Category
+        </label>
+        <select
+          id="category-select"
+          class="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 transition focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+        >
+          <option value="">Select a category...</option>
+          {categories.map((cat) => (
+            <option value={cat.slug}>{cat.name} ({cat.tools.length} tools)</option>
+          ))}
+        </select>
+      </div>
 
-          <div class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/50 backdrop-blur-sm transition-all duration-200 hover:border-zinc-700">
-            <div class="grid grid-cols-1 divide-y divide-zinc-800 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-              {/* Tool A Selection */}
-              <div class="p-5">
-                <label class="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-400">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                  </svg>
-                  First tool
-                </label>
-                <select
-                  id={`toolA-${slug}`}
-                  class="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  <option value="">Select a tool...</option>
-                  {categoryTools.map((tool) => (
-                    <option value={tool.slug}>{tool.name}</option>
-                  ))}
-                </select>
-              </div>
+      <!-- Tool Selectors -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-zinc-800">
+        <div class="p-5">
+          <label for="tool-a-select" class="block text-sm font-medium text-zinc-300 mb-2">
+            First Tool
+          </label>
+          <select
+            id="tool-a-select"
+            disabled
+            class="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 transition focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">Select category first...</option>
+          </select>
+        </div>
 
-              {/* Tool B Selection */}
-              <div class="p-5">
-                <label class="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-400">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                  </svg>
-                  Second tool
-                </label>
-                <select
-                  id={`toolB-${slug}`}
-                  class="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  <option value="">Select a tool...</option>
-                  {categoryTools.map((tool) => (
-                    <option value={tool.slug}>{tool.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+        <div class="p-5">
+          <label for="tool-b-select" class="block text-sm font-medium text-zinc-300 mb-2">
+            Second Tool
+          </label>
+          <select
+            id="tool-b-select"
+            disabled
+            class="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 transition focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">Select category first...</option>
+          </select>
+        </div>
+      </div>
 
-            {/* Compare Button */}
-            <div class="border-t border-zinc-800 bg-zinc-900/30 p-4">
-              <button
-                type="button"
-                data-category={slug}
-                class="compare-btn group w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
-              >
-                <span class="flex items-center justify-center gap-2">
-                  Compare Tools
-                  <svg class="h-4 w-4 transition group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </button>
-            </div>
-          </div>
-        </section>
-      ))}
+      <!-- Compare Button -->
+      <div class="p-5 border-t border-zinc-800 bg-zinc-900/30">
+        <button
+          id="compare-btn"
+          type="button"
+          disabled
+          class="w-full rounded-lg bg-hunt-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-hunt-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-hunt-500"
+        >
+          Compare Tools
+        </button>
+        <p id="error-message" class="mt-2 text-center text-sm text-red-400 hidden"></p>
+      </div>
     </div>
 
-    {categoryGroups.length === 0 && (
-      <div class="mt-12 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-zinc-100">No categories yet</h3>
-        <p class="mt-2 text-sm text-zinc-500">
-          Categories with multiple tools will appear here for comparison.
-        </p>
-        <a
-          href="/tools"
-          class="mt-4 inline-flex items-center gap-2 text-sm text-indigo-400 transition hover:text-indigo-300"
-        >
-          Browse all tools
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </a>
+    <!-- Popular Comparisons -->
+    <div class="mt-12">
+      <h2 class="text-lg font-semibold text-zinc-100 mb-4">Popular Comparisons</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        {[
+          { a: 'slack', b: 'microsoft-teams', label: 'Slack vs Teams' },
+          { a: 'notion', b: 'obsidian', label: 'Notion vs Obsidian' },
+          { a: 'figma', b: 'canva', label: 'Figma vs Canva' },
+          { a: 'asana', b: 'monday-com', label: 'Asana vs Monday' },
+        ].map(({ a, b, label }) => (
+          <a
+            href={`/compare/${a}-vs-${b}`}
+            class="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-900"
+          >
+            <svg class="h-4 w-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            {label}
+          </a>
+        ))}
       </div>
-    )}
+    </div>
   </div>
 </BaseLayout>
 
-<script>
-  // Handle compare button clicks
-  document.querySelectorAll('.compare-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const category = btn.getAttribute('data-category');
-      const toolASelect = document.getElementById(`toolA-${category}`) as HTMLSelectElement;
-      const toolBSelect = document.getElementById(`toolB-${category}`) as HTMLSelectElement;
+<script define:vars={{ toolsByCategory }}>
+  const categorySelect = document.getElementById('category-select');
+  const toolASelect = document.getElementById('tool-a-select');
+  const toolBSelect = document.getElementById('tool-b-select');
+  const compareBtn = document.getElementById('compare-btn');
+  const errorMessage = document.getElementById('error-message');
 
-      const toolA = toolASelect?.value;
-      const toolB = toolBSelect?.value;
+  function updateToolOptions() {
+    const category = categorySelect.value;
+    const tools = toolsByCategory[category] || [];
 
-      if (!toolA || !toolB) {
-        alert('Please select two tools to compare');
-        return;
-      }
+    // Clear and populate tool selects
+    toolASelect.innerHTML = '<option value="">Select a tool...</option>';
+    toolBSelect.innerHTML = '<option value="">Select a tool...</option>';
 
-      if (toolA === toolB) {
-        alert('Please select two different tools');
-        return;
-      }
+    tools.forEach((tool) => {
+      const optionA = document.createElement('option');
+      optionA.value = tool.slug;
+      optionA.textContent = tool.name;
+      toolASelect.appendChild(optionA);
 
-      window.location.href = `/compare/${toolA}-vs-${toolB}`;
+      const optionB = document.createElement('option');
+      optionB.value = tool.slug;
+      optionB.textContent = tool.name;
+      toolBSelect.appendChild(optionB);
     });
-  });
+
+    // Enable/disable selects
+    const hasTools = tools.length >= 2;
+    toolASelect.disabled = !hasTools;
+    toolBSelect.disabled = !hasTools;
+
+    updateCompareButton();
+  }
+
+  function updateCompareButton() {
+    const toolA = toolASelect.value;
+    const toolB = toolBSelect.value;
+    const canCompare = toolA && toolB && toolA !== toolB;
+    compareBtn.disabled = !canCompare;
+
+    // Hide error when selections change
+    errorMessage.classList.add('hidden');
+  }
+
+  function handleCompare() {
+    const toolA = toolASelect.value;
+    const toolB = toolBSelect.value;
+
+    if (!toolA || !toolB) {
+      errorMessage.textContent = 'Please select two tools';
+      errorMessage.classList.remove('hidden');
+      return;
+    }
+
+    if (toolA === toolB) {
+      errorMessage.textContent = 'Please select two different tools';
+      errorMessage.classList.remove('hidden');
+      return;
+    }
+
+    // Navigate to comparison (alphabetical order for canonical URL)
+    const [first, second] = toolA < toolB ? [toolA, toolB] : [toolB, toolA];
+    window.location.href = `/compare/${first}-vs-${second}`;
+  }
+
+  categorySelect.addEventListener('change', updateToolOptions);
+  toolASelect.addEventListener('change', updateCompareButton);
+  toolBSelect.addEventListener('change', updateCompareButton);
+  compareBtn.addEventListener('click', handleCompare);
 </script>

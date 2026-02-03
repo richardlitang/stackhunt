@@ -50,14 +50,15 @@ const isDirectImageUrl = domain?.includes('/storage/') || domain?.includes('.png
 function cleanDomain(input: string | null): string | null {
   if (!input) return null;
   try {
+    let domain = input;
     // If it looks like a URL, extract hostname
     if (input.includes('://')) {
-      return new URL(input).hostname;
+      domain = new URL(input).hostname;
     }
-    // Otherwise use as-is (already a domain)
-    return input;
+    // Strip www. prefix for cleaner Brandfetch lookup
+    return domain.replace(/^www\./, '');
   } catch {
-    return input;
+    return input.replace(/^www\./, '');
   }
 }
 
