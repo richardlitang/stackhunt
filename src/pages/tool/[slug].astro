@@ -455,20 +455,10 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         {/* Features Showcase */}
         {(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0) && (
-          <details class="group" open>
-            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
-              <h2 class="text-lg font-semibold text-zinc-100">Features</h2>
-              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </summary>
-            <div>
-              <FeaturesShowcase
-                features={knowledgeCard.features}
-                toolName={tool.name}
-              />
-            </div>
-          </details>
+          <FeaturesShowcase
+            features={knowledgeCard.features}
+            toolName={tool.name}
+          />
         )}
 
         {/* Technical Specs - Category-specific and VIP tool details */}
@@ -520,30 +510,20 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           </details>
         )}
 
-        {/* Tribal Knowledge (Real user insights) */}
+        {/* Community Insights (Real user insights) */}
         {(userAdvocate || humanVerdict) && (
-          <details class="group" open>
-            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
-              <h2 class="text-lg font-semibold text-zinc-100">Tribal Knowledge</h2>
-              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </summary>
-            <div>
-              <TribalKnowledge
-                userAdvocate={userAdvocate ? {
-                  vibe,
-                  originStory,
-                  idealFor,
-                  avoidIf,
-                  powerTip,
-                  delighters,
-                  frustrations,
-                } : undefined}
-                humanVerdict={humanVerdict}
-              />
-            </div>
-          </details>
+          <TribalKnowledge
+            userAdvocate={userAdvocate ? {
+              vibe,
+              originStory,
+              idealFor,
+              avoidIf,
+              powerTip,
+              delighters,
+              frustrations,
+            } : undefined}
+            humanVerdict={humanVerdict}
+          />
         )}
 
         {/* Platform Support & Integrations */}
@@ -712,39 +692,30 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       </section>
     )}
 
-    {/* Help us improve - Consolidated feedback section */}
-    <section class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-      <div class="mb-6">
-        <h2 class="text-xl font-semibold text-zinc-100">Help us improve</h2>
-        <p class="text-sm text-zinc-400 mt-1">
-          Quick feedback from real users or report detailed corrections
-        </p>
-      </div>
+    {/* Community Feedback - Compact consolidated section */}
+    <section class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        {/* Community Signals - Primary action */}
+        <div class="flex-1">
+          <h2 class="text-base font-semibold text-zinc-100 mb-3">Share your experience</h2>
+          <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
+        </div>
 
-      {/* Community Signals - Quick feedback */}
-      <div class="mb-6">
-        <h3 class="text-sm font-medium text-zinc-300 mb-3">Community Signals</h3>
-        <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
-      </div>
-
-      {/* Correction Button */}
-      <div class="border-t border-zinc-800 pt-6">
-        <h3 class="text-sm font-medium text-zinc-300 mb-3">Report Corrections</h3>
-        <button
-          type="button"
-          data-suggest-edit
-          data-tool-id={tool.id}
-          data-tool-name={tool.name}
-          class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-700 hover:border-zinc-600 transition"
-        >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-          Suggest a correction
-        </button>
-        <p class="mt-2 text-xs text-zinc-500">
-          Report outdated pricing, features, or other inaccuracies for manual review.
-        </p>
+        {/* Correction Button - Secondary action */}
+        <div class="sm:text-right shrink-0">
+          <button
+            type="button"
+            data-suggest-edit
+            data-tool-id={tool.id}
+            data-tool-name={tool.name}
+            class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 hover:border-zinc-600 transition"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Report correction
+          </button>
+        </div>
       </div>
     </section>
   </div>
