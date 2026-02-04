@@ -584,8 +584,23 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           <h3 class="mb-4 font-semibold text-zinc-100">Quick Stats</h3>
           <dl class="space-y-3">
             <div class="flex justify-between">
-              <dt class="text-sm text-zinc-400">Overall Score</dt>
-              <dd class="text-sm font-medium text-zinc-100">{tool.avg_score > 0 ? `${Math.round(tool.avg_score)}/100` : 'N/A'}</dd>
+              <dt class="text-sm text-zinc-400">
+                {tool.review_count >= 10 ? 'Overall Score' : 'Curator Score'}
+              </dt>
+              <dd class="text-sm font-medium text-zinc-100">
+                {tool.review_count < 10 && tool.avg_score > 0 ? (
+                  <span class="inline-flex items-center gap-1.5">
+                    {Math.round(tool.avg_score)}/100
+                    <span class="text-xs text-zinc-500">(Early)</span>
+                  </span>
+                ) : tool.avg_score > 0 ? (
+                  `${Math.round(tool.avg_score)}/100`
+                ) : (
+                  <span class="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                    Tracking
+                  </span>
+                )}
+              </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-zinc-400">Reviews</dt>
