@@ -627,7 +627,7 @@ export const GeminiKnowledgeCardSchema = {
         cancellation_notice_days: { type: 'number', nullable: true, description: 'Required notice period for cancellation in days' },
       },
     },
-    // V4: Constraints (The "Cynical CTO" Layer)
+    // V4: Constraints (The "Cynical CTO" Layer) - Simplified for Gemini schema limits
     constraints: {
       type: 'object',
       description: 'Hard limits and hidden costs that hit users at scale',
@@ -637,22 +637,13 @@ export const GeminiKnowledgeCardSchema = {
           items: {
             type: 'object',
             properties: {
-              plan_name_match: { type: 'string', nullable: true, description: 'EXACT plan name string (e.g., "Pro", "Business"). null = all plans.' },
-              type: { type: 'string', enum: ['record_count', 'storage_gb', 'api_requests_per_month', 'api_rate_limit_per_sec', 'seat_count', 'project_count', 'active_contacts', 'message_credits'] },
-              value: { type: 'number', description: 'The limit threshold' },
-              consequence: { type: 'string', enum: ['hard_stop', 'soft_throttle', 'auto_charge', 'upgrade_locked', 'data_deletion'] },
-              description: { type: 'string', description: 'Detailed explanation of what happens' },
-              source_url: { type: 'string', description: 'URL where documented (pricing page or ToS). Optional.' },
-              overage: {
-                type: 'object',
-                nullable: true,
-                description: 'Overage costs for auto_charge limits',
-                properties: {
-                  cost: { type: 'number', description: 'Cost per unit' },
-                  unit: { type: 'string', description: 'Billing unit (e.g., "per GB", "per 1k records")' },
-                  currency: { type: 'string', default: 'USD' },
-                },
-              },
+              plan_name_match: { type: 'string', nullable: true },
+              type: { type: 'string' },
+              value: { type: 'number' },
+              consequence: { type: 'string' },
+              description: { type: 'string' },
+              source_url: { type: 'string' },
+              overage: { type: 'object', nullable: true },
             },
             required: ['type', 'value', 'consequence', 'description'],
           },
@@ -662,10 +653,10 @@ export const GeminiKnowledgeCardSchema = {
           items: {
             type: 'object',
             properties: {
-              description: { type: 'string', description: 'What the cost is (e.g., "SSO requires $200/mo add-on")' },
-              cost: { type: 'number', nullable: true, description: 'Cost if known' },
-              currency: { type: 'string', default: 'USD' },
-              trigger: { type: 'string', description: 'When does this cost apply?' },
+              description: { type: 'string' },
+              cost: { type: 'number', nullable: true },
+              currency: { type: 'string' },
+              trigger: { type: 'string' },
             },
             required: ['description', 'trigger'],
           },
