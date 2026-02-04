@@ -64,7 +64,7 @@ const PricingPlanSchema = z.object({
 }).passthrough();
 
 const SMPPricingSchema = z.object({
-  model: z.enum(['free_only', 'freemium', 'paid_only', 'usage_based', 'one_time', 'bundled', 'custom_quote', 'unknown']),
+  model: z.enum(['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales', 'ad_spend', 'usage_based']),
   confidence: z.enum(['high', 'medium', 'low']),
   currency: z.string().length(3, 'Currency must be 3-letter code'),
   billing_cycles: z.array(z.string()).nullable(),
