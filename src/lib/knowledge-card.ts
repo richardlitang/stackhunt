@@ -627,50 +627,9 @@ export const GeminiKnowledgeCardSchema = {
         cancellation_notice_days: { type: 'number', nullable: true, description: 'Required notice period for cancellation in days' },
       },
     },
-    // V4: Constraints (The "Cynical CTO" Layer) - Simplified for Gemini schema limits
-    constraints: {
-      type: 'object',
-      description: 'Hard limits and hidden costs that hit users at scale',
-      properties: {
-        hard_limits: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              plan_name_match: { type: 'string', nullable: true },
-              type: { type: 'string' },
-              value: { type: 'number' },
-              consequence: { type: 'string' },
-              description: { type: 'string' },
-              source_url: { type: 'string' },
-              overage: {
-                type: 'object',
-                nullable: true,
-                properties: {
-                  cost: { type: 'number' },
-                  unit: { type: 'string' },
-                  currency: { type: 'string' },
-                },
-              },
-            },
-            required: ['type', 'value', 'consequence', 'description'],
-          },
-        },
-        hidden_costs: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              description: { type: 'string' },
-              cost: { type: 'number', nullable: true },
-              currency: { type: 'string' },
-              trigger: { type: 'string' },
-            },
-            required: ['description', 'trigger'],
-          },
-        },
-      },
-    },
+    // V4: Constraints (The "Cynical CTO" Layer)
+    // NOTE: Removed from Gemini schema due to complexity limits.
+    // Will be extracted in a separate pass if needed.
     // V3.1: Review Context (The "Human Touch" Layer)
     review_context: {
       type: 'object',
