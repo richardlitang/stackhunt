@@ -78,6 +78,26 @@ export async function executeResearchPhase(
 
   deps.log(`[Pass 1] Knowledge Card extracted (quality: ${knowledgeCard.meta.data_quality})`);
 
+  // ========== VALIDATION: Knowledge Card structure and business rules ==========
+  const { validateKnowledgeCard, formatValidationReport } = await import('../validation/schema-validator.js');
+  const validationReport = validateKnowledgeCard(knowledgeCard, ctx.toolName);
+  deps.log(formatValidationReport(validationReport, 'Knowledge Card'));
+
+  // Store validation results for metrics
+  if (ctx.queueItemId) {
+    await deps.supabase.rpc('log_metric', {
+      p_metric_type: 'qa_score',
+      p_metric_value: validationReport.score,
+      p_tags: {
+        phase: 'research',
+        tool_name: ctx.toolName,
+        is_valid: validationReport.isValid,
+        should_publish: validationReport.shouldPublish,
+        human_review_required: validationReport.humanReviewRequired,
+      },
+    });
+  }
+
   // ========== QA LOGGING: COMPANY INFO (nested in company object) ==========
   const company = knowledgeCard.company;
   const companyFields = [];
@@ -216,6 +236,12 @@ export async function executeResearchPhase(
       tokensUsed,
       isDuplicate: true,
       existingToolId: existingTool.id,
+      validationReport: {
+        isValid: validationReport.isValid,
+        score: validationReport.score,
+        shouldPublish: validationReport.shouldPublish,
+        humanReviewRequired: validationReport.humanReviewRequired,
+      },
     };
   }
 
@@ -235,14 +261,20 @@ export async function executeResearchPhase(
     knowledgeCard,
     tokensUsed,
     isDuplicate: false,
+    validationReport: {
+      isValid: validationReport.isValid,
+      score: validationReport.score,
+      shouldPublish: validationReport.shouldPublish,
+      humanReviewRequired: validationReport.humanReviewRequired,
+    },
   };
 }
 
 /**
  * Check if tool already exists in database
  *
- * Uses fuzzy name matching and website URL comparison.
- * Prevents duplicate entries for the same tool.
+ * Uses Postgres pg_trgm trigram similarity for fast fuzzy matching.
+ * This replaces the old O(n) in-memory check with an indexed query.
  *
  * @param toolName - Tool name to check
  * @param knowledgeCard - Knowledge card with extracted facts
@@ -254,55 +286,24 @@ async function checkForDuplicateTool(
   knowledgeCard: KnowledgeCard,
   deps: HunterDependencies
 ): Promise<{ id: string; name: string } | null> {
-  const { data: items } = await deps.supabase
-    .from('items')
-    .select('id, name, website')
-    .limit(1000);
+  // Use Postgres trigram similarity function (fast, indexed)
+  const { data, error } = await deps.supabase.rpc('find_duplicate_item', {
+    p_tool_name: toolName,
+    p_website_url: knowledgeCard.website_url || null,
+    p_similarity_threshold: 0.9,
+  });
 
-  if (!items || items.length === 0) return null;
+  if (error) {
+    deps.log(`⚠️  Duplicate detection error: ${error.message}`);
+    return null;
+  }
 
-  const normalize = (str: string) =>
-    str.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-  const normalizedInput = normalize(toolName);
-  const inputWebsite = knowledgeCard.website_url
-    ? normalize(new URL(knowledgeCard.website_url).hostname)
-    : null;
-
-  for (const item of items) {
-    // Check 1: Exact name match (normalized)
-    if (normalize(item.name) === normalizedInput) {
-      deps.log(`Duplicate found by name: "${item.name}"`);
-      return { id: item.id, name: item.name };
-    }
-
-    // Check 2: Website URL match
-    if (inputWebsite && item.website) {
-      const itemWebsite = normalize(new URL(item.website).hostname);
-      if (itemWebsite === inputWebsite) {
-        deps.log(`Duplicate found by website: ${item.website}`);
-        return { id: item.id, name: item.name };
-      }
-    }
-
-    // Check 3: High similarity (Levenshtein-like)
-    const similarity = calculateSimilarity(normalizedInput, normalize(item.name));
-    if (similarity >= 0.9) {
-      deps.log(`Duplicate found by similarity (${(similarity * 100).toFixed(1)}%): "${item.name}"`);
-      return { id: item.id, name: item.name };
-    }
+  if (data && data.length > 0) {
+    const match = data[0];
+    const similarityPct = (match.similarity_score * 100).toFixed(1);
+    deps.log(`Duplicate found: "${match.name}" (similarity: ${similarityPct}%)`);
+    return { id: match.id, name: match.name };
   }
 
   return null;
-}
-
-/**
- * Calculate Jaccard similarity between two strings
- */
-function calculateSimilarity(a: string, b: string): number {
-  const setA = new Set(a.split(''));
-  const setB = new Set(b.split(''));
-  const intersection = new Set([...setA].filter(c => setB.has(c)));
-  const union = new Set([...setA, ...setB]);
-  return intersection.size / union.size;
 }

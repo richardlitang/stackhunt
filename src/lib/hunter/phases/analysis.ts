@@ -107,6 +107,27 @@ export async function executeAnalysisPhase(
   deps.log(`[Pass 2] Analysis complete - Score: ${analysis.score}/100`);
   deps.log(`Graph tags: functions=[${analysis.graphTags.functions.join(', ')}], audiences=[${analysis.graphTags.audiences.join(', ')}], platforms=[${analysis.graphTags.platforms.join(', ')}]`);
 
+  // Step 8.5: Validate analysis output
+  const { validateAnalysis, formatValidationReport } = await import('../validation/schema-validator.js');
+  const analysisValidation = validateAnalysis(analysis);
+  deps.log(formatValidationReport(analysisValidation, 'Analysis'));
+
+  // Store analysis validation metrics
+  if (ctx.queueItemId) {
+    await deps.supabase.rpc('log_metric', {
+      p_metric_type: 'analysis_qa_score',
+      p_metric_value: analysisValidation.score,
+      p_tags: {
+        phase: 'analysis',
+        tool_name: ctx.toolName,
+        is_valid: analysisValidation.isValid,
+        score: analysis.score,
+        pros_count: analysis.pros.length,
+        cons_count: analysis.cons.length,
+      },
+    });
+  }
+
   // Step 9: Generate embedding for semantic search
   // Use "Functional Anchor" strategy: embed the SPEC not just the VIBE
   // This prevents "semantic smudge" where Slack ≈ HubSpot due to generic B2B language

@@ -254,6 +254,12 @@ export interface ResearchOutput {
     reason?: string;
     evidence?: string;
   };
+  validationReport?: {          // Data quality validation results
+    isValid: boolean;
+    score: number;              // 0-100 quality score
+    shouldPublish: boolean;     // Gate low-quality content
+    humanReviewRequired: boolean;
+  };
   video?: {                     // Best video found for the tool
     videoId: string;
     title: string;
