@@ -232,6 +232,49 @@ export async function executeResearchPhase(
     }
   }
 
+  // ========== QA LOGGING: SETUP COMPLEXITY ==========
+  if (knowledgeCard.setup_complexity) {
+    const setup = knowledgeCard.setup_complexity;
+    const setupFlags = [];
+    if (setup.requires_developer) setupFlags.push('Dev');
+    if (setup.requires_it_admin) setupFlags.push('IT Admin');
+    if (setup.implementation_partner_needed) setupFlags.push('Partner');
+
+    deps.log(`[Setup] Time: ${setup.estimated_setup_time}, Type: ${setup.setup_type || 'unknown'}, Friction: ${setup.friction_score || 'N/A'}/10`);
+    if (setupFlags.length > 0) {
+      deps.log(`[Setup] Required: ${setupFlags.join(', ')}`);
+    }
+
+    if (setup.steps && setup.steps.length > 0) {
+      deps.log(`[Setup] Steps (${setup.steps.length}):`);
+      for (const step of setup.steps.slice(0, 3)) {  // Show first 3 steps
+        const cmd = step.command ? ` \`${step.command}\`` : '';
+        deps.log(`  ${step.step}. ${step.action}${cmd}`);
+      }
+      if (setup.steps.length > 3) {
+        deps.log(`  ... ${setup.steps.length - 3} more steps`);
+      }
+    }
+
+    if (setup.aha_moment) {
+      deps.log(`[Setup] Aha moment: ${setup.aha_moment}`);
+    }
+
+    if (setup.red_tape) {
+      const redTapeFlags = [];
+      if (setup.red_tape.cc_required) redTapeFlags.push('CC required');
+      if (setup.red_tape.domain_required) redTapeFlags.push('Domain required');
+      if (setup.red_tape.admin_required) redTapeFlags.push('Admin access');
+      if (setup.red_tape.sales_gated) redTapeFlags.push('Sales gated');
+      if (setup.red_tape.approval_required) redTapeFlags.push('Approval required');
+      if (redTapeFlags.length > 0) {
+        deps.log(`[Setup] 🚨 Red tape: ${redTapeFlags.join(', ')}`);
+      }
+    }
+  } else {
+    deps.log(`[Setup] ⚠️ Not extracted`);
+  }
+
   // ========== QA SUMMARY ==========
   const qaScore = [
     knowledgeCard.company?.name ? 1 : 0,
@@ -242,6 +285,7 @@ export async function executeResearchPhase(
     knowledgeCard.smp_pricing ? 1 : 0,
     knowledgeCard.smp_taxonomy ? 1 : 0,
     knowledgeCard.smp_portability ? 1 : 0,
+    knowledgeCard.setup_complexity ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
   deps.log(`[QA Score] ${qaScore}/8 data categories populated`);
 

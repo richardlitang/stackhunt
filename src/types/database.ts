@@ -92,15 +92,47 @@ export interface DataGovernanceData {
 }
 
 /**
+ * Setup step for onboarding guide
+ */
+export interface SetupStep {
+  step: number;
+  action: string;                          // "Run `brew install cursor`" or "Visit cursor.sh/download"
+  command?: string;                        // Extract CLI command if present: "brew install cursor"
+  description?: string;                    // Additional context: "Downloads .dmg for macOS"
+}
+
+/**
+ * Red tape flags - setup blockers that surprise users
+ */
+export interface SetupRedTape {
+  cc_required?: boolean;                   // Credit card required for "free" trial
+  domain_required?: boolean;               // Cannot use Gmail, requires business domain
+  admin_required?: boolean;                // Needs Full Disk Access (macOS) or Admin privileges
+  sales_gated?: boolean;                   // "Contact Sales" to provision
+  approval_required?: boolean;             // Email/domain verification takes time
+}
+
+/**
  * Setup complexity for non-technical buyers
  * Used by Journey 4 (Non-Technical Agency Owner)
+ *
+ * V2: Expanded with detailed setup path extraction
  */
 export interface SetupComplexityData {
+  // V1: Binary flags (keep for backward compatibility)
   requires_developer: boolean;
   requires_it_admin: boolean;
   implementation_partner_needed: boolean;
   estimated_setup_time: 'minutes' | 'hours' | 'days' | 'weeks';
   technical_blockers?: string[];           // ["API configuration", "DNS setup", "Custom SMTP"]
+
+  // V2: Detailed setup path (The "First 5 Minutes")
+  setup_type?: 'cli' | 'web' | 'installer' | 'hybrid' | 'api_only';
+  friction_score?: number;                 // 1 (instant) to 10 (multi-day setup)
+  steps?: SetupStep[];                     // Actual setup steps extracted from docs
+  aha_moment?: string;                     // "Seeing the 'Composer' (Cmd+I) refactor your first file"
+  red_tape?: SetupRedTape;                 // Flags for common blockers
+  setup_url?: string;                      // Link to official setup guide
 }
 
 /**

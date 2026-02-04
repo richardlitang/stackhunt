@@ -113,6 +113,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // Process queue
     const errors: Array<{ tool: string; error: string }> = [];
+    const successes: Array<{ tool: string; context?: string }> = [];
     let result: { processed: number; succeeded: number; failed: number };
 
     try {
@@ -123,10 +124,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         failed: batchResult.failed,
       };
 
-      // Collect errors
+      // Collect errors and successes
       for (const r of batchResult.results) {
         if (!r.success && r.error) {
           errors.push({ tool: r.toolName || 'Unknown', error: r.error });
+        } else if (r.success && r.toolName) {
+          successes.push({ tool: r.toolName, context: r.contextTitle });
         }
       }
     } catch (error) {
@@ -166,6 +169,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         processed: result.processed,
         succeeded: result.succeeded,
         failed: result.failed,
+        successes,
         errors,
       });
     }

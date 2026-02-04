@@ -387,6 +387,35 @@ export const KnowledgeCardSchema = z.object({
   // === LEARNING & ADOPTION ===
   learning_curve: z.enum(['minutes', 'hours', 'days', 'weeks', 'months']).nullable().optional(),
 
+  // === V5: SETUP COMPLEXITY (The "First 5 Minutes" Guide) ===
+  setup_complexity: z.object({
+    // V1: Binary flags
+    requires_developer: z.boolean(),
+    requires_it_admin: z.boolean(),
+    implementation_partner_needed: z.boolean(),
+    estimated_setup_time: z.enum(['minutes', 'hours', 'days', 'weeks']),
+    technical_blockers: z.array(z.string()).optional(),
+
+    // V2: Detailed setup path
+    setup_type: z.enum(['cli', 'web', 'installer', 'hybrid', 'api_only']).optional(),
+    friction_score: z.number().int().min(1).max(10).optional(),  // 1=instant, 10=multi-day
+    steps: z.array(z.object({
+      step: z.number().int(),
+      action: z.string(),
+      command: z.string().optional(),
+      description: z.string().optional(),
+    })).optional(),
+    aha_moment: z.string().optional(),
+    red_tape: z.object({
+      cc_required: z.boolean().optional(),
+      domain_required: z.boolean().optional(),
+      admin_required: z.boolean().optional(),
+      sales_gated: z.boolean().optional(),
+      approval_required: z.boolean().optional(),
+    }).optional(),
+    setup_url: z.string().url().optional(),
+  }).optional(),
+
   // === V3: SMP DATA (for SaaS Management Platform) ===
   smp_pricing: SMPPricingDataSchema.optional(),
   smp_taxonomy: SMPTaxonomySchema.optional(),

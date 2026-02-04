@@ -158,6 +158,7 @@ async function processQueue(): Promise<void> {
 
     const result = await hunter.processQueueBatch(batchSize);
     const errors: Array<{ tool: string; error: string; category?: string }> = [];
+    const successes: Array<{ tool: string; context?: string }> = [];
 
     for (const r of result.results) {
       if (!r.success && r.error) {
@@ -175,6 +176,11 @@ async function processQueue(): Promise<void> {
         errors.push({
           tool: r.toolName || 'Unknown',
           error: `[${formatted.category}] ${formatted.summary}`,
+        });
+      } else if (r.success && r.toolName) {
+        successes.push({
+          tool: r.toolName,
+          context: r.contextTitle,
         });
       }
     }
@@ -194,6 +200,7 @@ async function processQueue(): Promise<void> {
         processed: result.processed,
         succeeded: result.succeeded,
         failed: result.failed,
+        successes,
         errors,
       });
     }

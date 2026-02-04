@@ -105,6 +105,69 @@ Also extract:
 - competitive.best_for: "Best for X because Y"
 - learning_curve: minutes/hours/days/weeks
 
+=== STEP 2.5: SETUP PATH (The "First 5 Minutes") ===
+Your role: Extract the ACTUAL onboarding steps. Ignore marketing promises like "Get started in seconds."
+Hunt for: Installation guides, Quickstart docs, CLI commands, Setup wizards.
+
+Extract into setup_complexity object:
+
+**Binary Flags (V1)**:
+- requires_developer: Does it require coding/CLI knowledge?
+- requires_it_admin: Does it need server/domain/DNS access?
+- implementation_partner_needed: Is professional services recommended?
+- estimated_setup_time: minutes/hours/days/weeks (realistic, not marketing)
+- technical_blockers: ["API configuration", "DNS setup", "Custom SMTP"]
+
+**Detailed Setup Path (V2)**:
+- setup_type: cli|web|installer|hybrid|api_only
+  * cli: Installed via command line (npm, pip, brew, cargo, go install)
+  * web: Sign up and use immediately (no installation)
+  * installer: Download .exe/.dmg/.deb (desktop app)
+  * hybrid: CLI + Web dashboard (e.g., Vercel, Supabase)
+  * api_only: Library/API integration only (no UI)
+
+- friction_score: 1-10 (1=instant, 10=multi-day setup)
+  * 1: OAuth login with Google/GitHub (ChatGPT, Notion)
+  * 3: npm install + API key (OpenAI SDK, Stripe)
+  * 5: CLI setup + domain configuration (Vercel, Netlify)
+  * 7: Docker setup + environment variables (self-hosted GitLab)
+  * 10: Multi-server deployment + SSL + database migration (Kubernetes)
+
+- steps: Array of 3-5 high-impact steps. Extract ACTUAL commands from docs:
+  [
+    { step: 1, action: "Run brew install cursor", command: "brew install cursor", description: "Downloads .dmg for macOS" },
+    { step: 2, action: "Sign in with GitHub", description: "Imports VS Code extensions automatically" },
+    { step: 3, action: "Open a folder and run 'Index Folder'", description: "Enables AI codebase awareness" }
+  ]
+
+  RULES:
+  - If CLI tool: Extract the EXACT command (don't paraphrase)
+  - If web tool: Describe the signup gate ("Verify email", "Connect GitHub")
+  - If installer: Link to download page
+  - Skip "Create account" if it's obvious - focus on the TECHNICAL steps
+  - NO generic steps like "Follow the wizard" - be specific
+
+- aha_moment: The first "wow" moment that proves it works
+  Examples:
+  * "Seeing the 'Composer' (Cmd+I) refactor your first file" (Cursor)
+  * "Deploying your first function with 'vercel --prod'" (Vercel)
+  * "Watching real-time collaboration cursors move" (Figma)
+
+- red_tape: Flags for common blockers (set to true only if confirmed)
+  * cc_required: "Free" trial requires credit card
+  * domain_required: Cannot use Gmail, requires business domain (e.g., Slack Enterprise)
+  * admin_required: Needs Full Disk Access (macOS) or Admin privileges (Windows)
+  * sales_gated: "Contact Sales" button instead of self-serve signup
+  * approval_required: Email/domain verification takes >1 hour
+
+- setup_url: Direct link to official setup guide (prefer /docs/quickstart over /docs/installation)
+
+**ANTI-HALLUCINATION RULES**:
+- If no setup docs found → Set friction_score to null, steps to []
+- If web-only tool → steps: [{ step: 1, action: "Sign up at [URL]" }]
+- If API-only → steps: [{ step: 1, action: "Install SDK", command: "npm install [pkg]" }]
+- DO NOT invent CLI commands - extract verbatim or leave null
+
 === STEP 3: BUDGET ANALYST (Hard Facts Only) ===
 Extract into review_context.budget_analyst:
 - cost_drivers: What increases TCO? ("SSO requires Enterprise", "Guests are billable", "Storage overage fees")

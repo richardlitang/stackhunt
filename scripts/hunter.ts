@@ -488,16 +488,19 @@ async function runBatchProcess(maxItems: number) {
   console.log(`🔄 Starting batch processing (max ${maxItems} items)`);
   console.log('═'.repeat(60));
 
-  let result: { processed: number; succeeded: number; failed: number; results: Array<{ success: boolean; error?: string; toolName?: string }> };
+  let result: { processed: number; succeeded: number; failed: number; results: Array<{ success: boolean; error?: string; toolName?: string; contextTitle?: string }> };
   const errors: Array<{ tool: string; error: string }> = [];
+  const successes: Array<{ tool: string; context?: string }> = [];
 
   try {
     result = await hunter.processQueueBatch(maxItems);
 
-    // Collect errors from failed results
+    // Collect errors and successes from results
     for (const r of result.results) {
       if (!r.success && r.error) {
         errors.push({ tool: r.toolName || 'Unknown', error: r.error });
+      } else if (r.success && r.toolName) {
+        successes.push({ tool: r.toolName, context: r.contextTitle });
       }
     }
   } catch (error) {
@@ -540,6 +543,7 @@ async function runBatchProcess(maxItems: number) {
       processed: result.processed,
       succeeded: result.succeeded,
       failed: result.failed,
+      successes,
       errors,
     });
   }

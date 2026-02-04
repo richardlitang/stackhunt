@@ -111,6 +111,7 @@ export async function alertQueueSummary(
     processed: number;
     succeeded: number;
     failed: number;
+    successes?: Array<{ tool: string; context?: string }>;
     errors: Array<{ tool: string; error: string }>;
   }
 ): Promise<void> {
@@ -127,6 +128,25 @@ export async function alertQueueSummary(
     timestamp: new Date().toISOString(),
     footer: { text: 'StackHunt Automation' },
   };
+
+  // Show successful generations
+  if (options.successes && options.successes.length > 0) {
+    const successList = options.successes
+      .slice(0, 10) // Show up to 10 successes
+      .map((s) => {
+        if (s.context) {
+          return `• **${s.tool}** for _${s.context}_`;
+        }
+        return `• **${s.tool}**`;
+      })
+      .join('\n');
+
+    embed.fields!.push({
+      name: `Generated (${options.successes.length})`,
+      value: successList + (options.successes.length > 10 ? `\n_...and ${options.successes.length - 10} more_` : ''),
+      inline: false,
+    });
+  }
 
   if (options.errors.length > 0) {
     // Extract key error message (before stack trace, after error type)
