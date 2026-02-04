@@ -368,6 +368,29 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
 
   // Import hunter dynamically (ESM module)
   const { Hunter } = await import('../src/lib/hunter');
+  const { createClient } = await import('@supabase/supabase-js');
+  const { ensureClassification } = await import('../src/lib/hunter/services/keyword-classifier.js');
+
+  // V5: Ensure tool is classified before hunting (so Hunter gets Research Dossier)
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  console.log(`\n🤖 Checking classification for "${values.tool}"...`);
+  const classificationResult = await ensureClassification(values.tool as string, supabase, {
+    onLog: console.log,
+    contextTitle: values.context as string | undefined,
+  });
+
+  let researchDossier = undefined;
+  if (classificationResult.success && classificationResult.research_dossier) {
+    console.log(`✓ Classification ready: ${classificationResult.research_dossier.primary_category}`);
+    researchDossier = classificationResult.research_dossier;
+  } else {
+    console.log(`⚠️  Classification failed or N/A, using fallback queries`);
+  }
+  console.log('');
 
   const hunter = new Hunter({
     supabaseUrl: process.env.SUPABASE_URL!,
@@ -382,6 +405,7 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
     contextTitle: values.context as string | undefined,
     categorySlug: values.category as string | undefined,
     forceUpdate,
+    researchDossier, // V5: Pass dossier to Hunter
   });
 
   console.log('═'.repeat(60));

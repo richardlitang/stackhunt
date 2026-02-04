@@ -49,6 +49,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     const admin = getAdminClient();
 
+    // V5: Ensure tool is classified before queuing (so Hunter gets Research Dossier)
+    const { ensureClassification } = await import('@/lib/hunter/services/keyword-classifier');
+    await ensureClassification(tool_name, admin, {
+      onLog: console.log,
+      contextTitle: context_title || undefined,
+    });
+
     const { error } = await admin.from('hunt_queue').insert({
       tool_name,
       context_title,

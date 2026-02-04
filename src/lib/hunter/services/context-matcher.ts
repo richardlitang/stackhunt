@@ -268,6 +268,41 @@ export async function assignToRelevantContexts(
     };
   }
 
+  // V5: Create content_ideas entries for flywheel tools (so they get classified)
+  const { data: tool } = (await supabase
+    .from('items')
+    .select('name, slug')
+    .eq('id', toolId)
+    .single()) as any;
+
+  if (tool) {
+    for (const match of matches) {
+      const keyword = `${tool.name} ${match.context_title}`;
+
+      // Check if content_idea already exists
+      const { data: existing } = await supabase
+        .from('content_ideas')
+        .select('id')
+        .eq('keyword', keyword)
+        .maybeSingle();
+
+      if (!existing) {
+        // Create content_idea entry (will be classified later)
+        await supabase.from('content_ideas').insert({
+          keyword,
+          tool_name: tool.name,
+          context_query: match.context_title,
+          source: 'flywheel_cross_pollination',
+          status: 'pending',
+          search_volume: null, // Unknown for flywheel entries
+          roi_score: match.relevance_score, // Use relevance as initial score
+        });
+
+        console.log(`[ContextMatcher] 📝 Created content_idea: "${keyword}"`);
+      }
+    }
+  }
+
   // Create reviews in matched contexts
   const reviewsCreated = await createContextualReviews(toolId, matches, supabase);
 
