@@ -98,13 +98,6 @@ export const GET: APIRoute = async ({ request }) => {
 
     // 4. Use Gemini to generate topic suggestions
     const gemini = new GoogleGenAI({ apiKey: import.meta.env.GEMINI_API_KEY });
-    const model = gemini.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      generationConfig: {
-        temperature: 0.7,
-        responseMimeType: 'application/json',
-      },
-    });
 
     const discoveryConfig = (guidelines.discovery_config as Record<string, unknown>) || {};
     const topicFilters = (guidelines.topic_filters as Record<string, unknown>) || {};
@@ -149,8 +142,18 @@ For each topic, provide:
 
 Return a JSON array of topic suggestions.`;
 
-    const response = await model.generateContent(prompt);
-    const content = response.response.text();
+    const response = await gemini.models.generateContent({
+      model: 'gemini-2.0-flash-preview',
+      contents: prompt,
+      config: {
+        temperature: 0.7,
+        responseMimeType: 'application/json',
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.MEDIUM, // Medium thinking for creative ideation
+        },
+      },
+    });
+    const content = response.text;
 
     if (!content) {
       throw new Error('Empty response from Gemini');

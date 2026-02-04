@@ -182,16 +182,19 @@ Return ONLY valid JSON array:
 ]`;
 
   try {
-    const model = gemini.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      generationConfig: {
+    const response = await gemini.models.generateContent({
+      model: 'gemini-2.0-flash-preview',
+      contents: prompt,
+      config: {
         temperature: 0.7,
         responseMimeType: 'application/json',
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.MEDIUM,
+        },
       },
     });
 
-    const response = await model.generateContent(prompt);
-    const content = response.response.text();
+    const content = response.text;
 
     if (!content) {
       console.log('   AI returned empty response');
