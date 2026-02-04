@@ -287,7 +287,7 @@ export async function executeResearchPhase(
     knowledgeCard.smp_portability ? 1 : 0,
     knowledgeCard.setup_complexity ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
-  deps.log(`[QA Score] ${qaScore}/8 data categories populated`);
+  deps.log(`[QA Score] ${qaScore}/9 data categories populated`);
 
   // Step 2.5: Detect category for batch synthesis grouping
   // Uses same logic as analysis phase for consistency
