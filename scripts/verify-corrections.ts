@@ -14,7 +14,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import axios from 'axios';
 
 // Load environment variables
@@ -108,7 +108,7 @@ async function searchForData(toolName: string, fieldName: string): Promise<strin
  * Verify a correction using AI
  */
 async function verifyCorrection(
-  gemini: GoogleGenerativeAI,
+  gemini: GoogleGenAI,
   toolName: string,
   fieldName: string,
   correctionText: string,
@@ -135,16 +135,19 @@ Respond with ONLY valid JSON:
 }`;
 
   try {
-    const model = gemini.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      generationConfig: {
+    const response = await gemini.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
         temperature: 0.1,
         responseMimeType: 'application/json',
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW, // Fast verification
+        },
       },
     });
 
-    const response = await model.generateContent(prompt);
-    const content = response.response.text();
+    const content = response.text;
 
     if (!content) {
       return { result: 'inconclusive', notes: 'AI returned empty response.', tokensUsed: 0 };
@@ -261,7 +264,7 @@ async function main() {
   console.log(`🔄 Processing ${groups.length} tools...\n`);
 
   // 6. Initialize Gemini
-  const gemini = new GoogleGenerativeAI(GEMINI_API_KEY);
+  const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
   let totalTokens = 0;
   let confirmed = 0;

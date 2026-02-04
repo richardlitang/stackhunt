@@ -1238,9 +1238,8 @@ async function handleKeywordClassify(
   console.log('');
 
   // Import Gemini service
-  const { GoogleGenerativeAI } = await import('@google/generative-ai');
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const { GoogleGenAI, ThinkingLevel } = await import('@google/genai');
+  const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
   let classified = 0;
   let failed = 0;
@@ -1356,8 +1355,18 @@ Respond in JSON format:
 }`;
 
     try {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      const result = await genAI.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.LOW, // Fast strategist
+          },
+        },
+      });
+      const text = result.text;
 
       // Extract JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);

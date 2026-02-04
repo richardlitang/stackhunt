@@ -15,7 +15,7 @@
 
 import { parseArgs } from 'util';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -95,8 +95,7 @@ async function main(): Promise<void> {
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
-  const genAI = new GoogleGenerativeAI(geminiApiKey);
-  const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+  const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
 
   const tablesToProcess = args.table === 'all' ? ['items', 'content_ideas'] : [args.table!];
 
@@ -188,8 +187,11 @@ async function processItemsTable(
 
       console.log(`   Embedding text: ${embeddingParts.split('\n').slice(0, 3).join(' | ')}...`);
 
-      const result = await model.embedContent(embeddingParts);
-      const embedding = result.embedding.values;
+      const result = await genAI.models.embedContent({
+        model: 'text-embedding-004',
+        contents: embeddingParts,
+      });
+      const embedding = result.embeddings[0].values;
 
       console.log(`   Generated embedding: ${embedding.length} dimensions`);
 
@@ -283,8 +285,11 @@ async function processContentIdeasTable(
           idea.context_query ? `Context: ${idea.context_query}` : '',
         ].filter(Boolean).join('\n');
 
-        const result = await model.embedContent(embeddingParts);
-        const embedding = result.embedding.values;
+        const result = await genAI.models.embedContent({
+        model: 'text-embedding-004',
+        contents: embeddingParts,
+      });
+        const embedding = result.embeddings[0].values;
 
         const { error: updateError } = await supabase
           .from('content_ideas')

@@ -339,14 +339,7 @@ export async function synthesizeIndividual(
   apiKey: string,
   existingCategories: ExistingCategories
 ): Promise<HunterAnalysis> {
-  const client = new GoogleGenerativeAI(apiKey);
-  const model = client.getGenerativeModel({
-    model: 'gemini-3-flash-preview',
-    generationConfig: {
-      temperature: 0.3,
-      responseMimeType: 'application/json',
-    },
-  });
+  const client = new GoogleGenAI({ apiKey });
 
   // Use a simpler system prompt for individual synthesis
   const systemPrompt = `You are a forensic software analyst. Analyze the tool and output structured JSON.
@@ -382,10 +375,21 @@ Existing Knowledge Graph tags to reuse:
 Output ONLY valid JSON matching the HunterAnalysis schema.`;
 
   const response = await geminiCircuit.execute(async () => {
-    return model.generateContent(prompt);
+    return client.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        temperature: 0.3,
+        responseMimeType: 'application/json',
+        systemInstruction: systemPrompt,
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.HIGH, // High reasoning for individual synthesis
+        },
+      },
+    });
   });
 
-  const content = response.response.text();
+  const content = response.text;
   if (!content) {
     throw new Error(`Empty response for ${input.toolName}`);
   }
