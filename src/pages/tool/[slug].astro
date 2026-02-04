@@ -24,6 +24,7 @@ import SupportOptions from '@/components/SupportOptions.astro';
 import PortabilityCard from '@/components/PortabilityCard.astro';
 import PlatformIntegrations from '@/components/PlatformIntegrations.astro';
 import FeaturesShowcase from '@/components/FeaturesShowcase.astro';
+import GettingStarted from '@/components/GettingStarted.astro';
 import PricingPlansGrid from '@/components/PricingPlansGrid.astro';
 import VerifiedBadge from '@/components/VerifiedBadge.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
@@ -470,6 +471,14 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         {(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0) && (
           <FeaturesShowcase
             features={knowledgeCard.features}
+            toolName={tool.name}
+          />
+        )}
+
+        {/* Getting Started - Setup guide with friction score and actual steps */}
+        {knowledgeCard?.setup_complexity && (
+          <GettingStarted
+            setupComplexity={knowledgeCard.setup_complexity}
             toolName={tool.name}
           />
         )}
