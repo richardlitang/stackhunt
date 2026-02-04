@@ -258,7 +258,7 @@ export type UserAdvocate = z.infer<typeof UserAdvocateSchema>;
 // --- Main Context Schema ---
 export const ReviewContextSchema = z.object({
   human_verdict: z.string()
-    .describe("A 2-sentence summary in 'Coffee Shop Speak'. No corporate jargon like 'seamless', 'empowers', 'robust'. Honest assessment of who it's for. Example: 'It's basically a glorified spreadsheet, but the automation engine is so good you won't care.'")
+    .describe("Opinionated 2-3 sentence verdict with reviewer's voice. Include: who it's perfect for, who should avoid it, and one specific limitation. Example: 'Airtable is the gold standard for teams who have outgrown Excel but aren't ready for Salesforce. However, it's a trap for big data—if you need to log millions of rows, look elsewhere.'")
     .nullable()
     .optional(),
   budget_analyst: BudgetAnalystSchema.default({}),
@@ -638,7 +638,7 @@ export const GeminiKnowledgeCardSchema = {
         human_verdict: {
           type: 'string',
           nullable: true,
-          description: 'A 2-sentence summary in "Coffee Shop Speak". NO corporate jargon like "seamless", "empowers", "robust", "game-changer". Write as if texting a founder friend. Example: "It\'s basically a glorified spreadsheet, but the automation engine is so good you won\'t care."'
+          description: 'Opinionated 2-3 sentence verdict with reviewer\'s voice. Include: (1) who it\'s perfect for, (2) who should avoid it, (3) one specific limitation. Example: "Airtable is the gold standard for teams who have outgrown Excel but aren\'t ready for Salesforce. However, it\'s a trap for big data—if you need to log millions of rows, look elsewhere." AVOID neutral/Wikipedia style. NO jargon like "powerful", "versatile", "seamless".'
         },
         budget_analyst: {
           type: 'object',

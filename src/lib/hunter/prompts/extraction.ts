@@ -121,7 +121,7 @@ Extract into review_context.user_advocate:
 - avoid_if: Deal-breakers ["Need offline mode", "Regulated industry (HIPAA)", "Hate keyboard shortcuts"]
 - delighters: Features users rave about ["Command palette", "Dark mode", "Real-time collab"]
 - frustrations: Specific UX complaints (NOT pricing) ["Search slow after 10k messages", "Mobile app buggy"]
-- human_verdict: 2-3 sentences, max 2 paragraphs. Casual "senior engineer" tone. NO jargon (seamless, robust, empowers, game-changer).
+- human_verdict: Opinionated 2-3 sentence verdict with reviewer's voice. Include: (1) who it's perfect for, (2) who should avoid it, (3) one specific limitation. Example: "Airtable is the gold standard for teams who have outgrown Excel but aren't ready for Salesforce. However, it's a trap for big data—if you need to log millions of rows, look elsewhere." AVOID neutral Wikipedia style.
 
 === STEP 5: TAXONOMY PRECISION ===
 Extract into smp_taxonomy:

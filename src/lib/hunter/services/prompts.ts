@@ -274,7 +274,7 @@ Output ONLY valid JSON matching this exact schema:
   "dealbreakers": [<0-3 concerns that might be dealbreakers for this specific audience>],
   "switchingFrom": [<0-3 common tools this audience typically switches FROM when adopting this tool>],
   "reviewContext": {
-    "humanVerdict": "<2-sentence summary in 'Coffee Shop Speak' - NO jargon like 'seamless', 'empowers', 'robust'>",
+    "humanVerdict": "<Opinionated 2-3 sentence verdict. Include: who it's perfect for, who should avoid it, one specific limitation. Example: 'Airtable is the gold standard for teams who have outgrown Excel but aren't ready for Salesforce. However, it's a trap for big data—if you need to log millions of rows, look elsewhere.' AVOID neutral Wikipedia style>",
     "budgetAnalyst": {
       "costDrivers": [<0-5 factual TCO factors like "SSO requires Enterprise", "Guests are billable". Extract from Budget Analyst snippets. If insufficient data, use empty array []>],
       "oneTimeFees": [<implementation/setup fees, or empty array if none>],
