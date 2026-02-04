@@ -385,7 +385,7 @@ export class Hunter {
     await this.queue.markStarted(queueItem.id, this.log.bind(this));
 
     try {
-      // Execute hunt
+      // Execute hunt (with Research Dossier if available)
       const result = await this.hunt({
         toolName: queueItem.tool_name,
         contextTitle: queueItem.context_title || undefined,
@@ -393,6 +393,7 @@ export class Hunter {
         queueItemId: queueItem.id,
         huntType: (queueItem.hunt_type as any) || 'full',
         forceUpdate: queueItem.force_regenerate, // Pass force_regenerate flag to override duplicate detection
+        researchDossier: queueItem.research_dossier || undefined, // V5: Pass dossier from Classifier
       });
 
       // Stop heartbeat

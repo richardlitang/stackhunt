@@ -32,6 +32,15 @@ export interface QueueItem {
   is_discovery_hunt?: boolean;
   context_id?: string | null;
   force_regenerate?: boolean;
+  // V5: Research Dossier from Classifier (pre-generated queries + forensic targets)
+  research_dossier?: {
+    normalized_tool_name: string;
+    primary_category: string;
+    scout_queries: string[];
+    forensic_targets: string[];
+    confidence: 'high' | 'medium' | 'low';
+    red_flags?: string[];
+  } | null;
 }
 
 export interface QueueResult {

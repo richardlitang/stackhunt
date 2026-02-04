@@ -207,6 +207,14 @@ export interface HunterContext {
   queueItemId?: string;
   forceUpdate?: boolean;        // Bypass duplicate detection
   huntType?: HuntType;
+  researchDossier?: {           // V5: Pre-generated queries from Classifier (moves intelligence from Hunter to Classifier)
+    normalized_tool_name: string;
+    primary_category: string;
+    scout_queries: string[];
+    forensic_targets: string[];
+    confidence: 'high' | 'medium' | 'low';
+    red_flags?: string[];
+  };
 
   // Flags for early exits (cost optimization)
   skipAnalysis?: boolean;       // Set if duplicate found

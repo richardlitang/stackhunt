@@ -1214,20 +1214,99 @@ async function handleKeywordClassify(
     const batch = keywords.slice(i, i + batchSize);
     const keywordList = batch.map(k => k.keyword).join('\n');
 
-    const prompt = `Classify these search keywords for a SaaS/software tools comparison website.
+    const prompt = `You are a Search Strategist and Research Planner for a SaaS comparison website.
+
+Your job: Take raw keywords and create PRECISE "Research Dossiers" that tell our scraper exactly what to search for.
+
+CRITICAL: DISAMBIGUATE tool names. Examples:
+- "claude" → "Anthropic Claude" (AI model, NOT Claude Monet)
+- "flash" → "Adobe Flash Player" (legacy, NOT camera flash)
+- "box" → "Box.com" (cloud storage, NOT shipping boxes)
+- "notion" → "Notion" (already clear)
 
 For each keyword, determine:
+
 1. type: One of: best_list, comparison, alternatives, single_tool, informational, skip
-   - best_list: "best X software", "top X tools" → user wants a list of tools
-   - comparison: "X vs Y", "X or Y" → user comparing specific tools
-   - alternatives: "X alternatives" → user wants tools similar to X
-   - single_tool: "X pricing", "X review", "how to use X" (but about a specific software tool)
-   - informational: How-to guides, tutorials, definitions (no commercial intent)
-   - skip: Nonsense, spam, or irrelevant
+   - best_list: "best X software", "top X tools" → user wants a list
+   - comparison: "X vs Y" → comparing 2+ specific tools
+   - alternatives: "X alternatives" → similar tools to X
+   - single_tool: "X pricing", "X review" → deep dive on one tool
+   - informational: How-to guides, no commercial intent → SKIP
+   - skip: Spam, nonsense, irrelevant
 
-2. extracted_tools: Array of tool/software names found in the keyword (empty if none)
+2. extracted_tools: Array of DISAMBIGUATED tool names
 
-3. suggested_context: A context title like "Best X Tools" or "Best X for Y" (null if not applicable)
+3. suggested_context: Context page title (null if not best_list)
+
+4. research_dossier: ONLY for single_tool and comparison types:
+   - normalized_tool_name: Fully qualified name (e.g., "Anthropic Claude")
+   - primary_category: One of: ai_model, api_platform, saas_collaboration, saas_productivity, crm_sales, marketing_email, database_storage, devtools, legacy_defunct, consumer_media, infrastructure, design_creative, video_conferencing, generic_saas
+   - scout_queries: 3-5 TARGETED queries based on category:
+     * ai_model → token pricing, context limits, benchmarks
+     * api_platform → per-request pricing, rate limits, overage charges
+     * saas_collaboration → seat limits, storage quotas, SSO costs
+     * legacy_defunct → shutdown date, alternatives, migration guides
+   - forensic_targets: 1-3 specific constraints to hunt (choose from: record_count, storage_gb, api_requests_per_month, api_rate_limit_per_sec, seat_count, project_count, active_contacts, message_credits, concurrent_users, bandwidth_gb, build_minutes, shutdown_status)
+   - confidence: high/medium/low (based on how confident you are in classification)
+   - red_flags: Array of warning signals (e.g., ["No pricing page found", "Mentions 'discontinued'"])
+
+EXAMPLES:
+
+INPUT: "claude pricing"
+OUTPUT:
+{
+  "keyword": "claude pricing",
+  "type": "single_tool",
+  "extracted_tools": ["Anthropic Claude"],
+  "suggested_context": null,
+  "research_dossier": {
+    "normalized_tool_name": "Anthropic Claude",
+    "primary_category": "ai_model",
+    "scout_queries": [
+      "Anthropic Claude pricing tokens vs subscription",
+      "Claude 3.5 Sonnet context window limit",
+      "Claude API rate limits documentation",
+      "Claude vs GPT-4 cost comparison",
+      "Claude enterprise pricing hidden costs"
+    ],
+    "forensic_targets": ["api_requests_per_month", "api_rate_limit_per_sec"],
+    "confidence": "high",
+    "red_flags": []
+  }
+}
+
+INPUT: "adobe flash alternatives"
+OUTPUT:
+{
+  "keyword": "adobe flash alternatives",
+  "type": "alternatives",
+  "extracted_tools": ["Adobe Flash Player"],
+  "suggested_context": "Best Adobe Flash Player Alternatives",
+  "research_dossier": {
+    "normalized_tool_name": "Adobe Flash Player",
+    "primary_category": "legacy_defunct",
+    "scout_queries": [
+      "Adobe Flash Player shutdown date 2020",
+      "Adobe Flash alternatives 2026",
+      "Ruffle emulator Flash replacement",
+      "HTML5 canvas Flash migration",
+      "Flash end of life announcement"
+    ],
+    "forensic_targets": ["shutdown_status"],
+    "confidence": "high",
+    "red_flags": ["Adobe discontinued 2020", "End of life"]
+  }
+}
+
+INPUT: "best project management software"
+OUTPUT:
+{
+  "keyword": "best project management software",
+  "type": "best_list",
+  "extracted_tools": [],
+  "suggested_context": "Best Project Management Software",
+  "research_dossier": null
+}
 
 KEYWORDS:
 ${keywordList}
@@ -1235,12 +1314,7 @@ ${keywordList}
 Respond in JSON format:
 {
   "classifications": [
-    {
-      "keyword": "...",
-      "type": "best_list",
-      "extracted_tools": ["Tool1", "Tool2"],
-      "suggested_context": "Best Project Management Tools"
-    }
+    { ... }
   ]
 }`;
 
@@ -1262,6 +1336,14 @@ Respond in JSON format:
           type: string;
           extracted_tools: string[];
           suggested_context: string | null;
+          research_dossier?: {
+            normalized_tool_name: string;
+            primary_category: string;
+            scout_queries: string[];
+            forensic_targets: string[];
+            confidence: 'high' | 'medium' | 'low';
+            red_flags?: string[];
+          };
         }>;
       };
 
@@ -1270,11 +1352,16 @@ Respond in JSON format:
         const idea = batch.find(k => k.keyword === classification.keyword);
         if (!idea) continue;
 
+        // Use normalized name from dossier if available
+        const toolName = classification.research_dossier?.normalized_tool_name
+          || classification.extracted_tools?.[0]
+          || null;
+
         const { error: updateError } = await supabase.rpc('update_keyword_classification', {
           p_idea_id: idea.id,
           p_keyword_type: classification.type,
           p_extracted_tools: classification.extracted_tools || [],
-          p_tool_name: classification.extracted_tools?.[0] || null,
+          p_tool_name: toolName,
           p_context_query: classification.suggested_context,
           p_ai_response: classification,
         });
@@ -1289,6 +1376,16 @@ Respond in JSON format:
             : '(none)';
           console.log(`  ✓ ${classification.keyword}`);
           console.log(`    Type: ${classification.type} | Tools: ${tools}`);
+
+          // Show dossier info if present
+          if (classification.research_dossier) {
+            const dossier = classification.research_dossier;
+            console.log(`    Category: ${dossier.primary_category} | Confidence: ${dossier.confidence}`);
+            console.log(`    Queries: ${dossier.scout_queries.length} | Targets: ${dossier.forensic_targets.join(', ')}`);
+            if (dossier.red_flags?.length) {
+              console.log(`    🚩 Red flags: ${dossier.red_flags.join('; ')}`);
+            }
+          }
         }
       }
     } catch (err) {

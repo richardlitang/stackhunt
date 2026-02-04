@@ -33,11 +33,24 @@ export async function executeResearchPhase(
 ): Promise<ResearchOutput> {
   deps.log(`[Phase 1: Research] Starting for: ${ctx.toolName}`);
 
-  // Step 1: Scout for information
+  // If we have a Research Dossier from the Classifier, use its normalized name
+  const toolName = ctx.researchDossier?.normalized_tool_name || ctx.toolName;
+
+  // Log dossier usage for cost tracking
+  if (ctx.researchDossier) {
+    deps.log(`[Dossier] Using pre-generated queries (${ctx.researchDossier.scout_queries.length} queries)`);
+    deps.log(`[Dossier] Category: ${ctx.researchDossier.primary_category} | Confidence: ${ctx.researchDossier.confidence}`);
+    if (ctx.researchDossier.red_flags?.length) {
+      deps.log(`[Dossier] 🚩 Red flags: ${ctx.researchDossier.red_flags.join('; ')}`);
+    }
+  }
+
+  // Step 1: Scout for information (use dossier queries if available)
   const scoutResult = await deps.serper.scout(
-    ctx.toolName,
+    toolName,
     ctx.contextTitle,
-    deps.withRetry
+    deps.withRetry,
+    ctx.researchDossier?.scout_queries // Pass dossier queries to Serper
   );
 
   deps.log(`Scout completed: ${scoutResult.sources.length} sources found`);

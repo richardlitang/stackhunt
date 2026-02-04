@@ -195,30 +195,46 @@ export class SerperService {
   async scout(
     toolName: string,
     contextTitle?: string,
-    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
+    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
+    dossierQueries?: string[] // NEW: Pre-generated queries from Classifier's Research Dossier
   ): Promise<SearchResult> {
-    const queries = [
-      // Factual queries (existing)
-      `${toolName} reviews ${contextTitle || ''}`.trim(),
-      `${toolName} pricing plans features`,
-      `${toolName} pricing annual vs monthly cost`,
-      `${toolName} alternatives competitors vs`,
-      `${toolName} company founded funding headquarters`,
-      `${toolName} API integrations data export import`,
+    // If we have dossier queries from the Classifier, use those instead of generic ones
+    // This moves strategic thinking from the expensive Hunter phase to the cheap Classifier phase
+    const queries = dossierQueries && dossierQueries.length > 0
+      ? [
+          // Use the targeted dossier queries (3-5 queries)
+          ...dossierQueries,
 
-      // Budget Analyst queries (TCO & hidden costs)
-      `${toolName} hidden costs billing logic`,
-      `${toolName} implementation fees setup cost minimum seats`,
+          // Always append these universal queries (tribal knowledge)
+          `${toolName} reddit review pros cons`,
+          `${toolName} what I wish I knew before using`,
+          `is ${toolName} worth it reddit honest review`,
 
-      // User Advocate queries (tribal knowledge & vibe)
-      `${toolName} reddit review pros cons`,
-      `${toolName} what I wish I knew before using`,
-      `${toolName} advanced tips tricks shortcuts power user`,
-      `is ${toolName} worth it reddit honest review`,
+          // Always append Corporate Profiler query (prevents hallucination)
+          `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+        ]
+      : [
+          // FALLBACK: Generic queries (used if dossier is missing/invalid)
+          `${toolName} reviews ${contextTitle || ''}`.trim(),
+          `${toolName} pricing plans features`,
+          `${toolName} pricing annual vs monthly cost`,
+          `${toolName} alternatives competitors vs`,
+          `${toolName} company founded funding headquarters`,
+          `${toolName} API integrations data export import`,
 
-      // V4: Corporate Profiler query (prevents employee count hallucination)
-      `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
-    ];
+          // Budget Analyst queries (TCO & hidden costs)
+          `${toolName} hidden costs billing logic`,
+          `${toolName} implementation fees setup cost minimum seats`,
+
+          // User Advocate queries (tribal knowledge & vibe)
+          `${toolName} reddit review pros cons`,
+          `${toolName} what I wish I knew before using`,
+          `${toolName} advanced tips tricks shortcuts power user`,
+          `is ${toolName} worth it reddit honest review`,
+
+          // V4: Corporate Profiler query (prevents employee count hallucination)
+          `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+        ];
 
     // Execute searches with rate limiting (with retry if provided)
     const [results, video] = await Promise.all([
