@@ -155,6 +155,52 @@ export async function executeResearchPhase(
     }
   }
 
+  // ========== VALIDATION: Post-extraction domain check ==========
+  if (knowledgeCard.website) {
+    const { validateExtractedDomain, filterConflictingSources } = await import('../validation/name-collision-detector.js');
+
+    const domainValidation = validateExtractedDomain(
+      ctx.toolName,
+      knowledgeCard.website,
+      scoutResult.sources,
+      collisionCheck.primaryDomain
+    );
+
+    if (!domainValidation.isValid) {
+      deps.log(`[Domain Validation] ⚠️  ${domainValidation.warning}`);
+
+      if (domainValidation.shouldRefilter) {
+        deps.log(`[Domain Validation] Re-filtering sources with correct domain: ${domainValidation.correctDomain}`);
+
+        // Find conflicting domains to filter out
+        const conflicting = Array.from(new Set(
+          scoutResult.sources
+            .map(s => s.domain)
+            .filter(d => {
+              const domainLower = d.toLowerCase();
+              const toolNameLower = ctx.toolName.toLowerCase();
+              return domainLower.includes(toolNameLower) &&
+                     d !== domainValidation.correctDomain &&
+                     !d.includes(domainValidation.correctDomain);
+            })
+        ));
+
+        if (conflicting.length > 0) {
+          const originalCount = scoutResult.sources.length;
+          scoutResult.sources = filterConflictingSources(
+            scoutResult.sources,
+            domainValidation.correctDomain,
+            conflicting
+          );
+          deps.log(`[Domain Validation] Filtered ${originalCount - scoutResult.sources.length} sources from: ${conflicting.join(', ')}`);
+          deps.log(`[Domain Validation] ⚠️  WARNING: Data was extracted from mixed sources. Consider re-running extraction.`);
+        }
+      }
+    } else {
+      deps.log(`[Domain Validation] ✓ Extracted website matches expected domain`);
+    }
+  }
+
   // Store validation results for metrics
   if (ctx.queueItemId) {
     await deps.supabase.rpc('log_metric', {
