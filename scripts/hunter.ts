@@ -31,6 +31,7 @@ async function main() {
       category: { type: 'string', short: 'g' },
       publish: { type: 'boolean', short: 'p' },  // Skip draft, publish immediately
       rehunt: { type: 'boolean', short: 'r' },   // Force re-extraction for duplicates
+      'research-only': { type: 'boolean' },       // Two-stage: stop after research (for batch synthesis)
       queue: { type: 'string', short: 'q' },      // 'add' | 'process' | 'batch' | 'cleanup' | 'status'
       strategy: { type: 'string', short: 's' },   // 'analyze' | 'import' | 'ahrefs' | 'classify' | 'approve' | 'status' | 'thresholds'
       file: { type: 'string', short: 'f' },       // CSV file for import
@@ -188,11 +189,13 @@ DIRECT HUNT (Bypass Queue)
   -c, --context        Context/audience
   -g, --category       Category slug
   -p, --publish        Publish immediately (skip draft review)
+  --research-only      Two-stage: stop after research phase (for batch synthesis)
 
 Examples:
   npm run hunt -- --tool="Salesforce"
   npm run hunt -- --tool="Slack" --context="Best for Remote Teams"
   npm run hunt -- --tool="Notion" --publish
+  npm run hunt -- --tool="Cursor" --context="Best AI Code Editor" --research-only
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 WORKFLOW: CSV → Strategy Gatekeeper → Hunt Queue → CLI Worker
@@ -357,12 +360,17 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
 async function runHunt(values: Record<string, string | boolean | undefined>) {
   const isDraftMode = !values.publish;
   const forceUpdate = !!values.rehunt;
+  const researchOnly = !!values['research-only'];
 
   console.log('═'.repeat(60));
   console.log(`🎯 Starting hunt for: ${values.tool}`);
   if (values.context) console.log(`📋 Context: ${values.context}`);
   if (values.category) console.log(`📁 Category: ${values.category}`);
-  console.log(`📝 Mode: ${isDraftMode ? 'DRAFT (requires review)' : 'PUBLISH (live immediately)'}`);
+  if (researchOnly) {
+    console.log(`🔬 Mode: RESEARCH ONLY (will await batch synthesis)`);
+  } else {
+    console.log(`📝 Mode: ${isDraftMode ? 'DRAFT (requires review)' : 'PUBLISH (live immediately)'}`);
+  }
   if (forceUpdate) console.log(`🔄 Force update: Re-extracting data for existing tool`);
   console.log('═'.repeat(60));
 
@@ -406,6 +414,7 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
     categorySlug: values.category as string | undefined,
     forceUpdate,
     researchDossier, // V5: Pass dossier to Hunter
+    skipSynthesis: researchOnly, // Two-stage: stop after research for batch synthesis
   });
 
   console.log('═'.repeat(60));
@@ -417,7 +426,11 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
     if (result.reviewId) console.log(`   Review ID: ${result.reviewId}`);
     console.log(`   Tokens used: ${result.tokensUsed}`);
 
-    if (isDraftMode) {
+    if (researchOnly) {
+      console.log('\n🔬 Research phase complete');
+      console.log('   Status: research_complete (awaiting batch synthesis)');
+      console.log('   Run batch synthesis: npm run queue:worker');
+    } else if (isDraftMode) {
       console.log('\n📝 Review created as DRAFT');
       console.log('   Visit /admin/review to approve and publish');
     } else {

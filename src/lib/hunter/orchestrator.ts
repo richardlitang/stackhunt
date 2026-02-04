@@ -141,10 +141,15 @@ export class Hunter {
       huntType: input.huntType || 'full',
       skipAnalysis: false,
       skipPersistence: false,
+      skipSynthesis: input.skipSynthesis || false, // Two-stage pipeline: stop after research
       startTime,
       tokensUsed: 0,
       logs: [],
     };
+
+    if (ctx.skipSynthesis) {
+      this.log(`[Two-Stage] Batch mode: Will stop after research phase`);
+    }
 
     // Create dependencies for injection into phases
     const deps: HunterDependencies = {
@@ -273,6 +278,32 @@ export class Hunter {
       if (ctx.huntType === 'price_only') {
         ctx.skipAnalysis = true;
         this.log(`🧾 price_only hunt: skipping analysis phase`);
+      }
+
+      // Two-stage pipeline: Skip analysis if in batch mode
+      if (ctx.skipSynthesis) {
+        ctx.skipAnalysis = true;
+        this.log(`[Two-Stage] Skipping analysis phase (will be done in batch)`);
+
+        // Go directly to persistence to save research data
+        this.logger?.startPhase('persistence');
+        const persistence = await executePersistencePhase(ctx, deps);
+        this.logger?.endPhase({
+          tool_created: persistence.wasReused ? 0 : 1,
+          review_created: 0,
+        });
+
+        this.log(`✅ Research complete: ${input.toolName} (awaiting batch synthesis)`);
+        this.log(`Tool: ${persistence.toolId}, Category: ${ctx.detectedCategory || 'none'}`);
+        this.log(`Tokens: ${ctx.tokensUsed}, Duration: ${Date.now() - ctx.startTime}ms`);
+
+        // Don't clear checkpoint - item is in research_complete status
+        return {
+          success: true,
+          toolId: persistence.toolId,
+          tokensUsed: ctx.tokensUsed,
+          durationMs: Date.now() - ctx.startTime,
+        };
       }
 
       if (!ctx.skipAnalysis && !ctx.analysis) {

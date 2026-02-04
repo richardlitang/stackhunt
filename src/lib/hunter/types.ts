@@ -33,6 +33,15 @@ export interface HunterInput {
   queueItemId?: string; // If processing from queue
   forceUpdate?: boolean; // Bypass duplicate detection and re-extract data
   huntType?: HuntType; // 'full' | 'refresh' | 'price_only'
+  skipSynthesis?: boolean; // Two-stage pipeline: stop after research phase (for batch mode)
+  researchDossier?: {           // V5: Pre-generated queries from Classifier
+    normalized_tool_name: string;
+    primary_category: string;
+    scout_queries: string[];
+    forensic_targets: string[];
+    confidence: 'high' | 'medium' | 'low';
+    red_flags?: string[];
+  };
 }
 
 // Guidance for context hunt (optional hints for better articles)
@@ -224,6 +233,11 @@ export interface HunterContext {
   // Accumulated data
   research?: ResearchOutput;
   analysis?: AnalysisOutput;
+
+  // Two-stage pipeline fields (batch synthesis optimization)
+  detectedCategory?: string;        // Category detected during research (for batch grouping)
+  skipSynthesis?: boolean;          // If true, stop after research phase (batch mode)
+  batchId?: string;                 // UUID linking items in same synthesis batch
 
   // Metadata
   startTime: number;

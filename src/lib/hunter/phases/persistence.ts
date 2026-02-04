@@ -84,6 +84,11 @@ export async function executePersistencePhase(
     return await updatePricingOnly(ctx, deps);
   }
 
+  // Two-stage pipeline: If skipSynthesis is true, store research data only
+  if (ctx.skipSynthesis) {
+    return await persistResearchOnly(ctx, deps);
+  }
+
   if (!ctx.analysis) {
     throw new Error('[Phase 3] Cannot persist without analysis data');
   }
@@ -592,6 +597,126 @@ async function updatePricingOnly(
     contextId: null,
     reviewId: null,
     wasReused: true,
+  };
+}
+
+/**
+ * Persist research data only (two-stage pipeline batch mode)
+ *
+ * Stores research data in the item's specs and updates queue status to 'research_complete'.
+ * Used when skipSynthesis is true - synthesis will happen later in batch.
+ */
+async function persistResearchOnly(
+  ctx: HunterContext,
+  deps: HunterDependencies
+): Promise<PersistenceOutput> {
+  deps.log(`[Phase 3: Persistence] Research-only mode for: ${ctx.toolName}`);
+
+  if (!ctx.research) {
+    throw new Error('[Phase 3] Cannot persist without research data');
+  }
+
+  const toolSlug = slugify(ctx.toolName);
+  const knowledgeCard = ctx.research.knowledgeCard;
+
+  // Build minimal specs to store research data for later batch synthesis
+  const specs: Record<string, unknown> = {
+    // Store research data for batch synthesis (will be processed later)
+    research_data: {
+      scoutResult: {
+        reviewsSnippets: ctx.research.scoutResult.reviewsSnippets,
+        pricingSnippets: ctx.research.scoutResult.pricingSnippets,
+        alternativesSnippets: ctx.research.scoutResult.alternativesSnippets,
+        budgetAnalystSnippets: ctx.research.scoutResult.budgetAnalystSnippets,
+        tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets,
+        tribalDeepContent: ctx.research.scoutResult.tribalDeepContent,
+        sources: ctx.research.scoutResult.sources,
+      },
+      knowledgeCard,
+    },
+    // Store category for reference
+    detected_category: ctx.detectedCategory,
+  };
+
+  // Add pricing data if extracted
+  if (knowledgeCard?.smp_pricing) {
+    specs.pricing_data = knowledgeCard.smp_pricing;
+  }
+
+  // Add taxonomy data if extracted
+  if (knowledgeCard?.smp_taxonomy) {
+    const rawFunction = knowledgeCard.smp_taxonomy.primary_function;
+    const canonicalFunction = normalizeCategory(rawFunction);
+    specs.taxonomy = {
+      ...knowledgeCard.smp_taxonomy,
+      primary_function: canonicalFunction,
+    };
+  }
+
+  // Build minimal metadata from Knowledge Card
+  const metadata: Record<string, unknown> = {
+    ...knowledgeCard,
+  };
+
+  // Calculate data_confidence from Knowledge Card's data_quality
+  const dataConfidenceMap: Record<string, number> = {
+    high: 0.9,
+    medium: 0.7,
+    low: 0.5,
+  };
+  const dataConfidence = dataConfidenceMap[knowledgeCard?.meta?.data_quality || 'low'] || 0.5;
+
+  // Create or update item with research data
+  const itemData: Record<string, unknown> = {
+    name: ctx.toolName,
+    slug: toolSlug,
+    website: knowledgeCard?.website_url || null,
+    short_description: null, // Will be filled in synthesis
+    pricing_type: knowledgeCard?.smp_pricing?.model || null,
+    metadata,
+    specs,
+    data_confidence: dataConfidence,
+    learning_curve: knowledgeCard?.learning_curve || null,
+    pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
+    pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
+  };
+
+  const { data: item, error: itemError } = await deps.supabase
+    .from('items')
+    .upsert(itemData, { onConflict: 'slug' })
+    .select('id')
+    .single();
+
+  if (itemError) throw new Error(`Failed to save item: ${itemError.message}`);
+
+  deps.log(`[Research Only] Item saved: ${ctx.toolName} (id: ${item.id})`);
+  deps.log(`[Research Only] Research data stored for batch synthesis`);
+
+  // Update queue item status to research_complete
+  if (ctx.queueItemId) {
+    const { error: queueError } = await deps.supabase
+      .from('hunt_queue')
+      .update({
+        status: 'research_complete',
+        detected_category: ctx.detectedCategory || null,
+        research_completed_at: new Date().toISOString(),
+      })
+      .eq('id', ctx.queueItemId);
+
+    if (queueError) {
+      deps.log(`[Queue] Warning: Failed to update queue status: ${queueError.message}`);
+    } else {
+      deps.log(`[Queue] Status → research_complete (category: ${ctx.detectedCategory || 'none'})`);
+    }
+  }
+
+  deps.log(`[Phase 3] Complete - Research stored, awaiting batch synthesis`);
+
+  return {
+    toolId: item.id,
+    contextId: null,
+    reviewId: null,
+    wasReused: false,
   };
 }
 

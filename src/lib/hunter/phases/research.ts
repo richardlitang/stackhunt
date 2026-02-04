@@ -16,6 +16,7 @@ import type {
   ResearchOutput,
 } from '../types';
 import { detectDefunctTool, extractSearchSnippets } from '../services/defunct-detector.js';
+import { normalizeCategory } from '../validation/category-validator.js';
 
 /**
  * Execute the Research Phase
@@ -156,7 +157,7 @@ export async function executeResearchPhase(
     if (int.has_api) intFlags.push('API');
     if (int.has_zapier) intFlags.push('Zapier');
     if (int.has_webhooks) intFlags.push('Webhooks');
-    deps.log(`[Integrations] ${intFlags.length > 0 ? intFlags.join(', ') : '⚠️ none detected'}${int.notable?.length ? `, notable: ${int.notable.map(n => n.name).join(', ')}` : ''}`);
+    deps.log(`[Integrations] ${intFlags.length > 0 ? intFlags.join(', ') : '⚠️ none detected'}${int.notable?.length ? `, notable: ${int.notable.map((n: { name: string }) => n.name).join(', ')}` : ''}`);
   } else {
     deps.log(`[Integrations] ⚠️ Not extracted`);
   }
@@ -243,6 +244,16 @@ export async function executeResearchPhase(
     knowledgeCard.smp_portability ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
   deps.log(`[QA Score] ${qaScore}/8 data categories populated`);
+
+  // Step 2.5: Detect category for batch synthesis grouping
+  // Uses same logic as analysis phase for consistency
+  const detectedCategory = detectCategoryFromResearch(knowledgeCard, ctx.contextTitle, deps);
+  if (detectedCategory) {
+    ctx.detectedCategory = detectedCategory;
+    deps.log(`[Category Detection] Detected: ${detectedCategory}`);
+  } else {
+    deps.log('[Category Detection] None detected, will use individual synthesis');
+  }
 
   // Step 3: Check for duplicate tools (Gatekeeper)
   const existingTool = await checkForDuplicateTool(
@@ -339,3 +350,143 @@ async function checkForDuplicateTool(
 
   return null;
 }
+
+/**
+ * Detect category from research data for batch grouping
+ *
+ * Mirrors the logic in analysis.ts detectToolCategory() for consistency.
+ * Used during research phase to enable batch synthesis grouping.
+ *
+ * @param knowledgeCard - Knowledge card with extracted facts
+ * @param contextTitle - Optional context title for keyword matching
+ * @param deps - Dependencies for logging
+ * @returns Category slug or undefined if not detected
+ */
+function detectCategoryFromResearch(
+  knowledgeCard: KnowledgeCard,
+  contextTitle: string | undefined,
+  deps: HunterDependencies
+): string | undefined {
+  // Priority 1: Infer from knowledge card taxonomy
+  const taxonomy = knowledgeCard?.smp_taxonomy;
+  if (taxonomy?.primary_function) {
+    const functionToCategory: Record<string, string> = {
+      // Infrastructure
+      'Database': 'databases',
+      'Serverless': 'serverless',
+      'Backend as a Service': 'baas',
+      'Cloud Infrastructure': 'infrastructure',
+      // Developer Tools
+      'CI/CD': 'ci-cd',
+      'Monitoring': 'monitoring',
+      'API Development': 'api-development',
+      'Version Control': 'version-control',
+      'Developer Tools': 'developer-tools',
+      'IDE': 'developer-tools',
+      'Code Editor': 'developer-tools',
+      'AI Code Assistant': 'ai-code-editors',
+      'AI Code Editor': 'ai-code-editors',
+      // Productivity
+      'Project Management': 'project-management',
+      'Note-Taking': 'note-taking',
+      'Documentation': 'documentation',
+      'Knowledge Management': 'productivity',
+      // Communication
+      'Team Chat': 'team-chat',
+      'Video Conferencing': 'video-conferencing',
+      'Communication': 'communication',
+      // CRM & Sales
+      'CRM': 'crm-sales',
+      'Sales Engagement': 'sales-crm',
+      'Marketing Automation': 'marketing-automation',
+      // Analytics
+      'Product Analytics': 'product-analytics',
+      'Web Analytics': 'web-analytics',
+      'Business Intelligence': 'analytics-bi',
+      // eCommerce
+      'Payment Processing': 'payment-processing',
+      'eCommerce Platform': 'ecommerce-platform',
+      'eCommerce': 'ecommerce-payments',
+      // Other
+      'Customer Support': 'customer-support',
+      'HR': 'hr-recruiting',
+      'Finance': 'finance',
+      'Security': 'security-identity',
+      'Design': 'design-marketing',
+      'Marketing': 'design-marketing',
+      'No-Code': 'no-code-low-code',
+      'Low-Code': 'no-code-low-code',
+      'CMS': 'cms-website',
+      'File Storage': 'file-storage',
+      'Scheduling': 'scheduling',
+      'AI': 'ai-automation',
+      'AI Tools': 'ai-automation',
+      'Automation': 'ai-automation',
+    };
+
+    const mapped = functionToCategory[taxonomy.primary_function];
+    if (mapped) {
+      return normalizeCategory(mapped);
+    }
+  }
+
+  // Priority 2: Match from context title keywords
+  if (contextTitle) {
+    const titleLower = contextTitle.toLowerCase();
+    const keywordToCategory: Record<string, string> = {
+      'ai code': 'ai-code-editors',
+      'ai editor': 'ai-code-editors',
+      'code editor': 'developer-tools',
+      'database': 'databases',
+      'serverless': 'serverless',
+      'backend': 'baas',
+      'ci/cd': 'ci-cd',
+      'monitoring': 'monitoring',
+      'observability': 'monitoring',
+      'api': 'api-development',
+      'project management': 'project-management',
+      'task management': 'project-management',
+      'note': 'note-taking',
+      'documentation': 'documentation',
+      'wiki': 'documentation',
+      'chat': 'team-chat',
+      'slack': 'team-chat',
+      'video': 'video-conferencing',
+      'meeting': 'video-conferencing',
+      'crm': 'crm-sales',
+      'sales': 'sales-crm',
+      'marketing automation': 'marketing-automation',
+      'analytics': 'analytics-bi',
+      'payment': 'payment-processing',
+      'ecommerce': 'ecommerce-platform',
+      'support': 'customer-support',
+      'helpdesk': 'customer-support',
+      'hr': 'hr-recruiting',
+      'recruiting': 'hr-recruiting',
+      'accounting': 'finance',
+      'security': 'security-identity',
+      'auth': 'security-identity',
+      'design': 'design-marketing',
+      'no-code': 'no-code-low-code',
+      'low-code': 'no-code-low-code',
+      'cms': 'cms-website',
+      'website builder': 'cms-website',
+      'storage': 'file-storage',
+      'scheduling': 'scheduling',
+      'calendar': 'scheduling',
+      'ai': 'ai-automation',
+      'automation': 'ai-automation',
+    };
+
+    for (const [keyword, category] of Object.entries(keywordToCategory)) {
+      if (titleLower.includes(keyword)) {
+        return normalizeCategory(category);
+      }
+    }
+  }
+
+  return undefined;
+}
+
+// Re-export the validator for use in other modules
+export { normalizeCategory } from '../validation/category-validator.js';

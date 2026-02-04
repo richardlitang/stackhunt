@@ -223,8 +223,10 @@ async function getExistingCategories(
  * 1. Explicit categorySlug in context
  * 2. Infer from knowledge card taxonomy
  * 3. Match from context title keywords
+ *
+ * Exported for use in research phase (batch synthesis grouping)
  */
-function detectToolCategory(
+export function detectToolCategory(
   ctx: HunterContext,
   deps: HunterDependencies
 ): string | undefined {

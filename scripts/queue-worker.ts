@@ -114,9 +114,38 @@ async function processQueue(): Promise<void> {
     const { Hunter } = await import('../src/lib/hunter');
     const { ApiError } = await import('../src/lib/hunter/errors');
     const { alertCritical, alertQueueSummary } = await import('../src/lib/notifications/discord');
+    const { createClient } = await import('@supabase/supabase-js');
 
     const discordUrl = process.env.DISCORD_WEBHOOK_URL;
 
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // ===================================================================
+    // Priority 1: Check for batch synthesis opportunities (≥10 tools)
+    // ===================================================================
+    const batchResult = await checkForBatchSynthesis(supabase);
+    if (batchResult) {
+      console.log(`\n🚀 Batch synthesis ready: ${batchResult.category} (${batchResult.toolCount} tools)`);
+      await processBatchSynthesis(supabase, batchResult);
+      return; // Done for this cycle
+    }
+
+    // ===================================================================
+    // Priority 2: Check for stale items (>7 days in research_complete)
+    // ===================================================================
+    const staleResult = await checkForStaleItems(supabase);
+    if (staleResult) {
+      console.log(`\n⏰ Processing stale item: ${staleResult.toolName} (>7 days old)`);
+      await processStaleItem(supabase, staleResult);
+      return; // Done for this cycle
+    }
+
+    // ===================================================================
+    // Priority 3: Process new research items (existing logic)
+    // ===================================================================
     const hunter = new Hunter({
       supabaseUrl: process.env.SUPABASE_URL!,
       supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -221,6 +250,349 @@ async function processQueue(): Promise<void> {
     }
 
     if (runOnce) process.exit(1);
+  }
+}
+
+// ============================================================================
+// TWO-STAGE SYNTHESIS FUNCTIONS
+// ============================================================================
+
+interface BatchReadyGroup {
+  category: string;
+  toolCount: number;
+  toolIds: string[];
+  toolNames: string[];
+}
+
+interface StaleItem {
+  id: string;
+  toolName: string;
+  category: string | null;
+}
+
+/**
+ * Check for categories ready for batch synthesis (≥10 tools)
+ */
+async function checkForBatchSynthesis(
+  supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>
+): Promise<BatchReadyGroup | null> {
+  const { data, error } = await supabase.rpc('get_synthesis_ready_groups', { threshold: 10 });
+
+  if (error || !data || data.length === 0) {
+    return null;
+  }
+
+  // Return first category that's ready
+  const batch = data[0];
+  return {
+    category: batch.category,
+    toolCount: batch.tool_count,
+    toolIds: batch.tool_ids,
+    toolNames: batch.tool_names,
+  };
+}
+
+/**
+ * Check for stale items (>7 days in research_complete)
+ */
+async function checkForStaleItems(
+  supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>
+): Promise<StaleItem | null> {
+  const { data, error } = await supabase.rpc('get_stale_research_items', { days_threshold: 7 });
+
+  if (error || !data || data.length === 0) {
+    return null;
+  }
+
+  // Return first stale item
+  const item = data[0];
+  return {
+    id: item.id,
+    toolName: item.tool_name,
+    category: item.detected_category,
+  };
+}
+
+/**
+ * Process batch synthesis for a category
+ */
+async function processBatchSynthesis(
+  supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>,
+  batch: BatchReadyGroup
+): Promise<void> {
+  const startTime = Date.now();
+  const batchId = crypto.randomUUID();
+
+  console.log(`\n${'═'.repeat(60)}`);
+  console.log(`🚀 Batch Synthesis: ${batch.category}`);
+  console.log(`${'═'.repeat(60)}`);
+  console.log(`Batch ID: ${batchId.slice(0, 8)}...`);
+  console.log(`Tools: ${batch.toolCount}`);
+  console.log(`Names: ${batch.toolNames.slice(0, 5).join(', ')}${batch.toolNames.length > 5 ? '...' : ''}`);
+
+  try {
+    // Mark items as processing
+    await supabase
+      .from('hunt_queue')
+      .update({
+        status: 'processing',
+        batch_id: batchId,
+        claimed_at: new Date().toISOString(),
+      })
+      .in('id', batch.toolIds);
+
+    // Load research data for all items
+    const { BatchSynthesisService } = await import('../src/lib/hunter/services/batch-synthesis.js');
+
+    interface BatchInput {
+      itemId: string;
+      toolName: string;
+      contextTitle?: string;
+      researchData: {
+        scoutResult: {
+          reviewsSnippets: string[];
+          pricingSnippets: string[];
+          alternativesSnippets: string[];
+          budgetAnalystSnippets: string[];
+          tribalKnowledgeSnippets: string[];
+          tribalDeepContent?: string;
+          sources: Array<{
+            url: string;
+            title: string;
+            snippet: string;
+            domain: string;
+          }>;
+        };
+        knowledgeCard: unknown;
+      };
+    }
+
+    const inputs: BatchInput[] = [];
+
+    for (let i = 0; i < batch.toolIds.length; i++) {
+      const itemId = batch.toolIds[i];
+      const toolName = batch.toolNames[i];
+
+      // Get stored research data from tool specs
+      const { data: tool } = await supabase
+        .from('items')
+        .select('id, name, specs')
+        .eq('name', toolName)
+        .maybeSingle();
+
+      if (!tool?.specs?.research_data) {
+        console.warn(`[Batch] No research data for ${toolName}, skipping`);
+        continue;
+      }
+
+      inputs.push({
+        itemId,
+        toolName: tool.name,
+        researchData: tool.specs.research_data,
+      });
+    }
+
+    if (inputs.length === 0) {
+      console.error('[Batch] No valid inputs, aborting');
+      // Reset queue items
+      await supabase
+        .from('hunt_queue')
+        .update({ status: 'research_complete', batch_id: null })
+        .in('id', batch.toolIds);
+      return;
+    }
+
+    console.log(`[Batch] Processing ${inputs.length} tools with valid research data`);
+
+    // Get existing categories for Knowledge Graph
+    const { data: cats } = await supabase.from('categories').select('name, type');
+    const existingCategories = {
+      functions: cats?.filter(c => c.type === 'function').map(c => c.name) || [],
+      audiences: cats?.filter(c => c.type === 'audience').map(c => c.name) || [],
+      platforms: cats?.filter(c => c.type === 'platform').map(c => c.name) || [],
+    };
+
+    // Run batch synthesis
+    const batchService = new BatchSynthesisService(process.env.GEMINI_API_KEY!);
+    const result = await batchService.synthesizeBatch(
+      inputs,
+      batch.category,
+      existingCategories
+    );
+
+    // Save analyses and update queue
+    for (const [toolName, { itemId, analysis }] of result.analyses.entries()) {
+      // Update tool with analysis
+      const { data: tool } = await supabase
+        .from('items')
+        .select('id, specs')
+        .eq('name', toolName)
+        .maybeSingle();
+
+      if (tool) {
+        const updatedSpecs = {
+          ...tool.specs,
+          analysis,
+          batch_synthesis: {
+            batch_id: batchId,
+            category: batch.category,
+            synthesized_at: new Date().toISOString(),
+          },
+        };
+        // Remove research_data after synthesis (no longer needed)
+        delete updatedSpecs.research_data;
+
+        await supabase
+          .from('items')
+          .update({ specs: updatedSpecs, updated_at: new Date().toISOString() })
+          .eq('id', tool.id);
+      }
+
+      // Mark queue item as completed
+      await supabase
+        .from('hunt_queue')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', itemId);
+    }
+
+    // Mark failed items
+    for (const err of result.errors) {
+      const input = inputs.find(i => i.toolName === err.toolName);
+      if (input) {
+        await supabase
+          .from('hunt_queue')
+          .update({
+            status: 'failed',
+            error_message: err.error,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', input.itemId);
+      }
+    }
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`\n${'═'.repeat(60)}`);
+    console.log(`✅ Batch Complete: ${result.analyses.size}/${inputs.length} succeeded`);
+    console.log(`   Cache hit rate: ${(result.cacheHitRate * 100).toFixed(1)}%`);
+    console.log(`   Duration: ${duration}s`);
+    console.log(`   Tokens: ${result.tokensUsed.toLocaleString()}`);
+    console.log(`${'═'.repeat(60)}`);
+
+  } catch (error) {
+    console.error('[Batch] Synthesis failed:', error);
+    // Reset queue items to research_complete
+    await supabase
+      .from('hunt_queue')
+      .update({ status: 'research_complete', batch_id: null })
+      .in('id', batch.toolIds);
+    throw error;
+  }
+}
+
+/**
+ * Process a stale item individually (fallback when batch threshold not met)
+ */
+async function processStaleItem(
+  supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>,
+  item: StaleItem
+): Promise<void> {
+  console.log(`\n${'─'.repeat(60)}`);
+  console.log(`⏰ Stale Item: ${item.toolName}`);
+  console.log(`   Category: ${item.category || 'none'}`);
+  console.log(`   Queue ID: ${item.id}`);
+
+  try {
+    // Get research data from item
+    const { data: tool } = await supabase
+      .from('items')
+      .select('id, name, specs')
+      .eq('name', item.toolName)
+      .maybeSingle();
+
+    if (!tool?.specs?.research_data) {
+      console.error(`[Stale] No research data for ${item.toolName}`);
+      await supabase
+        .from('hunt_queue')
+        .update({
+          status: 'failed',
+          error_message: 'No research data found',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', item.id);
+      return;
+    }
+
+    // Mark as processing
+    await supabase
+      .from('hunt_queue')
+      .update({
+        status: 'processing',
+        claimed_at: new Date().toISOString(),
+      })
+      .eq('id', item.id);
+
+    // Get existing categories
+    const { data: cats } = await supabase.from('categories').select('name, type');
+    const existingCategories = {
+      functions: cats?.filter(c => c.type === 'function').map(c => c.name) || [],
+      audiences: cats?.filter(c => c.type === 'audience').map(c => c.name) || [],
+      platforms: cats?.filter(c => c.type === 'platform').map(c => c.name) || [],
+    };
+
+    // Synthesize individually
+    const { synthesizeIndividual } = await import('../src/lib/hunter/services/batch-synthesis.js');
+
+    const analysis = await synthesizeIndividual(
+      {
+        itemId: item.id,
+        toolName: item.toolName,
+        researchData: tool.specs.research_data,
+      },
+      process.env.GEMINI_API_KEY!,
+      existingCategories
+    );
+
+    // Update tool with analysis
+    const updatedSpecs = {
+      ...tool.specs,
+      analysis,
+      individual_synthesis: {
+        synthesized_at: new Date().toISOString(),
+        reason: 'stale_fallthrough',
+      },
+    };
+    delete updatedSpecs.research_data;
+
+    await supabase
+      .from('items')
+      .update({ specs: updatedSpecs, updated_at: new Date().toISOString() })
+      .eq('id', tool.id);
+
+    // Mark completed
+    await supabase
+      .from('hunt_queue')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', item.id);
+
+    console.log(`✅ Stale item processed: ${item.toolName}`);
+
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[Stale] Failed to process ${item.toolName}:`, message);
+    await supabase
+      .from('hunt_queue')
+      .update({
+        status: 'failed',
+        error_message: message,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', item.id);
   }
 }
 
