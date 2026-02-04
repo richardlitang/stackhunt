@@ -318,6 +318,73 @@ Find the limit that marketing doesn't mention:
 
 **If you catch yourself writing any of these, STOP and rewrite with specifics.**
 
+### 🎯 TECHNICAL FEATURE TONE (Feb 2026 - Precision Language)
+
+**For developer tools and technical features, use PRECISE terminology, NOT dismissive language:**
+
+✅ GOOD:
+- "Hands-free refactoring via voice input (Play.ht/Whisper integration)"
+- "Repo-wide context mapping with automatic file inclusion"
+- "Two-stage workflow: Reasoning model plans, fast model executes"
+- "Surgical token usage via selective file context"
+
+❌ BAD (dismissive/vague):
+- "Voice-to-code yapping"
+- "Throws everything at the LLM"
+- "Careful with tokens"
+- "Smart about context"
+
+**Rule: Technical features deserve technical descriptions. If you can't explain the mechanism, don't mock it.**
+
+### 📅 MODEL PRIORITIES (Feb 2026 - Current Frontier)
+
+**When extracting model_options for AI tools, prioritize 2026 frontier models:**
+
+**Tier 1 (Current Frontier - Feb 2026):**
+- Claude 3.7 / Claude 4 (Anthropic's latest reasoning models)
+- GPT-5 / o3 (OpenAI's 2026 reasoning line)
+- DeepSeek-R1 / DeepSeek-V3 (cost-efficient alternatives, $0.27/1M tokens)
+- Gemini 2.0 Pro (Google's 2M context model)
+
+**Tier 2 (Still relevant, but dated):**
+- Claude 3.5 Sonnet (solid but superseded by 3.7/4)
+- GPT-4o (superseded by GPT-5)
+- Gemini 1.5 Pro (superseded by 2.0)
+
+**When listing models:**
+1. Check if tool documentation mentions 2026 models
+2. If only 2024/25 models listed, note: "Model list may be outdated (still lists Claude 3.5 vs current 3.7/4)"
+3. For coding tools, mention if DeepSeek-R1/V3 supported (major cost advantage)
+
+### 🛠️ CODING TOOL FEATURE DETECTION (Developer-Specific)
+
+**For AI coding assistants / dev tools, ALWAYS check for these workflows:**
+
+**1. Two-Stage Planning (Architecture Mode)**
+- Does it support using a "thinker" model (o3/R1) to plan, then "coder" model (Sonnet) to execute?
+- Example Pro: "Two-stage workflow: Use o3 to architect refactoring plan, then Sonnet 4 to implement—saves $15-30 per session vs pure-o3"
+
+**2. Context Management Strategy**
+- Repo mapping / automatic file detection vs manual selection
+- Example Pro: "Repo-wide context mapping automatically includes relevant files without manual /add commands"
+- Example Con: "Context Tax: Large repos can burn $20 in single session if selective file inclusion isn't used"
+
+**3. Token Optimization Features**
+- Does it support swapping models mid-session?
+- Incremental context vs full-repo dumps?
+- Example Pro: "Model hot-swapping: GPT-5 for planning, Haiku for simple edits—optimizes cost per task type"
+
+**4. Voice/Hands-Free Coding**
+- If mentioned, describe the tech: "Voice-to-code via Play.ht API" not "yapping"
+- Note use case: "Hands-free refactoring for dictated logic changes"
+
+**5. Git Integration Depth**
+- Does it auto-commit with meaningful messages?
+- Does it respect .gitignore?
+- Example Pro: "Git-aware: Auto-commits with descriptive messages and respects .gitignore patterns"
+
+**IMPORTANT: Extract these as pros/cons or "specifics" fields, NOT as generic "powerful" claims.**
+
 ### FUNCTIONAL DEFINITION TEMPLATE (shortDescription) - CRITICAL
 
 **This is the FIRST thing users see. Generic descriptions = instant skip.**
