@@ -56,7 +56,43 @@ export async function executeResearchPhase(
 
   deps.log(`Scout completed: ${scoutResult.sources.length} sources found`);
 
-  // Step 1.5: Check if tool is defunct (save API costs on dead tools)
+  // Step 1.5: Name Collision Detection (prevent mixing data from different companies)
+  const { detectNameCollision, filterConflictingSources } = await import('../validation/name-collision-detector.js');
+
+  const collisionCheck = detectNameCollision(
+    ctx.toolName,
+    ctx.website || '', // Expected domain from classification
+    scoutResult.sources,
+    [], // Will check categories after extraction
+    ctx.classification?.category // Expected category from classification
+  );
+
+  if (collisionCheck.detected) {
+    deps.log(`[Name Collision] ⚠️  ${collisionCheck.confidence.toUpperCase()} confidence collision detected`);
+    deps.log(`[Name Collision] Primary domain: ${collisionCheck.primaryDomain}`);
+    if (collisionCheck.conflictingDomains.length > 0) {
+      deps.log(`[Name Collision] Conflicting domains: ${collisionCheck.conflictingDomains.join(', ')}`);
+    }
+    if (collisionCheck.conflictingCategories.length > 0) {
+      deps.log(`[Name Collision] Unexpected categories: ${collisionCheck.conflictingCategories.join(', ')}`);
+    }
+
+    // Filter out conflicting sources
+    const originalCount = scoutResult.sources.length;
+    scoutResult.sources = filterConflictingSources(
+      scoutResult.sources,
+      collisionCheck.primaryDomain,
+      collisionCheck.conflictingDomains
+    );
+    const filteredCount = originalCount - scoutResult.sources.length;
+    if (filteredCount > 0) {
+      deps.log(`[Name Collision] Filtered ${filteredCount} sources from conflicting domains`);
+    }
+  } else {
+    deps.log(`[Name Collision] ✓ No collision detected`);
+  }
+
+  // Step 1.6: Check if tool is defunct (save API costs on dead tools)
   const searchSnippets = extractSearchSnippets(scoutResult.sources);
   const defunctStatus = await detectDefunctTool(ctx.toolName, searchSnippets);
 
@@ -96,6 +132,28 @@ export async function executeResearchPhase(
   const { validateKnowledgeCard, formatValidationReport } = await import('../validation/schema-validator.js');
   const validationReport = validateKnowledgeCard(knowledgeCard, ctx.toolName);
   deps.log(formatValidationReport(validationReport, 'Knowledge Card'));
+
+  // ========== VALIDATION: Category consistency check ==========
+  if (ctx.classification?.category && knowledgeCard.smp_taxonomy?.secondary_functions) {
+    const expectedCat = ctx.classification.category.toLowerCase();
+    const extractedCats = knowledgeCard.smp_taxonomy.secondary_functions.map((f: string) => f.toLowerCase());
+
+    // Check for category mismatches (e.g., "devtools" vs "accounting")
+    const categoryConflicts = extractedCats.filter((cat: string) => {
+      // Major category mismatches
+      if (expectedCat.includes('dev') && (cat.includes('accounting') || cat.includes('finance'))) return true;
+      if (expectedCat.includes('accounting') && cat.includes('dev')) return true;
+      if (expectedCat.includes('code') && (cat.includes('accounting') || cat.includes('crm'))) return true;
+      return false;
+    });
+
+    if (categoryConflicts.length > 0) {
+      deps.log(`[Category Validation] ⚠️  WARNING: Expected category "${ctx.classification.category}" but found conflicting: ${categoryConflicts.join(', ')}`);
+      deps.log(`[Category Validation] This may indicate mixed data from companies with the same name`);
+    } else {
+      deps.log(`[Category Validation] ✓ Categories consistent with classification`);
+    }
+  }
 
   // Store validation results for metrics
   if (ctx.queueItemId) {
