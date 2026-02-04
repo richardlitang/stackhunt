@@ -239,15 +239,59 @@ export async function executePersistencePhase(
     deps.log(`[Persisted] Constraints: ${constraints.hard_limits?.length || 0} limits, ${constraints.hidden_costs?.length || 0} hidden costs`);
   }
 
-  // V6: Cynical CTO - Add veto logic and reality checks
+  // V6: Cynical CTO - Add veto logic and reality checks (with source validation)
+  const sources = ctx.research.scoutResult.sources;
+
   if (analysis.vetoLogic && analysis.vetoLogic.length > 0) {
-    specs.vetoLogic = analysis.vetoLogic;
-    deps.log(`[Persisted] Veto Logic: ${analysis.vetoLogic.length} conditions`);
+    const validatedVetos = analysis.vetoLogic.filter((veto: any) => {
+      // Validate negative claims in veto reason
+      const validation = validateNegativeClaim(
+        { text: veto.reason, source_url: veto.source_url, source_type: 'community', claim_type: 'opinion' },
+        sources
+      );
+
+      if (!validation.isValid) {
+        const sourcesInfo = validation.corroboratingSources && validation.corroboratingSources.length > 0
+          ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
+          : '';
+        deps.log(`[Guardrail] Filtered veto: "${veto.reason.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validatedVetos.length > 0) {
+      specs.vetoLogic = validatedVetos;
+      deps.log(`[Persisted] Veto Logic: ${validatedVetos.length}/${analysis.vetoLogic.length} conditions (${analysis.vetoLogic.length - validatedVetos.length} filtered)`);
+    } else {
+      deps.log(`[Guardrail] All ${analysis.vetoLogic.length} veto conditions filtered due to insufficient corroboration`);
+    }
   }
 
   if (analysis.realityChecks && analysis.realityChecks.length > 0) {
-    specs.realityChecks = analysis.realityChecks;
-    deps.log(`[Persisted] Reality Checks: ${analysis.realityChecks.length} checks`);
+    const validatedChecks = analysis.realityChecks.filter((check: any) => {
+      // Validate negative claims in reality field
+      const validation = validateNegativeClaim(
+        { text: check.reality, source_url: check.source_url, source_type: 'community', claim_type: 'opinion' },
+        sources
+      );
+
+      if (!validation.isValid) {
+        const sourcesInfo = validation.corroboratingSources && validation.corroboratingSources.length > 0
+          ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
+          : '';
+        deps.log(`[Guardrail] Filtered reality check: "${check.reality.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validatedChecks.length > 0) {
+      specs.realityChecks = validatedChecks;
+      deps.log(`[Persisted] Reality Checks: ${validatedChecks.length}/${analysis.realityChecks.length} checks (${analysis.realityChecks.length - validatedChecks.length} filtered)`);
+    } else {
+      deps.log(`[Guardrail] All ${analysis.realityChecks.length} reality checks filtered due to insufficient corroboration`);
+    }
   }
 
   // V4: Smart Schema - Add category-specific extracted data
