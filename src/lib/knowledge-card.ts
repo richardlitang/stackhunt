@@ -154,6 +154,60 @@ export const SMPPortabilitySchema = z.object({
 export type SMPPortability = z.infer<typeof SMPPortabilitySchema>;
 
 // =============================================================================
+// V4: CONSTRAINTS SCHEMA (The "Cynical CTO" Layer)
+// =============================================================================
+
+export const ConstraintTypeSchema = z.enum([
+  'record_count',
+  'storage_gb',
+  'api_requests_per_month',
+  'api_rate_limit_per_sec',
+  'seat_count',
+  'project_count',
+  'active_contacts',
+  'message_credits',
+]);
+export type ConstraintType = z.infer<typeof ConstraintTypeSchema>;
+
+export const ConstraintConsequenceSchema = z.enum([
+  'hard_stop',        // Service stops working
+  'soft_throttle',    // Service slows down
+  'auto_charge',      // Automatically bills credit card
+  'upgrade_locked',   // Must upgrade to continue
+  'data_deletion',    // Data gets deleted
+]);
+export type ConstraintConsequence = z.infer<typeof ConstraintConsequenceSchema>;
+
+export const ConstraintSchema = z.object({
+  plan_name_match: z.string().nullable(),  // Plan name string for fuzzy matching (NOT plan_id)
+  type: ConstraintTypeSchema,
+  value: z.number(),
+  consequence: ConstraintConsequenceSchema,
+  description: z.string(),  // Detailed explanation
+  source_url: z.string().url().optional(),  // Optional - may fall back to pricing_page_url
+  overage: z.object({  // Overage costs for auto_charge limits
+    cost: z.number(),
+    unit: z.string(),  // e.g., "per 1k records", "per GB"
+    currency: z.string().default('USD'),
+  }).optional(),
+});
+export type Constraint = z.infer<typeof ConstraintSchema>;
+
+export const HiddenCostSchema = z.object({
+  description: z.string(),
+  cost: z.number().nullable().optional(),
+  currency: z.string().default('USD'),
+  trigger: z.string(),  // When does this cost apply?
+});
+export type HiddenCost = z.infer<typeof HiddenCostSchema>;
+
+export const ToolConstraintsSchema = z.object({
+  hard_limits: z.array(ConstraintSchema).default([]),
+  hidden_costs: z.array(HiddenCostSchema).default([]),
+});
+export type ToolConstraints = z.infer<typeof ToolConstraintsSchema>;
+
+// =============================================================================
 // V3.1: REVIEW CONTEXT SCHEMA (The "Human Touch" Layer)
 // =============================================================================
 
@@ -337,6 +391,9 @@ export const KnowledgeCardSchema = z.object({
   smp_pricing: SMPPricingDataSchema.optional(),
   smp_taxonomy: SMPTaxonomySchema.optional(),
   smp_portability: SMPPortabilitySchema.optional(),
+
+  // === V4: CONSTRAINTS (The "Cynical CTO" Layer) ===
+  constraints: ToolConstraintsSchema.optional(),
 
   // === V3.1: REVIEW CONTEXT (The "Human Touch" Layer) ===
   review_context: ReviewContextSchema.optional(),
@@ -568,6 +625,51 @@ export const GeminiKnowledgeCardSchema = {
         export_to: { type: 'array', items: { type: 'string' }, description: 'Tool names that have import wizards FROM this tool' },
         min_commitment_months: { type: 'number', nullable: true, description: 'Minimum contract commitment in months. null = month-to-month.' },
         cancellation_notice_days: { type: 'number', nullable: true, description: 'Required notice period for cancellation in days' },
+      },
+    },
+    // V4: Constraints (The "Cynical CTO" Layer)
+    constraints: {
+      type: 'object',
+      description: 'Hard limits and hidden costs that hit users at scale',
+      properties: {
+        hard_limits: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              plan_name_match: { type: 'string', nullable: true, description: 'EXACT plan name string (e.g., "Pro", "Business"). null = all plans.' },
+              type: { type: 'string', enum: ['record_count', 'storage_gb', 'api_requests_per_month', 'api_rate_limit_per_sec', 'seat_count', 'project_count', 'active_contacts', 'message_credits'] },
+              value: { type: 'number', description: 'The limit threshold' },
+              consequence: { type: 'string', enum: ['hard_stop', 'soft_throttle', 'auto_charge', 'upgrade_locked', 'data_deletion'] },
+              description: { type: 'string', description: 'Detailed explanation of what happens' },
+              source_url: { type: 'string', description: 'URL where documented (pricing page or ToS). Optional.' },
+              overage: {
+                type: 'object',
+                nullable: true,
+                description: 'Overage costs for auto_charge limits',
+                properties: {
+                  cost: { type: 'number', description: 'Cost per unit' },
+                  unit: { type: 'string', description: 'Billing unit (e.g., "per GB", "per 1k records")' },
+                  currency: { type: 'string', default: 'USD' },
+                },
+              },
+            },
+            required: ['type', 'value', 'consequence', 'description'],
+          },
+        },
+        hidden_costs: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              description: { type: 'string', description: 'What the cost is (e.g., "SSO requires $200/mo add-on")' },
+              cost: { type: 'number', nullable: true, description: 'Cost if known' },
+              currency: { type: 'string', default: 'USD' },
+              trigger: { type: 'string', description: 'When does this cost apply?' },
+            },
+            required: ['description', 'trigger'],
+          },
+        },
       },
     },
     // V3.1: Review Context (The "Human Touch" Layer)
