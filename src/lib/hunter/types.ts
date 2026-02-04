@@ -460,9 +460,9 @@ export const ContextMatchSchema = z.object({
 export const DefunctStatusSchema = z.object({
   isDefunct: z.boolean(),
   confidence: z.enum(['high', 'medium', 'low']),
-  shutdownDate: z.string().optional(),
-  reason: z.string().optional(),
-  evidence: z.string().optional(),
+  shutdownDate: z.string().nullable().optional(),
+  reason: z.string().nullable().optional(),
+  evidence: z.string().nullable().optional(),
 });
 
 // Schema for keyword intent parsing
