@@ -8,7 +8,7 @@
  * - All tool_id fields renamed to item_id
  */
 
-import type { ReviewContext } from '@/lib/knowledge-card';
+import type { ReviewContext, ToolConstraints } from '@/lib/knowledge-card';
 
 // ============================================================================
 // ENUMS
@@ -281,6 +281,9 @@ export interface ToolSpecs {
 
   // V3: SMP Portability (for switching recommendations)
   portability?: SMPPortabilityData;
+
+  // V4: Constraints (Cynical CTO - hidden ceilings)
+  constraints?: ToolConstraints;
 
   // V3.2: Data Governance (Journey 1 & 6 - Compliance-First & Data Sovereign)
   data_governance?: DataGovernanceData;
