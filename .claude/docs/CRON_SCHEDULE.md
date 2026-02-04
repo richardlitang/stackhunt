@@ -9,15 +9,14 @@ All cron jobs are configured in `vercel.json` and protected by `CRON_SECRET`.
 | **cleanup-rate-limits** | `0 0 * * *` | Daily @ midnight UTC | Clean up expired rate limit entries | ✅ Active |
 | **hunt** | `0 6 * * *` | Daily @ 6am UTC | Process content queue (max 3 items per run) | ✅ Active |
 | **pricing-refresh** | `0 3 * * 1` | Weekly Mon @ 3am UTC | Enqueue stale tools for price updates (90+ days) | ✅ Active |
-| **discover-topics** | `0 4 * * 0` | Weekly Sun @ 4am UTC | AI-powered content gap analysis and topic suggestions | ✅ Active |
 | **verify-corrections** | `0 2 * * 0` | Weekly Sun @ 2am UTC | AI verification of user-submitted corrections | ✅ Active |
+| **discover-topics** | N/A | N/A | AI-powered topic discovery | ⏸️ Disabled (requires editorial_topics table migration) |
 
 ## Cron Schedule Timeline (UTC)
 
 ```
 Sunday (Weekly)
-├─ 02:00 - verify-corrections (AI batch verification)
-└─ 04:00 - discover-topics (AI topic discovery)
+└─ 02:00 - verify-corrections (AI batch verification)
 
 Monday (Weekly)
 └─ 03:00 - pricing-refresh (enqueue stale items)
