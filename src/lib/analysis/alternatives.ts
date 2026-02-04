@@ -7,6 +7,10 @@
  * V4: Added sub_category matching and pricing model constraints to prevent
  * "apples to oranges" comparisons (e.g., Twilio API vs Slack SaaS app).
  *
+ * V5: Cross-category fallback now requires high similarity (≥0.70) to prevent
+ * showing completely unrelated tools (e.g., Vercel as related to Claude).
+ * Prefer showing no results over showing irrelevant tools.
+ *
  * @module analysis/alternatives
  */
 
@@ -70,10 +74,14 @@ function arePricingModelsCompatible(
  * 1. First, try strict filter by primary_function + sub_category (same category AND type)
  * 2. If insufficient results, try primary_function only (same category)
  * 3. If no results, fallback to pure semantic search (show "related" instead)
+ *    - Uses much higher threshold (≥0.70) to avoid showing unrelated tools
+ *    - Example: prevents showing Vercel (deployment) as related to Claude (AI assistant)
  * 4. Apply pricing model compatibility filter throughout
  *
  * @param tool - The source tool to find alternatives for
  * @param options - Search options
+ * @param options.matchThreshold - Minimum similarity for same-category (default 0.45)
+ * @param options.matchCount - Number of results to return (default 6)
  * @returns Alternatives or related tools with type indicator
  */
 export async function getAlternatives(
@@ -162,10 +170,13 @@ export async function getAlternatives(
 
   // Step 2: Fallback to pure semantic search (no category filter)
   // Show "Related Tools" instead of "Alternatives" to set expectations
+  // IMPORTANT: Use much higher threshold for cross-category to avoid showing
+  // completely unrelated tools (e.g., Vercel for Claude, Notion for Slack)
   if (tool.embedding) {
+    const crossCategoryThreshold = Math.max(matchThreshold, 0.70); // At least 0.70 for cross-category
     const { data, error } = await supabase.rpc('match_items', {
       query_embedding: tool.embedding,
-      match_threshold: matchThreshold,
+      match_threshold: crossCategoryThreshold,
       match_count: fetchCount,
       filter_category: null, // Remove the guardrail
       exclude_item_id: tool.id,
