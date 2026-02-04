@@ -204,6 +204,36 @@ export async function executePersistencePhase(
     specs.portability = knowledgeCard.smp_portability;
   }
 
+  // V4: Add constraints if extracted
+  if (knowledgeCard?.constraints) {
+    const constraints = knowledgeCard.constraints;
+
+    // Resolve plan_name_match to plan_id
+    if (constraints.hard_limits && knowledgeCard.smp_pricing?.plans) {
+      const plans = knowledgeCard.smp_pricing.plans;
+      const { resolvePlanId } = await import('../pricing/constraints.js');
+
+      constraints.hard_limits = constraints.hard_limits.map(limit => {
+        const planId = resolvePlanId(limit.plan_name_match, plans);
+
+        // Sanitize source_url or fall back to pricing_page_url
+        let sourceUrl = limit.source_url;
+        if (!sourceUrl || sourceUrl.includes('undefined')) {
+          sourceUrl = knowledgeCard.smp_pricing?.pricing_page_url || knowledgeCard.website_url;
+        }
+
+        return {
+          ...limit,
+          plan_id: planId,  // Resolved ID
+          source_url: sourceUrl,
+        };
+      });
+    }
+
+    specs.constraints = constraints;
+    deps.log(`[Persisted] Constraints: ${constraints.hard_limits?.length || 0} limits, ${constraints.hidden_costs?.length || 0} hidden costs`);
+  }
+
   // V4: Smart Schema - Add category-specific extracted data
   if (analysis.categorySpecificData && Object.keys(analysis.categorySpecificData).length > 0) {
     specs.categorySpecificData = analysis.categorySpecificData;
