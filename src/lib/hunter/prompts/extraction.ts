@@ -121,7 +121,7 @@ Extract into review_context.user_advocate:
 - avoid_if: Deal-breakers ["Need offline mode", "Regulated industry (HIPAA)", "Hate keyboard shortcuts"]
 - delighters: Features users rave about ["Command palette", "Dark mode", "Real-time collab"]
 - frustrations: Specific UX complaints (NOT pricing) ["Search slow after 10k messages", "Mobile app buggy"]
-- human_verdict: 2-3 sentences in ONE paragraph (no line breaks). Casual "senior engineer" tone. NO jargon (seamless, robust, empowers, game-changer). Do NOT split into multiple paragraphs.
+- human_verdict: 2-3 sentences, max 2 paragraphs. Casual "senior engineer" tone. NO jargon (seamless, robust, empowers, game-changer).
 
 === STEP 5: TAXONOMY PRECISION ===
 Extract into smp_taxonomy:
