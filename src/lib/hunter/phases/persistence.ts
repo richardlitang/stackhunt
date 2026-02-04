@@ -230,8 +230,19 @@ export async function executePersistencePhase(
       });
     }
 
-    specs.constraints = constraints;
+      specs.constraints = constraints;
     deps.log(`[Persisted] Constraints: ${constraints.hard_limits?.length || 0} limits, ${constraints.hidden_costs?.length || 0} hidden costs`);
+  }
+
+  // V6: Cynical CTO - Add veto logic and reality checks
+  if (analysis.vetoLogic && analysis.vetoLogic.length > 0) {
+    specs.vetoLogic = analysis.vetoLogic;
+    deps.log(`[Persisted] Veto Logic: ${analysis.vetoLogic.length} conditions`);
+  }
+
+  if (analysis.realityChecks && analysis.realityChecks.length > 0) {
+    specs.realityChecks = analysis.realityChecks;
+    deps.log(`[Persisted] Reality Checks: ${analysis.realityChecks.length} checks`);
   }
 
   // V4: Smart Schema - Add category-specific extracted data
