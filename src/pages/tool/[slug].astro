@@ -495,7 +495,11 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
               {/* Constraints warnings */}
               {constraints && (
                 <div class="mb-6">
-                  <HiddenCeiling constraints={constraints} toolName={tool.name} />
+                  <HiddenCeiling
+                    constraints={constraints}
+                    toolName={tool.name}
+                    lastVerifiedAt={tool.pricing_verified_at}
+                  />
                 </div>
               )}
 
