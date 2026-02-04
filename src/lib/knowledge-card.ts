@@ -643,7 +643,15 @@ export const GeminiKnowledgeCardSchema = {
               consequence: { type: 'string' },
               description: { type: 'string' },
               source_url: { type: 'string' },
-              overage: { type: 'object', nullable: true },
+              overage: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  cost: { type: 'number' },
+                  unit: { type: 'string' },
+                  currency: { type: 'string' },
+                },
+              },
             },
             required: ['type', 'value', 'consequence', 'description'],
           },
