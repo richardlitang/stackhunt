@@ -211,7 +211,7 @@ export async function executePersistencePhase(
     // Resolve plan_name_match to plan_id
     if (constraints.hard_limits && knowledgeCard.smp_pricing?.plans) {
       const plans = knowledgeCard.smp_pricing.plans;
-      const { resolvePlanId } = await import('../pricing/constraints.js');
+      const { resolvePlanId } = await import('@/lib/pricing/constraints.js');
 
       constraints.hard_limits = constraints.hard_limits.map(limit => {
         const planId = resolvePlanId(limit.plan_name_match, plans);
