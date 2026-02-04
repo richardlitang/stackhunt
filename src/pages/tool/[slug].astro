@@ -279,7 +279,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             )}
           </svg>
           <span>
-            {confidence.shouldNoindex ? 'Noindexed' : 'Low Quality'}: {confidence.score.toFixed(1)}/10
+            {confidence.shouldNoindex ? 'Noindexed' : 'Data may be incomplete'} ({confidence.score.toFixed(1)}/10)
           </span>
           {confidence.shouldNoindex && (
             <span class="text-xs opacity-75">
