@@ -89,7 +89,7 @@ export class GeminiService {
     });
 
     const model = this.client.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3-flash-preview',
       generationConfig: {
         temperature: 0.1, // Low temperature for fact extraction
         responseMimeType: 'application/json',
@@ -146,7 +146,7 @@ export class GeminiService {
     const prompt = input.promptTemplate;
 
     const model = this.client.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3-flash-preview',
       generationConfig: {
         temperature: 0.3,
         responseMimeType: 'application/json',

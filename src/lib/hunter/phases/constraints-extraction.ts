@@ -85,7 +85,7 @@ export async function extractConstraints(
   try {
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3-flash-preview',
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema: GeminiConstraintsSchema,

@@ -166,7 +166,7 @@ export async function classifyKeyword(
     // Classify with Gemini
     log(`[Classifier] Classifying keyword: "${keyword}"`);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
     const prompt = buildClassificationPrompt(keyword);
     const result = await model.generateContent(prompt);

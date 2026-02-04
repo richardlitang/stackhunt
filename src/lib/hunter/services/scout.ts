@@ -67,7 +67,7 @@ export async function discoverTools(
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash', // Cheapest model
+    model: 'gemini-3-flash-preview', // Fast and cost-effective
     generationConfig: {
       temperature: 0.1,
       responseMimeType: 'application/json',
