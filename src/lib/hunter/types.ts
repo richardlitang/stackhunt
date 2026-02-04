@@ -370,6 +370,19 @@ export const AnalysisSchema = z.object({
   websiteUrl: z.string().url().optional(),
   shortDescription: z.string().max(200).optional(),
   verdict: z.string().max(200).optional(), // One-line conclusion
+  // V6: Cynical CTO - Veto Logic and Reality Checks
+  vetoLogic: z.array(z.object({
+    condition: z.string(),
+    alternative: z.string(),
+    reason: z.string(),
+    source_url: z.string().url(),
+  })).max(3).optional(),
+  realityChecks: z.array(z.object({
+    claim: z.string(),
+    reality: z.string(),
+    impact: z.string(),
+    source_url: z.string().url(),
+  })).max(3).optional(),
   graphTags: z.object({
     functions: z.array(z.string()).min(1).max(5),
     audiences: z.array(z.string()).min(1).max(5),
