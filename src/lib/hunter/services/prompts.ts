@@ -393,6 +393,86 @@ Context: Evaluating specifically for "{{contextTitle}}"
 ### Tribal Knowledge (Reddit Reviews, Power Tips, Honest Opinions):
 {{tribalKnowledgeSnippets}}
 
+### ⚡ DEEP TRIBAL THREADS (Full Reddit/HackerNews Discussions - PRIORITY SOURCE):
+{{tribalDeepContent}}
+
+## 🔥 DIRECT QUOTE PROTOCOL (When Deep Tribal Content Available)
+
+When tribalDeepContent is provided above (not empty), you have FULL Reddit/HackerNews threads instead of snippets. This is your GOLD MINE for authentic user insights.
+
+**CRITICAL RULES:**
+
+1. **PRIORITIZE DEEP CONTENT OVER SNIPPETS**
+   - If tribalDeepContent exists, use it as your PRIMARY source for cons, frustrations, and vibe
+   - Snippets are fallback only (they're 160-char Google summaries)
+   - Deep threads have the full context and emotion you need
+
+2. **DO NOT SUMMARIZE - EXTRACT THE VIBE**
+   - You are reading REAL user discussions, not marketing copy
+   - Look for:
+     * Repeated complaints (3+ users saying similar things)
+     * Specific pain points with examples
+     * "I switched from X because Y" patterns
+     * Deal-breakers that make people abandon the tool
+     * Hidden gotchas that surprise users
+
+3. **QUOTE THE HATE (Allowed Exception)**
+   - For CONS and FRUSTRATIONS: You MAY include brief quoted fragments if they capture authentic user sentiment
+   - Format: "[Reddit user]: 'quote'" or paraphrase with attribution
+   - Example: "Multiple users report 'confusing navigation' and 'features buried in menus'"
+   - This is the ONLY exception to the no-verbatim rule - community complaints are factual reports, not creative expression
+
+4. **VIBE EXTRACTION**
+   - From threads, identify:
+     * Build style: "No-code builder", "Developer-first", "Enterprise rigid"
+     * Common frustrations: "Mobile app lags", "Support tickets take days"
+     * Delighters: "Keyboard shortcuts are amazing", "Import was seamless"
+     * Who loves it: "Perfect for async teams", "Great for solo founders"
+     * Who hates it: "Not for offline work", "Too complex for beginners"
+
+5. **RED FLAGS TO SURFACE**
+   - If Reddit/HN threads mention:
+     * Performance issues at scale
+     * Support ghosting users
+     * Pricing changes that burned users
+     * Features removed without notice
+     * Migration/export nightmares
+   - These MUST appear in cons or dealbreakers
+
+**Example Output Using Deep Threads:**
+
+{
+  "cons": [
+    {
+      "text": "Users report significant mobile app performance issues and missing features compared to desktop",
+      "source_url": "https://reddit.com/r/productivity/comments/xyz",
+      "source_type": "community",
+      "claim_type": "opinion"
+    }
+  ],
+  "reviewContext": {
+    "userAdvocate": {
+      "vibe": "Desktop-First Builder",
+      "frustrations": [
+        "Mobile app lacks critical editing features",
+        "Sync conflicts when working across devices",
+        "Support tickets take 3-5 days to respond"
+      ],
+      "delighters": [
+        "Keyboard shortcuts speed up workflow significantly",
+        "Template library saves hours of setup time"
+      ],
+      "avoidIf": [
+        "Need robust mobile editing",
+        "Work primarily on phone/tablet",
+        "Require fast support response times"
+      ]
+    }
+  }
+}
+
+**Fallback:** If tribalDeepContent is empty/null, use tribalKnowledgeSnippets as you normally would.
+
 IMPORTANT:
 - Base your analysis primarily on the VERIFIED FACTS above
 - EVERY claim MUST have a source_url from the search results above

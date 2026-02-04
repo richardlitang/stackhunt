@@ -244,6 +244,8 @@ export interface ResearchOutput {
     // V3.1: Tribal Knowledge Snippets (The "Human Touch")
     budgetAnalystSnippets: string[];    // Hidden costs, billing logic, implementation fees
     tribalKnowledgeSnippets: string[];  // Reddit reviews, honest feedback, power tips, "worth it" discussions
+    // V6: Deep tribal content (full discussions, not snippets)
+    tribalDeepContent?: string;         // Full Reddit/HN threads for authentic insights
     sources: Array<{
       url: string;
       title: string;

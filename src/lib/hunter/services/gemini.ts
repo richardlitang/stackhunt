@@ -47,6 +47,8 @@ export interface SynthesizeInput {
   // V3.1: Tribal Knowledge Snippets
   budgetAnalystSnippets: string[];      // Hidden costs, billing logic, implementation fees
   tribalKnowledgeSnippets: string[];    // Reddit reviews, honest feedback, power tips
+  // V6: Deep tribal content (full discussions, not snippets)
+  tribalDeepContent?: string;           // Full Reddit/HN threads for authentic insights
   knowledgeCardFacts: string;
   existingCategories: {
     functions: string[];

@@ -81,6 +81,7 @@ export async function executeAnalysisPhase(
     alternativesSnippets: ctx.research.scoutResult.alternativesSnippets.join('\n'),
     budgetAnalystSnippets: ctx.research.scoutResult.budgetAnalystSnippets.join('\n'),
     tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets.join('\n'),
+    tribalDeepContent: ctx.research.scoutResult.tribalDeepContent || '',
     knowledgeCardFacts: factSummary,
   });
 
@@ -94,6 +95,7 @@ export async function executeAnalysisPhase(
       alternativesSnippets: ctx.research.scoutResult.alternativesSnippets,
       budgetAnalystSnippets: ctx.research.scoutResult.budgetAnalystSnippets,
       tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets,
+      tribalDeepContent: ctx.research.scoutResult.tribalDeepContent,
       knowledgeCardFacts: factSummary,
       existingCategories,
       promptTemplate: interpolatedPrompt,

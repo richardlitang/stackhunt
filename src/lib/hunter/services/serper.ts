@@ -45,6 +45,9 @@ export interface SearchResult {
   video?: VideoResult;
   // Deep-dive content for pricing pages (full markdown, not just snippets)
   pricingDeepContent?: string;
+  // V6: Deep-dive content for tribal threads (full Reddit/HN discussions, not snippets)
+  // The "Source Resolution" fix - actual content instead of 160-char snippets
+  tribalDeepContent?: string;
 }
 
 export class SerperService {
@@ -205,10 +208,10 @@ export class SerperService {
           // Use the targeted dossier queries (3-5 queries)
           ...dossierQueries,
 
-          // Always append these universal queries (tribal knowledge)
-          `${toolName} reddit review pros cons`,
-          `${toolName} what I wish I knew before using`,
-          `is ${toolName} worth it reddit honest review`,
+          // Always append these universal queries (TRIBAL KNOWLEDGE - Deep discussions)
+          `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues"`,
+          `site:news.ycombinator.com "${toolName}" pricing OR limits`,
+          `site:reddit.com "${toolName}" "wish I knew" OR "gotcha"`,
 
           // Always append Corporate Profiler query (prevents hallucination)
           `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
@@ -226,11 +229,11 @@ export class SerperService {
           `${toolName} hidden costs billing logic`,
           `${toolName} implementation fees setup cost minimum seats`,
 
-          // User Advocate queries (tribal knowledge & vibe)
-          `${toolName} reddit review pros cons`,
-          `${toolName} what I wish I knew before using`,
-          `${toolName} advanced tips tricks shortcuts power user`,
-          `is ${toolName} worth it reddit honest review`,
+          // User Advocate queries (TRIBAL KNOWLEDGE - Target the nerds, not SEO blogs)
+          `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues" -intitle:"alternatives"`,
+          `site:news.ycombinator.com "${toolName}" pricing OR limits OR "rate limit"`,
+          `site:reddit.com "${toolName} vs" OR "switched from" OR "switched to"`,
+          `site:reddit.com "${toolName}" "wish I knew" OR "gotcha" OR "warning"`,
 
           // V4: Corporate Profiler query (prevents employee count hallucination)
           `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
@@ -307,13 +310,61 @@ export class SerperService {
       ...extractSnippets(results[7]),  // implementation fees
     ];
 
-    // Combine User Advocate queries (Reddit + gotchas + power tips + worth it)
+    // Combine User Advocate queries (Reddit + HN - SNIPPETS for fallback)
     const tribalKnowledgeSnippets = [
-      ...extractSnippets(results[8]),   // reddit reviews
-      ...extractSnippets(results[9]),   // what I wish I knew
-      ...extractSnippets(results[10]),  // advanced tips/tricks
-      ...extractSnippets(results[11]),  // is it worth it
+      ...extractSnippets(results[8]),   // reddit hate search
+      ...extractSnippets(results[9]),   // HN pricing/limits
+      ...extractSnippets(results[10]),  // reddit comparisons
+      ...extractSnippets(results[11]),  // reddit gotchas
     ];
+
+    // DEEP DIVE: Scrape tribal threads for FULL discussions (not snippets)
+    // This is the "Source Resolution" fix - we need actual content, not 160-char snippets
+    const tribalResults = [
+      ...(results[8]?.organic || []),   // reddit hate search
+      ...(results[9]?.organic || []),   // HN pricing
+      ...(results[10]?.organic || []),  // reddit vs
+      ...(results[11]?.organic || []),  // reddit gotchas
+    ];
+
+    // Filter to ONLY reddit.com and news.ycombinator.com (the nerds, not marketers)
+    const tribalUrls = tribalResults
+      .filter((result) => {
+        try {
+          const domain = new URL(result.link).hostname;
+          return domain.includes('reddit.com') || domain.includes('ycombinator.com');
+        } catch {
+          return false;
+        }
+      })
+      .slice(0, 3) // Top 3 tribal sources
+      .map((r) => r.link);
+
+    let tribalDeepContent: string | undefined;
+    if (tribalUrls.length > 0) {
+      console.log(`[Serper] Deep reading ${tribalUrls.length} tribal threads (Reddit/HN)...`);
+      const scrapedThreads = await Promise.all(
+        tribalUrls.map(async (url) => {
+          const content = await scrapeUrl(url);
+          if (content) {
+            // Limit each thread to ~2000 words to avoid token explosion
+            const truncated = content.split(/\s+/).slice(0, 2000).join(' ');
+            return `\n=== TRIBAL THREAD: ${url} ===\n${truncated}\n`;
+          }
+          return null;
+        })
+      );
+
+      const validContent = scrapedThreads.filter(Boolean).join('\n');
+      if (validContent) {
+        tribalDeepContent = validContent;
+        console.log(
+          `[Serper] Scraped ${scrapedThreads.filter(Boolean).length}/${tribalUrls.length} tribal threads successfully`
+        );
+      } else {
+        console.log('[Serper] No tribal threads could be scraped, falling back to snippets');
+      }
+    }
 
     // V4: Corporate Profiler query (employee counts, stock ticker, official data)
     const corporateProfilerSnippets = extractSnippets(results[12]);
@@ -331,6 +382,7 @@ export class SerperService {
       sources: Array.from(sourceMap.values()),
       video: video || undefined,
       pricingDeepContent,
+      tribalDeepContent, // V6: Full Reddit/HN threads (not snippets) for authentic insights
     };
   }
 
