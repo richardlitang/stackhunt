@@ -337,7 +337,7 @@ export class SerperService {
           return false;
         }
       })
-      .slice(0, 3) // Top 3 tribal sources
+      .slice(0, 7) // Top 7 tribal sources for better source diversity
       .map((r) => r.link);
 
     let tribalDeepContent: string | undefined;

@@ -935,7 +935,7 @@ function normalizeClaim(
 function validateNegativeClaim(
   claim: ClaimWithSource,
   allSources: Array<{ url: string; title: string; snippet: string; domain: string }>
-): { isValid: boolean; warning?: string; corroboratingSourceCount: number } {
+): { isValid: boolean; warning?: string; corroboratingSourceCount: number; corroboratingSources?: string[] } {
   // Only apply guardrail to negative opinions from community sources
   // Facts from official sources don't need this check
   if (claim.claim_type === 'fact' && claim.source_type === 'official') {
@@ -947,6 +947,7 @@ function validateNegativeClaim(
 
   let corroboratingCount = 0;
   const matchedDomains = new Set<string>();
+  const corroboratingSources: string[] = [];
 
   for (const source of allSources) {
     const sourceText = `${source.title} ${source.snippet}`.toLowerCase();
@@ -959,6 +960,7 @@ function validateNegativeClaim(
       if (!matchedDomains.has(source.domain)) {
         matchedDomains.add(source.domain);
         corroboratingCount++;
+        corroboratingSources.push(source.url);
       }
     }
   }
@@ -970,6 +972,7 @@ function validateNegativeClaim(
         isValid: false,
         warning: `Negative opinion only corroborated by ${corroboratingCount} source(s). Requires 2+ for legal protection.`,
         corroboratingSourceCount: corroboratingCount,
+        corroboratingSources,
       };
     }
   }
@@ -981,11 +984,12 @@ function validateNegativeClaim(
         isValid: false,
         warning: `Editorial opinion has no corroborating sources.`,
         corroboratingSourceCount: corroboratingCount,
+        corroboratingSources,
       };
     }
   }
 
-  return { isValid: true, corroboratingSourceCount: corroboratingCount };
+  return { isValid: true, corroboratingSourceCount: corroboratingCount, corroboratingSources };
 }
 
 /**
@@ -1025,7 +1029,10 @@ async function createReview(
       normalizedCons.push(con);
     } else {
       filteredCons.push({ claim: con, reason: validation.warning || 'Failed validation' });
-      deps.log(`[Guardrail] Filtered con: "${con.text.substring(0, 50)}..." - ${validation.warning}`);
+      const sourcesInfo = validation.corroboratingSources && validation.corroboratingSources.length > 0
+        ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
+        : '';
+      deps.log(`[Guardrail] Filtered con: "${con.text.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`);
     }
   }
 
