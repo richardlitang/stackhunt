@@ -199,6 +199,25 @@ export async function executeResearchPhase(
     deps.log(`[SMP Portability] ⚠️ Not extracted`);
   }
 
+  // ========== QA LOGGING: CONSTRAINTS ==========
+  if (knowledgeCard.constraints) {
+    const c = knowledgeCard.constraints;
+    if (c.hard_limits && c.hard_limits.length > 0) {
+      deps.log(`[Constraints] Hard limits (${c.hard_limits.length}):`);
+      for (const limit of c.hard_limits) {
+        const planLabel = limit.plan_name_match || 'All plans';
+        deps.log(`  - ${limit.type}: ${limit.value} [${limit.consequence}] (${planLabel})`);
+      }
+    }
+    if (c.hidden_costs && c.hidden_costs.length > 0) {
+      deps.log(`[Constraints] Hidden costs (${c.hidden_costs.length}):`);
+      for (const cost of c.hidden_costs) {
+        const costLabel = cost.cost ? `$${cost.cost}` : 'variable';
+        deps.log(`  - ${cost.description} (${costLabel})`);
+      }
+    }
+  }
+
   // ========== QA SUMMARY ==========
   const qaScore = [
     knowledgeCard.company?.name ? 1 : 0,
