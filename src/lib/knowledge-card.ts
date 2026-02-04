@@ -231,7 +231,7 @@ export type BudgetAnalyst = z.infer<typeof BudgetAnalystSchema>;
 // --- Role 2: The User Advocate (The Senior Engineer) ---
 export const UserAdvocateSchema = z.object({
   vibe: z.string()
-    .describe("2-3 words on the 'soul' of the tool. e.g., 'Enterprise Grey', 'Hacker Chic', 'Friendly & Slow'")
+    .describe("Ecosystem maturity & build style. e.g., 'No-Code Modular', 'Enterprise Rigid', 'Developer-First', 'Builder-Focused'")
     .nullable()
     .optional(),
   origin_story: z.string().nullable()
@@ -673,7 +673,7 @@ export const GeminiKnowledgeCardSchema = {
             vibe: {
               type: 'string',
               nullable: true,
-              description: '2-3 words on the "soul" of the tool. Examples: "Enterprise Grey", "Hacker Chic", "Friendly & Slow", "Blazing Fast", "Playful", "Corporate", "Minimalist"'
+              description: 'Ecosystem maturity & build style (2-3 words). Examples: "No-Code Modular" (Airtable), "Enterprise Rigid" (SAP), "Developer-First" (Stripe), "Builder-Focused" (Webflow), "API-Centric" (Twilio), "Workflow Engine" (n8n). AVOID fluff like "Hacker Chic" or "Playful".'
             },
             origin_story: {
               type: 'string',

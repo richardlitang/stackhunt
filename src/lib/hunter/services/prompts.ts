@@ -275,7 +275,7 @@ Output ONLY valid JSON matching this exact schema:
       "roiThreshold": "<when premium becomes worth it, e.g., 'Team of 20+', or null if unclear>"
     },
     "userAdvocate": {
-      "vibe": "<2-3 words describing the soul. PREFER creative: 'Enterprise Grey', 'Hacker Chic', 'Scrappy Startup', 'Buttoned-Up'. AVOID: 'Professional', 'Simple', 'Modern'. If insufficient data for a creative vibe, use 'Unknown Vibe' as placeholder>",
+      "vibe": "<Ecosystem maturity & build style (2-3 words). Examples: 'No-Code Modular', 'Enterprise Rigid', 'Developer-First', 'Builder-Focused', 'API-Centric'. AVOID vague descriptors. If insufficient data, use 'Unknown' as placeholder>",
       "originStory": "<one sentence context, e.g., 'Started as game chat', or null>",
       "idealFor": [<specific personas: "Solo founders", "Async-first teams">],
       "avoidIf": [<deal-breakers: "Need offline access", "Hate keyboard shortcuts">],

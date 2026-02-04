@@ -114,7 +114,7 @@ Extract into review_context.budget_analyst:
 
 === STEP 4: USER ADVOCATE (Tribal Knowledge) ===
 Extract into review_context.user_advocate:
-- vibe: 2-3 words on UI feel ("Hacker Chic", "Enterprise Grey", "Friendly & Slow", "Blazing Fast")
+- vibe: Ecosystem maturity & build style (2-3 words). Examples: "No-Code Modular", "Enterprise Rigid", "Developer-First", "Builder-Focused", "API-Centric", "Workflow Engine". AVOID vague descriptors like "Hacker Chic" or "Playful".
 - origin_story: One sentence context ("Started as game chat, now used for work")
 - power_tip: One specific shortcut or hidden feature ("Cmd+K opens command palette", "Use /collapse to hide gifs")
 - ideal_for: Specific personas ["Solo founders", "Async-first teams", "Design teams"]
