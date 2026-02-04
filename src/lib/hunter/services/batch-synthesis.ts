@@ -100,7 +100,7 @@ export class BatchSynthesisService {
       // Create the cache with the Forensic Framework
       // Note: contents is required (even if empty), systemInstruction can be string
       cache = await this.cacheManager.create({
-        model: 'models/gemini-2.0-flash-exp',
+        model: 'models/gemini-3-flash-preview',
         displayName: `forensic_${category}_${Date.now()}`,
         contents: [], // Empty contents - we're caching just the system instruction
         systemInstruction: framework.systemInstruction,
@@ -114,7 +114,7 @@ export class BatchSynthesisService {
       console.warn('[Batch] Cache creation failed, using uncached synthesis:', error);
       // Fall back to uncached model with system instruction
       model = this.client.getGenerativeModel({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-3-flash-preview',
         systemInstruction: framework.systemInstruction,
         generationConfig: {
           temperature: 0.3,
@@ -333,7 +333,7 @@ Return ONLY valid JSON, no markdown code blocks.
  * Synthesize a single tool (fallback for stale items)
  *
  * Used when items have been in research_complete too long (>7 days).
- * Uses Gemini 2.0 Flash without caching (more expensive but guaranteed).
+ * Uses Gemini 3 Flash without caching (more expensive but guaranteed).
  */
 export async function synthesizeIndividual(
   input: BatchSynthesisInput,
@@ -342,7 +342,7 @@ export async function synthesizeIndividual(
 ): Promise<HunterAnalysis> {
   const client = new GoogleGenerativeAI(apiKey);
   const model = client.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-3-flash-preview',
     generationConfig: {
       temperature: 0.3,
       responseMimeType: 'application/json',
