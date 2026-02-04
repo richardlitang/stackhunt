@@ -46,7 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_hunt_queue_batch_id
 -- ============================================================================
 
 -- Get categories ready for batch synthesis (≥threshold tools)
-CREATE OR REPLACE FUNCTION get_synthesis_ready_groups(threshold INT DEFAULT 10)
+CREATE OR REPLACE FUNCTION get_synthesis_ready_groups(threshold INT DEFAULT 5)
 RETURNS TABLE (
   category TEXT,
   tool_count BIGINT,
@@ -71,7 +71,7 @@ $$ LANGUAGE plpgsql STABLE;
 
 COMMENT ON FUNCTION get_synthesis_ready_groups(INT) IS
 'Returns categories that have reached the batch threshold for synthesis.
-Default threshold is 10 tools per category. Returns tool IDs ordered by priority.';
+Default threshold is 5 tools per category. Returns tool IDs ordered by priority.';
 
 -- Get stale items (>threshold days in research_complete)
 CREATE OR REPLACE FUNCTION get_stale_research_items(days_threshold INT DEFAULT 7)

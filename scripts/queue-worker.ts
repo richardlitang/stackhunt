@@ -271,12 +271,12 @@ interface StaleItem {
 }
 
 /**
- * Check for categories ready for batch synthesis (≥10 tools)
+ * Check for categories ready for batch synthesis (≥5 tools)
  */
 async function checkForBatchSynthesis(
   supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>
 ): Promise<BatchReadyGroup | null> {
-  const { data, error } = await supabase.rpc('get_synthesis_ready_groups', { threshold: 10 });
+  const { data, error } = await supabase.rpc('get_synthesis_ready_groups', { threshold: 5 });
 
   if (error || !data || data.length === 0) {
     return null;
