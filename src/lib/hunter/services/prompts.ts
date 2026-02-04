@@ -220,10 +220,17 @@ Valid global pros:
 - "Has native iOS and Android apps"
 - "Supports offline mode"
 
-Valid global cons:
+Valid global cons (BE SPECIFIC, reference hard limits):
 - "No Linux desktop app"
-- "2GB storage limit on basic plan"
-- "SSO only available on Enterprise"
+- "Free plan limited to 1,000 records per base"
+- "Cannot handle datasets >100k rows without performance degradation"
+- "Mobile app lacks critical editing features available on desktop"
+- "API rate-limited to 5 requests/second"
+- "SSO only available on Enterprise plan with custom pricing"
+
+AVOID vague cons:
+- ❌ "Lacks some advanced features found in dedicated solutions"
+- ✅ "No SQL query support or relational joins"
 
 Put subjective or persona-specific opinions ONLY in reviewContext.userAdvocate.
 
