@@ -307,19 +307,45 @@ Find the limit that marketing doesn't mention:
 - ❌ "Mobile app is slow" (no hedging)
 - ❌ "Data loss occurs frequently" (inflammatory + no source)
 
-### FUNCTIONAL DEFINITION TEMPLATE (shortDescription)
+### 🚫 BANNED LANGUAGE (ENFORCED STRICTLY - GEMINI 3 FLASH)
 
-Stop writing summaries. Write FUNCTIONAL DEFINITIONS with:
-1. Product category + key differentiator
-2. Primary use case with specific numbers
-3. Delivery method (API, web, mobile)
+**You are using Gemini 3 Flash with HIGH thinking. Use this reasoning power to AVOID generic marketing language.**
 
-Examples:
-- ❌ BAD: "Claude is an AI assistant excelling in natural language generation..."
-- ✅ GOOD: "A frontier LLM family (Sonnet, Haiku, Opus) optimized for 200k context reasoning and agentic coding. Available via $20/mo web subscription or high-performance developer API."
+**IMMEDIATELY REJECT these phrases:**
+- "excelling in", "powerful", "robust", "comprehensive", "seamless", "intuitive"
+- "solid choice", "perfect for", "ideal solution", "great tool", "excellent option"
+- "flexible", "scalable", "easy to use", "user-friendly", "modern"
 
-- ❌ BAD: "Airtable is a flexible database platform that combines spreadsheets with databases..."
-- ✅ GOOD: "A spreadsheet-database hybrid capped at 50,000 records per base on Pro tier. Used for lightweight CRM, content calendars, and project tracking without SQL."
+**If you catch yourself writing any of these, STOP and rewrite with specifics.**
+
+### FUNCTIONAL DEFINITION TEMPLATE (shortDescription) - CRITICAL
+
+**This is the FIRST thing users see. Generic descriptions = instant skip.**
+
+TEMPLATE (follow EXACTLY):
+"[Tool Type] [with Specific Constraint/Differentiator] [delivering Value via Platform]"
+
+**EXAMPLES - Study these patterns:**
+
+❌ BANNED: "Claude is an AI assistant excelling in natural language generation, deep analysis, and complex reasoning."
+✅ REQUIRED: "Frontier LLM API (Sonnet 4.5, Haiku, Opus) with 200k context windows, optimized for agentic coding and long-document analysis. $3/1M tokens or $20/mo web subscription."
+
+❌ BANNED: "Airtable is a flexible database platform that combines spreadsheets with databases for easy data management."
+✅ REQUIRED: "Spreadsheet-database hybrid capped at 50k records/base (Pro tier). Used for lightweight CRM and content calendars without SQL knowledge."
+
+❌ BANNED: "Notion is a powerful all-in-one workspace for notes, docs, and project management."
+✅ REQUIRED: "Block-based wiki and project manager limited to 1k blocks (free tier) or unlimited on $10/user plan. Replaces Confluence, Trello, and Google Docs for small teams."
+
+❌ BANNED: "Slack is a team communication platform that brings all your team's communication together in one place."
+✅ REQUIRED: "Real-time team chat with 90-day message retention (free tier) or unlimited history on $8/user plan. Used by 90k+ companies for async work communication."
+
+**FORMULA BREAKDOWN:**
+1. **[Tool Type]**: LLM API, Spreadsheet-database, Block-based wiki, Team chat
+2. **[Hard Constraint]**: 200k context, 50k records, 1k blocks, 90-day retention
+3. **[Use Case]**: Agentic coding, lightweight CRM, replaces X, async work
+4. **[Pricing Hook]**: $3/1M tokens, $10/user, free tier limits
+
+**TEST: Can a CTO make a go/no-go decision from this sentence alone? If not, add more constraints.**
 
 Output ONLY valid JSON matching this exact schema:
 {
@@ -340,7 +366,7 @@ Output ONLY valid JSON matching this exact schema:
       "claim_type": "<fact|opinion>"
     }
   ],  // MAXIMUM 5 cons - prioritize most important if you have more. CRITICAL: Community-sourced cons MUST be hedged for legal protection.
-  "summary": "<150-300 word Markdown summary explaining who this tool is best for and why people might switch away>",
+  "summary": "<150-300 word Markdown TL;DR. CRITICAL: Use Cynical CTO voice (RULE 1-4). Lead with hard limits and veto conditions. NO generic praise ('solid choice', 'great tool'). Structure: 1) Tool's hard ceiling (with numbers), 2) Who it's perfect for (with thresholds), 3) When to switch away (with alternative). LEGAL: Hedge all negative claims from community sources. Example opening: 'Claude Sonnet 4.5 caps at 200k context windows and rate-limits Pro users to ~500 messages/day. If you're processing multi-million token datasets, switch to Gemini 2.0 (2M context, $1.20/1M vs $3/1M). For teams building agentic workflows who can tolerate rate limits, it's the current reasoning leader (87% on GPQA vs 83% for GPT-4).'>"
   "sentimentTags": [<EXACTLY 3-5 lowercase tags like "easy-to-use", "expensive", "feature-rich". NO MORE THAN 5>],
   "pricingType": "<free|freemium|paid|enterprise|open_source>",
   "websiteUrl": "<official website URL if found>",
@@ -354,7 +380,7 @@ Output ONLY valid JSON matching this exact schema:
     "noun": "<type of tool, e.g., 'Note-Taking Apps'>",
     "modifier": "<optional modifier, e.g., 'for Students'>"
   },
-  "verdict": "<one-line conclusion, max 200 chars, e.g., 'Best for teams who need real-time collaboration'>",
+  "verdict": "<CRITICAL: NO GENERIC LANGUAGE. Must include specific constraint or number. BAD: 'Solid choice for developers'. GOOD: 'Best if you process >500k token documents monthly and budget allows $150+/mo API costs'. Include when to veto.>",
   "vetoLogic": [
     {
       "condition": "<specific numeric threshold or requirement>",
