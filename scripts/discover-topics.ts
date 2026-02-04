@@ -16,7 +16,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 
 // Load environment variables
 import { config } from 'dotenv';
@@ -38,7 +38,7 @@ if (!GEMINI_API_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-const gemini = new GoogleGenerativeAI(GEMINI_API_KEY);
+const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 // Types
 interface TopicSuggestion {

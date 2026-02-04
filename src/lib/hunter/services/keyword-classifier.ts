@@ -7,7 +7,7 @@
  * Ensures ALL hunts (Ahrefs + flywheel) get Research Dossiers.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
@@ -165,12 +165,21 @@ export async function classifyKeyword(
 
     // Classify with Gemini
     log(`[Classifier] Classifying keyword: "${keyword}"`);
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+    const genAI = new GoogleGenAI({ apiKey });
 
     const prompt = buildClassificationPrompt(keyword);
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        temperature: 0.1,
+        responseMimeType: 'application/json',
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW, // Strategist - fast research planning
+        },
+      },
+    });
+    const text = result.text;
 
     // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);

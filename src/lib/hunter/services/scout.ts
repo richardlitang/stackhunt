@@ -7,7 +7,7 @@
  * Guardrail 3: Cheap extraction using Gemini Flash
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { DiscoveredToolSchema } from '../types';
 
 export interface DiscoveredTool {
@@ -65,14 +65,7 @@ export async function discoverTools(
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-3-flash-preview', // Fast and cost-effective
-    generationConfig: {
-      temperature: 0.1,
-      responseMimeType: 'application/json',
-    },
-  });
+  const genAI = new GoogleGenAI({ apiKey });
 
   // Format search results for prompt
   const formattedResults = searchResults
@@ -84,8 +77,18 @@ export async function discoverTools(
     .replace('{{results}}', formattedResults);
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        temperature: 0.1,
+        responseMimeType: 'application/json',
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW, // Fast tool discovery
+        },
+      },
+    });
+    const text = result.text;
     const parsed = JSON.parse(text);
 
     // Validate with Zod

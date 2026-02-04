@@ -12,7 +12,7 @@
  */
 
 import type { APIRoute } from 'astro';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { getAdminClient } from '@/lib/supabase';
 
 export const prerender = false;
@@ -97,7 +97,7 @@ export const GET: APIRoute = async ({ request }) => {
     result.refreshNeeded = staleContexts.length;
 
     // 4. Use Gemini to generate topic suggestions
-    const gemini = new GoogleGenerativeAI(import.meta.env.GEMINI_API_KEY);
+    const gemini = new GoogleGenAI({ apiKey: import.meta.env.GEMINI_API_KEY });
     const model = gemini.getGenerativeModel({
       model: 'gemini-2.0-flash',
       generationConfig: {

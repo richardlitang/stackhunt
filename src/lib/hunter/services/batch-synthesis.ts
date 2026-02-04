@@ -7,8 +7,7 @@
  * @module hunter/services/batch-synthesis
  */
 
-import { GoogleGenerativeAI, type CachedContent, type GenerativeModel, type Content } from '@google/generative-ai';
-import { GoogleAICacheManager } from '@google/generative-ai/server';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import type { HunterAnalysis } from '../types.js';
 import { AnalysisSchema } from '../types.js';
 import { geminiCircuit } from './circuit-breaker.js';
@@ -48,14 +47,12 @@ export interface BatchSynthesisResult {
 }
 
 export class BatchSynthesisService {
-  private client: GoogleGenerativeAI;
-  private cacheManager: GoogleAICacheManager;
+  private client: GoogleGenAI;
   private apiKey: string;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    this.client = new GoogleGenerativeAI(apiKey);
-    this.cacheManager = new GoogleAICacheManager(apiKey);
+    this.client = new GoogleGenAI({ apiKey });
   }
 
   /**
@@ -93,34 +90,21 @@ export class BatchSynthesisService {
     }
 
     // Try to create cache, fall back to uncached if not available
-    let cache: CachedContent | null = null;
-    let model: GenerativeModel;
+    let cachedContentName: string | null = null;
 
     try {
       // Create the cache with the Forensic Framework
-      // Note: contents is required (even if empty), systemInstruction can be string
-      cache = await this.cacheManager.create({
+      const cache = await this.client.cacheManager.create({
         model: 'models/gemini-3-flash-preview',
         displayName: `forensic_${category}_${Date.now()}`,
-        contents: [], // Empty contents - we're caching just the system instruction
         systemInstruction: framework.systemInstruction,
-        ttlSeconds: 120, // 2 minutes - enough for batch
+        ttl: '120s', // 2 minutes - enough for batch
       });
+      cachedContentName = cache.name;
       console.log(`[Batch] Cache created: ${cache.name}`);
-
-      // Get model with cached content
-      model = this.client.getGenerativeModelFromCachedContent(cache);
     } catch (error) {
       console.warn('[Batch] Cache creation failed, using uncached synthesis:', error);
-      // Fall back to uncached model with system instruction
-      model = this.client.getGenerativeModel({
-        model: 'gemini-3-flash-preview',
-        systemInstruction: framework.systemInstruction,
-        generationConfig: {
-          temperature: 0.3,
-          responseMimeType: 'application/json',
-        },
-      });
+      cachedContentName = null;
     }
 
     const analyses = new Map<string, { itemId: string; analysis: HunterAnalysis }>();
@@ -141,12 +125,27 @@ export class BatchSynthesisService {
             const prompt = this.buildToolPrompt(input);
 
             const response = await geminiCircuit.execute(async () => {
-              return model.generateContent({
-                contents: [{ role: 'user' as const, parts: [{ text: prompt }] }],
-              });
+              const config: any = {
+                model: 'gemini-3-flash-preview',
+                contents: prompt,
+                config: {
+                  temperature: 0.3,
+                  responseMimeType: 'application/json',
+                  systemInstruction: cachedContentName ? undefined : framework.systemInstruction,
+                  thinkingConfig: {
+                    thinkingLevel: ThinkingLevel.HIGH, // Pro-level reasoning for synthesis
+                  },
+                },
+              };
+
+              if (cachedContentName) {
+                config.cachedContent = cachedContentName;
+              }
+
+              return this.client.models.generateContent(config);
             });
 
-            const content = response.response.text();
+            const content = response.text;
             if (!content) {
               throw new Error(`Empty response for ${input.toolName}`);
             }
@@ -159,7 +158,7 @@ export class BatchSynthesisService {
             console.log(`[Batch] ✓ ${input.toolName} (${toolDuration}ms)`);
 
             // Track tokens
-            const usage = response.response.usageMetadata;
+            const usage = response.usageMetadata;
             if (usage) {
               totalTokens += usage.totalTokenCount || 0;
               cachedTokens += usage.cachedContentTokenCount || 0;
@@ -191,10 +190,10 @@ export class BatchSynthesisService {
     }
 
     // Cleanup cache
-    if (cache?.name) {
+    if (cachedContentName) {
       try {
-        await this.cacheManager.delete(cache.name);
-        console.log(`[Batch] Cache deleted: ${cache.name}`);
+        await this.client.cacheManager.delete(cachedContentName);
+        console.log(`[Batch] Cache deleted: ${cachedContentName}`);
       } catch (error) {
         console.warn('[Batch] Failed to delete cache (will expire via TTL):', error);
       }

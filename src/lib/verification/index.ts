@@ -7,7 +7,7 @@
  * @module verification
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import axios from 'axios';
 
 export interface VerificationConfig {
@@ -46,11 +46,11 @@ export interface BatchVerificationResult {
  * Lightweight AI verification for user-submitted corrections
  */
 export class VerificationService {
-  private gemini: GoogleGenerativeAI;
+  private gemini: GoogleGenAI;
   private serperApiKey: string;
 
   constructor(config: VerificationConfig) {
-    this.gemini = new GoogleGenerativeAI(config.geminiApiKey);
+    this.gemini = new GoogleGenAI({ apiKey: config.geminiApiKey });
     this.serperApiKey = config.serperApiKey;
   }
 
@@ -141,16 +141,19 @@ Respond with ONLY valid JSON in this exact format:
 }`;
 
     try {
-      const model = this.gemini.getGenerativeModel({
-        model: 'gemini-2.0-flash',
-        generationConfig: {
+      const response = await this.gemini.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: {
           temperature: 0.1,
           responseMimeType: 'application/json',
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.LOW, // Fast verification
+          },
         },
       });
 
-      const response = await model.generateContent(prompt);
-      const content = response.response.text();
+      const content = response.text;
 
       if (!content) {
         return {
@@ -268,16 +271,19 @@ Respond with ONLY valid JSON:
 }`;
 
     try {
-      const model = this.gemini.getGenerativeModel({
-        model: 'gemini-2.0-flash',
-        generationConfig: {
+      const response = await this.gemini.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: {
           temperature: 0.1,
           responseMimeType: 'application/json',
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.LOW, // Fast verification
+          },
         },
       });
 
-      const response = await model.generateContent(prompt);
-      const content = response.response.text();
+      const content = response.text;
 
       if (!content) {
         return {

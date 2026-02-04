@@ -5,7 +5,7 @@
  * Much more flexible and accurate than regex-based parsing.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { KeywordIntentSchema } from '../types';
 
 export type KeywordType =
@@ -114,20 +114,23 @@ export async function parseKeywordIntent(keyword: string): Promise<KeywordIntent
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-3-flash-preview',
-    generationConfig: {
-      temperature: 0.1, // Low temperature for consistency
-      responseMimeType: 'application/json',
-    },
-  });
+  const genAI = new GoogleGenAI({ apiKey });
 
   const prompt = KEYWORD_ANALYSIS_PROMPT.replace('{{keyword}}', keyword);
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        temperature: 0.1, // Low temperature for consistency
+        responseMimeType: 'application/json',
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW, // Strategist - fast/cheap
+        },
+      },
+    });
+    const text = result.text;
     const parsed = JSON.parse(text);
 
     // Validate with Zod

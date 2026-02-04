@@ -5,7 +5,7 @@
  * Prevents wasting API credits on defunct tools.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { DefunctStatusSchema } from '../types';
 
 export interface DefunctStatus {
@@ -66,14 +66,7 @@ export async function detectDefunctTool(
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-3-flash-preview',
-    generationConfig: {
-      temperature: 0, // Zero temperature for factual analysis
-      responseMimeType: 'application/json',
-    },
-  });
+  const genAI = new GoogleGenAI({ apiKey });
 
   // Use first 10 search result snippets
   const snippets = searchResults.slice(0, 10).join('\n\n');
@@ -83,8 +76,18 @@ export async function detectDefunctTool(
     .replace('{{searchResults}}', snippets);
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        temperature: 0, // Zero temperature for factual analysis
+        responseMimeType: 'application/json',
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW, // Fast/cheap for factual detection
+        },
+      },
+    });
+    const text = result.text;
     const parsed = JSON.parse(text);
 
     // Validate with Zod

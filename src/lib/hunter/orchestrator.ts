@@ -451,7 +451,7 @@ export class Hunter {
 
           try {
             const { assignToRelevantContexts } = await import(
-              './services/context-matcher.js'
+              './validation/context-validator.js'
             );
             const crossPollinationResult = await assignToRelevantContexts(
               result.toolId,

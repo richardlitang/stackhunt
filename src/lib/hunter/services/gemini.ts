@@ -10,7 +10,7 @@
  * @module hunter/services/gemini
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import {
   KnowledgeCardSchema,
   GeminiKnowledgeCardSchema,
@@ -59,10 +59,12 @@ export interface SynthesizeInput {
 }
 
 export class GeminiService {
-  private client: GoogleGenerativeAI;
+  private client: GoogleGenAI;
+  private apiKey: string;
 
   constructor(config: GeminiConfig) {
-    this.client = new GoogleGenerativeAI(config.apiKey);
+    this.apiKey = config.apiKey;
+    this.client = new GoogleGenAI({ apiKey: config.apiKey });
   }
 
   /**
@@ -88,19 +90,21 @@ export class GeminiService {
       pricingDeepContent: input.pricingDeepContent,
     });
 
-    const model = this.client.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
-      generationConfig: {
-        temperature: 0.1, // Low temperature for fact extraction
-        responseMimeType: 'application/json',
-        responseSchema: GeminiKnowledgeCardSchema as never,
-      },
-    });
-
     const generateFn = async () => {
       return geminiCircuit.execute(async () => {
         try {
-          return await model.generateContent(prompt);
+          return await this.client.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+              temperature: 0.1, // Low temperature for fact extraction
+              responseMimeType: 'application/json',
+              responseSchema: GeminiKnowledgeCardSchema,
+              thinkingConfig: {
+                thinkingLevel: ThinkingLevel.HIGH, // Deep reasoning for comprehensive extraction
+              },
+            },
+          });
         } catch (error) {
           throw classifyGeminiError(error);
         }
@@ -110,7 +114,7 @@ export class GeminiService {
       ? await withRetry(generateFn, 'Gemini fact extraction')
       : await generateFn();
 
-    const content = response.response.text();
+    const content = response.text;
     if (!content) throw new Error('Empty response from Gemini fact extraction');
 
     const parsed = JSON.parse(content);
@@ -129,7 +133,7 @@ export class GeminiService {
     const validated = KnowledgeCardSchema.parse(parsed);
 
     // Use actual token count from API response, fallback to heuristic
-    const tokensUsed = response.response.usageMetadata?.totalTokenCount
+    const tokensUsed = response.usageMetadata?.totalTokenCount
       ?? Math.ceil((prompt.length + content.length) / 4);
 
     return { knowledgeCard: validated, tokensUsed };
@@ -145,18 +149,20 @@ export class GeminiService {
     // Prompt should already be interpolated with variables
     const prompt = input.promptTemplate;
 
-    const model = this.client.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
-      generationConfig: {
-        temperature: 0.3,
-        responseMimeType: 'application/json',
-      },
-    });
-
     const generateFn = async () => {
       return geminiCircuit.execute(async () => {
         try {
-          return await model.generateContent(prompt);
+          return await this.client.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+              temperature: 0.3,
+              responseMimeType: 'application/json',
+              thinkingConfig: {
+                thinkingLevel: ThinkingLevel.HIGH, // Deep reasoning for synthesis
+              },
+            },
+          });
         } catch (error) {
           throw classifyGeminiError(error);
         }
@@ -166,8 +172,7 @@ export class GeminiService {
       ? await withRetry(generateFn, 'Gemini synthesis')
       : await generateFn();
 
-    const result = response.response;
-    const content = result.text();
+    const content = response.text;
     if (!content) throw new Error('Empty response from Gemini');
 
     const parsed = JSON.parse(content);
@@ -221,7 +226,7 @@ export class GeminiService {
     const validated = AnalysisSchema.parse(parsed);
 
     // Use actual token count from API response, fallback to heuristic
-    const tokensUsed = result.usageMetadata?.totalTokenCount
+    const tokensUsed = response.usageMetadata?.totalTokenCount
       ?? Math.ceil((prompt.length + content.length) / 4);
 
     return {
@@ -237,12 +242,13 @@ export class GeminiService {
     text: string,
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
   ): Promise<number[]> {
-    const model = this.client.getGenerativeModel({ model: 'text-embedding-004' });
-
     const embedFn = async () => {
       return geminiCircuit.execute(async () => {
         try {
-          return await model.embedContent(text);
+          return await this.client.models.embedContent({
+            model: 'text-embedding-004',
+            contents: text,
+          });
         } catch (error) {
           throw classifyGeminiError(error);
         }
@@ -252,6 +258,6 @@ export class GeminiService {
       ? await withRetry(embedFn, 'Gemini embedding')
       : await embedFn();
 
-    return response.embedding.values;
+    return response.embeddings[0].values;
   }
 }
