@@ -135,7 +135,119 @@ Extract into smp_taxonomy:
 - secondary_functions: Other things it does
 - likely_departments: Who pays? ["Engineering", "Marketing", "Sales", "Operations"]
 
-=== STEP 6: PORTABILITY & INTEGRATIONS ===
+=== STEP 6: FORENSIC ACCOUNTANT - HARD LIMITS ===
+Your role: Ignore marketing language. Find the "No". Find the limits that will surprise users at scale.
+
+Extract into constraints object:
+
+**hard_limits**: Array of constraints with consequences
+Types to look for:
+  - record_count: Max records in database (Airtable, Notion, etc.)
+  - storage_gb: Max file storage
+  - api_requests_per_month: Monthly API call limit
+  - api_rate_limit_per_sec: Requests per second throttle
+  - seat_count: Max users/seats
+  - project_count: Max projects/workspaces
+  - active_contacts: Max contacts in CRM/email tool
+  - message_credits: Max messages (chat, SMS, email)
+
+Consequences (what happens when limit is hit):
+  - hard_stop: Service stops working (e.g., "API returns 429 error")
+  - soft_throttle: Service slows down (e.g., "Email sending throttled to 1/min")
+  - auto_charge: Automatically bills credit card (e.g., "Overage billed at $0.10/GB")
+  - upgrade_locked: Must upgrade plan (e.g., "Cannot add 11th user without upgrading")
+  - data_deletion: Data gets deleted (e.g., "Files deleted after 60 days on free plan")
+
+**plan_name_match**: Extract the EXACT plan name string (e.g., "Pro", "Business", "Enterprise").
+  - Set to null if limit applies to ALL plans
+  - DO NOT generate plan IDs - just copy the plan name verbatim
+  - Persistence layer will fuzzy-match this to plan_id in code
+
+**source_url**: Direct link to pricing page, ToS, or docs where limit is documented
+  - PREFERRED but not required - include if you can find specific page
+  - If unsure, leave empty - system will fall back to pricing_page_url
+  - Prefer pricing page over generic docs
+
+**hidden_costs**: Array of surprise charges
+Examples:
+  - "SSO requires $200/mo add-on"
+  - "Storage overage at $10/GB"
+  - "Implementation fee: $5,000"
+  - "Premium support: $500/mo"
+  - "Audit logs: $100/user/mo"
+
+trigger: Describe when the cost kicks in (e.g., "When enabling SSO", "After 100GB storage")
+
+EVIDENCE REQUIREMENTS (CRITICAL):
+- Extract constraints only if you can cite evidence (source_url preferred)
+- If pricing page says "Unlimited" or "No limits" → Do NOT add constraint
+- If no limits are documented → Leave constraints empty
+- If limit exists but consequence is unclear → Use "upgrade_locked" as default
+- If multiple plans share same limit → Use plan_name_match: null
+
+**overage**: For auto_charge consequences, extract the overage cost
+  - Example: "50k records free, $0.01 per additional record" → overage: {cost: 0.01, unit: "per record"}
+  - Example: "100GB included, $5/GB overage" → overage: {cost: 5, unit: "per GB"}
+
+COMMON PATTERNS TO LOOK FOR:
+- Email tools: active_contacts limit → usually upgrade_locked or auto_charge
+- API platforms: api_requests_per_month + api_rate_limit_per_sec → hard_stop
+- Storage/Database tools: storage_gb or record_count → auto_charge or data_deletion
+- Collaboration tools: seat_count → upgrade_locked
+- Free tiers: Often have data_deletion after retention period
+
+ANTI-PATTERNS (DO NOT EXTRACT):
+- Feature gates (e.g., "SSO on Enterprise only") → This is a plan feature, not a constraint
+- Soft recommendations (e.g., "Recommended for teams of 5-10") → Not a hard limit
+- Performance claims (e.g., "99.9% uptime") → Not a constraint
+- Fair Use Policy / "Excessive use" → Do NOT extract unless specific number defined
+- Vague throttling (e.g., "May slow down under heavy load") → Need specific threshold
+
+Example output structure:
+{
+  "constraints": {
+    "hard_limits": [
+      {
+        "plan_name_match": "Free",
+        "type": "record_count",
+        "value": 1000,
+        "consequence": "hard_stop",
+        "description": "Cannot add records beyond 1,000 on Free plan. Must upgrade to Team plan.",
+        "source_url": "https://airtable.com/pricing"
+      },
+      {
+        "plan_name_match": null,
+        "type": "api_rate_limit_per_sec",
+        "value": 5,
+        "consequence": "soft_throttle",
+        "description": "API requests throttled to 5 per second across all plans.",
+        "source_url": "https://airtable.com/developers/web/api/rate-limits"
+      },
+      {
+        "plan_name_match": "Pro",
+        "type": "storage_gb",
+        "value": 100,
+        "consequence": "auto_charge",
+        "description": "100GB included. Additional storage billed automatically.",
+        "overage": {
+          "cost": 5,
+          "unit": "per GB",
+          "currency": "USD"
+        }
+      }
+    ],
+    "hidden_costs": [
+      {
+        "description": "SSO (SAML) available only with $200/mo add-on",
+        "cost": 200,
+        "currency": "USD",
+        "trigger": "When enabling single sign-on"
+      }
+    ]
+  }
+}
+
+=== STEP 7: PORTABILITY & INTEGRATIONS ===
 Extract into smp_portability:
 - has_data_export: true/false (most SaaS = true)
 - export_formats: ["CSV", "JSON", "PDF"]
