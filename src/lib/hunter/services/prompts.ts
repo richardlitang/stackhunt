@@ -279,6 +279,34 @@ Find the limit that marketing doesn't mention:
 - "Free tier pauses after 7 days of inactivity"
 - "SSO costs +$200/mo add-on despite marketing it as an 'Enterprise feature'"
 
+### ⚖️ LEGAL COMPLIANCE (CRITICAL - APPLIES TO ALL NEGATIVE CLAIMS)
+
+**ALL negative claims in cons, dealbreakers, realityChecks, and avoidIf MUST follow these rules:**
+
+1. **Community Sources = Hedging REQUIRED**
+   - If source_type is "community" (Reddit, HN), use hedging language
+   - ✅ "Users report slow performance on large datasets"
+   - ❌ "Slow performance on large datasets" (stated as fact - legal risk)
+
+2. **Source URL is MANDATORY**
+   - Every negative claim MUST have a source_url
+   - ❌ Cannot say "Data loss issues" without citing where you found this
+
+3. **Claim Type Accuracy**
+   - Negative claims from community = claim_type: "opinion"
+   - Negative claims from official docs = claim_type: "fact" (e.g., "Free plan limited to 1,000 records")
+
+4. **Multiple Source Corroboration**
+   - If only 1 Reddit thread mentions an issue, DO NOT include it (insufficient evidence)
+   - Need 2+ independent sources for negative community claims
+
+**Examples of proper hedging:**
+- ✅ "Community consensus is that mobile app performance lags behind desktop"
+- ✅ "Users report occasional data sync conflicts (source: reddit.com/r/...)"
+- ✅ "According to HackerNews threads, rate limits are stricter than documented"
+- ❌ "Mobile app is slow" (no hedging)
+- ❌ "Data loss occurs frequently" (inflammatory + no source)
+
 ### FUNCTIONAL DEFINITION TEMPLATE (shortDescription)
 
 Stop writing summaries. Write FUNCTIONAL DEFINITIONS with:
@@ -306,12 +334,12 @@ Output ONLY valid JSON matching this exact schema:
   ],  // MAXIMUM 5 pros - prioritize most important if you have more
   "cons": [
     {
-      "text": "<specific drawback - write as neutral statement>",
+      "text": "<specific drawback. LEGAL: If source_type is 'community', MUST use hedging language: 'Users report...', 'Community mentions...', NOT stated as fact>",
       "source_url": "<REQUIRED: exact URL from search results>",
       "source_type": "<official|editorial|community>",
       "claim_type": "<fact|opinion>"
     }
-  ],  // MAXIMUM 5 cons - prioritize most important if you have more
+  ],  // MAXIMUM 5 cons - prioritize most important if you have more. CRITICAL: Community-sourced cons MUST be hedged for legal protection.
   "summary": "<150-300 word Markdown summary explaining who this tool is best for and why people might switch away>",
   "sentimentTags": [<EXACTLY 3-5 lowercase tags like "easy-to-use", "expensive", "feature-rich". NO MORE THAN 5>],
   "pricingType": "<free|freemium|paid|enterprise|open_source>",
@@ -349,7 +377,7 @@ Output ONLY valid JSON matching this exact schema:
   "dealbreakers": [<0-3 concerns that might be dealbreakers for this specific audience. MUST use hedging language for negative claims: "Users report..." not "Has performance issues">],
   "switchingFrom": [<0-3 common tools this audience typically switches FROM when adopting this tool>],
   "reviewContext": {
-    "humanVerdict": "<CYNICAL 2-3 sentence verdict. Lead with the veto/warning, then who it's perfect for. Use RULE 1 (nouns/numbers) and RULE 4 (hidden ceiling). Example: 'Airtable caps at 50,000 records per base on Pro—if you're logging IoT data or high-volume events, you'll hit the wall. For teams who've outgrown Excel but don't need SQL, it's the gold standard. Just budget for the SSO tax ($500/mo Enterprise gate) if you're security-conscious.' AVOID neutral Wikipedia style>",
+    "humanVerdict": "<CYNICAL 2-3 sentence verdict. Lead with the veto/warning, then who it's perfect for. Use RULE 1 (nouns/numbers) and RULE 4 (hidden ceiling). LEGAL: ALL negative claims MUST use hedging ('Users report...', 'Community mentions...'). Example: 'Airtable caps at 50,000 records per base on Pro—if you're logging IoT data or high-volume events, you'll hit the wall. For teams who've outgrown Excel but don't need SQL, it's the gold standard. Just budget for the SSO tax ($500/mo Enterprise gate) if you're security-conscious.' AVOID neutral Wikipedia style. AVOID stating negative claims as facts without attribution.>",
     "budgetAnalyst": {
       "costDrivers": [<0-5 factual TCO factors like "SSO requires Enterprise", "Guests are billable". Extract from Budget Analyst snippets. If insufficient data, use empty array []>],
       "oneTimeFees": [<implementation/setup fees, or empty array if none>],
