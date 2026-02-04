@@ -584,8 +584,14 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
           <h3 class="mb-4 font-semibold text-zinc-100">Quick Stats</h3>
           <dl class="space-y-3">
             <div class="flex justify-between">
-              <dt class="text-sm text-zinc-400">
-                {tool.review_count >= 10 ? 'Overall Score' : 'Curator Score'}
+              <dt class="group relative text-sm text-zinc-400">
+                <span class="cursor-help border-b border-dotted border-zinc-600">
+                  StackHunt Index
+                </span>
+                <div class="pointer-events-none absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-xs text-zinc-300 shadow-xl group-hover:block z-10">
+                  <p class="font-medium text-zinc-100 mb-1">What is this?</p>
+                  <p>Calculated from feature density, update frequency, and market adoption—not user votes. Community reviews appear separately below.</p>
+                </div>
               </dt>
               <dd class="text-sm font-medium text-zinc-100">
                 {tool.review_count < 10 && tool.avg_score > 0 ? (
