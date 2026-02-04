@@ -260,6 +260,19 @@ Use "Community consensus is..." or "Users report..." when citing Reddit/HN:
 - "Users report the mobile app hasn't been updated in 200+ days"
 - "Reddit threads mention rate limiting kicks in after 45 messages even on Pro tier"
 
+**LEGAL PROTECTION: ALL negative claims MUST be hedged and sourced:**
+- ✅ "Users report performance issues (source: reddit.com/r/...)"
+- ✅ "Community mentions potential data loss scenarios (source: news.ycombinator.com/...)"
+- ❌ "Performance issues" (no attribution - legal risk)
+- ❌ "Data loss can occur" (stated as fact - legal risk)
+
+HEDGING PHRASES (use these for negative claims):
+- "Users report..."
+- "Community consensus is..."
+- "Some users mention..."
+- "According to Reddit threads..."
+- "HackerNews discussions highlight..."
+
 **RULE 4: REALITY CHECK. Include at least one "Hidden Ceiling".**
 Find the limit that marketing doesn't mention:
 - "The $100/mo plan claims '20x more usage' but forensic analysis shows weekly limits are only 2x higher"
@@ -325,15 +338,15 @@ Output ONLY valid JSON matching this exact schema:
   "realityChecks": [
     {
       "claim": "<what marketing says or implies>",
-      "reality": "<what tribal knowledge reveals with specific evidence>",
+      "reality": "<what tribal knowledge reveals - MUST use hedging language: 'Users report...', 'Community mentions...', 'According to Reddit threads...'>",
       "impact": "<who this affects and how>",
-      "source_url": "<Reddit/HN URL with the evidence>"
+      "source_url": "<REQUIRED: Reddit/HN URL with the evidence>"
     }
-  ],  // REQUIRED: 1-3 reality checks from tribal deep content. Extract "Hidden Ceilings" that marketing doesn't mention
+  ],  // REQUIRED: 1-3 reality checks from tribal deep content. Extract "Hidden Ceilings" that marketing doesn't mention. CRITICAL: ALL negative claims must be hedged and sourced for legal protection.
   "fitScore": <0-100: how well tool fits THIS specific context/audience - only if contextTitle provided>,
   "valueRating": <1-5: value for money for this specific audience>,
   "standoutFeatures": [<1-5 features especially relevant to this context>],
-  "dealbreakers": [<0-3 concerns that might be dealbreakers for this specific audience>],
+  "dealbreakers": [<0-3 concerns that might be dealbreakers for this specific audience. MUST use hedging language for negative claims: "Users report..." not "Has performance issues">],
   "switchingFrom": [<0-3 common tools this audience typically switches FROM when adopting this tool>],
   "reviewContext": {
     "humanVerdict": "<CYNICAL 2-3 sentence verdict. Lead with the veto/warning, then who it's perfect for. Use RULE 1 (nouns/numbers) and RULE 4 (hidden ceiling). Example: 'Airtable caps at 50,000 records per base on Pro—if you're logging IoT data or high-volume events, you'll hit the wall. For teams who've outgrown Excel but don't need SQL, it's the gold standard. Just budget for the SSO tax ($500/mo Enterprise gate) if you're security-conscious.' AVOID neutral Wikipedia style>",
@@ -347,7 +360,7 @@ Output ONLY valid JSON matching this exact schema:
       "vibe": "<Ecosystem maturity & build style (2-3 words). Examples: 'No-Code Modular', 'Enterprise Rigid', 'Developer-First', 'Builder-Focused', 'API-Centric'. AVOID vague descriptors. If insufficient data, use 'Unknown' as placeholder>",
       "originStory": "<one sentence context, e.g., 'Started as game chat', or null>",
       "idealFor": [<specific personas: "Solo founders", "Async-first teams">],
-      "avoidIf": [<deal-breakers: "Need offline access", "Hate keyboard shortcuts">],
+      "avoidIf": [<deal-breakers like "Need offline access", "Require guaranteed data security". For negative claims based on tribal knowledge, use hedging: "Users report performance issues" not "Has performance issues">],
       "powerTip": "<one insider shortcut/feature, or null>",
       "delighters": [<features users rave about>],
       "frustrations": [<UX complaints, NOT pricing>]
