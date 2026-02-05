@@ -47,12 +47,14 @@ export async function executeResearchPhase(
   }
 
   // Step 1: Scout for information (use dossier queries if available)
-  const scoutResult = await deps.serper.scout(
-    toolName,
-    ctx.contextTitle,
-    deps.withRetry,
-    ctx.researchDossier?.scout_queries // Pass dossier queries to Serper
-  );
+  const scoutResult = ctx.huntType === 'price_only'
+    ? await deps.serper.scoutPricingOnly(toolName, deps.withRetry)
+    : await deps.serper.scout(
+        toolName,
+        ctx.contextTitle,
+        deps.withRetry,
+        ctx.researchDossier?.scout_queries // Pass dossier queries to Serper
+      );
 
   deps.log(`Scout completed: ${scoutResult.sources.length} sources found`);
 
@@ -93,21 +95,23 @@ export async function executeResearchPhase(
   }
 
   // Step 1.6: Check if tool is defunct (save API costs on dead tools)
-  const searchSnippets = extractSearchSnippets(scoutResult.sources);
-  const defunctStatus = await detectDefunctTool(ctx.toolName, searchSnippets);
+  if (ctx.huntType !== 'price_only') {
+    const searchSnippets = extractSearchSnippets(scoutResult.sources);
+    const defunctStatus = await detectDefunctTool(ctx.toolName, searchSnippets);
 
-  if (defunctStatus.isDefunct && defunctStatus.confidence === 'high') {
-    deps.log(`⚠️  Tool appears to be defunct: ${defunctStatus.reason || 'No longer available'}`);
-    deps.log(`   Evidence: ${defunctStatus.evidence || 'Multiple shutdown indicators found'}`);
+    if (defunctStatus.isDefunct && defunctStatus.confidence === 'high') {
+      deps.log(`⚠️  Tool appears to be defunct: ${defunctStatus.reason || 'No longer available'}`);
+      deps.log(`   Evidence: ${defunctStatus.evidence || 'Multiple shutdown indicators found'}`);
 
-    // Return early - don't waste API credits on knowledge extraction
-    return {
-      scoutResult,
-      knowledgeCard: null as any, // Will not be used
-      isDuplicate: false,
-      tokensUsed: 0,
-      defunctStatus, // Pass defunct info to orchestrator
-    };
+      // Return early - don't waste API credits on knowledge extraction
+      return {
+        scoutResult,
+        knowledgeCard: null as any, // Will not be used
+        isDuplicate: false,
+        tokensUsed: 0,
+        defunctStatus, // Pass defunct info to orchestrator
+      };
+    }
   }
 
   // Step 2: Extract structured facts (Pass 1 - The Librarian + Forensic Accountant + Investigator + Corporate Profiler)
@@ -123,7 +127,8 @@ export async function executeResearchPhase(
       corporateProfilerSnippets: scoutResult.corporateProfilerSnippets, // V4: Crunchbase/LinkedIn/stock data
       pricingDeepContent: scoutResult.pricingDeepContent, // Full page content from pricing pages
     },
-    deps.withRetry
+    deps.withRetry,
+    { mode: ctx.huntType === 'price_only' ? 'pricing_only' : 'full' }
   );
 
   deps.log(`[Pass 1] Knowledge Card extracted (quality: ${knowledgeCard.meta.data_quality})`);
@@ -421,6 +426,7 @@ export async function executeResearchPhase(
         technicalSnippets: scoutResult.technicalSnippets,
         budgetAnalystSnippets: scoutResult.budgetAnalystSnippets,
         tribalKnowledgeSnippets: scoutResult.tribalKnowledgeSnippets,
+        tribalDeepContent: scoutResult.tribalDeepContent,
         sources: scoutResult.sources,
       },
       knowledgeCard,
@@ -447,6 +453,7 @@ export async function executeResearchPhase(
       technicalSnippets: scoutResult.technicalSnippets,
       budgetAnalystSnippets: scoutResult.budgetAnalystSnippets,
       tribalKnowledgeSnippets: scoutResult.tribalKnowledgeSnippets,
+      tribalDeepContent: scoutResult.tribalDeepContent,
       sources: scoutResult.sources,
     },
     knowledgeCard,

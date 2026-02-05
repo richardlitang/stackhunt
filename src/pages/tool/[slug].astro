@@ -56,7 +56,7 @@ import {
 } from '@/lib/seo';
 import { simpleMarkdown } from '@/lib/utils';
 import { getAlternatives } from '@/lib/analysis/alternatives';
-import { evaluateContentConfidence } from '@/lib/confidence';
+import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -203,6 +203,7 @@ try {
 
 // SEO: Automated confidence scoring for noindex decision
 const confidence = evaluateContentConfidence(tool, firstReview);
+const contentConfidenceLevel = getConfidenceLevel(confidence.score);
 
 const meta = {
   ...generateToolMeta(tool, tool.review_count),
@@ -250,6 +251,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     <!-- Verification Badge -->
     <div class="mb-6 flex flex-wrap items-start gap-4">
       <VerifiedBadge
+        isVerified={tool.is_verified}
         lastVerifiedAt={tool.last_verified_at}
         size="md"
       />
@@ -259,7 +261,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         <TrustSignals
           lastVerifiedAt={tool.pricing_verified_at}
           sourceCount={sourceDomains.length}
-          confidence={tool.pricing_confidence}
+          pricingConfidence={tool.pricing_confidence}
+          contentConfidence={contentConfidenceLevel}
           size="sm"
         />
       </div>
@@ -280,11 +283,13 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             )}
           </svg>
           <span>
-            {confidence.shouldNoindex ? 'Noindexed' : 'Data may be incomplete'} ({confidence.score.toFixed(1)}/10)
+            {confidence.shouldNoindex
+              ? 'Not indexed'
+              : 'Content confidence'} ({confidence.score.toFixed(1)}/10)
           </span>
           {confidence.shouldNoindex && (
             <span class="text-xs opacity-75">
-              ({confidence.reasons[0]})
+              ({confidence.reasons[0] || 'Low content confidence'})
             </span>
           )}
         </div>
@@ -623,7 +628,9 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-zinc-400">Reviews</dt>
-              <dd class="text-sm font-medium text-zinc-100">{tool.review_count}</dd>
+              <dd class="text-sm font-medium text-zinc-100">
+                {tool.review_count < 3 ? 'Not enough reviews yet' : tool.review_count}
+              </dd>
             </div>
             {tool.category && (
               <div class="flex justify-between">

@@ -130,6 +130,30 @@ export class QueueService {
   }
 
   /**
+   * Mark a queue item as defunct (skipped)
+   */
+  async markDefunct(
+    queueId: string,
+    defunctStatus: {
+      isDefunct: boolean;
+      confidence: 'high' | 'medium' | 'low';
+      shutdownDate?: string;
+      reason?: string;
+      evidence?: string;
+    },
+    tokensUsed?: number,
+    onLog?: (message: string) => void
+  ): Promise<void> {
+    const log = onLog || (() => {});
+    await this.supabase.rpc('mark_hunt_defunct', {
+      p_queue_id: queueId,
+      p_defunct_status: defunctStatus as any,
+      p_tokens_used: tokensUsed || null,
+    });
+    log(`Queue item marked defunct: ${queueId}`);
+  }
+
+  /**
    * Mark a queue item as failed with DLQ classification
    */
   async markFailed(

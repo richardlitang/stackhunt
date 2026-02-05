@@ -10,6 +10,7 @@
     "hunt:batch": "npx tsx scripts/hunter.ts --queue batch --priority 5",
     "constraints": "npx tsx scripts/extract-constraints.ts",
     "queue:worker": "npx tsx scripts/queue-worker.ts",
+    "queue:defunct": "npx tsx scripts/defunct-worker.ts",
     "verify-corrections": "npx tsx scripts/verify-corrections.ts",
     "verify-affiliates": "npx tsx scripts/verify-affiliate-links.ts",
     "discover-topics": "npx tsx scripts/discover-topics.ts",

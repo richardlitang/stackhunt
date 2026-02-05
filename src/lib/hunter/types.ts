@@ -69,6 +69,13 @@ export interface HunterResult {
   contextId?: string;
   contextTitle?: string;
   reviewId?: string;
+  defunctStatus?: {
+    isDefunct: boolean;
+    confidence: 'high' | 'medium' | 'low';
+    shutdownDate?: string;
+    reason?: string;
+    evidence?: string;
+  };
   error?: string;
   tokensUsed?: number;
   durationMs?: number;
@@ -196,6 +203,9 @@ export interface SerperResponse {
     link: string;
     snippet: string;
     position: number;
+    date?: string;
+    dateString?: string;
+    timeSince?: string;
   }>;
   searchParameters: { q: string };
 }
@@ -265,6 +275,9 @@ export interface ResearchOutput {
       title: string;
       snippet: string;
       domain: string;
+      retrieved_at?: string;
+      published_at?: string;
+      time_since?: string;
     }>;
   };
   knowledgeCard: KnowledgeCard;

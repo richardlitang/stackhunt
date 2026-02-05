@@ -57,13 +57,90 @@ Tool name: {{toolName}}
 Search results:
 {{searchResults}}`;
 
+function heuristicDefunctCheck(searchResults: string[]): DefunctStatus | null {
+  const negativeSignals = [
+    'shut down',
+    'shutdown',
+    'discontinued',
+    'no longer available',
+    'sunset',
+    'sunsetted',
+    'end of life',
+    'eol',
+    'closed down',
+    'ceased operations',
+    'service ended',
+    'rip',
+    'deprecated',
+    'acquired and closed',
+  ];
+
+  const positiveSignals = [
+    'pricing',
+    'sign up',
+    'get started',
+    'documentation',
+    'docs',
+    'release notes',
+    'changelog',
+    'updates',
+    'status page',
+    'careers',
+    'jobs',
+  ];
+
+  let negativeScore = 0;
+  let positiveScore = 0;
+  let evidence: string | undefined;
+
+  for (const snippet of searchResults) {
+    const text = snippet.toLowerCase();
+    for (const phrase of negativeSignals) {
+      if (text.includes(phrase)) {
+        negativeScore++;
+        if (!evidence) evidence = snippet;
+      }
+    }
+    for (const phrase of positiveSignals) {
+      if (text.includes(phrase)) {
+        positiveScore++;
+      }
+    }
+  }
+
+  if (negativeScore >= 3 && positiveScore === 0) {
+    return {
+      isDefunct: true,
+      confidence: 'high',
+      reason: 'Multiple shutdown indicators found',
+      evidence,
+    };
+  }
+
+  if (negativeScore >= 2 && positiveScore <= 1) {
+    return {
+      isDefunct: true,
+      confidence: 'medium',
+      reason: 'Shutdown indicators found with limited active signals',
+      evidence,
+    };
+  }
+
+  return null;
+}
+
 export async function detectDefunctTool(
   toolName: string,
   searchResults: string[]
 ): Promise<DefunctStatus> {
   const apiKey = process.env.GEMINI_API_KEY;
+  const heuristic = heuristicDefunctCheck(searchResults);
+  if (heuristic && heuristic.confidence !== 'low') {
+    return heuristic;
+  }
+
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY not configured');
+    return heuristic || { isDefunct: false, confidence: 'low' };
   }
 
   const genAI = new GoogleGenAI({ apiKey });
@@ -105,7 +182,7 @@ export async function detectDefunctTool(
   } catch (error) {
     console.error('[DefunctDetector] Error detecting defunct status:', toolName, error);
     // On error, assume tool is active (fail safe)
-    return {
+    return heuristic || {
       isDefunct: false,
       confidence: 'low',
     };

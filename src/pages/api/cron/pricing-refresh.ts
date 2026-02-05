@@ -29,7 +29,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const admin = getAdminClient();
     const { data, error } = await admin.rpc('enqueue_pricing_refresh', {
-      p_days_stale: 90,
+      p_days_stale: 120,
       p_priority: 40,
       p_limit: 50,
     });

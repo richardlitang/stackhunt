@@ -105,6 +105,12 @@ Also extract:
 - competitive.best_for: "Best for X because Y"
 - learning_curve: minutes/hours/days/weeks
 
+=== STEP 2.2: RECENCY SIGNALS (Freshness Bias) ===
+Prefer recent evidence when sources conflict, but do NOT discard older sources if they provide stronger consensus or detail.
+Look for dates/years in snippets (e.g., 2025, 2026) and release notes/changelog mentions.
+Populate meta.last_major_update with an approximate YYYY-MM (or YYYY) if mentioned.
+If all evidence appears outdated (>18 months), set meta.data_quality = "low" and meta.active_development = false.
+
 === STEP 2.5: SETUP PATH (The "First 5 Minutes") ===
 Your role: Extract the ACTUAL onboarding steps. Ignore marketing promises like "Get started in seconds."
 Hunt for: Installation guides, Quickstart docs, CLI commands, Setup wizards.

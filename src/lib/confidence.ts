@@ -155,13 +155,14 @@ export function evaluateContentConfidence(
     score += 1;
   }
 
-  // Noindex decision: score < 5 OR critical missing fields
-  const criticalFailures =
-    !hasShortDescription ||
-    (pricingConfidence === 'low' && !hasReviewContent) ||
-    (sourceCount === 0 && !hasKnowledgeCard);
+  // Noindex decision: only when content is thin AND no review content to anchor claims
+  const thinContent = score < 4;
+  const missingFoundations = !hasKnowledgeCard && sourceCount === 0;
+  const shouldNoindex = thinContent && !hasReviewContent && missingFoundations;
 
-  const shouldNoindex = score < 5 || criticalFailures;
+  if (!hasReviewContent) {
+    reasons.push('No review content yet');
+  }
 
   if (shouldNoindex && reasons.length === 0) {
     reasons.push(`Low confidence score (${score}/10)`);

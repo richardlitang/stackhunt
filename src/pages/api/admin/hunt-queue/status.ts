@@ -34,6 +34,7 @@ export const GET: APIRoute = async ({ request }) => {
       processing: 0,
       completed: 0,
       failed: 0,
+      defunct: 0,
       total: 0,
     };
 

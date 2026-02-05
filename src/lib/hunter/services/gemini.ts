@@ -72,7 +72,8 @@ export class GeminiService {
    */
   async extractKnowledgeCard(
     input: ExtractKnowledgeCardInput,
-    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
+    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
+    options?: { mode?: 'full' | 'pricing_only' }
   ): Promise<{ knowledgeCard: KnowledgeCard; tokensUsed: number }> {
     const toolSlug = input.toolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
@@ -101,7 +102,9 @@ export class GeminiService {
               responseMimeType: 'application/json',
               responseSchema: GeminiKnowledgeCardSchema,
               thinkingConfig: {
-                thinkingLevel: ThinkingLevel.HIGH, // Deep reasoning for comprehensive extraction
+                thinkingLevel: options?.mode === 'pricing_only'
+                  ? ThinkingLevel.LOW
+                  : ThinkingLevel.HIGH, // Deep reasoning for comprehensive extraction
               },
             },
           });

@@ -1,0 +1,2 @@
+-- Placeholder migration for remote-applied version 20260121151808
+-- Created locally to satisfy Supabase CLI history alignment.
