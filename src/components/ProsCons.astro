@@ -29,11 +29,12 @@ interface Props {
   cons: ClaimItem[];
   title?: string;
   showSources?: boolean;
-  sourceDisplay?: 'inline' | 'toggle' | 'hidden';
+  sourceDisplay?: 'inline' | 'toggle' | 'block' | 'hidden';
 }
 
 const { pros, cons, title, showSources = true, sourceDisplay } = Astro.props;
-const resolvedSourceDisplay = sourceDisplay || (showSources ? 'inline' : 'hidden');
+const resolvedSourceDisplay =
+  (sourceDisplay === 'toggle' ? 'block' : sourceDisplay) || (showSources ? 'block' : 'hidden');
 
 // Hedging prefixes for different source types
 const HEDGING_PREFIXES: Record<SourceType, string[]> = {
@@ -68,6 +69,27 @@ function normalizeClaim(item: ClaimItem, index: number): ClaimWithSource & { dis
 
 const normalizedPros = pros.map((item, i) => normalizeClaim(item, i));
 const normalizedCons = cons.map((item, i) => normalizeClaim(item, i));
+
+const sourceEntries = (() => {
+  const entries = [...normalizedPros, ...normalizedCons]
+    .filter((item) => item.source_url)
+    .map((item) => ({
+      url: item.source_url as string,
+      domain: getDomain(item.source_url as string),
+      source_type: item.source_type,
+      formattedDate: item.formattedDate,
+    }));
+
+  const seenDomains = new Set<string>();
+  const unique: typeof entries = [];
+  for (const entry of entries) {
+    if (seenDomains.has(entry.domain)) continue;
+    seenDomains.add(entry.domain);
+    unique.push(entry);
+  }
+  return unique;
+})();
+const sourceDomains = sourceEntries.map((entry) => entry.domain);
 
 // Extract domain from URL for display
 function getDomain(url: string): string {
@@ -183,48 +205,23 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
               <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
               <div class="flex-1">
                 <span>{pro.displayText}</span>
-                {resolvedSourceDisplay !== 'hidden' && pro.source_url && (
+                {resolvedSourceDisplay === 'inline' && pro.source_url && (
                   <span class="inline-flex items-center gap-1 ml-2">
-                    {resolvedSourceDisplay === 'inline' ? (
-                      <>
-                        {pro.source_type && (
-                          <span class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(pro.source_type)}`}>
-                            {getSourceIcon(pro.source_url) && <span class="mr-0.5">{getSourceIcon(pro.source_url)}</span>}
-                            {getSourceLabel(pro.source_type)}{pro.formattedDate && `, ${pro.formattedDate}`}
-                          </span>
-                        )}
-                        <a
-                          href={pro.source_url}
-                          target="_blank"
-                          rel={getSourceRelAttribute(pro.source_type)}
-                          class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
-                          title={`View source: ${getDomain(pro.source_url)}${pro.formattedDate ? ` (retrieved ${pro.formattedDate})` : ''}`}
-                        >
-                          <ExternalLinkIcon class="h-3 w-3" />
-                        </a>
-                      </>
-                    ) : (
-                      <details class="inline-block">
-                        <summary class="cursor-pointer text-xs text-zinc-500 hover:text-hunt-400">Source</summary>
-                        <div class="mt-1 inline-flex items-center gap-1">
-                          {pro.source_type && (
-                            <span class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(pro.source_type)}`}>
-                              {getSourceIcon(pro.source_url) && <span class="mr-0.5">{getSourceIcon(pro.source_url)}</span>}
-                              {getSourceLabel(pro.source_type)}{pro.formattedDate && `, ${pro.formattedDate}`}
-                            </span>
-                          )}
-                          <a
-                            href={pro.source_url}
-                            target="_blank"
-                            rel={getSourceRelAttribute(pro.source_type)}
-                            class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
-                            title={`View source: ${getDomain(pro.source_url)}${pro.formattedDate ? ` (retrieved ${pro.formattedDate})` : ''}`}
-                          >
-                            <ExternalLinkIcon class="h-3 w-3" />
-                          </a>
-                        </div>
-                      </details>
+                    {pro.source_type && (
+                      <span class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(pro.source_type)}`}>
+                        {getSourceIcon(pro.source_url) && <span class="mr-0.5">{getSourceIcon(pro.source_url)}</span>}
+                        {getSourceLabel(pro.source_type)}{pro.formattedDate && `, ${pro.formattedDate}`}
+                      </span>
                     )}
+                    <a
+                      href={pro.source_url}
+                      target="_blank"
+                      rel={getSourceRelAttribute(pro.source_type)}
+                      class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
+                      title={`View source: ${getDomain(pro.source_url)}${pro.formattedDate ? ` (retrieved ${pro.formattedDate})` : ''}`}
+                    >
+                      <ExternalLinkIcon class="h-3 w-3" />
+                    </a>
                   </span>
                 )}
               </div>
@@ -250,48 +247,23 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
               <MinusIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
               <div class="flex-1">
                 <span>{con.displayText}</span>
-                {resolvedSourceDisplay !== 'hidden' && con.source_url && (
+                {resolvedSourceDisplay === 'inline' && con.source_url && (
                   <span class="inline-flex items-center gap-1 ml-2">
-                    {resolvedSourceDisplay === 'inline' ? (
-                      <>
-                        {con.source_type && (
-                          <span class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(con.source_type)}`}>
-                            {getSourceIcon(con.source_url) && <span class="mr-0.5">{getSourceIcon(con.source_url)}</span>}
-                            {getSourceLabel(con.source_type)}{con.formattedDate && `, ${con.formattedDate}`}
-                          </span>
-                        )}
-                        <a
-                          href={con.source_url}
-                          target="_blank"
-                          rel={getSourceRelAttribute(con.source_type)}
-                          class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
-                          title={`View source: ${getDomain(con.source_url)}${con.formattedDate ? ` (retrieved ${con.formattedDate})` : ''}`}
-                        >
-                          <ExternalLinkIcon class="h-3 w-3" />
-                        </a>
-                      </>
-                    ) : (
-                      <details class="inline-block">
-                        <summary class="cursor-pointer text-xs text-zinc-500 hover:text-hunt-400">Source</summary>
-                        <div class="mt-1 inline-flex items-center gap-1">
-                          {con.source_type && (
-                            <span class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(con.source_type)}`}>
-                              {getSourceIcon(con.source_url) && <span class="mr-0.5">{getSourceIcon(con.source_url)}</span>}
-                              {getSourceLabel(con.source_type)}{con.formattedDate && `, ${con.formattedDate}`}
-                            </span>
-                          )}
-                          <a
-                            href={con.source_url}
-                            target="_blank"
-                            rel={getSourceRelAttribute(con.source_type)}
-                            class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
-                            title={`View source: ${getDomain(con.source_url)}${con.formattedDate ? ` (retrieved ${con.formattedDate})` : ''}`}
-                          >
-                            <ExternalLinkIcon class="h-3 w-3" />
-                          </a>
-                        </div>
-                      </details>
+                    {con.source_type && (
+                      <span class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(con.source_type)}`}>
+                        {getSourceIcon(con.source_url) && <span class="mr-0.5">{getSourceIcon(con.source_url)}</span>}
+                        {getSourceLabel(con.source_type)}{con.formattedDate && `, ${con.formattedDate}`}
+                      </span>
                     )}
+                    <a
+                      href={con.source_url}
+                      target="_blank"
+                      rel={getSourceRelAttribute(con.source_type)}
+                      class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
+                      title={`View source: ${getDomain(con.source_url)}${con.formattedDate ? ` (retrieved ${con.formattedDate})` : ''}`}
+                    >
+                      <ExternalLinkIcon class="h-3 w-3" />
+                    </a>
                   </span>
                 )}
               </div>
@@ -301,6 +273,31 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
       </ul>
     </div>
   </div>
+
+  {resolvedSourceDisplay === 'block' && sourceEntries.length > 0 && (
+    <div class="mt-6 border-t border-zinc-800 pt-4">
+      <div class="text-xs text-zinc-500">
+        Sources: {sourceDomains.join(' • ')}
+      </div>
+      <details class="mt-2">
+        <summary class="cursor-pointer text-xs text-zinc-400 hover:text-hunt-400">View sources</summary>
+        <div class="mt-2 flex flex-wrap gap-2">
+          {sourceEntries.map((entry) => (
+            <a
+              href={entry.url}
+              target="_blank"
+              rel={getSourceRelAttribute(entry.source_type)}
+              class="inline-flex items-center gap-1 rounded-full border border-zinc-800 px-2 py-1 text-[11px] text-zinc-400 hover:border-hunt-500 hover:text-hunt-400"
+              title={`View source: ${entry.domain}${entry.formattedDate ? ` (retrieved ${entry.formattedDate})` : ''}`}
+            >
+              {entry.domain}
+              <ExternalLinkIcon class="h-3 w-3" />
+            </a>
+          ))}
+        </div>
+      </details>
+    </div>
+  )}
 </div>
 
 <!-- Source links now open in new tab instead of copy-to-clipboard -->

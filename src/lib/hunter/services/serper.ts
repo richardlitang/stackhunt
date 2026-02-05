@@ -51,6 +51,12 @@ export interface SearchResult {
   // V6: Deep-dive content for tribal threads (full Reddit/HN discussions, not snippets)
   // The "Source Resolution" fix - actual content instead of 160-char snippets
   tribalDeepContent?: string;
+  faqs?: Array<{
+    question: string;
+    answer: string;
+    source: 'paa' | 'forum' | 'reddit';
+    source_url?: string;
+  }>;
 }
 
 export class SerperService {
@@ -245,6 +251,7 @@ export class SerperService {
       | 'release_notes'
       | 'budget_hidden'
       | 'budget_setup'
+      | 'forums'
       | 'tribal_reddit_hate'
       | 'tribal_hn_pricing'
       | 'tribal_reddit_vs'
@@ -297,6 +304,7 @@ export class SerperService {
         const supplemental = [
           { type: 'tribal_hn_pricing', query: `site:news.ycombinator.com "${toolName}" pricing OR limits` },
           { type: 'tribal_reddit_gotchas', query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha"` },
+          { type: 'forums', query: `"${toolName}" (forum OR community OR discourse OR boards)` },
           { type: 'corp_profiler', query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn` },
           { type: 'release_notes', query: `"${toolName}" release notes OR changelog OR updates` },
         ];
@@ -319,6 +327,7 @@ export class SerperService {
         { type: 'tribal_hn_pricing', query: `site:news.ycombinator.com "${toolName}" pricing OR limits OR "rate limit"` },
         { type: 'tribal_reddit_vs', query: `site:reddit.com "${toolName} vs" OR "switched from" OR "switched to"` },
         { type: 'tribal_reddit_gotchas', query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha" OR "warning"` },
+        { type: 'forums', query: `"${toolName}" (forum OR community OR discourse OR boards)` },
         { type: 'corp_profiler', query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn` },
         { type: 'release_notes', query: `"${toolName}" release notes OR changelog OR updates` },
       ];
@@ -409,6 +418,105 @@ export class SerperService {
 
     const getOrganicForTypes = (types: QueryType[]) =>
       types.flatMap((type) => (resultsByType.get(type) || []).flatMap((r) => r.organic || []));
+
+    const cleanText = (value: string): string => value.replace(/\s+/g, ' ').trim();
+    const normalizeQuestionKey = (value: string): string =>
+      value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const isQuestionLike = (value: string): boolean => {
+      const text = value.toLowerCase().trim();
+      if (text.includes('?')) return true;
+      if (/^(how|what|why|is|are|can|does|do|should|which|where|when|who)\b/.test(text)) return true;
+      if (text.includes(' vs ')) return true;
+      if (text.includes('alternatives')) return true;
+      if (text.includes('worth it')) return true;
+      return false;
+    };
+    const truncateAnswer = (value: string, max = 200): string => {
+      const text = cleanText(value);
+      if (text.length <= max) return text;
+      const trimmed = text.slice(0, max).replace(/\s+\S*$/, '');
+      return `${trimmed}...`;
+    };
+    const isForumSource = (domain: string, url: string): boolean => {
+      const haystack = `${domain} ${url}`.toLowerCase();
+      const indicators = ['forum', 'forums', 'community', 'discourse', 'boards', 'support', 'help', 'stackexchange'];
+      return indicators.some((indicator) => haystack.includes(indicator));
+    };
+
+    const faqCandidates: Array<{
+      question: string;
+      answer: string;
+      source: 'paa' | 'forum' | 'reddit';
+      source_url?: string;
+    }> = [];
+
+    const addFaqCandidate = (candidate: {
+      question: string;
+      answer: string;
+      source: 'paa' | 'forum' | 'reddit';
+      source_url?: string;
+    }) => {
+      const question = cleanText(candidate.question);
+      const answer = truncateAnswer(candidate.answer);
+      if (!question || !answer || answer.length < 30) return;
+      if (!isQuestionLike(question)) return;
+      faqCandidates.push({ ...candidate, question, answer });
+    };
+
+    // People Also Ask (if provided by Serper)
+    for (const response of results) {
+      for (const paa of response.peopleAlsoAsk || []) {
+        if (!paa.question || !paa.snippet) continue;
+        addFaqCandidate({
+          question: paa.question,
+          answer: paa.snippet,
+          source: 'paa',
+          source_url: paa.link,
+        });
+      }
+    }
+
+    const sources = Array.from(sourceMap.values());
+    for (const source of sources) {
+      if (source.domain.includes('reddit.com')) {
+        addFaqCandidate({
+          question: source.title,
+          answer: source.snippet,
+          source: 'reddit',
+          source_url: source.url,
+        });
+        continue;
+      }
+
+      if (source.domain.includes('ycombinator.com')) continue;
+
+      if (isForumSource(source.domain, source.url)) {
+        addFaqCandidate({
+          question: source.title,
+          answer: source.snippet,
+          source: 'forum',
+          source_url: source.url,
+        });
+      }
+    }
+
+    const faqPriority: Record<'paa' | 'forum' | 'reddit', number> = {
+      paa: 0,
+      forum: 1,
+      reddit: 2,
+    };
+    const dedupedFaqs: typeof faqCandidates = [];
+    const seenQuestions = new Set<string>();
+    faqCandidates
+      .sort((a, b) => faqPriority[a.source] - faqPriority[b.source])
+      .forEach((candidate) => {
+        const key = normalizeQuestionKey(candidate.question);
+        if (!key || seenQuestions.has(key)) return;
+        seenQuestions.add(key);
+        dedupedFaqs.push(candidate);
+      });
+
+    const faqs = dedupedFaqs.slice(0, 5);
 
     // DEEP DIVE: Scrape pricing pages for full content
     const pricingResults = getOrganicForTypes(['pricing', 'pricing_compare']);
@@ -515,6 +623,7 @@ export class SerperService {
       video: video || undefined,
       pricingDeepContent,
       tribalDeepContent, // V6: Full Reddit/HN threads (not snippets) for authentic insights
+      faqs,
     };
   }
 

@@ -398,6 +398,14 @@ export interface ItemMetadata {
     extraction_date: string;
   };
 
+  // V4.1: Authentic FAQs (from PAA/forums/Reddit)
+  faqs?: Array<{
+    question: string;
+    answer: string;
+    source: 'paa' | 'forum' | 'reddit';
+    source_url?: string;
+  }>;
+
   // V2: Company info
   company?: CompanyInfo;
 

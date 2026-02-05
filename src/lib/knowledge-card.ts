@@ -290,6 +290,15 @@ export const FeatureCapabilitySchema = z.object({
 });
 export type FeatureCapability = z.infer<typeof FeatureCapabilitySchema>;
 
+// FAQ item extracted from real sources (PAA / forums / Reddit)
+export const FAQItemSchema = z.object({
+  question: z.string(),
+  answer: z.string(),
+  source: z.enum(['paa', 'forum', 'reddit']),
+  source_url: z.string().url().optional(),
+});
+export type FAQItem = z.infer<typeof FAQItemSchema>;
+
 // =============================================================================
 // MAIN KNOWLEDGE CARD SCHEMA
 // =============================================================================
@@ -374,6 +383,9 @@ export const KnowledgeCardSchema = z.object({
     has_phone_support: z.boolean().optional().default(false),
     has_dedicated_support: z.boolean().optional().default(false),    // Enterprise tier
   }).default({}),
+
+  // === FAQS (real questions from PAA / forums / Reddit) ===
+  faqs: z.array(FAQItemSchema).default([]),
 
   // === META ===
   meta: z.object({

@@ -207,6 +207,11 @@ export interface SerperResponse {
     dateString?: string;
     timeSince?: string;
   }>;
+  peopleAlsoAsk?: Array<{
+    question: string;
+    snippet?: string;
+    link?: string;
+  }>;
   searchParameters: { q: string };
 }
 
@@ -270,6 +275,12 @@ export interface ResearchOutput {
     tribalKnowledgeSnippets: string[];  // Reddit reviews, honest feedback, power tips, "worth it" discussions
     // V6: Deep tribal content (full discussions, not snippets)
     tribalDeepContent?: string;         // Full Reddit/HN threads for authentic insights
+    faqs?: Array<{
+      question: string;
+      answer: string;
+      source: 'paa' | 'forum' | 'reddit';
+      source_url?: string;
+    }>;
     sources: Array<{
       url: string;
       title: string;

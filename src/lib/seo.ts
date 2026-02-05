@@ -3,6 +3,7 @@
  */
 
 import type { Tool, Context, Review, AffiliateOffer } from '@/types/database';
+import type { KnowledgeCard } from '@/lib/knowledge-card';
 import { getCanonicalUrl, formatPricingType } from './utils';
 
 // ============================================================================
@@ -355,45 +356,16 @@ export function generateContextReviewSchemas(
 /**
  * Generate FAQ schema for tool pages with common questions
  */
-export function generateToolFAQSchema(tool: Tool) {
-  const faqs: Array<{ question: string; answer: string }> = [];
-
-  // Pricing question (always relevant)
-  if (tool.pricing_type) {
-    const pricingAnswer = tool.pricing_type === 'free'
-      ? `${tool.name} is completely free to use.`
-      : tool.pricing_type === 'freemium'
-        ? `${tool.name} offers a free tier with paid plans available for additional features.`
-        : tool.pricing_type === 'paid'
-          ? `${tool.name} is a paid service. Check their official pricing page for current rates.`
-          : `${tool.name} offers various pricing options. Visit their website for detailed pricing information.`;
-
-    faqs.push({
-      question: `How much does ${tool.name} cost?`,
-      answer: pricingAnswer
-    });
-  }
-
-  // Description question (if available)
-  if (tool.short_description) {
-    faqs.push({
-      question: `What is ${tool.name}?`,
-      answer: tool.short_description
-    });
-  }
-
-  // Category question (if available)
-  if (tool.category?.name) {
-    faqs.push({
-      question: `What type of software is ${tool.name}?`,
-      answer: `${tool.name} is ${tool.category.name} software that helps teams and individuals with their workflow.`
-    });
-  }
-
-  // Only generate FAQ schema if we have questions
+export function generateToolFAQSchema(tool: Tool, knowledgeCard?: KnowledgeCard | null) {
+  const faqs = Array.isArray(knowledgeCard?.faqs) ? knowledgeCard?.faqs : [];
   if (faqs.length === 0) return null;
 
-  return generateFAQSchema(faqs);
+  return generateFAQSchema(
+    faqs.map((faq) => ({
+      question: faq.question,
+      answer: faq.answer,
+    }))
+  );
 }
 
 /**

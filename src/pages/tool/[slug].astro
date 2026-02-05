@@ -209,7 +209,7 @@ const meta = {
   ...generateToolMeta(tool, tool.review_count),
   noindex: confidence.shouldNoindex,
 };
-const faqSchema = generateToolFAQSchema(tool);
+const faqSchema = generateToolFAQSchema(tool, knowledgeCard);
 const schemas = [
   generateToolSchema(tool, primaryOffer, tool.review_count),
   generateBreadcrumbSchema([
@@ -238,32 +238,7 @@ const hasVideo = Boolean(tool.video_id);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
 const hasCommunity = true;
 
-const faqItems: Array<{ question: string; answer: string }> = [];
-if (tool.pricing_type) {
-  const pricingAnswer = tool.pricing_type === 'free'
-    ? `${tool.name} is completely free to use.`
-    : tool.pricing_type === 'freemium'
-      ? `${tool.name} offers a free tier with paid plans available for additional features.`
-      : tool.pricing_type === 'paid'
-        ? `${tool.name} is a paid service. Check their official pricing page for current rates.`
-        : `${tool.name} offers various pricing options. Visit their website for detailed pricing information.`;
-  faqItems.push({
-    question: `How much does ${tool.name} cost?`,
-    answer: pricingAnswer
-  });
-}
-if (tool.short_description) {
-  faqItems.push({
-    question: `What is ${tool.name}?`,
-    answer: tool.short_description
-  });
-}
-if (tool.category?.name) {
-  faqItems.push({
-    question: `What type of software is ${tool.name}?`,
-    answer: `${tool.name} is ${tool.category.name} software that helps teams and individuals with their workflow.`
-  });
-}
+const faqItems = Array.isArray(knowledgeCard?.faqs) ? knowledgeCard.faqs : [];
 const hasFAQ = faqItems.length > 0;
 ---
 
@@ -528,10 +503,10 @@ const hasFAQ = faqItems.length > 0;
                 <ProsCons
                   pros={firstReview.pros || []}
                   cons={firstReview.cons || []}
-                  sourceDisplay="inline"
+                  sourceDisplay="block"
                 />
               ) : (globalPros.length > 0 || globalCons.length > 0) && (
-                <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="inline" />
+                <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="block" />
               )}
             </div>
           </details>
@@ -864,7 +839,22 @@ const hasFAQ = faqItems.length > 0;
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
               </summary>
-              <p class="mt-2 text-sm text-zinc-300">{item.answer}</p>
+              <div class="mt-2 space-y-2">
+                <p class="text-sm text-zinc-300">{item.answer}</p>
+                {item.source_url && (
+                  <a
+                    href={item.source_url}
+                    target="_blank"
+                    rel="noopener"
+                    class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-hunt-500"
+                  >
+                    Source
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                )}
+              </div>
             </details>
           ))}
         </div>

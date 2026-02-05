@@ -133,6 +133,14 @@ export async function executeResearchPhase(
 
   deps.log(`[Pass 1] Knowledge Card extracted (quality: ${knowledgeCard.meta.data_quality})`);
 
+  // Attach authentic FAQs from research sources (PAA / forums / Reddit)
+  if (scoutResult.faqs && scoutResult.faqs.length > 0) {
+    knowledgeCard.faqs = scoutResult.faqs;
+    deps.log(`[FAQ] Extracted ${scoutResult.faqs.length} authentic questions`);
+  } else {
+    deps.log('[FAQ] ⚠️ No authentic FAQs extracted');
+  }
+
   // ========== VALIDATION: Knowledge Card structure and business rules ==========
   const { validateKnowledgeCard, formatValidationReport } = await import('../validation/schema-validator.js');
   const validationReport = validateKnowledgeCard(knowledgeCard, ctx.toolName);
@@ -427,6 +435,7 @@ export async function executeResearchPhase(
         budgetAnalystSnippets: scoutResult.budgetAnalystSnippets,
         tribalKnowledgeSnippets: scoutResult.tribalKnowledgeSnippets,
         tribalDeepContent: scoutResult.tribalDeepContent,
+        faqs: scoutResult.faqs,
         sources: scoutResult.sources,
       },
       knowledgeCard,
@@ -454,6 +463,7 @@ export async function executeResearchPhase(
       budgetAnalystSnippets: scoutResult.budgetAnalystSnippets,
       tribalKnowledgeSnippets: scoutResult.tribalKnowledgeSnippets,
       tribalDeepContent: scoutResult.tribalDeepContent,
+      faqs: scoutResult.faqs,
       sources: scoutResult.sources,
     },
     knowledgeCard,
