@@ -62,6 +62,86 @@ function inferTargetMarket(plans: any[]): 'consumer' | 'prosumer' | 'business' |
   return 'business';
 }
 
+const CONDITIONAL_MARKERS = /\b(if|when|unless|only if|as soon as|before|after)\b/i;
+const NEGATIVE_CUES = /\b(no|not|lacks|lack|doesn't|cannot|can't|won't|avoid|veto|issue|problem|risk|limit|limited|slow|expensive|broken|bug|fails|failure)\b/i;
+
+function isConditional(text: string): boolean {
+  return CONDITIONAL_MARKERS.test(text);
+}
+
+function containsNegativeCue(text: string): boolean {
+  return NEGATIVE_CUES.test(text);
+}
+
+function isBackedByClaims(text: string, claims: ClaimWithSource[]): boolean {
+  const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+  if (words.length === 0) return false;
+  return claims.some(claim => {
+    const claimText = claim.text.toLowerCase();
+    const matchCount = words.filter(w => claimText.includes(w)).length;
+    return matchCount >= words.length * 0.4;
+  });
+}
+
+function filterConditionalList(
+  items: string[] | undefined,
+  label: string,
+  deps: HunterDependencies
+): string[] {
+  if (!items || items.length === 0) return [];
+  const filtered = items.filter(item => isConditional(item));
+  const dropped = items.length - filtered.length;
+  if (dropped > 0) {
+    deps.log(`[Guardrail] Filtered ${dropped} ${label} item(s) without conditional framing`);
+  }
+  deps.log(`[Guardrail] ${label}: kept ${filtered.length}/${items.length} (conditional framing)`);
+  return filtered;
+}
+
+function buildDerivedVerdict(
+  cons: ClaimWithSource[],
+  pros: ClaimWithSource[],
+  vetos: Array<{ condition: string; alternative: string }> | null
+): string | null {
+  if (vetos && vetos.length > 0) {
+    const veto = vetos[0];
+    return `Switch to ${veto.alternative} if ${veto.condition}.`;
+  }
+  if (cons.length > 0) {
+    return `Veto if ${cons[0].text}.`;
+  }
+  if (pros.length > 0) {
+    return `Best for teams that need ${pros[0].text}.`;
+  }
+  return null;
+}
+
+function buildDerivedSummary(
+  cons: ClaimWithSource[],
+  pros: ClaimWithSource[],
+  vetos: Array<{ condition: string; alternative: string }> | null
+): string | null {
+  if (cons.length === 0 && pros.length === 0 && (!vetos || vetos.length === 0)) return null;
+
+  const lines: string[] = [];
+  if (cons.length > 0) {
+    lines.push('**Hard limits**');
+    lines.push(`- ${cons[0].text}`);
+  }
+  if (pros.length > 0) {
+    if (lines.length > 0) lines.push('');
+    lines.push('**Best for**');
+    lines.push(`- ${pros[0].text}`);
+  }
+  if (vetos && vetos.length > 0) {
+    if (lines.length > 0) lines.push('');
+    lines.push('**Switch away when**');
+    lines.push(`- Switch to ${vetos[0].alternative} if ${vetos[0].condition}.`);
+  }
+
+  return lines.join('\n');
+}
+
 /**
  * Execute the Persistence Phase
  *
@@ -241,6 +321,7 @@ export async function executePersistencePhase(
 
   // V6: Cynical CTO - Add veto logic and reality checks (with source validation)
   const sources = ctx.research.scoutResult.sources;
+  let vettedVetos: Array<{ condition: string; alternative: string; reason: string; source_url: string }> | null = null;
 
   if (analysis.vetoLogic && analysis.vetoLogic.length > 0) {
     const validatedVetos = analysis.vetoLogic.filter((veto: any) => {
@@ -261,6 +342,7 @@ export async function executePersistencePhase(
     });
 
     if (validatedVetos.length > 0) {
+      vettedVetos = validatedVetos;
       specs.vetoLogic = validatedVetos;
       deps.log(`[Persisted] Veto Logic: ${validatedVetos.length}/${analysis.vetoLogic.length} conditions (${analysis.vetoLogic.length - validatedVetos.length} filtered)`);
     } else {
@@ -311,10 +393,11 @@ export async function executePersistencePhase(
   const sourcesList = ctx.research.scoutResult.sources;
   let normalizedPros: ClaimWithSource[] = [];
   let validCons: ClaimWithSource[] = [];
+  let filteredForMissingSource = 0;
 
   if (analysis.pros?.length || analysis.cons?.length) {
     // Normalize pros with source attribution
-    normalizedPros = (analysis.pros || []).map((claim: string | ClaimWithSource) =>
+    const normalizedProsRaw = (analysis.pros || []).map((claim: string | ClaimWithSource) =>
       normalizeClaim(claim, sourcesList, analysis.websiteUrl)
     );
 
@@ -323,8 +406,15 @@ export async function executePersistencePhase(
       normalizeClaim(claim, sourcesList, analysis.websiteUrl)
     );
 
+    const normalizedProsFiltered = normalizedProsRaw.filter(Boolean) as ClaimWithSource[];
+    filteredForMissingSource += normalizedProsRaw.length - normalizedProsFiltered.length;
+    normalizedPros = normalizedProsFiltered;
+
+    const normalizedConsCandidates = rawNormalizedCons.filter(Boolean) as ClaimWithSource[];
+    filteredForMissingSource += rawNormalizedCons.length - normalizedConsCandidates.length;
+
     // Apply negative sentiment guardrail to cons
-    for (const con of rawNormalizedCons) {
+    for (const con of normalizedConsCandidates) {
       const validation = validateNegativeClaim(con, sourcesList);
       if (validation.isValid) {
         validCons.push(con);
@@ -336,6 +426,15 @@ export async function executePersistencePhase(
     specs.pros = normalizedPros;
     specs.cons = validCons;
     deps.log(`[Item Content] Saved ${normalizedPros.length} pros, ${validCons.length} cons`);
+    if (filteredForMissingSource > 0) {
+      deps.log(`[Guardrail] Filtered ${filteredForMissingSource} claim(s) missing a verifiable source URL`);
+    }
+    if (normalizedPros.length === 0) {
+      deps.log('[Guardrail] No valid pros after source validation');
+    }
+    if (validCons.length === 0) {
+      deps.log('[Guardrail] No valid cons after source validation');
+    }
   }
 
   // Build V2 metadata (Knowledge Card + extended fields)
@@ -368,6 +467,11 @@ export async function executePersistencePhase(
     }
   }
 
+  const derivedVerdict = buildDerivedVerdict(validCons, normalizedPros, vettedVetos);
+  if (!derivedVerdict) {
+    deps.log('[Guardrail] Derived verdict unavailable (insufficient vetted claims)');
+  }
+
   const itemData: Record<string, unknown> = {
     name: ctx.toolName,
     slug: toolSlug,
@@ -381,7 +485,7 @@ export async function executePersistencePhase(
     // V2: Enhanced fields
     metadata,
     specs,
-    verdict: analysis.verdict || null, // One-line conclusion if provided
+    verdict: derivedVerdict || null, // Derived from vetted claims for legal safety
     // Video data from research
     video_id: ctx.research.video?.videoId || null,
     video_title: ctx.research.video?.title || null,
@@ -392,7 +496,7 @@ export async function executePersistencePhase(
     pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
     pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
     // V3.1: Review Context (The "Human Touch" Layer)
-    review_context: analysis.reviewContext || null,
+    review_context: sanitizeReviewContext(analysis.reviewContext, validCons, deps),
     // V3.2: Parent/Child Relationship (Suite Bundling)
     parent_id: parentId,
     // Infer target_market from pricing plans
@@ -1110,7 +1214,7 @@ function normalizeClaim(
   claim: string | ClaimWithSource,
   sources: Array<{ url: string; title: string; snippet: string; domain: string; retrieved_at?: string; published_at?: string; time_since?: string }>,
   toolWebsite?: string
-): ClaimWithSource {
+): ClaimWithSource | null {
   // Current timestamp for time-bound defense
   const retrievedAt = new Date().toISOString();
 
@@ -1130,7 +1234,7 @@ function normalizeClaim(
 
   // Try to match claim keywords to source snippets
   const claimWords = claimText.toLowerCase().split(/\s+/);
-  let bestSource = sources[0]; // Fallback to first source
+  let bestSource = sources[0]; // Fallback if any source matches
   let bestMatchScore = 0;
 
   for (const source of sources) {
@@ -1147,10 +1251,14 @@ function normalizeClaim(
     }
   }
 
+  if (!bestSource) {
+    return null;
+  }
+
   return {
     text: claimText,
-    source_url: bestSource?.url || 'https://unknown-source',
-    source_type: bestSource ? classifySourceType(bestSource.url, toolWebsite) : 'community',
+    source_url: bestSource.url,
+    source_type: classifySourceType(bestSource.url, toolWebsite),
     claim_type: 'opinion', // Assume opinion for legacy claims (safer)
     retrieved_at: retrievedAt,
   };
@@ -1170,6 +1278,9 @@ function validateNegativeClaim(
   claim: ClaimWithSource,
   allSources: Array<{ url: string; title: string; snippet: string; domain: string; retrieved_at?: string; published_at?: string; time_since?: string }>
 ): { isValid: boolean; warning?: string; corroboratingSourceCount: number; corroboratingSources?: string[] } {
+  if (!claim.source_url) {
+    return { isValid: false, warning: 'Missing source URL for negative claim.', corroboratingSourceCount: 0 };
+  }
   // Only apply guardrail to negative opinions from community sources
   // Facts from official sources don't need this check
   if (claim.claim_type === 'fact' && claim.source_type === 'official') {
@@ -1226,6 +1337,49 @@ function validateNegativeClaim(
   return { isValid: true, corroboratingSourceCount: corroboratingCount, corroboratingSources };
 }
 
+function sanitizeReviewContext(
+  reviewContext: any,
+  validCons: ClaimWithSource[],
+  deps: HunterDependencies
+): any | null {
+  if (!reviewContext) return null;
+
+  const sanitized = { ...reviewContext };
+
+  if (sanitized.humanVerdict) {
+    const verdictText = String(sanitized.humanVerdict);
+    if (containsNegativeCue(verdictText) && !isBackedByClaims(verdictText, validCons)) {
+      deps.log('[Guardrail] Dropped humanVerdict with negative cues lacking corroboration');
+      sanitized.humanVerdict = null;
+    }
+  }
+
+  if (sanitized.userAdvocate) {
+    const ua = { ...sanitized.userAdvocate };
+    const avoidIfFiltered = filterConditionalList(ua.avoidIf, 'avoidIf', deps);
+    const frustrationsFiltered = filterConditionalList(ua.frustrations, 'frustrations', deps);
+
+    const avoidIfBacked = avoidIfFiltered.filter(item => isBackedByClaims(item, validCons));
+    const frustrationsBacked = frustrationsFiltered.filter(item => isBackedByClaims(item, validCons));
+
+    const avoidIfDropped = avoidIfFiltered.length - avoidIfBacked.length;
+    const frustrationsDropped = frustrationsFiltered.length - frustrationsBacked.length;
+
+    if (avoidIfDropped > 0) {
+      deps.log(`[Guardrail] Filtered ${avoidIfDropped} avoidIf item(s) without corroborating cons`);
+    }
+    if (frustrationsDropped > 0) {
+      deps.log(`[Guardrail] Filtered ${frustrationsDropped} frustrations item(s) without corroborating cons`);
+    }
+
+    ua.avoidIf = avoidIfBacked;
+    ua.frustrations = frustrationsBacked;
+    sanitized.userAdvocate = ua;
+  }
+
+  return sanitized;
+}
+
 /**
  * Create a review linking item to context
  *
@@ -1245,19 +1399,28 @@ async function createReview(
   deps: HunterDependencies
 ): Promise<string> {
   // Normalize pros and cons with source attribution
-  const normalizedPros = analysis.pros.map((claim: string | ClaimWithSource) =>
+  const normalizedProsRaw = analysis.pros.map((claim: string | ClaimWithSource) =>
     normalizeClaim(claim, sources, analysis.websiteUrl)
   );
   const rawNormalizedCons = analysis.cons.map((claim: string | ClaimWithSource) =>
     normalizeClaim(claim, sources, analysis.websiteUrl)
   );
 
+  const normalizedPros = normalizedProsRaw.filter(Boolean) as ClaimWithSource[];
+  const normalizedConsCandidates = rawNormalizedCons.filter(Boolean) as ClaimWithSource[];
+  const missingSourceCount =
+    (normalizedProsRaw.length - normalizedPros.length) +
+    (rawNormalizedCons.length - normalizedConsCandidates.length);
+  if (missingSourceCount > 0) {
+    deps.log(`[Guardrail] Filtered ${missingSourceCount} review claim(s) missing source URLs`);
+  }
+
   // Apply negative sentiment guardrail to cons
   // Filter out cons that don't meet the 2+ source requirement for opinions
   const normalizedCons: ClaimWithSource[] = [];
   const filteredCons: Array<{ claim: ClaimWithSource; reason: string }> = [];
 
-  for (const con of rawNormalizedCons) {
+  for (const con of normalizedConsCandidates) {
     const validation = validateNegativeClaim(con, sources);
     if (validation.isValid) {
       normalizedCons.push(con);
@@ -1275,11 +1438,45 @@ async function createReview(
     deps.log(`[Guardrail] Filtered ${filteredCons.length} negative claim(s) due to insufficient source corroboration`);
   }
 
+  const conditionalDealbreakers = filterConditionalList(analysis.dealbreakers || [], 'dealbreakers', deps)
+    .filter((item: string) => isBackedByClaims(item, normalizedCons));
+  if ((analysis.dealbreakers || []).length > 0) {
+    deps.log(`[Guardrail] dealbreakers: kept ${conditionalDealbreakers.length}/${analysis.dealbreakers.length} (conditional + corroborated)`);
+  }
+
+  const vettedVetosForSummary = (analysis.vetoLogic || []).filter((v: any) => {
+    if (!v?.source_url) return false;
+    const validation = validateNegativeClaim(
+      {
+        text: v.reason || v.condition,
+        source_url: v.source_url,
+        source_type: 'community',
+        claim_type: 'opinion',
+        retrieved_at: new Date().toISOString(),
+      },
+      sources
+    );
+    return validation.isValid;
+  });
+
+  const derivedSummary = buildDerivedSummary(
+    normalizedCons,
+    normalizedPros,
+    vettedVetosForSummary.length > 0 ? vettedVetosForSummary : null
+  );
+  if (!derivedSummary) {
+    deps.log('[Guardrail] Derived summary unavailable (insufficient vetted claims)');
+  }
+
+  const legalIssues: string[] = [];
+  if (missingSourceCount > 0) legalIssues.push('claims_missing_sources');
+  if (derivedSummary === null) legalIssues.push('summary_unavailable');
+
   const reviewData: Record<string, unknown> = {
     item_id: itemId, // V2: renamed from tool_id
     context_id: contextId,
     score: analysis.score,
-    summary_markdown: analysis.summary,
+    summary_markdown: derivedSummary,
     pros: normalizedPros,
     cons: normalizedCons,
     sentiment_tags: analysis.sentimentTags,
@@ -1287,7 +1484,7 @@ async function createReview(
     fit_score: analysis.fitScore || null,
     value_rating: analysis.valueRating || null,
     standout_features: analysis.standoutFeatures || [],
-    dealbreakers: analysis.dealbreakers || [],
+    dealbreakers: conditionalDealbreakers,
     switching_from: analysis.switchingFrom || [],
   };
 
@@ -1305,7 +1502,8 @@ async function createReview(
     knowledgeCard.meta.data_quality === 'high' &&
     analysis.score >= 70 &&
     filteredCons.length <= 1 &&
-    normalizedCons.length >= 2;
+    normalizedCons.length >= 2 &&
+    legalIssues.length === 0;
 
   if (isHighConfidence && deps.config.isDraftMode !== false) {
     reviewData.status = 'published';
@@ -1314,6 +1512,9 @@ async function createReview(
     reviewData.status = 'draft';
     if (!isHighConfidence) {
       deps.log(`[Draft] Review needs manual review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`);
+      if (legalIssues.length > 0) {
+        deps.log(`[Draft] Legal guardrail issues: ${legalIssues.join(', ')}`);
+      }
     }
   }
 
