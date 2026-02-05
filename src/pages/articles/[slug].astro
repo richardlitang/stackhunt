@@ -1,0 +1,61 @@
+---
+/**
+ * Article Detail - /articles/[slug]
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { supabase } from '@/lib/supabase';
+import { simpleMarkdown } from '@/lib/utils';
+
+export const prerender = false;
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+
+const { slug } = Astro.params;
+
+const { data: article, error } = await supabase
+  .from('articles')
+  .select('id, title, slug, status, summary_markdown, content_markdown, tags, published_at')
+  .eq('slug', slug)
+  .eq('status', 'published')
+  .maybeSingle();
+
+if (error) {
+  throw error;
+}
+
+if (!article) {
+  return Astro.redirect('/404');
+}
+---
+
+<BaseLayout title={article.title} description={article.summary_markdown || undefined}>
+  <article class="mx-auto max-w-3xl px-6 py-10">
+    <div class="mb-6">
+      <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        {article.published_at && (
+          <span>{new Date(article.published_at).toLocaleDateString()}</span>
+        )}
+        {article.tags && article.tags.length > 0 && (
+          <span>• {article.tags.join(', ')}</span>
+        )}
+      </div>
+      <h1 class="mt-2 text-3xl font-bold text-zinc-100">{article.title}</h1>
+      {article.summary_markdown && (
+        <div class="prose prose-invert mt-4 max-w-none text-zinc-300">
+          {simpleMarkdown(article.summary_markdown)}
+        </div>
+      )}
+    </div>
+
+    {article.content_markdown ? (
+      <div class="prose prose-invert max-w-none text-zinc-300">
+        {simpleMarkdown(article.content_markdown)}
+      </div>
+    ) : (
+      <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 text-sm text-zinc-400">
+        This article is still being drafted.
+      </div>
+    )}
+  </article>
+</BaseLayout>

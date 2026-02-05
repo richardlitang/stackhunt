@@ -1,0 +1,65 @@
+---
+/**
+ * Articles Index - /articles
+ * Lists published longform pieces
+ */
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { supabase } from '@/lib/supabase';
+import { simpleMarkdown } from '@/lib/utils';
+
+export const prerender = false;
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+
+const { data: articles, error } = await supabase
+  .from('articles')
+  .select('id, title, slug, summary_markdown, tags, published_at')
+  .eq('status', 'published')
+  .order('published_at', { ascending: false })
+  .limit(50);
+
+if (error) {
+  throw error;
+}
+---
+
+<BaseLayout title="Articles" description="Longform analysis and guidance from StackHunt">
+  <section class="mx-auto max-w-4xl px-6 py-10">
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-zinc-100">Articles</h1>
+      <p class="mt-2 text-sm text-zinc-400">Deep-dive guides and analysis based on StackHunt data.</p>
+    </div>
+
+    {articles && articles.length > 0 ? (
+      <div class="space-y-6">
+        {articles.map((article) => (
+          <article class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+              {article.published_at && (
+                <span>{new Date(article.published_at).toLocaleDateString()}</span>
+              )}
+              {article.tags && article.tags.length > 0 && (
+                <span>• {article.tags.slice(0, 3).join(', ')}</span>
+              )}
+            </div>
+            <h2 class="mt-2 text-xl font-semibold text-zinc-100">
+              <a href={`/articles/${article.slug}`} class="hover:text-hunt-400">
+                {article.title}
+              </a>
+            </h2>
+            {article.summary_markdown && (
+              <div class="prose prose-invert mt-3 max-w-none text-sm text-zinc-300">
+                {simpleMarkdown(article.summary_markdown)}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    ) : (
+      <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 text-sm text-zinc-400">
+        No published articles yet.
+      </div>
+    )}
+  </section>
+</BaseLayout>

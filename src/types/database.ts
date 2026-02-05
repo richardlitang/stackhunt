@@ -36,6 +36,8 @@ export type ContentIdeaStatus = 'pending' | 'analyzed' | 'approved' | 'rejected'
 
 export type ImportBatchStatus = 'processing' | 'completed' | 'completed_with_errors' | 'failed';
 
+export type ArticleStatus = 'draft' | 'published' | 'archived';
+
 // V2.2: Comparison infrastructure
 export type LearningCurve = 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
 
@@ -561,6 +563,37 @@ export interface Review {
   updated_at: string;
 }
 
+export interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  status: ArticleStatus;
+  summary_markdown: string | null;
+  content_markdown: string | null;
+  outline: Record<string, unknown> | null;
+  tags: string[];
+  source_tool_ids: string[];
+  source_context_ids: string[];
+  source_data: Record<string, unknown> | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ArticleInsight {
+  id: string;
+  item_id: string | null;
+  context_id: string | null;
+  insight_type: string;
+  insight: string;
+  source_url: string | null;
+  source_type: 'official' | 'editorial' | 'community' | null;
+  claim_type: 'fact' | 'opinion' | null;
+  tags: string[];
+  confidence: number | null;
+  created_at: string;
+}
+
 // V2.2: Item-Audience Fit (links items to audience categories)
 export interface ItemAudienceFit {
   id: string;
@@ -875,6 +908,32 @@ export interface ReviewInsert {
   switching_from?: string[];
 }
 
+export interface ArticleInsert {
+  title: string;
+  slug: string;
+  status?: ArticleStatus;
+  summary_markdown?: string | null;
+  content_markdown?: string | null;
+  outline?: Record<string, unknown> | null;
+  tags?: string[];
+  source_tool_ids?: string[];
+  source_context_ids?: string[];
+  source_data?: Record<string, unknown> | null;
+  published_at?: string | null;
+}
+
+export interface ArticleInsightInsert {
+  item_id?: string | null;
+  context_id?: string | null;
+  insight_type: string;
+  insight: string;
+  source_url?: string | null;
+  source_type?: 'official' | 'editorial' | 'community' | null;
+  claim_type?: 'fact' | 'opinion' | null;
+  tags?: string[];
+  confidence?: number | null;
+}
+
 export interface AffiliateOfferInsert {
   item_id: string; // V2: renamed from tool_id
   url: string;
@@ -997,6 +1056,8 @@ export type ItemUpdate = Partial<Omit<Item, 'id' | 'created_at' | 'updated_at'>>
 export type ToolUpdate = ItemUpdate;
 export type ContextUpdate = Partial<Omit<Context, 'id' | 'created_at' | 'updated_at'>>;
 export type ReviewUpdate = Partial<Omit<Review, 'id' | 'created_at' | 'updated_at'>>;
+export type ArticleUpdate = Partial<Omit<Article, 'id' | 'created_at' | 'updated_at'>>;
+export type ArticleInsightUpdate = Partial<Omit<ArticleInsight, 'id' | 'created_at'>>;
 export type AffiliateOfferUpdate = Partial<Omit<AffiliateOffer, 'id' | 'created_at' | 'updated_at'>>;
 export type MarketStateUpdate = Partial<Omit<MarketState, 'id' | 'item_id' | 'created_at' | 'updated_at'>>;
 export type HuntQueueUpdate = Partial<Omit<HuntQueue, 'id' | 'created_at' | 'updated_at'>>;
@@ -1162,6 +1223,16 @@ export interface Database {
         Row: Review;
         Insert: ReviewInsert;
         Update: ReviewUpdate;
+      };
+      articles: {
+        Row: Article;
+        Insert: ArticleInsert;
+        Update: ArticleUpdate;
+      };
+      article_insights: {
+        Row: ArticleInsight;
+        Insert: ArticleInsightInsert;
+        Update: ArticleInsightUpdate;
       };
       affiliate_offers: {
         Row: AffiliateOffer;

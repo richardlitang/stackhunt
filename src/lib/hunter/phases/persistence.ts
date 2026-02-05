@@ -308,23 +308,24 @@ export async function executePersistencePhase(
 
   // V4: Add pros/cons to item (not just contextual reviews)
   // This ensures every tool has pros/cons regardless of context
-  if (analysis.pros?.length || analysis.cons?.length) {
-    const sources = ctx.research.scoutResult.sources;
+  const sourcesList = ctx.research.scoutResult.sources;
+  let normalizedPros: ClaimWithSource[] = [];
+  let validCons: ClaimWithSource[] = [];
 
+  if (analysis.pros?.length || analysis.cons?.length) {
     // Normalize pros with source attribution
-    const normalizedPros = (analysis.pros || []).map((claim: string | ClaimWithSource) =>
-      normalizeClaim(claim, sources, analysis.websiteUrl)
+    normalizedPros = (analysis.pros || []).map((claim: string | ClaimWithSource) =>
+      normalizeClaim(claim, sourcesList, analysis.websiteUrl)
     );
 
     // Normalize cons with source attribution and guardrail
     const rawNormalizedCons = (analysis.cons || []).map((claim: string | ClaimWithSource) =>
-      normalizeClaim(claim, sources, analysis.websiteUrl)
+      normalizeClaim(claim, sourcesList, analysis.websiteUrl)
     );
 
     // Apply negative sentiment guardrail to cons
-    const validCons: ClaimWithSource[] = [];
     for (const con of rawNormalizedCons) {
-      const validation = validateNegativeClaim(con, sources);
+      const validation = validateNegativeClaim(con, sourcesList);
       if (validation.isValid) {
         validCons.push(con);
       } else {
@@ -521,6 +522,18 @@ export async function executePersistencePhase(
       deps.log(`[Discovery Review] Created: ${review.id} (${reviewStatus})`);
     }
 
+    await persistArticleInsights({
+      deps,
+      itemId: item.id,
+      contextId: null,
+      analysis,
+    });
+
+    const suggestedContexts = await suggestContextIdeas(ctx, analysis, deps);
+    if (suggestedContexts.length > 0) {
+      deps.log(`[Discovery Hunt] Suggested ${suggestedContexts.length} context ideas for gatekeeper`);
+    }
+
     deps.log('[Phase 3] Complete - Discovery review created');
     return {
       toolId: item.id,
@@ -561,6 +574,12 @@ export async function executePersistencePhase(
   );
 
   deps.log(`Review created: ${reviewId}`);
+  await persistArticleInsights({
+    deps,
+    itemId: item.id,
+    contextId,
+    analysis,
+  });
   deps.log(`[Phase 3] Complete`);
 
   return {
@@ -569,6 +588,202 @@ export async function executePersistencePhase(
     reviewId,
     wasReused,
   };
+}
+
+async function persistArticleInsights({
+  deps,
+  itemId,
+  contextId,
+  analysis,
+}: {
+  deps: HunterDependencies;
+  itemId: string;
+  contextId: string | null;
+  analysis: any;
+}): Promise<void> {
+  if (!analysis) return;
+
+  const insights: Array<Record<string, unknown>> = [];
+
+  if (analysis.verdict) {
+    insights.push({
+      insight_type: 'verdict',
+      insight: analysis.verdict,
+    });
+  }
+
+  const humanVerdict = analysis.reviewContext?.humanVerdict;
+  if (humanVerdict) {
+    insights.push({
+      insight_type: 'human_verdict',
+      insight: humanVerdict,
+    });
+  }
+
+  if (Array.isArray(analysis.vetoLogic)) {
+    for (const veto of analysis.vetoLogic) {
+      if (!veto?.condition || !veto?.alternative || !veto?.reason) continue;
+      insights.push({
+        insight_type: 'veto',
+        insight: `Switch to ${veto.alternative} if ${veto.condition}. ${veto.reason}`,
+        source_url: veto.source_url || null,
+      });
+    }
+  }
+
+  if (Array.isArray(analysis.realityChecks)) {
+    for (const check of analysis.realityChecks) {
+      if (!check?.claim || !check?.reality) continue;
+      const impact = check.impact ? ` Impact: ${check.impact}` : '';
+      insights.push({
+        insight_type: 'reality_check',
+        insight: `Claim: ${check.claim}. Reality: ${check.reality}.${impact}`,
+        source_url: check.source_url || null,
+      });
+    }
+  }
+
+  if (Array.isArray(analysis.dealbreakers)) {
+    for (const dealbreaker of analysis.dealbreakers) {
+      if (!dealbreaker) continue;
+      insights.push({
+        insight_type: 'dealbreaker',
+        insight: dealbreaker,
+      });
+    }
+  }
+
+  if (Array.isArray(analysis.standoutFeatures)) {
+    for (const feature of analysis.standoutFeatures) {
+      if (!feature) continue;
+      insights.push({
+        insight_type: 'standout_feature',
+        insight: feature,
+      });
+    }
+  }
+
+  if (insights.length === 0) return;
+
+  const payload = insights.map((insight) => ({
+    item_id: itemId,
+    context_id: contextId,
+    tags: [],
+    ...insight,
+  }));
+
+  const { error } = await deps.supabase.from('article_insights').insert(payload);
+  if (error) {
+    deps.log(`[Insights] Warning: Failed to store article insights: ${error.message}`);
+  } else {
+    deps.log(`[Insights] Stored ${payload.length} article insights`);
+  }
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .split(/\s+/)
+    .map(word => (word ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(' ');
+}
+
+function normalizeContextSlug(contextTitle: string): string {
+  let slug = slugify(contextTitle);
+  if (slug.startsWith('best-')) {
+    slug = slug.replace(/^best-/, '');
+  }
+  return slug;
+}
+
+function buildContextCandidates(analysis: any): string[] {
+  const rawNoun = typeof analysis?.titleParts?.noun === 'string'
+    ? analysis.titleParts.noun.trim()
+    : '';
+  const functionTag = analysis?.graphTags?.functions?.[0];
+
+  let noun = rawNoun;
+  if (!noun && typeof functionTag === 'string' && functionTag.trim()) {
+    noun = toTitleCase(functionTag.trim());
+    if (!/(apps|software|tools|platforms|systems|suites)$/i.test(noun)) {
+      noun = `${noun} Tools`;
+    }
+  }
+
+  if (!noun) return [];
+
+  const contexts = new Set<string>();
+  contexts.add(`Best ${noun}`);
+
+  const audiences = Array.isArray(analysis?.graphTags?.audiences)
+    ? analysis.graphTags.audiences.filter((aud: string) => typeof aud === 'string' && aud.trim())
+    : [];
+
+  for (const audience of audiences.slice(0, 2)) {
+    contexts.add(`Best ${noun} for ${toTitleCase(audience.trim())}`);
+  }
+
+  return Array.from(contexts).slice(0, 3);
+}
+
+async function suggestContextIdeas(
+  ctx: HunterContext,
+  analysis: any,
+  deps: HunterDependencies
+): Promise<string[]> {
+  const candidates = buildContextCandidates(analysis);
+  if (candidates.length === 0) return [];
+
+  const candidateSlugs = candidates.map(normalizeContextSlug);
+
+  const { data: existingContexts } = await deps.supabase
+    .from('contexts')
+    .select('slug')
+    .in('slug', candidateSlugs)
+    .limit(candidateSlugs.length);
+
+  const existingContextSlugs = new Set((existingContexts || []).map(c => c.slug));
+  const remainingCandidates = candidates.filter((candidate, index) =>
+    !existingContextSlugs.has(candidateSlugs[index])
+  );
+
+  if (remainingCandidates.length === 0) return [];
+
+  const { data: ideasByContext } = await deps.supabase
+    .from('content_ideas')
+    .select('context_query')
+    .in('context_query', remainingCandidates)
+    .limit(remainingCandidates.length);
+
+  const { data: ideasByKeyword } = await deps.supabase
+    .from('content_ideas')
+    .select('keyword')
+    .in('keyword', remainingCandidates)
+    .limit(remainingCandidates.length);
+
+  const existingIdeaSet = new Set<string>([
+    ...(ideasByContext || []).map(idea => idea.context_query).filter(Boolean),
+    ...(ideasByKeyword || []).map(idea => idea.keyword).filter(Boolean),
+  ]);
+
+  const insertable = remainingCandidates.filter(candidate => !existingIdeaSet.has(candidate));
+  if (insertable.length === 0) return [];
+
+  const { error: insertError } = await deps.supabase
+    .from('content_ideas')
+    .insert(insertable.map(candidate => ({
+      keyword: candidate,
+      tool_name: ctx.toolName,
+      context_query: candidate,
+      source: 'suggestion',
+      notes: `Auto-suggested from discovery hunt (${ctx.toolName})`,
+    })));
+
+  if (insertError) {
+    deps.log(`[Discovery Hunt] Warning: Failed to insert context ideas: ${insertError.message}`);
+    return [];
+  }
+
+  return insertable;
 }
 
 async function updatePricingOnly(
@@ -778,32 +993,12 @@ async function createGraphLinks(
 ): Promise<void> {
   deps.log('Creating Knowledge Graph links...');
 
-  // Link functions
-  for (const fn of graphTags.functions) {
-    await deps.supabase.rpc('link_item_to_category', {
-      p_item_id: itemId,
-      p_category_name: fn,
-      p_category_type: 'function',
-    });
-  }
-
-  // Link audiences
-  for (const aud of graphTags.audiences) {
-    await deps.supabase.rpc('link_item_to_category', {
-      p_item_id: itemId,
-      p_category_name: aud,
-      p_category_type: 'audience',
-    });
-  }
-
-  // Link platforms
-  for (const plat of graphTags.platforms) {
-    await deps.supabase.rpc('link_item_to_category', {
-      p_item_id: itemId,
-      p_category_name: plat,
-      p_category_type: 'platform',
-    });
-  }
+  await deps.supabase.rpc('link_item_to_categories', {
+    p_item_id: itemId,
+    p_functions: graphTags.functions,
+    p_audiences: graphTags.audiences,
+    p_platforms: graphTags.platforms,
+  });
 
   deps.log(`Linked ${graphTags.functions.length} functions, ${graphTags.audiences.length} audiences, ${graphTags.platforms.length} platforms`);
 }
@@ -818,25 +1013,20 @@ async function findSimilarContext(
 ): Promise<{ id: string; title: string } | null> {
   deps.log(`Checking for similar contexts: "${contextTitle}"`);
 
-  const { data: contexts } = await deps.supabase.from('contexts').select('id, title, slug');
+  const { data, error } = await deps.supabase.rpc('find_similar_context', {
+    p_context_title: contextTitle,
+    p_threshold: threshold,
+  });
 
-  if (!contexts || contexts.length === 0) return null;
+  if (error) {
+    deps.log(`⚠️ Similar context lookup failed: ${error.message}`);
+    return null;
+  }
 
-  const normalize = (t: string) =>
-    t.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
-
-  const newWords = new Set(normalize(contextTitle).split(' '));
-
-  for (const ctx of contexts) {
-    const existingWords = new Set(normalize(ctx.title).split(' '));
-    const intersection = new Set([...newWords].filter((w) => existingWords.has(w)));
-    const union = new Set([...newWords, ...existingWords]);
-    const similarity = intersection.size / union.size;
-
-    if (similarity >= threshold) {
-      deps.log(`Found similar context: "${ctx.title}" (${(similarity * 100).toFixed(1)}% match)`);
-      return { id: ctx.id, title: ctx.title };
-    }
+  if (data && data.length > 0) {
+    const match = data[0];
+    deps.log(`Found similar context: "${match.title}" (${(match.similarity * 100).toFixed(1)}% match)`);
+    return { id: match.id, title: match.title };
   }
 
   return null;
@@ -918,7 +1108,7 @@ async function createNewContext(
  */
 function normalizeClaim(
   claim: string | ClaimWithSource,
-  sources: Array<{ url: string; title: string; snippet: string; domain: string }>,
+  sources: Array<{ url: string; title: string; snippet: string; domain: string; retrieved_at?: string; published_at?: string; time_since?: string }>,
   toolWebsite?: string
 ): ClaimWithSource {
   // Current timestamp for time-bound defense
@@ -978,7 +1168,7 @@ function normalizeClaim(
  */
 function validateNegativeClaim(
   claim: ClaimWithSource,
-  allSources: Array<{ url: string; title: string; snippet: string; domain: string }>
+  allSources: Array<{ url: string; title: string; snippet: string; domain: string; retrieved_at?: string; published_at?: string; time_since?: string }>
 ): { isValid: boolean; warning?: string; corroboratingSourceCount: number; corroboratingSources?: string[] } {
   // Only apply guardrail to negative opinions from community sources
   // Facts from official sources don't need this check
@@ -1050,7 +1240,7 @@ async function createReview(
   itemId: string,
   contextId: string,
   analysis: any,
-  sources: Array<{ url: string; title: string; snippet: string; domain: string }>,
+  sources: Array<{ url: string; title: string; snippet: string; domain: string; retrieved_at?: string; published_at?: string; time_since?: string }>,
   knowledgeCard: any,
   deps: HunterDependencies
 ): Promise<string> {
