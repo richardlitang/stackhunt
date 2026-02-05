@@ -225,6 +225,21 @@ export class Hunter {
         }
       }
 
+      // Early exit: Defunct tool detected
+      if (ctx.research.defunctStatus?.isDefunct) {
+        const status = ctx.research.defunctStatus;
+        this.log(`⚠️ Defunct tool detected - skipping analysis/persistence`);
+        if (status.shutdownDate) this.log(`   Shutdown: ${status.shutdownDate}`);
+        if (status.reason) this.log(`   Reason: ${status.reason}`);
+
+        return {
+          success: true,
+          defunctStatus: status,
+          tokensUsed: ctx.tokensUsed,
+          durationMs: Date.now() - ctx.startTime,
+        };
+      }
+
       // Early exit: Hard duplicate detected (unless forceUpdate)
       if (ctx.research.isDuplicate && !ctx.forceUpdate) {
         ctx.skipAnalysis = true;
@@ -242,7 +257,7 @@ export class Hunter {
 
       // Pre-flight check: Validate sufficient source material before analysis
       // Saves research for dedup, but skips analysis if insufficient data
-      if (!ctx.skipAnalysis && ctx.research) {
+      if (!ctx.skipAnalysis && ctx.research && ctx.huntType !== 'price_only') {
         const scout = ctx.research.scoutResult;
         const reviewCount = scout.reviewsSnippets.length;
         const tribalCount = scout.tribalKnowledgeSnippets.length;
@@ -387,6 +402,11 @@ export class Hunter {
         tokensUsed: ctx.tokensUsed,
         durationMs: Date.now() - ctx.startTime,
       };
+    } finally {
+      const summary = this.logger?.getSummary();
+      if (summary) {
+        this.logger?.info('Hunt summary', summary);
+      }
     }
   }
 
@@ -432,16 +452,26 @@ export class Hunter {
 
       // Update queue item status
       if (result.success) {
-        await this.queue.markCompleted(
-          queueItem.id,
-          {
-            toolId: result.toolId,
-            contextId: result.contextId,
-            reviewId: result.reviewId,
-            tokensUsed: result.tokensUsed,
-          },
-          this.log.bind(this)
-        );
+        if (result.defunctStatus?.isDefunct) {
+          await this.queue.markDefunct(
+            queueItem.id,
+            result.defunctStatus,
+            result.tokensUsed,
+            this.log.bind(this)
+          );
+          await this.queue.clearCheckpoint(queueItem.id, this.log.bind(this));
+        } else {
+          await this.queue.markCompleted(
+            queueItem.id,
+            {
+              toolId: result.toolId,
+              contextId: result.contextId,
+              reviewId: result.reviewId,
+              tokensUsed: result.tokensUsed,
+            },
+            this.log.bind(this)
+          );
+        }
 
         // Cross-pollinate discovery hunts to other relevant contexts
         if (queueItem.is_discovery_hunt && result.toolId && result.contextId) {

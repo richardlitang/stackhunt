@@ -41,6 +41,9 @@ export interface SearchResult {
     title: string;
     snippet: string;
     domain: string;
+    retrieved_at?: string;
+    published_at?: string;
+    time_since?: string;
   }>;
   video?: VideoResult;
   // Deep-dive content for pricing pages (full markdown, not just snippets)
@@ -57,15 +60,45 @@ export class SerperService {
     this.apiKey = config.apiKey;
   }
 
+  private static cache = new Map<string, { expiresAt: number; value: SerperResponse }>();
+  private static cacheTtlMs = (() => {
+    const raw = typeof process !== 'undefined' ? process.env.SERPER_CACHE_TTL_MS : undefined;
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 12 * 60 * 60 * 1000;
+  })();
+
+  private static getCached(key: string): SerperResponse | null {
+    const entry = SerperService.cache.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt <= Date.now()) {
+      SerperService.cache.delete(key);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private static setCached(key: string, value: SerperResponse): void {
+    SerperService.cache.set(key, {
+      value,
+      expiresAt: Date.now() + SerperService.cacheTtlMs,
+    });
+  }
+
   /**
    * Perform a single search query
    */
-  async search(query: string): Promise<SerperResponse> {
+  async search(query: string, options?: { tbs?: string }): Promise<SerperResponse> {
+    const cacheKey = `${query}::${options?.tbs || ''}`;
+    const cached = SerperService.getCached(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     return serperCircuit.execute(async () => {
       try {
         const response = await axios.post<SerperResponse>(
           'https://google.serper.dev/search',
-          { q: query, num: 10 },
+          { q: query, num: 10, tbs: options?.tbs },
           {
             headers: {
               'X-API-KEY': this.apiKey,
@@ -74,6 +107,7 @@ export class SerperService {
             timeout: 30000, // 30 second timeout
           }
         );
+        SerperService.setCached(cacheKey, response.data);
         return response.data;
       } catch (error) {
         throw classifySerperError(error);
@@ -201,63 +235,144 @@ export class SerperService {
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
     dossierQueries?: string[] // NEW: Pre-generated queries from Classifier's Research Dossier
   ): Promise<SearchResult> {
-    // If we have dossier queries from the Classifier, use those instead of generic ones
-    // This moves strategic thinking from the expensive Hunter phase to the cheap Classifier phase
-    const queries = dossierQueries && dossierQueries.length > 0
-      ? [
-          // Use the targeted dossier queries (3-5 queries)
-          ...dossierQueries,
+    type QueryType =
+      | 'reviews'
+      | 'pricing'
+      | 'pricing_compare'
+      | 'alternatives'
+      | 'company'
+      | 'technical'
+      | 'release_notes'
+      | 'budget_hidden'
+      | 'budget_setup'
+      | 'tribal_reddit_hate'
+      | 'tribal_hn_pricing'
+      | 'tribal_reddit_vs'
+      | 'tribal_reddit_gotchas'
+      | 'corp_profiler'
+      | 'dossier';
 
-          // Always append these universal queries (TRIBAL KNOWLEDGE - Deep discussions)
-          `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues"`,
-          `site:news.ycombinator.com "${toolName}" pricing OR limits`,
-          `site:reddit.com "${toolName}" "wish I knew" OR "gotcha"`,
+    const classifyDossierQuery = (query: string): QueryType => {
+      const q = query.toLowerCase();
+      if (q.includes('release notes') || q.includes('changelog') || q.includes('updates') || q.includes('release')) {
+        return 'release_notes';
+      }
+      if (q.includes('pricing') || q.includes('price') || q.includes('plans') || q.includes('cost')) {
+        return q.includes('annual') || q.includes('monthly') ? 'pricing_compare' : 'pricing';
+      }
+      if (q.includes('alternative') || q.includes('competitor') || q.includes('vs')) {
+        return 'alternatives';
+      }
+      if (q.includes('company') || q.includes('funding') || q.includes('headquarter') || q.includes('employees')) {
+        return 'company';
+      }
+      if (q.includes('api') || q.includes('integration') || q.includes('export') || q.includes('import')) {
+        return 'technical';
+      }
+      if (q.includes('review') || q.includes('ratings')) {
+        return 'reviews';
+      }
+      return 'dossier';
+    };
 
-          // Always append Corporate Profiler query (prevents hallucination)
-          `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
-        ]
-      : [
-          // FALLBACK: Generic queries (used if dossier is missing/invalid)
-          `${toolName} reviews ${contextTitle || ''}`.trim(),
-          `${toolName} pricing plans features`,
-          `${toolName} pricing annual vs monthly cost`,
-          `${toolName} alternatives competitors vs`,
-          `${toolName} company founded funding headquarters`,
-          `${toolName} API integrations data export import`,
+    const recencyTbsForType = (type: QueryType): string | undefined => {
+      const recentTypes: QueryType[] = [
+        'pricing',
+        'pricing_compare',
+        'company',
+        'release_notes',
+      ];
+      return recentTypes.includes(type) ? 'qdr:y' : undefined;
+    };
 
-          // Budget Analyst queries (TCO & hidden costs)
-          `${toolName} hidden costs billing logic`,
-          `${toolName} implementation fees setup cost minimum seats`,
-
-          // User Advocate queries (TRIBAL KNOWLEDGE - Target the nerds, not SEO blogs)
-          `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues" -intitle:"alternatives"`,
-          `site:news.ycombinator.com "${toolName}" pricing OR limits OR "rate limit"`,
-          `site:reddit.com "${toolName} vs" OR "switched from" OR "switched to"`,
-          `site:reddit.com "${toolName}" "wish I knew" OR "gotcha" OR "warning"`,
-
-          // V4: Corporate Profiler query (prevents employee count hallucination)
-          `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+    const buildQueryPlans = (): {
+      core: Array<{ type: QueryType; query: string }>;
+      supplemental: Array<{ type: QueryType; query: string }>;
+    } => {
+      if (dossierQueries && dossierQueries.length > 0) {
+        const core = [
+          ...dossierQueries.map((query) => ({ type: classifyDossierQuery(query), query })),
+          { type: 'tribal_reddit_hate', query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues"` },
         ];
+        const supplemental = [
+          { type: 'tribal_hn_pricing', query: `site:news.ycombinator.com "${toolName}" pricing OR limits` },
+          { type: 'tribal_reddit_gotchas', query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha"` },
+          { type: 'corp_profiler', query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn` },
+          { type: 'release_notes', query: `"${toolName}" release notes OR changelog OR updates` },
+        ];
+        return { core, supplemental };
+      }
+
+      const core = [
+        { type: 'reviews', query: `${toolName} reviews ${contextTitle || ''}`.trim() },
+        { type: 'pricing', query: `${toolName} pricing plans features` },
+        { type: 'pricing_compare', query: `${toolName} pricing annual vs monthly cost` },
+        { type: 'alternatives', query: `${toolName} alternatives competitors vs` },
+        { type: 'company', query: `${toolName} company founded funding headquarters` },
+        { type: 'technical', query: `${toolName} API integrations data export import` },
+      ];
+
+      const supplemental = [
+        { type: 'budget_hidden', query: `${toolName} hidden costs billing logic` },
+        { type: 'budget_setup', query: `${toolName} implementation fees setup cost minimum seats` },
+        { type: 'tribal_reddit_hate', query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues" -intitle:"alternatives"` },
+        { type: 'tribal_hn_pricing', query: `site:news.ycombinator.com "${toolName}" pricing OR limits OR "rate limit"` },
+        { type: 'tribal_reddit_vs', query: `site:reddit.com "${toolName} vs" OR "switched from" OR "switched to"` },
+        { type: 'tribal_reddit_gotchas', query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha" OR "warning"` },
+        { type: 'corp_profiler', query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn` },
+        { type: 'release_notes', query: `"${toolName}" release notes OR changelog OR updates` },
+      ];
+      return { core, supplemental };
+    };
+
+    const { core: corePlan, supplemental: supplementalPlan } = buildQueryPlans();
 
     // Execute searches with rate limiting (with retry if provided)
-    const [results, video] = await Promise.all([
-      // Web searches - rate limited to prevent API throttling
+    const executePlan = (plan: Array<{ type: QueryType; query: string }>) =>
       serperRateLimiter.executeAll(
-        queries.map((q) => () => {
-          const searchFn = () => this.search(q);
-          return withRetry ? withRetry(searchFn, `Search: ${q}`) : searchFn();
+        plan.map(({ query, type }) => () => {
+          const searchFn = () => this.search(query, { tbs: recencyTbsForType(type) });
+          return withRetry ? withRetry(searchFn, `Search: ${query}`) : searchFn();
         })
-      ),
-      // Video search (runs in parallel with web searches)
+      );
+
+    const [coreResults, video] = await Promise.all([
+      executePlan(corePlan),
       this.searchVideos(`${toolName} demo tutorial overview`),
     ]);
 
-    // Include URL in snippets so AI can cite sources
     const extractSnippets = (response: SerperResponse): string[] =>
       response.organic?.slice(0, 5).map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
 
+    const coreSnippets = coreResults.flatMap(extractSnippets);
+    const coreDomains = new Set(
+      coreResults.flatMap(r => r.organic || []).map(r => {
+        try {
+          return new URL(r.link).hostname.replace(/^www\./, '');
+        } catch {
+          return '';
+        }
+      }).filter(Boolean)
+    );
+
+    const shouldRunSupplemental =
+      coreSnippets.length < 18 || coreDomains.size < 7;
+
+    const supplementalResults = shouldRunSupplemental
+      ? await executePlan(supplementalPlan)
+      : [];
+
+    if (!shouldRunSupplemental) {
+      console.log(`[Serper] Skipping supplemental queries (core coverage: ${coreSnippets.length} snippets, ${coreDomains.size} domains)`);
+    }
+
+    // Include URL in snippets so AI can cite sources
+    const results = [...coreResults, ...supplementalResults];
+    const queryPlan = [...corePlan, ...supplementalPlan];
+
     // Extract sources for storage (deduplicated by URL)
-    const sourceMap = new Map<string, { url: string; title: string; snippet: string; domain: string }>();
+    const retrievedAt = new Date().toISOString();
+    const sourceMap = new Map<string, { url: string; title: string; snippet: string; domain: string; retrieved_at: string; published_at?: string; time_since?: string }>();
     for (const response of results) {
       for (const result of response.organic?.slice(0, 5) || []) {
         if (!sourceMap.has(result.link)) {
@@ -268,6 +383,9 @@ export class SerperService {
               title: result.title,
               snippet: result.snippet,
               domain,
+              retrieved_at: retrievedAt,
+              published_at: (result as any).date || (result as any).dateString || undefined,
+              time_since: (result as any).timeSince || undefined,
             });
           } catch {
             // Skip invalid URLs
@@ -276,13 +394,25 @@ export class SerperService {
       }
     }
 
+    const resultsByType = new Map<QueryType, SerperResponse[]>();
+    queryPlan.forEach((plan, index) => {
+      const bucket = resultsByType.get(plan.type) || [];
+      const result = results[index];
+      if (result) {
+        bucket.push(result);
+        resultsByType.set(plan.type, bucket);
+      }
+    });
+
+    const getSnippetsForTypes = (types: QueryType[]) =>
+      types.flatMap((type) => (resultsByType.get(type) || []).flatMap(extractSnippets));
+
+    const getOrganicForTypes = (types: QueryType[]) =>
+      types.flatMap((type) => (resultsByType.get(type) || []).flatMap((r) => r.organic || []));
+
     // DEEP DIVE: Scrape pricing pages for full content
-    // Combine results from pricing queries (index 1 and 2)
-    const pricingResults = [
-      ...(results[1]?.organic || []),
-      ...(results[2]?.organic || []),
-    ];
-    const pricingUrls = identifyPricingUrls(pricingResults, 3);
+    const pricingResults = getOrganicForTypes(['pricing', 'pricing_compare']);
+    const pricingUrls = identifyPricingUrls(pricingResults, coreSnippets.length >= 24 ? 2 : 3);
 
     let pricingDeepContent: string | undefined;
     if (pricingUrls.length > 0) {
@@ -304,28 +434,23 @@ export class SerperService {
       }
     }
 
-    // Combine Budget Analyst queries (hidden costs + implementation fees)
-    const budgetAnalystSnippets = [
-      ...extractSnippets(results[6]),  // hidden costs
-      ...extractSnippets(results[7]),  // implementation fees
-    ];
+    const budgetAnalystSnippets = getSnippetsForTypes(['budget_hidden', 'budget_setup']);
 
-    // Combine User Advocate queries (Reddit + HN - SNIPPETS for fallback)
-    const tribalKnowledgeSnippets = [
-      ...extractSnippets(results[8]),   // reddit hate search
-      ...extractSnippets(results[9]),   // HN pricing/limits
-      ...extractSnippets(results[10]),  // reddit comparisons
-      ...extractSnippets(results[11]),  // reddit gotchas
-    ];
+    const tribalKnowledgeSnippets = getSnippetsForTypes([
+      'tribal_reddit_hate',
+      'tribal_hn_pricing',
+      'tribal_reddit_vs',
+      'tribal_reddit_gotchas',
+    ]);
 
     // DEEP DIVE: Scrape tribal threads for FULL discussions (not snippets)
     // This is the "Source Resolution" fix - we need actual content, not 160-char snippets
-    const tribalResults = [
-      ...(results[8]?.organic || []),   // reddit hate search
-      ...(results[9]?.organic || []),   // HN pricing
-      ...(results[10]?.organic || []),  // reddit vs
-      ...(results[11]?.organic || []),  // reddit gotchas
-    ];
+    const tribalResults = getOrganicForTypes([
+      'tribal_reddit_hate',
+      'tribal_hn_pricing',
+      'tribal_reddit_vs',
+      'tribal_reddit_gotchas',
+    ]);
 
     // Filter to ONLY reddit.com and news.ycombinator.com (the nerds, not marketers)
     const tribalUrls = tribalResults
@@ -341,7 +466,8 @@ export class SerperService {
       .map((r) => r.link);
 
     let tribalDeepContent: string | undefined;
-    if (tribalUrls.length > 0) {
+    const shouldDeepReadTribal = tribalUrls.length >= 2 && shouldRunSupplemental;
+    if (shouldDeepReadTribal) {
       console.log(`[Serper] Deep reading ${tribalUrls.length} tribal threads (Reddit/HN)...`);
       const scrapedThreads = await Promise.all(
         tribalUrls.map(async (url) => {
@@ -367,14 +493,20 @@ export class SerperService {
     }
 
     // V4: Corporate Profiler query (employee counts, stock ticker, official data)
-    const corporateProfilerSnippets = extractSnippets(results[12]);
+    const corporateProfilerSnippets = getSnippetsForTypes(['corp_profiler']);
+
+    const reviewsSnippets = getSnippetsForTypes(['reviews', 'dossier']);
+    const pricingSnippets = getSnippetsForTypes(['pricing', 'pricing_compare']);
+    const alternativesSnippets = getSnippetsForTypes(['alternatives']);
+    const companySnippets = getSnippetsForTypes(['company']);
+    const technicalSnippets = getSnippetsForTypes(['technical', 'release_notes']);
 
     return {
-      reviewsSnippets: extractSnippets(results[0]),
-      pricingSnippets: extractSnippets(results[1]),
-      alternativesSnippets: extractSnippets(results[3]),
-      companySnippets: extractSnippets(results[4]),
-      technicalSnippets: extractSnippets(results[5]),
+      reviewsSnippets,
+      pricingSnippets,
+      alternativesSnippets,
+      companySnippets,
+      technicalSnippets,
       budgetAnalystSnippets,
       tribalKnowledgeSnippets,
       corporateProfilerSnippets,
@@ -383,6 +515,89 @@ export class SerperService {
       video: video || undefined,
       pricingDeepContent,
       tribalDeepContent, // V6: Full Reddit/HN threads (not snippets) for authentic insights
+    };
+  }
+
+  /**
+   * Scout for pricing-only refreshes (minimal query set + deep pricing scrape)
+   */
+  async scoutPricingOnly(
+    toolName: string,
+    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
+  ): Promise<SearchResult> {
+    const queryPlan = [
+      { type: 'pricing', query: `${toolName} pricing plans features` },
+      { type: 'pricing_compare', query: `${toolName} pricing annual vs monthly cost` },
+    ];
+
+    const results = await serperRateLimiter.executeAll(
+      queryPlan.map(({ query }) => () => {
+        const searchFn = () => this.search(query, { tbs: 'qdr:y' });
+        return withRetry ? withRetry(searchFn, `Search: ${query}`) : searchFn();
+      })
+    );
+
+    const extractSnippets = (response: SerperResponse): string[] =>
+      response.organic?.slice(0, 5).map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
+
+    const retrievedAt = new Date().toISOString();
+    const sourceMap = new Map<string, { url: string; title: string; snippet: string; domain: string; retrieved_at: string; published_at?: string; time_since?: string }>();
+    for (const response of results) {
+      for (const result of response.organic?.slice(0, 5) || []) {
+        if (!sourceMap.has(result.link)) {
+          try {
+            const domain = new URL(result.link).hostname.replace(/^www\./, '');
+            sourceMap.set(result.link, {
+              url: result.link,
+              title: result.title,
+              snippet: result.snippet,
+              domain,
+              retrieved_at: retrievedAt,
+              published_at: (result as any).date || (result as any).dateString || undefined,
+              time_since: (result as any).timeSince || undefined,
+            });
+          } catch {
+            // Skip invalid URLs
+          }
+        }
+      }
+    }
+
+    const pricingResults = results.flatMap((r) => r.organic || []);
+    const pricingUrls = identifyPricingUrls(pricingResults, 3);
+
+    let pricingDeepContent: string | undefined;
+    if (pricingUrls.length > 0) {
+      console.log(`[Serper] Deep diving into ${pricingUrls.length} pricing pages...`);
+      const scrapedPages = await Promise.all(
+        pricingUrls.map(async (url) => {
+          const content = await scrapeUrl(url);
+          if (content) {
+            return `\n=== PRICING PAGE: ${url} ===\n${content}\n`;
+          }
+          return null;
+        })
+      );
+
+      const validContent = scrapedPages.filter(Boolean).join('\n');
+      if (validContent) {
+        pricingDeepContent = validContent;
+        console.log(`[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingUrls.length} pricing pages successfully`);
+      }
+    }
+
+    return {
+      reviewsSnippets: [],
+      pricingSnippets: results.flatMap(extractSnippets),
+      alternativesSnippets: [],
+      companySnippets: [],
+      technicalSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      corporateProfilerSnippets: [],
+      rawResponses: results,
+      sources: Array.from(sourceMap.values()),
+      pricingDeepContent,
     };
   }
 

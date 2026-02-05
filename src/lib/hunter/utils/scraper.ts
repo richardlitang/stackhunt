@@ -14,6 +14,17 @@ export interface ScrapeResult {
   error?: string;
 }
 
+const SCRAPER_CACHE_TTL_MS = (() => {
+  const raw = typeof process !== 'undefined' ? process.env.SCRAPER_CACHE_TTL_MS : undefined;
+  const parsed = raw ? Number(raw) : NaN;
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+  return 24 * 60 * 60 * 1000;
+})();
+
+const SCRAPER_CACHE = new Map<string, { expiresAt: number; content: string | null }>();
+
 /**
  * Uses Jina.ai Reader to convert a URL into clean Markdown.
  * Includes timeout to prevent pipeline hangs.
@@ -26,6 +37,13 @@ export async function scrapeUrl(
   url: string,
   timeoutMs = 10000
 ): Promise<string | null> {
+  if (SCRAPER_CACHE_TTL_MS > 0) {
+    const cached = SCRAPER_CACHE.get(url);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.content;
+    }
+  }
+
   const jinaUrl = `https://r.jina.ai/${url}`;
 
   try {
@@ -55,12 +73,25 @@ export async function scrapeUrl(
       return text.substring(0, maxLength) + '\n...[TRUNCATED]';
     }
 
+    if (SCRAPER_CACHE_TTL_MS > 0) {
+      SCRAPER_CACHE.set(url, {
+        content: text,
+        expiresAt: Date.now() + SCRAPER_CACHE_TTL_MS,
+      });
+    }
+
     return text;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       console.warn(`[Scraper] Timeout for ${url}`);
     } else {
       console.warn(`[Scraper] Error for ${url}:`, error);
+    }
+    if (SCRAPER_CACHE_TTL_MS > 0) {
+      SCRAPER_CACHE.set(url, {
+        content: null,
+        expiresAt: Date.now() + Math.min(SCRAPER_CACHE_TTL_MS, 5 * 60 * 1000),
+      });
     }
     return null;
   }

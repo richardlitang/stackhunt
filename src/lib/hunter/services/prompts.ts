@@ -414,6 +414,16 @@ TEMPLATE (follow EXACTLY):
 
 **TEST: Can a CTO make a go/no-go decision from this sentence alone? If not, add more constraints.**
 
+## DECISION QUALITY (FOR USERS + SEO)
+
+Your output should help a buyer decide in under 60 seconds. In the summary, include:
+1. A hard ceiling (numeric limit, cap, or constraint).
+2. A price-to-value signal (specific $ or unit cost vs the capability).
+3. An implementation friction point (setup time, admin requirement, or integration complexity).
+
+Also include 3 short bullet "Decision Factors" in the summary with concrete nouns and numbers.
+Avoid generic SEO padding. Use real product terms and common use-case keywords.
+
 Output ONLY valid JSON matching this exact schema:
 {
   "score": <number 0-100>,
@@ -433,7 +443,7 @@ Output ONLY valid JSON matching this exact schema:
       "claim_type": "<fact|opinion>"
     }
   ],  // MAXIMUM 5 cons - prioritize most important if you have more. CRITICAL: Community-sourced cons MUST be hedged for legal protection.
-  "summary": "<150-300 word Markdown TL;DR. CRITICAL: Use Cynical CTO voice (RULE 1-4). Lead with hard limits and veto conditions. NO generic praise ('solid choice', 'great tool'). Structure: 1) Tool's hard ceiling (with numbers), 2) Who it's perfect for (with thresholds), 3) When to switch away (with alternative). LEGAL: Hedge all negative claims from community sources. Example opening: 'Claude Sonnet 4.5 caps at 200k context windows and rate-limits Pro users to ~500 messages/day. If you're processing multi-million token datasets, switch to Gemini 2.0 (2M context, $1.20/1M vs $3/1M). For teams building agentic workflows who can tolerate rate limits, it's the current reasoning leader (87% on GPQA vs 83% for GPT-4).'>"
+  "summary": "<150-300 word Markdown TL;DR. CRITICAL: Use Cynical CTO voice (RULE 1-4). Lead with hard limits and veto conditions. NO generic praise ('solid choice', 'great tool'). Structure: 1) Tool's hard ceiling (with numbers), 2) Who it's perfect for (with thresholds), 3) When to switch away (with alternative). Include a 3-bullet 'Decision Factors' list with concrete numbers. LEGAL: Hedge all negative claims from community sources. Example opening: 'Claude Sonnet 4.5 caps at 200k context windows and rate-limits Pro users to ~500 messages/day. If you're processing multi-million token datasets, switch to Gemini 2.0 (2M context, $1.20/1M vs $3/1M). For teams building agentic workflows who can tolerate rate limits, it's the current reasoning leader (87% on GPQA vs 83% for GPT-4).'>"
   "sentimentTags": [<EXACTLY 3-5 lowercase tags like "easy-to-use", "expensive", "feature-rich". NO MORE THAN 5>],
   "pricingType": "<free|freemium|paid|enterprise|open_source>",
   "websiteUrl": "<official website URL if found>",
