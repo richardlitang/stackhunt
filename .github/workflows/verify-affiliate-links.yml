@@ -1,10 +1,7 @@
 name: Verify Affiliate Links
 
-# Run daily at 3:00 AM UTC
 on:
-  schedule:
-    - cron: '0 3 * * *'
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch: # Manual trigger only (schedule disabled)
 
 jobs:
   verify-links:
