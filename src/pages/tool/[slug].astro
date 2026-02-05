@@ -225,6 +225,46 @@ const schemas = [
 ];
 
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
+
+const hasAbout = Boolean(tool.long_description || tool.short_description || knowledgeCard?.tagline);
+const hasVerdict = Boolean(firstReview?.summary_markdown);
+const hasStrengths = Boolean((globalPros.length > 0 || globalCons.length > 0) || (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0)));
+const hasFeatures = Boolean(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0);
+const hasGettingStarted = Boolean(knowledgeCard?.setup_complexity);
+const hasSpecs = Boolean(categorySpecificData || vipSpecifics);
+const hasPricing = Boolean(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0);
+const hasPlatform = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
+const hasVideo = Boolean(tool.video_id);
+const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
+const hasCommunity = true;
+
+const faqItems: Array<{ question: string; answer: string }> = [];
+if (tool.pricing_type) {
+  const pricingAnswer = tool.pricing_type === 'free'
+    ? `${tool.name} is completely free to use.`
+    : tool.pricing_type === 'freemium'
+      ? `${tool.name} offers a free tier with paid plans available for additional features.`
+      : tool.pricing_type === 'paid'
+        ? `${tool.name} is a paid service. Check their official pricing page for current rates.`
+        : `${tool.name} offers various pricing options. Visit their website for detailed pricing information.`;
+  faqItems.push({
+    question: `How much does ${tool.name} cost?`,
+    answer: pricingAnswer
+  });
+}
+if (tool.short_description) {
+  faqItems.push({
+    question: `What is ${tool.name}?`,
+    answer: tool.short_description
+  });
+}
+if (tool.category?.name) {
+  faqItems.push({
+    question: `What type of software is ${tool.name}?`,
+    answer: `${tool.name} is ${tool.category.name} software that helps teams and individuals with their workflow.`
+  });
+}
+const hasFAQ = faqItems.length > 0;
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -232,7 +272,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
-    <nav class="mb-6 flex items-center gap-2 text-sm text-zinc-400">
+    <nav class="mb-6 flex items-center gap-2 text-sm text-zinc-400" aria-label="Breadcrumb">
       <a href="/" class="hover:text-hunt-500">Home</a>
       <span>/</span>
       <a href="/tools" class="hover:text-hunt-500">Tools</a>
@@ -378,25 +418,50 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
       </div>
     </header>
 
+    {/* Table of Contents */}
+    <nav class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm" aria-label="On this page">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">On this page</h2>
+      <div class="flex flex-wrap gap-2 text-sm">
+        {hasAbout && <a href="#about" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">About</a>}
+        {hasVerdict && <a href="#verdict" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Verdict</a>}
+        {hasStrengths && <a href="#strengths" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Strengths</a>}
+        {hasFeatures && <a href="#features" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Features</a>}
+        {hasGettingStarted && <a href="#getting-started" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Getting started</a>}
+        {hasSpecs && <a href="#specs" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Specs</a>}
+        {hasPricing && <a href="#pricing-plans" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Pricing</a>}
+        {hasPlatform && <a href="#platform-integrations" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Platforms</a>}
+        {hasVideo && <a href="#video" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Video</a>}
+        {hasAlternatives && <a href="#alternatives" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Alternatives</a>}
+        {hasCommunity && <a href="#community" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Community</a>}
+        {hasFAQ && <a href="#faq" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">FAQ</a>}
+      </div>
+    </nav>
+
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-8 lg:col-span-2">
         {/* About - What is it? (FIRST for users learning about the tool) */}
-        {tool.long_description && (
-          <details class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
+        {hasAbout && (
+          <details id="about" class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
             <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
               <h2 class="text-lg font-semibold text-zinc-100">About {tool.name}</h2>
               <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
             </summary>
-            <div class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
+            {tool.long_description ? (
+              <div class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
+            ) : (
+              <div class="mt-4 text-zinc-300 leading-relaxed">
+                {tool.short_description || knowledgeCard?.tagline || `Overview of ${tool.name}.`}
+              </div>
+            )}
           </details>
         )}
 
         {/* Our Verdict - Quick summary with key points */}
         {firstReview?.summary_markdown && (
-          <section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <section id="verdict" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
             <h2 class="mb-4 text-lg font-semibold text-zinc-100">Our Verdict</h2>
             <div class="prose prose-slate prose-sm max-w-none" set:html={simpleMarkdown(firstReview.summary_markdown)} />
 
@@ -442,7 +507,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         {/* Strengths & Weaknesses - Prefer contextual over global */}
         {((globalPros.length > 0 || globalCons.length > 0) || (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0))) && (
-          <details class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
+          <details id="strengths" class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
             <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
               <div>
                 <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
@@ -474,27 +539,33 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         {/* Features Showcase */}
         {(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0) && (
-          <FeaturesShowcase
-            features={knowledgeCard.features}
-            toolName={tool.name}
-          />
+          <section id="features">
+            <FeaturesShowcase
+              features={knowledgeCard.features}
+              toolName={tool.name}
+            />
+          </section>
         )}
 
         {/* Getting Started - Setup guide with friction score and actual steps */}
         {knowledgeCard?.setup_complexity && (
-          <GettingStarted
-            setupComplexity={knowledgeCard.setup_complexity}
-            toolName={tool.name}
-          />
+          <section id="getting-started">
+            <GettingStarted
+              setupComplexity={knowledgeCard.setup_complexity}
+              toolName={tool.name}
+            />
+          </section>
         )}
 
         {/* Technical Specs - Category-specific and VIP tool details */}
-        <DynamicSpecs
-          categorySpecificData={categorySpecificData}
-          specifics={vipSpecifics}
-          toolName={tool.name}
-          categoryName={tool.category?.name}
-        />
+        <section id="specs">
+          <DynamicSpecs
+            categorySpecificData={categorySpecificData}
+            specifics={vipSpecifics}
+            toolName={tool.name}
+            categoryName={tool.category?.name}
+          />
+        </section>
 
         {/* Pricing Plans */}
         {(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) && (
@@ -566,7 +637,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         {/* Platform Support & Integrations */}
         {(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
-          <details class="group" open>
+          <details id="platform-integrations" class="group" open>
             <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
               <h2 class="text-lg font-semibold text-zinc-100">Platform & Integrations</h2>
               <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -585,7 +656,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
         {/* Video Embed - Bottom of content for better UX */}
         {tool.video_id && (
-          <section>
+          <section id="video">
             <h2 class="mb-4 text-lg font-semibold text-zinc-100">Watch {tool.name} in Action</h2>
             <VideoEmbed client:visible id={tool.video_id} title={tool.video_title || `${tool.name} Overview`} />
           </section>
@@ -714,7 +785,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
     {/* Alternatives Section - Hybrid Search Strategy */}
     {orderedAlternatives && orderedAlternatives.length > 0 && (
-      <section class="mt-16">
+      <section id="alternatives" class="mt-16">
         <header class="mb-6">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -754,7 +825,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
     )}
 
     {/* Community Feedback - Compact consolidated section */}
-    <section class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+    <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         {/* Community Signals - Primary action */}
         <div class="flex-1">
@@ -779,6 +850,26 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         </div>
       </div>
     </section>
+
+    {/* FAQ - Visible content to match FAQ schema */}
+    {hasFAQ && (
+      <section id="faq" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
+        <div class="space-y-4">
+          {faqItems.map((item) => (
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4" open>
+              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+                <h3 class="text-sm font-semibold text-zinc-100">{item.question}</h3>
+                <svg class="h-4 w-4 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </summary>
+              <p class="mt-2 text-sm text-zinc-300">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    )}
   </div>
 
   <!-- Suggest Edit Modal -->
