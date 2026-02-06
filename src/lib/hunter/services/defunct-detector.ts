@@ -165,7 +165,7 @@ export async function detectDefunctTool(
         },
       },
     });
-    const text = result.text;
+    const text = result.text || '{}';
     const parsed = JSON.parse(text);
 
     // Validate with Zod
@@ -179,7 +179,12 @@ export async function detectDefunctTool(
       };
     }
 
-    return validated.data;
+    return {
+      ...validated.data,
+      shutdownDate: validated.data.shutdownDate || undefined,
+      reason: validated.data.reason || undefined,
+      evidence: validated.data.evidence || undefined,
+    };
   } catch (error) {
     console.error('[DefunctDetector] Error detecting defunct status:', toolName, error);
     // On error, assume tool is active (fail safe)

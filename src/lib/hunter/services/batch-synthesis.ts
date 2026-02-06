@@ -113,7 +113,7 @@ export class BatchSynthesisService {
 
     try {
       // Create the cache with the Forensic Framework
-      const cache = await this.client.cacheManager.create({
+      const cache = await (this.client as any).cacheManager.create({
         model: 'models/gemini-3-flash-preview',
         displayName: `forensic_${category}_${Date.now()}`,
         systemInstruction: framework.systemInstruction,
@@ -186,7 +186,7 @@ export class BatchSynthesisService {
             return {
               itemId: input.itemId,
               toolName: input.toolName,
-              analysis: validated as HunterAnalysis,
+              analysis: validated as unknown as HunterAnalysis,
             };
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -211,7 +211,7 @@ export class BatchSynthesisService {
     // Cleanup cache
     if (cachedContentName) {
       try {
-        await this.client.cacheManager.delete(cachedContentName);
+      await (this.client as any).cacheManager.delete(cachedContentName);
         console.log(`[Batch] Cache deleted: ${cachedContentName}`);
       } catch (error) {
         console.warn('[Batch] Failed to delete cache (will expire via TTL):', error);
@@ -426,5 +426,5 @@ Output ONLY valid JSON matching the HunterAnalysis schema.`;
   const parsed = JSON.parse(cleaned.trim());
   const validated = AnalysisSchema.parse(parsed);
 
-  return validated as HunterAnalysis;
+  return validated as unknown as HunterAnalysis;
 }

@@ -122,7 +122,8 @@ export function generateToolSchema(tool: Tool, offer?: AffiliateOffer, reviewCou
   }
 
   // Add software version if available in metadata
-  const version = metadata?.company_info?.['latest_version'] || metadata?.version;
+  const companyInfo = (metadata as any)?.company_info as { latest_version?: string; name?: string } | undefined;
+  const version = companyInfo?.latest_version || (metadata as any)?.version;
   if (version && typeof version === 'string') {
     schema.softwareVersion = version;
   }
@@ -133,8 +134,8 @@ export function generateToolSchema(tool: Tool, offer?: AffiliateOffer, reviewCou
   }
 
   // Add author/creator organization
-  if (metadata?.company?.name || metadata?.company_info?.name) {
-    const companyName = (metadata.company as any)?.name || (metadata.company_info as any)?.name;
+  if ((metadata as any)?.company?.name || companyInfo?.name) {
+    const companyName = (metadata as any)?.company?.name || companyInfo?.name;
     schema.author = {
       '@type': 'Organization',
       name: companyName,
@@ -283,7 +284,7 @@ export function generateReviewSchema(tool: Tool, review: Review, contextTitle: s
     },
     reviewRating: {
       '@type': 'Rating',
-      ratingValue: (review.score / 20).toFixed(1), // Convert 0-100 to 0-5
+      ratingValue: ((review.score ?? 0) / 20).toFixed(1), // Convert 0-100 to 0-5
       bestRating: '5',
       worstRating: '1',
     },
@@ -318,7 +319,7 @@ export function generateContextReviewSchemas(
     },
     reviewRating: {
       '@type': 'Rating',
-      ratingValue: (review.score / 20).toFixed(1), // Convert 0-100 to 0-5
+      ratingValue: ((review.score ?? 0) / 20).toFixed(1), // Convert 0-100 to 0-5
       bestRating: '5',
       worstRating: '1',
     },

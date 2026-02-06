@@ -318,14 +318,17 @@ export class SerperService {
       supplemental: Array<{ type: QueryType; query: string }>;
     } => {
       if (dossierQueries && dossierQueries.length > 0) {
-        const core = [
-          ...dossierQueries.map((query) => ({ type: classifyDossierQuery(query), query })),
+        const core: Array<{ type: QueryType; query: string }> = [
+          ...dossierQueries.map((query) => ({
+            type: classifyDossierQuery(query) as QueryType,
+            query,
+          })),
           {
             type: 'tribal_reddit_hate',
             query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues"`,
           },
         ];
-        const supplemental = [
+        const supplemental: Array<{ type: QueryType; query: string }> = [
           {
             type: 'tribal_hn_pricing',
             query: `site:news.ycombinator.com "${toolName}" pricing OR limits`,
@@ -344,7 +347,7 @@ export class SerperService {
         return { core, supplemental };
       }
 
-      const core = [
+      const core: Array<{ type: QueryType; query: string }> = [
         { type: 'reviews', query: `${toolName} reviews ${contextTitle || ''}`.trim() },
         { type: 'pricing', query: `${toolName} pricing plans features` },
         { type: 'pricing_compare', query: `${toolName} pricing annual vs monthly cost` },
@@ -353,7 +356,7 @@ export class SerperService {
         { type: 'technical', query: `${toolName} API integrations data export import` },
       ];
 
-      const supplemental = [
+      const supplemental: Array<{ type: QueryType; query: string }> = [
         { type: 'budget_hidden', query: `${toolName} hidden costs billing logic` },
         { type: 'budget_setup', query: `${toolName} implementation fees setup cost minimum seats` },
         {

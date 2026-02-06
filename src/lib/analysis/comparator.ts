@@ -136,6 +136,10 @@ function difference<T>(a: T[] | undefined, b: T[] | undefined): T[] {
   return a.filter((x) => !setB.has(x));
 }
 
+function normalizeFeatureList(value: unknown): string[] | undefined {
+  return Array.isArray(value) ? (value as string[]) : undefined;
+}
+
 /**
  * Compare features and return structured comparison
  */
@@ -277,7 +281,10 @@ function computeToolComparison(itemA: Item, itemB: Item): ToolComparison {
     type: 'tool',
     items: { a: itemA, b: itemB },
 
-    integrations: compareFeatures(specsA.integrations, specsB.integrations),
+    integrations: compareFeatures(
+      normalizeFeatureList(specsA.integrations),
+      normalizeFeatureList(specsB.integrations)
+    ),
     platforms: compareFeatures(specsA.platforms, specsB.platforms),
     security: compareFeatures(specsA.security, specsB.security),
     support: compareFeatures(specsA.support_options, specsB.support_options),

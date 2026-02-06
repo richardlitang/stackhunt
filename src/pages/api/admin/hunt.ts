@@ -30,7 +30,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   // Rate limit check (30 queue additions/minute)
   const ip = getClientIP(request, clientAddress);
   const hashedIP = hashIdentifier(ip);
-  const rateLimit = await checkRateLimit(hashedIP, '/api/admin/hunt', 30, 60);
+  const rateLimit = await checkRateLimit(hashedIP, '/api/admin/hunt', {
+    maxRequests: 30,
+    windowSeconds: 60,
+  });
 
   if (!rateLimit.allowed) {
     return rateLimitResponse(rateLimit);
@@ -187,7 +190,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 export const GET: APIRoute = async ({ request, clientAddress }) => {
   const ip = getClientIP(request, clientAddress);
   const hashedIP = hashIdentifier(ip);
-  const rateLimit = await checkRateLimit(hashedIP, '/api/admin/hunt', 60, 60);
+  const rateLimit = await checkRateLimit(hashedIP, '/api/admin/hunt', {
+    maxRequests: 60,
+    windowSeconds: 60,
+  });
 
   if (!rateLimit.allowed) {
     return rateLimitResponse(rateLimit);

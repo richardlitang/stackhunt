@@ -94,7 +94,10 @@ export async function executeAnalysisPhase(
         `- url: ${source.url}`,
         `  title: ${source.title}`,
         `  snippet: ${source.snippet}`,
-        `  source_type: ${classifySourceType(source.url, ctx.research?.knowledgeCard?.website_url)}`,
+        `  source_type: ${classifySourceType(
+          source.url,
+          ctx.research?.knowledgeCard?.website_url ?? undefined
+        )}`,
       ].join('\n')
     )
     .join('\n');
@@ -142,17 +145,20 @@ export async function executeAnalysisPhase(
   analysis.knowledgeCard = ctx.research.knowledgeCard;
   if (analysis.faqs && analysis.faqs.length > 0) {
     ctx.research.knowledgeCard.faqs = analysis.faqs
-      .filter((faq) => !!faq.answer_source_url)
-      .map((faq) => ({
+      .filter((faq: any) => !!faq.answer_source_url)
+      .map((faq: any) => ({
         question: faq.question,
         answer: faq.answer,
         question_source: faq.question_source || inferFaqSource(faq.question_source_url),
         question_source_url: faq.question_source_url,
         answer_source_url: faq.answer_source_url,
         answer_source_type: faq.answer_source_type
-          || classifySourceType(faq.answer_source_url, ctx.research?.knowledgeCard?.website_url),
+          || classifySourceType(
+            faq.answer_source_url,
+            ctx.research?.knowledgeCard?.website_url ?? undefined
+          ),
       }))
-      .filter((faq) => faq.question_source && faq.answer_source_url);
+      .filter((faq: any) => faq.question_source && faq.answer_source_url);
   }
 
   deps.log(`[Pass 2] Analysis complete - Score: ${analysis.score}/100`);

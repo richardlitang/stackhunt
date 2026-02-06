@@ -94,7 +94,7 @@ export function evaluateContentConfidence(
   );
   const sourceCount = (firstReview?.sources as unknown[] | undefined)?.length ?? 0;
   const hasSources = sourceCount > 0;
-  const hasKnowledgeCard = knowledgeCard && Object.keys(knowledgeCard).length > 5;
+  const hasKnowledgeCard = !!knowledgeCard && Object.keys(knowledgeCard).length > 5;
   const hasScore = (tool.avg_score ?? 0) > 0;
   const qaScore = calculateQAScore(tool);
 

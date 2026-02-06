@@ -179,7 +179,7 @@ export async function classifyKeyword(
         },
       },
     });
-    const text = result.text;
+    const text = result.text || '';
 
     // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);

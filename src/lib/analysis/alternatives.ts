@@ -15,7 +15,7 @@
  */
 
 import { supabase } from '../supabase';
-import type { Item, SMPPricingData } from '@/types/database';
+import type { Item, ToolSpecs } from '@/types/database';
 
 export interface AlternativeResult {
   id: string;
@@ -96,9 +96,10 @@ export async function getAlternatives(
   const { matchThreshold = 0.45, matchCount = 6 } = options;
 
   // Get the tool's taxonomy and pricing model
-  const primaryFunction = tool.specs?.taxonomy?.primary_function;
-  const subCategory = tool.specs?.taxonomy?.sub_category;
-  const sourcePricingModel = (tool.specs?.pricing_data as SMPPricingData | undefined)?.model;
+  const toolSpecs = tool.specs as ToolSpecs | undefined;
+  const primaryFunction = toolSpecs?.taxonomy?.primary_function;
+  const subCategory = toolSpecs?.taxonomy?.sub_category;
+  const sourcePricingModel = toolSpecs?.pricing_data?.model;
 
   // Fetch more candidates than needed, then filter by pricing model
   const fetchCount = matchCount * 2;

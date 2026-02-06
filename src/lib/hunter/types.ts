@@ -31,6 +31,7 @@ export interface HunterInput {
   toolName: string;
   contextTitle?: string;
   categorySlug?: string;
+  website?: string;
   queueItemId?: string; // If processing from queue
   forceUpdate?: boolean; // Bypass duplicate detection and re-extract data
   huntType?: HuntType; // 'full' | 'refresh' | 'price_only'
@@ -197,6 +198,23 @@ export interface HunterAnalysis {
       frustrations: string[];
     };
   };
+  vetoLogic?: Array<{
+    text?: string;
+    condition?: string;
+    alternative?: string;
+    reason?: string;
+    source_url?: string;
+    source_type?: SourceType;
+    claim_type?: ClaimType;
+    retrieved_at?: string;
+  }>;
+  realityChecks?: Array<{
+    text: string;
+    source_url?: string;
+    source_type?: SourceType;
+    claim_type?: ClaimType;
+    retrieved_at?: string;
+  }>;
   // V4: Smart Schema - Category-specific extracted data
   categorySpecificData?: Record<string, unknown>;
   // V4: Tool Hints - VIP tool-specific extracted data
@@ -238,6 +256,7 @@ export interface HunterContext {
   toolName: string;
   contextTitle?: string;
   categorySlug?: string;
+  website?: string;
   queueItemId?: string;
   forceUpdate?: boolean; // Bypass duplicate detection
   huntType?: HuntType;
@@ -249,6 +268,10 @@ export interface HunterContext {
     forensic_targets: string[];
     confidence: 'high' | 'medium' | 'low';
     red_flags?: string[];
+  };
+  classification?: {
+    category?: string;
+    confidence?: 'high' | 'medium' | 'low';
   };
 
   // Flags for early exits (cost optimization)

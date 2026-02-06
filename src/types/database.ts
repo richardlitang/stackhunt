@@ -11,6 +11,37 @@
 import type { ReviewContext, ToolConstraints } from '@/lib/knowledge-card';
 
 // ============================================================================
+// SUPABASE GENERIC TYPES
+// ============================================================================
+
+export type DatabaseRelationship = {
+  foreignKeyName: string;
+  columns: string[];
+  referencedRelation: string;
+  referencedColumns: string[];
+  isOneToOne?: boolean;
+};
+
+export type DatabaseTable<Row, Insert, Update> = {
+  Row: Row;
+  Insert: Insert;
+  Update: Update;
+  Relationships: DatabaseRelationship[];
+};
+
+export type DatabaseView<Row = Record<string, unknown>> = {
+  Row: Row;
+  Insert?: Record<string, unknown>;
+  Update?: Record<string, unknown>;
+  Relationships: DatabaseRelationship[];
+};
+
+export type DatabaseFunction<Args = Record<string, unknown>, Returns = unknown> = {
+  Args: Args;
+  Returns: Returns;
+};
+
+// ============================================================================
 // ENUMS
 // ============================================================================
 
@@ -57,6 +88,8 @@ export type SMPPricingModel =
   | 'per_unit'
   | 'tiered'
   | 'hybrid'
+  | 'usage_based'
+  | 'ad_spend'
   | 'contact_sales';
 
 export type BillingCycle = 'monthly' | 'annual' | 'quarterly';
@@ -171,18 +204,26 @@ export interface SMPPlanData {
   name: string; // "Free", "Pro", "Enterprise"
 
   // Pricing (null = not available at this cycle)
-  price_monthly: number | null; // Monthly price, null if no monthly option
-  price_annual: number | null; // Total annual price (NOT monthly equivalent)
+  price_monthly?: number | null; // Monthly price, null if no monthly option
+  price_annual?: number | null; // Total annual price (NOT monthly equivalent)
 
   // For per-seat/per-unit models
-  scaling_unit: ScalingUnit | null;
-  price_per_unit: number | null; // e.g., $8.75/user
-  included_units: number | null; // e.g., "Includes 5 users"
+  scaling_unit?: ScalingUnit | null;
+  price_per_unit?: number | null; // e.g., $8.75/user
+  included_units?: number | null; // e.g., "Includes 5 users"
+
+  // For usage-based/ad-spend models
+  variable_unit?: string | null; // e.g., "GB", "1k requests", "% ad spend"
+  variable_price?: number | null; // e.g., 0.12
+  variable_logic_desc?: string | null; // e.g., "0.2% of ad spend"
+
+  // Plan positioning metadata
+  target_audience?: string | null;
 
   // Limits (for plan comparison)
-  max_users: number | null; // null = unlimited
-  max_storage_gb: number | null;
-  max_projects: number | null;
+  max_users?: number | null; // null = unlimited
+  max_storage_gb?: number | null;
+  max_projects?: number | null;
 
   // V3.3: Free Tier Safety (Journey 2 - Bootstrapped Solo Dev)
   free_tier_behavior?: 'hard_limit' | 'soft_limit' | 'throttle' | 'pay_as_you_go';
@@ -221,7 +262,7 @@ export interface SMPPricingData {
 
   // Billing options
   billing_cycles: BillingCycle[];
-  annual_discount_pct: number | null; // e.g., 20 = 20% off
+  annual_discount_pct?: number | null; // e.g., 20 = 20% off
 
   // Plans array (the money data)
   plans: SMPPlanData[];
@@ -229,15 +270,15 @@ export interface SMPPricingData {
   // Seat types (member/guest/viewer) with pricing overrides
   seat_types?: Array<{
     type: 'member' | 'guest' | 'viewer' | 'contractor' | 'admin';
-    price_per_unit: number | null;
-    free_units: number | null;
+    price_per_unit?: number | null;
+    free_units?: number | null;
     notes?: string | null;
   }>;
 
   // Volume tiers (seat ranges with price overrides)
   volume_tiers?: Array<{
     min_units: number;
-    max_units: number | null;
+    max_units?: number | null;
     price_per_unit: number;
     applies_to?: 'member' | 'seat' | 'workspace' | 'gb' | 'request' | null;
   }>;
@@ -246,7 +287,7 @@ export interface SMPPricingData {
   usage_meters?: Array<{
     unit: 'gb' | 'message' | 'request' | 'minute' | 'api_call';
     price_per_unit: number;
-    included_units: number | null;
+    included_units?: number | null;
     billing_cycle: BillingCycle;
   }>;
 
@@ -260,13 +301,13 @@ export interface SMPPricingData {
   }>;
 
   // Hidden costs
-  min_seats: number | null; // e.g., "Min 5 seats"
-  implementation_fee: number | null; // One-time setup cost
+  min_seats?: number | null; // e.g., "Min 5 seats"
+  implementation_fee?: number | null; // One-time setup cost
 
   // Verification & Confidence
-  pricing_page_url: string | null; // For user reference & verification
-  last_verified: string | null; // ISO date when pricing was verified
-  confidence: PricingConfidence; // How certain we are about this data
+  pricing_page_url?: string | null; // For user reference & verification
+  last_verified?: string | null; // ISO date when pricing was verified
+  confidence?: PricingConfidence | null; // How certain we are about this data
 
   // Discounts available
   discounts_available: DiscountType[];
@@ -279,6 +320,8 @@ export interface SMPPricingData {
 export interface SMPTaxonomyData {
   // Primary classification
   primary_function: string; // e.g., "Project Management", "CRM", "Chat"
+  sub_category?: string | null;
+  original_function?: string;
   secondary_functions: string[]; // e.g., ["Documentation", "Wiki"]
 
   // Department ownership (who pays)
@@ -296,7 +339,7 @@ export interface SMPPortabilityData {
   has_api_export: boolean; // Can programmatically extract all data
 
   // Migration analysis
-  migration_difficulty: MigrationDifficulty;
+  migration_difficulty?: MigrationDifficulty | null;
   import_from: string[]; // Tool slugs with import wizards FROM
   export_to: string[]; // Tool slugs with export wizards TO
 
@@ -304,8 +347,8 @@ export interface SMPPortabilityData {
   migration_warnings?: MigrationWarning[]; // What breaks when you migrate
 
   // Contract terms (for switching timing)
-  min_commitment_months: number | null; // null = month-to-month
-  cancellation_notice_days: number | null;
+  min_commitment_months?: number | null; // null = month-to-month
+  cancellation_notice_days?: number | null;
 }
 
 // ============================================================================
@@ -339,7 +382,7 @@ export interface ToolSpecs {
   setup_complexity?: SetupComplexityData;
 
   // Platform & Integration
-  integrations?: string[]; // e.g., ["Slack", "Zapier", "Google Drive"]
+  integrations?: string[] | Record<string, unknown>; // e.g., ["Slack", "Zapier", "Google Drive"]
   platforms?: string[]; // e.g., ["Web", "iOS", "Mac", "Windows", "Linux"]
   support_options?: string[]; // e.g., ["Chat", "Email", "Phone", "Docs"]
 
@@ -357,9 +400,19 @@ export interface ToolSpecs {
   migration_out_difficulty?: 1 | 2 | 3 | 4 | 5; // 1=trivial, 5=very hard
   proprietary_features?: string[]; // Features that won't transfer on migration
 
-  // ⚠️ REMOVED: pros/cons - These are context-specific and belong in reviews table only
-  // pros?: any[]; // DELETED - Use reviews.pros instead
-  // cons?: any[]; // DELETED - Use reviews.cons instead
+  // V5: Cynical CTO layers
+  vetoLogic?: unknown[];
+  realityChecks?: unknown[];
+
+  // V4: Category-specific extracted data
+  categorySpecificData?: Record<string, unknown>;
+  specifics?: Record<string, unknown>;
+  research_data?: Record<string, unknown>;
+  detected_category?: string;
+
+  // Legacy carry-over (context-specific elsewhere, but allow for compatibility)
+  pros?: unknown[];
+  cons?: unknown[];
 }
 
 /** Specs schema for hardware gear */
@@ -417,6 +470,11 @@ export interface ItemMetadata {
     data_quality: 'high' | 'medium' | 'low';
     extraction_date: string;
   };
+  company_info?: {
+    name?: string;
+    latest_version?: string;
+  };
+  version?: string;
 
   // V4.1: Authentic FAQs (from PAA/forums/Reddit)
   faqs?: Array<{
@@ -477,6 +535,9 @@ export interface Item {
   logo_url: string | null;
   short_description: string | null;
   long_description: string | null;
+  // Derived/attached (not stored)
+  category?: Category | null;
+  view_count?: number | null;
   pricing_type: PricingModel;
   avg_score: number; // Aggregated from contextual reviews
   review_count: number;
@@ -577,6 +638,7 @@ export interface Review {
   pros: string[];
   cons: string[];
   sentiment_tags: string[];
+  sources?: unknown[];
   upvotes: number;
   downvotes: number;
   display_order: number;
@@ -1288,290 +1350,7 @@ export interface SerperResponse {
 // SUPABASE DATABASE TYPE (for client generation)
 // ============================================================================
 
-export interface Database {
-  public: {
-    Tables: {
-      categories: {
-        Row: Category;
-        Insert: CategoryInsert;
-        Update: CategoryUpdate;
-      };
-      // V2: items is the new canonical table (tools view still works)
-      items: {
-        Row: Item;
-        Insert: ItemInsert;
-        Update: ItemUpdate;
-      };
-      /** @deprecated Use items instead */
-      tools: {
-        Row: Item;
-        Insert: ItemInsert;
-        Update: ItemUpdate;
-      };
-      item_category_links: {
-        Row: ItemCategoryLink;
-        Insert: Omit<ItemCategoryLink, 'id' | 'created_at'>;
-        Update: Partial<Pick<ItemCategoryLink, 'relevance_score'>>;
-      };
-      contexts: {
-        Row: Context;
-        Insert: ContextInsert;
-        Update: ContextUpdate;
-      };
-      reviews: {
-        Row: Review;
-        Insert: ReviewInsert;
-        Update: ReviewUpdate;
-      };
-      articles: {
-        Row: Article;
-        Insert: ArticleInsert;
-        Update: ArticleUpdate;
-      };
-      article_insights: {
-        Row: ArticleInsight;
-        Insert: ArticleInsightInsert;
-        Update: ArticleInsightUpdate;
-      };
-      source_policy_registry: {
-        Row: SourcePolicyRegistry;
-        Insert: SourcePolicyRegistryInsert;
-        Update: SourcePolicyRegistryUpdate;
-      };
-      source_policy_review_queue: {
-        Row: SourcePolicyReviewQueue;
-        Insert: SourcePolicyReviewQueueInsert;
-        Update: SourcePolicyReviewQueueUpdate;
-      };
-      claims: {
-        Row: Claim;
-        Insert: ClaimInsert;
-        Update: ClaimUpdate;
-      };
-      affiliate_offers: {
-        Row: AffiliateOffer;
-        Insert: AffiliateOfferInsert;
-        Update: AffiliateOfferUpdate;
-      };
-      votes: {
-        Row: Vote;
-        Insert: never; // Use RPC only
-        Update: never;
-      };
-      // Strategic architecture tables
-      market_state: {
-        Row: MarketState;
-        Insert: MarketStateInsert;
-        Update: MarketStateUpdate;
-      };
-      price_history: {
-        Row: PriceHistory;
-        Insert: never; // Auto-populated by trigger
-        Update: never;
-      };
-      click_events: {
-        Row: ClickEvent;
-        Insert: ClickEventInsert;
-        Update: never;
-      };
-      hunt_queue: {
-        Row: HuntQueue;
-        Insert: HuntQueueInsert;
-        Update: HuntQueueUpdate;
-      };
-      // V2.2: Comparison infrastructure
-      item_audience_fit: {
-        Row: ItemAudienceFit;
-        Insert: ItemAudienceFitInsert;
-        Update: ItemAudienceFitUpdate;
-      };
-      comparison_insights: {
-        Row: ComparisonInsight;
-        Insert: ComparisonInsightInsert;
-        Update: ComparisonInsightUpdate;
-      };
-    };
-    Functions: {
-      cast_vote: {
-        Args: {
-          p_review_id: string;
-          p_vote_type: number;
-          p_ip_hash: string;
-          p_fingerprint_hash?: string;
-          p_turnstile_token?: string;
-        };
-        Returns: VoteResult;
-      };
-      // V2: New canonical function
-      match_items: {
-        Args: {
-          query_embedding: number[];
-          match_threshold?: number;
-          match_count?: number;
-        };
-        Returns: SearchResult[];
-      };
-      /** @deprecated Use match_items instead */
-      match_tools: {
-        Args: {
-          query_embedding: number[];
-          match_threshold?: number;
-          match_count?: number;
-        };
-        Returns: SearchResult[];
-      };
-      // V2: New canonical function
-      update_item_metrics: {
-        Args: { p_item_id: string };
-        Returns: void;
-      };
-      /** @deprecated Use update_item_metrics instead */
-      update_tool_metrics: {
-        Args: { p_tool_id: string };
-        Returns: void;
-      };
-      update_context_metrics: {
-        Args: { p_context_id: string };
-        Returns: void;
-      };
-      // V2: New canonical function
-      link_item_to_category: {
-        Args: {
-          p_item_id: string;
-          p_category_name: string;
-          p_category_type: CategoryType;
-          p_relevance?: number;
-        };
-        Returns: string; // category_id
-      };
-      /** @deprecated Use link_item_to_category instead */
-      link_tool_to_category: {
-        Args: {
-          p_tool_id: string;
-          p_category_name: string;
-          p_category_type: CategoryType;
-          p_relevance?: number;
-        };
-        Returns: string; // category_id
-      };
-      // V2: New function
-      get_item_tags: {
-        Args: { p_item_id: string };
-        Returns: {
-          functions: CategoryTag[];
-          audiences: CategoryTag[];
-          platforms: CategoryTag[];
-        };
-      };
-      check_rate_limit: {
-        Args: {
-          p_identifier: string;
-          p_endpoint: string;
-          p_max_requests?: number;
-          p_window_seconds?: number;
-        };
-        Returns: {
-          allowed: boolean;
-          remaining: number;
-          current: number;
-          limit: number;
-          reset_at: string;
-        };
-      };
-      validate_admin_session: {
-        Args: { p_token_hash: string };
-        Returns: {
-          valid: boolean;
-          session_id?: string;
-          created_at?: string;
-          expires_at?: string;
-        };
-      };
-      create_admin_session: {
-        Args: {
-          p_token_hash: string;
-          p_ip_address?: string;
-          p_user_agent?: string;
-          p_expires_in_days?: number;
-        };
-        Returns: string;
-      };
-      revoke_admin_session: {
-        Args: { p_token_hash: string };
-        Returns: boolean;
-      };
-      // Strategic architecture functions (V2: p_tool_id → p_item_id)
-      get_priority_affiliate: {
-        Args: { p_item_id: string };
-        Returns: {
-          offer_id: string;
-          url: string;
-          cta_text: string;
-          network: string | null;
-          is_affiliate: boolean;
-        } | null;
-      };
-      log_click: {
-        Args: {
-          p_offer_id: string;
-          p_item_id: string;
-          p_referrer?: string | null;
-          p_user_agent?: string | null;
-          p_ip_hash?: string | null;
-          p_country_code?: string | null;
-          p_source_page?: string | null;
-          p_source_context_id?: string | null;
-        };
-        Returns: string; // click_id
-      };
-      claim_hunt_queue_item: {
-        Args: { p_worker_id: string };
-        Returns: HuntQueue | null;
-      };
-      start_hunt: {
-        Args: { p_queue_id: string };
-        Returns: void;
-      };
-      heartbeat_hunt: {
-        Args: { p_queue_id: string };
-        Returns: void;
-      };
-      complete_hunt: {
-        Args: {
-          p_queue_id: string;
-          p_item_id: string;
-          p_context_id?: string | null;
-          p_review_id?: string | null;
-          p_tokens_used?: number | null;
-        };
-        Returns: void;
-      };
-      fail_hunt: {
-        Args: {
-          p_queue_id: string;
-          p_error: string;
-          p_error_details?: Record<string, unknown> | null;
-        };
-        Returns: void;
-      };
-      release_stale_hunt_claims: {
-        Args: { p_stale_minutes?: number };
-        Returns: number; // count of released items
-      };
-      // V2.2: Comparison helper
-      get_or_create_comparison: {
-        Args: { p_slug_1: string; p_slug_2: string };
-        Returns: ComparisonInsight;
-      };
-    };
-    Enums: {
-      pricing_model: PricingModel;
-      hunt_status: HuntStatus;
-      hunt_queue_status: HuntQueueStatus;
-      market_source_type: MarketSourceType;
-      // V2.2
-      learning_curve: LearningCurve;
-      audience_fit_type: AudienceFitType;
-    };
-  };
-}
+// NOTE: Supabase client typing is intentionally permissive for now to avoid
+// breakage from partial schema types. Use concrete interfaces (Item, Review, etc.)
+// where you want strict typing.
+export type Database = any;

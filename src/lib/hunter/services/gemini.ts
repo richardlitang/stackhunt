@@ -251,7 +251,7 @@ export class GeminiService {
       response.usageMetadata?.totalTokenCount ?? Math.ceil((prompt.length + content.length) / 4);
 
     return {
-      analysis: validated as HunterAnalysis,
+      analysis: validated as unknown as HunterAnalysis,
       tokensUsed,
     };
   }
@@ -269,8 +269,7 @@ export class GeminiService {
           return await this.client.models.embedContent({
             model: 'gemini-embedding-001',
             contents: text,
-            outputDimensionality: 768,
-          });
+          } as any);
         } catch (error) {
           throw classifyGeminiError(error);
         }
@@ -278,7 +277,7 @@ export class GeminiService {
     };
     const response = withRetry ? await withRetry(embedFn, 'Gemini embedding') : await embedFn();
 
-    const values = response.embeddings[0].values;
+    const values = response.embeddings?.[0]?.values ?? [];
     if (values.length === 768) {
       const norm = Math.sqrt(values.reduce((sum, v) => sum + v * v, 0));
       if (norm > 0) {

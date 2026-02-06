@@ -39,18 +39,20 @@ export function computeMonthlyCost(
   // Filter to valid, non-enterprise plans
   const validPlans = pricingData.plans.filter((plan) => {
     if (plan.is_enterprise) return false;
-    const basePrice = billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual;
+    const basePrice =
+      billingCycle === 'monthly' ? plan.price_monthly ?? null : plan.price_annual ?? null;
     if (basePrice === null || basePrice <= 0) return false;
 
     // For team-based pricing, check max_users
     if (scalingCategory === 'team') {
-      if (plan.max_users !== null && quantity > plan.max_users) return false;
+      const maxUsers = plan.max_users ?? null;
+      if (maxUsers !== null && quantity > maxUsers) return false;
       if (pricingData.min_seats && quantity < pricingData.min_seats) return false;
     }
 
     // For audience-based (contacts), check included_units as the tier limit
     // Plans with higher included_units are for larger contact lists
-    if (scalingCategory === 'audience' && plan.included_units !== null) {
+    if (scalingCategory === 'audience' && plan.included_units != null) {
       // This plan is valid if quantity is within its included units
       // (we'll pick the cheapest one that fits)
       if (quantity > plan.included_units) return false;
@@ -65,7 +67,7 @@ export function computeMonthlyCost(
   }
 
   const costs = validPlans.map((plan) => {
-    const basePrice = billingCycle === 'monthly' ? plan.price_monthly! : plan.price_annual!;
+    const basePrice = (billingCycle === 'monthly' ? plan.price_monthly : plan.price_annual) ?? 0;
 
     let perUnit = plan.price_per_unit || basePrice;
     let includedUnits = plan.included_units || 0;
@@ -78,9 +80,10 @@ export function computeMonthlyCost(
 
     // Volume tier override
     if (pricingData.volume_tiers && pricingData.volume_tiers.length > 0) {
-      const tier = pricingData.volume_tiers.find(
-        (t) => quantity >= t.min_units && (t.max_units === null || quantity <= t.max_units)
-      );
+      const tier = pricingData.volume_tiers.find((t) => {
+        const maxUnits = t.max_units ?? null;
+        return quantity >= t.min_units && (maxUnits === null || quantity <= maxUnits);
+      });
       if (tier?.price_per_unit) perUnit = tier.price_per_unit;
     }
 

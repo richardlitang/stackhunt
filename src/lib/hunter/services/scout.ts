@@ -89,7 +89,7 @@ export async function discoverTools(
         },
       },
     });
-    const text = result.text;
+    const text = result.text || '[]';
     const parsed = JSON.parse(text);
 
     // Validate with Zod

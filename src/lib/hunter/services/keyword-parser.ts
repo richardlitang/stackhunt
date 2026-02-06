@@ -130,7 +130,7 @@ export async function parseKeywordIntent(keyword: string): Promise<KeywordIntent
         },
       },
     });
-    const text = result.text;
+    const text = result.text || '{}';
     const parsed = JSON.parse(text);
 
     // Validate with Zod

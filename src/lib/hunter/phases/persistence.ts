@@ -21,6 +21,7 @@ import { slugify, classifySourceType } from '../utils';
 import { normalizeCategory } from '../../config/taxonomy';
 import { ensureParentSuite } from '../utils/suite-manager';
 import { updateNormalizedPricing } from '../../pricing/persist';
+import type { ToolSpecs } from '@/types/database';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -260,10 +261,10 @@ export async function executePersistencePhase(
   // Step 2: Upsert Item (with Knowledge Card + V2 fields)
 
   // Build V2/V3 specs from analysis + Knowledge Card
-  const specs: Record<string, unknown> = {
+  const specs: ToolSpecs = {
     pricing_model: analysis.pricingType,
     platforms: analysis.graphTags?.platforms || [],
-    integrations: knowledgeCard?.integrations || [],
+    integrations: (knowledgeCard?.integrations as any) || [],
   };
 
   // V3: Add SMP pricing data if extracted
@@ -282,7 +283,7 @@ export async function executePersistencePhase(
     };
 
     // Preserve original label if normalized (for display purposes)
-    if (canonicalFunction !== rawFunction) {
+    if (canonicalFunction !== rawFunction && specs.taxonomy) {
       specs.taxonomy.original_function = rawFunction;
       deps.log(`[Taxonomy] Normalized: "${rawFunction}" → "${canonicalFunction}"`);
     }
@@ -308,7 +309,8 @@ export async function executePersistencePhase(
         // Sanitize source_url or fall back to pricing_page_url
         let sourceUrl = limit.source_url;
         if (!sourceUrl || sourceUrl.includes('undefined')) {
-          sourceUrl = knowledgeCard.smp_pricing?.pricing_page_url || knowledgeCard.website_url;
+          sourceUrl =
+            knowledgeCard.smp_pricing?.pricing_page_url || knowledgeCard.website_url || undefined;
         }
 
         return {
@@ -334,12 +336,7 @@ export async function executePersistencePhase(
     retrieved_at: source.retrieved_at,
     published_at: source.published_at,
   }));
-  let vettedVetos: Array<{
-    condition: string;
-    alternative: string;
-    reason: string;
-    source_url: string;
-  }> | null = null;
+  let vettedVetos: Array<any> | null = null;
 
   if (analysis.vetoLogic && analysis.vetoLogic.length > 0) {
     const validatedVetos = analysis.vetoLogic.filter((veto: any) => {
@@ -350,6 +347,7 @@ export async function executePersistencePhase(
           source_url: veto.source_url,
           source_type: 'community',
           claim_type: 'opinion',
+          retrieved_at: veto.retrieved_at || new Date().toISOString(),
         },
         sources
       );
@@ -369,7 +367,7 @@ export async function executePersistencePhase(
 
     if (validatedVetos.length > 0) {
       vettedVetos = validatedVetos;
-      specs.vetoLogic = validatedVetos;
+    specs.vetoLogic = validatedVetos;
       deps.log(
         `[Persisted] Veto Logic: ${validatedVetos.length}/${analysis.vetoLogic.length} conditions (${analysis.vetoLogic.length - validatedVetos.length} filtered)`
       );
@@ -385,10 +383,11 @@ export async function executePersistencePhase(
       // Validate negative claims in reality field
       const validation = validateNegativeClaim(
         {
-          text: check.reality,
+          text: check.text || check.reality,
           source_url: check.source_url,
           source_type: 'community',
           claim_type: 'opinion',
+          retrieved_at: check.retrieved_at || new Date().toISOString(),
         },
         sources
       );
@@ -399,7 +398,7 @@ export async function executePersistencePhase(
             ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
             : '';
         deps.log(
-          `[Guardrail] Filtered reality check: "${check.reality.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`
+          `[Guardrail] Filtered reality check: "${(check.text || check.reality || '').substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`
         );
         return false;
       }
@@ -636,7 +635,7 @@ export async function executePersistencePhase(
 
   // Log persisted SMP data for QA
   if (specs.pricing_data) {
-    const pd = specs.pricing_data as Record<string, unknown>;
+    const pd = specs.pricing_data as unknown as Record<string, unknown>;
     deps.log(
       `[Persisted] SMP Pricing: model=${pd.model}, confidence=${pd.confidence}, plans=${(pd.plans as unknown[])?.length || 0}`
     );
@@ -977,7 +976,7 @@ async function suggestContextIdeas(
     .in('slug', candidateSlugs)
     .limit(candidateSlugs.length);
 
-  const existingContextSlugs = new Set((existingContexts || []).map((c) => c.slug));
+  const existingContextSlugs = new Set((existingContexts || []).map((c: any) => c.slug));
   const remainingCandidates = candidates.filter(
     (candidate, index) => !existingContextSlugs.has(candidateSlugs[index])
   );
@@ -997,8 +996,8 @@ async function suggestContextIdeas(
     .limit(remainingCandidates.length);
 
   const existingIdeaSet = new Set<string>([
-    ...(ideasByContext || []).map((idea) => idea.context_query).filter(Boolean),
-    ...(ideasByKeyword || []).map((idea) => idea.keyword).filter(Boolean),
+    ...(ideasByContext || []).map((idea: any) => idea.context_query).filter(Boolean),
+    ...(ideasByKeyword || []).map((idea: any) => idea.keyword).filter(Boolean),
   ]);
 
   const insertable = remainingCandidates.filter((candidate) => !existingIdeaSet.has(candidate));
@@ -1115,7 +1114,7 @@ async function persistResearchOnly(
   const knowledgeCard = ctx.research.knowledgeCard;
 
   // Build minimal specs to store research data for later batch synthesis
-  const specs: Record<string, unknown> = {
+  const specs: ToolSpecs = {
     // Store research data for batch synthesis (will be processed later)
     research_data: {
       scoutResult: {
@@ -1384,7 +1383,7 @@ function normalizeClaim(
   }
 
   // Legacy string - try to find a relevant source
-  const claimText = typeof claim === 'string' ? claim : claim.text;
+  const claimText = typeof claim === 'string' ? claim : (claim as any).text;
 
   // Try to match claim keywords to source snippets
   const claimWords = claimText.toLowerCase().split(/\s+/);
@@ -1471,7 +1470,8 @@ function buildDerivedConsFromConstraints(
 
   const addDerivedCon = (text: string, sourceUrl?: string) => {
     if (!sourceUrl) return;
-    const retrieved_at = sources.find((s) => s.url === sourceUrl)?.retrieved_at;
+    const retrieved_at =
+      sources.find((s) => s.url === sourceUrl)?.retrieved_at || new Date().toISOString();
     derived.push({
       text,
       source_url: sourceUrl,

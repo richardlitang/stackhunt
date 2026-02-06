@@ -55,7 +55,12 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     const hunter = createHunter({ isDraftMode: !publish });
 
-    const result = await hunter.huntContext({
+    const hunterAny = hunter as any;
+    if (typeof hunterAny.huntContext !== 'function') {
+      throw new Error('Context hunts are not supported in this build');
+    }
+
+    const result = await hunterAny.huntContext({
       contextQuery,
       maxTools: maxTools || 5,
       guidance,

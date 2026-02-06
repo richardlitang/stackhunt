@@ -67,7 +67,7 @@ export async function executeResearchPhase(
   const collisionCheck = detectNameCollision(
     ctx.toolName,
     ctx.website || '', // Expected domain from classification
-    scoutResult.raw_sources.map((source) => ({
+    scoutResult.raw_sources.map((source: any) => ({
       url: source.url,
       title: source.title,
       snippet: source.snippet,
@@ -96,7 +96,7 @@ export async function executeResearchPhase(
     // Filter out conflicting sources
     const originalCount = scoutResult.raw_sources.length;
     const filtered = filterConflictingSources(
-      scoutResult.raw_sources.map((source) => ({
+      scoutResult.raw_sources.map((source: any) => ({
         url: source.url,
         title: source.title,
         snippet: source.snippet,
@@ -105,8 +105,8 @@ export async function executeResearchPhase(
       collisionCheck.primaryDomain,
       collisionCheck.conflictingDomains
     );
-    const filteredUrls = new Set(filtered.map((source) => source.url));
-    scoutResult.raw_sources = scoutResult.raw_sources.filter((source) =>
+    const filteredUrls = new Set(filtered.map((source: any) => source.url));
+    scoutResult.raw_sources = scoutResult.raw_sources.filter((source: any) =>
       filteredUrls.has(source.url)
     );
     const filteredCount = originalCount - scoutResult.raw_sources.length;
@@ -120,7 +120,7 @@ export async function executeResearchPhase(
   // Step 1.6: Check if tool is defunct (save API costs on dead tools)
   if (ctx.huntType !== 'price_only') {
     const searchSnippets = extractSearchSnippets(
-      scoutResult.raw_sources.map((source) => ({
+      scoutResult.raw_sources.map((source: any) => ({
         snippet: source.snippet,
         title: source.title,
       }))
@@ -212,7 +212,7 @@ export async function executeResearchPhase(
     const domainValidation = validateExtractedDomain(
       ctx.toolName,
       knowledgeCard.website,
-      scoutResult.raw_sources.map((source) => ({
+      scoutResult.raw_sources.map((source: any) => ({
         url: source.url,
         title: source.title,
         snippet: source.snippet,
@@ -233,8 +233,8 @@ export async function executeResearchPhase(
         const conflicting = Array.from(
           new Set(
             scoutResult.raw_sources
-              .map((s) => s.domain)
-              .filter((d) => {
+              .map((s: any) => s.domain)
+              .filter((d: any) => {
                 const domainLower = d.toLowerCase();
                 const toolNameLower = ctx.toolName.toLowerCase();
                 return (
@@ -249,17 +249,17 @@ export async function executeResearchPhase(
         if (conflicting.length > 0) {
           const originalCount = scoutResult.raw_sources.length;
           const filtered = filterConflictingSources(
-            scoutResult.raw_sources.map((source) => ({
+            scoutResult.raw_sources.map((source: any) => ({
               url: source.url,
               title: source.title,
               snippet: source.snippet,
               domain: source.domain,
             })),
             domainValidation.correctDomain,
-            conflicting
+            conflicting as string[]
           );
-          const filteredUrls = new Set(filtered.map((source) => source.url));
-          scoutResult.raw_sources = scoutResult.raw_sources.filter((source) =>
+          const filteredUrls = new Set(filtered.map((source: any) => source.url));
+          scoutResult.raw_sources = scoutResult.raw_sources.filter((source: any) =>
             filteredUrls.has(source.url)
           );
           deps.log(

@@ -28,7 +28,10 @@ interface ArticleRequest {
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   const ip = getClientIP(request, clientAddress);
   const hashedIP = hashIdentifier(ip);
-  const rateLimit = await checkRateLimit(hashedIP, '/api/admin/articles', 10, 60);
+  const rateLimit = await checkRateLimit(hashedIP, '/api/admin/articles', {
+    maxRequests: 10,
+    windowSeconds: 60,
+  });
 
   if (!rateLimit.allowed) {
     return rateLimitResponse(rateLimit);

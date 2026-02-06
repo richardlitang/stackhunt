@@ -185,8 +185,8 @@ export function validateKnowledgeCard(
   const requiredFields = [
     { field: 'company.name', value: knowledgeCard.company?.name, severity: 'warning' as const },
     {
-      field: 'short_description',
-      value: knowledgeCard.short_description,
+      field: 'tagline',
+      value: knowledgeCard.tagline,
       severity: 'warning' as const,
     },
     {
@@ -215,7 +215,7 @@ export function validateKnowledgeCard(
   const qualityChecks = [
     { check: !!knowledgeCard.company?.name, weight: 10 },
     { check: !!knowledgeCard.company?.founded_year, weight: 5 },
-    { check: !!knowledgeCard.short_description, weight: 10 },
+    { check: !!knowledgeCard.tagline, weight: 10 },
     { check: (knowledgeCard.features?.core?.length || 0) >= 3, weight: 15 },
     { check: (knowledgeCard.features?.unique?.length || 0) >= 1, weight: 10 },
     { check: !!knowledgeCard.smp_pricing, weight: 15 },

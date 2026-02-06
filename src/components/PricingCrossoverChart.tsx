@@ -478,7 +478,10 @@ export default function PricingCrossoverChart({
                 borderRadius: '0.5rem',
                 color: '#fafafa',
               }}
-              formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
+              formatter={(value: number | string | undefined) => [
+                `$${Number(value ?? 0).toFixed(2)}`,
+                '',
+              ]}
               labelFormatter={(label) =>
                 `${Number(label).toLocaleString()} ${axisConfig.unitLabel}`
               }
