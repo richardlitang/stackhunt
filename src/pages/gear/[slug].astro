@@ -48,10 +48,19 @@ const primaryOffer = gear.affiliate_offers?.find((o) => o.is_primary) || gear.af
 const firstReview = gear.reviews?.[0];
 
 const sourceDomains = firstReview?.sources
-  ? [...new Set((firstReview.sources as Array<{domain: string}>).map(s => {
-      const domain = s.domain.replace(/\.(com|org|net|io|co)$/, '');
+  ? [...new Set((firstReview.sources as Array<{ domain?: string; url?: string }>).map((s) => {
+      const rawDomain = s.domain || (() => {
+        if (!s.url) return '';
+        try {
+          return new URL(s.url).hostname.replace(/^www\./, '');
+        } catch {
+          return '';
+        }
+      })();
+      if (!rawDomain) return '';
+      const domain = rawDomain.replace(/\.(com|org|net|io|co)$/, '');
       return domain.charAt(0).toUpperCase() + domain.slice(1);
-    }))].slice(0, 5)
+    }).filter(Boolean))].slice(0, 5)
   : [];
 
 const meta = generateToolMeta(gear, gear.review_count);

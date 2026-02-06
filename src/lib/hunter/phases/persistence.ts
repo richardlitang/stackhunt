@@ -589,6 +589,14 @@ export async function executePersistencePhase(
       .filter(claim => claim.source_url)
       .map(claim => ({
         url: claim.source_url,
+        domain: (() => {
+          if (!claim.source_url) return null;
+          try {
+            return new URL(claim.source_url).hostname.replace(/^www\./, '');
+          } catch {
+            return null;
+          }
+        })(),
         type: claim.source_type,
       }));
 
