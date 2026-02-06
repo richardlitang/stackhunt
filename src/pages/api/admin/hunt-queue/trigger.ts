@@ -22,7 +22,6 @@
  */
 
 import type { APIRoute } from 'astro';
-import { getAdminClient } from '@/lib/supabase';
 import { Hunter } from '@/lib/hunter';
 import { ApiError } from '@/lib/hunter/errors';
 import { alertCritical, alertQueueSummary } from '@/lib/notifications/discord';
@@ -77,14 +76,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (!isAuthenticated) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Check required env vars (don't leak which ones are missing)
-    const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'GEMINI_API_KEY', 'SERPER_API_KEY'];
+    const required = [
+      'SUPABASE_URL',
+      'SUPABASE_SERVICE_ROLE_KEY',
+      'GEMINI_API_KEY',
+      'SERPER_API_KEY',
+    ];
     const missing = required.filter((k) => !import.meta.env[k] && !process.env[k]);
 
     if (missing.length > 0) {
@@ -140,10 +144,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           successes.push({ tool: r.toolName, context: r.contextTitle });
         }
       }
-      processedTitles = Array.from(new Set([
-        ...successes.map(s => s.tool),
-        ...errors.map(e => e.tool),
-      ].filter(t => t && t !== 'Unknown')));
+      processedTitles = Array.from(
+        new Set(
+          [...successes.map((s) => s.tool), ...errors.map((e) => e.tool)].filter(
+            (t) => t && t !== 'Unknown'
+          )
+        )
+      );
     } catch (error) {
       // Check for critical API errors
       if (error instanceof ApiError && error.isCritical) {
@@ -200,9 +207,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   } catch (error) {
     console.error('Queue trigger error:', error instanceof Error ? error.message : error);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

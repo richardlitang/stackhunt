@@ -28,7 +28,9 @@ export const BaseToolSchema = z.object({
   currency: z.literal('USD').default('USD'),
 
   // Vibe
-  ideal_customer_profile: z.string().describe('e.g., "Freelancers", "Enterprise IT teams", "Indie hackers"'),
+  ideal_customer_profile: z
+    .string()
+    .describe('e.g., "Freelancers", "Enterprise IT teams", "Indie hackers"'),
   killer_feature: z.string().describe('The ONE thing this tool does better than competitors'),
 
   // Platforms
@@ -61,9 +63,7 @@ export const InfrastructureSchema = z.object({
     .describe('TRUE = app pauses when limit hit (safe). FALSE = auto-charges (dangerous)'),
 
   // Journey 6: Data Sovereign
-  data_residency: z
-    .array(z.string())
-    .describe('Available regions: ["US", "EU", "AP", "Global"]'),
+  data_residency: z.array(z.string()).describe('Available regions: ["US", "EU", "AP", "Global"]'),
 
   self_hostable: z.boolean().describe('Can run on own infrastructure'),
 
@@ -92,9 +92,7 @@ export const EnterpriseSaaSSchema = z.object({
     .describe('% price increase to get SSO (computed: sso_plan_price / base_plan_price - 1)'),
 
   // Journey 1: Compliance-First
-  compliance_certs: z
-    .array(z.string())
-    .describe('["SOC2 Type II", "ISO 27001", "HIPAA", "GDPR"]'),
+  compliance_certs: z.array(z.string()).describe('["SOC2 Type II", "ISO 27001", "HIPAA", "GDPR"]'),
 
   // Enterprise-specific
   implementation_time: z
@@ -117,9 +115,7 @@ export const ProductivitySchema = z.object({
   migration_difficulty: z
     .enum(['trivial', 'easy', 'moderate', 'hard', 'locked'])
     .describe('How hard to leave this tool'),
-  export_formats: z
-    .array(z.string())
-    .describe('["Markdown", "HTML", "PDF", "JSON", "CSV"]'),
+  export_formats: z.array(z.string()).describe('["Markdown", "HTML", "PDF", "JSON", "CSV"]'),
   import_from: z
     .array(z.string())
     .describe('Tool slugs with native import: ["notion", "evernote"]'),
@@ -127,9 +123,7 @@ export const ProductivitySchema = z.object({
   // Productivity-specific
   offline_mode: z.boolean().describe('Works without internet'),
   real_time_collab: z.boolean().describe('Google Docs-style multiplayer editing'),
-  mobile_experience: z
-    .enum(['native', 'pwa', 'wrapper', 'none'])
-    .describe('Quality of mobile app'),
+  mobile_experience: z.enum(['native', 'pwa', 'wrapper', 'none']).describe('Quality of mobile app'),
 
   // SKIP: compliance_certs (unless B2B), implementation_fee
 });
@@ -144,9 +138,7 @@ export const DevToolsSchema = z.object({
   // Dev-specific priorities
   api_completeness: z.boolean().describe('Can do everything via API'),
   cli_available: z.boolean().describe('Official CLI tool'),
-  sdk_languages: z
-    .array(z.string())
-    .describe('["JavaScript", "Python", "Go", "Rust", "Ruby"]'),
+  sdk_languages: z.array(z.string()).describe('["JavaScript", "Python", "Go", "Rust", "Ruby"]'),
 
   // Ecosystem
   extensions_marketplace: z.boolean().describe('Community plugins/extensions'),
@@ -245,9 +237,7 @@ export const HRRecruitingSchema = z.object({
   handles_full_time: z.boolean(),
 
   // Integrations that matter
-  payroll_integrations: z
-    .array(z.string())
-    .describe('["Xero", "QuickBooks", "Gusto"]'),
+  payroll_integrations: z.array(z.string()).describe('["Xero", "QuickBooks", "Gusto"]'),
 
   // SKIP: api_rate_limits (HR doesn't care)
 });
@@ -264,9 +254,7 @@ export const FinanceSchema = z.object({
   multi_entity: z.boolean().describe('Consolidate multiple companies'),
 
   // Banking
-  bank_feeds_regions: z
-    .array(z.string())
-    .describe('["US", "UK", "CA", "AU", "EU"]'),
+  bank_feeds_regions: z.array(z.string()).describe('["US", "UK", "CA", "AU", "EU"]'),
   plaid_supported: z.boolean().describe('Direct bank connection'),
 
   // Workflows
@@ -291,9 +279,7 @@ export const SecurityIdentitySchema = z.object({
 
   // Device management
   device_management: z.boolean().describe('Remote wipe capability'),
-  mfa_options: z
-    .array(z.string())
-    .describe('["TOTP", "WebAuthn", "SMS", "Email", "Push"]'),
+  mfa_options: z.array(z.string()).describe('["TOTP", "WebAuthn", "SMS", "Email", "Push"]'),
 
   // Compliance
   compliance_reports_downloadable: z.boolean().describe('Can grab SOC2 PDF now'),
@@ -309,9 +295,7 @@ export const SecurityIdentitySchema = z.object({
  */
 export const CommunicationSchema = z.object({
   // The big anxiety
-  message_history_limit: z
-    .string()
-    .describe('"90 days", "10k messages", "Unlimited"'),
+  message_history_limit: z.string().describe('"90 days", "10k messages", "Unlimited"'),
 
   // Video/Audio
   video_quality: z.enum(['hd_1080p', 'hd_720p', 'sd', 'audio_only', 'none']),
@@ -492,12 +476,8 @@ export const SchedulingSchema = z.object({
   booking_pages: z.number().nullable().describe('Number of scheduling pages'),
 
   // Integrations
-  calendar_sync: z
-    .array(z.string())
-    .describe('["Google", "Outlook", "iCloud"]'),
-  video_integrations: z
-    .array(z.string())
-    .describe('["Zoom", "Meet", "Teams"]'),
+  calendar_sync: z.array(z.string()).describe('["Google", "Outlook", "iCloud"]'),
+  video_integrations: z.array(z.string()).describe('["Zoom", "Meet", "Teams"]'),
   payment_collection: z.boolean().describe('Collect payment at booking'),
 
   // Features
@@ -518,23 +498,23 @@ export const SchedulingSchema = z.object({
  */
 export const CategorySchemaMap = {
   // Infrastructure & Databases
-  'databases': InfrastructureSchema,
+  databases: InfrastructureSchema,
   'backend-as-a-service': InfrastructureSchema,
   'cloud-hosting': InfrastructureSchema,
-  'serverless': InfrastructureSchema,
-  'infrastructure': InfrastructureSchema,
+  serverless: InfrastructureSchema,
+  infrastructure: InfrastructureSchema,
 
   // Enterprise SaaS
   'enterprise-software': EnterpriseSaaSSchema,
-  'erp': EnterpriseSaaSSchema,
+  erp: EnterpriseSaaSSchema,
 
   // Productivity & Knowledge
-  'productivity': ProductivitySchema,
+  productivity: ProductivitySchema,
   'note-taking': ProductivitySchema,
   'knowledge-management': ProductivitySchema,
   'project-management': ProductivitySchema,
   'task-management': ProductivitySchema,
-  'documentation': ProductivitySchema,
+  documentation: ProductivitySchema,
 
   // Developer Tools
   'developer-tools': DevToolsSchema,
@@ -544,74 +524,74 @@ export const CategorySchemaMap = {
   'ci-cd': DevToolsSchema,
 
   // Design & Marketing
-  'design': DesignMarketingSchema,
+  design: DesignMarketingSchema,
   'graphic-design': DesignMarketingSchema,
   'video-editing': DesignMarketingSchema,
-  'marketing': DesignMarketingSchema,
+  marketing: DesignMarketingSchema,
   'seo-tools': DesignMarketingSchema,
   'email-marketing': DesignMarketingSchema,
   'social-media': DesignMarketingSchema,
 
   // CRM & Sales
-  'crm': CRMSalesSchema,
+  crm: CRMSalesSchema,
   'crm-sales': CRMSalesSchema,
   'sales-tools': CRMSalesSchema,
   'sales-engagement': CRMSalesSchema,
 
   // Customer Support
   'customer-support': CustomerSupportSchema,
-  'helpdesk': CustomerSupportSchema,
+  helpdesk: CustomerSupportSchema,
   'live-chat': CustomerSupportSchema,
-  'ticketing': CustomerSupportSchema,
+  ticketing: CustomerSupportSchema,
 
   // HR & Recruiting
   'hr-recruiting': HRRecruitingSchema,
-  'hr': HRRecruitingSchema,
-  'recruiting': HRRecruitingSchema,
-  'payroll': HRRecruitingSchema,
-  'hris': HRRecruitingSchema,
+  hr: HRRecruitingSchema,
+  recruiting: HRRecruitingSchema,
+  payroll: HRRecruitingSchema,
+  hris: HRRecruitingSchema,
 
   // Finance & Accounting
-  'finance': FinanceSchema,
-  'accounting': FinanceSchema,
+  finance: FinanceSchema,
+  accounting: FinanceSchema,
   'expense-management': FinanceSchema,
-  'invoicing': FinanceSchema,
+  invoicing: FinanceSchema,
 
   // Security & Identity
-  'security': SecurityIdentitySchema,
-  'identity': SecurityIdentitySchema,
+  security: SecurityIdentitySchema,
+  identity: SecurityIdentitySchema,
   'password-management': SecurityIdentitySchema,
-  'authentication': SecurityIdentitySchema,
+  authentication: SecurityIdentitySchema,
 
   // Communication & Collaboration
-  'communication': CommunicationSchema,
+  communication: CommunicationSchema,
   'team-chat': CommunicationSchema,
   'video-conferencing': CommunicationSchema,
-  'messaging': CommunicationSchema,
-  'collaboration': CommunicationSchema,
+  messaging: CommunicationSchema,
+  collaboration: CommunicationSchema,
 
   // eCommerce & Payments
-  'ecommerce': EcommercePaymentsSchema,
-  'payments': EcommercePaymentsSchema,
+  ecommerce: EcommercePaymentsSchema,
+  payments: EcommercePaymentsSchema,
   'payment-processing': EcommercePaymentsSchema,
   'online-store': EcommercePaymentsSchema,
-  'pos': EcommercePaymentsSchema,
+  pos: EcommercePaymentsSchema,
 
   // AI & Automation
   'ai-automation': AIAutomationSchema,
-  'ai': AIAutomationSchema,
-  'automation': AIAutomationSchema,
+  ai: AIAutomationSchema,
+  automation: AIAutomationSchema,
   'workflow-automation': AIAutomationSchema,
-  'llm': AIAutomationSchema,
+  llm: AIAutomationSchema,
 
   // Analytics & BI
-  'analytics': AnalyticsBISchema,
+  analytics: AnalyticsBISchema,
   'business-intelligence': AnalyticsBISchema,
   'product-analytics': AnalyticsBISchema,
   'data-visualization': AnalyticsBISchema,
 
   // CMS & Website Builders
-  'cms': CMSWebsiteSchema,
+  cms: CMSWebsiteSchema,
   'website-builder': CMSWebsiteSchema,
   'headless-cms': CMSWebsiteSchema,
   'landing-pages': CMSWebsiteSchema,
@@ -629,9 +609,9 @@ export const CategorySchemaMap = {
   'document-management': FileStorageSchema,
 
   // Scheduling & Booking
-  'scheduling': SchedulingSchema,
+  scheduling: SchedulingSchema,
   'appointment-booking': SchedulingSchema,
-  'calendar': SchedulingSchema,
+  calendar: SchedulingSchema,
   'meeting-scheduler': SchedulingSchema,
 } as const;
 
@@ -692,7 +672,7 @@ export function getExtractionPrompt(categorySlug: string): string {
     return `- ${key}: ${description}`;
   });
 
-  const categoryName = categorySlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const categoryName = categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   return `You are analyzing a ${categoryName} tool. In addition to standard data, you MUST extract:
 
@@ -710,74 +690,74 @@ If a field cannot be determined from public sources, return null. Do NOT halluci
  */
 export const CategoryExtractionCost: Record<string, number> = {
   // Infrastructure & Databases
-  'databases': 0.01,
+  databases: 0.01,
   'backend-as-a-service': 0.01,
   'cloud-hosting': 0.01,
-  'infrastructure': 0.01,
+  infrastructure: 0.01,
 
   // Enterprise SaaS
   'enterprise-software': 0.02,
-  'erp': 0.02,
+  erp: 0.02,
 
   // Productivity & Knowledge
-  'productivity': 0.01,
+  productivity: 0.01,
   'note-taking': 0.01,
   'project-management': 0.01,
   'knowledge-management': 0.01,
 
   // Developer Tools
-  'developer-tools': 0.00,
-  'dev-tools': 0.00,
-  'api-tools': 0.00,
+  'developer-tools': 0.0,
+  'dev-tools': 0.0,
+  'api-tools': 0.0,
 
   // Design & Marketing
-  'design': 0.01,
-  'marketing': 0.01,
+  design: 0.01,
+  marketing: 0.01,
   'seo-tools': 0.01,
 
   // CRM & Sales
-  'crm': 0.01,
+  crm: 0.01,
   'crm-sales': 0.01,
 
   // Customer Support
   'customer-support': 0.01,
-  'helpdesk': 0.01,
+  helpdesk: 0.01,
 
   // HR & Recruiting
   'hr-recruiting': 0.02,
-  'hr': 0.02,
-  'payroll': 0.02,
+  hr: 0.02,
+  payroll: 0.02,
 
   // Finance & Accounting
-  'finance': 0.01,
-  'accounting': 0.01,
+  finance: 0.01,
+  accounting: 0.01,
 
   // Security & Identity
-  'security': 0.02,
-  'identity': 0.02,
-  'authentication': 0.02,
+  security: 0.02,
+  identity: 0.02,
+  authentication: 0.02,
 
   // Communication & Collaboration
-  'communication': 0.01,
+  communication: 0.01,
   'team-chat': 0.01,
   'video-conferencing': 0.01,
 
   // eCommerce & Payments
-  'ecommerce': 0.01,
-  'payments': 0.01,
+  ecommerce: 0.01,
+  payments: 0.01,
   'payment-processing': 0.01,
 
   // AI & Automation
   'ai-automation': 0.01,
-  'ai': 0.01,
-  'automation': 0.01,
+  ai: 0.01,
+  automation: 0.01,
 
   // Analytics & BI
-  'analytics': 0.01,
+  analytics: 0.01,
   'business-intelligence': 0.01,
 
   // CMS & Website Builders
-  'cms': 0.01,
+  cms: 0.01,
   'website-builder': 0.01,
 
   // No-Code & Low-Code
@@ -789,8 +769,8 @@ export const CategoryExtractionCost: Record<string, number> = {
   'cloud-storage': 0.01,
 
   // Scheduling & Booking
-  'scheduling': 0.00,
-  'calendar': 0.00,
+  scheduling: 0.0,
+  calendar: 0.0,
 };
 
 export function getEstimatedCost(categorySlug: string): number {

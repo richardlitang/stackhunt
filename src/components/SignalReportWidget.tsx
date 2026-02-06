@@ -51,7 +51,7 @@ function getFingerprint(): string {
   let hash = 0;
   for (let i = 0; i < data.length; i++) {
     const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
 
@@ -196,9 +196,7 @@ export default function SignalReportWidget({
   return (
     <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-zinc-100 mb-1">
-          Community Signals
-        </h3>
+        <h3 className="text-lg font-semibold text-zinc-100 mb-1">Community Signals</h3>
         <p className="text-sm text-zinc-400">
           Quick feedback from real users. No account required.
         </p>
@@ -226,9 +224,7 @@ export default function SignalReportWidget({
               )}
             >
               <div className="mb-3 flex items-center justify-between">
-                <label className="text-sm font-medium text-zinc-200">
-                  {signal.label}
-                </label>
+                <label className="text-sm font-medium text-zinc-200">{signal.label}</label>
                 {isSubmitted && (
                   <span className="flex items-center gap-1 rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-400">
                     <Check className="h-3 w-3" />
@@ -270,7 +266,12 @@ export default function SignalReportWidget({
 
       <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500">
         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         <span>Anonymous feedback • Rate limited to prevent spam</span>
       </div>

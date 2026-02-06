@@ -56,7 +56,13 @@ function setCompareTools(tools: CompareTool[]) {
   window.dispatchEvent(new CustomEvent('compare-tools-changed', { detail: tools }));
 }
 
-export default function CompareButton({ toolSlug, toolName, toolLogo, categorySlug, categoryName }: Props) {
+export default function CompareButton({
+  toolSlug,
+  toolName,
+  toolLogo,
+  categorySlug,
+  categoryName,
+}: Props) {
   const [isAdded, setIsAdded] = useState(false);
   const [compareTools, setCompareToolsState] = useState<CompareTool[]>([]);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -65,13 +71,13 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
     // Initial load
     const tools = getCompareTools();
     setCompareToolsState(tools);
-    setIsAdded(tools.some(t => t.slug === toolSlug));
+    setIsAdded(tools.some((t) => t.slug === toolSlug));
 
     // Listen for changes from other components
     const handleChange = (e: CustomEvent) => {
       const tools = e.detail as CompareTool[];
       setCompareToolsState(tools);
-      setIsAdded(tools.some(t => t.slug === toolSlug));
+      setIsAdded(tools.some((t) => t.slug === toolSlug));
     };
 
     window.addEventListener('compare-tools-changed', handleChange as EventListener);
@@ -83,33 +89,40 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
 
     if (!pressed) {
       // Remove
-      const newTools = tools.filter(t => t.slug !== toolSlug);
+      const newTools = tools.filter((t) => t.slug !== toolSlug);
       setCompareTools(newTools);
       setIsAdded(false);
     } else {
       // Add (if not at max)
       if (tools.length >= MAX_COMPARE_TOOLS) {
-        setAlertMessage(`You can compare up to ${MAX_COMPARE_TOOLS} tools at once. Remove one to add another.`);
+        setAlertMessage(
+          `You can compare up to ${MAX_COMPARE_TOOLS} tools at once. Remove one to add another.`
+        );
         return;
       }
 
       // Enforce same category - only allow sensible comparisons
       if (tools.length > 0 && categorySlug) {
-        const existingCategories = new Set(tools.map(t => t.categorySlug).filter(Boolean));
+        const existingCategories = new Set(tools.map((t) => t.categorySlug).filter(Boolean));
         if (existingCategories.size > 0 && !existingCategories.has(categorySlug)) {
-          setAlertMessage(`You can only compare tools from the same category. Clear your selection to compare ${toolName} with other ${categoryName || 'similar'} tools.`);
+          setAlertMessage(
+            `You can only compare tools from the same category. Clear your selection to compare ${toolName} with other ${categoryName || 'similar'} tools.`
+          );
           return;
         }
       }
 
-      const newTools = [...tools, { slug: toolSlug, name: toolName, logo: toolLogo, categorySlug, categoryName }];
+      const newTools = [
+        ...tools,
+        { slug: toolSlug, name: toolName, logo: toolLogo, categorySlug, categoryName },
+      ];
       setCompareTools(newTools);
       setIsAdded(true);
     }
   };
 
   const handleRemove = (slug: string) => {
-    const tools = getCompareTools().filter(t => t.slug !== slug);
+    const tools = getCompareTools().filter((t) => t.slug !== slug);
     setCompareTools(tools);
   };
 
@@ -133,9 +146,7 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
         <DialogContent className="bg-zinc-900 border-zinc-700 text-zinc-100">
           <DialogHeader>
             <DialogTitle className="text-zinc-100">Compare Tools</DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              {alertMessage}
-            </DialogDescription>
+            <DialogDescription className="text-zinc-400">{alertMessage}</DialogDescription>
           </DialogHeader>
           <div className="flex justify-end">
             <Button onClick={() => setAlertMessage(null)} variant="default">
@@ -150,10 +161,10 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
         pressed={isAdded}
         onPressedChange={handleToggle}
         className={cn(
-          "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition",
+          'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition',
           isAdded
-            ? "bg-hunt-100 text-hunt-700 hover:bg-hunt-200/80 data-[state=on]:bg-hunt-100 data-[state=on]:text-hunt-700 dark:bg-hunt-900 dark:text-hunt-100 dark:hover:bg-hunt-800"
-            : "bg-slate-100 text-slate-700 hover:bg-slate-200/70 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700/80"
+            ? 'bg-hunt-100 text-hunt-700 hover:bg-hunt-200/80 data-[state=on]:bg-hunt-100 data-[state=on]:text-hunt-700 dark:bg-hunt-900 dark:text-hunt-100 dark:hover:bg-hunt-800'
+            : 'bg-slate-100 text-slate-700 hover:bg-slate-200/70 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700/80'
         )}
       >
         {isAdded ? (
@@ -181,9 +192,7 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
                   variant="secondary"
                   className="group relative flex items-center gap-1.5 bg-slate-800 text-white hover:bg-slate-700"
                 >
-                  {tool.logo && (
-                    <img src={tool.logo} alt="" className="h-5 w-5 rounded" />
-                  )}
+                  {tool.logo && <img src={tool.logo} alt="" className="h-5 w-5 rounded" />}
                   <span className="text-sm">{tool.name}</span>
                   <Button
                     variant="ghost"
@@ -209,7 +218,8 @@ export default function CompareButton({ toolSlug, toolName, toolLogo, categorySl
               onClick={handleCompare}
               disabled={compareTools.length < 2}
               className={cn(
-                compareTools.length < 2 && "bg-slate-700 text-slate-400 cursor-not-allowed hover:bg-slate-700"
+                compareTools.length < 2 &&
+                  'bg-slate-700 text-slate-400 cursor-not-allowed hover:bg-slate-700'
               )}
             >
               Compare ({compareTools.length})

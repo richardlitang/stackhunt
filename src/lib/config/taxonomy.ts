@@ -18,8 +18,8 @@ export const CATEGORY_MAP: Record<string, string> = {
   'Graphic Design': 'Design',
   'Vector Graphics Software': 'Design',
   'Design Systems Software': 'Design',
-  'Prototyping': 'Design',
-  'Illustration': 'Design',
+  Prototyping: 'Design',
+  Illustration: 'Design',
   'Web Design': 'Design',
   'Motion Design': 'Design',
 
@@ -27,22 +27,22 @@ export const CATEGORY_MAP: Record<string, string> = {
   'Work Management': 'Project Management',
   'Task Management': 'Project Management',
   'Issue Tracking': 'Project Management',
-  'Roadmapping': 'Project Management',
-  'OKRs': 'Project Management',
+  Roadmapping: 'Project Management',
+  OKRs: 'Project Management',
   'Agile Tools': 'Project Management',
 
   // --- Development Cluster ---
   'Backend as a Service': 'Development',
   'Cloud Infrastructure': 'Development',
-  'IDE': 'Development',
+  IDE: 'Development',
   'Version Control': 'Development',
   'CI/CD': 'Development',
   'API Management': 'Development',
   'Database Management': 'Development',
-  'DevOps': 'Development',
+  DevOps: 'Development',
 
   // --- Analytics Cluster ---
-  'SEO': 'Analytics',
+  SEO: 'Analytics',
   'Product Analytics': 'Analytics',
   'Web Analytics': 'Analytics',
   'Business Intelligence': 'Analytics',
@@ -51,8 +51,8 @@ export const CATEGORY_MAP: Record<string, string> = {
   // --- Communication Cluster ---
   'Team Chat': 'Communication',
   'Video Conferencing': 'Communication',
-  'Email': 'Communication',
-  'Messaging': 'Communication',
+  Email: 'Communication',
+  Messaging: 'Communication',
 
   // --- CRM Cluster ---
   'Sales CRM': 'CRM',
@@ -61,23 +61,23 @@ export const CATEGORY_MAP: Record<string, string> = {
   'Lead Generation': 'CRM',
 
   // --- Finance Cluster ---
-  'Accounting': 'Finance',
-  'Invoicing': 'Finance',
+  Accounting: 'Finance',
+  Invoicing: 'Finance',
   'Expense Management': 'Finance',
-  'Payroll': 'Finance',
+  Payroll: 'Finance',
   'Corporate Cards': 'Finance',
 
   // --- HR Cluster ---
   'HR Management': 'HR',
-  'Recruiting': 'HR',
+  Recruiting: 'HR',
   'Employee Onboarding': 'HR',
   'Global Payroll': 'HR',
-  'EOR': 'HR',
+  EOR: 'HR',
 
   // --- Productivity Cluster ---
   'Note Taking': 'Productivity',
   'Knowledge Management': 'Productivity',
-  'Documentation': 'Productivity',
+  Documentation: 'Productivity',
   'Writing Tools': 'Productivity',
   'Time Tracking': 'Productivity',
 
@@ -106,7 +106,10 @@ export function normalizeCategory(rawCategory: string | undefined | null): strin
 /**
  * Check if two categories belong to the same cluster
  */
-export function isSameCluster(categoryA: string | undefined, categoryB: string | undefined): boolean {
+export function isSameCluster(
+  categoryA: string | undefined,
+  categoryB: string | undefined
+): boolean {
   if (!categoryA || !categoryB) return false;
   return normalizeCategory(categoryA) === normalizeCategory(categoryB);
 }

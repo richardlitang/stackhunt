@@ -55,13 +55,16 @@ export const GET: APIRoute = async ({ request }) => {
     const [coverageData, guidelinesData, existingProposed] = await Promise.all([
       admin.from('contexts').select('title, slug, tool_count, updated_at'),
       admin.from('editorial_guidelines').select('key, content').eq('is_active', true),
-      admin.from('editorial_topics').select('topic').in('status', ['proposed', 'approved', 'queued']),
+      admin
+        .from('editorial_topics')
+        .select('topic')
+        .in('status', ['proposed', 'approved', 'queued']),
     ]);
 
     const existingContexts = coverageData.data || [];
     const existingTopics = new Set([
-      ...existingContexts.map(c => c.title.toLowerCase()),
-      ...(existingProposed.data || []).map(t => t.topic.toLowerCase()),
+      ...existingContexts.map((c) => c.title.toLowerCase()),
+      ...(existingProposed.data || []).map((t) => t.topic.toLowerCase()),
     ]);
 
     // Parse guidelines
@@ -91,9 +94,7 @@ export const GET: APIRoute = async ({ request }) => {
     const staleThreshold = new Date();
     staleThreshold.setDate(staleThreshold.getDate() - 90);
 
-    const staleContexts = existingContexts.filter(
-      c => new Date(c.updated_at) < staleThreshold
-    );
+    const staleContexts = existingContexts.filter((c) => new Date(c.updated_at) < staleThreshold);
     result.refreshNeeded = staleContexts.length;
 
     // 4. Use Gemini to generate topic suggestions
@@ -107,16 +108,26 @@ export const GET: APIRoute = async ({ request }) => {
 
 ## CURRENT COVERAGE
 We already have articles on:
-${existingContexts.slice(0, 50).map(c => `- ${c.title}`).join('\n')}
+${existingContexts
+  .slice(0, 50)
+  .map((c) => `- ${c.title}`)
+  .join('\n')}
 
 ## CATEGORIES WITH FEW TOOLS (Opportunities)
-${(categories || [])
-  .filter(c => (categoryCounts[c.slug] || 0) < 5)
-  .map(c => `- ${c.name}`)
-  .join('\n') || 'None identified'}
+${
+  (categories || [])
+    .filter((c) => (categoryCounts[c.slug] || 0) < 5)
+    .map((c) => `- ${c.name}`)
+    .join('\n') || 'None identified'
+}
 
 ## STALE CONTENT (Needs Refresh)
-${staleContexts.slice(0, 10).map(c => `- ${c.title} (last updated: ${c.updated_at})`).join('\n') || 'None'}
+${
+  staleContexts
+    .slice(0, 10)
+    .map((c) => `- ${c.title} (last updated: ${c.updated_at})`)
+    .join('\n') || 'None'
+}
 
 ## EDITORIAL GUIDELINES
 Topics to avoid: ${JSON.stringify((topicFilters as Record<string, unknown>).avoid || [])}
@@ -218,25 +229,30 @@ Return a JSON array of topic suggestions.`;
       });
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      ...result,
-      timestamp: new Date().toISOString(),
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        ...result,
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     console.error('Topic discovery error:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: (error as Error).message,
-      ...result,
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: (error as Error).message,
+        ...result,
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 };
 

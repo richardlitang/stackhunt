@@ -25,11 +25,11 @@ export interface RateLimitResult {
 
 // Default limits for different endpoints
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
-  '/api/vote': { maxRequests: 30, windowSeconds: 60 },           // 30 votes/minute
-  '/api/corrections': { maxRequests: 5, windowSeconds: 3600 },   // 5 corrections/hour
-  '/api/admin/hunt': { maxRequests: 10, windowSeconds: 60 },     // 10 hunts/minute
+  '/api/vote': { maxRequests: 30, windowSeconds: 60 }, // 30 votes/minute
+  '/api/corrections': { maxRequests: 5, windowSeconds: 3600 }, // 5 corrections/hour
+  '/api/admin/hunt': { maxRequests: 10, windowSeconds: 60 }, // 10 hunts/minute
   '/api/admin/hunt-context': { maxRequests: 5, windowSeconds: 60 }, // 5 context hunts/minute
-  'default': { maxRequests: 60, windowSeconds: 60 },             // 60 requests/minute default
+  default: { maxRequests: 60, windowSeconds: 60 }, // 60 requests/minute default
 };
 
 /**
@@ -37,7 +37,10 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
  */
 export function hashIdentifier(identifier: string): string {
   const salt = import.meta.env.IP_HASH_SALT || 'stackhunt-rate-limit-salt';
-  return createHash('sha256').update(identifier + salt).digest('hex').slice(0, 32);
+  return createHash('sha256')
+    .update(identifier + salt)
+    .digest('hex')
+    .slice(0, 32);
 }
 
 /**
@@ -90,7 +93,13 @@ export async function checkRateLimit(
       };
     }
 
-    const result = data as { allowed: boolean; remaining: number; current: number; limit: number; reset_at: string };
+    const result = data as {
+      allowed: boolean;
+      remaining: number;
+      current: number;
+      limit: number;
+      reset_at: string;
+    };
 
     return {
       allowed: result.allowed,

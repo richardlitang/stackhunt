@@ -17,7 +17,10 @@ function isProduction(): boolean {
 
 // Check if we're in build/prerender phase (no runtime context)
 function isBuildPhase(): boolean {
-  return process.env.ASTRO_BUILD === 'true' || typeof process.env.VERCEL_URL === 'undefined' && isProduction();
+  return (
+    process.env.ASTRO_BUILD === 'true' ||
+    (typeof process.env.VERCEL_URL === 'undefined' && isProduction())
+  );
 }
 
 // Get required environment variable - fails in production runtime if missing

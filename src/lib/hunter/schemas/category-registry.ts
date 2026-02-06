@@ -18,12 +18,12 @@ export interface CategoryDefinition {
   slug: string;
   name: string;
   description: string;
-  parent: string | null;            // Parent category slug
-  layer2Schema: string;             // e.g., 'DevToolsSchema'
-  layer3Schema: string | null;      // e.g., 'CICDSchema'
-  extractionCost: number;           // Additional $ per tool
-  personas: PersonaTag[];           // Who cares about this category
-  exampleTools: string[];           // Reference tools (for validation)
+  parent: string | null; // Parent category slug
+  layer2Schema: string; // e.g., 'DevToolsSchema'
+  layer3Schema: string | null; // e.g., 'CICDSchema'
+  extractionCost: number; // Additional $ per tool
+  personas: PersonaTag[]; // Who cares about this category
+  exampleTools: string[]; // Reference tools (for validation)
 }
 
 export type PersonaTag =
@@ -46,7 +46,6 @@ export type PersonaTag =
 // ============================================================================
 
 export const CategoryRegistry: Record<string, CategoryDefinition> = {
-
   // ==========================================================================
   // DEVELOPER TOOLS (Parent)
   // ==========================================================================
@@ -57,7 +56,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     parent: null,
     layer2Schema: 'DevToolsSchema',
     layer3Schema: null,
-    extractionCost: 0.00,
+    extractionCost: 0.0,
     personas: ['developer', 'cto'],
     exampleTools: ['github', 'vscode', 'docker'],
   },
@@ -70,13 +69,13 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     parent: 'developer-tools',
     layer2Schema: 'DevToolsSchema',
     layer3Schema: 'CICDSchema',
-    extractionCost: 0.00,
+    extractionCost: 0.0,
     personas: ['developer', 'cto'],
     exampleTools: ['github-actions', 'circleci', 'gitlab-ci'],
   },
 
   // Monitoring (Child of developer-tools)
-  'monitoring': {
+  monitoring: {
     slug: 'monitoring',
     name: 'Monitoring & Observability',
     description: 'Application performance monitoring and logging',
@@ -96,7 +95,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     parent: 'developer-tools',
     layer2Schema: 'DevToolsSchema',
     layer3Schema: 'APIDevSchema',
-    extractionCost: 0.00,
+    extractionCost: 0.0,
     personas: ['developer'],
     exampleTools: ['postman', 'insomnia', 'hoppscotch'],
   },
@@ -109,7 +108,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     parent: 'developer-tools',
     layer2Schema: 'DevToolsSchema',
     layer3Schema: 'VersionControlSchema',
-    extractionCost: 0.00,
+    extractionCost: 0.0,
     personas: ['developer', 'cto'],
     exampleTools: ['github', 'gitlab', 'bitbucket'],
   },
@@ -117,7 +116,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
   // ==========================================================================
   // INFRASTRUCTURE & DATABASES (Parent)
   // ==========================================================================
-  'infrastructure': {
+  infrastructure: {
     slug: 'infrastructure',
     name: 'Infrastructure & Databases',
     description: 'Cloud hosting, databases, and backend services',
@@ -129,7 +128,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     exampleTools: ['aws', 'supabase', 'vercel'],
   },
 
-  'databases': {
+  databases: {
     slug: 'databases',
     name: 'Databases',
     description: 'Managed database services',
@@ -141,7 +140,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     exampleTools: ['supabase', 'planetscale', 'neon'],
   },
 
-  'serverless': {
+  serverless: {
     slug: 'serverless',
     name: 'Serverless & Edge',
     description: 'Serverless functions and edge computing',
@@ -168,7 +167,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
   // ==========================================================================
   // PRODUCTIVITY (Parent)
   // ==========================================================================
-  'productivity': {
+  productivity: {
     slug: 'productivity',
     name: 'Productivity',
     description: 'Tools for organizing work and information',
@@ -204,7 +203,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     exampleTools: ['linear', 'asana', 'jira', 'monday'],
   },
 
-  'documentation': {
+  documentation: {
     slug: 'documentation',
     name: 'Documentation',
     description: 'Knowledge bases and documentation platforms',
@@ -258,7 +257,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
   // ==========================================================================
   // COMMUNICATION (Parent)
   // ==========================================================================
-  'communication': {
+  communication: {
     slug: 'communication',
     name: 'Communication',
     description: 'Team messaging and video conferencing',
@@ -297,7 +296,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
   // ==========================================================================
   // DESIGN & MARKETING (Parent)
   // ==========================================================================
-  'design': {
+  design: {
     slug: 'design',
     name: 'Design',
     description: 'Design tools for UI/UX, graphics, and video',
@@ -309,7 +308,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     exampleTools: ['figma', 'canva', 'adobe-cc'],
   },
 
-  'marketing': {
+  marketing: {
     slug: 'marketing',
     name: 'Marketing Tools',
     description: 'SEO, analytics, and content marketing',
@@ -324,7 +323,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
   // ==========================================================================
   // ANALYTICS (Parent)
   // ==========================================================================
-  'analytics': {
+  analytics: {
     slug: 'analytics',
     name: 'Analytics',
     description: 'Product, web, and business analytics',
@@ -363,7 +362,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
   // ==========================================================================
   // ECOMMERCE & PAYMENTS (Parent)
   // ==========================================================================
-  'ecommerce': {
+  ecommerce: {
     slug: 'ecommerce',
     name: 'eCommerce & Payments',
     description: 'Online stores and payment processing',
@@ -414,7 +413,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     exampleTools: ['salesforce', 'workday', 'servicenow'],
   },
 
-  'security': {
+  security: {
     slug: 'security',
     name: 'Security & Identity',
     description: 'Security tools and identity management',
@@ -456,7 +455,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
     exampleTools: ['ashby', 'deel', 'rippling'],
   },
 
-  'finance': {
+  finance: {
     slug: 'finance',
     name: 'Finance & Accounting',
     description: 'Accounting, invoicing, and expense management',
@@ -486,7 +485,7 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
   // ==========================================================================
   // WEBSITE & CMS (Parent)
   // ==========================================================================
-  'cms': {
+  cms: {
     slug: 'cms',
     name: 'CMS & Website Builders',
     description: 'Content management and website building',
@@ -531,14 +530,14 @@ export const CategoryRegistry: Record<string, CategoryDefinition> = {
   // ==========================================================================
   // SCHEDULING (Parent)
   // ==========================================================================
-  'scheduling': {
+  scheduling: {
     slug: 'scheduling',
     name: 'Scheduling & Booking',
     description: 'Appointment scheduling and calendar management',
     parent: null,
     layer2Schema: 'SchedulingSchema',
     layer3Schema: null,
-    extractionCost: 0.00,
+    extractionCost: 0.0,
     personas: ['sales', 'founder', 'ops_manager'],
     exampleTools: ['calendly', 'cal-com', 'acuity'],
   },
@@ -559,7 +558,7 @@ export function getCategoryDefinition(slug: string): CategoryDefinition | undefi
  * Get all child categories of a parent.
  */
 export function getChildCategories(parentSlug: string): CategoryDefinition[] {
-  return Object.values(CategoryRegistry).filter(cat => cat.parent === parentSlug);
+  return Object.values(CategoryRegistry).filter((cat) => cat.parent === parentSlug);
 }
 
 /**
@@ -571,7 +570,7 @@ export function getCategoryHierarchy(slug: string): CategoryDefinition[] {
 
   while (current) {
     hierarchy.unshift(current);
-    current = current.parent ? CategoryRegistry[current.parent] : undefined as any;
+    current = current.parent ? CategoryRegistry[current.parent] : (undefined as any);
   }
 
   return hierarchy;
@@ -581,14 +580,14 @@ export function getCategoryHierarchy(slug: string): CategoryDefinition[] {
  * Get all top-level (parent) categories.
  */
 export function getTopLevelCategories(): CategoryDefinition[] {
-  return Object.values(CategoryRegistry).filter(cat => cat.parent === null);
+  return Object.values(CategoryRegistry).filter((cat) => cat.parent === null);
 }
 
 /**
  * Get all categories that serve a specific persona.
  */
 export function getCategoriesForPersona(persona: PersonaTag): CategoryDefinition[] {
-  return Object.values(CategoryRegistry).filter(cat => cat.personas.includes(persona));
+  return Object.values(CategoryRegistry).filter((cat) => cat.personas.includes(persona));
 }
 
 /**
@@ -597,7 +596,7 @@ export function getCategoriesForPersona(persona: PersonaTag): CategoryDefinition
 export function getTotalExtractionCost(slug: string): number {
   const baseCost = 0.15;
   const hierarchy = getCategoryHierarchy(slug);
-  const additionalCost = Math.max(...hierarchy.map(c => c.extractionCost));
+  const additionalCost = Math.max(...hierarchy.map((c) => c.extractionCost));
   return baseCost + additionalCost;
 }
 

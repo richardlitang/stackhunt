@@ -1,8 +1,8 @@
 /**
  * Name Collision Detector
- * 
+ *
  * Detects when research data mixes multiple companies with the same name.
- * 
+ *
  * Examples:
  * - Aider.chat (CLI coding tool) vs Aider.ai (accounting software)
  * - Notion (productivity) vs Notion (CRM)
@@ -57,9 +57,11 @@ export function detectNameCollision(
     .filter(([domain]) => {
       const domainLower = domain.toLowerCase();
       // Match if tool name is in domain (but not generic like reddit.com)
-      return domainLower.includes(toolNameLower) &&
-             !domainLower.includes('reddit') &&
-             !domainLower.includes('news.ycombinator');
+      return (
+        domainLower.includes(toolNameLower) &&
+        !domainLower.includes('reddit') &&
+        !domainLower.includes('news.ycombinator')
+      );
     })
     .sort((a, b) => b[1] - a[1]); // Sort by source count
 
@@ -73,22 +75,25 @@ export function detectNameCollision(
     // Step 2c: Multiple tool domains found, use category to disambiguate
     // Check which domain appears with the expected category
     const categoryHints: Record<string, string[]> = {
-      'dev': ['code', 'developer', 'coding', 'programming', 'git', 'cli'],
-      'accounting': ['finance', 'accounting', 'advisory', 'bookkeeping', 'tax'],
-      'crm': ['sales', 'customer', 'crm', 'contact'],
+      dev: ['code', 'developer', 'coding', 'programming', 'git', 'cli'],
+      accounting: ['finance', 'accounting', 'advisory', 'bookkeeping', 'tax'],
+      crm: ['sales', 'customer', 'crm', 'contact'],
     };
 
     const expectedCatLower = expectedCategory.toLowerCase();
     let bestMatch = toolDomains[0][0]; // Default to most common
 
     for (const [domain] of toolDomains) {
-      const domainSources = sources.filter(s => s.domain === domain);
-      const domainText = domainSources.map(s => `${s.title} ${s.snippet}`).join(' ').toLowerCase();
+      const domainSources = sources.filter((s) => s.domain === domain);
+      const domainText = domainSources
+        .map((s) => `${s.title} ${s.snippet}`)
+        .join(' ')
+        .toLowerCase();
 
       // Check if domain's sources match expected category hints
       for (const [catType, keywords] of Object.entries(categoryHints)) {
         if (expectedCatLower.includes(catType)) {
-          const matchCount = keywords.filter(kw => domainText.includes(kw)).length;
+          const matchCount = keywords.filter((kw) => domainText.includes(kw)).length;
           if (matchCount >= 2) {
             bestMatch = domain;
             break;
@@ -173,7 +178,7 @@ export function filterConflictingSources(
 
 /**
  * Post-extraction validation: Verify extracted website matches expected
- * 
+ *
  * Run this AFTER Knowledge Card extraction when we have the actual website
  */
 export function validateExtractedDomain(
@@ -194,14 +199,23 @@ export function validateExtractedDomain(
   // Extract domain from website URL
   let extractedDomain: string;
   try {
-    const url = new URL(extractedWebsite.startsWith('http') ? extractedWebsite : `https://${extractedWebsite}`);
+    const url = new URL(
+      extractedWebsite.startsWith('http') ? extractedWebsite : `https://${extractedWebsite}`
+    );
     extractedDomain = url.hostname.replace('www.', '');
   } catch {
-    extractedDomain = extractedWebsite.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0];
+    extractedDomain = extractedWebsite
+      .replace(/^https?:\/\//i, '')
+      .replace(/^www\./i, '')
+      .split('/')[0];
   }
 
   // Check if extracted domain matches expected
-  if (expectedDomain && extractedDomain !== expectedDomain && !extractedDomain.includes(expectedDomain)) {
+  if (
+    expectedDomain &&
+    extractedDomain !== expectedDomain &&
+    !extractedDomain.includes(expectedDomain)
+  ) {
     return {
       isValid: false,
       warning: `Extracted website (${extractedDomain}) doesn't match expected domain (${expectedDomain})`,
@@ -213,13 +227,15 @@ export function validateExtractedDomain(
   // Check if we have sources from conflicting domains
   const toolNameLower = toolName.toLowerCase();
   const conflictingDomains = sources
-    .map(s => s.domain)
-    .filter(d => {
+    .map((s) => s.domain)
+    .filter((d) => {
       const domainLower = d.toLowerCase();
-      return domainLower.includes(toolNameLower) &&
-             d !== extractedDomain &&
-             !d.includes(extractedDomain) &&
-             !extractedDomain.includes(d);
+      return (
+        domainLower.includes(toolNameLower) &&
+        d !== extractedDomain &&
+        !d.includes(extractedDomain) &&
+        !extractedDomain.includes(d)
+      );
     });
 
   const uniqueConflicts = [...new Set(conflictingDomains)];

@@ -7,12 +7,7 @@
  */
 
 import { defineMiddleware } from 'astro:middleware';
-import {
-  COOKIE_NAME,
-  validateSession,
-  isLegacyToken,
-  validateLegacyToken,
-} from '@/lib/auth';
+import { COOKIE_NAME, validateSession, isLegacyToken, validateLegacyToken } from '@/lib/auth';
 import {
   generateCsrfToken,
   validateCsrfToken,
@@ -58,7 +53,7 @@ const ADMIN_CSP = [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https: blob:",
   "connect-src 'self' https://*.supabase.co",
-  "frame-src https://challenges.cloudflare.com",
+  'frame-src https://challenges.cloudflare.com',
   "base-uri 'self'",
   "form-action 'self'",
 ].join('; ');
@@ -71,7 +66,7 @@ const PUBLIC_CSP = [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https: blob:",
   "connect-src 'self' https://*.supabase.co",
-  "frame-src https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com",
+  'frame-src https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com',
   "base-uri 'self'",
 ].join('; ');
 
@@ -85,97 +80,99 @@ const CSRF_EXEMPT_ROUTES = [
   '/api/admin/hunt-queue/trigger', // Uses webhook secret
 ];
 
-export const onRequest = defineMiddleware(async ({ request, cookies, redirect, url, locals }, next) => {
-  const pathname = url.pathname;
-  const method = request.method;
+export const onRequest = defineMiddleware(
+  async ({ request, cookies, redirect, url, locals }, next) => {
+    const pathname = url.pathname;
+    const method = request.method;
 
-  // Bot blocking - return 403 immediately to save CPU cycles
-  const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
-  if (BLOCKED_BOTS.some(bot => userAgent.includes(bot))) {
-    return new Response('Forbidden', { status: 403 });
-  }
+    // Bot blocking - return 403 immediately to save CPU cycles
+    const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
+    if (BLOCKED_BOTS.some((bot) => userAgent.includes(bot))) {
+      return new Response('Forbidden', { status: 403 });
+    }
 
-  // Check if route requires protection
-  const isProtectedRoute = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix));
-  const isAdminApi = pathname.startsWith('/api/admin');
-  const isAdminPage = pathname.startsWith('/admin') && !isAdminApi;
+    // Check if route requires protection
+    const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    const isAdminApi = pathname.startsWith('/api/admin');
+    const isAdminPage = pathname.startsWith('/admin') && !isAdminApi;
 
-  // Allow login page and login API
-  if (pathname === LOGIN_PAGE || pathname === '/api/admin/login') {
-    const response = await next();
-    return addSecurityHeaders(response, pathname);
-  }
+    // Allow login page and login API
+    if (pathname === LOGIN_PAGE || pathname === '/api/admin/login') {
+      const response = await next();
+      return addSecurityHeaders(response, pathname);
+    }
 
-  // If not a protected route, continue with security headers
-  if (!isProtectedRoute) {
-    const response = await next();
-    return addSecurityHeaders(response, pathname);
-  }
+    // If not a protected route, continue with security headers
+    if (!isProtectedRoute) {
+      const response = await next();
+      return addSecurityHeaders(response, pathname);
+    }
 
-  // Check for valid session cookie
-  const sessionToken = cookies.get(COOKIE_NAME)?.value;
-  let sessionId: string | undefined;
+    // Check for valid session cookie
+    const sessionToken = cookies.get(COOKIE_NAME)?.value;
+    let sessionId: string | undefined;
 
-  if (!sessionToken) {
-    return handleUnauthorized(pathname, redirect);
-  }
+    if (!sessionToken) {
+      return handleUnauthorized(pathname, redirect);
+    }
 
-  // Check for legacy token format (backwards compatibility)
-  if (isLegacyToken(sessionToken)) {
-    if (validateLegacyToken(sessionToken)) {
-      // Legacy token is valid
-      sessionId = 'legacy';
+    // Check for legacy token format (backwards compatibility)
+    if (isLegacyToken(sessionToken)) {
+      if (validateLegacyToken(sessionToken)) {
+        // Legacy token is valid
+        sessionId = 'legacy';
+      } else {
+        return handleUnauthorized(pathname, redirect);
+      }
     } else {
-      return handleUnauthorized(pathname, redirect);
+      // Validate new-style session against database
+      const session = await validateSession(sessionToken);
+
+      if (!session.valid) {
+        // Clear invalid cookie
+        cookies.delete(COOKIE_NAME, { path: '/' });
+        return handleUnauthorized(pathname, redirect);
+      }
+      sessionId = session.sessionId;
     }
-  } else {
-    // Validate new-style session against database
-    const session = await validateSession(sessionToken);
 
-    if (!session.valid) {
-      // Clear invalid cookie
-      cookies.delete(COOKIE_NAME, { path: '/' });
-      return handleUnauthorized(pathname, redirect);
-    }
-    sessionId = session.sessionId;
-  }
+    // CSRF validation for state-changing admin API requests
+    if (isAdminApi && CSRF_METHODS.includes(method)) {
+      const isExempt = CSRF_EXEMPT_ROUTES.some((route) => pathname.startsWith(route));
 
-  // CSRF validation for state-changing admin API requests
-  if (isAdminApi && CSRF_METHODS.includes(method)) {
-    const isExempt = CSRF_EXEMPT_ROUTES.some(route => pathname.startsWith(route));
+      if (!isExempt) {
+        const csrfToken = request.headers.get(CSRF_HEADER_NAME);
+        const csrfCookie = cookies.get(CSRF_COOKIE_NAME)?.value;
 
-    if (!isExempt) {
-      const csrfToken = request.headers.get(CSRF_HEADER_NAME);
-      const csrfCookie = cookies.get(CSRF_COOKIE_NAME)?.value;
-
-      // Must have both header token and cookie, and they must match context
-      if (!csrfToken || !validateCsrfToken(csrfToken, sessionId)) {
-        return new Response(JSON.stringify({ error: 'Invalid CSRF token' }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        // Must have both header token and cookie, and they must match context
+        if (!csrfToken || !validateCsrfToken(csrfToken, sessionId)) {
+          return new Response(JSON.stringify({ error: 'Invalid CSRF token' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
       }
     }
-  }
 
-  // Generate CSRF token for admin pages (will be injected via cookie for JS to read)
-  if (isAdminPage) {
-    const csrfToken = generateCsrfToken(sessionId);
-    cookies.set(CSRF_COOKIE_NAME, csrfToken, {
-      path: '/admin',
-      httpOnly: false, // JS needs to read this
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60, // 1 hour
-    });
-    // Also make it available to Astro pages via locals
-    (locals as any).csrfToken = csrfToken;
-  }
+    // Generate CSRF token for admin pages (will be injected via cookie for JS to read)
+    if (isAdminPage) {
+      const csrfToken = generateCsrfToken(sessionId);
+      cookies.set(CSRF_COOKIE_NAME, csrfToken, {
+        path: '/admin',
+        httpOnly: false, // JS needs to read this
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60, // 1 hour
+      });
+      // Also make it available to Astro pages via locals
+      (locals as any).csrfToken = csrfToken;
+    }
 
-  // Valid session, continue
-  const response = await next();
-  return addSecurityHeaders(response, pathname);
-});
+    // Valid session, continue
+    const response = await next();
+    return addSecurityHeaders(response, pathname);
+  }
+);
 
 /**
  * Add security headers to response

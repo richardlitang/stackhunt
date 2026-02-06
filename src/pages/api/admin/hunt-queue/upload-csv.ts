@@ -151,11 +151,11 @@ function validateRows(rows: CSVRow[]): ValidationError[] {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   // Validate admin session
-  if (!await validateAdminAuth(cookies)) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+  if (!(await validateAdminAuth(cookies))) {
+    return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {

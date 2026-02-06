@@ -16,298 +16,329 @@ if (!sessionToken) {
 // Validate session (you could add validateSession here if needed)
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Content Strategy - StackHunt Admin</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50">
-  <div class="mx-auto max-w-6xl p-8">
-    <!-- Header -->
-    <div class="mb-8 flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-900">Content Strategy</h1>
-        <p class="mt-1 text-slate-600">Import and manage content ideas from LLM brainstorming</p>
-      </div>
-      <a href="/admin" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-        ← Back to Admin
-      </a>
-    </div>
-
-    <!-- Import Form -->
-    <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 class="mb-4 text-lg font-semibold text-slate-900">Import Content Ideas</h2>
-
-      <!-- Tabs -->
-      <div class="mb-4 border-b border-slate-200">
-        <div class="flex gap-4">
-          <button
-            type="button"
-            id="paste-tab"
-            class="border-b-2 border-indigo-600 px-4 py-2 text-sm font-medium text-indigo-600"
-          >
-            Paste from Gemini
-          </button>
-          <button
-            type="button"
-            id="upload-tab"
-            class="border-b-2 border-transparent px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
-          >
-            Upload CSV (Ahrefs, etc)
-          </button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Content Strategy - StackHunt Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-50">
+    <div class="mx-auto max-w-6xl p-8">
+      <!-- Header -->
+      <div class="mb-8 flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-slate-900">Content Strategy</h1>
+          <p class="mt-1 text-slate-600">Import and manage content ideas from LLM brainstorming</p>
         </div>
+        <a
+          href="/admin"
+          class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          ← Back to Admin
+        </a>
       </div>
 
-      <form id="import-form" class="space-y-4">
-        <!-- Paste Panel -->
-        <div id="paste-panel" class="space-y-4">
-          <div>
-            <label class="mb-2 block text-sm font-medium text-slate-700">
-              Paste CSV
-            </label>
-            <textarea
-              id="csv-content"
-              name="csv_content"
-              rows="12"
-              placeholder='keyword,tool_name,context_query,content_type,pillar,target_audience,priority,notes
+      <!-- Import Form -->
+      <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-slate-900">Import Content Ideas</h2>
+
+        <!-- Tabs -->
+        <div class="mb-4 border-b border-slate-200">
+          <div class="flex gap-4">
+            <button
+              type="button"
+              id="paste-tab"
+              class="border-b-2 border-indigo-600 px-4 py-2 text-sm font-medium text-indigo-600"
+            >
+              Paste from Gemini
+            </button>
+            <button
+              type="button"
+              id="upload-tab"
+              class="border-b-2 border-transparent px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
+            >
+              Upload CSV (Ahrefs, etc)
+            </button>
+          </div>
+        </div>
+
+        <form id="import-form" class="space-y-4">
+          <!-- Paste Panel -->
+          <div id="paste-panel" class="space-y-4">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-slate-700"> Paste CSV </label>
+              <textarea
+                id="csv-content"
+                name="csv_content"
+                rows="12"
+                placeholder='keyword,tool_name,context_query,content_type,pillar,target_audience,priority,notes
 "supabase vs firebase","Supabase","Supabase vs Firebase",comparison,builder,developers,98,"Core wedge"
 "best headless cms",,"Best Headless CMS",listicle,builder,developers,95,"Sanity, Strapi"'
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            ></textarea>
-            <p class="mt-1 text-xs text-slate-500">
-              Paste CSV directly from Gemini or other tools
-            </p>
-          </div>
-        </div>
-
-        <!-- Upload Panel -->
-        <div id="upload-panel" class="hidden space-y-4">
-          <div>
-            <label class="mb-2 block text-sm font-medium text-slate-700">
-              Upload CSV File
-            </label>
-            <div class="flex items-center justify-center w-full">
-              <label for="csv-file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100">
-                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                  <svg class="w-8 h-8 mb-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <p class="mb-1 text-sm text-slate-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                  <p class="text-xs text-slate-400">CSV files from Ahrefs, SEMrush, etc</p>
-                </div>
-                <input id="csv-file" type="file" accept=".csv" class="hidden" />
-              </label>
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              ></textarea>
+              <p class="mt-1 text-xs text-slate-500">
+                Paste CSV directly from Gemini or other tools
+              </p>
             </div>
-            <p id="file-name" class="mt-2 text-sm text-slate-600"></p>
+          </div>
+
+          <!-- Upload Panel -->
+          <div id="upload-panel" class="hidden space-y-4">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-slate-700"> Upload CSV File </label>
+              <div class="flex items-center justify-center w-full">
+                <label
+                  for="csv-file"
+                  class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100"
+                >
+                  <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg
+                      class="w-8 h-8 mb-2 text-slate-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      ></path>
+                    </svg>
+                    <p class="mb-1 text-sm text-slate-500">
+                      <span class="font-semibold">Click to upload</span> or drag and drop
+                    </p>
+                    <p class="text-xs text-slate-400">CSV files from Ahrefs, SEMrush, etc</p>
+                  </div>
+                  <input id="csv-file" type="file" accept=".csv" class="hidden" />
+                </label>
+              </div>
+              <p id="file-name" class="mt-2 text-sm text-slate-600"></p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button
+              type="submit"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              Import Content Ideas
+            </button>
+            <button
+              type="button"
+              id="clear-btn"
+              class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Clear
+            </button>
+          </div>
+        </form>
+
+        <!-- Progress -->
+        <div id="progress" class="mt-6 hidden">
+          <div class="mb-2 flex items-center gap-2 text-sm text-slate-600">
+            <svg class="h-5 w-5 animate-spin text-indigo-600" fill="none" viewBox="0 0 24 24">
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <span id="progress-text">Processing...</span>
+          </div>
+          <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              id="progress-bar"
+              class="h-full bg-indigo-600 transition-all duration-300"
+              style="width: 0%"
+            >
+            </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <button
-            type="submit"
-            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-          >
-            Import Content Ideas
-          </button>
-          <button
-            type="button"
-            id="clear-btn"
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Clear
-          </button>
-        </div>
-      </form>
-
-      <!-- Progress -->
-      <div id="progress" class="mt-6 hidden">
-        <div class="mb-2 flex items-center gap-2 text-sm text-slate-600">
-          <svg class="h-5 w-5 animate-spin text-indigo-600" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span id="progress-text">Processing...</span>
-        </div>
-        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-          <div id="progress-bar" class="h-full bg-indigo-600 transition-all duration-300" style="width: 0%"></div>
+        <!-- Results -->
+        <div id="results" class="mt-6 hidden">
+          <h3 class="mb-3 font-semibold text-slate-900">Import Results</h3>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-sm">
+              <span class="font-medium text-green-700">Inserted:</span>
+              <span id="inserted-count" class="text-slate-900">0</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="font-medium text-blue-700">Auto-Queued (priority ≥90):</span>
+              <span id="queued-count" class="text-slate-900">0</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="font-medium text-yellow-700">Skipped (duplicates):</span>
+              <span id="skipped-count" class="text-slate-900">0</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="font-medium text-red-700">Failed:</span>
+              <span id="failed-count" class="text-slate-900">0</span>
+            </div>
+          </div>
+          <div id="error-messages" class="mt-4 hidden space-y-1"></div>
         </div>
       </div>
 
-      <!-- Results -->
-      <div id="results" class="mt-6 hidden">
-        <h3 class="mb-3 font-semibold text-slate-900">Import Results</h3>
-        <div class="space-y-2">
-          <div class="flex items-center gap-2 text-sm">
-            <span class="font-medium text-green-700">Inserted:</span>
-            <span id="inserted-count" class="text-slate-900">0</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="font-medium text-blue-700">Auto-Queued (priority ≥90):</span>
-            <span id="queued-count" class="text-slate-900">0</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="font-medium text-yellow-700">Skipped (duplicates):</span>
-            <span id="skipped-count" class="text-slate-900">0</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="font-medium text-red-700">Failed:</span>
-            <span id="failed-count" class="text-slate-900">0</span>
-          </div>
+      <!-- Recent Ideas -->
+      <div class="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-slate-900">Recent Content Ideas</h2>
+        <div id="recent-ideas" class="space-y-2">
+          <p class="text-sm text-slate-500">Loading...</p>
         </div>
-        <div id="error-messages" class="mt-4 hidden space-y-1"></div>
       </div>
     </div>
 
-    <!-- Recent Ideas -->
-    <div class="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 class="mb-4 text-lg font-semibold text-slate-900">Recent Content Ideas</h2>
-      <div id="recent-ideas" class="space-y-2">
-        <p class="text-sm text-slate-500">Loading...</p>
-      </div>
-    </div>
-  </div>
+    <script>
+      const form = document.getElementById('import-form');
+      const csvContent = document.getElementById('csv-content');
+      const csvFile = document.getElementById('csv-file');
+      const fileName = document.getElementById('file-name');
+      const clearBtn = document.getElementById('clear-btn');
+      const progress = document.getElementById('progress');
+      const progressText = document.getElementById('progress-text');
+      const progressBar = document.getElementById('progress-bar');
+      const results = document.getElementById('results');
+      const insertedCount = document.getElementById('inserted-count');
+      const queuedCount = document.getElementById('queued-count');
+      const skippedCount = document.getElementById('skipped-count');
+      const failedCount = document.getElementById('failed-count');
+      const errorMessages = document.getElementById('error-messages');
 
-  <script>
-    const form = document.getElementById('import-form');
-    const csvContent = document.getElementById('csv-content');
-    const csvFile = document.getElementById('csv-file');
-    const fileName = document.getElementById('file-name');
-    const clearBtn = document.getElementById('clear-btn');
-    const progress = document.getElementById('progress');
-    const progressText = document.getElementById('progress-text');
-    const progressBar = document.getElementById('progress-bar');
-    const results = document.getElementById('results');
-    const insertedCount = document.getElementById('inserted-count');
-    const queuedCount = document.getElementById('queued-count');
-    const skippedCount = document.getElementById('skipped-count');
-    const failedCount = document.getElementById('failed-count');
-    const errorMessages = document.getElementById('error-messages');
+      // Tab elements
+      const pasteTab = document.getElementById('paste-tab');
+      const uploadTab = document.getElementById('upload-tab');
+      const pastePanel = document.getElementById('paste-panel');
+      const uploadPanel = document.getElementById('upload-panel');
 
-    // Tab elements
-    const pasteTab = document.getElementById('paste-tab');
-    const uploadTab = document.getElementById('upload-tab');
-    const pastePanel = document.getElementById('paste-panel');
-    const uploadPanel = document.getElementById('upload-panel');
+      // Tab switching
+      pasteTab?.addEventListener('click', () => {
+        pasteTab.classList.add('border-indigo-600', 'text-indigo-600');
+        pasteTab.classList.remove('border-transparent', 'text-slate-500');
+        uploadTab.classList.remove('border-indigo-600', 'text-indigo-600');
+        uploadTab.classList.add('border-transparent', 'text-slate-500');
+        pastePanel?.classList.remove('hidden');
+        uploadPanel?.classList.add('hidden');
+      });
 
-    // Tab switching
-    pasteTab?.addEventListener('click', () => {
-      pasteTab.classList.add('border-indigo-600', 'text-indigo-600');
-      pasteTab.classList.remove('border-transparent', 'text-slate-500');
-      uploadTab.classList.remove('border-indigo-600', 'text-indigo-600');
-      uploadTab.classList.add('border-transparent', 'text-slate-500');
-      pastePanel?.classList.remove('hidden');
-      uploadPanel?.classList.add('hidden');
-    });
+      uploadTab?.addEventListener('click', () => {
+        uploadTab.classList.add('border-indigo-600', 'text-indigo-600');
+        uploadTab.classList.remove('border-transparent', 'text-slate-500');
+        pasteTab.classList.remove('border-indigo-600', 'text-indigo-600');
+        pasteTab.classList.add('border-transparent', 'text-slate-500');
+        uploadPanel?.classList.remove('hidden');
+        pastePanel?.classList.add('hidden');
+      });
 
-    uploadTab?.addEventListener('click', () => {
-      uploadTab.classList.add('border-indigo-600', 'text-indigo-600');
-      uploadTab.classList.remove('border-transparent', 'text-slate-500');
-      pasteTab.classList.remove('border-indigo-600', 'text-indigo-600');
-      pasteTab.classList.add('border-transparent', 'text-slate-500');
-      uploadPanel?.classList.remove('hidden');
-      pastePanel?.classList.add('hidden');
-    });
+      // File upload handling
+      csvFile?.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-    // File upload handling
-    csvFile?.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+        fileName.textContent = `Selected: ${file.name}`;
 
-      fileName.textContent = `Selected: ${file.name}`;
+        try {
+          const text = await file.text();
+          csvContent.value = text;
+        } catch (error) {
+          alert('Failed to read file');
+          console.error(error);
+        }
+      });
 
-      try {
-        const text = await file.text();
-        csvContent.value = text;
-      } catch (error) {
-        alert('Failed to read file');
-        console.error(error);
-      }
-    });
+      clearBtn?.addEventListener('click', () => {
+        csvContent.value = '';
+        csvFile.value = '';
+        fileName.textContent = '';
+        results?.classList.add('hidden');
+      });
 
-    clearBtn?.addEventListener('click', () => {
-      csvContent.value = '';
-      csvFile.value = '';
-      fileName.textContent = '';
-      results?.classList.add('hidden');
-    });
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const content = csvContent.value.trim();
-      if (!content) {
-        alert('Please paste CSV content');
-        return;
-      }
-
-      // Show progress
-      progress?.classList.remove('hidden');
-      results?.classList.add('hidden');
-      progressBar.style.width = '0%';
-      progressText.textContent = 'Processing...';
-
-      try {
-        const response = await fetch('/api/admin/content-ideas/import', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ csv_content: content }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Import failed');
+        const content = csvContent.value.trim();
+        if (!content) {
+          alert('Please paste CSV content');
+          return;
         }
 
-        // Show results
-        progressBar.style.width = '100%';
-        progressText.textContent = 'Complete!';
+        // Show progress
+        progress?.classList.remove('hidden');
+        results?.classList.add('hidden');
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Processing...';
 
-        setTimeout(() => {
+        try {
+          const response = await fetch('/api/admin/content-ideas/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ csv_content: content }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Import failed');
+          }
+
+          // Show results
+          progressBar.style.width = '100%';
+          progressText.textContent = 'Complete!';
+
+          setTimeout(() => {
+            progress?.classList.add('hidden');
+            results?.classList.remove('hidden');
+            insertedCount.textContent = data.inserted;
+            queuedCount.textContent = data.autoQueued || 0;
+            skippedCount.textContent = data.skipped;
+            failedCount.textContent = data.failed;
+
+            if (data.errors && data.errors.length > 0) {
+              errorMessages.classList.remove('hidden');
+              errorMessages.innerHTML = data.errors
+                .map((err) => `<div class="text-xs text-red-600">• ${err}</div>`)
+                .join('');
+            }
+
+            // Refresh recent ideas
+            loadRecentIdeas();
+
+            // Show success message if items were auto-queued
+            if (data.autoQueued > 0) {
+              const msg = document.createElement('div');
+              msg.className =
+                'mt-3 rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700';
+              msg.textContent = `🚀 ${data.autoQueued} high-priority item(s) automatically added to hunt queue!`;
+              results?.appendChild(msg);
+            }
+          }, 500);
+        } catch (error) {
           progress?.classList.add('hidden');
-          results?.classList.remove('hidden');
-          insertedCount.textContent = data.inserted;
-          queuedCount.textContent = data.autoQueued || 0;
-          skippedCount.textContent = data.skipped;
-          failedCount.textContent = data.failed;
+          alert(error.message);
+        }
+      });
 
-          if (data.errors && data.errors.length > 0) {
-            errorMessages.classList.remove('hidden');
-            errorMessages.innerHTML = data.errors.map(err =>
-              `<div class="text-xs text-red-600">• ${err}</div>`
-            ).join('');
-          }
+      async function loadRecentIdeas() {
+        const container = document.getElementById('recent-ideas');
 
-          // Refresh recent ideas
-          loadRecentIdeas();
+        try {
+          const response = await fetch('/api/admin/content-ideas?limit=10');
+          const data = await response.json();
 
-          // Show success message if items were auto-queued
-          if (data.autoQueued > 0) {
-            const msg = document.createElement('div');
-            msg.className = 'mt-3 rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700';
-            msg.textContent = `🚀 ${data.autoQueued} high-priority item(s) automatically added to hunt queue!`;
-            results?.appendChild(msg);
-          }
-        }, 500);
-
-      } catch (error) {
-        progress?.classList.add('hidden');
-        alert(error.message);
-      }
-    });
-
-    async function loadRecentIdeas() {
-      const container = document.getElementById('recent-ideas');
-
-      try {
-        const response = await fetch('/api/admin/content-ideas?limit=10');
-        const data = await response.json();
-
-        if (data.ideas && data.ideas.length > 0) {
-          container.innerHTML = data.ideas.map(idea => `
+          if (data.ideas && data.ideas.length > 0) {
+            container.innerHTML = data.ideas
+              .map(
+                (idea) => `
             <div class="flex items-center justify-between border-b border-slate-100 py-2 last:border-0">
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium text-slate-900">${idea.context_query}</p>
@@ -319,17 +350,19 @@ if (!sessionToken) {
                 ${idea.status}
               </span>
             </div>
-          `).join('');
-        } else {
-          container.innerHTML = '<p class="text-sm text-slate-500">No content ideas yet.</p>';
+          `
+              )
+              .join('');
+          } else {
+            container.innerHTML = '<p class="text-sm text-slate-500">No content ideas yet.</p>';
+          }
+        } catch (error) {
+          container.innerHTML = '<p class="text-sm text-red-600">Failed to load ideas</p>';
         }
-      } catch (error) {
-        container.innerHTML = '<p class="text-sm text-red-600">Failed to load ideas</p>';
       }
-    }
 
-    // Load on page load
-    loadRecentIdeas();
-  </script>
-</body>
+      // Load on page load
+      loadRecentIdeas();
+    </script>
+  </body>
 </html>

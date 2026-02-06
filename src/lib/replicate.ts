@@ -144,10 +144,7 @@ export async function generateComparisonOGImage(
 /**
  * Upload image from URL to Supabase Storage
  */
-async function uploadToSupabaseStorage(
-  imageUrl: string,
-  slug: string
-): Promise<string> {
+async function uploadToSupabaseStorage(imageUrl: string, slug: string): Promise<string> {
   const admin = getAdminClient();
 
   // Fetch the image
@@ -161,12 +158,10 @@ async function uploadToSupabaseStorage(
 
   // Upload to Supabase Storage
   const path = `og-images/${slug}.webp`;
-  const { error } = await admin.storage
-    .from('public')
-    .upload(path, buffer, {
-      contentType: 'image/webp',
-      upsert: true,
-    });
+  const { error } = await admin.storage.from('public').upload(path, buffer, {
+    contentType: 'image/webp',
+    upsert: true,
+  });
 
   if (error) {
     throw new Error(`Storage upload failed: ${error.message}`);
@@ -186,16 +181,10 @@ function getSupabasePublicUrl(path: string): string {
 /**
  * Update tool's OG image in database
  */
-export async function updateToolOGImage(
-  toolId: string,
-  imageUrl: string
-): Promise<void> {
+export async function updateToolOGImage(toolId: string, imageUrl: string): Promise<void> {
   const admin = getAdminClient();
 
-  const { error } = await admin
-    .from('tools')
-    .update({ og_image_url: imageUrl })
-    .eq('id', toolId);
+  const { error } = await admin.from('tools').update({ og_image_url: imageUrl }).eq('id', toolId);
 
   if (error) {
     throw new Error(`Failed to update tool OG image: ${error.message}`);

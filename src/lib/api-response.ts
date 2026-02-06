@@ -32,10 +32,7 @@ interface ApiSuccessOptions<T> {
 /**
  * Create a standardized error response
  */
-export function errorResponse(
-  options: ApiErrorOptions,
-  status: number = 500
-): Response {
+export function errorResponse(options: ApiErrorOptions, status: number = 500): Response {
   return new Response(
     JSON.stringify({
       success: false,
@@ -55,10 +52,7 @@ export function errorResponse(
 /**
  * Create a standardized success response
  */
-export function successResponse<T>(
-  options: ApiSuccessOptions<T>,
-  status: number = 200
-): Response {
+export function successResponse<T>(options: ApiSuccessOptions<T>, status: number = 200): Response {
   return new Response(
     JSON.stringify({
       success: true,
@@ -75,14 +69,11 @@ export function successResponse<T>(
 // Convenience methods for common responses
 export const ApiResponse = {
   // Success responses
-  ok: <T>(data: T, meta?: Record<string, unknown>) =>
-    successResponse({ data, meta }, 200),
+  ok: <T>(data: T, meta?: Record<string, unknown>) => successResponse({ data, meta }, 200),
 
-  created: <T>(data: T, meta?: Record<string, unknown>) =>
-    successResponse({ data, meta }, 201),
+  created: <T>(data: T, meta?: Record<string, unknown>) => successResponse({ data, meta }, 201),
 
-  noContent: () =>
-    new Response(null, { status: 204 }),
+  noContent: () => new Response(null, { status: 204 }),
 
   // Error responses
   badRequest: (message: string, details?: Record<string, unknown>) =>
@@ -100,8 +91,7 @@ export const ApiResponse = {
   notFound: (message = 'Resource not found') =>
     errorResponse({ code: ErrorCodes.NOT_FOUND, message }, 404),
 
-  conflict: (message: string) =>
-    errorResponse({ code: ErrorCodes.CONFLICT, message }, 409),
+  conflict: (message: string) => errorResponse({ code: ErrorCodes.CONFLICT, message }, 409),
 
   rateLimited: (message = 'Rate limit exceeded', retryAfter?: number) => {
     const response = errorResponse({ code: ErrorCodes.RATE_LIMITED, message }, 429);
@@ -118,9 +108,7 @@ export const ApiResponse = {
 /**
  * Wrap an API handler with error catching
  */
-export function withErrorHandling<T extends (...args: any[]) => Promise<Response>>(
-  handler: T
-): T {
+export function withErrorHandling<T extends (...args: any[]) => Promise<Response>>(handler: T): T {
   return (async (...args: Parameters<T>): Promise<Response> => {
     try {
       return await handler(...args);

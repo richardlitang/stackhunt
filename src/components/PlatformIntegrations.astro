@@ -7,7 +7,6 @@
 
 import type { PlatformAvailability, KnowledgeCard } from '@/lib/knowledge-card';
 import CheckIcon from '@/components/icons/Check.astro';
-import XIcon from '@/components/icons/X.astro';
 
 interface Props {
   platforms: PlatformAvailability[];
@@ -18,8 +17,9 @@ interface Props {
 const { platforms, integrations, toolName } = Astro.props;
 
 // Check if we have any data to display
-const hasData = (platforms && platforms.length > 0) ||
-                (integrations && (integrations.total_count || integrations.notable?.length > 0));
+const hasData =
+  (platforms && platforms.length > 0) ||
+  (integrations && (integrations.total_count || integrations.notable?.length > 0));
 
 if (!hasData) return null;
 
@@ -53,111 +53,127 @@ const directionIcons = {
 };
 ---
 
-<section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
+<section
+  class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+>
   <h2 class="mb-4 text-lg font-semibold text-zinc-100">Platform Support & Integrations</h2>
 
   {/* Platform Availability */}
-  {platforms && platforms.length > 0 && (
-    <div class="mb-6">
-      <h3 class="mb-3 text-sm font-medium text-zinc-300">Available Platforms</h3>
-      <div class="flex flex-wrap gap-2">
-        {platforms.map(({ platform, available, notes }) => {
-          const platformKey = platform === 'self-hosted' ? 'selfhosted' : platform;
-          const info = platformInfo[platformKey];
-          if (!info) return null;
-
-          return (
-            <span
-              class={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium border ${
-                available
-                  ? 'bg-green-900/30 text-green-400 border-green-700'
-                  : 'bg-zinc-800 text-zinc-500 border-zinc-700'
-              }`}
-              title={notes || undefined}
-            >
-              <span>{info.icon}</span>
-              <span>{info.label}</span>
-              {notes && <span class="text-xs opacity-75">({notes})</span>}
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  )}
-
-  {/* Integrations */}
-  {integrations && (integrations.total_count || integrations.notable?.length > 0) && (
-    <div>
-      <h3 class="mb-3 text-sm font-medium text-zinc-300">Integrations</h3>
-
-      {/* Total count headline */}
-      {integrations.total_count && (
-        <p class="mb-3 text-sm text-zinc-400">
-          <span class="font-semibold text-zinc-100">{integrations.total_count}+</span> integrations available
-        </p>
-      )}
-
-      {/* Notable integrations */}
-      {integrations.notable && integrations.notable.length > 0 && (
-        <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {integrations.notable.map(({ name, type, direction }) => {
-            // Generate slug from integration name (lowercase, replace spaces with dashes)
-            const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-            const internalLink = `/tool/${slug}`;
+  {
+    platforms && platforms.length > 0 && (
+      <div class="mb-6">
+        <h3 class="mb-3 text-sm font-medium text-zinc-300">Available Platforms</h3>
+        <div class="flex flex-wrap gap-2">
+          {platforms.map(({ platform, available, notes }) => {
+            const platformKey = platform === 'self-hosted' ? 'selfhosted' : platform;
+            const info = platformInfo[platformKey];
+            if (!info) return null;
 
             return (
-              <div class="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900 p-2.5 hover:border-zinc-700 transition group cursor-pointer">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-1.5">
-                    <a
-                      href={internalLink}
-                      class="text-sm font-medium text-zinc-200 hover:text-hunt-400 transition truncate"
-                      title={`View ${name} details`}
-                    >
-                      {name}
-                    </a>
-                    {direction && (
-                      <span class="text-xs shrink-0" title={direction}>
-                        {direction === 'import' ? directionIcons.importDir : direction === 'export' ? directionIcons.exportDir : directionIcons.bidirectional}
-                      </span>
-                    )}
-                  </div>
-                  <span class={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border ${integrationTypeColors[type]}`}>
-                    {type}
-                  </span>
-                </div>
-              </div>
+              <span
+                class={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium border ${
+                  available
+                    ? 'bg-green-900/30 text-green-400 border-green-700'
+                    : 'bg-zinc-800 text-zinc-500 border-zinc-700'
+                }`}
+                title={notes || undefined}
+              >
+                <span>{info.icon}</span>
+                <span>{info.label}</span>
+                {notes && <span class="text-xs opacity-75">({notes})</span>}
+              </span>
             );
           })}
         </div>
-      )}
+      </div>
+    )
+  }
 
-      {/* Developer features */}
-      {(integrations.has_api || integrations.has_webhooks || integrations.has_zapier) && (
-        <div class="mt-4 border-t border-zinc-800 pt-4">
-          <h4 class="mb-2 text-sm font-medium text-zinc-300">Developer Features</h4>
-          <div class="flex flex-wrap gap-2">
-            {integrations.has_api && (
-              <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 border border-zinc-700">
-                <CheckIcon class="h-3 w-3 text-green-500" />
-                REST API
-              </span>
-            )}
-            {integrations.has_webhooks && (
-              <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 border border-zinc-700">
-                <CheckIcon class="h-3 w-3 text-green-500" />
-                Webhooks
-              </span>
-            )}
-            {integrations.has_zapier && (
-              <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 border border-zinc-700">
-                <CheckIcon class="h-3 w-3 text-green-500" />
-                Zapier
-              </span>
-            )}
+  {/* Integrations */}
+  {
+    integrations && (integrations.total_count || integrations.notable?.length > 0) && (
+      <div>
+        <h3 class="mb-3 text-sm font-medium text-zinc-300">Integrations</h3>
+
+        {/* Total count headline */}
+        {integrations.total_count && (
+          <p class="mb-3 text-sm text-zinc-400">
+            <span class="font-semibold text-zinc-100">{integrations.total_count}+</span>{' '}
+            integrations available
+          </p>
+        )}
+
+        {/* Notable integrations */}
+        {integrations.notable && integrations.notable.length > 0 && (
+          <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {integrations.notable.map(({ name, type, direction }) => {
+              // Generate slug from integration name (lowercase, replace spaces with dashes)
+              const slug = name
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+              const internalLink = `/tool/${slug}`;
+
+              return (
+                <div class="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900 p-2.5 hover:border-zinc-700 transition group cursor-pointer">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <a
+                        href={internalLink}
+                        class="text-sm font-medium text-zinc-200 hover:text-hunt-400 transition truncate"
+                        title={`View ${name} details`}
+                      >
+                        {name}
+                      </a>
+                      {direction && (
+                        <span class="text-xs shrink-0" title={direction}>
+                          {direction === 'import'
+                            ? directionIcons.importDir
+                            : direction === 'export'
+                              ? directionIcons.exportDir
+                              : directionIcons.bidirectional}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      class={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border ${integrationTypeColors[type]}`}
+                    >
+                      {type}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      )}
-    </div>
-  )}
+        )}
+
+        {/* Developer features */}
+        {(integrations.has_api || integrations.has_webhooks || integrations.has_zapier) && (
+          <div class="mt-4 border-t border-zinc-800 pt-4">
+            <h4 class="mb-2 text-sm font-medium text-zinc-300">Developer Features</h4>
+            <div class="flex flex-wrap gap-2">
+              {integrations.has_api && (
+                <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 border border-zinc-700">
+                  <CheckIcon class="h-3 w-3 text-green-500" />
+                  REST API
+                </span>
+              )}
+              {integrations.has_webhooks && (
+                <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 border border-zinc-700">
+                  <CheckIcon class="h-3 w-3 text-green-500" />
+                  Webhooks
+                </span>
+              )}
+              {integrations.has_zapier && (
+                <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 border border-zinc-700">
+                  <CheckIcon class="h-3 w-3 text-green-500" />
+                  Zapier
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 </section>

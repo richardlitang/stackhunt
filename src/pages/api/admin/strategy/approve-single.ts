@@ -15,10 +15,10 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     const id = formData.get('id') as string;
 
     if (!id) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'ID is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'ID is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Call approve function
@@ -28,19 +28,19 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
     if (error) {
       console.error('Approval failed:', error);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Approval failed' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Approval failed' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Redirect back to strategy page
     return redirect('/admin/strategy');
   } catch (err) {
     console.error('Approve single error:', err);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Approval failed' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Approval failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

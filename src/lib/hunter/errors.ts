@@ -8,13 +8,13 @@
  */
 
 export type ApiErrorType =
-  | 'rate_limit'      // 429 - Temporary, retry with backoff
-  | 'auth_error'      // 401/403 - API key invalid
-  | 'quota_exceeded'  // 402/429 with quota message - Billing issue
-  | 'server_error'    // 5xx - Provider issue, retry
-  | 'network_error'   // Connection failed
+  | 'rate_limit' // 429 - Temporary, retry with backoff
+  | 'auth_error' // 401/403 - API key invalid
+  | 'quota_exceeded' // 402/429 with quota message - Billing issue
+  | 'server_error' // 5xx - Provider issue, retry
+  | 'network_error' // Connection failed
   | 'invalid_request' // 400 - Bad input
-  | 'unknown';        // Other errors
+  | 'unknown'; // Other errors
 
 export interface ApiErrorDetails {
   type: ApiErrorType;
@@ -22,7 +22,7 @@ export interface ApiErrorDetails {
   statusCode?: number;
   message: string;
   isRetryable: boolean;
-  isCritical: boolean;  // Should alert immediately
+  isCritical: boolean; // Should alert immediately
   rawError?: unknown;
 }
 
@@ -175,7 +175,10 @@ export function classifyGeminiError(error: unknown): ApiError {
     });
   }
 
-  if (errString.includes('api key') || errString.includes('invalid') && errString.includes('key')) {
+  if (
+    errString.includes('api key') ||
+    (errString.includes('invalid') && errString.includes('key'))
+  ) {
     return new ApiError({
       type: 'auth_error',
       service,
@@ -197,7 +200,11 @@ export function classifyGeminiError(error: unknown): ApiError {
     });
   }
 
-  if (errString.includes('500') || errString.includes('internal') || errString.includes('unavailable')) {
+  if (
+    errString.includes('500') ||
+    errString.includes('internal') ||
+    errString.includes('unavailable')
+  ) {
     return new ApiError({
       type: 'server_error',
       service,
@@ -208,7 +215,11 @@ export function classifyGeminiError(error: unknown): ApiError {
     });
   }
 
-  if (errString.includes('network') || errString.includes('econnrefused') || errString.includes('etimedout')) {
+  if (
+    errString.includes('network') ||
+    errString.includes('econnrefused') ||
+    errString.includes('etimedout')
+  ) {
     return new ApiError({
       type: 'network_error',
       service,
@@ -294,8 +305,10 @@ export function classifyErrorForDlq(error: unknown): DlqReason {
         return 'network_error';
       case 'invalid_request':
         // Check if it's content blocked (Gemini safety filters)
-        if (error.message.toLowerCase().includes('blocked') ||
-            error.message.toLowerCase().includes('safety')) {
+        if (
+          error.message.toLowerCase().includes('blocked') ||
+          error.message.toLowerCase().includes('safety')
+        ) {
           return 'content_blocked';
         }
         return 'validation_failed';

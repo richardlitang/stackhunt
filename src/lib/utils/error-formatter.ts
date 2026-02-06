@@ -45,9 +45,10 @@ export function formatValidationError(error: string): FormattedError {
           }
         });
 
-        const summary = issues.length > 3
-          ? `${issues.slice(0, 3).join(', ')} (+${issues.length - 3} more)`
-          : issues.join(', ');
+        const summary =
+          issues.length > 3
+            ? `${issues.slice(0, 3).join(', ')} (+${issues.length - 3} more)`
+            : issues.join(', ');
 
         return {
           summary: `Validation error: ${summary}`,
@@ -96,9 +97,7 @@ export function formatValidationError(error: string): FormattedError {
   }
 
   // Default: truncate intelligently
-  const summary = error.length > 150
-    ? error.slice(0, 147) + '...'
-    : error;
+  const summary = error.length > 150 ? error.slice(0, 147) + '...' : error;
 
   return {
     summary,
@@ -125,10 +124,14 @@ export function smartTruncate(text: string, maxLength: number = 200): string {
   const lastComma = truncated.lastIndexOf(',');
   const lastSpace = truncated.lastIndexOf(' ');
 
-  const breakPoint = lastPeriod > maxLength * 0.7 ? lastPeriod + 1
-    : lastComma > maxLength * 0.7 ? lastComma + 1
-    : lastSpace > maxLength * 0.7 ? lastSpace
-    : maxLength;
+  const breakPoint =
+    lastPeriod > maxLength * 0.7
+      ? lastPeriod + 1
+      : lastComma > maxLength * 0.7
+        ? lastComma + 1
+        : lastSpace > maxLength * 0.7
+          ? lastSpace
+          : maxLength;
 
   return text.slice(0, breakPoint).trim() + '...';
 }

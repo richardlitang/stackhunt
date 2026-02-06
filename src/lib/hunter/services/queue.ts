@@ -12,7 +12,7 @@ import type { DlqReason } from '../errors';
 import type { ResearchOutput, AnalysisOutput } from '../types';
 
 export interface PhaseCheckpoint {
-  version: number;  // Optimistic locking to detect concurrent updates
+  version: number; // Optimistic locking to detect concurrent updates
   research?: ResearchOutput;
   analysis?: AnalysisOutput;
 }
@@ -64,7 +64,7 @@ export class QueueService {
    * Generate a unique worker ID for this queue processor
    */
   private generateWorkerId(): string {
-    const hostname = typeof process !== 'undefined' ? (process.env.HOSTNAME || 'local') : 'browser';
+    const hostname = typeof process !== 'undefined' ? process.env.HOSTNAME || 'local' : 'browser';
     const pid = typeof process !== 'undefined' ? process.pid : Math.random().toString(36).slice(2);
     return `${hostname}-${pid}-${Date.now()}`;
   }
@@ -121,13 +121,16 @@ export class QueueService {
     onLog?: (message: string) => void
   ): Promise<void> {
     const log = onLog || (() => {});
-    await this.supabase.rpc('complete_hunt', {
+    const { error } = await this.supabase.rpc('complete_hunt', {
       p_queue_id: queueId,
-      p_tool_id: result.toolId || null,
+      p_item_id: result.toolId || null,
       p_context_id: result.contextId || null,
       p_review_id: result.reviewId || null,
       p_tokens_used: result.tokensUsed || null,
     });
+    if (error) {
+      throw new Error(`Failed to complete hunt: ${error.message}`);
+    }
     log(`Queue item completed: ${queueId}`);
   }
 
@@ -224,8 +227,10 @@ export class QueueService {
 
     // If expectedVersion provided, verify no concurrent update occurred
     if (expectedVersion !== undefined && currentVersion !== expectedVersion) {
-      log(`⚠️  Checkpoint conflict detected: expected v${expectedVersion}, found v${currentVersion}`);
-      return false;  // Conflict - another worker updated checkpoint
+      log(
+        `⚠️  Checkpoint conflict detected: expected v${expectedVersion}, found v${currentVersion}`
+      );
+      return false; // Conflict - another worker updated checkpoint
     }
 
     const newVersion = currentVersion + 1;

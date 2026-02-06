@@ -42,7 +42,10 @@ export async function ensureParentSuite(
   }
 
   // 3. If not found, create a stub
-  const slug = suiteName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const slug = suiteName
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
 
   const { data: newSuite, error: insertError } = await supabase
     .from('items')

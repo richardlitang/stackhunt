@@ -14,15 +14,13 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import ToolCard from '@/components/ToolCard.astro';
 import Logo from '@/components/Logo.astro';
 import ProsCons from '@/components/ProsCons.astro';
 import SentimentTags from '@/components/SentimentTags.astro';
 import VoteWidget from '@/components/VoteWidget';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
-import RelatedLinks from '@/components/RelatedLinks.astro';
 import RelatedContent from '@/components/RelatedContent.astro';
-import { getContextBySlug, getAllContextSlugs, supabase } from '@/lib/supabase';
+import { getContextBySlug, supabase } from '@/lib/supabase';
 import {
   generateContextMeta,
   generateListSchema,
@@ -269,7 +267,7 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
               class="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-zinc-600"
               id={`tool-${rank}`}
             >
-              <!-- Rank Header -->
+              {/* Rank Header */}
               <div class={`flex items-center justify-between px-6 py-3 ${rank === 1 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100' : 'bg-zinc-900 border-b border-zinc-800'}`}>
                 <div class="flex items-center gap-3">
                   {sortedReviews.length > 1 && (
@@ -295,10 +293,10 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
                 </div>
               </div>
 
-              <!-- Tool Content -->
+              {/* Tool Content */}
               <div class="p-6">
                 <div class="flex items-start gap-5">
-                  <!-- Logo -->
+                  {/* Logo */}
                   <a href={`/tool/${review.item.slug}`} class="shrink-0">
                     <Logo
                       domain={review.item.logo_url}
@@ -307,7 +305,7 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
                     />
                   </a>
 
-                  <!-- Info -->
+                  {/* Info */}
                   <div class="flex-1 min-w-0">
                     <div class="flex items-start justify-between gap-4">
                       <div>

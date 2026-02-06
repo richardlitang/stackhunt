@@ -58,30 +58,48 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     if (toolName.length > MAX_TOOL_NAME_LENGTH) {
       return addRateLimitHeaders(
-        new Response(JSON.stringify({ success: false, error: `Tool name exceeds ${MAX_TOOL_NAME_LENGTH} characters` }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: `Tool name exceeds ${MAX_TOOL_NAME_LENGTH} characters`,
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        ),
         rateLimit
       );
     }
 
     if (contextTitle && contextTitle.length > MAX_CONTEXT_TITLE_LENGTH) {
       return addRateLimitHeaders(
-        new Response(JSON.stringify({ success: false, error: `Context title exceeds ${MAX_CONTEXT_TITLE_LENGTH} characters` }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: `Context title exceeds ${MAX_CONTEXT_TITLE_LENGTH} characters`,
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        ),
         rateLimit
       );
     }
 
     if (categorySlug && categorySlug.length > MAX_CATEGORY_SLUG_LENGTH) {
       return addRateLimitHeaders(
-        new Response(JSON.stringify({ success: false, error: `Category slug exceeds ${MAX_CATEGORY_SLUG_LENGTH} characters` }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: `Category slug exceeds ${MAX_CATEGORY_SLUG_LENGTH} characters`,
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        ),
         rateLimit
       );
     }
@@ -154,10 +172,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   } catch (err) {
     console.error('Hunt queue API error:', (err as Error).message);
     return addRateLimitHeaders(
-      new Response(
-        JSON.stringify({ success: false, error: 'Failed to add to queue' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ),
+      new Response(JSON.stringify({ success: false, error: 'Failed to add to queue' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }),
       rateLimit
     );
   }
@@ -217,10 +235,10 @@ export const GET: APIRoute = async ({ request, clientAddress }) => {
   } catch (err) {
     console.error('Hunt queue status error:', (err as Error).message);
     return addRateLimitHeaders(
-      new Response(
-        JSON.stringify({ success: false, error: 'Failed to fetch queue status' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ),
+      new Response(JSON.stringify({ success: false, error: 'Failed to fetch queue status' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }),
       rateLimit
     );
   }

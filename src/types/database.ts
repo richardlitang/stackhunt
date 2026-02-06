@@ -24,7 +24,13 @@ export type HuntQueueStatus = 'pending' | 'claimed' | 'processing' | 'completed'
 
 export type HuntType = 'full' | 'refresh' | 'price_only';
 
-export type HuntSource = 'admin' | 'api' | 'suggestion' | 'competitor_scan' | 'user_request' | 'scheduled';
+export type HuntSource =
+  | 'admin'
+  | 'api'
+  | 'suggestion'
+  | 'competitor_scan'
+  | 'user_request'
+  | 'scheduled';
 
 export type MarketSourceType = 'api' | 'scrape' | 'manual';
 
@@ -44,7 +50,14 @@ export type LearningCurve = 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
 export type AudienceFitType = 'ideal' | 'good' | 'neutral' | 'poor' | 'avoid';
 
 // V3: SaaS Management Platform (SMP) types
-export type SMPPricingModel = 'free' | 'flat' | 'per_seat' | 'per_unit' | 'tiered' | 'hybrid' | 'contact_sales';
+export type SMPPricingModel =
+  | 'free'
+  | 'flat'
+  | 'per_seat'
+  | 'per_unit'
+  | 'tiered'
+  | 'hybrid'
+  | 'contact_sales';
 
 export type BillingCycle = 'monthly' | 'annual' | 'quarterly';
 
@@ -69,8 +82,8 @@ export type DiscountType = 'startup' | 'nonprofit' | 'education' | 'government' 
  */
 export interface DataGovernanceData {
   // Data location (Journey 1 & 6)
-  data_residency: string[];                // ["US", "EU (Frankfurt)", "UK", "Global"]
-  residency_configurable: boolean;         // Can you choose your region?
+  data_residency: string[]; // ["US", "EU (Frankfurt)", "UK", "Global"]
+  residency_configurable: boolean; // Can you choose your region?
 
   // Self-hosting (Journey 6)
   self_hostable: boolean;
@@ -78,19 +91,19 @@ export interface DataGovernanceData {
 
   // Sub-processors disclosure (Journey 6 - GDPR Article 28)
   sub_processors?: Array<{
-    name: string;                          // e.g., "OpenAI", "AWS", "Stripe"
-    purpose: string;                       // e.g., "AI features", "Hosting", "Payments"
-    data_location: string;                 // e.g., "US", "EU", "Global"
-    data_types: string[];                  // e.g., ["user content", "metadata only"]
-    can_disable: boolean;                  // Can you opt out of this sub-processor?
+    name: string; // e.g., "OpenAI", "AWS", "Stripe"
+    purpose: string; // e.g., "AI features", "Hosting", "Payments"
+    data_location: string; // e.g., "US", "EU", "Global"
+    data_types: string[]; // e.g., ["user content", "metadata only"]
+    can_disable: boolean; // Can you opt out of this sub-processor?
   }>;
 
   // Compliance (Journey 1)
   gdpr_compliant: boolean;
-  gdpr_notes?: string;                     // "DPA available on request", "EU representative: ..."
-  dpa_available: boolean;                  // Data Processing Agreement available
-  compliance_certifications: string[];     // ["SOC2 Type II", "ISO 27001", "HIPAA BAA"]
-  encryption_options: string[];            // ["AES-256", "BYOK", "Customer Managed Keys"]
+  gdpr_notes?: string; // "DPA available on request", "EU representative: ..."
+  dpa_available: boolean; // Data Processing Agreement available
+  compliance_certifications: string[]; // ["SOC2 Type II", "ISO 27001", "HIPAA BAA"]
+  encryption_options: string[]; // ["AES-256", "BYOK", "Customer Managed Keys"]
 }
 
 /**
@@ -98,20 +111,20 @@ export interface DataGovernanceData {
  */
 export interface SetupStep {
   step: number;
-  action: string;                          // "Run `brew install cursor`" or "Visit cursor.sh/download"
-  command?: string;                        // Extract CLI command if present: "brew install cursor"
-  description?: string;                    // Additional context: "Downloads .dmg for macOS"
+  action: string; // "Run `brew install cursor`" or "Visit cursor.sh/download"
+  command?: string; // Extract CLI command if present: "brew install cursor"
+  description?: string; // Additional context: "Downloads .dmg for macOS"
 }
 
 /**
  * Red tape flags - setup blockers that surprise users
  */
 export interface SetupRedTape {
-  cc_required?: boolean;                   // Credit card required for "free" trial
-  domain_required?: boolean;               // Cannot use Gmail, requires business domain
-  admin_required?: boolean;                // Needs Full Disk Access (macOS) or Admin privileges
-  sales_gated?: boolean;                   // "Contact Sales" to provision
-  approval_required?: boolean;             // Email/domain verification takes time
+  cc_required?: boolean; // Credit card required for "free" trial
+  domain_required?: boolean; // Cannot use Gmail, requires business domain
+  admin_required?: boolean; // Needs Full Disk Access (macOS) or Admin privileges
+  sales_gated?: boolean; // "Contact Sales" to provision
+  approval_required?: boolean; // Email/domain verification takes time
 }
 
 /**
@@ -126,15 +139,15 @@ export interface SetupComplexityData {
   requires_it_admin: boolean;
   implementation_partner_needed: boolean;
   estimated_setup_time: 'minutes' | 'hours' | 'days' | 'weeks';
-  technical_blockers?: string[];           // ["API configuration", "DNS setup", "Custom SMTP"]
+  technical_blockers?: string[]; // ["API configuration", "DNS setup", "Custom SMTP"]
 
   // V2: Detailed setup path (The "First 5 Minutes")
   setup_type?: 'cli' | 'web' | 'installer' | 'hybrid' | 'api_only';
-  friction_score?: number;                 // 1 (instant) to 10 (multi-day setup)
-  steps?: SetupStep[];                     // Actual setup steps extracted from docs
-  aha_moment?: string;                     // "Seeing the 'Composer' (Cmd+I) refactor your first file"
-  red_tape?: SetupRedTape;                 // Flags for common blockers
-  setup_url?: string;                      // Link to official setup guide
+  friction_score?: number; // 1 (instant) to 10 (multi-day setup)
+  steps?: SetupStep[]; // Actual setup steps extracted from docs
+  aha_moment?: string; // "Seeing the 'Composer' (Cmd+I) refactor your first file"
+  red_tape?: SetupRedTape; // Flags for common blockers
+  setup_url?: string; // Link to official setup guide
 }
 
 /**
@@ -142,9 +155,9 @@ export interface SetupComplexityData {
  * Used by Journey 3 (Hostage Migrator)
  */
 export interface MigrationWarning {
-  feature: string;                         // "Notion Synced Blocks"
-  breaks_on_export_to: string[];           // ["obsidian", "roam-research"]
-  becomes: string;                         // "static text (no longer syncs)"
+  feature: string; // "Notion Synced Blocks"
+  breaks_on_export_to: string[]; // ["obsidian", "roam-research"]
+  becomes: string; // "static text (no longer syncs)"
   workaround?: string | null;
   severity: 'critical' | 'major' | 'minor'; // Data loss vs cosmetic
 }
@@ -154,31 +167,31 @@ export interface MigrationWarning {
  * ID format: `${item_slug}-${slugify(name)}` for deterministic matching
  */
 export interface SMPPlanData {
-  id: string;                              // Deterministic: `${item_slug}-${slugify(name)}`
-  name: string;                            // "Free", "Pro", "Enterprise"
+  id: string; // Deterministic: `${item_slug}-${slugify(name)}`
+  name: string; // "Free", "Pro", "Enterprise"
 
   // Pricing (null = not available at this cycle)
-  price_monthly: number | null;            // Monthly price, null if no monthly option
-  price_annual: number | null;             // Total annual price (NOT monthly equivalent)
+  price_monthly: number | null; // Monthly price, null if no monthly option
+  price_annual: number | null; // Total annual price (NOT monthly equivalent)
 
   // For per-seat/per-unit models
   scaling_unit: ScalingUnit | null;
-  price_per_unit: number | null;           // e.g., $8.75/user
-  included_units: number | null;           // e.g., "Includes 5 users"
+  price_per_unit: number | null; // e.g., $8.75/user
+  included_units: number | null; // e.g., "Includes 5 users"
 
   // Limits (for plan comparison)
-  max_users: number | null;                // null = unlimited
+  max_users: number | null; // null = unlimited
   max_storage_gb: number | null;
   max_projects: number | null;
 
   // V3.3: Free Tier Safety (Journey 2 - Bootstrapped Solo Dev)
   free_tier_behavior?: 'hard_limit' | 'soft_limit' | 'throttle' | 'pay_as_you_go';
   overage_policy?: {
-    auto_charges: boolean;                 // 🚨 DANGER FLAG - Does it auto-charge your credit card?
-    charge_per_unit?: number;              // e.g., $0.10 per 1k requests
-    max_overage_pct?: number;              // e.g., 20 = can't exceed 120% of included quota
+    auto_charges: boolean; // 🚨 DANGER FLAG - Does it auto-charge your credit card?
+    charge_per_unit?: number; // e.g., $0.10 per 1k requests
+    max_overage_pct?: number; // e.g., 20 = can't exceed 120% of included quota
     grace_period_days?: number;
-    hard_cap_available: boolean;           // Can you set a spending limit?
+    hard_cap_available: boolean; // Can you set a spending limit?
   } | null;
 
   // Key features (for plan comparison and recommendations)
@@ -189,12 +202,12 @@ export interface SMPPlanData {
 
   // V3.3: Enterprise Features (Journey 5 - Scale-Up CTO)
   includes_audit_logs?: boolean;
-  audit_log_retention_days?: number;       // 90, 365, etc.
-  uptime_sla?: string;                     // "99.9%", "99.99%", "none"
-  support_response_time?: string;          // "1 hour", "4 hours", "24 hours", "best effort"
+  audit_log_retention_days?: number; // 90, 365, etc.
+  uptime_sla?: string; // "99.9%", "99.99%", "none"
+  support_response_time?: string; // "1 hour", "4 hours", "24 hours", "best effort"
 
   // Enterprise flag
-  is_enterprise: boolean;                  // true = "Contact Sales"
+  is_enterprise: boolean; // true = "Contact Sales"
 }
 
 /**
@@ -204,11 +217,11 @@ export interface SMPPlanData {
 export interface SMPPricingData {
   // Model & Currency
   model: SMPPricingModel;
-  currency: 'USD' | 'EUR' | 'GBP';         // Strict enum, normalize to USD internally
+  currency: 'USD' | 'EUR' | 'GBP'; // Strict enum, normalize to USD internally
 
   // Billing options
   billing_cycles: BillingCycle[];
-  annual_discount_pct: number | null;      // e.g., 20 = 20% off
+  annual_discount_pct: number | null; // e.g., 20 = 20% off
 
   // Plans array (the money data)
   plans: SMPPlanData[];
@@ -247,13 +260,13 @@ export interface SMPPricingData {
   }>;
 
   // Hidden costs
-  min_seats: number | null;                // e.g., "Min 5 seats"
-  implementation_fee: number | null;       // One-time setup cost
+  min_seats: number | null; // e.g., "Min 5 seats"
+  implementation_fee: number | null; // One-time setup cost
 
   // Verification & Confidence
-  pricing_page_url: string | null;         // For user reference & verification
-  last_verified: string | null;            // ISO date when pricing was verified
-  confidence: PricingConfidence;           // How certain we are about this data
+  pricing_page_url: string | null; // For user reference & verification
+  last_verified: string | null; // ISO date when pricing was verified
+  confidence: PricingConfidence; // How certain we are about this data
 
   // Discounts available
   discounts_available: DiscountType[];
@@ -265,11 +278,11 @@ export interface SMPPricingData {
  */
 export interface SMPTaxonomyData {
   // Primary classification
-  primary_function: string;                // e.g., "Project Management", "CRM", "Chat"
-  secondary_functions: string[];           // e.g., ["Documentation", "Wiki"]
+  primary_function: string; // e.g., "Project Management", "CRM", "Chat"
+  secondary_functions: string[]; // e.g., ["Documentation", "Wiki"]
 
   // Department ownership (who pays)
-  likely_departments: string[];            // e.g., ["Engineering", "Product"]
+  likely_departments: string[]; // e.g., ["Engineering", "Product"]
 }
 
 /**
@@ -279,19 +292,19 @@ export interface SMPTaxonomyData {
 export interface SMPPortabilityData {
   // Export capabilities
   has_data_export: boolean;
-  export_formats: string[];                // ['csv', 'json', 'xml', 'pdf']
-  has_api_export: boolean;                 // Can programmatically extract all data
+  export_formats: string[]; // ['csv', 'json', 'xml', 'pdf']
+  has_api_export: boolean; // Can programmatically extract all data
 
   // Migration analysis
   migration_difficulty: MigrationDifficulty;
-  import_from: string[];                   // Tool slugs with import wizards FROM
-  export_to: string[];                     // Tool slugs with export wizards TO
+  import_from: string[]; // Tool slugs with import wizards FROM
+  export_to: string[]; // Tool slugs with export wizards TO
 
   // V3.3: Migration Warnings (Journey 3 - Hostage Migrator)
   migration_warnings?: MigrationWarning[]; // What breaks when you migrate
 
   // Contract terms (for switching timing)
-  min_commitment_months: number | null;    // null = month-to-month
+  min_commitment_months: number | null; // null = month-to-month
   cancellation_notice_days: number | null;
 }
 
@@ -379,7 +392,14 @@ export interface BaseScoreBreakdown {
 export interface CompanyInfo {
   founded_year?: number; // e.g., 2015
   headquarters?: string; // e.g., "San Francisco, CA"
-  funding_stage?: 'bootstrapped' | 'seed' | 'series_a' | 'series_b' | 'series_c' | 'public' | 'acquired';
+  funding_stage?:
+    | 'bootstrapped'
+    | 'seed'
+    | 'series_a'
+    | 'series_b'
+    | 'series_c'
+    | 'public'
+    | 'acquired';
   employee_range?: '1-10' | '10-50' | '50-100' | '100-500' | '500-1000' | '1000+';
   owned_by?: string | null; // Parent company if acquired
   publicly_traded?: boolean;
@@ -631,11 +651,14 @@ export interface ComparisonInsight {
 
   // Context-specific winners
   // { "students": { "winner": "a", "confidence": 0.9, "reason": "Free .edu plan" } }
-  winner_by_context: Record<string, {
-    winner: 'a' | 'b' | 'tie';
-    confidence: number;
-    reason?: string;
-  }>;
+  winner_by_context: Record<
+    string,
+    {
+      winner: 'a' | 'b' | 'tie';
+      confidence: number;
+      reason?: string;
+    }
+  >;
 
   // Metadata
   is_curated: boolean;
@@ -1048,7 +1071,10 @@ export interface ComparisonInsightInsert {
   migration_notes_b_to_a?: string | null;
   why_switch_a_to_b?: string[];
   why_switch_b_to_a?: string[];
-  winner_by_context?: Record<string, { winner: 'a' | 'b' | 'tie'; confidence: number; reason?: string }>;
+  winner_by_context?: Record<
+    string,
+    { winner: 'a' | 'b' | 'tie'; confidence: number; reason?: string }
+  >;
   is_curated?: boolean;
   curator_notes?: string | null;
   data_sources?: string[];
@@ -1066,14 +1092,22 @@ export type ContextUpdate = Partial<Omit<Context, 'id' | 'created_at' | 'updated
 export type ReviewUpdate = Partial<Omit<Review, 'id' | 'created_at' | 'updated_at'>>;
 export type ArticleUpdate = Partial<Omit<Article, 'id' | 'created_at' | 'updated_at'>>;
 export type ArticleInsightUpdate = Partial<Omit<ArticleInsight, 'id' | 'created_at'>>;
-export type AffiliateOfferUpdate = Partial<Omit<AffiliateOffer, 'id' | 'created_at' | 'updated_at'>>;
-export type MarketStateUpdate = Partial<Omit<MarketState, 'id' | 'item_id' | 'created_at' | 'updated_at'>>;
+export type AffiliateOfferUpdate = Partial<
+  Omit<AffiliateOffer, 'id' | 'created_at' | 'updated_at'>
+>;
+export type MarketStateUpdate = Partial<
+  Omit<MarketState, 'id' | 'item_id' | 'created_at' | 'updated_at'>
+>;
 export type HuntQueueUpdate = Partial<Omit<HuntQueue, 'id' | 'created_at' | 'updated_at'>>;
 export type ContentIdeaUpdate = Partial<Omit<ContentIdea, 'id' | 'created_at' | 'updated_at'>>;
 export type ImportBatchUpdate = Partial<Omit<ImportBatch, 'id' | 'created_at'>>;
 // V2.2: Comparison infrastructure updates
-export type ItemAudienceFitUpdate = Partial<Omit<ItemAudienceFit, 'id' | 'item_id' | 'category_id' | 'created_at'>>;
-export type ComparisonInsightUpdate = Partial<Omit<ComparisonInsight, 'id' | 'item_a_slug' | 'item_b_slug' | 'created_at' | 'updated_at'>>;
+export type ItemAudienceFitUpdate = Partial<
+  Omit<ItemAudienceFit, 'id' | 'item_id' | 'category_id' | 'created_at'>
+>;
+export type ComparisonInsightUpdate = Partial<
+  Omit<ComparisonInsight, 'id' | 'item_a_slug' | 'item_b_slug' | 'created_at' | 'updated_at'>
+>;
 
 // ============================================================================
 // JOINED/ENRICHED TYPES (For queries with relations)
@@ -1167,7 +1201,7 @@ export interface SearchResult {
 export interface HunterInput {
   toolName: string;
   contextTitle?: string; // e.g., "Best for Small Teams"
-  contextSlug?: string;  // Auto-generated if not provided
+  contextSlug?: string; // Auto-generated if not provided
 }
 
 export interface HunterAnalysis {

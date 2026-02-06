@@ -21,18 +21,18 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
     const { password } = body;
 
     if (!password) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Password is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Password is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Validate password (constant-time comparison)
     if (!validatePassword(password)) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid password' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Invalid password' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Generate secure session token
@@ -47,10 +47,10 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
 
     if (!sessionResult.success) {
       console.error('Failed to create session:', sessionResult.error);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Session creation failed' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Session creation failed' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Set session cookie
@@ -62,15 +62,15 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
       maxAge: COOKIE_MAX_AGE,
     });
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (err) {
     console.error('Login error:', err);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Invalid request' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Invalid request' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

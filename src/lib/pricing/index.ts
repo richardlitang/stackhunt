@@ -12,7 +12,4 @@ export {
   type ComparisonTier,
 } from './normalize';
 
-export {
-  updateNormalizedPricing,
-  backfillNormalizedPricing,
-} from './persist';
+export { updateNormalizedPricing, backfillNormalizedPricing } from './persist';

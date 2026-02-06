@@ -36,7 +36,16 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   try {
     const body: ArticleRequest = await request.json();
-    const { title, slug, summary_markdown, content_markdown, tags, source_tool_ids, source_context_ids, source_data } = body;
+    const {
+      title,
+      slug,
+      summary_markdown,
+      content_markdown,
+      tags,
+      source_tool_ids,
+      source_context_ids,
+      source_data,
+    } = body;
 
     if (!title || typeof title !== 'string') {
       return addRateLimitHeaders(
@@ -53,15 +62,21 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     if (title.length > MAX_TITLE_LENGTH) {
       return addRateLimitHeaders(
-        new Response(JSON.stringify({ success: false, error: `Title exceeds ${MAX_TITLE_LENGTH} characters` }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({ success: false, error: `Title exceeds ${MAX_TITLE_LENGTH} characters` }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        ),
         rateLimit
       );
     }
 
-    const finalSlug = (slug && typeof slug === 'string' ? slug : slugify(title)).slice(0, MAX_SLUG_LENGTH);
+    const finalSlug = (slug && typeof slug === 'string' ? slug : slugify(title)).slice(
+      0,
+      MAX_SLUG_LENGTH
+    );
 
     const adminClient = getAdminClient();
 
@@ -100,10 +115,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     );
   } catch (err) {
     return addRateLimitHeaders(
-      new Response(
-        JSON.stringify({ success: false, error: (err as Error).message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ),
+      new Response(JSON.stringify({ success: false, error: (err as Error).message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }),
       rateLimit
     );
   }

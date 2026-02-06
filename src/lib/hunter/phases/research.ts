@@ -10,11 +10,7 @@
  */
 
 import type { KnowledgeCard } from '../../knowledge-card';
-import type {
-  HunterContext,
-  HunterDependencies,
-  ResearchOutput,
-} from '../types';
+import type { HunterContext, HunterDependencies, ResearchOutput } from '../types';
 import { detectDefunctTool, extractSearchSnippets } from '../services/defunct-detector.js';
 import { normalizeCategory } from '../validation/category-validator.js';
 
@@ -39,27 +35,33 @@ export async function executeResearchPhase(
 
   // Log dossier usage for cost tracking
   if (ctx.researchDossier) {
-    deps.log(`[Dossier] Using pre-generated queries (${ctx.researchDossier.scout_queries.length} queries)`);
-    deps.log(`[Dossier] Category: ${ctx.researchDossier.primary_category} | Confidence: ${ctx.researchDossier.confidence}`);
+    deps.log(
+      `[Dossier] Using pre-generated queries (${ctx.researchDossier.scout_queries.length} queries)`
+    );
+    deps.log(
+      `[Dossier] Category: ${ctx.researchDossier.primary_category} | Confidence: ${ctx.researchDossier.confidence}`
+    );
     if (ctx.researchDossier.red_flags?.length) {
       deps.log(`[Dossier] 🚩 Red flags: ${ctx.researchDossier.red_flags.join('; ')}`);
     }
   }
 
   // Step 1: Scout for information (use dossier queries if available)
-  const scoutResult = ctx.huntType === 'price_only'
-    ? await deps.serper.scoutPricingOnly(toolName, deps.withRetry)
-    : await deps.serper.scout(
-        toolName,
-        ctx.contextTitle,
-        deps.withRetry,
-        ctx.researchDossier?.scout_queries // Pass dossier queries to Serper
-      );
+  const scoutResult =
+    ctx.huntType === 'price_only'
+      ? await deps.serper.scoutPricingOnly(toolName, deps.withRetry)
+      : await deps.serper.scout(
+          toolName,
+          ctx.contextTitle,
+          deps.withRetry,
+          ctx.researchDossier?.scout_queries // Pass dossier queries to Serper
+        );
 
   deps.log(`Scout completed: ${scoutResult.sources.length} sources found`);
 
   // Step 1.5: Name Collision Detection (prevent mixing data from different companies)
-  const { detectNameCollision, filterConflictingSources } = await import('../validation/name-collision-detector.js');
+  const { detectNameCollision, filterConflictingSources } =
+    await import('../validation/name-collision-detector.js');
 
   const collisionCheck = detectNameCollision(
     ctx.toolName,
@@ -70,13 +72,19 @@ export async function executeResearchPhase(
   );
 
   if (collisionCheck.detected) {
-    deps.log(`[Name Collision] ⚠️  ${collisionCheck.confidence.toUpperCase()} confidence collision detected`);
+    deps.log(
+      `[Name Collision] ⚠️  ${collisionCheck.confidence.toUpperCase()} confidence collision detected`
+    );
     deps.log(`[Name Collision] Primary domain: ${collisionCheck.primaryDomain}`);
     if (collisionCheck.conflictingDomains.length > 0) {
-      deps.log(`[Name Collision] Conflicting domains: ${collisionCheck.conflictingDomains.join(', ')}`);
+      deps.log(
+        `[Name Collision] Conflicting domains: ${collisionCheck.conflictingDomains.join(', ')}`
+      );
     }
     if (collisionCheck.conflictingCategories.length > 0) {
-      deps.log(`[Name Collision] Unexpected categories: ${collisionCheck.conflictingCategories.join(', ')}`);
+      deps.log(
+        `[Name Collision] Unexpected categories: ${collisionCheck.conflictingCategories.join(', ')}`
+      );
     }
 
     // Filter out conflicting sources
@@ -142,27 +150,36 @@ export async function executeResearchPhase(
   }
 
   // ========== VALIDATION: Knowledge Card structure and business rules ==========
-  const { validateKnowledgeCard, formatValidationReport } = await import('../validation/schema-validator.js');
+  const { validateKnowledgeCard, formatValidationReport } =
+    await import('../validation/schema-validator.js');
   const validationReport = validateKnowledgeCard(knowledgeCard, ctx.toolName);
   deps.log(formatValidationReport(validationReport, 'Knowledge Card'));
 
   // ========== VALIDATION: Category consistency check ==========
   if (ctx.classification?.category && knowledgeCard.smp_taxonomy?.secondary_functions) {
     const expectedCat = ctx.classification.category.toLowerCase();
-    const extractedCats = knowledgeCard.smp_taxonomy.secondary_functions.map((f: string) => f.toLowerCase());
+    const extractedCats = knowledgeCard.smp_taxonomy.secondary_functions.map((f: string) =>
+      f.toLowerCase()
+    );
 
     // Check for category mismatches (e.g., "devtools" vs "accounting")
     const categoryConflicts = extractedCats.filter((cat: string) => {
       // Major category mismatches
-      if (expectedCat.includes('dev') && (cat.includes('accounting') || cat.includes('finance'))) return true;
+      if (expectedCat.includes('dev') && (cat.includes('accounting') || cat.includes('finance')))
+        return true;
       if (expectedCat.includes('accounting') && cat.includes('dev')) return true;
-      if (expectedCat.includes('code') && (cat.includes('accounting') || cat.includes('crm'))) return true;
+      if (expectedCat.includes('code') && (cat.includes('accounting') || cat.includes('crm')))
+        return true;
       return false;
     });
 
     if (categoryConflicts.length > 0) {
-      deps.log(`[Category Validation] ⚠️  WARNING: Expected category "${ctx.classification.category}" but found conflicting: ${categoryConflicts.join(', ')}`);
-      deps.log(`[Category Validation] This may indicate mixed data from companies with the same name`);
+      deps.log(
+        `[Category Validation] ⚠️  WARNING: Expected category "${ctx.classification.category}" but found conflicting: ${categoryConflicts.join(', ')}`
+      );
+      deps.log(
+        `[Category Validation] This may indicate mixed data from companies with the same name`
+      );
     } else {
       deps.log(`[Category Validation] ✓ Categories consistent with classification`);
     }
@@ -170,7 +187,8 @@ export async function executeResearchPhase(
 
   // ========== VALIDATION: Post-extraction domain check ==========
   if (knowledgeCard.website) {
-    const { validateExtractedDomain, filterConflictingSources } = await import('../validation/name-collision-detector.js');
+    const { validateExtractedDomain, filterConflictingSources } =
+      await import('../validation/name-collision-detector.js');
 
     const domainValidation = validateExtractedDomain(
       ctx.toolName,
@@ -183,20 +201,26 @@ export async function executeResearchPhase(
       deps.log(`[Domain Validation] ⚠️  ${domainValidation.warning}`);
 
       if (domainValidation.shouldRefilter) {
-        deps.log(`[Domain Validation] Re-filtering sources with correct domain: ${domainValidation.correctDomain}`);
+        deps.log(
+          `[Domain Validation] Re-filtering sources with correct domain: ${domainValidation.correctDomain}`
+        );
 
         // Find conflicting domains to filter out
-        const conflicting = Array.from(new Set(
-          scoutResult.sources
-            .map(s => s.domain)
-            .filter(d => {
-              const domainLower = d.toLowerCase();
-              const toolNameLower = ctx.toolName.toLowerCase();
-              return domainLower.includes(toolNameLower) &&
-                     d !== domainValidation.correctDomain &&
-                     !d.includes(domainValidation.correctDomain);
-            })
-        ));
+        const conflicting = Array.from(
+          new Set(
+            scoutResult.sources
+              .map((s) => s.domain)
+              .filter((d) => {
+                const domainLower = d.toLowerCase();
+                const toolNameLower = ctx.toolName.toLowerCase();
+                return (
+                  domainLower.includes(toolNameLower) &&
+                  d !== domainValidation.correctDomain &&
+                  !d.includes(domainValidation.correctDomain)
+                );
+              })
+          )
+        );
 
         if (conflicting.length > 0) {
           const originalCount = scoutResult.sources.length;
@@ -205,8 +229,12 @@ export async function executeResearchPhase(
             domainValidation.correctDomain,
             conflicting
           );
-          deps.log(`[Domain Validation] Filtered ${originalCount - scoutResult.sources.length} sources from: ${conflicting.join(', ')}`);
-          deps.log(`[Domain Validation] ⚠️  WARNING: Data was extracted from mixed sources. Consider re-running extraction.`);
+          deps.log(
+            `[Domain Validation] Filtered ${originalCount - scoutResult.sources.length} sources from: ${conflicting.join(', ')}`
+          );
+          deps.log(
+            `[Domain Validation] ⚠️  WARNING: Data was extracted from mixed sources. Consider re-running extraction.`
+          );
         }
       }
     } else {
@@ -249,7 +277,9 @@ export async function executeResearchPhase(
   const uniqueFeatures = features?.unique || [];
   const allFeatures = [...coreFeatures, ...uniqueFeatures];
   if (allFeatures.length > 0) {
-    deps.log(`[Features] ${allFeatures.length} features: ${allFeatures.slice(0, 3).join(', ')}${allFeatures.length > 3 ? '...' : ''}`);
+    deps.log(
+      `[Features] ${allFeatures.length} features: ${allFeatures.slice(0, 3).join(', ')}${allFeatures.length > 3 ? '...' : ''}`
+    );
   } else {
     deps.log(`[Features] ⚠️ No key features extracted`);
   }
@@ -274,21 +304,27 @@ export async function executeResearchPhase(
     if (int.has_api) intFlags.push('API');
     if (int.has_zapier) intFlags.push('Zapier');
     if (int.has_webhooks) intFlags.push('Webhooks');
-    deps.log(`[Integrations] ${intFlags.length > 0 ? intFlags.join(', ') : '⚠️ none detected'}${int.notable?.length ? `, notable: ${int.notable.map((n: { name: string }) => n.name).join(', ')}` : ''}`);
+    deps.log(
+      `[Integrations] ${intFlags.length > 0 ? intFlags.join(', ') : '⚠️ none detected'}${int.notable?.length ? `, notable: ${int.notable.map((n: { name: string }) => n.name).join(', ')}` : ''}`
+    );
   } else {
     deps.log(`[Integrations] ⚠️ Not extracted`);
   }
 
   // ========== QA LOGGING: PRICING ANALYSIS (Chain of Thought) ==========
   if (knowledgeCard.pricing_analysis_log) {
-    deps.log(`[Pricing CoT] ${knowledgeCard.pricing_analysis_log.substring(0, 200)}${knowledgeCard.pricing_analysis_log.length > 200 ? '...' : ''}`);
+    deps.log(
+      `[Pricing CoT] ${knowledgeCard.pricing_analysis_log.substring(0, 200)}${knowledgeCard.pricing_analysis_log.length > 200 ? '...' : ''}`
+    );
   }
 
   // ========== QA LOGGING: SMP PRICING ==========
   if (knowledgeCard.smp_pricing) {
     const p = knowledgeCard.smp_pricing;
     deps.log(`[SMP Pricing] Model: ${p.model}, Confidence: ${p.confidence}`);
-    deps.log(`[SMP Pricing] Currency: ${p.currency}, Billing: ${p.billing_cycles?.join(', ') || 'unknown'}`);
+    deps.log(
+      `[SMP Pricing] Currency: ${p.currency}, Billing: ${p.billing_cycles?.join(', ') || 'unknown'}`
+    );
     if (p.annual_discount_pct) deps.log(`[SMP Pricing] Annual discount: ${p.annual_discount_pct}%`);
     if (p.min_seats) deps.log(`[SMP Pricing] Min seats: ${p.min_seats}`);
     if (p.plans && p.plans.length > 0) {
@@ -297,14 +333,18 @@ export async function executeResearchPhase(
         const priceInfo = [];
         if (plan.price_monthly !== null) priceInfo.push(`$${plan.price_monthly}/mo`);
         if (plan.price_annual !== null) priceInfo.push(`$${plan.price_annual}/yr`);
-        if (plan.price_per_unit !== null) priceInfo.push(`$${plan.price_per_unit}/${plan.scaling_unit || 'unit'}`);
+        if (plan.price_per_unit !== null)
+          priceInfo.push(`$${plan.price_per_unit}/${plan.scaling_unit || 'unit'}`);
         const features = [];
         if (plan.includes_sso) features.push('SSO');
         if (plan.includes_api) features.push('API');
         if (plan.includes_sla) features.push('SLA');
         if (plan.max_users !== null) features.push(`max ${plan.max_users} users`);
-        if (plan.included_units !== null) features.push(`includes ${plan.included_units} ${plan.scaling_unit || 'units'}`);
-        deps.log(`  - ${plan.name} (${plan.id}): ${priceInfo.join(', ') || 'custom'} ${features.length ? `[${features.join(', ')}]` : ''}`);
+        if (plan.included_units !== null)
+          features.push(`includes ${plan.included_units} ${plan.scaling_unit || 'units'}`);
+        deps.log(
+          `  - ${plan.name} (${plan.id}): ${priceInfo.join(', ') || 'custom'} ${features.length ? `[${features.join(', ')}]` : ''}`
+        );
       }
     }
   } else {
@@ -315,8 +355,10 @@ export async function executeResearchPhase(
   if (knowledgeCard.smp_taxonomy) {
     const t = knowledgeCard.smp_taxonomy;
     deps.log(`[SMP Taxonomy] Primary: ${t.primary_function}`);
-    if (t.secondary_functions?.length) deps.log(`[SMP Taxonomy] Secondary: ${t.secondary_functions.join(', ')}`);
-    if (t.likely_departments?.length) deps.log(`[SMP Taxonomy] Departments: ${t.likely_departments.join(', ')}`);
+    if (t.secondary_functions?.length)
+      deps.log(`[SMP Taxonomy] Secondary: ${t.secondary_functions.join(', ')}`);
+    if (t.likely_departments?.length)
+      deps.log(`[SMP Taxonomy] Departments: ${t.likely_departments.join(', ')}`);
   } else {
     deps.log(`[SMP Taxonomy] ⚠️ Not extracted`);
   }
@@ -324,8 +366,11 @@ export async function executeResearchPhase(
   // ========== QA LOGGING: SMP PORTABILITY ==========
   if (knowledgeCard.smp_portability) {
     const port = knowledgeCard.smp_portability;
-    deps.log(`[SMP Portability] Export: ${port.has_data_export ? 'yes' : 'no'}, API Export: ${port.has_api_export ? 'yes' : 'no'}, Migration: ${port.migration_difficulty || 'unknown'}`);
-    if (port.export_formats?.length) deps.log(`[SMP Portability] Formats: ${port.export_formats.join(', ')}`);
+    deps.log(
+      `[SMP Portability] Export: ${port.has_data_export ? 'yes' : 'no'}, API Export: ${port.has_api_export ? 'yes' : 'no'}, Migration: ${port.migration_difficulty || 'unknown'}`
+    );
+    if (port.export_formats?.length)
+      deps.log(`[SMP Portability] Formats: ${port.export_formats.join(', ')}`);
   } else {
     deps.log(`[SMP Portability] ⚠️ Not extracted`);
   }
@@ -357,14 +402,17 @@ export async function executeResearchPhase(
     if (setup.requires_it_admin) setupFlags.push('IT Admin');
     if (setup.implementation_partner_needed) setupFlags.push('Partner');
 
-    deps.log(`[Setup] Time: ${setup.estimated_setup_time}, Type: ${setup.setup_type || 'unknown'}, Friction: ${setup.friction_score || 'N/A'}/10`);
+    deps.log(
+      `[Setup] Time: ${setup.estimated_setup_time}, Type: ${setup.setup_type || 'unknown'}, Friction: ${setup.friction_score || 'N/A'}/10`
+    );
     if (setupFlags.length > 0) {
       deps.log(`[Setup] Required: ${setupFlags.join(', ')}`);
     }
 
     if (setup.steps && setup.steps.length > 0) {
       deps.log(`[Setup] Steps (${setup.steps.length}):`);
-      for (const step of setup.steps.slice(0, 3)) {  // Show first 3 steps
+      for (const step of setup.steps.slice(0, 3)) {
+        // Show first 3 steps
         const cmd = step.command ? ` \`${step.command}\`` : '';
         deps.log(`  ${step.step}. ${step.action}${cmd}`);
       }
@@ -396,7 +444,7 @@ export async function executeResearchPhase(
   const qaScore = [
     knowledgeCard.company?.name ? 1 : 0,
     knowledgeCard.company?.founded_year ? 1 : 0,
-    (knowledgeCard.features?.core?.length || knowledgeCard.features?.unique?.length) ? 1 : 0,
+    knowledgeCard.features?.core?.length || knowledgeCard.features?.unique?.length ? 1 : 0,
     knowledgeCard.competitive?.main_alternatives?.length ? 1 : 0,
     knowledgeCard.integrations?.has_api !== undefined ? 1 : 0,
     knowledgeCard.smp_pricing ? 1 : 0,
@@ -417,11 +465,7 @@ export async function executeResearchPhase(
   }
 
   // Step 3: Check for duplicate tools (Gatekeeper)
-  const existingTool = await checkForDuplicateTool(
-    ctx.toolName,
-    knowledgeCard,
-    deps
-  );
+  const existingTool = await checkForDuplicateTool(ctx.toolName, knowledgeCard, deps);
 
   if (existingTool) {
     deps.log(`⚠️ Duplicate detected: "${ctx.toolName}" already exists (id: ${existingTool.id})`);
@@ -537,31 +581,31 @@ function detectCategoryFromResearch(
   if (taxonomy?.primary_function) {
     const functionToCategory: Record<string, string> = {
       // Infrastructure
-      'Database': 'databases',
-      'Serverless': 'serverless',
+      Database: 'databases',
+      Serverless: 'serverless',
       'Backend as a Service': 'baas',
       'Cloud Infrastructure': 'infrastructure',
       // Developer Tools
       'CI/CD': 'ci-cd',
-      'Monitoring': 'monitoring',
+      Monitoring: 'monitoring',
       'API Development': 'api-development',
       'Version Control': 'version-control',
       'Developer Tools': 'developer-tools',
-      'IDE': 'developer-tools',
+      IDE: 'developer-tools',
       'Code Editor': 'developer-tools',
       'AI Code Assistant': 'ai-code-editors',
       'AI Code Editor': 'ai-code-editors',
       // Productivity
       'Project Management': 'project-management',
       'Note-Taking': 'note-taking',
-      'Documentation': 'documentation',
+      Documentation: 'documentation',
       'Knowledge Management': 'productivity',
       // Communication
       'Team Chat': 'team-chat',
       'Video Conferencing': 'video-conferencing',
-      'Communication': 'communication',
+      Communication: 'communication',
       // CRM & Sales
-      'CRM': 'crm-sales',
+      CRM: 'crm-sales',
       'Sales Engagement': 'sales-crm',
       'Marketing Automation': 'marketing-automation',
       // Analytics
@@ -571,22 +615,22 @@ function detectCategoryFromResearch(
       // eCommerce
       'Payment Processing': 'payment-processing',
       'eCommerce Platform': 'ecommerce-platform',
-      'eCommerce': 'ecommerce-payments',
+      eCommerce: 'ecommerce-payments',
       // Other
       'Customer Support': 'customer-support',
-      'HR': 'hr-recruiting',
-      'Finance': 'finance',
-      'Security': 'security-identity',
-      'Design': 'design-marketing',
-      'Marketing': 'design-marketing',
+      HR: 'hr-recruiting',
+      Finance: 'finance',
+      Security: 'security-identity',
+      Design: 'design-marketing',
+      Marketing: 'design-marketing',
       'No-Code': 'no-code-low-code',
       'Low-Code': 'no-code-low-code',
-      'CMS': 'cms-website',
+      CMS: 'cms-website',
       'File Storage': 'file-storage',
-      'Scheduling': 'scheduling',
-      'AI': 'ai-automation',
+      Scheduling: 'scheduling',
+      AI: 'ai-automation',
       'AI Tools': 'ai-automation',
-      'Automation': 'ai-automation',
+      Automation: 'ai-automation',
     };
 
     const mapped = functionToCategory[taxonomy.primary_function];
@@ -602,45 +646,45 @@ function detectCategoryFromResearch(
       'ai code': 'ai-code-editors',
       'ai editor': 'ai-code-editors',
       'code editor': 'developer-tools',
-      'database': 'databases',
-      'serverless': 'serverless',
-      'backend': 'baas',
+      database: 'databases',
+      serverless: 'serverless',
+      backend: 'baas',
       'ci/cd': 'ci-cd',
-      'monitoring': 'monitoring',
-      'observability': 'monitoring',
-      'api': 'api-development',
+      monitoring: 'monitoring',
+      observability: 'monitoring',
+      api: 'api-development',
       'project management': 'project-management',
       'task management': 'project-management',
-      'note': 'note-taking',
-      'documentation': 'documentation',
-      'wiki': 'documentation',
-      'chat': 'team-chat',
-      'slack': 'team-chat',
-      'video': 'video-conferencing',
-      'meeting': 'video-conferencing',
-      'crm': 'crm-sales',
-      'sales': 'sales-crm',
+      note: 'note-taking',
+      documentation: 'documentation',
+      wiki: 'documentation',
+      chat: 'team-chat',
+      slack: 'team-chat',
+      video: 'video-conferencing',
+      meeting: 'video-conferencing',
+      crm: 'crm-sales',
+      sales: 'sales-crm',
       'marketing automation': 'marketing-automation',
-      'analytics': 'analytics-bi',
-      'payment': 'payment-processing',
-      'ecommerce': 'ecommerce-platform',
-      'support': 'customer-support',
-      'helpdesk': 'customer-support',
-      'hr': 'hr-recruiting',
-      'recruiting': 'hr-recruiting',
-      'accounting': 'finance',
-      'security': 'security-identity',
-      'auth': 'security-identity',
-      'design': 'design-marketing',
+      analytics: 'analytics-bi',
+      payment: 'payment-processing',
+      ecommerce: 'ecommerce-platform',
+      support: 'customer-support',
+      helpdesk: 'customer-support',
+      hr: 'hr-recruiting',
+      recruiting: 'hr-recruiting',
+      accounting: 'finance',
+      security: 'security-identity',
+      auth: 'security-identity',
+      design: 'design-marketing',
       'no-code': 'no-code-low-code',
       'low-code': 'no-code-low-code',
-      'cms': 'cms-website',
+      cms: 'cms-website',
       'website builder': 'cms-website',
-      'storage': 'file-storage',
-      'scheduling': 'scheduling',
-      'calendar': 'scheduling',
-      'ai': 'ai-automation',
-      'automation': 'ai-automation',
+      storage: 'file-storage',
+      scheduling: 'scheduling',
+      calendar: 'scheduling',
+      ai: 'ai-automation',
+      automation: 'ai-automation',
     };
 
     for (const [keyword, category] of Object.entries(keywordToCategory)) {

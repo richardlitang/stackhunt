@@ -343,9 +343,9 @@ export const SpecializedSchemaMap = {
   'github-actions': CICDSchema,
   'continuous-integration': CICDSchema,
 
-  'monitoring': MonitoringSchema,
-  'observability': MonitoringSchema,
-  'apm': MonitoringSchema,
+  monitoring: MonitoringSchema,
+  observability: MonitoringSchema,
+  apm: MonitoringSchema,
 
   'api-development': APIDevSchema,
   'api-testing': APIDevSchema,
@@ -364,16 +364,16 @@ export const SpecializedSchemaMap = {
 
   // Productivity specializations
   'note-taking': NoteTakingSchema,
-  'pkm': NoteTakingSchema,
+  pkm: NoteTakingSchema,
   'second-brain': NoteTakingSchema,
 
   'project-management': ProjectManagementSchema,
   'task-management': ProjectManagementSchema,
   'work-management': ProjectManagementSchema,
 
-  'documentation': DocumentationSchema,
+  documentation: DocumentationSchema,
   'knowledge-base': DocumentationSchema,
-  'wiki': DocumentationSchema,
+  wiki: DocumentationSchema,
 
   // Communication specializations
   'team-chat': TeamChatSchema,
@@ -381,7 +381,7 @@ export const SpecializedSchemaMap = {
 
   'video-conferencing': VideoConferencingSchema,
   'video-meetings': VideoConferencingSchema,
-  'webinar': VideoConferencingSchema,
+  webinar: VideoConferencingSchema,
 
   // Analytics specializations
   'product-analytics': ProductAnalyticsSchema,

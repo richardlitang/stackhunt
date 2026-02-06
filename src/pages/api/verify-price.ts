@@ -36,10 +36,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     if (!toolId || typeof accurate !== 'boolean') {
       return addRateLimitHeaders(
-        new Response(
-          JSON.stringify({ error: 'Missing required fields' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        ),
+        new Response(JSON.stringify({ error: 'Missing required fields' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
         rateLimit
       );
     }
@@ -48,10 +48,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(toolId)) {
       return addRateLimitHeaders(
-        new Response(
-          JSON.stringify({ error: 'Invalid tool ID format' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        ),
+        new Response(JSON.stringify({ error: 'Invalid tool ID format' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
         rateLimit
       );
     }
@@ -89,10 +89,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
       console.error('Error recording price verification:', verifyError.code);
       return addRateLimitHeaders(
-        new Response(
-          JSON.stringify({ error: 'Failed to record verification' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        ),
+        new Response(JSON.stringify({ error: 'Failed to record verification' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
         rateLimit
       );
     }
@@ -103,7 +103,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
           success: true,
           message: accurate
             ? 'Thank you for verifying!'
-            : 'Thanks for reporting! We\'ll verify this within 24 hours.',
+            : "Thanks for reporting! We'll verify this within 24 hours.",
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       ),
@@ -111,9 +111,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     );
   } catch (error) {
     console.error('Error in verify-price API');
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

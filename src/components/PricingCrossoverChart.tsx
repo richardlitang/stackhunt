@@ -30,7 +30,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { computeMonthlyCost } from '@/lib/pricing/cost';
-import { formatScalingUnit, getScalingUnit, getScalingCategory, type ScalingCategory } from '@/lib/pricing/display';
+import {
+  formatScalingUnit,
+  getScalingCategory,
+  type ScalingCategory,
+} from '@/lib/pricing/display';
 
 // Color palette for up to 5 tools (first is main tool, others are alternatives)
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -235,7 +239,9 @@ export default function PricingCrossoverChart({
   const currentCosts = useMemo(() => {
     // Find the closest data point to the current quantity
     const point = chartData.reduce((closest, curr) => {
-      return Math.abs(curr.quantity - quantity) < Math.abs(closest.quantity - quantity) ? curr : closest;
+      return Math.abs(curr.quantity - quantity) < Math.abs(closest.quantity - quantity)
+        ? curr
+        : closest;
     }, chartData[0]);
 
     if (!point) return [];
@@ -326,7 +332,11 @@ export default function PricingCrossoverChart({
           isPerUnit: !!plan.price_per_unit,
         }));
 
-      return { name: tool.name, plans: plansWithPricing, isCompatible: compatibleTools.includes(tool) };
+      return {
+        name: tool.name,
+        plans: plansWithPricing,
+        isCompatible: compatibleTools.includes(tool),
+      };
     });
   }, [tools, compatibleTools]);
 
@@ -372,7 +382,10 @@ export default function PricingCrossoverChart({
         <div className="grid gap-6 lg:grid-cols-2">
           {usageBasedPricing.map((tool, toolIndex) => (
             <div key={tool.name} className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4">
-              <h4 className="font-semibold text-zinc-100 mb-3" style={{ color: COLORS[toolIndex % COLORS.length] }}>
+              <h4
+                className="font-semibold text-zinc-100 mb-3"
+                style={{ color: COLORS[toolIndex % COLORS.length] }}
+              >
                 {tool.name}
               </h4>
               {tool.plans.length > 0 ? (
@@ -396,7 +409,7 @@ export default function PricingCrossoverChart({
 
         <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-500">
           {!isChartableCategory
-            ? 'Usage-based pricing varies by consumption. Visit each tool\'s pricing page for calculators and volume discounts.'
+            ? "Usage-based pricing varies by consumption. Visit each tool's pricing page for calculators and volume discounts."
             : 'These tools scale differently (e.g., per-user vs per-contact). Compare based on your specific usage pattern.'}
         </div>
       </div>
@@ -466,7 +479,9 @@ export default function PricingCrossoverChart({
                 color: '#fafafa',
               }}
               formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
-              labelFormatter={(label) => `${Number(label).toLocaleString()} ${axisConfig.unitLabel}`}
+              labelFormatter={(label) =>
+                `${Number(label).toLocaleString()} ${axisConfig.unitLabel}`
+              }
             />
             <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
@@ -550,24 +565,23 @@ export default function PricingCrossoverChart({
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-zinc-400">{tool.name}</div>
                   {index === 0 && (
-                    <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-500 border-green-500/30">
+                    <Badge
+                      variant="secondary"
+                      className="text-xs bg-green-500/20 text-green-500 border-green-500/30"
+                    >
                       Cheapest
                     </Badge>
                   )}
                 </div>
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-xl font-bold text-zinc-100">
-                    ${tool.cost.toFixed(2)}
-                  </span>
+                  <span className="text-xl font-bold text-zinc-100">${tool.cost.toFixed(2)}</span>
                   <span className="text-sm text-zinc-400">/mo</span>
                 </div>
                 {tool.detail.planName && (
                   <div className="mt-1 text-xs text-zinc-500">Plan: {tool.detail.planName}</div>
                 )}
                 {tool.detail.notes.length > 0 && (
-                  <div className="mt-1 text-[11px] text-zinc-600">
-                    {tool.detail.notes[0]}
-                  </div>
+                  <div className="mt-1 text-[11px] text-zinc-600">{tool.detail.notes[0]}</div>
                 )}
               </CardContent>
             </Card>
@@ -650,7 +664,8 @@ export default function PricingCrossoverChart({
 
       {/* Assumptions */}
       <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 text-xs text-zinc-500">
-        Assumptions: all seats are paid members, add-ons and usage overages excluded, cheapest non-enterprise plan selected.
+        Assumptions: all seats are paid members, add-ons and usage overages excluded, cheapest
+        non-enterprise plan selected.
       </div>
     </div>
   );

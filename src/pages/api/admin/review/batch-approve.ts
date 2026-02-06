@@ -50,10 +50,12 @@ export const POST: APIRoute = async ({ request }) => {
     // First, get all pending reviews with their tool's knowledge_card
     const { data: reviews, error: fetchError } = await admin
       .from('reviews')
-      .select(`
+      .select(
+        `
         id,
         tool:tools(knowledge_card)
-      `)
+      `
+      )
       .in('status', ['draft', 'review']);
 
     if (fetchError) {

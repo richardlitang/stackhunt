@@ -11,7 +11,7 @@ import { DefunctStatusSchema } from '../types';
 export interface DefunctStatus {
   isDefunct: boolean;
   confidence: 'high' | 'medium' | 'low';
-  shutdownDate?: string;  // YYYY-MM-DD
+  shutdownDate?: string; // YYYY-MM-DD
   reason?: string;
   evidence?: string;
 }
@@ -148,9 +148,10 @@ export async function detectDefunctTool(
   // Use first 10 search result snippets
   const snippets = searchResults.slice(0, 10).join('\n\n');
 
-  const prompt = DEFUNCT_DETECTION_PROMPT
-    .replace('{{toolName}}', toolName)
-    .replace('{{searchResults}}', snippets);
+  const prompt = DEFUNCT_DETECTION_PROMPT.replace('{{toolName}}', toolName).replace(
+    '{{searchResults}}',
+    snippets
+  );
 
   try {
     const result = await genAI.models.generateContent({
@@ -182,10 +183,12 @@ export async function detectDefunctTool(
   } catch (error) {
     console.error('[DefunctDetector] Error detecting defunct status:', toolName, error);
     // On error, assume tool is active (fail safe)
-    return heuristic || {
-      isDefunct: false,
-      confidence: 'low',
-    };
+    return (
+      heuristic || {
+        isDefunct: false,
+        confidence: 'low',
+      }
+    );
   }
 }
 

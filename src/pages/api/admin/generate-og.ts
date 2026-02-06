@@ -9,11 +9,7 @@
 
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
-import {
-  generateToolOGImage,
-  generateComparisonOGImage,
-  updateToolOGImage,
-} from '@/lib/replicate';
+import { generateToolOGImage, generateComparisonOGImage, updateToolOGImage } from '@/lib/replicate';
 import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken } from '@/lib/auth';
 
 export const prerender = false;
@@ -43,11 +39,11 @@ async function validateAdminAuth(cookies: any): Promise<boolean> {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   // Validate admin session
-  if (!await validateAdminAuth(cookies)) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+  if (!(await validateAdminAuth(cookies))) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -104,10 +100,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Invalid type. Use "tool" or "comparison"' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Invalid type. Use "tool" or "comparison"' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('OG generation error:', (error as Error).message);
     return new Response(
@@ -123,20 +119,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 // GET: Generate OG for a tool by slug (convenience endpoint)
 export const GET: APIRoute = async ({ url, cookies }) => {
   // Validate admin session
-  if (!await validateAdminAuth(cookies)) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+  if (!(await validateAdminAuth(cookies))) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
   const toolSlug = url.searchParams.get('slug');
   const style = url.searchParams.get('style') as 'futuristic' | 'minimal' | 'gradient' | null;
 
   if (!toolSlug) {
-    return new Response(
-      JSON.stringify({ error: 'slug parameter is required' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'slug parameter is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -149,10 +145,10 @@ export const GET: APIRoute = async ({ url, cookies }) => {
       .single();
 
     if (error || !tool) {
-      return new Response(
-        JSON.stringify({ error: 'Tool not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Tool not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Generate image

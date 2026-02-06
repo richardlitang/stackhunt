@@ -17,12 +17,12 @@ export const SlugSchema = z
   .string()
   .min(1, 'Slug is required')
   .max(100, 'Slug too long')
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Invalid slug format (use lowercase letters, numbers, and hyphens)');
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    'Invalid slug format (use lowercase letters, numbers, and hyphens)'
+  );
 
-export const EmailSchema = z
-  .string()
-  .email('Invalid email address')
-  .max(255, 'Email too long');
+export const EmailSchema = z.string().email('Invalid email address').max(255, 'Email too long');
 
 // ============================================================================
 // VOTE ENDPOINT
@@ -48,20 +48,15 @@ export const QueueAddRequestSchema = z.object({
     .string()
     .min(1, 'Tool name is required')
     .max(100, 'Tool name too long')
-    .transform(s => s.trim()),
+    .transform((s) => s.trim()),
   context_title: z
     .string()
     .max(200, 'Context title too long')
-    .transform(s => s?.trim() || null)
+    .transform((s) => s?.trim() || null)
     .optional()
     .nullable(),
   category_slug: SlugSchema.optional().nullable(),
-  priority: z
-    .number()
-    .int()
-    .min(0)
-    .max(100)
-    .default(50),
+  priority: z.number().int().min(0).max(100).default(50),
 });
 
 export type QueueAddRequest = z.infer<typeof QueueAddRequestSchema>;
@@ -72,10 +67,7 @@ export type QueueAddRequest = z.infer<typeof QueueAddRequestSchema>;
 
 export const CorrectionRequestSchema = z.object({
   tool_id: UUIDSchema,
-  field_name: z
-    .string()
-    .min(1, 'Field name is required')
-    .max(50, 'Field name too long'),
+  field_name: z.string().min(1, 'Field name is required').max(50, 'Field name too long'),
   correction_text: z
     .string()
     .min(5, 'Correction must be at least 5 characters')
@@ -94,11 +86,11 @@ export const HuntRequestSchema = z.object({
     .string()
     .min(1, 'Tool name is required')
     .max(100, 'Tool name too long')
-    .transform(s => s.trim()),
+    .transform((s) => s.trim()),
   contextTitle: z
     .string()
     .max(200, 'Context title too long')
-    .transform(s => s?.trim() || undefined)
+    .transform((s) => s?.trim() || undefined)
     .optional(),
   categorySlug: SlugSchema.optional(),
   publish: z.boolean().default(false),
@@ -121,7 +113,7 @@ export const ContextHuntRequestSchema = z.object({
     .string()
     .min(3, 'Context query is required')
     .max(200, 'Context query too long')
-    .transform(s => s.trim()),
+    .transform((s) => s.trim()),
   maxTools: z.number().int().min(1).max(10).default(5),
   publish: z.boolean().default(false),
   guidance: ContextHuntGuidanceSchema.optional(),
@@ -163,9 +155,7 @@ export async function validateRequest<T>(
     return { data, error: null };
   } catch (err) {
     if (err instanceof z.ZodError) {
-      const message = err.errors
-        .map(e => `${e.path.join('.')}: ${e.message}`)
-        .join('; ');
+      const message = err.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
       return { data: null, error: message };
     }
     if (err instanceof SyntaxError) {
@@ -179,11 +169,8 @@ export async function validateRequest<T>(
  * Create a validation error response
  */
 export function validationErrorResponse(error: string): Response {
-  return new Response(
-    JSON.stringify({ success: false, error }),
-    {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    }
-  );
+  return new Response(JSON.stringify({ success: false, error }), {
+    status: 400,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }

@@ -33,7 +33,9 @@ const formatDate = (date: string) => {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 
-const isStale = lastVerifiedAt ? (new Date().getTime() - new Date(lastVerifiedAt).getTime()) / (1000 * 60 * 60 * 24) > 60 : false;
+const isStale = lastVerifiedAt
+  ? (new Date().getTime() - new Date(lastVerifiedAt).getTime()) / (1000 * 60 * 60 * 24) > 60
+  : false;
 
 const sizeClasses = {
   sm: { text: 'text-xs', icon: 'h-3 w-3' },
@@ -46,47 +48,108 @@ if (!hasData) return null;
 ---
 
 <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-  {lastVerifiedAt && (
-    <span class:list={['flex items-center gap-1.5', classes.text, isStale ? 'text-amber-400' : 'text-zinc-500']}>
-      <svg class:list={[classes.icon]} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      Verified {formatDate(lastVerifiedAt)}
-    </span>
-  )}
+  {
+    lastVerifiedAt && (
+      <span
+        class:list={[
+          'flex items-center gap-1.5',
+          classes.text,
+          isStale ? 'text-amber-400' : 'text-zinc-500',
+        ]}
+      >
+        <svg class:list={[classes.icon]} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        Verified {formatDate(lastVerifiedAt)}
+      </span>
+    )
+  }
 
-  {sourceCount > 0 && (
-    <span class:list={['flex items-center gap-1.5', classes.text, 'text-zinc-500']}>
-      <svg class:list={[classes.icon]} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
-      {sourceCount} {sourceCount === 1 ? 'source' : 'sources'}
-    </span>
-  )}
+  {
+    sourceCount > 0 && (
+      <span class:list={['flex items-center gap-1.5', classes.text, 'text-zinc-500']}>
+        <svg class:list={[classes.icon]} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+          />
+        </svg>
+        {sourceCount} {sourceCount === 1 ? 'source' : 'sources'}
+      </span>
+    )
+  }
 
-  {contentConfidence && (
-    <span class:list={['flex items-center gap-1.5', classes.text, contentConfidence === 'high' ? 'text-green-400' : contentConfidence === 'medium' ? 'text-amber-400' : 'text-zinc-500']}>
-      <svg class:list={[classes.icon]} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-      Content confidence: {contentConfidence === 'high' ? 'High' : contentConfidence === 'medium' ? 'Medium' : 'Low'}
-    </span>
-  )}
+  {
+    contentConfidence && (
+      <span
+        class:list={[
+          'flex items-center gap-1.5',
+          classes.text,
+          contentConfidence === 'high'
+            ? 'text-green-400'
+            : contentConfidence === 'medium'
+              ? 'text-amber-400'
+              : 'text-zinc-500',
+        ]}
+      >
+        <svg class:list={[classes.icon]} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+          />
+        </svg>
+        Content confidence:{' '}
+        {contentConfidence === 'high' ? 'High' : contentConfidence === 'medium' ? 'Medium' : 'Low'}
+      </span>
+    )
+  }
 
-  {pricingConfidence && (
-    <span class:list={['flex items-center gap-1.5', classes.text, pricingConfidence === 'high' ? 'text-green-400' : pricingConfidence === 'medium' ? 'text-amber-400' : 'text-zinc-500']}>
-      <svg class:list={[classes.icon]} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.105 0-2 .895-2 2v2c0 1.105.895 2 2 2s2-.895 2-2v-2c0-1.105-.895-2-2-2zm0 8c-3.866 0-7 1.343-7 3v1h14v-1c0-1.657-3.134-3-7-3zM12 2a7 7 0 017 7v2a7 7 0 01-14 0V9a7 7 0 017-7z" />
-      </svg>
-      Pricing confidence: {pricingConfidence === 'high' ? 'High' : pricingConfidence === 'medium' ? 'Medium' : 'Low'}
-    </span>
-  )}
+  {
+    pricingConfidence && (
+      <span
+        class:list={[
+          'flex items-center gap-1.5',
+          classes.text,
+          pricingConfidence === 'high'
+            ? 'text-green-400'
+            : pricingConfidence === 'medium'
+              ? 'text-amber-400'
+              : 'text-zinc-500',
+        ]}
+      >
+        <svg class:list={[classes.icon]} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8c-1.105 0-2 .895-2 2v2c0 1.105.895 2 2 2s2-.895 2-2v-2c0-1.105-.895-2-2-2zm0 8c-3.866 0-7 1.343-7 3v1h14v-1c0-1.657-3.134-3-7-3zM12 2a7 7 0 017 7v2a7 7 0 01-14 0V9a7 7 0 017-7z"
+          />
+        </svg>
+        Pricing confidence:{' '}
+        {pricingConfidence === 'high' ? 'High' : pricingConfidence === 'medium' ? 'Medium' : 'Low'}
+      </span>
+    )
+  }
 </div>
 
-{isStale && (
-  <div class="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-    <p class:list={[classes.text, 'text-amber-400/90']}>
-      Data may be outdated. <a href="/corrections" class="underline hover:text-amber-300">Verify now →</a>
-    </p>
-  </div>
-)}
+{
+  isStale && (
+    <div class="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+      <p class:list={[classes.text, 'text-amber-400/90']}>
+        Data may be outdated.{' '}
+        <a href="/corrections" class="underline hover:text-amber-300">
+          Verify now →
+        </a>
+      </p>
+    </div>
+  )
+}

@@ -31,9 +31,9 @@ export interface NormalizedPricing {
 
   // Display formatting
   display: {
-    starting_from: string;  // "from $27/mo"
-    caveat: string | null;  // "(3 seat minimum)" | "(annual only)"
-    per_unit: string | null;  // "$9/user/mo"
+    starting_from: string; // "from $27/mo"
+    caveat: string | null; // "(3 seat minimum)" | "(annual only)"
+    per_unit: string | null; // "$9/user/mo"
   };
 
   // Comparison metadata
@@ -64,13 +64,11 @@ export function normalizePricing(
   const { plans, model, min_seats } = pricingData;
 
   // Filter to paid plans (exclude free and enterprise "Contact Sales")
-  const paidPlans = plans.filter(
-    p => !p.is_enterprise && (p.price_monthly || p.price_annual)
-  );
+  const paidPlans = plans.filter((p) => !p.is_enterprise && (p.price_monthly || p.price_annual));
 
   if (paidPlans.length === 0) {
     // Only free or enterprise plans available
-    const freePlan = plans.find(p => p.price_monthly === 0 || p.name.toLowerCase() === 'free');
+    const freePlan = plans.find((p) => p.price_monthly === 0 || p.name.toLowerCase() === 'free');
     if (freePlan) {
       return {
         effective_starting_price_monthly: 0,
@@ -100,7 +98,7 @@ export function normalizePricing(
 
   if (preferredTier) {
     // Try to match the preferred tier
-    const tierPlan = paidPlans.find(p => p.target_audience === preferredTier);
+    const tierPlan = paidPlans.find((p) => p.target_audience === preferredTier);
     comparisonPlan = tierPlan || paidPlans[0];
   } else {
     // Default: Sort by effective monthly price (lowest first)
@@ -111,7 +109,8 @@ export function normalizePricing(
     })[0];
   }
 
-  const isSeatBased = model === 'per_seat' || model === 'per_unit' || comparisonPlan.scaling_unit != null;
+  const isSeatBased =
+    model === 'per_seat' || model === 'per_unit' || comparisonPlan.scaling_unit != null;
   const isFlatRate = model === 'flat';
   const minSeats = min_seats || 1;
 
@@ -134,7 +133,8 @@ export function normalizePricing(
   } else {
     // Flat rate pricing
     effectiveMonthly = comparisonPlan.price_monthly || null;
-    effectiveAnnual = comparisonPlan.price_annual || (effectiveMonthly ? effectiveMonthly * 12 : null);
+    effectiveAnnual =
+      comparisonPlan.price_annual || (effectiveMonthly ? effectiveMonthly * 12 : null);
   }
 
   // Build display strings
@@ -149,12 +149,13 @@ export function normalizePricing(
   const startingFromDisplay = effectiveMonthly
     ? `from $${effectiveMonthly}/mo`
     : effectiveAnnual
-    ? `from $${Math.round(effectiveAnnual / 12)}/mo (annual)`
-    : 'Contact Sales';
+      ? `from $${Math.round(effectiveAnnual / 12)}/mo (annual)`
+      : 'Contact Sales';
 
-  const perUnitDisplay = isSeatBased && normalizedPerSeatMonthly
-    ? `$${normalizedPerSeatMonthly}/${comparisonPlan.scaling_unit || 'user'}/mo`
-    : null;
+  const perUnitDisplay =
+    isSeatBased && normalizedPerSeatMonthly
+      ? `$${normalizedPerSeatMonthly}/${comparisonPlan.scaling_unit || 'user'}/mo`
+      : null;
 
   return {
     effective_starting_price_monthly: effectiveMonthly,
@@ -171,7 +172,7 @@ export function normalizePricing(
     },
     is_seat_based: isSeatBased,
     is_flat_rate: isFlatRate,
-    has_free_tier: plans.some(p => p.price_monthly === 0),
+    has_free_tier: plans.some((p) => p.price_monthly === 0),
     min_seats: minSeats > 1 ? minSeats : null,
     model,
   };
@@ -185,9 +186,9 @@ export function comparePricing(
   toolA: { name: string; pricing: NormalizedPricing | null },
   toolB: { name: string; pricing: NormalizedPricing | null }
 ): {
-  cheaper: string | 'tie';  // Tool name or 'tie'
-  difference: number | null;  // Dollar difference
-  summary: string;  // Human-readable summary
+  cheaper: string | 'tie'; // Tool name or 'tie'
+  difference: number | null; // Dollar difference
+  summary: string; // Human-readable summary
 } {
   if (!toolA.pricing || !toolB.pricing) {
     return {

@@ -16,9 +16,10 @@ interface Props {
 const { company, audience, learningCurve } = Astro.props;
 
 // Check if we have any data to display
-const hasData = (company && (company.founded_year || company.headquarters || company.employee_count)) ||
-                (audience && audience.team_size) ||
-                learningCurve;
+const hasData =
+  (company && (company.founded_year || company.headquarters || company.employee_count)) ||
+  (audience && audience.team_size) ||
+  learningCurve;
 
 if (!hasData) return null;
 
@@ -45,43 +46,53 @@ const learningCurveLabels: Record<string, string> = {
   <h3 class="mb-4 font-semibold text-zinc-100">Company Info</h3>
 
   <dl class="space-y-3">
-    {company?.founded_year && (
-      <div class="flex justify-between">
-        <dt class="text-sm text-zinc-400">Founded</dt>
-        <dd class="text-sm font-medium text-zinc-100">{company.founded_year}</dd>
-      </div>
-    )}
+    {
+      company?.founded_year && (
+        <div class="flex justify-between">
+          <dt class="text-sm text-zinc-400">Founded</dt>
+          <dd class="text-sm font-medium text-zinc-100">{company.founded_year}</dd>
+        </div>
+      )
+    }
 
-    {company?.headquarters && (
-      <div class="flex justify-between">
-        <dt class="text-sm text-zinc-400">Headquarters</dt>
-        <dd class="text-sm font-medium text-zinc-100">{company.headquarters}</dd>
-      </div>
-    )}
+    {
+      company?.headquarters && (
+        <div class="flex justify-between">
+          <dt class="text-sm text-zinc-400">Headquarters</dt>
+          <dd class="text-sm font-medium text-zinc-100">{company.headquarters}</dd>
+        </div>
+      )
+    }
 
-    {company?.employee_count && (
-      <div class="flex justify-between">
-        <dt class="text-sm text-zinc-400">Company Size</dt>
-        <dd class="text-sm font-medium text-zinc-100">{company.employee_count} employees</dd>
-      </div>
-    )}
+    {
+      company?.employee_count && (
+        <div class="flex justify-between">
+          <dt class="text-sm text-zinc-400">Company Size</dt>
+          <dd class="text-sm font-medium text-zinc-100">{company.employee_count} employees</dd>
+        </div>
+      )
+    }
 
-    {audience?.team_size && (
-      <div class="flex justify-between">
-        <dt class="text-sm text-zinc-400">Best For</dt>
-        <dd class="text-sm font-medium text-zinc-100">
-          {teamSizeLabels[audience.team_size] || audience.team_size}
-        </dd>
-      </div>
-    )}
+    {
+      audience?.team_size && (
+        <div class="flex justify-between">
+          <dt class="text-sm text-zinc-400">Best For</dt>
+          <dd class="text-sm font-medium text-zinc-100">
+            {teamSizeLabels[audience.team_size] || audience.team_size}
+          </dd>
+        </div>
+      )
+    }
 
-    {learningCurve && (
-      <div class="flex justify-between">
-        <dt class="text-sm text-zinc-400">Learning Curve</dt>
-        <dd class="text-sm font-medium text-zinc-100 capitalize">
-          {learningCurveLabels[learningCurve] || learningCurve}
-        </dd>
-      </div>
-    )}
+    {
+      learningCurve && (
+        <div class="flex justify-between">
+          <dt class="text-sm text-zinc-400">Learning Curve</dt>
+          <dd class="text-sm font-medium text-zinc-100 capitalize">
+            {learningCurveLabels[learningCurve] || learningCurve}
+          </dd>
+        </div>
+      )
+    }
   </dl>
 </div>

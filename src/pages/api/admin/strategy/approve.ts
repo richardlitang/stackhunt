@@ -23,19 +23,19 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
     if (error) {
       console.error('Bulk approval failed:', error);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Approval failed' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Approval failed' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Redirect back to strategy page
     return redirect('/admin/strategy');
   } catch (err) {
     console.error('Approve error:', err);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Approval failed' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Approval failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

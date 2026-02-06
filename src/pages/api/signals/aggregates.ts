@@ -11,10 +11,10 @@ export const GET: APIRoute = async ({ url }) => {
     const itemId = url.searchParams.get('itemId');
 
     if (!itemId) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing itemId parameter' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Missing itemId parameter' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Fetch aggregates with signal and option details
@@ -42,10 +42,10 @@ export const GET: APIRoute = async ({ url }) => {
 
     if (error) {
       console.error('Failed to fetch signal aggregates:', error);
-      return new Response(
-        JSON.stringify({ success: false, error: error.message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: error.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Transform the data for the frontend
@@ -60,18 +60,15 @@ export const GET: APIRoute = async ({ url }) => {
       count_negative: agg.count_negative,
     }));
 
-    return new Response(
-      JSON.stringify({ success: true, aggregates: transformed || [] }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ success: true, aggregates: transformed || [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (err) {
     console.error('Failed to fetch signal aggregates:', err);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

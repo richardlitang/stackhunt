@@ -58,7 +58,9 @@ const { data: categories } = await supabase
     <div id="panel-tool" class="hunt-panel">
       <div class="rounded-lg border border-slate-200 bg-white p-6">
         <h2 class="text-lg font-semibold text-slate-900 mb-2">Hunt a Specific Tool</h2>
-        <p class="text-sm text-slate-500 mb-4">Research a tool and optionally add it to a context list.</p>
+        <p class="text-sm text-slate-500 mb-4">
+          Research a tool and optionally add it to a context list.
+        </p>
 
         <form id="hunt-form-tool" class="space-y-4">
           <div class="grid gap-4 md:grid-cols-2">
@@ -99,23 +101,30 @@ const { data: categories } = await supabase
                 class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
               >
                 <option value="">Auto-detect</option>
-                {categories?.map((cat) => (
-                  <option value={cat.slug}>{cat.name}</option>
-                ))}
+                {categories?.map((cat) => <option value={cat.slug}>{cat.name}</option>)}
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">
-                Mode
-              </label>
+              <label class="block text-sm font-medium text-slate-700 mb-1"> Mode </label>
               <div class="flex items-center gap-4 mt-2">
                 <label class="flex items-center gap-2">
-                  <input type="radio" name="mode" value="draft" checked class="text-hunt-500 focus:ring-hunt-500" />
+                  <input
+                    type="radio"
+                    name="mode"
+                    value="draft"
+                    checked
+                    class="text-hunt-500 focus:ring-hunt-500"
+                  />
                   <span class="text-sm text-slate-700">Draft</span>
                 </label>
                 <label class="flex items-center gap-2">
-                  <input type="radio" name="mode" value="publish" class="text-hunt-500 focus:ring-hunt-500" />
+                  <input
+                    type="radio"
+                    name="mode"
+                    value="publish"
+                    class="text-hunt-500 focus:ring-hunt-500"
+                  />
                   <span class="text-sm text-slate-700">Publish</span>
                 </label>
               </div>
@@ -135,22 +144,24 @@ const { data: categories } = await supabase
       </div>
 
       <!-- Quick Re-Hunt -->
-      {recentTools && recentTools.length > 0 && (
-        <div class="rounded-lg border border-slate-200 bg-white p-6">
-          <h2 class="text-lg font-semibold text-slate-900 mb-4">Recent Tools</h2>
-          <div class="flex flex-wrap gap-2">
-            {recentTools.map((tool) => (
-              <button
-                type="button"
-                class="quick-tool-btn rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:border-hunt-300 hover:bg-hunt-50 transition"
-                data-tool={tool.name}
-              >
-                {tool.name}
-              </button>
-            ))}
+      {
+        recentTools && recentTools.length > 0 && (
+          <div class="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Recent Tools</h2>
+            <div class="flex flex-wrap gap-2">
+              {recentTools.map((tool) => (
+                <button
+                  type="button"
+                  class="quick-tool-btn rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:border-hunt-300 hover:bg-hunt-50 transition"
+                  data-tool={tool.name}
+                >
+                  {tool.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
 
     <!-- Context Hunt Form -->
@@ -158,7 +169,8 @@ const { data: categories } = await supabase
       <div class="rounded-lg border border-slate-200 bg-white p-6">
         <h2 class="text-lg font-semibold text-slate-900 mb-2">Create a "Best X for Y" List</h2>
         <p class="text-sm text-slate-500 mb-4">
-          Discover and rank the top tools for a specific context. AI will find 5-10 relevant tools automatically.
+          Discover and rank the top tools for a specific context. AI will find 5-10 relevant tools
+          automatically.
         </p>
 
         <form id="hunt-form-context" class="space-y-4">
@@ -173,7 +185,9 @@ const { data: categories } = await supabase
               placeholder="e.g., Best CRM for Small Business, Best Design Tools for Startups"
               class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
             />
-            <p class="mt-1 text-xs text-slate-500">Describe what you're looking for - "Best [category] for [audience]"</p>
+            <p class="mt-1 text-xs text-slate-500">
+              Describe what you're looking for - "Best [category] for [audience]"
+            </p>
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
@@ -193,16 +207,25 @@ const { data: categories } = await supabase
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">
-                Mode
-              </label>
+              <label class="block text-sm font-medium text-slate-700 mb-1"> Mode </label>
               <div class="flex items-center gap-4 mt-2">
                 <label class="flex items-center gap-2">
-                  <input type="radio" name="contextMode" value="draft" checked class="text-hunt-500 focus:ring-hunt-500" />
+                  <input
+                    type="radio"
+                    name="contextMode"
+                    value="draft"
+                    checked
+                    class="text-hunt-500 focus:ring-hunt-500"
+                  />
                   <span class="text-sm text-slate-700">Draft</span>
                 </label>
                 <label class="flex items-center gap-2">
-                  <input type="radio" name="contextMode" value="publish" class="text-hunt-500 focus:ring-hunt-500" />
+                  <input
+                    type="radio"
+                    name="contextMode"
+                    value="publish"
+                    class="text-hunt-500 focus:ring-hunt-500"
+                  />
                   <span class="text-sm text-slate-700">Publish</span>
                 </label>
               </div>
@@ -225,22 +248,24 @@ const { data: categories } = await supabase
       <div class="rounded-lg border border-slate-200 bg-white p-6">
         <h2 class="text-lg font-semibold text-slate-900 mb-4">Quick Ideas</h2>
         <div class="grid gap-2 md:grid-cols-2">
-          {[
-            'Best Project Management Tools for Remote Teams',
-            'Best CRM Software for Small Business',
-            'Best Design Tools for Startups',
-            'Best Note-Taking Apps for Researchers',
-            'Best Email Marketing Tools for E-commerce',
-            'Best Analytics Tools for SaaS',
-          ].map((idea) => (
-            <button
-              type="button"
-              class="quick-context-btn text-left rounded-lg border border-slate-200 px-4 py-2 text-sm hover:border-green-300 hover:bg-green-50 transition"
-              data-context={idea}
-            >
-              {idea}
-            </button>
-          ))}
+          {
+            [
+              'Best Project Management Tools for Remote Teams',
+              'Best CRM Software for Small Business',
+              'Best Design Tools for Startups',
+              'Best Note-Taking Apps for Researchers',
+              'Best Email Marketing Tools for E-commerce',
+              'Best Analytics Tools for SaaS',
+            ].map((idea) => (
+              <button
+                type="button"
+                class="quick-context-btn text-left rounded-lg border border-slate-200 px-4 py-2 text-sm hover:border-green-300 hover:bg-green-50 transition"
+                data-context={idea}
+              >
+                {idea}
+              </button>
+            ))
+          }
         </div>
       </div>
     </div>
@@ -257,12 +282,12 @@ const { data: categories } = await supabase
     const tabBtns = document.querySelectorAll('.tab-btn');
     const panels = document.querySelectorAll('.hunt-panel');
 
-    tabBtns.forEach(btn => {
+    tabBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         const tab = (btn as HTMLElement).dataset.tab;
 
         // Update tabs
-        tabBtns.forEach(t => {
+        tabBtns.forEach((t) => {
           t.classList.remove('border-hunt-500', 'text-hunt-600');
           t.classList.add('border-transparent', 'text-slate-500');
         });
@@ -270,26 +295,30 @@ const { data: categories } = await supabase
         btn.classList.add('border-hunt-500', 'text-hunt-600');
 
         // Update panels
-        panels.forEach(p => p.classList.add('hidden'));
+        panels.forEach((p) => p.classList.add('hidden'));
         document.getElementById(`panel-${tab}`)?.classList.remove('hidden');
       });
     });
 
     // Quick tool buttons
-    document.querySelectorAll('.quick-tool-btn').forEach(btn => {
+    document.querySelectorAll('.quick-tool-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const toolName = (btn as HTMLElement).dataset.tool;
-        const input = document.querySelector('#hunt-form-tool [name="toolName"]') as HTMLInputElement;
+        const input = document.querySelector(
+          '#hunt-form-tool [name="toolName"]'
+        ) as HTMLInputElement;
         input.value = toolName || '';
         input.focus();
       });
     });
 
     // Quick context buttons
-    document.querySelectorAll('.quick-context-btn').forEach(btn => {
+    document.querySelectorAll('.quick-context-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const context = (btn as HTMLElement).dataset.context;
-        const input = document.querySelector('#hunt-form-context [name="contextQuery"]') as HTMLInputElement;
+        const input = document.querySelector(
+          '#hunt-form-context [name="contextQuery"]'
+        ) as HTMLInputElement;
         input.value = context || '';
         input.focus();
       });

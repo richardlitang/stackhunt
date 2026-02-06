@@ -17,7 +17,10 @@ const pathname = currentPath || Astro.url.pathname;
 // Fetch counts for badges
 const admin = getAdminClient();
 const [{ count: draftCount }, { count: queueCount }] = await Promise.all([
-  admin.from('reviews').select('*', { count: 'exact', head: true }).in('status', ['draft', 'review']),
+  admin
+    .from('reviews')
+    .select('*', { count: 'exact', head: true })
+    .in('status', ['draft', 'review']),
   admin.from('hunt_queue').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
 ]);
 
@@ -30,21 +33,38 @@ const { count: pendingIdeasCount } = await admin
 // Navigation structure
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: 'home' },
-  { href: '/admin/strategy', label: 'Strategy', icon: 'target', badge: pendingIdeasCount || 0, match: ['/admin/strategy'] },
-  { href: '/admin/create', label: 'Create', icon: 'plus', match: ['/admin/create', '/admin/hunt', '/admin/queue'] },
-  { href: '/admin/review', label: 'Review', icon: 'check', badge: draftCount || 0, match: ['/admin/review'] },
+  {
+    href: '/admin/strategy',
+    label: 'Strategy',
+    icon: 'target',
+    badge: pendingIdeasCount || 0,
+    match: ['/admin/strategy'],
+  },
+  {
+    href: '/admin/create',
+    label: 'Create',
+    icon: 'plus',
+    match: ['/admin/create', '/admin/hunt', '/admin/queue'],
+  },
+  {
+    href: '/admin/review',
+    label: 'Review',
+    icon: 'check',
+    badge: draftCount || 0,
+    match: ['/admin/review'],
+  },
   { href: '/admin/editorial', label: 'Editorial', icon: 'brain', match: ['/admin/editorial'] },
 ];
 
-function isActive(item: typeof navItems[0]): boolean {
+function isActive(item: (typeof navItems)[0]): boolean {
   if (item.match) {
-    return item.match.some(path => pathname.startsWith(path));
+    return item.match.some((path) => pathname.startsWith(path));
   }
   return pathname === item.href;
 }
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -70,7 +90,9 @@ function isActive(item: typeof navItems[0]): boolean {
       <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
         <div class="rounded-xl bg-white p-6 shadow-xl">
           <h3 id="confirm-title" class="text-lg font-semibold text-slate-900">Confirm Action</h3>
-          <p id="confirm-message" class="mt-2 text-sm text-slate-600">Are you sure you want to proceed?</p>
+          <p id="confirm-message" class="mt-2 text-sm text-slate-600">
+            Are you sure you want to proceed?
+          </p>
           <div class="mt-6 flex justify-end gap-3">
             <button
               type="button"
@@ -100,7 +122,11 @@ function isActive(item: typeof navItems[0]): boolean {
             <h3 class="text-lg font-semibold text-slate-900">Keyboard Shortcuts</h3>
             <button data-close-shortcuts class="text-slate-400 hover:text-slate-600">
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
           </div>
@@ -170,67 +196,140 @@ function isActive(item: typeof navItems[0]): boolean {
     </div>
 
     <!-- Admin Header -->
-    <header class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <header
+      class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80"
+    >
       <div class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div class="flex items-center gap-8">
           <a href="/admin" class="flex items-center gap-2">
-            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-hunt-500 to-hunt-600 shadow-sm">
-              <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-hunt-500 to-hunt-600 shadow-sm"
+            >
+              <svg
+                class="h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"
+                ></path>
               </svg>
             </div>
             <span class="font-semibold text-slate-900">StackHunt</span>
           </a>
 
           <nav class="hidden sm:flex items-center gap-1">
-            {navItems.map((item) => (
-              <a
-                href={item.href}
-                class={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  isActive(item)
-                    ? 'bg-slate-100 text-slate-900'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                {item.icon === 'home' && (
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                )}
-                {item.icon === 'target' && (
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                )}
-                {item.icon === 'plus' && (
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                )}
-                {item.icon === 'check' && (
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )}
-                {item.icon === 'brain' && (
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                )}
-                {item.icon === 'cog' && (
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                )}
-                {item.label}
-                {item.badge !== undefined && item.badge > 0 && (
-                  <span class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-hunt-500 px-1.5 text-xs font-medium text-white">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </a>
-            ))}
+            {
+              navItems.map((item) => (
+                <a
+                  href={item.href}
+                  class={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    isActive(item)
+                      ? 'bg-slate-100 text-slate-900'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  {item.icon === 'home' && (
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                      />
+                    </svg>
+                  )}
+                  {item.icon === 'target' && (
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  )}
+                  {item.icon === 'plus' && (
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                  )}
+                  {item.icon === 'check' && (
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  )}
+                  {item.icon === 'brain' && (
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>
+                  )}
+                  {item.icon === 'cog' && (
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  )}
+                  {item.label}
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-hunt-500 px-1.5 text-xs font-medium text-white">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                </a>
+              ))
+            }
           </nav>
         </div>
 
@@ -249,8 +348,18 @@ function isActive(item: typeof navItems[0]): boolean {
             target="_blank"
             title="View live site"
           >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+              ></path>
             </svg>
           </a>
           <button
@@ -258,8 +367,18 @@ function isActive(item: typeof navItems[0]): boolean {
             class="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
             title="Logout"
           >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+              ></path>
             </svg>
           </button>
         </div>
@@ -267,52 +386,114 @@ function isActive(item: typeof navItems[0]): boolean {
 
       <!-- Mobile nav -->
       <nav class="sm:hidden flex items-center justify-around border-t border-slate-100 px-2 py-1">
-        {navItems.map((item) => (
-          <a
-            href={item.href}
-            class={`relative flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-              isActive(item) ? 'text-hunt-600' : 'text-slate-500'
-            }`}
-          >
-            {item.icon === 'home' && (
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-            )}
-            {item.icon === 'target' && (
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            )}
-            {item.icon === 'plus' && (
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            )}
-            {item.icon === 'check' && (
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
-            {item.icon === 'brain' && (
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            )}
-            {item.icon === 'cog' && (
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            )}
-            {item.label}
-            {item.badge !== undefined && item.badge > 0 && (
-              <span class="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-hunt-500 px-1 text-[10px] font-medium text-white">
-                {item.badge > 99 ? '99+' : item.badge}
-              </span>
-            )}
-          </a>
-        ))}
+        {
+          navItems.map((item) => (
+            <a
+              href={item.href}
+              class={`relative flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                isActive(item) ? 'text-hunt-600' : 'text-slate-500'
+              }`}
+            >
+              {item.icon === 'home' && (
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
+                </svg>
+              )}
+              {item.icon === 'target' && (
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              )}
+              {item.icon === 'plus' && (
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              )}
+              {item.icon === 'check' && (
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              )}
+              {item.icon === 'brain' && (
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+              )}
+              {item.icon === 'cog' && (
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              )}
+              {item.label}
+              {item.badge !== undefined && item.badge > 0 && (
+                <span class="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-hunt-500 px-1 text-[10px] font-medium text-white">
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
+              )}
+            </a>
+          ))
+        }
       </nav>
     </header>
 
@@ -323,7 +504,7 @@ function isActive(item: typeof navItems[0]): boolean {
 
     <script is:inline>
       // CSRF Token Management
-      (function() {
+      (function () {
         // Read CSRF token from cookie
         function getCsrfToken() {
           const match = document.cookie.match(/stackhunt_csrf=([^;]+)/);
@@ -339,7 +520,7 @@ function isActive(item: typeof navItems[0]): boolean {
 
         // Wrap fetch to automatically include CSRF token for admin API requests
         const originalFetch = window.fetch;
-        window.fetch = function(url, options = {}) {
+        window.fetch = function (url, options = {}) {
           const urlStr = typeof url === 'string' ? url : url.toString();
 
           // Only add CSRF token for admin API requests with state-changing methods
@@ -373,14 +554,17 @@ function isActive(item: typeof navItems[0]): boolean {
             success: 'bg-green-600',
             error: 'bg-red-600',
             warning: 'bg-amber-500',
-            info: 'bg-blue-600'
+            info: 'bg-blue-600',
           };
 
           const icons = {
-            success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />',
-            error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />',
-            warning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />',
-            info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
+            success:
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />',
+            error:
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />',
+            warning:
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />',
+            info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
           };
 
           toast.className = `flex items-center gap-2 rounded-lg ${colors[type]} px-4 py-3 text-sm font-medium text-white shadow-lg transform transition-all duration-300 translate-x-full opacity-0`;
@@ -402,14 +586,28 @@ function isActive(item: typeof navItems[0]): boolean {
             setTimeout(() => toast.remove(), 300);
           }, duration);
         },
-        success(message) { this.show(message, 'success'); },
-        error(message) { this.show(message, 'error', 5000); },
-        warning(message) { this.show(message, 'warning'); },
-        info(message) { this.show(message, 'info'); }
+        success(message) {
+          this.show(message, 'success');
+        },
+        error(message) {
+          this.show(message, 'error', 5000);
+        },
+        warning(message) {
+          this.show(message, 'warning');
+        },
+        info(message) {
+          this.show(message, 'info');
+        },
       };
 
       // Confirmation Modal
-      window.confirm2 = (title, message, onConfirm, buttonText = 'Confirm', buttonClass = 'bg-red-600 hover:bg-red-700') => {
+      window.confirm2 = (
+        title,
+        message,
+        onConfirm,
+        buttonText = 'Confirm',
+        buttonClass = 'bg-red-600 hover:bg-red-700'
+      ) => {
         const modal = document.getElementById('confirm-modal');
         const titleEl = document.getElementById('confirm-title');
         const messageEl = document.getElementById('confirm-message');
@@ -432,7 +630,7 @@ function isActive(item: typeof navItems[0]): boolean {
           onConfirm();
         };
 
-        modal.querySelectorAll('[data-close-modal]').forEach(el => {
+        modal.querySelectorAll('[data-close-modal]').forEach((el) => {
           el.onclick = closeModal;
         });
       };
@@ -445,7 +643,7 @@ function isActive(item: typeof navItems[0]): boolean {
         shortcutsModal.classList.remove('hidden');
       });
 
-      shortcutsModal?.querySelectorAll('[data-close-shortcuts]').forEach(el => {
+      shortcutsModal?.querySelectorAll('[data-close-shortcuts]').forEach((el) => {
         el.addEventListener('click', () => shortcutsModal.classList.add('hidden'));
       });
 
@@ -455,7 +653,11 @@ function isActive(item: typeof navItems[0]): boolean {
 
       document.addEventListener('keydown', (e) => {
         // Ignore if typing in input
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        if (
+          e.target.tagName === 'INPUT' ||
+          e.target.tagName === 'TEXTAREA' ||
+          e.target.tagName === 'SELECT'
+        ) {
           return;
         }
 
@@ -486,7 +688,9 @@ function isActive(item: typeof navItems[0]): boolean {
         // Build key sequence for g+key combos
         clearTimeout(keyTimeout);
         keySequence += e.key.toLowerCase();
-        keyTimeout = setTimeout(() => { keySequence = ''; }, 500);
+        keyTimeout = setTimeout(() => {
+          keySequence = '';
+        }, 500);
 
         // Navigation shortcuts
         if (keySequence === 'gd') {

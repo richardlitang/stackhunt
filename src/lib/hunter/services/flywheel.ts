@@ -74,12 +74,7 @@ export async function executeFlywheel(
   const toolsToQueue = newTools.slice(0, 5);
 
   for (const tool of toolsToQueue) {
-    const queueId = await queueDiscoveryHunt(
-      tool.name,
-      tool.domain,
-      context_id,
-      supabase
-    );
+    const queueId = await queueDiscoveryHunt(tool.name, tool.domain, context_id, supabase);
     if (queueId) {
       queuedToolIds.push(queueId);
     }
@@ -163,7 +158,7 @@ async function findExistingTools(
       .eq('category_name', context.category);
 
     if (categoryItems && categoryItems.length > 0) {
-      const itemIds = categoryItems.map(ci => ci.item_id);
+      const itemIds = categoryItems.map((ci) => ci.item_id);
       query = query.in('id', itemIds);
     }
   }

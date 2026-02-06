@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Layers, X, Edit2 } from 'lucide-react';
+import { Layers, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -63,25 +63,23 @@ function setStackTools(tools: StackTool[]) {
 export function addToStack(tool: StackTool) {
   const tools = getStackTools();
   // Remove existing if present (to update with new plan)
-  const filtered = tools.filter(t => t.slug !== tool.slug);
+  const filtered = tools.filter((t) => t.slug !== tool.slug);
   setStackTools([...filtered, tool]);
   return true;
 }
 
 export function removeFromStack(slug: string) {
-  const tools = getStackTools().filter(t => t.slug !== slug);
+  const tools = getStackTools().filter((t) => t.slug !== slug);
   setStackTools(tools);
 }
 
 export function updateStackTool(slug: string, updates: Partial<StackTool>) {
-  const tools = getStackTools().map(t =>
-    t.slug === slug ? { ...t, ...updates } : t
-  );
+  const tools = getStackTools().map((t) => (t.slug === slug ? { ...t, ...updates } : t));
   setStackTools(tools);
 }
 
 export function isInStack(slug: string): boolean {
-  return getStackTools().some(t => t.slug === slug);
+  return getStackTools().some((t) => t.slug === slug);
 }
 
 export default function MyStackWidget() {
@@ -113,8 +111,8 @@ export default function MyStackWidget() {
   }, 0);
 
   // Count tools with known pricing
-  const toolsWithPricing = stackTools.filter(t =>
-    t.selectedPlan?.totalMonthly != null || typeof t.pricing?.starting_price === 'number'
+  const toolsWithPricing = stackTools.filter(
+    (t) => t.selectedPlan?.totalMonthly != null || typeof t.pricing?.starting_price === 'number'
   ).length;
   const toolsWithoutPricing = stackTools.length - toolsWithPricing;
 
@@ -162,7 +160,8 @@ export default function MyStackWidget() {
           <DialogHeader>
             <DialogTitle>Clear Your Stack?</DialogTitle>
             <DialogDescription>
-              This will remove all {stackTools.length} tool{stackTools.length !== 1 ? 's' : ''} from your stack. This action cannot be undone.
+              This will remove all {stackTools.length} tool{stackTools.length !== 1 ? 's' : ''} from
+              your stack. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -218,13 +217,9 @@ export default function MyStackWidget() {
                     {tool.name}
                   </a>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-slate-500">
-                      {formatToolPrice(tool)}
-                    </span>
+                    <span className="text-xs text-slate-500">{formatToolPrice(tool)}</span>
                     {tool.selectedPlan && (
-                      <span className="text-xs text-slate-400">
-                        • {tool.selectedPlan.planName}
-                      </span>
+                      <span className="text-xs text-slate-400">• {tool.selectedPlan.planName}</span>
                     )}
                   </div>
                 </div>
@@ -247,21 +242,20 @@ export default function MyStackWidget() {
           <div className="bg-slate-50 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-slate-600">Monthly Cost</span>
-              <span className="text-xl font-bold text-emerald-600">
-                ${totalCost.toFixed(2)}
-              </span>
+              <span className="text-xl font-bold text-emerald-600">${totalCost.toFixed(2)}</span>
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-              <span>{stackTools.length} tool{stackTools.length !== 1 ? 's' : ''}</span>
-              {totalSeats > stackTools.length && (
-                <span>{totalSeats} total seats</span>
-              )}
+              <span>
+                {stackTools.length} tool{stackTools.length !== 1 ? 's' : ''}
+              </span>
+              {totalSeats > stackTools.length && <span>{totalSeats} total seats</span>}
             </div>
 
             {toolsWithoutPricing > 0 && (
               <p className="text-xs text-amber-600 mb-2">
-                * {toolsWithoutPricing} tool{toolsWithoutPricing > 1 ? 's' : ''} with unknown pricing
+                * {toolsWithoutPricing} tool{toolsWithoutPricing > 1 ? 's' : ''} with unknown
+                pricing
               </p>
             )}
 

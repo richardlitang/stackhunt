@@ -200,11 +200,12 @@ function EditableField({
 // Source link component
 function SourceLink({ sources, fieldName }: { sources?: Source[]; fieldName: string }) {
   // Find a relevant source for this field
-  const source = sources?.find(
-    (s) =>
-      s.type?.toLowerCase().includes(fieldName.toLowerCase()) ||
-      s.title?.toLowerCase().includes(fieldName.toLowerCase())
-  ) || sources?.[0];
+  const source =
+    sources?.find(
+      (s) =>
+        s.type?.toLowerCase().includes(fieldName.toLowerCase()) ||
+        s.title?.toLowerCase().includes(fieldName.toLowerCase())
+    ) || sources?.[0];
 
   if (!source) return null;
 
@@ -245,9 +246,7 @@ function FactRow({
   }
 
   return (
-    <div
-      className={`flex items-start gap-3 rounded-lg border p-3 ${colors.bg} ${colors.border}`}
-    >
+    <div className={`flex items-start gap-3 rounded-lg border p-3 ${colors.bg} ${colors.border}`}>
       <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${colors.dot}`} title={colors.label} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -255,11 +254,7 @@ function FactRow({
           <SourceLink sources={sources} fieldName={label} />
         </div>
         <div className={`mt-0.5 text-sm ${colors.text}`}>
-          {onEdit ? (
-            <EditableField value={String(value)} onSave={onEdit} />
-          ) : (
-            value
-          )}
+          {onEdit ? <EditableField value={String(value)} onSave={onEdit} /> : value}
         </div>
       </div>
     </div>
@@ -311,7 +306,9 @@ export default function SpeedReviewCard({
   return (
     <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
       {/* Confidence Banner */}
-      <div className={`px-4 py-2 ${colors.bg} ${colors.border} border-b flex items-center justify-between`}>
+      <div
+        className={`px-4 py-2 ${colors.bg} ${colors.border} border-b flex items-center justify-between`}
+      >
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full ${colors.dot}`} />
           <span className={`text-sm font-medium ${colors.text}`}>
@@ -376,9 +373,7 @@ export default function SpeedReviewCard({
                 </button>
               )}
             </div>
-            {review.context && (
-              <p className="mt-1 text-slate-500">{review.context.title}</p>
-            )}
+            {review.context && <p className="mt-1 text-slate-500">{review.context.title}</p>}
             {card?.tagline && (
               <p className="mt-2 text-sm text-slate-600 italic">"{card.tagline}"</p>
             )}
@@ -392,7 +387,8 @@ export default function SpeedReviewCard({
           <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
             Knowledge Card
             <span className="text-xs font-normal text-slate-400">
-              ({factCounts.low} needs review, {factCounts.medium} inferred, {factCounts.high} verified)
+              ({factCounts.low} needs review, {factCounts.medium} inferred, {factCounts.high}{' '}
+              verified)
             </span>
           </h3>
 
@@ -547,9 +543,7 @@ export default function SpeedReviewCard({
                   >
                     {source.title || source.url}
                   </a>
-                  {source.type && (
-                    <span className="ml-2 text-slate-400">({source.type})</span>
-                  )}
+                  {source.type && <span className="ml-2 text-slate-400">({source.type})</span>}
                 </li>
               ))}
             </ul>

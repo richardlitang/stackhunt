@@ -55,7 +55,7 @@ export const GET: APIRoute = async () => {
     return undefined;
   };
 
-  const missingEnvVars = requiredEnvVars.filter(key => !getEnv(key));
+  const missingEnvVars = requiredEnvVars.filter((key) => !getEnv(key));
 
   if (missingEnvVars.length > 0) {
     health.checks.environment = {
@@ -68,11 +68,7 @@ export const GET: APIRoute = async () => {
   // Check database connectivity
   try {
     const dbStart = Date.now();
-    const { error } = await supabase
-      .from('categories')
-      .select('id')
-      .limit(1)
-      .single();
+    const { error } = await supabase.from('categories').select('id').limit(1).single();
 
     const latency = Date.now() - dbStart;
 

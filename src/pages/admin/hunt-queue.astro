@@ -25,9 +25,7 @@ const stats = statsData || {
 };
 
 // Build query with filters
-let query = admin
-  .from('hunt_queue')
-  .select(`
+let query = admin.from('hunt_queue').select(`
     id,
     tool_name,
     tool_url,
@@ -73,7 +71,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   <nav class="mb-6 flex items-center gap-2 text-sm">
     <a href="/admin" class="text-slate-500 hover:text-slate-700">Dashboard</a>
     <svg class="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
     </svg>
     <span class="text-slate-900 font-medium">Hunt Queue</span>
   </nav>
@@ -125,22 +123,25 @@ const statusLabels: Record<string, { label: string; color: string }> = {
             for="csv-file"
             class="block cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center hover:border-purple-500 hover:bg-purple-50"
           >
-            <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            <svg
+              class="mx-auto h-12 w-12 text-slate-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              ></path>
             </svg>
             <span class="mt-2 block text-sm font-medium text-slate-600">
               Click to select CSV file
             </span>
             <span id="file-name" class="mt-1 block text-xs text-slate-400"></span>
           </label>
-          <input
-            type="file"
-            id="csv-file"
-            name="file"
-            accept=".csv"
-            class="hidden"
-            required
-          />
+          <input type="file" id="csv-file" name="file" accept=".csv" class="hidden" required />
         </div>
 
         <div class="flex items-center justify-between">
@@ -177,11 +178,13 @@ const statusLabels: Record<string, { label: string; color: string }> = {
           }`}
         >
           Pending
-          {stats.pending > 0 && (
-            <span class="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-600">
-              {stats.pending}
-            </span>
-          )}
+          {
+            stats.pending > 0 && (
+              <span class="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-600">
+                {stats.pending}
+              </span>
+            )
+          }
         </a>
         <a
           href="/admin/hunt-queue?status=processing"
@@ -192,11 +195,13 @@ const statusLabels: Record<string, { label: string; color: string }> = {
           }`}
         >
           Processing
-          {(stats.processing + stats.claimed) > 0 && (
-            <span class="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-600">
-              {stats.processing + stats.claimed}
-            </span>
-          )}
+          {
+            stats.processing + stats.claimed > 0 && (
+              <span class="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-600">
+                {stats.processing + stats.claimed}
+              </span>
+            )
+          }
         </a>
         <a
           href="/admin/hunt-queue?status=completed"
@@ -217,101 +222,111 @@ const statusLabels: Record<string, { label: string; color: string }> = {
           }`}
         >
           Failed
-          {stats.failed > 0 && (
-            <span class="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">
-              {stats.failed}
-            </span>
-          )}
+          {
+            stats.failed > 0 && (
+              <span class="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">
+                {stats.failed}
+              </span>
+            )
+          }
         </a>
       </nav>
     </div>
 
     <!-- Queue Table -->
-    {items && items.length > 0 ? (
-      <div class="overflow-x-auto rounded-lg border border-slate-200">
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-left">
-            <tr>
-              <th class="px-4 py-3 font-medium text-slate-600">Tool</th>
-              <th class="px-4 py-3 font-medium text-slate-600">Status</th>
-              <th class="px-4 py-3 font-medium text-slate-600">Priority</th>
-              <th class="px-4 py-3 font-medium text-slate-600">Attempts</th>
-              <th class="px-4 py-3 font-medium text-slate-600">Worker</th>
-              <th class="px-4 py-3 font-medium text-slate-600">Created</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-            {items.map((item) => (
-              <tr class="hover:bg-slate-50">
-                <td class="px-4 py-3">
-                  <div>
-                    <div class="font-medium text-slate-900">{item.tool_name}</div>
-                    {item.tool_url && (
-                      <div class="text-xs text-slate-500 truncate max-w-xs">
-                        {item.tool_url}
-                      </div>
-                    )}
-                    {item.context_title && (
-                      <div class="text-xs text-slate-500">
-                        Context: {item.context_title}
-                      </div>
-                    )}
-                    {item.category_hint && (
-                      <div class="text-xs text-slate-500">
-                        Category: {item.category_hint}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td class="px-4 py-3">
-                  <span class={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusLabels[item.status]?.color || 'bg-slate-100 text-slate-700'}`}>
-                    {statusLabels[item.status]?.label || item.status}
-                  </span>
-                  {item.error_message && (
-                    <div class="mt-1 text-xs text-red-600 truncate max-w-xs">
-                      {item.error_message}
-                    </div>
-                  )}
-                </td>
-                <td class="px-4 py-3">
-                  <span class="text-slate-600">{item.priority}</span>
-                </td>
-                <td class="px-4 py-3">
-                  <span class="text-slate-600">
-                    {item.attempts}/{item.max_attempts}
-                  </span>
-                </td>
-                <td class="px-4 py-3">
-                  {item.claimed_by ? (
-                    <span class="text-xs text-slate-600">{item.claimed_by}</span>
-                  ) : (
-                    <span class="text-xs text-slate-400">-</span>
-                  )}
-                </td>
-                <td class="px-4 py-3">
-                  <span class="text-xs text-slate-500">
-                    {new Date(item.created_at).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </td>
+    {
+      items && items.length > 0 ? (
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-left">
+              <tr>
+                <th class="px-4 py-3 font-medium text-slate-600">Tool</th>
+                <th class="px-4 py-3 font-medium text-slate-600">Status</th>
+                <th class="px-4 py-3 font-medium text-slate-600">Priority</th>
+                <th class="px-4 py-3 font-medium text-slate-600">Attempts</th>
+                <th class="px-4 py-3 font-medium text-slate-600">Worker</th>
+                <th class="px-4 py-3 font-medium text-slate-600">Created</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    ) : (
-      <div class="rounded-lg border border-slate-200 bg-slate-50 p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-        </svg>
-        <p class="mt-2 text-sm text-slate-600">No items in queue</p>
-        <p class="mt-1 text-xs text-slate-500">Upload a CSV to get started</p>
-      </div>
-    )}
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              {items.map((item) => (
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3">
+                    <div>
+                      <div class="font-medium text-slate-900">{item.tool_name}</div>
+                      {item.tool_url && (
+                        <div class="text-xs text-slate-500 truncate max-w-xs">{item.tool_url}</div>
+                      )}
+                      {item.context_title && (
+                        <div class="text-xs text-slate-500">Context: {item.context_title}</div>
+                      )}
+                      {item.category_hint && (
+                        <div class="text-xs text-slate-500">Category: {item.category_hint}</div>
+                      )}
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span
+                      class={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusLabels[item.status]?.color || 'bg-slate-100 text-slate-700'}`}
+                    >
+                      {statusLabels[item.status]?.label || item.status}
+                    </span>
+                    {item.error_message && (
+                      <div class="mt-1 text-xs text-red-600 truncate max-w-xs">
+                        {item.error_message}
+                      </div>
+                    )}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-slate-600">{item.priority}</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-slate-600">
+                      {item.attempts}/{item.max_attempts}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    {item.claimed_by ? (
+                      <span class="text-xs text-slate-600">{item.claimed_by}</span>
+                    ) : (
+                      <span class="text-xs text-slate-400">-</span>
+                    )}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-xs text-slate-500">
+                      {new Date(item.created_at).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-12 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+            />
+          </svg>
+          <p class="mt-2 text-sm text-slate-600">No items in queue</p>
+          <p class="mt-1 text-xs text-slate-500">Upload a CSV to get started</p>
+        </div>
+      )
+    }
   </div>
 
   <!-- CSV Upload Script -->
@@ -368,9 +383,10 @@ const statusLabels: Record<string, { label: string; color: string }> = {
         } else {
           if (uploadStatus) {
             if (result.errors && result.errors.length > 0) {
-              const errorList = result.errors.map((e: any) =>
-                `Row ${e.row} (${e.field}): ${e.message}`
-              ).slice(0, 3).join('<br>');
+              const errorList = result.errors
+                .map((e: any) => `Row ${e.row} (${e.field}): ${e.message}`)
+                .slice(0, 3)
+                .join('<br>');
               uploadStatus.innerHTML = `<span class="text-red-600">Validation errors:<br>${errorList}</span>`;
             } else {
               uploadStatus.innerHTML = `<span class="text-red-600">Error: ${result.error}</span>`;
@@ -379,7 +395,8 @@ const statusLabels: Record<string, { label: string; color: string }> = {
         }
       } catch (error) {
         if (uploadStatus) {
-          uploadStatus.innerHTML = '<span class="text-red-600">Upload failed. Please try again.</span>';
+          uploadStatus.innerHTML =
+            '<span class="text-red-600">Upload failed. Please try again.</span>';
         }
       }
     });

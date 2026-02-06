@@ -86,11 +86,15 @@ ${personaContext || '(No specific personas)'}
 - Audiences: ${existingCategories.audiences.join(', ') || 'None yet'}
 - Platforms: ${existingCategories.platforms.join(', ') || 'None yet'}
 
-${benchmarkTools?.length ? `
+${
+  benchmarkTools?.length
+    ? `
 ## Benchmark Tools for Comparison
-${benchmarkTools.map(t => `- ${t}`).join('\n')}
+${benchmarkTools.map((t) => `- ${t}`).join('\n')}
 Use these as reference points for scoring and veto logic.
-` : ''}
+`
+    : ''
+}
 
 ## Legal Compliance (CRITICAL)
 

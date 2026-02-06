@@ -36,18 +36,17 @@ const [
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
     .limit(5),
-  admin
-    .from('editorial_guidelines')
-    .select('*')
-    .eq('is_active', true)
-    .order('key'),
+  admin.from('editorial_guidelines').select('*').eq('is_active', true).order('key'),
 ]);
 
 // Parse dashboard stats
-const stats = (dashboardStats.data || []).reduce((acc, row) => {
-  acc[row.status] = row;
-  return acc;
-}, {} as Record<string, { count: number; avg_priority: number; new_this_week: number }>);
+const stats = (dashboardStats.data || []).reduce(
+  (acc, row) => {
+    acc[row.status] = row;
+    return acc;
+  },
+  {} as Record<string, { count: number; avg_priority: number; new_this_week: number }>
+);
 
 const totalProposed = stats.proposed?.count || 0;
 const totalApproved = stats.approved?.count || 0;
@@ -89,8 +88,18 @@ const revenueColors: Record<RevenueType, string> = {
           id="trigger-discovery"
           class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
         >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          <svg
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            ></path>
           </svg>
           Run Discovery
         </button>
@@ -98,9 +107,22 @@ const revenueColors: Record<RevenueType, string> = {
           href="/admin/editorial/guidelines"
           class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
         >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <svg
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            ></path>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
           Guidelines
         </a>
@@ -109,62 +131,108 @@ const revenueColors: Record<RevenueType, string> = {
 
     <!-- Stats Grid -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div class="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 p-5">
+      <div
+        class="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 p-5"
+      >
         <div class="flex items-start justify-between">
           <div>
             <div class="text-3xl font-bold text-purple-700">{totalProposed}</div>
             <div class="mt-1 text-sm font-medium text-purple-600">Proposed</div>
           </div>
           <div class="rounded-lg bg-purple-200/50 p-2 text-purple-600">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              ></path>
             </svg>
           </div>
         </div>
-        {stats.proposed?.new_this_week > 0 && (
-          <div class="mt-2 text-xs text-purple-600">
-            +{stats.proposed.new_this_week} this week
-          </div>
-        )}
+        {
+          stats.proposed?.new_this_week > 0 && (
+            <div class="mt-2 text-xs text-purple-600">
+              +{stats.proposed.new_this_week} this week
+            </div>
+          )
+        }
       </div>
 
-      <div class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-5">
+      <div
+        class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-5"
+      >
         <div class="flex items-start justify-between">
           <div>
             <div class="text-3xl font-bold text-blue-700">{totalApproved + totalQueued}</div>
             <div class="mt-1 text-sm font-medium text-blue-600">In Pipeline</div>
           </div>
           <div class="rounded-lg bg-blue-200/50 p-2 text-blue-600">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              ></path>
             </svg>
           </div>
         </div>
       </div>
 
-      <div class="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-green-100/50 p-5">
+      <div
+        class="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-green-100/50 p-5"
+      >
         <div class="flex items-start justify-between">
           <div>
             <div class="text-3xl font-bold text-green-700">{totalCompleted}</div>
             <div class="mt-1 text-sm font-medium text-green-600">Completed</div>
           </div>
           <div class="rounded-lg bg-green-200/50 p-2 text-green-600">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
         </div>
       </div>
 
-      <div class="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 p-5">
+      <div
+        class="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 p-5"
+      >
         <div class="flex items-start justify-between">
           <div>
             <div class="text-3xl font-bold text-slate-700">{guidelines?.length || 0}</div>
             <div class="mt-1 text-sm font-medium text-slate-600">Active Guidelines</div>
           </div>
           <div class="rounded-lg bg-slate-200/50 p-2 text-slate-500">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              ></path>
             </svg>
           </div>
         </div>
@@ -178,88 +246,114 @@ const revenueColors: Record<RevenueType, string> = {
         <span class="text-sm text-slate-500">Awaiting your review</span>
       </div>
 
-      {proposedTopics && proposedTopics.length > 0 ? (
-        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase">Topic</th>
-                <th class="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase">Type</th>
-                <th class="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase">Revenue</th>
-                <th class="text-center px-4 py-3 text-xs font-medium text-slate-500 uppercase">Priority</th>
-                <th class="text-right px-4 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              {proposedTopics.map((topic) => (
-                <tr class="hover:bg-slate-50 transition topic-row" data-topic-id={topic.id}>
-                  <td class="px-4 py-3">
-                    <div class="max-w-md">
-                      <div class="font-medium text-slate-900 truncate">{topic.topic}</div>
-                      {topic.description && (
-                        <div class="text-sm text-slate-500 truncate">{topic.description}</div>
-                      )}
-                    </div>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                      {topicTypeLabels[topic.topic_type as TopicType] || topic.topic_type}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${revenueColors[topic.revenue_potential as RevenueType] || revenueColors.unknown}`}>
-                      {topic.revenue_potential}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-center">
-                    <div class="flex items-center justify-center gap-1">
-                      <div class="h-2 w-16 rounded-full bg-slate-200 overflow-hidden">
-                        <div
-                          class="h-full rounded-full bg-hunt-500"
-                          style={`width: ${topic.priority_score}%`}
-                        />
-                      </div>
-                      <span class="text-xs text-slate-500 w-8">{topic.priority_score}</span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 text-right">
-                    <div class="flex items-center justify-end gap-2">
-                      <button
-                        class="approve-btn rounded-lg bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200 transition"
-                        data-topic-id={topic.id}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        class="queue-btn rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-200 transition"
-                        data-topic-id={topic.id}
-                      >
-                        Queue
-                      </button>
-                      <button
-                        class="reject-btn rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200 transition"
-                        data-topic-id={topic.id}
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </td>
+      {
+        proposedTopics && proposedTopics.length > 0 ? (
+          <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <table class="w-full">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase">
+                    Topic
+                  </th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase">
+                    Type
+                  </th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase">
+                    Revenue
+                  </th>
+                  <th class="text-center px-4 py-3 text-xs font-medium text-slate-500 uppercase">
+                    Priority
+                  </th>
+                  <th class="text-right px-4 py-3 text-xs font-medium text-slate-500 uppercase">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-          <div class="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-            <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                {proposedTopics.map((topic) => (
+                  <tr class="hover:bg-slate-50 transition topic-row" data-topic-id={topic.id}>
+                    <td class="px-4 py-3">
+                      <div class="max-w-md">
+                        <div class="font-medium text-slate-900 truncate">{topic.topic}</div>
+                        {topic.description && (
+                          <div class="text-sm text-slate-500 truncate">{topic.description}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                        {topicTypeLabels[topic.topic_type as TopicType] || topic.topic_type}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span
+                        class={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${revenueColors[topic.revenue_potential as RevenueType] || revenueColors.unknown}`}
+                      >
+                        {topic.revenue_potential}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                      <div class="flex items-center justify-center gap-1">
+                        <div class="h-2 w-16 rounded-full bg-slate-200 overflow-hidden">
+                          <div
+                            class="h-full rounded-full bg-hunt-500"
+                            style={`width: ${topic.priority_score}%`}
+                          />
+                        </div>
+                        <span class="text-xs text-slate-500 w-8">{topic.priority_score}</span>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <button
+                          class="approve-btn rounded-lg bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200 transition"
+                          data-topic-id={topic.id}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          class="queue-btn rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-200 transition"
+                          data-topic-id={topic.id}
+                        >
+                          Queue
+                        </button>
+                        <button
+                          class="reject-btn rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200 transition"
+                          data-topic-id={topic.id}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <p class="text-sm text-slate-500">No proposed topics</p>
-          <p class="mt-1 text-xs text-slate-400">Click "Run Discovery" to generate new suggestions</p>
-        </div>
-      )}
+        ) : (
+          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+            <div class="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+              <svg
+                class="h-6 w-6 text-slate-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+            </div>
+            <p class="text-sm text-slate-500">No proposed topics</p>
+            <p class="mt-1 text-xs text-slate-400">
+              Click "Run Discovery" to generate new suggestions
+            </p>
+          </div>
+        )
+      }
     </section>
 
     <!-- Two Column Layout -->
@@ -270,32 +364,38 @@ const revenueColors: Record<RevenueType, string> = {
           <h2 class="text-lg font-semibold text-slate-900">In Pipeline</h2>
         </div>
 
-        {approvedTopics && approvedTopics.length > 0 ? (
-          <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
-            {approvedTopics.map((topic) => (
-              <div class="flex items-center gap-4 p-4">
-                <div class={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  topic.status === 'queued' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                }`}>
-                  {topic.status}
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="font-medium text-slate-900 truncate">{topic.topic}</div>
-                  <div class="text-sm text-slate-500">
-                    {topicTypeLabels[topic.topic_type as TopicType] || topic.topic_type}
+        {
+          approvedTopics && approvedTopics.length > 0 ? (
+            <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+              {approvedTopics.map((topic) => (
+                <div class="flex items-center gap-4 p-4">
+                  <div
+                    class={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      topic.status === 'queued'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-green-100 text-green-700'
+                    }`}
+                  >
+                    {topic.status}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium text-slate-900 truncate">{topic.topic}</div>
+                    <div class="text-sm text-slate-500">
+                      {topicTypeLabels[topic.topic_type as TopicType] || topic.topic_type}
+                    </div>
+                  </div>
+                  <div class="shrink-0 text-sm text-slate-500">
+                    Priority: {topic.priority_score}
                   </div>
                 </div>
-                <div class="shrink-0 text-sm text-slate-500">
-                  Priority: {topic.priority_score}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <p class="text-sm text-slate-500">No topics in pipeline</p>
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+              <p class="text-sm text-slate-500">No topics in pipeline</p>
+            </div>
+          )
+        }
       </section>
 
       <!-- Recently Completed -->
@@ -304,34 +404,45 @@ const revenueColors: Record<RevenueType, string> = {
           <h2 class="text-lg font-semibold text-slate-900">Recently Completed</h2>
         </div>
 
-        {recentlyCompleted && recentlyCompleted.length > 0 ? (
-          <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
-            {recentlyCompleted.map((topic) => {
-              const context = topic.context as { title: string; slug: string } | null;
-              return (
-                <div class="flex items-center gap-4 p-4">
-                  <div class="shrink-0 rounded-full bg-green-100 p-2 text-green-600">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+        {
+          recentlyCompleted && recentlyCompleted.length > 0 ? (
+            <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+              {recentlyCompleted.map((topic) => {
+                const context = topic.context as { title: string; slug: string } | null;
+                return (
+                  <div class="flex items-center gap-4 p-4">
+                    <div class="shrink-0 rounded-full bg-green-100 p-2 text-green-600">
+                      <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-slate-900 truncate">{topic.topic}</div>
+                      {context && (
+                        <a
+                          href={`/${context.slug}`}
+                          class="text-sm text-hunt-600 hover:text-hunt-700"
+                        >
+                          View: {context.title}
+                        </a>
+                      )}
+                    </div>
                   </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="font-medium text-slate-900 truncate">{topic.topic}</div>
-                    {context && (
-                      <a href={`/${context.slug}`} class="text-sm text-hunt-600 hover:text-hunt-700">
-                        View: {context.title}
-                      </a>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <p class="text-sm text-slate-500">No completed topics yet</p>
-          </div>
-        )}
+                );
+              })}
+            </div>
+          ) : (
+            <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+              <p class="text-sm text-slate-500">No completed topics yet</p>
+            </div>
+          )
+        }
       </section>
     </div>
 
@@ -340,7 +451,9 @@ const revenueColors: Record<RevenueType, string> = {
       <h2 class="text-lg font-semibold text-slate-900 mb-4">Add Manual Topic</h2>
       <form id="add-topic-form" class="grid gap-4 sm:grid-cols-2">
         <div class="sm:col-span-2">
-          <label for="topic" class="block text-sm font-medium text-slate-700 mb-1">Topic Title</label>
+          <label for="topic" class="block text-sm font-medium text-slate-700 mb-1"
+            >Topic Title</label
+          >
           <input
             type="text"
             id="topic"
@@ -365,7 +478,9 @@ const revenueColors: Record<RevenueType, string> = {
           </select>
         </div>
         <div>
-          <label for="revenue_potential" class="block text-sm font-medium text-slate-700 mb-1">Revenue Potential</label>
+          <label for="revenue_potential" class="block text-sm font-medium text-slate-700 mb-1"
+            >Revenue Potential</label
+          >
           <select
             id="revenue_potential"
             name="revenue_potential"
@@ -378,7 +493,9 @@ const revenueColors: Record<RevenueType, string> = {
           </select>
         </div>
         <div class="sm:col-span-2">
-          <label for="description" class="block text-sm font-medium text-slate-700 mb-1">Description (optional)</label>
+          <label for="description" class="block text-sm font-medium text-slate-700 mb-1"
+            >Description (optional)</label
+          >
           <textarea
             id="description"
             name="description"
@@ -388,7 +505,9 @@ const revenueColors: Record<RevenueType, string> = {
           ></textarea>
         </div>
         <div class="sm:col-span-2">
-          <label for="suggested_tools" class="block text-sm font-medium text-slate-700 mb-1">Suggested Tools (comma-separated)</label>
+          <label for="suggested_tools" class="block text-sm font-medium text-slate-700 mb-1"
+            >Suggested Tools (comma-separated)</label
+          >
           <input
             type="text"
             id="suggested_tools"
@@ -402,8 +521,14 @@ const revenueColors: Record<RevenueType, string> = {
             type="submit"
             class="inline-flex items-center gap-2 rounded-lg bg-hunt-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-hunt-600 transition"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
             </svg>
             Add Topic
           </button>
@@ -509,7 +634,10 @@ const revenueColors: Record<RevenueType, string> = {
 
     const suggestedToolsStr = formData.get('suggested_tools') as string;
     const suggestedTools = suggestedToolsStr
-      ? suggestedToolsStr.split(',').map((t) => t.trim()).filter(Boolean)
+      ? suggestedToolsStr
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
       : [];
 
     const res = await fetch('/api/admin/editorial/topics', {

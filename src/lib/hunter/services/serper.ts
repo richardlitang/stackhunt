@@ -28,13 +28,13 @@ export interface SearchResult {
   reviewsSnippets: string[];
   pricingSnippets: string[];
   alternativesSnippets: string[];
-  companySnippets: string[];      // Company info, funding, history
-  technicalSnippets: string[];    // API, export, integrations
+  companySnippets: string[]; // Company info, funding, history
+  technicalSnippets: string[]; // API, export, integrations
   // V3.1: Tribal Knowledge Snippets (The "Human Touch")
-  budgetAnalystSnippets: string[];  // Hidden costs, billing logic, implementation fees
+  budgetAnalystSnippets: string[]; // Hidden costs, billing logic, implementation fees
   tribalKnowledgeSnippets: string[]; // Reddit reviews, honest feedback, power tips, "worth it" discussions
   // V4: Corporate Profiler Snippets (prevents employee count hallucination)
-  corporateProfilerSnippets: string[];  // Crunchbase, LinkedIn, stock ticker, official company data
+  corporateProfilerSnippets: string[]; // Crunchbase, LinkedIn, stock ticker, official company data
   rawResponses: SerperResponse[];
   sources: Array<{
     url: string;
@@ -147,12 +147,20 @@ export class SerperService {
 
       // Find best video: prefer official channels, demos, reviews, tutorials
       const videos = response.data.videos || [];
-      const priorityKeywords = ['official', 'demo', 'review', 'tutorial', 'walkthrough', 'overview', 'getting started'];
+      const priorityKeywords = [
+        'official',
+        'demo',
+        'review',
+        'tutorial',
+        'walkthrough',
+        'overview',
+        'getting started',
+      ];
 
       // Score and sort videos
       const scoredVideos = videos
-        .filter(v => v.link.includes('youtube.com/watch'))
-        .map(v => {
+        .filter((v) => v.link.includes('youtube.com/watch'))
+        .map((v) => {
           let score = 0;
           const titleLower = v.title.toLowerCase();
           const channelLower = v.channel.toLowerCase();
@@ -261,19 +269,39 @@ export class SerperService {
 
     const classifyDossierQuery = (query: string): QueryType => {
       const q = query.toLowerCase();
-      if (q.includes('release notes') || q.includes('changelog') || q.includes('updates') || q.includes('release')) {
+      if (
+        q.includes('release notes') ||
+        q.includes('changelog') ||
+        q.includes('updates') ||
+        q.includes('release')
+      ) {
         return 'release_notes';
       }
-      if (q.includes('pricing') || q.includes('price') || q.includes('plans') || q.includes('cost')) {
+      if (
+        q.includes('pricing') ||
+        q.includes('price') ||
+        q.includes('plans') ||
+        q.includes('cost')
+      ) {
         return q.includes('annual') || q.includes('monthly') ? 'pricing_compare' : 'pricing';
       }
       if (q.includes('alternative') || q.includes('competitor') || q.includes('vs')) {
         return 'alternatives';
       }
-      if (q.includes('company') || q.includes('funding') || q.includes('headquarter') || q.includes('employees')) {
+      if (
+        q.includes('company') ||
+        q.includes('funding') ||
+        q.includes('headquarter') ||
+        q.includes('employees')
+      ) {
         return 'company';
       }
-      if (q.includes('api') || q.includes('integration') || q.includes('export') || q.includes('import')) {
+      if (
+        q.includes('api') ||
+        q.includes('integration') ||
+        q.includes('export') ||
+        q.includes('import')
+      ) {
         return 'technical';
       }
       if (q.includes('review') || q.includes('ratings')) {
@@ -283,12 +311,7 @@ export class SerperService {
     };
 
     const recencyTbsForType = (type: QueryType): string | undefined => {
-      const recentTypes: QueryType[] = [
-        'pricing',
-        'pricing_compare',
-        'company',
-        'release_notes',
-      ];
+      const recentTypes: QueryType[] = ['pricing', 'pricing_compare', 'company', 'release_notes'];
       return recentTypes.includes(type) ? 'qdr:y' : undefined;
     };
 
@@ -299,13 +322,25 @@ export class SerperService {
       if (dossierQueries && dossierQueries.length > 0) {
         const core = [
           ...dossierQueries.map((query) => ({ type: classifyDossierQuery(query), query })),
-          { type: 'tribal_reddit_hate', query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues"` },
+          {
+            type: 'tribal_reddit_hate',
+            query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues"`,
+          },
         ];
         const supplemental = [
-          { type: 'tribal_hn_pricing', query: `site:news.ycombinator.com "${toolName}" pricing OR limits` },
-          { type: 'tribal_reddit_gotchas', query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha"` },
+          {
+            type: 'tribal_hn_pricing',
+            query: `site:news.ycombinator.com "${toolName}" pricing OR limits`,
+          },
+          {
+            type: 'tribal_reddit_gotchas',
+            query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha"`,
+          },
           { type: 'forums', query: `"${toolName}" (forum OR community OR discourse OR boards)` },
-          { type: 'corp_profiler', query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn` },
+          {
+            type: 'corp_profiler',
+            query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+          },
           { type: 'release_notes', query: `"${toolName}" release notes OR changelog OR updates` },
         ];
         return { core, supplemental };
@@ -323,12 +358,27 @@ export class SerperService {
       const supplemental = [
         { type: 'budget_hidden', query: `${toolName} hidden costs billing logic` },
         { type: 'budget_setup', query: `${toolName} implementation fees setup cost minimum seats` },
-        { type: 'tribal_reddit_hate', query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues" -intitle:"alternatives"` },
-        { type: 'tribal_hn_pricing', query: `site:news.ycombinator.com "${toolName}" pricing OR limits OR "rate limit"` },
-        { type: 'tribal_reddit_vs', query: `site:reddit.com "${toolName} vs" OR "switched from" OR "switched to"` },
-        { type: 'tribal_reddit_gotchas', query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha" OR "warning"` },
+        {
+          type: 'tribal_reddit_hate',
+          query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues" -intitle:"alternatives"`,
+        },
+        {
+          type: 'tribal_hn_pricing',
+          query: `site:news.ycombinator.com "${toolName}" pricing OR limits OR "rate limit"`,
+        },
+        {
+          type: 'tribal_reddit_vs',
+          query: `site:reddit.com "${toolName} vs" OR "switched from" OR "switched to"`,
+        },
+        {
+          type: 'tribal_reddit_gotchas',
+          query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha" OR "warning"`,
+        },
         { type: 'forums', query: `"${toolName}" (forum OR community OR discourse OR boards)` },
-        { type: 'corp_profiler', query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn` },
+        {
+          type: 'corp_profiler',
+          query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+        },
         { type: 'release_notes', query: `"${toolName}" release notes OR changelog OR updates` },
       ];
       return { core, supplemental };
@@ -355,24 +405,26 @@ export class SerperService {
 
     const coreSnippets = coreResults.flatMap(extractSnippets);
     const coreDomains = new Set(
-      coreResults.flatMap(r => r.organic || []).map(r => {
-        try {
-          return new URL(r.link).hostname.replace(/^www\./, '');
-        } catch {
-          return '';
-        }
-      }).filter(Boolean)
+      coreResults
+        .flatMap((r) => r.organic || [])
+        .map((r) => {
+          try {
+            return new URL(r.link).hostname.replace(/^www\./, '');
+          } catch {
+            return '';
+          }
+        })
+        .filter(Boolean)
     );
 
-    const shouldRunSupplemental =
-      coreSnippets.length < 18 || coreDomains.size < 7;
+    const shouldRunSupplemental = coreSnippets.length < 18 || coreDomains.size < 7;
 
-    const supplementalResults = shouldRunSupplemental
-      ? await executePlan(supplementalPlan)
-      : [];
+    const supplementalResults = shouldRunSupplemental ? await executePlan(supplementalPlan) : [];
 
     if (!shouldRunSupplemental) {
-      console.log(`[Serper] Skipping supplemental queries (core coverage: ${coreSnippets.length} snippets, ${coreDomains.size} domains)`);
+      console.log(
+        `[Serper] Skipping supplemental queries (core coverage: ${coreSnippets.length} snippets, ${coreDomains.size} domains)`
+      );
     }
 
     // Include URL in snippets so AI can cite sources
@@ -381,7 +433,18 @@ export class SerperService {
 
     // Extract sources for storage (deduplicated by URL)
     const retrievedAt = new Date().toISOString();
-    const sourceMap = new Map<string, { url: string; title: string; snippet: string; domain: string; retrieved_at: string; published_at?: string; time_since?: string }>();
+    const sourceMap = new Map<
+      string,
+      {
+        url: string;
+        title: string;
+        snippet: string;
+        domain: string;
+        retrieved_at: string;
+        published_at?: string;
+        time_since?: string;
+      }
+    >();
     for (const response of results) {
       for (const result of response.organic?.slice(0, 5) || []) {
         if (!sourceMap.has(result.link)) {
@@ -420,12 +483,23 @@ export class SerperService {
       types.flatMap((type) => (resultsByType.get(type) || []).flatMap((r) => r.organic || []));
 
     const cleanText = (value: string): string => value.replace(/\s+/g, ' ').trim();
+    const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const toolNameLower = toolName.toLowerCase();
+    const toolTokens = toolNameLower.split(/\s+/).filter((token) => token.length > 2);
+    const toolTokenRegexes = toolTokens.map(
+      (token) => new RegExp(`\\b${escapeRegExp(token)}\\b`, 'i')
+    );
+    const isShortSingleToken = toolTokens.length === 1 && toolTokens[0].length <= 4;
     const normalizeQuestionKey = (value: string): string =>
-      value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
     const isQuestionLike = (value: string): boolean => {
       const text = value.toLowerCase().trim();
       if (text.includes('?')) return true;
-      if (/^(how|what|why|is|are|can|does|do|should|which|where|when|who)\b/.test(text)) return true;
+      if (/^(how|what|why|is|are|can|does|do|should|which|where|when|who)\b/.test(text))
+        return true;
       if (text.includes(' vs ')) return true;
       if (text.includes('alternatives')) return true;
       if (text.includes('worth it')) return true;
@@ -437,9 +511,40 @@ export class SerperService {
       const trimmed = text.slice(0, max).replace(/\s+\S*$/, '');
       return `${trimmed}...`;
     };
+    const hasToolMention = (text: string): boolean =>
+      toolTokenRegexes.some((regex) => regex.test(text)) ||
+      text.toLowerCase().includes(`${toolNameLower}.com`);
+    const hasToolContext = (text: string): boolean =>
+      /\b(app|software|platform|tool|service|automation|saas|workflow)\b/i.test(text);
+    const isComparisonQuestion = (text: string): boolean =>
+      /\b(vs|versus|alternative|alternatives|competitor|compare)\b/i.test(text);
+    const isRelevantToTool = (question: string, answer: string, sourceUrl?: string): boolean => {
+      const combined = `${question} ${answer}`;
+      const hasMention =
+        hasToolMention(combined) ||
+        (sourceUrl ? sourceUrl.toLowerCase().includes(toolNameLower.replace(/\s+/g, '')) : false);
+      if (!hasMention) return false;
+
+      if (isShortSingleToken) {
+        const hasDomain = combined.toLowerCase().includes(`${toolNameLower}.com`);
+        const hasContext = hasToolContext(combined) || isComparisonQuestion(combined);
+        if (!hasDomain && !hasContext) return false;
+      }
+
+      return true;
+    };
     const isForumSource = (domain: string, url: string): boolean => {
       const haystack = `${domain} ${url}`.toLowerCase();
-      const indicators = ['forum', 'forums', 'community', 'discourse', 'boards', 'support', 'help', 'stackexchange'];
+      const indicators = [
+        'forum',
+        'forums',
+        'community',
+        'discourse',
+        'boards',
+        'support',
+        'help',
+        'stackexchange',
+      ];
       return indicators.some((indicator) => haystack.includes(indicator));
     };
 
@@ -460,6 +565,7 @@ export class SerperService {
       const answer = truncateAnswer(candidate.answer);
       if (!question || !answer || answer.length < 30) return;
       if (!isQuestionLike(question)) return;
+      if (!isRelevantToTool(question, answer, candidate.source_url)) return;
       faqCandidates.push({ ...candidate, question, answer });
     };
 
@@ -538,7 +644,9 @@ export class SerperService {
       const validContent = scrapedPages.filter(Boolean).join('\n');
       if (validContent) {
         pricingDeepContent = validContent;
-        console.log(`[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingUrls.length} pricing pages successfully`);
+        console.log(
+          `[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingUrls.length} pricing pages successfully`
+        );
       }
     }
 
@@ -650,7 +758,18 @@ export class SerperService {
       response.organic?.slice(0, 5).map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
 
     const retrievedAt = new Date().toISOString();
-    const sourceMap = new Map<string, { url: string; title: string; snippet: string; domain: string; retrieved_at: string; published_at?: string; time_since?: string }>();
+    const sourceMap = new Map<
+      string,
+      {
+        url: string;
+        title: string;
+        snippet: string;
+        domain: string;
+        retrieved_at: string;
+        published_at?: string;
+        time_since?: string;
+      }
+    >();
     for (const response of results) {
       for (const result of response.organic?.slice(0, 5) || []) {
         if (!sourceMap.has(result.link)) {
@@ -691,7 +810,9 @@ export class SerperService {
       const validContent = scrapedPages.filter(Boolean).join('\n');
       if (validContent) {
         pricingDeepContent = validContent;
-        console.log(`[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingUrls.length} pricing pages successfully`);
+        console.log(
+          `[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingUrls.length} pricing pages successfully`
+        );
       }
     }
 
@@ -718,11 +839,7 @@ export class SerperService {
     reviewsSnippets: string[];
     pricingSnippets: string[];
   }> {
-    const queries = [
-      contextQuery,
-      `${contextQuery} reviews comparison`,
-      `${contextQuery} pricing`,
-    ];
+    const queries = [contextQuery, `${contextQuery} reviews comparison`, `${contextQuery} pricing`];
 
     const results = await Promise.all(queries.map((q) => this.search(q)));
 

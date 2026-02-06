@@ -9,7 +9,7 @@
  * @module lib/analysis/comparator
  */
 
-import type { Item, ItemSpecs, ToolSpecs, GearSpecs } from '../../types/database';
+import type { Item, ToolSpecs, GearSpecs } from '../../types/database';
 
 // ============================================================================
 // TYPES
@@ -123,7 +123,7 @@ export type ComparisonResult = ToolComparison | GearComparison;
 function intersection<T>(a: T[] | undefined, b: T[] | undefined): T[] {
   if (!a || !b) return [];
   const setB = new Set(b);
-  return a.filter(x => setB.has(x));
+  return a.filter((x) => setB.has(x));
 }
 
 /**
@@ -133,16 +133,13 @@ function difference<T>(a: T[] | undefined, b: T[] | undefined): T[] {
   if (!a) return [];
   if (!b) return a;
   const setB = new Set(b);
-  return a.filter(x => !setB.has(x));
+  return a.filter((x) => !setB.has(x));
 }
 
 /**
  * Compare features and return structured comparison
  */
-function compareFeatures(
-  a: string[] | undefined,
-  b: string[] | undefined
-): FeatureComparison {
+function compareFeatures(a: string[] | undefined, b: string[] | undefined): FeatureComparison {
   return {
     both: intersection(a, b),
     only_a: difference(a, b),
@@ -213,10 +210,7 @@ function comparePrices(
  */
 const LEARNING_CURVE_ORDER = ['minutes', 'hours', 'days', 'weeks', 'months'];
 
-function compareLearningCurve(
-  a: string | null,
-  b: string | null
-): 'a' | 'b' | 'tie' | 'unknown' {
+function compareLearningCurve(a: string | null, b: string | null): 'a' | 'b' | 'tie' | 'unknown' {
   if (!a || !b) return 'unknown';
   const indexA = LEARNING_CURVE_ORDER.indexOf(a);
   const indexB = LEARNING_CURVE_ORDER.indexOf(b);
@@ -475,8 +469,8 @@ function areFunctionsComparable(funcA: string | undefined, funcB: string | undef
 
   // Check if both functions are in the same comparable group
   for (const group of COMPARABLE_FUNCTION_GROUPS) {
-    const aInGroup = group.some(f => funcA.toLowerCase().includes(f.toLowerCase()));
-    const bInGroup = group.some(f => funcB.toLowerCase().includes(f.toLowerCase()));
+    const aInGroup = group.some((f) => funcA.toLowerCase().includes(f.toLowerCase()));
+    const bInGroup = group.some((f) => funcB.toLowerCase().includes(f.toLowerCase()));
     if (aInGroup && bInGroup) return true;
   }
 
@@ -507,10 +501,7 @@ export interface ComparableToolInfo {
  * @param toolB - Second tool
  * @returns true if tools are comparable
  */
-export function areToolsComparable(
-  toolA: ComparableToolInfo,
-  toolB: ComparableToolInfo
-): boolean {
+export function areToolsComparable(toolA: ComparableToolInfo, toolB: ComparableToolInfo): boolean {
   // Same tool is not comparable to itself
   if (toolA.slug === toolB.slug) return false;
 

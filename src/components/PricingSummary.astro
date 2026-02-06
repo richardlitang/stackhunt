@@ -15,7 +15,9 @@ interface Props {
 const { pricing, pricingType } = Astro.props;
 
 // Check if we have any pricing data to display
-const hasData = pricing && (pricing.model || pricing.starting_price || pricing.has_free_tier || pricing.has_free_trial);
+const hasData =
+  pricing &&
+  (pricing.model || pricing.starting_price || pricing.has_free_tier || pricing.has_free_trial);
 
 if (!hasData) return null;
 
@@ -47,53 +49,63 @@ const modelBadgeColors: Record<string, string> = {
   <h3 class="mb-4 font-semibold text-zinc-100">Pricing</h3>
 
   {/* Pricing Model Badge */}
-  {pricing.model && (
-    <div class="mb-3">
-      <span class={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border ${modelBadgeColors[pricing.model] || 'bg-zinc-800 text-zinc-300 border-zinc-700'}`}>
-        {modelLabels[pricing.model] || pricing.model}
-      </span>
-    </div>
-  )}
+  {
+    pricing.model && (
+      <div class="mb-3">
+        <span
+          class={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border ${modelBadgeColors[pricing.model] || 'bg-zinc-800 text-zinc-300 border-zinc-700'}`}
+        >
+          {modelLabels[pricing.model] || pricing.model}
+        </span>
+      </div>
+    )
+  }
 
   <dl class="space-y-3">
     {/* Starting Price */}
-    {pricing.starting_price && (
-      <div class="flex justify-between">
-        <dt class="text-sm text-zinc-400">Starting at</dt>
-        <dd class="text-sm font-medium text-zinc-100">
-          {pricing.starting_price}
-          {pricing.model === 'per_seat' && <span class="text-zinc-500">/seat</span>}
-        </dd>
-      </div>
-    )}
+    {
+      pricing.starting_price && (
+        <div class="flex justify-between">
+          <dt class="text-sm text-zinc-400">Starting at</dt>
+          <dd class="text-sm font-medium text-zinc-100">
+            {pricing.starting_price}
+            {pricing.model === 'per_seat' && <span class="text-zinc-500">/seat</span>}
+          </dd>
+        </div>
+      )
+    }
 
     {/* Free Tier */}
-    {pricing.has_free_tier !== undefined && (
-      <div class="flex justify-between">
-        <dt class="text-sm text-zinc-400">Free Tier</dt>
-        <dd class="text-sm font-medium text-zinc-100">
-          {pricing.has_free_tier ? (
-            <span class="text-green-400">Yes</span>
-          ) : (
-            <span class="text-zinc-500">No</span>
-          )}
-        </dd>
-      </div>
-    )}
+    {
+      pricing.has_free_tier !== undefined && (
+        <div class="flex justify-between">
+          <dt class="text-sm text-zinc-400">Free Tier</dt>
+          <dd class="text-sm font-medium text-zinc-100">
+            {pricing.has_free_tier ? (
+              <span class="text-green-400">Yes</span>
+            ) : (
+              <span class="text-zinc-500">No</span>
+            )}
+          </dd>
+        </div>
+      )
+    }
 
     {/* Free Trial */}
-    {pricing.has_free_trial && (
-      <div class="flex justify-between">
-        <dt class="text-sm text-zinc-400">Free Trial</dt>
-        <dd class="text-sm font-medium text-zinc-100">
-          {pricing.trial_days ? (
-            <span class="text-green-400">{pricing.trial_days} days</span>
-          ) : (
-            <span class="text-green-400">Yes</span>
-          )}
-        </dd>
-      </div>
-    )}
+    {
+      pricing.has_free_trial && (
+        <div class="flex justify-between">
+          <dt class="text-sm text-zinc-400">Free Trial</dt>
+          <dd class="text-sm font-medium text-zinc-100">
+            {pricing.trial_days ? (
+              <span class="text-green-400">{pricing.trial_days} days</span>
+            ) : (
+              <span class="text-green-400">Yes</span>
+            )}
+          </dd>
+        </div>
+      )
+    }
   </dl>
 
   {/* Link to detailed pricing */}

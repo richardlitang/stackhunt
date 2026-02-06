@@ -88,21 +88,23 @@ if (!isVerified) return null;
       viewBox="0 0 24 24"
       stroke="currentColor"
     >
-      {isStale ? (
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-        />
-      ) : (
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      )}
+      {
+        isStale ? (
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        ) : (
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        )
+      }
     </svg>
 
     <span class="font-semibold">
@@ -111,63 +113,79 @@ if (!isVerified) return null;
   </div>
 
   <!-- Details (optional) -->
-  {showDetails && (
-    <div class:list={['flex flex-wrap items-center gap-x-4 gap-y-1', classes.details, 'text-zinc-500']}>
-      {lastVerifiedAt && (
-        <span class="flex items-center gap-1.5">
-          <svg
-            class:list={[classes.icon, 'flex-shrink-0']}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span>
-            Last verified <span class={isStale ? 'text-amber-400' : 'text-zinc-400'}>
-              {formatDate(lastVerifiedAt)}
+  {
+    showDetails && (
+      <div
+        class:list={[
+          'flex flex-wrap items-center gap-x-4 gap-y-1',
+          classes.details,
+          'text-zinc-500',
+        ]}
+      >
+        {lastVerifiedAt && (
+          <span class="flex items-center gap-1.5">
+            <svg
+              class:list={[classes.icon, 'flex-shrink-0']}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>
+              Last verified{' '}
+              <span class={isStale ? 'text-amber-400' : 'text-zinc-400'}>
+                {formatDate(lastVerifiedAt)}
+              </span>
             </span>
           </span>
-        </span>
-      )}
+        )}
 
-      {sourceCount > 0 && (
-        <span class="flex items-center gap-1.5">
-          <svg
-            class:list={[classes.icon, 'flex-shrink-0']}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-            />
-          </svg>
-          <span>
-            <span class="text-zinc-400">{sourceCount}</span> {sourceCount === 1 ? 'source' : 'sources'}
+        {sourceCount > 0 && (
+          <span class="flex items-center gap-1.5">
+            <svg
+              class:list={[classes.icon, 'flex-shrink-0']}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+              />
+            </svg>
+            <span>
+              <span class="text-zinc-400">{sourceCount}</span>{' '}
+              {sourceCount === 1 ? 'source' : 'sources'}
+            </span>
           </span>
-        </span>
-      )}
-    </div>
-  )}
+        )}
+      </div>
+    )
+  }
 
   <!-- Stale Warning -->
-  {isStale && lastVerifiedAt && (
-    <div class="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-      <p class:list={[classes.details, 'text-amber-400/90']}>
-        This information was last verified over 60 days ago. Pricing and features may have changed.
-        <a href="/corrections" class="ml-1 font-medium text-amber-400 hover:text-amber-300 underline">
-          Report updates
-        </a>
-      </p>
-    </div>
-  )}
+  {
+    isStale && lastVerifiedAt && (
+      <div class="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+        <p class:list={[classes.details, 'text-amber-400/90']}>
+          This information was last verified over 60 days ago. Pricing and features may have
+          changed.
+          <a
+            href="/corrections"
+            class="ml-1 font-medium text-amber-400 hover:text-amber-300 underline"
+          >
+            Report updates
+          </a>
+        </p>
+      </div>
+    )
+  }
 </div>

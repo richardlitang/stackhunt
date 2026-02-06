@@ -22,11 +22,7 @@ export const GET: APIRoute = async ({ params }) => {
     });
   }
 
-  const { data, error } = await admin
-    .from('editorial_topics')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { data, error } = await admin.from('editorial_topics').select('*').eq('id', id).single();
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {

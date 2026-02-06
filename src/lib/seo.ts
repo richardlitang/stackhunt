@@ -4,7 +4,7 @@
 
 import type { Tool, Context, Review, AffiliateOffer } from '@/types/database';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
-import { getCanonicalUrl, formatPricingType } from './utils';
+import { getCanonicalUrl } from './utils';
 
 // ============================================================================
 // META TAG GENERATORS
@@ -19,10 +19,7 @@ export interface MetaProps {
   noindex?: boolean;
 }
 
-export function generateToolMeta(
-  tool: Tool,
-  reviewCount?: number
-): MetaProps {
+export function generateToolMeta(tool: Tool, reviewCount?: number): MetaProps {
   const title = `${tool.name} Review & Alternatives ${new Date().getFullYear()} | StackHunt`;
   const description = tool.short_description
     ? `${tool.short_description} Compare ${tool.name} with alternatives, see pricing, pros & cons.`
@@ -37,13 +34,11 @@ export function generateToolMeta(
   };
 }
 
-export function generateContextMeta(
-  context: Context,
-  categoryName?: string
-): MetaProps {
+export function generateContextMeta(context: Context, categoryName?: string): MetaProps {
   const title = `${context.title} (${new Date().getFullYear()}) | StackHunt`;
-  const description = context.meta_description
-    || `Compare the ${context.title.toLowerCase()}. See ratings, pricing, pros & cons for ${context.tool_count}+ tools.`;
+  const description =
+    context.meta_description ||
+    `Compare the ${context.title.toLowerCase()}. See ratings, pricing, pros & cons for ${context.tool_count}+ tools.`;
 
   return {
     title,
@@ -53,15 +48,12 @@ export function generateContextMeta(
   };
 }
 
-export function generateCategoryMeta(
-  name: string,
-  slug: string,
-  description?: string
-): MetaProps {
+export function generateCategoryMeta(name: string, slug: string, description?: string): MetaProps {
   return {
     title: `Best ${name} Software & Tools (${new Date().getFullYear()}) | StackHunt`,
-    description: description
-      || `Discover the best ${name.toLowerCase()} tools. Compare features, pricing, and reviews to find the perfect solution.`,
+    description:
+      description ||
+      `Discover the best ${name.toLowerCase()} tools. Compare features, pricing, and reviews to find the perfect solution.`,
     canonical: getCanonicalUrl(`/categories/${slug}`),
     ogType: 'website',
   };
@@ -82,10 +74,9 @@ export function generateOrganizationSchema() {
     name: 'StackHunt',
     url: getCanonicalUrl('/'),
     logo: getCanonicalUrl('/logo.png'),
-    description: 'AI-powered software research platform that helps teams discover, compare, and choose the right tools. We combine automated research with human verification to provide trustworthy software recommendations.',
-    sameAs: [
-      'https://www.linkedin.com/company/stackhunt-research',
-    ],
+    description:
+      'AI-powered software research platform that helps teams discover, compare, and choose the right tools. We combine automated research with human verification to provide trustworthy software recommendations.',
+    sameAs: ['https://www.linkedin.com/company/stackhunt-research'],
   };
 }
 
@@ -112,11 +103,7 @@ export function generateWebSiteSchema() {
 /**
  * SoftwareApplication schema for tool pages (Enhanced for 2026)
  */
-export function generateToolSchema(
-  tool: Tool,
-  offer?: AffiliateOffer,
-  reviewCount?: number
-) {
+export function generateToolSchema(tool: Tool, offer?: AffiliateOffer, reviewCount?: number) {
   const metadata = tool.metadata as Record<string, unknown> | null;
 
   const schema: Record<string, unknown> = {
@@ -162,11 +149,14 @@ export function generateToolSchema(
       priceCurrency: 'USD',
       url: offer.url,
       availability: 'https://schema.org/InStock',
-      priceSpecification: tool.pricing_type === 'freemium' ? {
-        '@type': 'UnitPriceSpecification',
-        price: '0',
-        priceCurrency: 'USD',
-      } : undefined,
+      priceSpecification:
+        tool.pricing_type === 'freemium'
+          ? {
+              '@type': 'UnitPriceSpecification',
+              price: '0',
+              priceCurrency: 'USD',
+            }
+          : undefined,
     };
   }
 
@@ -184,7 +174,10 @@ export function generateToolSchema(
   // Add features if available
   const features = (metadata?.features as any)?.core || (metadata as any)?.key_features;
   if (Array.isArray(features) && features.length > 0) {
-    schema.featureList = features.slice(0, 5).map(f => typeof f === 'string' ? f : f?.name || f?.title).filter(Boolean);
+    schema.featureList = features
+      .slice(0, 5)
+      .map((f) => (typeof f === 'string' ? f : f?.name || f?.title))
+      .filter(Boolean);
   }
 
   return schema;
@@ -223,9 +216,7 @@ export function generateListSchema(
 /**
  * BreadcrumbList schema
  */
-export function generateBreadcrumbSchema(
-  items: Array<{ name: string; url: string }>
-) {
+export function generateBreadcrumbSchema(items: Array<{ name: string; url: string }>) {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -241,11 +232,7 @@ export function generateBreadcrumbSchema(
 /**
  * VideoObject schema for tools with video content
  */
-export function generateVideoSchema(
-  tool: Tool,
-  videoId: string,
-  videoTitle: string
-) {
+export function generateVideoSchema(tool: Tool, videoId: string, videoTitle: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'VideoObject',
@@ -266,9 +253,7 @@ export function generateVideoSchema(
 /**
  * FAQPage schema (useful for SEO)
  */
-export function generateFAQSchema(
-  faqs: Array<{ question: string; answer: string }>
-) {
+export function generateFAQSchema(faqs: Array<{ question: string; answer: string }>) {
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -287,11 +272,7 @@ export function generateFAQSchema(
  * Review schema for individual tool reviews
  * Uses 'publisher' not 'author' per EEAT best practices for organization-led content
  */
-export function generateReviewSchema(
-  tool: Tool,
-  review: Review,
-  contextTitle: string
-) {
+export function generateReviewSchema(tool: Tool, review: Review, contextTitle: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Review',
@@ -342,7 +323,10 @@ export function generateContextReviewSchemas(
       worstRating: '1',
     },
     name: `${review.item.name} for ${contextTitle}`,
-    reviewBody: review.summary_markdown || review.item.short_description || `Analysis of ${review.item.name} for ${contextTitle}`,
+    reviewBody:
+      review.summary_markdown ||
+      review.item.short_description ||
+      `Analysis of ${review.item.name} for ${contextTitle}`,
     publisher: {
       '@type': 'Organization',
       name: 'StackHunt',

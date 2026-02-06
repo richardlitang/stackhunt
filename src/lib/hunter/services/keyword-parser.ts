@@ -9,10 +9,10 @@ import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { KeywordIntentSchema } from '../types';
 
 export type KeywordType =
-  | 'CONTEXT'           // "best X for Y"
-  | 'TOOL_REVIEW'       // "X review"
-  | 'COMPARISON'        // "X vs Y"
-  | 'ALTERNATIVES'      // "X alternatives"
+  | 'CONTEXT' // "best X for Y"
+  | 'TOOL_REVIEW' // "X review"
+  | 'COMPARISON' // "X vs Y"
+  | 'ALTERNATIVES' // "X alternatives"
   | 'MULTI_COMPARISON'; // "X vs Y vs Z"
 
 export type ActionType =
@@ -20,7 +20,7 @@ export type ActionType =
   | 'create_context'
   | 'create_comparison'
   | 'discover_competitors'
-  | 'discover_new_tools'    // Flywheel: Phase 2 discovery
+  | 'discover_new_tools' // Flywheel: Phase 2 discovery
   | 'review_existing_tools' // Flywheel: Phase 1 instant content
   | 'review_in_context';
 

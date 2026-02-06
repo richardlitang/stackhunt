@@ -65,11 +65,7 @@ export async function validateContextRelevance(
   const matches: ContextMatch[] = [];
 
   for (const context of contexts) {
-    const score = calculateRelevanceScore(
-      tool,
-      toolCategories || [],
-      context
-    );
+    const score = calculateRelevanceScore(tool, toolCategories || [], context);
 
     if (score >= 70) {
       matches.push({
@@ -88,18 +84,14 @@ export async function validateContextRelevance(
 /**
  * Calculate relevance score using deterministic rules
  */
-function calculateRelevanceScore(
-  tool: any,
-  categories: any[],
-  context: any
-): number {
+function calculateRelevanceScore(tool: any, categories: any[], context: any): number {
   let score = 0;
   const toolName = tool.name.toLowerCase();
   const contextTitle = context.title.toLowerCase();
   const contextSlug = context.slug.toLowerCase();
 
   // Rule 1: Category/function match (40 points)
-  const primaryCategory = categories.find(c => c.category_type === 'function');
+  const primaryCategory = categories.find((c) => c.category_type === 'function');
   if (primaryCategory) {
     const categoryName = primaryCategory.category_name.toLowerCase();
     if (contextTitle.includes(categoryName) || contextSlug.includes(categoryName)) {
@@ -125,7 +117,7 @@ function calculateRelevanceScore(
   }
 
   // Rule 4: Audience overlap (20 points)
-  const audiences = categories.filter(c => c.category_type === 'audience');
+  const audiences = categories.filter((c) => c.category_type === 'audience');
   for (const audience of audiences) {
     const audienceName = audience.category_name.toLowerCase();
     if (contextTitle.includes(audienceName) || contextSlug.includes(audienceName)) {
@@ -135,7 +127,7 @@ function calculateRelevanceScore(
   }
 
   // Rule 5: Platform overlap (15 points)
-  const platforms = categories.filter(c => c.category_type === 'platform');
+  const platforms = categories.filter((c) => c.category_type === 'platform');
   for (const platform of platforms) {
     const platformName = platform.category_name.toLowerCase();
     if (contextTitle.includes(platformName) || contextSlug.includes(platformName)) {
@@ -186,12 +178,26 @@ function extractKeywords(text: string): string[] {
   if (!text) return [];
 
   // Common stopwords to ignore
-  const stopwords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'for', 'with', 'to', 'of', 'in', 'on', 'at']);
+  const stopwords = new Set([
+    'the',
+    'a',
+    'an',
+    'and',
+    'or',
+    'but',
+    'for',
+    'with',
+    'to',
+    'of',
+    'in',
+    'on',
+    'at',
+  ]);
 
   return text
     .toLowerCase()
     .split(/\W+/)
-    .filter(word => word.length > 3 && !stopwords.has(word))
+    .filter((word) => word.length > 3 && !stopwords.has(word))
     .slice(0, 10);
 }
 
@@ -230,9 +236,14 @@ async function createContextualReviews(
       });
 
       if (error) {
-        console.error(`[ContextValidator] Failed to create review for ${match.context_title}:`, error.message);
+        console.error(
+          `[ContextValidator] Failed to create review for ${match.context_title}:`,
+          error.message
+        );
       } else {
-        console.log(`[ContextValidator] ✅ Created review for "${match.context_title}" (relevance: ${match.relevance_score}%)`);
+        console.log(
+          `[ContextValidator] ✅ Created review for "${match.context_title}" (relevance: ${match.relevance_score}%)`
+        );
         reviewsCreated++;
       }
     } catch (error: any) {
@@ -302,7 +313,9 @@ export async function assignToRelevantContexts(
   // Create reviews in matched contexts
   const reviewsCreated = await createContextualReviews(toolId, matches, supabase);
 
-  console.log(`[ContextValidator] ✅ Validation complete: ${reviewsCreated}/${matches.length} reviews created`);
+  console.log(
+    `[ContextValidator] ✅ Validation complete: ${reviewsCreated}/${matches.length} reviews created`
+  );
 
   return {
     tool_id: toolId,

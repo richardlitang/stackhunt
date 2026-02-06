@@ -63,7 +63,7 @@ export class LogoService {
         // Frontend Logo component will use this to construct Brandfetch URL
         return {
           path: `hotlink:${domain}`, // Special format to indicate hotlinking
-          url: domain // Store just the domain
+          url: domain, // Store just the domain
         };
       } catch (verifyError) {
         log(`Domain verification failed: ${(verifyError as Error).message}`);

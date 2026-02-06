@@ -20,9 +20,7 @@ export const GET: APIRoute = async ({ request }) => {
     const admin = getAdminClient();
 
     // Get overall stats
-    const { data: statsData, error: statsError } = await admin.rpc(
-      'get_hunt_queue_stats'
-    );
+    const { data: statsData, error: statsError } = await admin.rpc('get_hunt_queue_stats');
 
     if (statsError) {
       console.error('Stats error:', statsError);

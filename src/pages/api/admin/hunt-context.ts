@@ -71,10 +71,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   } catch (err) {
     console.error('Context Hunt API error:', err);
     return addRateLimitHeaders(
-      new Response(
-        JSON.stringify({ success: false, error: (err as Error).message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ),
+      new Response(JSON.stringify({ success: false, error: (err as Error).message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }),
       rateLimit
     );
   }

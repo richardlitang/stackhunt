@@ -24,18 +24,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   // Verify admin session
   const sessionToken = cookies.get('stackhunt_admin_session')?.value;
   if (!sessionToken) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const sessionValidation = await validateSession(sessionToken);
   if (!sessionValidation.valid) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid session' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Invalid session' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -43,10 +43,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { csv_content } = body;
 
     if (!csv_content || typeof csv_content !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Invalid content' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid content' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     let records: ContentIdea[];
@@ -60,10 +60,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const parsed = JSON.parse(trimmed);
         records = Array.isArray(parsed) ? parsed : [parsed];
       } catch {
-        return new Response(
-          JSON.stringify({ error: 'Invalid JSON format' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: 'Invalid JSON format' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
     } else {
       // CSV format
@@ -76,17 +76,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         }) as ContentIdea[];
       } catch (err) {
         return new Response(
-          JSON.stringify({ error: 'Invalid CSV format: ' + (err instanceof Error ? err.message : 'Parse error') }),
+          JSON.stringify({
+            error: 'Invalid CSV format: ' + (err instanceof Error ? err.message : 'Parse error'),
+          }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
     }
 
     if (records.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No records found' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'No records found' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     let inserted = 0;
@@ -112,19 +114,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const priority = parseInt(String(idea.priority), 10);
 
         // Insert content idea
-        const { error: insertError } = await supabase
-          .from('content_ideas')
-          .insert({
-            keyword: idea.keyword,
-            tool_name: idea.tool_name || null,
-            context_query: idea.context_query,
-            content_type: idea.content_type,
-            pillar: idea.pillar,
-            target_audience: idea.target_audience,
-            priority,
-            notes: idea.notes || null,
-            status: 'pending',
-          });
+        const { error: insertError } = await supabase.from('content_ideas').insert({
+          keyword: idea.keyword,
+          tool_name: idea.tool_name || null,
+          context_query: idea.context_query,
+          content_type: idea.content_type,
+          pillar: idea.pillar,
+          target_audience: idea.target_audience,
+          priority,
+          notes: idea.notes || null,
+          status: 'pending',
+        });
 
         if (insertError) {
           failed++;

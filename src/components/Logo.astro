@@ -44,7 +44,11 @@ const sizeClass = sizeClasses[size];
 const initials = name.charAt(0).toUpperCase();
 
 // Check if domain is actually a full URL to an image (e.g., Supabase storage URL)
-const isDirectImageUrl = domain?.includes('/storage/') || domain?.includes('.png') || domain?.includes('.jpg') || domain?.includes('.svg');
+const isDirectImageUrl =
+  domain?.includes('/storage/') ||
+  domain?.includes('.png') ||
+  domain?.includes('.jpg') ||
+  domain?.includes('.svg');
 
 // Extract clean domain from input (handles both "notion.so" and "https://notion.so")
 function cleanDomain(input: string | null): string | null {
@@ -89,21 +93,26 @@ const duckduckgoUrl = cleanedDomain
 const primarySrc = directUrl || brandfetchUrl || googleUrl;
 ---
 
-{!domain ? (
-  <div class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700`}>
-    <span class="text-xl font-bold text-zinc-400">{initials}</span>
-  </div>
-) : (
-  <div class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-white border border-zinc-700/50`}>
-    <img
-      src={primarySrc}
-      alt={`${name} logo`}
-      width={sizePx[size]}
-      height={sizePx[size]}
-      class="h-full w-full object-contain p-2"
-      loading={priority ? 'eager' : 'lazy'}
-      fetchpriority={priority ? 'high' : undefined}
-      onerror={`
+{
+  !domain ? (
+    <div
+      class={`${sizeClass} ${className} flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700`}
+    >
+      <span class="text-xl font-bold text-zinc-400">{initials}</span>
+    </div>
+  ) : (
+    <div
+      class={`${sizeClass} ${className} flex items-center justify-center overflow-hidden rounded-lg bg-white border border-zinc-700/50`}
+    >
+      <img
+        src={primarySrc}
+        alt={`${name} logo`}
+        width={sizePx[size]}
+        height={sizePx[size]}
+        class="h-full w-full object-contain p-2"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchpriority={priority ? 'high' : undefined}
+        onerror={`
         if (this.src.includes('brandfetch')) {
           this.src = '${googleUrl}';
         } else if (this.src.includes('google') || this.src.includes('gstatic')) {
@@ -115,7 +124,7 @@ const primarySrc = directUrl || brandfetchUrl || googleUrl;
           this.src = '${googleUrl}';
         }
       `}
-      onload={`
+        onload={`
         if (this.naturalWidth === 0 || this.naturalHeight === 0) {
           if (this.src.includes('brandfetch')) {
             this.src = '${googleUrl}';
@@ -127,16 +136,17 @@ const primarySrc = directUrl || brandfetchUrl || googleUrl;
           }
         }
       `}
-    />
-    <span class="hidden text-xl font-bold text-zinc-500">{initials}</span>
-  </div>
-)}
+      />
+      <span class="hidden text-xl font-bold text-zinc-500">{initials}</span>
+    </div>
+  )
+}
 
 <style>
   img {
     transition: opacity 0.2s ease-in-out;
   }
-  img[src=""] {
+  img[src=''] {
     opacity: 0;
   }
 </style>

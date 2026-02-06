@@ -196,7 +196,9 @@ export async function classifyKeyword(
 
     // Use normalized name from dossier if available
     const toolName =
-      classification.research_dossier?.normalized_tool_name || classification.extracted_tools?.[0] || null;
+      classification.research_dossier?.normalized_tool_name ||
+      classification.extracted_tools?.[0] ||
+      null;
 
     // Upsert to content_ideas
     const { error: upsertError } = await supabase.rpc('update_keyword_classification', {

@@ -43,10 +43,7 @@ interface CalculatedPrice {
   unitContext?: string; // e.g., "up to 500 contacts"
 }
 
-export default function PricingComparison({
-  tools,
-  className
-}: PricingComparisonProps) {
+export default function PricingComparison({ tools, className }: PricingComparisonProps) {
   const teamSize = useTeamSize();
   const [prices, setPrices] = useState<Map<string, CalculatedPrice>>(new Map());
 
@@ -55,7 +52,10 @@ export default function PricingComparison({
 
     for (const tool of tools) {
       const pricingData = tool.specs?.pricing_data;
-      const isSeatBased = pricingData?.model === 'per_seat' || pricingData?.model === 'per_unit' || pricingData?.model === 'tiered';
+      const isSeatBased =
+        pricingData?.model === 'per_seat' ||
+        pricingData?.model === 'per_unit' ||
+        pricingData?.model === 'tiered';
       const minSeats = pricingData?.min_seats || 1;
       const perSeat = tool.normalized_price_per_seat_monthly;
       const effectiveStarting = tool.effective_starting_price_monthly;
@@ -134,14 +134,13 @@ export default function PricingComparison({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {tools.map(tool => {
+        {tools.map((tool) => {
           const price = prices.get(tool.slug);
           if (!price) return null;
 
           const isCheapest = tool.slug === cheapestSlug;
-          const savings = cheapestSlug && tool.slug !== cheapestSlug
-            ? price.monthly - cheapestPrice
-            : 0;
+          const savings =
+            cheapestSlug && tool.slug !== cheapestSlug ? price.monthly - cheapestPrice : 0;
 
           return (
             <div
@@ -166,9 +165,7 @@ export default function PricingComparison({
 
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-zinc-100">
-                      ${price.monthly}
-                    </span>
+                    <span className="text-3xl font-bold text-zinc-100">${price.monthly}</span>
                     <span className="text-sm text-zinc-400">/mo</span>
                     {price.scalingCategory && price.scalingCategory !== 'team' && (
                       <span className="text-xs px-2 py-0.5 rounded bg-purple-900/50 text-purple-300">
@@ -177,14 +174,10 @@ export default function PricingComparison({
                     )}
                   </div>
 
-                  <div className="text-xs text-zinc-500 mt-1">
-                    {price.breakdown}
-                  </div>
+                  <div className="text-xs text-zinc-500 mt-1">{price.breakdown}</div>
 
                   {price.unitContext && (
-                    <div className="text-xs text-purple-400 mt-1">
-                      {price.unitContext}
-                    </div>
+                    <div className="text-xs text-purple-400 mt-1">{price.unitContext}</div>
                   )}
                 </div>
 
@@ -192,8 +185,18 @@ export default function PricingComparison({
                   <div className="space-y-1">
                     {price.caveats.map((caveat, i) => (
                       <div key={i} className="text-xs text-amber-400 flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
                         </svg>
                         <span>{caveat}</span>
                       </div>
@@ -204,7 +207,7 @@ export default function PricingComparison({
                 {savings > 0 && (
                   <div className="pt-3 border-t border-zinc-800">
                     <div className="text-xs text-zinc-500">
-                      ${savings}/mo more than {tools.find(t => t.slug === cheapestSlug)?.name}
+                      ${savings}/mo more than {tools.find((t) => t.slug === cheapestSlug)?.name}
                     </div>
                   </div>
                 )}
@@ -215,7 +218,8 @@ export default function PricingComparison({
       </div>
 
       <div className="text-xs text-zinc-600 italic">
-        Prices shown are normalized for fair comparison. Actual costs may vary based on features, add-ons, and contract terms.
+        Prices shown are normalized for fair comparison. Actual costs may vary based on features,
+        add-ons, and contract terms.
       </div>
     </div>
   );

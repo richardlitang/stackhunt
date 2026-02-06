@@ -9,7 +9,6 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { QueueAddRequestSchema, validationErrorResponse } from '@/lib/validation';
-import { z } from 'zod';
 
 export const prerender = false;
 
@@ -36,7 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (!result.success) {
       const errorMessage = result.error.errors
-        .map(e => `${e.path.join('.')}: ${e.message}`)
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
         .join('; ');
 
       if (isJson) {
@@ -81,17 +80,20 @@ export const POST: APIRoute = async ({ request }) => {
       if (error.code === 'P0001' || error.message?.includes('Queue depth limit')) {
         // Backpressure activated - queue is full
         if (isJson) {
-          return new Response(JSON.stringify({
-            success: false,
-            error: 'Queue is full - backpressure activated',
-            hint: 'Please wait for queue to drain and retry',
-          }), {
-            status: 429,  // Too Many Requests
-            headers: {
-              'Content-Type': 'application/json',
-              'Retry-After': '300',  // Suggest retry after 5 minutes
-            },
-          });
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Queue is full - backpressure activated',
+              hint: 'Please wait for queue to drain and retry',
+            }),
+            {
+              status: 429, // Too Many Requests
+              headers: {
+                'Content-Type': 'application/json',
+                'Retry-After': '300', // Suggest retry after 5 minutes
+              },
+            }
+          );
         }
         return new Response(null, {
           status: 302,

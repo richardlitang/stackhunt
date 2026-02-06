@@ -27,7 +27,7 @@ interface TeamSizeSelectorProps {
 export default function TeamSizeSelector({
   onChange,
   className,
-  compact = false
+  compact = false,
 }: TeamSizeSelectorProps) {
   const [teamSize, setTeamSize] = useState<number>(1);
   const [isCustom, setIsCustom] = useState(false);
@@ -42,7 +42,7 @@ export default function TeamSizeSelector({
         if (!isNaN(value) && value > 0) {
           setTeamSize(value);
           // Check if it's a custom value
-          const isPreset = TEAM_SIZE_PRESETS.some(p => p.value === value);
+          const isPreset = TEAM_SIZE_PRESETS.some((p) => p.value === value);
           if (!isPreset) {
             setIsCustom(true);
             setCustomValue(value.toString());
@@ -89,7 +89,7 @@ export default function TeamSizeSelector({
           }}
           className="text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-hunt-500"
         >
-          {TEAM_SIZE_PRESETS.map(preset => (
+          {TEAM_SIZE_PRESETS.map((preset) => (
             <option key={preset.value} value={preset.value}>
               {preset.label}
             </option>
@@ -120,7 +120,7 @@ export default function TeamSizeSelector({
       </label>
 
       <div className="flex flex-wrap gap-2">
-        {TEAM_SIZE_PRESETS.map(preset => (
+        {TEAM_SIZE_PRESETS.map((preset) => (
           <button
             key={preset.value}
             onClick={() => handleTeamSizeChange(preset.value)}

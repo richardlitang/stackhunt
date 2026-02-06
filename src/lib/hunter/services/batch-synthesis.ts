@@ -11,7 +11,11 @@ import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import type { HunterAnalysis } from '../types.js';
 import { AnalysisSchema } from '../types.js';
 import { geminiCircuit } from './circuit-breaker.js';
-import { buildForensicFramework, isFrameworkCacheable, type ExistingCategories } from './forensic-framework.js';
+import {
+  buildForensicFramework,
+  isFrameworkCacheable,
+  type ExistingCategories,
+} from './forensic-framework.js';
 import { buildFactSummary } from '../utils.js';
 import type { KnowledgeCard } from '../../knowledge-card.js';
 
@@ -86,7 +90,9 @@ export class BatchSynthesisService {
     console.log(`[Batch] Framework size: ${framework.tokenEstimate} tokens`);
 
     if (!isFrameworkCacheable(framework)) {
-      console.warn(`[Batch] Warning: Framework is below 2048 tokens (${framework.tokenEstimate}), cache discount may not apply`);
+      console.warn(
+        `[Batch] Warning: Framework is below 2048 tokens (${framework.tokenEstimate}), cache discount may not apply`
+      );
     }
 
     // Try to create cache, fall back to uncached if not available
@@ -204,7 +210,9 @@ export class BatchSynthesisService {
 
     console.log(`[Batch] Completed: ${analyses.size}/${inputs.length} tools in ${durationMs}ms`);
     console.log(`[Batch] Cache hit rate: ${(cacheHitRate * 100).toFixed(1)}%`);
-    console.log(`[Batch] Tokens: ${totalTokens.toLocaleString()} total, ${cachedTokens.toLocaleString()} cached`);
+    console.log(
+      `[Batch] Tokens: ${totalTokens.toLocaleString()} total, ${cachedTokens.toLocaleString()} cached`
+    );
 
     return {
       analyses,
@@ -244,11 +252,18 @@ ${scout.budgetAnalystSnippets.join('\n')}
 === TRIBAL KNOWLEDGE (Reddit/HN) ===
 ${scout.tribalKnowledgeSnippets.join('\n')}
 
-${scout.tribalDeepContent ? `=== DEEP TRIBAL CONTENT (Full Discussions) ===
-${scout.tribalDeepContent}` : ''}
+${
+  scout.tribalDeepContent
+    ? `=== DEEP TRIBAL CONTENT (Full Discussions) ===
+${scout.tribalDeepContent}`
+    : ''
+}
 
 === SOURCES (Use these URLs for source_url) ===
-${scout.sources.slice(0, 20).map(s => `- ${s.url} (${s.domain}): ${s.title}`).join('\n')}
+${scout.sources
+  .slice(0, 20)
+  .map((s) => `- ${s.url} (${s.domain}): ${s.title}`)
+  .join('\n')}
 
 Generate the forensic analysis following the cached framework instructions.
 Return ONLY valid JSON, no markdown code blocks.

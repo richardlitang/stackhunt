@@ -17,8 +17,9 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 
 <BaseLayout
   meta={{
-    title: "Privacy Policy | StackHunt",
-    description: "Learn how StackHunt collects, uses, and protects your data. Our privacy practices for analytics, cookies, and affiliate tracking."
+    title: 'Privacy Policy | StackHunt',
+    description:
+      'Learn how StackHunt collects, uses, and protects your data. Our privacy practices for analytics, cookies, and affiliate tracking.',
   }}
 >
   <main class="min-h-screen bg-gradient-to-b from-zinc-950 to-zinc-900">
@@ -48,125 +49,185 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           <div class="sticky top-20">
             <h2 class="text-sm font-semibold text-zinc-400 mb-3">On This Page</h2>
             <nav class="space-y-2 text-sm">
-              <a href="#collect" class="block text-zinc-500 hover:text-indigo-400 transition">Information We Collect</a>
-              <a href="#ai-disclosure" class="block text-zinc-500 hover:text-indigo-400 transition">AI & Data Accuracy</a>
-              <a href="#affiliate" class="block text-zinc-500 hover:text-indigo-400 transition">Affiliate Disclosure</a>
-              <a href="#use" class="block text-zinc-500 hover:text-indigo-400 transition">How We Use Data</a>
-              <a href="#retention" class="block text-zinc-500 hover:text-indigo-400 transition">Data Retention</a>
-              <a href="#rights" class="block text-zinc-500 hover:text-indigo-400 transition">Your Rights</a>
-              <a href="#contact" class="block text-zinc-500 hover:text-indigo-400 transition">Contact Us</a>
+              <a href="#collect" class="block text-zinc-500 hover:text-indigo-400 transition"
+                >Information We Collect</a
+              >
+              <a href="#ai-disclosure" class="block text-zinc-500 hover:text-indigo-400 transition"
+                >AI & Data Accuracy</a
+              >
+              <a href="#affiliate" class="block text-zinc-500 hover:text-indigo-400 transition"
+                >Affiliate Disclosure</a
+              >
+              <a href="#use" class="block text-zinc-500 hover:text-indigo-400 transition"
+                >How We Use Data</a
+              >
+              <a href="#retention" class="block text-zinc-500 hover:text-indigo-400 transition"
+                >Data Retention</a
+              >
+              <a href="#rights" class="block text-zinc-500 hover:text-indigo-400 transition"
+                >Your Rights</a
+              >
+              <a href="#contact" class="block text-zinc-500 hover:text-indigo-400 transition"
+                >Contact Us</a
+              >
             </nav>
           </div>
         </aside>
 
         <!-- Content -->
-        <article class="prose prose-invert max-w-none prose-headings:text-zinc-100 prose-p:text-zinc-400 prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-strong:text-zinc-200 prose-li:text-zinc-400 prose-h2:border-b prose-h2:border-zinc-800 prose-h2:pb-3 prose-h2:mb-6 prose-h2:scroll-mt-20 prose-h3:scroll-mt-20">
+        <article
+          class="prose prose-invert max-w-none prose-headings:text-zinc-100 prose-p:text-zinc-400 prose-a:text-indigo-400 hover:prose-a:text-indigo-300 prose-strong:text-zinc-200 prose-li:text-zinc-400 prose-h2:border-b prose-h2:border-zinc-800 prose-h2:pb-3 prose-h2:mb-6 prose-h2:scroll-mt-20 prose-h3:scroll-mt-20"
+        >
+          <p>
+            StackHunt ("we," "us," or "our") respects your privacy. We believe SaaS research should
+            be transparent, which extends to how we handle your data.
+          </p>
 
-      <p>
-        StackHunt ("we," "us," or "our") respects your privacy. We believe SaaS research
-        should be transparent, which extends to how we handle your data.
-      </p>
+          <h2 id="collect">1. Information We Collect</h2>
 
-      <h2 id="collect">1. Information We Collect</h2>
+          <h3>A. Analytics Data (Privacy-First)</h3>
+          <p>
+            We use <strong>Vercel Web Analytics</strong> to understand site usage. This service is designed
+            to be privacy-friendly:
+          </p>
+          <ul>
+            <li>
+              <strong>What it tracks:</strong> Page views, referral sources, device types, and broad geographic
+              regions (Country/City level).
+            </li>
+            <li>
+              <strong>What it does NOT track:</strong> IP addresses, individual user profiles, or cross-site
+              tracking cookies.
+            </li>
+            <li><strong>Compliance:</strong> Fully GDPR and CCPA compliant.</li>
+          </ul>
 
-      <h3>A. Analytics Data (Privacy-First)</h3>
-      <p>
-        We use <strong>Vercel Web Analytics</strong> to understand site usage. This service
-        is designed to be privacy-friendly:
-      </p>
-      <ul>
-        <li><strong>What it tracks:</strong> Page views, referral sources, device types, and broad geographic regions (Country/City level).</li>
-        <li><strong>What it does NOT track:</strong> IP addresses, individual user profiles, or cross-site tracking cookies.</li>
-        <li><strong>Compliance:</strong> Fully GDPR and CCPA compliant.</li>
-      </ul>
+          <h3>B. SaaS Management Platform (SMP) Data</h3>
+          <p>When you use our interactive tools (e.g., Spend Calculator, Stack Comparison):</p>
+          <ul>
+            <li>
+              <strong>Local Processing:</strong> Inputs regarding team size, budget, and department counts
+              are processed locally in your browser. We do not store this data on our servers unless you
+              explicitly create an account and save a "Stack."
+            </li>
+            <li>
+              <strong>Aggregated Insights:</strong> We may collect anonymous, aggregated telemetry (e.g.,
+              "The average user compares Trello vs. Asana") to improve our research algorithms.
+            </li>
+          </ul>
 
-      <h3>B. SaaS Management Platform (SMP) Data</h3>
-      <p>When you use our interactive tools (e.g., Spend Calculator, Stack Comparison):</p>
-      <ul>
-        <li><strong>Local Processing:</strong> Inputs regarding team size, budget, and department counts are processed locally in your browser. We do not store this data on our servers unless you explicitly create an account and save a "Stack."</li>
-        <li><strong>Aggregated Insights:</strong> We may collect anonymous, aggregated telemetry (e.g., "The average user compares Trello vs. Asana") to improve our research algorithms.</li>
-      </ul>
+          <h3>C. Voting & Interaction</h3>
+          <p>To ensure the integrity of our voting system (upvotes/downvotes):</p>
+          <ul>
+            <li>We collect a hashed browser fingerprint and a hashed IP address.</li>
+            <li>
+              <strong>Hashing:</strong> These identifiers are encrypted via a one-way hash before storage.
+              We cannot reverse-engineer them to identify you personally. They exist solely to prevent
+              vote manipulation.
+            </li>
+          </ul>
 
-      <h3>C. Voting & Interaction</h3>
-      <p>To ensure the integrity of our voting system (upvotes/downvotes):</p>
-      <ul>
-        <li>We collect a hashed browser fingerprint and a hashed IP address.</li>
-        <li><strong>Hashing:</strong> These identifiers are encrypted via a one-way hash before storage. We cannot reverse-engineer them to identify you personally. They exist solely to prevent vote manipulation.</li>
-      </ul>
+          <h3>D. Cookies & Local Storage</h3>
+          <ul>
+            <li>
+              <strong>Essential Cookies:</strong> Security tokens (via Cloudflare) to verify you are human.
+            </li>
+            <li>
+              <strong>Local Storage:</strong> We save your "My Stack" selections and UI preferences (Dark
+              Mode) directly on your device. This data never leaves your browser.
+            </li>
+          </ul>
 
-      <h3>D. Cookies & Local Storage</h3>
-      <ul>
-        <li><strong>Essential Cookies:</strong> Security tokens (via Cloudflare) to verify you are human.</li>
-        <li><strong>Local Storage:</strong> We save your "My Stack" selections and UI preferences (Dark Mode) directly on your device. This data never leaves your browser.</li>
-      </ul>
+          <h2 id="ai-disclosure">2. AI & Data Accuracy Disclosure</h2>
 
-      <h2 id="ai-disclosure">2. AI & Data Accuracy Disclosure</h2>
+          <p>StackHunt is a programmatic research platform.</p>
+          <ul>
+            <li>
+              <strong>AI Generation:</strong> Our content, including pricing tables, feature summaries,
+              and "Pros/Cons," is synthesized using Artificial Intelligence (Gemini 2.0 Flash) based on
+              publicly available data.
+            </li>
+            <li>
+              <strong>Accuracy:</strong> While we employ rigorous validation pipelines, AI can make mistakes.
+              We cannot guarantee the accuracy of pricing or feature data. Always verify details on the
+              vendor's official website before making a purchase decision.
+            </li>
+          </ul>
 
-      <p>StackHunt is a programmatic research platform.</p>
-      <ul>
-        <li><strong>AI Generation:</strong> Our content, including pricing tables, feature summaries, and "Pros/Cons," is synthesized using Artificial Intelligence (Gemini 2.0 Flash) based on publicly available data.</li>
-        <li><strong>Accuracy:</strong> While we employ rigorous validation pipelines, AI can make mistakes. We cannot guarantee the accuracy of pricing or feature data. Always verify details on the vendor's official website before making a purchase decision.</li>
-      </ul>
+          <h2 id="affiliate">3. Affiliate Disclosure (How We Make Money)</h2>
 
-      <h2 id="affiliate">3. Affiliate Disclosure (How We Make Money)</h2>
+          <p>
+            StackHunt is a participant in various affiliate programs (including Impact,
+            PartnerStack, and others).
+          </p>
+          <ul>
+            <li>
+              <strong>Links:</strong> When you click a link to a software tool on our site, we may earn
+              a commission from that vendor.
+            </li>
+            <li>
+              <strong>No Bias:</strong> Our "Fit Scores" and search rankings are generated algorithmically
+              based on feature matching and semantic relevance. Affiliate partnerships do not influence
+              a tool's ranking or score.
+            </li>
+            <li>
+              <strong>Tracking:</strong> Clicking an affiliate link may set a third-party cookie on your
+              device by the merchant to track the referral.
+            </li>
+          </ul>
+          <p>
+            For more details, see our <a href="/disclosure">Affiliate Disclosure</a>.
+          </p>
 
-      <p>StackHunt is a participant in various affiliate programs (including Impact, PartnerStack, and others).</p>
-      <ul>
-        <li><strong>Links:</strong> When you click a link to a software tool on our site, we may earn a commission from that vendor.</li>
-        <li><strong>No Bias:</strong> Our "Fit Scores" and search rankings are generated algorithmically based on feature matching and semantic relevance. Affiliate partnerships do not influence a tool's ranking or score.</li>
-        <li><strong>Tracking:</strong> Clicking an affiliate link may set a third-party cookie on your device by the merchant to track the referral.</li>
-      </ul>
-      <p>
-        For more details, see our <a href="/disclosure">Affiliate Disclosure</a>.
-      </p>
+          <h2 id="use">4. How We Use Your Information</h2>
 
-      <h2 id="use">4. How We Use Your Information</h2>
+          <p>We use the limited data we collect to:</p>
+          <ul>
+            <li>Maintain the functionality and security of the website.</li>
+            <li>Prevent fraud and spam in our voting system.</li>
+            <li>Analyze aggregate trends to determine which tools to research next.</li>
+          </ul>
 
-      <p>We use the limited data we collect to:</p>
-      <ul>
-        <li>Maintain the functionality and security of the website.</li>
-        <li>Prevent fraud and spam in our voting system.</li>
-        <li>Analyze aggregate trends to determine which tools to research next.</li>
-      </ul>
+          <h2 id="retention">5. Data Retention</h2>
 
-      <h2 id="retention">5. Data Retention</h2>
+          <ul>
+            <li><strong>Analytics:</strong> Retained for up to 12 months in aggregated form.</li>
+            <li>
+              <strong>Vote Records:</strong> Hashed identifiers are retained indefinitely to maintain
+              the integrity of the total vote counts.
+            </li>
+          </ul>
 
-      <ul>
-        <li><strong>Analytics:</strong> Retained for up to 12 months in aggregated form.</li>
-        <li><strong>Vote Records:</strong> Hashed identifiers are retained indefinitely to maintain the integrity of the total vote counts.</li>
-      </ul>
+          <h2 id="rights">6. Your Rights</h2>
 
-      <h2 id="rights">6. Your Rights</h2>
+          <p>
+            Depending on your location, you may have rights regarding your personal data (access,
+            deletion, correction). However, since StackHunt collects almost no Personally
+            Identifiable Information (PII), we likely hold no data that can be directly linked to
+            you.
+          </p>
+          <p>
+            If you have questions or wish to exercise your rights regarding any account data you may
+            have saved, please <a href="#contact">contact us</a>.
+          </p>
 
-      <p>
-        Depending on your location, you may have rights regarding your personal data (access,
-        deletion, correction). However, since StackHunt collects almost no Personally Identifiable
-        Information (PII), we likely hold no data that can be directly linked to you.
-      </p>
-      <p>
-        If you have questions or wish to exercise your rights regarding any account data you
-        may have saved, please <a href="#contact">contact us</a>.
-      </p>
+          <h2>7. Changes to This Policy</h2>
 
-      <h2>7. Changes to This Policy</h2>
+          <p>
+            We may update this policy as our platform evolves. Significant changes will be noted by
+            the "Last updated" date at the top of this page.
+          </p>
 
-      <p>
-        We may update this policy as our platform evolves. Significant changes will be noted
-        by the "Last updated" date at the top of this page.
-      </p>
+          <h2 id="contact">8. Contact Us</h2>
 
-      <h2 id="contact">8. Contact Us</h2>
+          <p>For legal inquiries or privacy concerns:</p>
+          <p>
+            Email: <a href="mailto:privacy@stackhunt.com">privacy@stackhunt.com</a>
+          </p>
 
-      <p>For legal inquiries or privacy concerns:</p>
-      <p>
-        Email: <a href="mailto:privacy@stackhunt.com">privacy@stackhunt.com</a>
-      </p>
+          <hr class="my-8" />
 
-      <hr class="my-8" />
-
-      <p class="text-xs text-zinc-600">
-        This policy is effective as of January 31, 2026.
-      </p>
+          <p class="text-xs text-zinc-600">This policy is effective as of January 31, 2026.</p>
         </article>
       </div>
     </div>

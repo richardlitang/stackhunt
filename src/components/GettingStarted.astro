@@ -37,212 +37,251 @@ const setupTypeLabels: Record<string, { label: string; icon: string }> = {
 const frictionScore = setupComplexity.friction_score || 0;
 const frictionPercent = (frictionScore / 10) * 100;
 const frictionColor =
-  frictionScore <= 3 ? 'bg-green-500' :
-  frictionScore <= 6 ? 'bg-yellow-500' :
-  'bg-red-500';
+  frictionScore <= 3 ? 'bg-green-500' : frictionScore <= 6 ? 'bg-yellow-500' : 'bg-red-500';
 const frictionLabel =
-  frictionScore <= 3 ? 'Quick Setup' :
-  frictionScore <= 6 ? 'Moderate Setup' :
-  'Complex Setup';
+  frictionScore <= 3 ? 'Quick Setup' : frictionScore <= 6 ? 'Moderate Setup' : 'Complex Setup';
 
 // Check if we have any red tape
 const redTape = setupComplexity.red_tape;
-const hasRedTape = redTape && (
-  redTape.cc_required ||
-  redTape.domain_required ||
-  redTape.admin_required ||
-  redTape.sales_gated ||
-  redTape.approval_required
-);
+const hasRedTape =
+  redTape &&
+  (redTape.cc_required ||
+    redTape.domain_required ||
+    redTape.admin_required ||
+    redTape.sales_gated ||
+    redTape.approval_required);
 
 // Check if we have technical blockers
-const hasBlockers = setupComplexity.technical_blockers && setupComplexity.technical_blockers.length > 0;
+const hasBlockers =
+  setupComplexity.technical_blockers && setupComplexity.technical_blockers.length > 0;
 
 // Check required roles
-const requiresRoles = setupComplexity.requires_developer || setupComplexity.requires_it_admin || setupComplexity.implementation_partner_needed;
+const requiresRoles =
+  setupComplexity.requires_developer ||
+  setupComplexity.requires_it_admin ||
+  setupComplexity.implementation_partner_needed;
 ---
 
-<details id="getting-started" class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
+<details
+  id="getting-started"
+  class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+  open
+>
   <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
     <h2 class="text-lg font-semibold text-zinc-100">Getting Started</h2>
     <span class="text-xs text-zinc-500 group-open:hidden md:hidden">Click to expand</span>
   </summary>
 
   <div class="mt-5 space-y-6">
-
     {/* Setup Overview - Time, Type, Friction */}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
       {/* Setup Time */}
       <div class="rounded-lg bg-zinc-800/50 p-4">
         <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Time</div>
         <div class="text-lg font-semibold text-zinc-100">
-          {setupTimeLabels[setupComplexity.estimated_setup_time] || setupComplexity.estimated_setup_time}
+          {
+            setupTimeLabels[setupComplexity.estimated_setup_time] ||
+              setupComplexity.estimated_setup_time
+          }
         </div>
       </div>
 
       {/* Setup Type */}
-      {setupComplexity.setup_type && (
-        <div class="rounded-lg bg-zinc-800/50 p-4">
-          <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Type</div>
-          <div class="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-            <span>{setupTypeLabels[setupComplexity.setup_type].icon}</span>
-            <span>{setupTypeLabels[setupComplexity.setup_type].label}</span>
+      {
+        setupComplexity.setup_type && (
+          <div class="rounded-lg bg-zinc-800/50 p-4">
+            <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Type</div>
+            <div class="text-lg font-semibold text-zinc-100 flex items-center gap-2">
+              <span>{setupTypeLabels[setupComplexity.setup_type].icon}</span>
+              <span>{setupTypeLabels[setupComplexity.setup_type].label}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Friction Score */}
-      {frictionScore > 0 && (
-        <div class="rounded-lg bg-zinc-800/50 p-4">
-          <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Friction Score</div>
-          <div class="text-lg font-semibold text-zinc-100 mb-2">{frictionScore}/10 · {frictionLabel}</div>
-          <div class="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
-            <div class={`h-full ${frictionColor} transition-all`} style={`width: ${frictionPercent}%`}></div>
+      {
+        frictionScore > 0 && (
+          <div class="rounded-lg bg-zinc-800/50 p-4">
+            <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Friction Score</div>
+            <div class="text-lg font-semibold text-zinc-100 mb-2">
+              {frictionScore}/10 · {frictionLabel}
+            </div>
+            <div class="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+              <div
+                class={`h-full ${frictionColor} transition-all`}
+                style={`width: ${frictionPercent}%`}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
 
     {/* Red Tape Warnings */}
-    {hasRedTape && (
-      <div class="rounded-lg border border-red-500/30 bg-red-950/20 p-4">
-        <h3 class="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
-          <span>⚠️</span>
-          <span>Red Tape Alert</span>
-        </h3>
-        <ul class="space-y-2 text-sm text-zinc-300">
-          {redTape.cc_required && (
-            <li class="flex items-start gap-2">
-              <span class="text-red-400">•</span>
-              <span><strong>Credit card required</strong> for "free" trial</span>
-            </li>
-          )}
-          {redTape.domain_required && (
-            <li class="flex items-start gap-2">
-              <span class="text-red-400">•</span>
-              <span><strong>Business domain required</strong> (cannot use Gmail/consumer email)</span>
-            </li>
-          )}
-          {redTape.admin_required && (
-            <li class="flex items-start gap-2">
-              <span class="text-red-400">•</span>
-              <span><strong>Admin privileges required</strong> (Full Disk Access on macOS, Admin on Windows)</span>
-            </li>
-          )}
-          {redTape.sales_gated && (
-            <li class="flex items-start gap-2">
-              <span class="text-red-400">•</span>
-              <span><strong>Sales-gated</strong> — no self-serve signup, must "Contact Sales"</span>
-            </li>
-          )}
-          {redTape.approval_required && (
-            <li class="flex items-start gap-2">
-              <span class="text-red-400">•</span>
-              <span><strong>Approval required</strong> — email/domain verification may take hours</span>
-            </li>
-          )}
-        </ul>
-      </div>
-    )}
+    {
+      hasRedTape && (
+        <div class="rounded-lg border border-red-500/30 bg-red-950/20 p-4">
+          <h3 class="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
+            <span>⚠️</span>
+            <span>Red Tape Alert</span>
+          </h3>
+          <ul class="space-y-2 text-sm text-zinc-300">
+            {redTape.cc_required && (
+              <li class="flex items-start gap-2">
+                <span class="text-red-400">•</span>
+                <span>
+                  <strong>Credit card required</strong> for "free" trial
+                </span>
+              </li>
+            )}
+            {redTape.domain_required && (
+              <li class="flex items-start gap-2">
+                <span class="text-red-400">•</span>
+                <span>
+                  <strong>Business domain required</strong> (cannot use Gmail/consumer email)
+                </span>
+              </li>
+            )}
+            {redTape.admin_required && (
+              <li class="flex items-start gap-2">
+                <span class="text-red-400">•</span>
+                <span>
+                  <strong>Admin privileges required</strong> (Full Disk Access on macOS, Admin on
+                  Windows)
+                </span>
+              </li>
+            )}
+            {redTape.sales_gated && (
+              <li class="flex items-start gap-2">
+                <span class="text-red-400">•</span>
+                <span>
+                  <strong>Sales-gated</strong> — no self-serve signup, must "Contact Sales"
+                </span>
+              </li>
+            )}
+            {redTape.approval_required && (
+              <li class="flex items-start gap-2">
+                <span class="text-red-400">•</span>
+                <span>
+                  <strong>Approval required</strong> — email/domain verification may take hours
+                </span>
+              </li>
+            )}
+          </ul>
+        </div>
+      )
+    }
 
     {/* Required Roles */}
-    {requiresRoles && (
-      <div class="rounded-lg bg-zinc-800/50 p-4">
-        <h3 class="text-sm font-semibold text-zinc-300 mb-2">Who Needs to Be Involved?</h3>
-        <div class="flex flex-wrap gap-2">
-          {setupComplexity.requires_developer && (
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-              👨‍💻 Developer
-            </span>
-          )}
-          {setupComplexity.requires_it_admin && (
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
-              🔧 IT Admin
-            </span>
-          )}
-          {setupComplexity.implementation_partner_needed && (
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
-              🤝 Implementation Partner
-            </span>
-          )}
-        </div>
-      </div>
-    )}
-
-    {/* Technical Blockers */}
-    {hasBlockers && (
-      <div class="rounded-lg bg-zinc-800/50 p-4">
-        <h3 class="text-sm font-semibold text-zinc-300 mb-3">Technical Requirements</h3>
-        <ul class="space-y-2 text-sm text-zinc-400">
-          {setupComplexity.technical_blockers!.map((blocker) => (
-            <li class="flex items-start gap-2">
-              <span class="text-zinc-600">•</span>
-              <span>{blocker}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    )}
-
-    {/* Setup Steps */}
-    {setupComplexity.steps && setupComplexity.steps.length > 0 && (
-      <div>
-        <h3 class="text-sm font-semibold text-zinc-100 mb-4">The Fast Path</h3>
-        <ol class="space-y-4">
-          {setupComplexity.steps.map((step) => (
-            <li class="flex gap-4">
-              <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-sm border border-blue-500/30">
-                {step.step}
-              </div>
-              <div class="flex-1 pt-1">
-                <div class="text-sm text-zinc-100 font-medium">{step.action}</div>
-                {step.command && (
-                  <div class="mt-2">
-                    <code class="block bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-xs text-green-400 font-mono overflow-x-auto">
-                      {step.command}
-                    </code>
-                  </div>
-                )}
-                {step.description && (
-                  <p class="mt-1 text-xs text-zinc-500">{step.description}</p>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
-      </div>
-    )}
-
-    {/* Aha Moment */}
-    {setupComplexity.aha_moment && (
-      <div class="rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 p-4">
-        <div class="flex items-start gap-3">
-          <span class="text-2xl">🎉</span>
-          <div>
-            <h3 class="text-sm font-semibold text-blue-300 mb-1">The "Aha!" Moment</h3>
-            <p class="text-sm text-zinc-300">{setupComplexity.aha_moment}</p>
+    {
+      requiresRoles && (
+        <div class="rounded-lg bg-zinc-800/50 p-4">
+          <h3 class="text-sm font-semibold text-zinc-300 mb-2">Who Needs to Be Involved?</h3>
+          <div class="flex flex-wrap gap-2">
+            {setupComplexity.requires_developer && (
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                👨‍💻 Developer
+              </span>
+            )}
+            {setupComplexity.requires_it_admin && (
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                🔧 IT Admin
+              </span>
+            )}
+            {setupComplexity.implementation_partner_needed && (
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                🤝 Implementation Partner
+              </span>
+            )}
           </div>
         </div>
-      </div>
-    )}
+      )
+    }
+
+    {/* Technical Blockers */}
+    {
+      hasBlockers && (
+        <div class="rounded-lg bg-zinc-800/50 p-4">
+          <h3 class="text-sm font-semibold text-zinc-300 mb-3">Technical Requirements</h3>
+          <ul class="space-y-2 text-sm text-zinc-400">
+            {setupComplexity.technical_blockers!.map((blocker) => (
+              <li class="flex items-start gap-2">
+                <span class="text-zinc-600">•</span>
+                <span>{blocker}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    {/* Setup Steps */}
+    {
+      setupComplexity.steps && setupComplexity.steps.length > 0 && (
+        <div>
+          <h3 class="text-sm font-semibold text-zinc-100 mb-4">The Fast Path</h3>
+          <ol class="space-y-4">
+            {setupComplexity.steps.map((step) => (
+              <li class="flex gap-4">
+                <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-sm border border-blue-500/30">
+                  {step.step}
+                </div>
+                <div class="flex-1 pt-1">
+                  <div class="text-sm text-zinc-100 font-medium">{step.action}</div>
+                  {step.command && (
+                    <div class="mt-2">
+                      <code class="block bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-xs text-green-400 font-mono overflow-x-auto">
+                        {step.command}
+                      </code>
+                    </div>
+                  )}
+                  {step.description && <p class="mt-1 text-xs text-zinc-500">{step.description}</p>}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )
+    }
+
+    {/* Aha Moment */}
+    {
+      setupComplexity.aha_moment && (
+        <div class="rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 p-4">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl">🎉</span>
+            <div>
+              <h3 class="text-sm font-semibold text-blue-300 mb-1">The "Aha!" Moment</h3>
+              <p class="text-sm text-zinc-300">{setupComplexity.aha_moment}</p>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
     {/* Setup Documentation Link */}
-    {setupComplexity.setup_url && (
-      <div class="pt-2">
-        <a
-          href={setupComplexity.setup_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-        >
-          <span>📚 View Official Setup Guide</span>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </a>
-      </div>
-    )}
-
+    {
+      setupComplexity.setup_url && (
+        <div class="pt-2">
+          <a
+            href={setupComplexity.setup_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            <span>📚 View Official Setup Guide</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+          </a>
+        </div>
+      )
+    }
   </div>
 </details>

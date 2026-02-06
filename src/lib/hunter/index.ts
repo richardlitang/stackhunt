@@ -30,12 +30,7 @@ export type {
 export { slugify, interpolateTemplate, buildFactSummary } from './utils';
 
 // Re-export services for advanced usage
-export {
-  SerperService,
-  GeminiService,
-  LogoService,
-  QueueService,
-} from './services';
+export { SerperService, GeminiService, LogoService, QueueService } from './services';
 
 // Re-export error types
 export {
@@ -47,8 +42,4 @@ export {
 } from './errors';
 
 // Re-export phases for custom orchestration
-export {
-  executeResearchPhase,
-  executeAnalysisPhase,
-  executePersistencePhase,
-} from './phases';
+export { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';

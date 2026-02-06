@@ -41,7 +41,7 @@ function getFingerprint(): string {
   let hash = 0;
   for (let i = 0; i < data.length; i++) {
     const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
 
@@ -109,86 +109,89 @@ export default function VoteWidget({
     }
   }, [reviewId]);
 
-  const handleVote = useCallback(async (voteType: VoteType) => {
-    if (isLoading) return;
+  const handleVote = useCallback(
+    async (voteType: VoteType) => {
+      if (isLoading) return;
 
-    // Get turnstile token
-    let token = turnstileToken;
-    if (!token && window.turnstile) {
-      // Try to get a new token
-      try {
-        token = await new Promise((resolve, reject) => {
-          const container = document.getElementById(`turnstile-${reviewId}`);
-          if (!container) return reject('No container');
+      // Get turnstile token
+      let token = turnstileToken;
+      if (!token && window.turnstile) {
+        // Try to get a new token
+        try {
+          token = await new Promise((resolve, reject) => {
+            const container = document.getElementById(`turnstile-${reviewId}`);
+            if (!container) return reject('No container');
 
-          window.turnstile.reset(container);
-          // Token will come through callback, wait a bit
-          setTimeout(() => {
-            if (turnstileToken) resolve(turnstileToken);
-            else reject('No token');
-          }, 2000);
-        });
-      } catch {
-        // Continue without token for now
-      }
-    }
-
-    const previousVote = userVote;
-    const previousUpvotes = upvotes;
-    const previousDownvotes = downvotes;
-
-    // Optimistic update
-    if (voteType === userVote) {
-      // Removing vote
-      setUserVote(null);
-      if (voteType === 'up') setUpvotes(v => v - 1);
-      else setDownvotes(v => v - 1);
-    } else {
-      // Adding/changing vote
-      if (previousVote === 'up') setUpvotes(v => v - 1);
-      if (previousVote === 'down') setDownvotes(v => v - 1);
-
-      setUserVote(voteType);
-      if (voteType === 'up') setUpvotes(v => v + 1);
-      else if (voteType === 'down') setDownvotes(v => v + 1);
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/vote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reviewId,
-          voteType: voteType === userVote ? 0 : (voteType === 'up' ? 1 : -1),
-          fingerprintHash: getFingerprint(),
-          turnstileToken: token,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Vote failed');
+            window.turnstile.reset(container);
+            // Token will come through callback, wait a bit
+            setTimeout(() => {
+              if (turnstileToken) resolve(turnstileToken);
+              else reject('No token');
+            }, 2000);
+          });
+        } catch {
+          // Continue without token for now
+        }
       }
 
-      // Store vote in localStorage
+      const previousVote = userVote;
+      const previousUpvotes = upvotes;
+      const previousDownvotes = downvotes;
+
+      // Optimistic update
       if (voteType === userVote) {
-        localStorage.removeItem(`vote-${reviewId}`);
-      } else if (voteType) {
-        localStorage.setItem(`vote-${reviewId}`, voteType);
+        // Removing vote
+        setUserVote(null);
+        if (voteType === 'up') setUpvotes((v) => v - 1);
+        else setDownvotes((v) => v - 1);
+      } else {
+        // Adding/changing vote
+        if (previousVote === 'up') setUpvotes((v) => v - 1);
+        if (previousVote === 'down') setDownvotes((v) => v - 1);
+
+        setUserVote(voteType);
+        if (voteType === 'up') setUpvotes((v) => v + 1);
+        else if (voteType === 'down') setDownvotes((v) => v + 1);
       }
-    } catch (error) {
-      // Revert optimistic update
-      setUserVote(previousVote);
-      setUpvotes(previousUpvotes);
-      setDownvotes(previousDownvotes);
-      console.error('Vote error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading, userVote, upvotes, downvotes, reviewId, turnstileToken]);
+
+      setIsLoading(true);
+
+      try {
+        const response = await fetch('/api/vote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reviewId,
+            voteType: voteType === userVote ? 0 : voteType === 'up' ? 1 : -1,
+            fingerprintHash: getFingerprint(),
+            turnstileToken: token,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Vote failed');
+        }
+
+        // Store vote in localStorage
+        if (voteType === userVote) {
+          localStorage.removeItem(`vote-${reviewId}`);
+        } else if (voteType) {
+          localStorage.setItem(`vote-${reviewId}`, voteType);
+        }
+      } catch (error) {
+        // Revert optimistic update
+        setUserVote(previousVote);
+        setUpvotes(previousUpvotes);
+        setDownvotes(previousDownvotes);
+        console.error('Vote error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, userVote, upvotes, downvotes, reviewId, turnstileToken]
+  );
 
   const netScore = upvotes - downvotes;
 
@@ -204,24 +207,27 @@ export default function VoteWidget({
         onClick={() => handleVote('up')}
         disabled={isLoading}
         className={cn(
-          "gap-1.5",
+          'gap-1.5',
           userVote === 'up'
             ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-100'
             : 'bg-slate-100 text-slate-600 hover:bg-green-50 hover:text-green-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-green-950'
         )}
         aria-label="Upvote"
       >
-        <ThumbsUp className={cn("h-4 w-4", userVote === 'up' && "fill-current")} />
+        <ThumbsUp className={cn('h-4 w-4', userVote === 'up' && 'fill-current')} />
         <span>{upvotes}</span>
       </Button>
 
       {/* Score - hide when 0 to reduce clutter */}
       {netScore !== 0 && (
-        <span className={cn(
-          "min-w-[2rem] text-center text-sm font-semibold",
-          netScore > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-        )}>
-          {netScore > 0 ? '+' : ''}{netScore}
+        <span
+          className={cn(
+            'min-w-[2rem] text-center text-sm font-semibold',
+            netScore > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+          )}
+        >
+          {netScore > 0 ? '+' : ''}
+          {netScore}
         </span>
       )}
 
@@ -232,14 +238,14 @@ export default function VoteWidget({
         onClick={() => handleVote('down')}
         disabled={isLoading}
         className={cn(
-          "gap-1.5",
+          'gap-1.5',
           userVote === 'down'
             ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-100'
             : 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-red-950'
         )}
         aria-label="Downvote"
       >
-        <ThumbsDown className={cn("h-4 w-4", userVote === 'down' && "fill-current")} />
+        <ThumbsDown className={cn('h-4 w-4', userVote === 'down' && 'fill-current')} />
         <span>{downvotes}</span>
       </Button>
     </div>

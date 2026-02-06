@@ -11,9 +11,7 @@ import PricingBadge from '@/components/PricingBadge.astro';
 import ProsCons from '@/components/ProsCons.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
-import SpiderwebGrid from '@/components/SpiderwebGrid.astro';
 import SentimentTags from '@/components/SentimentTags.astro';
-import VoteWidget from '@/components/VoteWidget';
 import CompareButton from '@/components/CompareButton';
 import AddToStackButton from '@/components/AddToStackButton';
 import VideoEmbed from '@/components/VideoEmbed';
@@ -37,16 +35,10 @@ import DynamicSpecs from '@/components/DynamicSpecs.astro';
 import IncludedTools from '@/components/IncludedTools.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
-import SignalAggregatesBadge from '@/components/SignalAggregatesBadge';
 import type { KnowledgeCard, ToolConstraints } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
 import { areToolsComparable } from '@/lib/analysis/comparator';
-import {
-  getToolBySlugAndType,
-  getToolContexts,
-  getToolTags,
-  supabase,
-} from '@/lib/supabase';
+import { getToolBySlugAndType, getToolContexts, getToolTags, supabase } from '@/lib/supabase';
 import {
   generateToolMeta,
   generateToolSchema,
@@ -83,7 +75,12 @@ const contextLinks = await getToolContexts(tool.id);
 const tags = await getToolTags(tool.id);
 
 // Build related links for internal linking (SEO)
-const relatedLinks: Array<{ href: string; title: string; description?: string; icon: 'category' | 'list' | 'tool' | 'compare' }> = [];
+const relatedLinks: Array<{
+  href: string;
+  title: string;
+  description?: string;
+  icon: 'category' | 'list' | 'tool' | 'compare';
+}> = [];
 
 // Add category link
 if (tool.category) {
@@ -107,49 +104,77 @@ const constraints = toolSpecs?.constraints as ToolConstraints | null;
 const categorySpecificData = toolSpecs?.categorySpecificData as Record<string, unknown> | undefined;
 const vipSpecifics = toolSpecs?.specifics as Record<string, unknown> | undefined;
 const reviewContext = tool.review_context as Record<string, unknown> | null;
-const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<string, unknown> | null;
-const budgetAnalyst = (reviewContext?.budgetAnalyst || reviewContext?.budget_analyst) as Record<string, unknown> | null;
+const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<
+  string,
+  unknown
+> | null;
+const budgetAnalyst = (reviewContext?.budgetAnalyst || reviewContext?.budget_analyst) as Record<
+  string,
+  unknown
+> | null;
 const humanVerdict = (reviewContext?.humanVerdict || reviewContext?.human_verdict) as string | null;
 const delighters = Array.isArray(userAdvocate?.delighters) ? userAdvocate?.delighters : [];
 const frustrations = Array.isArray(userAdvocate?.frustrations) ? userAdvocate?.frustrations : [];
 const powerTip = (userAdvocate?.powerTip || userAdvocate?.power_tip) as string | null;
 const vibe = userAdvocate?.vibe as string | null;
 const originStory = (userAdvocate?.originStory || userAdvocate?.origin_story) as string | null;
-const idealFor = Array.isArray(userAdvocate?.idealFor || userAdvocate?.ideal_for) ? (userAdvocate?.idealFor || userAdvocate?.ideal_for) : [];
-const avoidIf = Array.isArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if) ? (userAdvocate?.avoidIf || userAdvocate?.avoid_if) : [];
+const idealFor = Array.isArray(userAdvocate?.idealFor || userAdvocate?.ideal_for)
+  ? userAdvocate?.idealFor || userAdvocate?.ideal_for
+  : [];
+const avoidIf = Array.isArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if)
+  ? userAdvocate?.avoidIf || userAdvocate?.avoid_if
+  : [];
 
 // Fetch alternatives using hybrid search (vector similarity + category guardrails)
 // Strategy: Compute live, cache at edge - no DB storage of computed relationships
-const alternativesResponse = await getAlternatives(tool, { matchThreshold: 0.40, matchCount: 6 });
-const alternativeIds = alternativesResponse.items.map(a => a.id);
+const alternativesResponse = await getAlternatives(tool, { matchThreshold: 0.4, matchCount: 6 });
+const alternativeIds = alternativesResponse.items.map((a) => a.id);
 
 // Fetch full data for alternatives (needed for micro-diffs, display, and comparison validation)
-const { data: alternatives } = alternativeIds.length > 0 ? await supabase
-  .from('items')
-  .select('id, name, slug, logo_url, short_description, avg_score, pricing_type, learning_curve, base_score, specs, category_id, metadata')
-  .in('id', alternativeIds)
-  .eq('type', 'tool') : { data: [] };
+const { data: alternatives } =
+  alternativeIds.length > 0
+    ? await supabase
+        .from('items')
+        .select(
+          'id, name, slug, logo_url, short_description, avg_score, pricing_type, learning_curve, base_score, specs, category_id, metadata'
+        )
+        .in('id', alternativeIds)
+        .eq('type', 'tool')
+    : { data: [] };
 
 // Preserve similarity order from hybrid search
 const orderedAlternatives = alternatives
-  ? alternativeIds
-      .map(id => alternatives.find(a => a.id === id))
-      .filter(Boolean)
+  ? alternativeIds.map((id) => alternatives.find((a) => a.id === id)).filter(Boolean)
   : [];
 
 // Track whether these are true "alternatives" or just "related tools"
-const alternativesLabel = alternativesResponse.type === 'alternatives' ? 'Alternatives' : 'Related Tools';
+const alternativesLabel =
+  alternativesResponse.type === 'alternatives' ? 'Alternatives' : 'Related Tools';
 
 // Compute micro-diffs for alternatives (Layer 2 - Computed)
 const microDiffs = orderedAlternatives?.length
   ? computeMicroDiffs(
-      { slug: tool.slug, name: tool.name, pricing_type: tool.pricing_type, learning_curve: tool.learning_curve, base_score: tool.base_score, specs: tool.specs },
-      orderedAlternatives.map(alt => ({ slug: alt.slug, name: alt.name, pricing_type: alt.pricing_type, learning_curve: alt.learning_curve, base_score: alt.base_score, specs: alt.specs }))
+      {
+        slug: tool.slug,
+        name: tool.name,
+        pricing_type: tool.pricing_type,
+        learning_curve: tool.learning_curve,
+        base_score: tool.base_score,
+        specs: tool.specs,
+      },
+      orderedAlternatives.map((alt) => ({
+        slug: alt.slug,
+        name: alt.name,
+        pricing_type: alt.pricing_type,
+        learning_curve: alt.learning_curve,
+        base_score: alt.base_score,
+        specs: alt.specs,
+      }))
     )
   : new Map();
 
 // Fetch curated verdicts for alternatives (Layer 1 - Human Intelligence)
-const altSlugs = orderedAlternatives?.map(a => a.slug) || [];
+const altSlugs = orderedAlternatives?.map((a) => a.slug) || [];
 const curatedVerdicts = new Map<string, string>();
 
 if (altSlugs.length > 0) {
@@ -170,19 +195,27 @@ if (altSlugs.length > 0) {
 }
 
 const sourceDomains = firstReview?.sources
-  ? [...new Set((firstReview.sources as Array<{ domain?: string; url?: string }>).map((s) => {
-      const rawDomain = s.domain || (() => {
-        if (!s.url) return '';
-        try {
-          return new URL(s.url).hostname.replace(/^www\./, '');
-        } catch {
-          return '';
-        }
-      })();
-      if (!rawDomain) return '';
-      const domain = rawDomain.replace(/\.(com|org|net|io|co)$/, '');
-      return domain.charAt(0).toUpperCase() + domain.slice(1);
-    }).filter(Boolean))].slice(0, 5)
+  ? [
+      ...new Set(
+        (firstReview.sources as Array<{ domain?: string; url?: string }>)
+          .map((s) => {
+            const rawDomain =
+              s.domain ||
+              (() => {
+                if (!s.url) return '';
+                try {
+                  return new URL(s.url).hostname.replace(/^www\./, '');
+                } catch {
+                  return '';
+                }
+              })();
+            if (!rawDomain) return '';
+            const domain = rawDomain.replace(/\.(com|org|net|io|co)$/, '');
+            return domain.charAt(0).toUpperCase() + domain.slice(1);
+          })
+          .filter(Boolean)
+      ),
+    ].slice(0, 5)
   : [];
 
 // Fetch signal aggregates for community signals
@@ -224,11 +257,15 @@ const schemas = [
   generateBreadcrumbSchema([
     { name: 'Home', url: '/' },
     { name: 'Tools', url: '/tools' },
-    ...(tool.category ? [{ name: tool.category.name, url: `/categories/${tool.category.slug}` }] : []),
+    ...(tool.category
+      ? [{ name: tool.category.name, url: `/categories/${tool.category.slug}` }]
+      : []),
     { name: tool.name, url: `/tool/${tool.slug}` },
   ]),
   // Include VideoObject schema if video exists
-  ...(tool.video_id ? [generateVideoSchema(tool, tool.video_id, tool.video_title || `${tool.name} Overview`)] : []),
+  ...(tool.video_id
+    ? [generateVideoSchema(tool, tool.video_id, tool.video_title || `${tool.name} Overview`)]
+    : []),
   // Include FAQ schema for common questions
   ...(faqSchema ? [faqSchema] : []),
 ];
@@ -237,8 +274,14 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
 const hasAbout = Boolean(tool.long_description || tool.short_description || knowledgeCard?.tagline);
 const hasVerdict = Boolean(firstReview?.summary_markdown);
-const hasStrengths = Boolean((globalPros.length > 0 || globalCons.length > 0) || (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0)));
-const hasFeatures = Boolean(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0);
+const hasStrengths = Boolean(
+  globalPros.length > 0 ||
+  globalCons.length > 0 ||
+  (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0))
+);
+const hasFeatures = Boolean(
+  knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0
+);
 const hasGettingStarted = Boolean(knowledgeCard?.setup_complexity);
 const hasSpecs = Boolean(categorySpecificData || vipSpecifics);
 const hasPricing = Boolean(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0);
@@ -260,14 +303,16 @@ const hasFAQ = faqItems.length > 0;
       <a href="/" class="hover:text-hunt-500">Home</a>
       <span>/</span>
       <a href="/tools" class="hover:text-hunt-500">Tools</a>
-      {tool.category && (
-        <>
-          <span>/</span>
-          <a href={`/categories/${tool.category.slug}`} class="hover:text-hunt-500">
-            {tool.category.name}
-          </a>
-        </>
-      )}
+      {
+        tool.category && (
+          <>
+            <span>/</span>
+            <a href={`/categories/${tool.category.slug}`} class="hover:text-hunt-500">
+              {tool.category.name}
+            </a>
+          </>
+        )
+      }
       <span>/</span>
       <span class="text-zinc-300">{tool.name}</span>
     </nav>
@@ -292,132 +337,314 @@ const hasFAQ = faqItems.length > 0;
       </div>
 
       {/* Content Confidence Indicator (shown when noindexed or low confidence) */}
-      {(confidence.shouldNoindex || confidence.score < 7) && (
-        <div class:list={[
-          'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium',
-          confidence.shouldNoindex
-            ? 'border-red-500/30 bg-red-500/10 text-red-400'
-            : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-        ]}>
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            {confidence.shouldNoindex ? (
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            ) : (
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            )}
-          </svg>
-          <span>
-            {confidence.shouldNoindex
-              ? 'Not indexed'
-              : 'Content confidence'} ({confidence.score.toFixed(1)}/10)
-          </span>
-          {confidence.shouldNoindex && (
-            <span class="text-xs opacity-75">
-              ({confidence.reasons[0] || 'Low content confidence'})
+      {
+        (confidence.shouldNoindex || confidence.score < 7) && (
+          <div
+            class:list={[
+              'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium',
+              confidence.shouldNoindex
+                ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                : 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+            ]}
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {confidence.shouldNoindex ? (
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                />
+              ) : (
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              )}
+            </svg>
+            <span>
+              {confidence.shouldNoindex ? 'Not indexed' : 'Content confidence'} (
+              {confidence.score.toFixed(1)}/10)
             </span>
-          )}
-        </div>
-      )}
+            {confidence.shouldNoindex && (
+              <span class="text-xs opacity-75">
+                ({confidence.reasons[0] || 'Low content confidence'})
+              </span>
+            )}
+          </div>
+        )
+      }
     </div>
 
     <!-- Hero Section -->
-    <header class="mb-12 rounded-2xl border-2 border-zinc-600 bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 shadow-lg">
+    <header
+      class="mb-12 rounded-2xl border-2 border-zinc-600 bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 shadow-lg"
+    >
       <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex items-start gap-5">
-          <Logo domain={tool.logo_url} name={tool.name} size="xl" priority={true} class="shrink-0 rounded-2xl border border-zinc-700 shadow-sm" />
+          <Logo
+            domain={tool.logo_url}
+            name={tool.name}
+            size="xl"
+            priority={true}
+            class="shrink-0 rounded-2xl border border-zinc-700 shadow-sm"
+          />
           <div>
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{tool.name}</h1>
-              {tool.is_verified && (
-                <span class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                  <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                  </svg>
-                  Verified
-                </span>
-              )}
+              {
+                tool.is_verified && (
+                  <span class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                    Verified
+                  </span>
+                )
+              }
             </div>
-            {(tool.short_description || knowledgeCard?.tagline) && (
-              <div class="mt-2 space-y-1">
-                {tool.short_description && <p class="text-zinc-300">{tool.short_description}</p>}
-                {knowledgeCard?.tagline && knowledgeCard.tagline !== tool.short_description && (
-                  <p class="text-sm text-zinc-400 italic">{knowledgeCard.tagline}</p>
-                )}
-              </div>
-            )}
+            {
+              (tool.short_description || knowledgeCard?.tagline) && (
+                <div class="mt-2 space-y-1">
+                  {tool.short_description && <p class="text-zinc-300">{tool.short_description}</p>}
+                  {knowledgeCard?.tagline && knowledgeCard.tagline !== tool.short_description && (
+                    <p class="text-sm text-zinc-400 italic">{knowledgeCard.tagline}</p>
+                  )}
+                </div>
+              )
+            }
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <PricingBadge type={tool.pricing_type} />
-              {tool.category && (
-                <a href={`/categories/${tool.category.slug}`} class="text-sm text-zinc-400 hover:text-hunt-500">
-                  {tool.category.name}
-                </a>
-              )}
-              {tool.website && (
-                <a href={tool.website} target="_blank" rel="noopener" class="flex items-center gap-1 text-sm text-zinc-400 hover:text-hunt-500">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
-                  Website
-                </a>
-              )}
+              {
+                tool.category && (
+                  <a
+                    href={`/categories/${tool.category.slug}`}
+                    class="text-sm text-zinc-400 hover:text-hunt-500"
+                  >
+                    {tool.category.name}
+                  </a>
+                )
+              }
+              {
+                tool.website && (
+                  <a
+                    href={tool.website}
+                    target="_blank"
+                    rel="noopener"
+                    class="flex items-center gap-1 text-sm text-zinc-400 hover:text-hunt-500"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                      />
+                    </svg>
+                    Website
+                  </a>
+                )
+              }
             </div>
-            {(tags.functions.length > 0 || tags.audiences.length > 0 || tags.platforms.length > 0) && (
-              <div class="mt-4 flex flex-wrap gap-2">
-                {tags.functions.map((tag) => (
-                  <a
-                    href={`/categories/${tag.slug}`}
-                    class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-200 transition"
-                  >
-                    {tag.name}
-                  </a>
-                ))}
-                {tags.audiences.map((tag) => (
-                  <a
-                    href={`/categories/${tag.slug}`}
-                    class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 hover:bg-green-200 transition"
-                  >
-                    {tag.name}
-                  </a>
-                ))}
-                {tags.platforms.map((tag) => (
-                  <a
-                    href={`/categories/${tag.slug}`}
-                    class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 hover:bg-purple-200 transition"
-                  >
-                    {tag.name}
-                  </a>
-                ))}
-              </div>
-            )}
+            {
+              (tags.functions.length > 0 ||
+                tags.audiences.length > 0 ||
+                tags.platforms.length > 0) && (
+                <div class="mt-4 flex flex-wrap gap-2">
+                  {tags.functions.map((tag) => (
+                    <a
+                      href={`/categories/${tag.slug}`}
+                      class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-200 transition"
+                    >
+                      {tag.name}
+                    </a>
+                  ))}
+                  {tags.audiences.map((tag) => (
+                    <a
+                      href={`/categories/${tag.slug}`}
+                      class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 hover:bg-green-200 transition"
+                    >
+                      {tag.name}
+                    </a>
+                  ))}
+                  {tags.platforms.map((tag) => (
+                    <a
+                      href={`/categories/${tag.slug}`}
+                      class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 hover:bg-purple-200 transition"
+                    >
+                      {tag.name}
+                    </a>
+                  ))}
+                </div>
+              )
+            }
           </div>
         </div>
         <div class="flex flex-col items-center gap-4 sm:items-end">
-          {tool.avg_score > 0 && <ScoreBadge score={Math.round(tool.avg_score)} size="lg" showLabel />}
+          {
+            tool.avg_score > 0 && (
+              <ScoreBadge score={Math.round(tool.avg_score)} size="lg" showLabel />
+            )
+          }
           {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />}
           <div class="flex flex-wrap gap-3 justify-center sm:justify-end">
-            <CompareButton client:load toolSlug={tool.slug} toolName={tool.name} toolLogo={tool.logo_url} categorySlug={tool.category?.slug} categoryName={tool.category?.name} />
-            <AddToStackButton client:load toolSlug={tool.slug} toolName={tool.name} toolLogo={tool.logo_url} pricing={{ starting_price: knowledgeCard?.pricing?.starting_price ?? null, model: knowledgeCard?.smp_pricing?.model ?? tool.pricing_type }} plans={knowledgeCard?.smp_pricing?.plans} />
+            <CompareButton
+              client:load
+              toolSlug={tool.slug}
+              toolName={tool.name}
+              toolLogo={tool.logo_url}
+              categorySlug={tool.category?.slug}
+              categoryName={tool.category?.name}
+            />
+            <AddToStackButton
+              client:load
+              toolSlug={tool.slug}
+              toolName={tool.name}
+              toolLogo={tool.logo_url}
+              pricing={{
+                starting_price: knowledgeCard?.pricing?.starting_price ?? null,
+                model: knowledgeCard?.smp_pricing?.model ?? tool.pricing_type,
+              }}
+              plans={knowledgeCard?.smp_pricing?.plans}
+            />
           </div>
         </div>
       </div>
     </header>
 
     {/* Table of Contents */}
-    <nav class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm" aria-label="On this page">
+    <nav
+      class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+      aria-label="On this page"
+    >
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">On this page</h2>
       <div class="flex flex-wrap gap-2 text-sm">
-        {hasAbout && <a href="#about" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">About</a>}
-        {hasVerdict && <a href="#verdict" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Verdict</a>}
-        {hasStrengths && <a href="#strengths" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Strengths</a>}
-        {hasFeatures && <a href="#features" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Features</a>}
-        {hasGettingStarted && <a href="#getting-started" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Getting started</a>}
-        {hasSpecs && <a href="#specs" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Specs</a>}
-        {hasPricing && <a href="#pricing-plans" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Pricing</a>}
-        {hasPlatform && <a href="#platform-integrations" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Platforms</a>}
-        {hasVideo && <a href="#video" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Video</a>}
-        {hasAlternatives && <a href="#alternatives" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Alternatives</a>}
-        {hasCommunity && <a href="#community" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">Community</a>}
-        {hasFAQ && <a href="#faq" class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition">FAQ</a>}
+        {
+          hasAbout && (
+            <a
+              href="#about"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              About
+            </a>
+          )
+        }
+        {
+          hasVerdict && (
+            <a
+              href="#verdict"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Verdict
+            </a>
+          )
+        }
+        {
+          hasStrengths && (
+            <a
+              href="#strengths"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Strengths
+            </a>
+          )
+        }
+        {
+          hasFeatures && (
+            <a
+              href="#features"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Features
+            </a>
+          )
+        }
+        {
+          hasGettingStarted && (
+            <a
+              href="#getting-started"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Getting started
+            </a>
+          )
+        }
+        {
+          hasSpecs && (
+            <a
+              href="#specs"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Specs
+            </a>
+          )
+        }
+        {
+          hasPricing && (
+            <a
+              href="#pricing-plans"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Pricing
+            </a>
+          )
+        }
+        {
+          hasPlatform && (
+            <a
+              href="#platform-integrations"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Platforms
+            </a>
+          )
+        }
+        {
+          hasVideo && (
+            <a
+              href="#video"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Video
+            </a>
+          )
+        }
+        {
+          hasAlternatives && (
+            <a
+              href="#alternatives"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Alternatives
+            </a>
+          )
+        }
+        {
+          hasCommunity && (
+            <a
+              href="#community"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Community
+            </a>
+          )
+        }
+        {
+          hasFAQ && (
+            <a
+              href="#faq"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              FAQ
+            </a>
+          )
+        }
       </div>
     </nav>
 
@@ -425,121 +652,176 @@ const hasFAQ = faqItems.length > 0;
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-8 lg:col-span-2">
         {/* About - What is it? (FIRST for users learning about the tool) */}
-        {hasAbout && (
-          <details id="about" class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
-            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
-              <h2 class="text-lg font-semibold text-zinc-100">About {tool.name}</h2>
-              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </summary>
-            {tool.long_description ? (
-              <div class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed" set:html={simpleMarkdown(tool.long_description)} />
-            ) : (
-              <div class="mt-4 text-zinc-300 leading-relaxed">
-                {tool.short_description || knowledgeCard?.tagline || `Overview of ${tool.name}.`}
-              </div>
-            )}
-          </details>
-        )}
+        {
+          hasAbout && (
+            <details
+              id="about"
+              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              open
+            >
+              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+                <h2 class="text-lg font-semibold text-zinc-100">About {tool.name}</h2>
+                <svg
+                  class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </summary>
+              {tool.long_description ? (
+                <div
+                  class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed"
+                  set:html={simpleMarkdown(tool.long_description)}
+                />
+              ) : (
+                <div class="mt-4 text-zinc-300 leading-relaxed">
+                  {tool.short_description || knowledgeCard?.tagline || `Overview of ${tool.name}.`}
+                </div>
+              )}
+            </details>
+          )
+        }
 
         {/* Our Verdict - Quick summary with key points */}
-        {firstReview?.summary_markdown && (
-          <section id="verdict" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 class="mb-4 text-lg font-semibold text-zinc-100">Our Verdict</h2>
-            <div class="prose prose-slate prose-sm max-w-none" set:html={simpleMarkdown(firstReview.summary_markdown)} />
+        {
+          firstReview?.summary_markdown && (
+            <section
+              id="verdict"
+              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <h2 class="mb-4 text-lg font-semibold text-zinc-100">Our Verdict</h2>
+              <div
+                class="prose prose-slate prose-sm max-w-none"
+                set:html={simpleMarkdown(firstReview.summary_markdown)}
+              />
 
-            {/* Value Rating and Fit Score */}
-            {(firstReview.value_rating || firstReview.fit_score) && (
-              <div class="mt-4 border-t border-zinc-800 pt-4 flex flex-wrap gap-4">
-                {firstReview.value_rating && (
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm text-zinc-400">Value:</span>
-                    <div class="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <svg class={`h-4 w-4 ${star <= firstReview.value_rating ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
+              {/* Value Rating and Fit Score */}
+              {(firstReview.value_rating || firstReview.fit_score) && (
+                <div class="mt-4 border-t border-zinc-800 pt-4 flex flex-wrap gap-4">
+                  {firstReview.value_rating && (
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-zinc-400">Value:</span>
+                      <div class="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <svg
+                            class={`h-4 w-4 ${star <= firstReview.value_rating ? 'text-amber-400' : 'text-slate-200'}`}
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-                {firstReview.fit_score && (
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm text-zinc-400">Context Fit:</span>
-                    <span class="text-sm font-medium text-zinc-300">{firstReview.fit_score}%</span>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                  {firstReview.fit_score && (
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-zinc-400">Context Fit:</span>
+                      <span class="text-sm font-medium text-zinc-300">
+                        {firstReview.fit_score}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {/* Switching From */}
-            {firstReview.switching_from?.length > 0 && (
-              <div class="mt-4 border-t border-zinc-800 pt-4">
-                <span class="text-xs text-zinc-400">Users often switch from: </span>
-                <span class="text-xs text-zinc-300">{firstReview.switching_from.join(', ')}</span>
-              </div>
-            )}
+              {/* Switching From */}
+              {firstReview.switching_from?.length > 0 && (
+                <div class="mt-4 border-t border-zinc-800 pt-4">
+                  <span class="text-xs text-zinc-400">Users often switch from: </span>
+                  <span class="text-xs text-zinc-300">{firstReview.switching_from.join(', ')}</span>
+                </div>
+              )}
 
-            {firstReview.sentiment_tags?.length > 0 && (
-              <div class="mt-6 border-t border-zinc-800 pt-4">
-                <SentimentTags tags={firstReview.sentiment_tags} />
-              </div>
-            )}
-          </section>
-        )}
+              {firstReview.sentiment_tags?.length > 0 && (
+                <div class="mt-6 border-t border-zinc-800 pt-4">
+                  <SentimentTags tags={firstReview.sentiment_tags} />
+                </div>
+              )}
+            </section>
+          )
+        }
 
         {/* Strengths & Weaknesses - Prefer contextual over global */}
-        {((globalPros.length > 0 || globalCons.length > 0) || (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0))) && (
-          <details id="strengths" class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
-            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
-              <div>
-                <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
-                <p class="mt-1 text-sm text-zinc-400">
-                  {firstReview?.context?.title
-                    ? `How ${tool.name} performs for ${firstReview.context.title.replace(/^(Best|Top\s+\d+)\s+/i, '').toLowerCase()}`
-                    : `What ${tool.name} does well and where it falls short`}
-                </p>
-              </div>
-              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </summary>
+        {
+          (globalPros.length > 0 ||
+            globalCons.length > 0 ||
+            (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0))) && (
+            <details
+              id="strengths"
+              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              open
+            >
+              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+                <div>
+                  <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
+                  <p class="mt-1 text-sm text-zinc-400">
+                    {firstReview?.context?.title
+                      ? `How ${tool.name} performs for ${firstReview.context.title.replace(/^(Best|Top\s+\d+)\s+/i, '').toLowerCase()}`
+                      : `What ${tool.name} does well and where it falls short`}
+                  </p>
+                </div>
+                <svg
+                  class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </summary>
 
-            <div class="mt-4">
-              {/* Show contextual pros/cons if available (more specific), otherwise global */}
-              {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
-                <ProsCons
-                  pros={firstReview.pros || []}
-                  cons={firstReview.cons || []}
-                  sourceDisplay="block"
-                />
-              ) : (globalPros.length > 0 || globalCons.length > 0) && (
-                <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="block" />
-              )}
-            </div>
-          </details>
-        )}
+              <div class="mt-4">
+                {/* Show contextual pros/cons if available (more specific), otherwise global */}
+                {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
+                  <ProsCons
+                    pros={firstReview.pros || []}
+                    cons={firstReview.cons || []}
+                    sourceDisplay="block"
+                  />
+                ) : (
+                  (globalPros.length > 0 || globalCons.length > 0) && (
+                    <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="block" />
+                  )
+                )}
+              </div>
+            </details>
+          )
+        }
 
         {/* Features Showcase */}
-        {(knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0) && (
-          <section id="features">
-            <FeaturesShowcase
-              features={knowledgeCard.features}
-              toolName={tool.name}
-            />
-          </section>
-        )}
+        {
+          (knowledgeCard?.features?.core?.length > 0 ||
+            knowledgeCard?.features?.unique?.length > 0) && (
+            <section id="features">
+              <FeaturesShowcase features={knowledgeCard.features} toolName={tool.name} />
+            </section>
+          )
+        }
 
         {/* Getting Started - Setup guide with friction score and actual steps */}
-        {knowledgeCard?.setup_complexity && (
-          <section id="getting-started">
-            <GettingStarted
-              setupComplexity={knowledgeCard.setup_complexity}
-              toolName={tool.name}
-            />
-          </section>
-        )}
+        {
+          knowledgeCard?.setup_complexity && (
+            <section id="getting-started">
+              <GettingStarted
+                setupComplexity={knowledgeCard.setup_complexity}
+                toolName={tool.name}
+              />
+            </section>
+          )
+        }
 
         {/* Technical Specs - Category-specific and VIP tool details */}
         <section id="specs">
@@ -552,99 +834,153 @@ const hasFAQ = faqItems.length > 0;
         </section>
 
         {/* Pricing Plans */}
-        {(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) && (
-          <details id="pricing-plans" class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow" open>
-            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
-              <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
-              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </summary>
-            <div class="mt-4">
-              {/* Constraints warnings */}
-              {constraints && (
-                <div class="mb-6">
-                  <HiddenCeiling
-                    constraints={constraints}
-                    toolName={tool.name}
-                    lastVerifiedAt={tool.pricing_verified_at}
+        {
+          (knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) && (
+            <details
+              id="pricing-plans"
+              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              open
+            >
+              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+                <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
+                <svg
+                  class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
                   />
-                </div>
-              )}
+                </svg>
+              </summary>
+              <div class="mt-4">
+                {/* Constraints warnings */}
+                {constraints && (
+                  <div class="mb-6">
+                    <HiddenCeiling
+                      constraints={constraints}
+                      toolName={tool.name}
+                      lastVerifiedAt={tool.pricing_verified_at}
+                    />
+                  </div>
+                )}
 
-              <PricingPlansGrid
-                smp_pricing={knowledgeCard?.smp_pricing}
-                legacy_pricing={knowledgeCard?.pricing}
-                toolName={tool.name}
-              >
-                <PriceVerification
-                  slot="verification"
-                  client:visible
-                  toolId={tool.id}
+                <PricingPlansGrid
+                  smp_pricing={knowledgeCard?.smp_pricing}
+                  legacy_pricing={knowledgeCard?.pricing}
                   toolName={tool.name}
-                  currentPrice={knowledgeCard?.pricing?.starting_price}
-                  pricingType={tool.pricing_type}
-                  verificationCount={tool.user_verifications_this_week || 0}
-                  variant="inline"
-                />
-              </PricingPlansGrid>
+                >
+                  <PriceVerification
+                    slot="verification"
+                    client:visible
+                    toolId={tool.id}
+                    toolName={tool.name}
+                    currentPrice={knowledgeCard?.pricing?.starting_price}
+                    pricingType={tool.pricing_type}
+                    verificationCount={tool.user_verifications_this_week || 0}
+                    variant="inline"
+                  />
+                </PricingPlansGrid>
 
-              {/* Price Mechanics - Helpful tip integrated with pricing */}
-              <PricingInsights
-                variant="compact"
-                budgetAnalyst={budgetAnalyst ? {
-                  costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) ? (budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers) : [],
-                  oneTimeFees: Array.isArray(budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) ? (budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees) : [],
-                  commitmentTerms: (budgetAnalyst.commitmentTerms || budgetAnalyst.commitment_terms) as string | null | undefined,
-                  roiThreshold: (budgetAnalyst.roiThreshold || budgetAnalyst.roi_threshold) as string | null | undefined,
-                } : undefined}
-              />
-            </div>
-          </details>
-        )}
+                {/* Price Mechanics - Helpful tip integrated with pricing */}
+                <PricingInsights
+                  variant="compact"
+                  budgetAnalyst={
+                    budgetAnalyst
+                      ? {
+                          costDrivers: Array.isArray(
+                            budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
+                          )
+                            ? budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
+                            : [],
+                          oneTimeFees: Array.isArray(
+                            budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
+                          )
+                            ? budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
+                            : [],
+                          commitmentTerms: (budgetAnalyst.commitmentTerms ||
+                            budgetAnalyst.commitment_terms) as string | null | undefined,
+                          roiThreshold: (budgetAnalyst.roiThreshold ||
+                            budgetAnalyst.roi_threshold) as string | null | undefined,
+                        }
+                      : undefined
+                  }
+                />
+              </div>
+            </details>
+          )
+        }
 
         {/* Community Insights (Real user insights) */}
-        {(userAdvocate || humanVerdict) && (
-          <TribalKnowledge
-            userAdvocate={userAdvocate ? {
-              vibe,
-              originStory,
-              idealFor,
-              avoidIf,
-              powerTip,
-              delighters,
-              frustrations,
-            } : undefined}
-            humanVerdict={humanVerdict}
-          />
-        )}
+        {
+          (userAdvocate || humanVerdict) && (
+            <TribalKnowledge
+              userAdvocate={
+                userAdvocate
+                  ? {
+                      vibe,
+                      originStory,
+                      idealFor,
+                      avoidIf,
+                      powerTip,
+                      delighters,
+                      frustrations,
+                    }
+                  : undefined
+              }
+              humanVerdict={humanVerdict}
+            />
+          )
+        }
 
         {/* Platform Support & Integrations */}
-        {(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
-          <details id="platform-integrations" class="group" open>
-            <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
-              <h2 class="text-lg font-semibold text-zinc-100">Platform & Integrations</h2>
-              <svg class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </summary>
-            <div>
-              <PlatformIntegrations
-                platforms={knowledgeCard.platforms || []}
-                integrations={knowledgeCard.integrations}
-                toolName={tool.name}
-              />
-            </div>
-          </details>
-        )}
+        {
+          (knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
+            <details id="platform-integrations" class="group" open>
+              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
+                <h2 class="text-lg font-semibold text-zinc-100">Platform & Integrations</h2>
+                <svg
+                  class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </summary>
+              <div>
+                <PlatformIntegrations
+                  platforms={knowledgeCard.platforms || []}
+                  integrations={knowledgeCard.integrations}
+                  toolName={tool.name}
+                />
+              </div>
+            </details>
+          )
+        }
 
         {/* Video Embed - Bottom of content for better UX */}
-        {tool.video_id && (
-          <section id="video">
-            <h2 class="mb-4 text-lg font-semibold text-zinc-100">Watch {tool.name} in Action</h2>
-            <VideoEmbed client:visible id={tool.video_id} title={tool.video_title || `${tool.name} Overview`} />
-          </section>
-        )}
+        {
+          tool.video_id && (
+            <section id="video">
+              <h2 class="mb-4 text-lg font-semibold text-zinc-100">Watch {tool.name} in Action</h2>
+              <VideoEmbed
+                client:visible
+                id={tool.video_id}
+                title={tool.video_title || `${tool.name} Overview`}
+              />
+            </section>
+          )
+        }
 
         {/* Included Tools (if this is a parent suite) */}
         <IncludedTools toolId={tool.id} toolName={tool.name} />
@@ -661,24 +997,31 @@ const hasFAQ = faqItems.length > 0;
                 <span class="cursor-help border-b border-dotted border-zinc-600">
                   StackHunt Index
                 </span>
-                <div class="pointer-events-none absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-xs text-zinc-300 shadow-xl group-hover:block z-10">
+                <div
+                  class="pointer-events-none absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-xs text-zinc-300 shadow-xl group-hover:block z-10"
+                >
                   <p class="font-medium text-zinc-100 mb-1">What is this?</p>
-                  <p>Calculated from feature density, update frequency, and market adoption—not user votes. Community reviews appear separately below.</p>
+                  <p>
+                    Calculated from feature density, update frequency, and market adoption—not user
+                    votes. Community reviews appear separately below.
+                  </p>
                 </div>
               </dt>
               <dd class="text-sm font-medium text-zinc-100">
-                {tool.review_count < 10 && tool.avg_score > 0 ? (
-                  <span class="inline-flex items-center gap-1.5">
-                    {Math.round(tool.avg_score)}/100
-                    <span class="text-xs text-zinc-500">(Early)</span>
-                  </span>
-                ) : tool.avg_score > 0 ? (
-                  `${Math.round(tool.avg_score)}/100`
-                ) : (
-                  <span class="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
-                    Tracking
-                  </span>
-                )}
+                {
+                  tool.review_count < 10 && tool.avg_score > 0 ? (
+                    <span class="inline-flex items-center gap-1.5">
+                      {Math.round(tool.avg_score)}/100
+                      <span class="text-xs text-zinc-500">(Early)</span>
+                    </span>
+                  ) : tool.avg_score > 0 ? (
+                    `${Math.round(tool.avg_score)}/100`
+                  ) : (
+                    <span class="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                      Tracking
+                    </span>
+                  )
+                }
               </dd>
             </div>
             <div class="flex justify-between">
@@ -687,198 +1030,261 @@ const hasFAQ = faqItems.length > 0;
                 {tool.review_count < 3 ? 'Not enough reviews yet' : tool.review_count}
               </dd>
             </div>
-            {tool.category && (
-              <div class="flex justify-between">
-                <dt class="text-sm text-zinc-400">Category</dt>
-                <dd class="text-sm font-medium text-zinc-100">{tool.category.name}</dd>
-              </div>
-            )}
+            {
+              tool.category && (
+                <div class="flex justify-between">
+                  <dt class="text-sm text-zinc-400">Category</dt>
+                  <dd class="text-sm font-medium text-zinc-100">{tool.category.name}</dd>
+                </div>
+              )
+            }
           </dl>
-          {tool.data_confidence && tool.data_confidence < 0.8 && (
-            <div class="mt-4 rounded-lg border border-amber-700 bg-amber-900/30 px-3 py-2 text-xs text-amber-400">
-              <svg class="inline-block h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-              </svg>
-              Some data may be approximate
-            </div>
-          )}
+          {
+            tool.data_confidence && tool.data_confidence < 0.8 && (
+              <div class="mt-4 rounded-lg border border-amber-700 bg-amber-900/30 px-3 py-2 text-xs text-amber-400">
+                <svg class="inline-block h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                Some data may be approximate
+              </div>
+            )
+          }
         </div>
 
         {/* Company Info */}
-        {knowledgeCard && (
-          <CompanyInfo
-            company={knowledgeCard.company}
-            audience={knowledgeCard.audience}
-            learningCurve={tool.learning_curve}
-          />
-        )}
+        {
+          knowledgeCard && (
+            <CompanyInfo
+              company={knowledgeCard.company}
+              audience={knowledgeCard.audience}
+              learningCurve={tool.learning_curve}
+            />
+          )
+        }
 
         {/* Suite Navigation (if part of a bundle) */}
-        {parentTool && (
-          <SuiteNavigation
-            currentToolId={tool.id}
-            parentId={parentTool.id}
-            parentName={parentTool.name}
-          />
-        )}
+        {
+          parentTool && (
+            <SuiteNavigation
+              currentToolId={tool.id}
+              parentId={parentTool.id}
+              parentName={parentTool.name}
+            />
+          )
+        }
 
         {/* Related Links (SEO internal linking) */}
-        {relatedLinks.length > 0 && (
-          <RelatedLinks
-            title="Related Pages"
-            links={relatedLinks}
-            variant="compact"
-          />
-        )}
+        {
+          relatedLinks.length > 0 && (
+            <RelatedLinks title="Related Pages" links={relatedLinks} variant="compact" />
+          )
+        }
 
         {/* Security & Compliance */}
-        {knowledgeCard?.security && (
-          <SecurityCompliance security={knowledgeCard.security} />
-        )}
+        {knowledgeCard?.security && <SecurityCompliance security={knowledgeCard.security} />}
 
         {/* Support Options */}
-        {knowledgeCard?.support && (
-          <SupportOptions support={knowledgeCard.support} />
-        )}
+        {knowledgeCard?.support && <SupportOptions support={knowledgeCard.support} />}
 
         {/* Portability */}
-        {knowledgeCard?.smp_portability && (
-          <PortabilityCard
-            portability={knowledgeCard.smp_portability}
-            toolName={tool.name}
-          />
-        )}
+        {
+          knowledgeCard?.smp_portability && (
+            <PortabilityCard portability={knowledgeCard.smp_portability} toolName={tool.name} />
+          )
+        }
 
-        {tool.affiliate_offers && tool.affiliate_offers.length > 1 && (
-          <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
-            <h3 class="mb-4 font-semibold text-zinc-100">Get {tool.name}</h3>
-            <div class="space-y-3">
-              {tool.affiliate_offers.map((offer) => (
-                <a href={offer.url} target="_blank" rel={offer.is_affiliate ? 'nofollow sponsored noopener' : 'noopener'} class="flex items-center justify-between rounded-lg border border-zinc-800 p-3 transition hover:border-hunt-200 hover:bg-hunt-50">
-                  <span class="text-sm font-medium text-zinc-300">{offer.cta_text}</span>
-                  <svg class="h-4 w-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              ))}
+        {
+          tool.affiliate_offers && tool.affiliate_offers.length > 1 && (
+            <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+              <h3 class="mb-4 font-semibold text-zinc-100">Get {tool.name}</h3>
+              <div class="space-y-3">
+                {tool.affiliate_offers.map((offer) => (
+                  <a
+                    href={offer.url}
+                    target="_blank"
+                    rel={offer.is_affiliate ? 'nofollow sponsored noopener' : 'noopener'}
+                    class="flex items-center justify-between rounded-lg border border-zinc-800 p-3 transition hover:border-hunt-200 hover:bg-hunt-50"
+                  >
+                    <span class="text-sm font-medium text-zinc-300">{offer.cta_text}</span>
+                    <svg
+                      class="h-4 w-4 text-zinc-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
       </div>
     </div>
 
     {/* Alternatives Section - Hybrid Search Strategy */}
-    {orderedAlternatives && orderedAlternatives.length > 0 && (
-      <section id="alternatives" class="mt-16">
-        <header class="mb-6">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 class="text-2xl font-semibold text-zinc-100">{alternativesLabel} to {tool.name}</h2>
-              <p class="mt-1 text-sm text-zinc-400">
-                {alternativesResponse.type === 'alternatives'
-                  ? `Other ${tool.specs?.taxonomy?.primary_function?.toLowerCase() || tool.category?.name?.toLowerCase() || ''} tools to consider`
-                  : 'Similar tools you might find useful'}
-              </p>
+    {
+      orderedAlternatives && orderedAlternatives.length > 0 && (
+        <section id="alternatives" class="mt-16">
+          <header class="mb-6">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 class="text-2xl font-semibold text-zinc-100">
+                  {alternativesLabel} to {tool.name}
+                </h2>
+                <p class="mt-1 text-sm text-zinc-400">
+                  {alternativesResponse.type === 'alternatives'
+                    ? `Other ${tool.specs?.taxonomy?.primary_function?.toLowerCase() || tool.category?.name?.toLowerCase() || ''} tools to consider`
+                    : 'Similar tools you might find useful'}
+                </p>
+              </div>
+              {tool.category && (
+                <a
+                  href={`/categories/${tool.category.slug}`}
+                  class="text-sm text-hunt-500 hover:text-hunt-400 transition shrink-0"
+                >
+                  View all →
+                </a>
+              )}
             </div>
-            {tool.category && (
-              <a href={`/categories/${tool.category.slug}`} class="text-sm text-hunt-500 hover:text-hunt-400 transition shrink-0">
-                View all →
-              </a>
-            )}
+          </header>
+
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {orderedAlternatives.map((alt) => {
+              const canCompare = areToolsComparable(
+                { slug: tool.slug, category_id: tool.category_id, metadata: tool.metadata as any },
+                { slug: alt.slug, category_id: alt.category_id, metadata: alt.metadata as any }
+              );
+              return (
+                <AlternativeCard
+                  main={{
+                    slug: tool.slug,
+                    name: tool.name,
+                    pricing_type: tool.pricing_type,
+                    learning_curve: tool.learning_curve,
+                    base_score: tool.base_score,
+                  }}
+                  alt={alt}
+                  curatedVerdict={curatedVerdicts.get(alt.slug)}
+                  computedDiff={microDiffs.get(alt.slug)}
+                  showCompareLink={canCompare}
+                />
+              );
+            })}
           </div>
-        </header>
-
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {orderedAlternatives.map((alt) => {
-            const canCompare = areToolsComparable(
-              { slug: tool.slug, category_id: tool.category_id, metadata: tool.metadata as any },
-              { slug: alt.slug, category_id: alt.category_id, metadata: alt.metadata as any }
-            );
-            return (
-              <AlternativeCard
-                main={{ slug: tool.slug, name: tool.name, pricing_type: tool.pricing_type, learning_curve: tool.learning_curve, base_score: tool.base_score }}
-                alt={alt}
-                curatedVerdict={curatedVerdicts.get(alt.slug)}
-                computedDiff={microDiffs.get(alt.slug)}
-                showCompareLink={canCompare}
-              />
-            );
-          })}
-        </div>
-      </section>
-    )}
-
-    {/* Community Feedback - Compact consolidated section */}
-    <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        {/* Community Signals - Primary action */}
-        <div class="flex-1">
-          <h2 class="text-base font-semibold text-zinc-100 mb-3">Share your experience</h2>
-          <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
-        </div>
-
-        {/* Correction Button - Secondary action */}
-        <div class="sm:text-right shrink-0">
-          <button
-            type="button"
-            data-suggest-edit
-            data-tool-id={tool.id}
-            data-tool-name={tool.name}
-            class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 hover:border-zinc-600 transition"
-          >
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Report correction
-          </button>
-        </div>
-      </div>
-    </section>
+        </section>
+      )
+    }
 
     {/* FAQ - Visible content to match FAQ schema */}
-    {hasFAQ && (
-      <section id="faq" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-        <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
-        <div class="space-y-4">
-          {faqItems.map((item) => (
-            <details class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4" open>
-              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
-                <h3 class="text-sm font-semibold text-zinc-100">{item.question}</h3>
-                <svg class="h-4 w-4 text-zinc-400 transition-transform group-open:rotate-90 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </summary>
-              <div class="mt-2 space-y-2">
-                <p class="text-sm text-zinc-300">{item.answer}</p>
-                {item.source_url && (
-                  <a
-                    href={item.source_url}
-                    target="_blank"
-                    rel="noopener"
-                    class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-hunt-500"
+    {
+      hasFAQ && (
+        <section id="faq" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+          <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
+          <div class="space-y-4">
+            {faqItems.map((item) => (
+              <details class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4" open>
+                <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+                  <h3 class="text-sm font-semibold text-zinc-100">{item.question}</h3>
+                  <svg
+                    class="h-4 w-4 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    Source
-                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                )}
-              </div>
-            </details>
-          ))}
-        </div>
-      </section>
-    )}
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </summary>
+                <div class="mt-2 space-y-2">
+                  <p class="text-sm text-zinc-300">{item.answer}</p>
+                  {item.source_url && (
+                    <a
+                      href={item.source_url}
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-hunt-500"
+                    >
+                      Source
+                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      )
+    }
   </div>
 
+  {/* Community Feedback - Compact consolidated section */}
+  <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+    <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
+    <div class="sm:text-right shrink-0">
+      <button
+        type="button"
+        data-suggest-edit
+        data-tool-id={tool.id}
+        data-tool-name={tool.name}
+        class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 hover:border-zinc-600 transition"
+      >
+        <svg
+          class="h-3.5 w-3.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          ></path>
+        </svg>
+        Report correction
+      </button>
+    </div>
+  </section>
+
   <!-- Suggest Edit Modal -->
-  <div id="suggest-edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div
+    id="suggest-edit-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+  >
     <div class="w-full max-w-md rounded-xl bg-zinc-900 p-6 shadow-xl">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-zinc-100">Suggest an Edit</h3>
         <button type="button" data-close-modal class="text-zinc-500 hover:text-zinc-300">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
       </div>
@@ -886,7 +1292,10 @@ const hasFAQ = faqItems.length > 0;
         <input type="hidden" name="tool_id" value={tool.id} />
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">What needs correcting?</label>
-          <select name="field_name" class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20">
+          <select
+            name="field_name"
+            class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+          >
             <option value="pricing">Pricing information</option>
             <option value="pros">Pros</option>
             <option value="cons">Cons</option>
@@ -896,25 +1305,60 @@ const hasFAQ = faqItems.length > 0;
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">What's the correct information?</label>
-          <textarea name="correction_text" rows="3" required placeholder="e.g., The pricing has changed to $15/month..." class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"></textarea>
+          <label class="block text-sm font-medium text-zinc-300 mb-1"
+            >What's the correct information?</label
+          >
+          <textarea
+            name="correction_text"
+            rows="3"
+            required
+            placeholder="e.g., The pricing has changed to $15/month..."
+            class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+          ></textarea>
         </div>
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">Your email (optional)</label>
-          <input type="email" name="reporter_email" placeholder="you@example.com" class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20" />
+          <input
+            type="email"
+            name="reporter_email"
+            placeholder="you@example.com"
+            class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+          />
           <p class="mt-1 text-xs text-zinc-500">We'll notify you when the correction is reviewed</p>
         </div>
         <div class="flex items-center gap-3 pt-2">
-          <button type="submit" class="flex-1 rounded-lg bg-hunt-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-hunt-700 transition">Submit Suggestion</button>
-          <button type="button" data-close-modal class="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 hover:bg-zinc-900 transition">Cancel</button>
+          <button
+            type="submit"
+            class="flex-1 rounded-lg bg-hunt-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-hunt-700 transition"
+            >Submit Suggestion</button
+          >
+          <button
+            type="button"
+            data-close-modal
+            class="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 hover:bg-zinc-900 transition"
+            >Cancel</button
+          >
         </div>
       </form>
       <div id="suggest-edit-success" class="hidden text-center py-4">
-        <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          class="mx-auto h-12 w-12 text-green-500"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <p class="mt-3 text-sm text-zinc-300">Thanks! We'll review your suggestion.</p>
-        <button type="button" data-close-modal class="mt-4 text-sm text-hunt-600 hover:text-hunt-700">Close</button>
+        <button
+          type="button"
+          data-close-modal
+          class="mt-4 text-sm text-hunt-600 hover:text-hunt-700">Close</button
+        >
       </div>
     </div>
   </div>
@@ -922,14 +1366,14 @@ const hasFAQ = faqItems.length > 0;
   <script is:inline>
     // Auto-expand details on desktop
     if (window.matchMedia('(min-width: 768px)').matches) {
-      document.querySelectorAll('details').forEach(d => d.open = true);
+      document.querySelectorAll('details').forEach((d) => (d.open = true));
     }
 
     // Suggest Edit Modal
     const modal = document.getElementById('suggest-edit-modal');
     const form = document.getElementById('suggest-edit-form');
     const success = document.getElementById('suggest-edit-success');
-    document.querySelectorAll('[data-suggest-edit]').forEach(btn => {
+    document.querySelectorAll('[data-suggest-edit]').forEach((btn) => {
       btn.addEventListener('click', () => {
         modal?.classList.remove('hidden');
         modal?.classList.add('flex');
@@ -937,7 +1381,7 @@ const hasFAQ = faqItems.length > 0;
         success?.classList.add('hidden');
       });
     });
-    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    document.querySelectorAll('[data-close-modal]').forEach((btn) => {
       btn.addEventListener('click', () => {
         modal?.classList.add('hidden');
         modal?.classList.remove('flex');

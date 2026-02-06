@@ -12,7 +12,7 @@ import { DiscoveredToolSchema } from '../types';
 
 export interface DiscoveredTool {
   name: string;
-  domain: string;  // e.g., "moz.com"
+  domain: string; // e.g., "moz.com"
   confidence: 'high' | 'medium' | 'low';
 }
 
@@ -69,12 +69,13 @@ export async function discoverTools(
 
   // Format search results for prompt
   const formattedResults = searchResults
-    .map(r => `Title: ${r.title}\nSnippet: ${r.snippet}\nURL: ${r.link}`)
+    .map((r) => `Title: ${r.title}\nSnippet: ${r.snippet}\nURL: ${r.link}`)
     .join('\n\n');
 
-  const prompt = SCOUT_EXTRACTION_PROMPT
-    .replace('{{query}}', query)
-    .replace('{{results}}', formattedResults);
+  const prompt = SCOUT_EXTRACTION_PROMPT.replace('{{query}}', query).replace(
+    '{{results}}',
+    formattedResults
+  );
 
   try {
     const result = await genAI.models.generateContent({
@@ -98,7 +99,7 @@ export async function discoverTools(
     }
 
     const validated = parsed
-      .map(item => {
+      .map((item) => {
         const result = DiscoveredToolSchema.safeParse(item);
         if (!result.success) {
           console.error('[Scout] Validation failed for tool:', result.error.issues);
@@ -109,7 +110,7 @@ export async function discoverTools(
       .filter((t): t is DiscoveredTool => t !== null);
 
     // Filter out low confidence results
-    return validated.filter(t => t.confidence !== 'low');
+    return validated.filter((t) => t.confidence !== 'low');
   } catch (error) {
     console.error('[Scout] Error discovering tools:', error);
     return [];

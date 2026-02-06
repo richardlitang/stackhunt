@@ -2,11 +2,7 @@
  * Hunter prompts stored in code (no database dependency).
  */
 
-import {
-  getCategoryDefinition,
-  resolveFullSchema,
-  BaseToolSchema,
-} from '../schemas';
+import { getCategoryDefinition, resolveFullSchema, BaseToolSchema } from '../schemas';
 
 /**
  * Build category-specific extraction instructions.
@@ -142,22 +138,27 @@ export function getPersonaContext(categorySlug?: string): string {
   if (!def || !def.personas.length) return '';
 
   const personaDescriptions: Record<string, string> = {
-    developer: 'Senior Engineers and technical leads who care about API quality, SDK support, and extensibility',
+    developer:
+      'Senior Engineers and technical leads who care about API quality, SDK support, and extensibility',
     cto: 'CTOs/VPs of Engineering who care about scalability, security compliance, and total cost of ownership',
-    founder: 'Startup founders who care about speed to market, pricing flexibility, and growth scalability',
-    marketer: 'Marketing managers who care about ease of use, integrations with ad platforms, and reporting',
-    designer: 'Product designers who care about collaboration features, asset management, and version history',
+    founder:
+      'Startup founders who care about speed to market, pricing flexibility, and growth scalability',
+    marketer:
+      'Marketing managers who care about ease of use, integrations with ad platforms, and reporting',
+    designer:
+      'Product designers who care about collaboration features, asset management, and version history',
     hr: 'HR Directors who care about compliance, global payroll, and employee experience',
-    finance: 'CFOs/Controllers who care about audit trails, multi-entity support, and bank integrations',
+    finance:
+      'CFOs/Controllers who care about audit trails, multi-entity support, and bank integrations',
     ops: 'Operations managers who care about automation, workflow efficiency, and visibility',
-    sales: 'Sales leaders who care about pipeline visibility, calling features, and CRM integrations',
-    support: 'Support managers who care about ticket volume, automation, and customer satisfaction metrics',
+    sales:
+      'Sales leaders who care about pipeline visibility, calling features, and CRM integrations',
+    support:
+      'Support managers who care about ticket volume, automation, and customer satisfaction metrics',
     security: 'CISOs who care about zero-knowledge encryption, compliance certs, and audit logs',
   };
 
-  const personas = def.personas
-    .map(p => personaDescriptions[p] || p)
-    .filter(Boolean);
+  const personas = def.personas.map((p) => personaDescriptions[p] || p).filter(Boolean);
 
   if (personas.length === 0) return '';
 
@@ -165,7 +166,7 @@ export function getPersonaContext(categorySlug?: string): string {
 ## TARGET READERS
 
 The primary audience for this review includes:
-${personas.map(p => `- ${p}`).join('\n')}
+${personas.map((p) => `- ${p}`).join('\n')}
 
 Prioritize information that matters most to these readers.
 `;
@@ -336,6 +337,21 @@ Find the limit that marketing doesn't mention:
 
 **Rule: Technical features deserve technical descriptions. If you can't explain the mechanism, don't mock it.**
 
+### ❓ FAQ CURATION (Use Candidate Questions Below)
+
+You will be given a list of candidate FAQ questions from PAA, forums, and Reddit.
+
+Rules:
+1. Select up to 5 **most important** questions users actually ask about this tool.
+2. Discard generic or off-topic questions (e.g., “How to write reviews?”).
+3. Answers must be concise and factual. If the candidate answer is weak, rewrite it.
+4. Include source_url when available. Do NOT invent URLs.
+5. Preserve the candidate "source" when possible (paa/forum/reddit).
+6. Only use sources from the candidates below.
+
+FAQ CANDIDATES:
+{faqCandidates}
+
 ### 📅 MODEL PRIORITIES (Feb 2026 - Current Frontier)
 
 **When extracting model_options for AI tools, prioritize 2026 frontier models:**
@@ -443,6 +459,14 @@ Output ONLY valid JSON matching this exact schema:
       "claim_type": "<fact|opinion>"
     }
   ],  // MAXIMUM 5 cons - prioritize most important if you have more. CRITICAL: Community-sourced cons MUST be hedged for legal protection.
+  "faqs": [
+    {
+      "question": "<real user question>",
+      "answer": "<concise factual answer>",
+      "source_url": "<URL from candidates, if available>",
+      "source": "<paa|forum|reddit>"
+    }
+  ],  // OPTIONAL: include up to 5, only if candidates are relevant
   "summary": "<150-300 word Markdown TL;DR. CRITICAL: Use Cynical CTO voice (RULE 1-4). Lead with hard limits and veto conditions. NO generic praise ('solid choice', 'great tool'). Structure: 1) Tool's hard ceiling (with numbers), 2) Who it's perfect for (with thresholds), 3) When to switch away (with alternative). Include a 3-bullet 'Decision Factors' list with concrete numbers. LEGAL: Hedge all negative claims from community sources. Example opening: 'Claude Sonnet 4.5 caps at 200k context windows and rate-limits Pro users to ~500 messages/day. If you're processing multi-million token datasets, switch to Gemini 2.0 (2M context, $1.20/1M vs $3/1M). For teams building agentic workflows who can tolerate rate limits, it's the current reasoning leader (87% on GPQA vs 83% for GPT-4).'>"
   "sentimentTags": [<EXACTLY 3-5 lowercase tags like "easy-to-use", "expensive", "feature-rich". NO MORE THAN 5>],
   "pricingType": "<free|freemium|paid|enterprise|open_source>",
@@ -685,4 +709,4 @@ IMPORTANT:
 - Do NOT contradict the verified facts
 - Do NOT fabricate URLs - only use URLs that appear in the search results
 
-Provide your structured JSON analysis (JSON only, no markdown code blocks):`;
+Provide your structured JSON analysis (JSON only, no markdown code blocks). Include a "faqs" array if you selected any (max 5):`;

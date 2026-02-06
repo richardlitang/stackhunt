@@ -74,7 +74,9 @@ export function formatConstraintValue(type: string, value: number): string {
   if (type === 'storage_gb') return `${value} GB`;
   if (type === 'api_rate_limit_per_sec') return `${value}/sec`;
   if (type === 'api_requests_per_month') {
-    return value >= 1000000 ? `${(value / 1000000).toFixed(1)}M/mo` : `${(value / 1000).toFixed(0)}k/mo`;
+    return value >= 1000000
+      ? `${(value / 1000000).toFixed(1)}M/mo`
+      : `${(value / 1000).toFixed(0)}k/mo`;
   }
   return value.toLocaleString();
 }
@@ -82,7 +84,9 @@ export function formatConstraintValue(type: string, value: number): string {
 /**
  * Group constraints by severity for organized display
  */
-export function groupConstraintsBySeverity(constraints: Constraint[]): Map<ConstraintSeverity, Constraint[]> {
+export function groupConstraintsBySeverity(
+  constraints: Constraint[]
+): Map<ConstraintSeverity, Constraint[]> {
   const groups = new Map<ConstraintSeverity, Constraint[]>();
   for (const c of constraints) {
     const sev = evaluateConstraintSeverity(c.consequence);
@@ -104,18 +108,20 @@ export function resolvePlanId(
   if (!planNameMatch || plans.length === 0) return null;
 
   // Exact match (case-insensitive)
-  const exactMatch = plans.find(p => p.name.toLowerCase() === planNameMatch.toLowerCase());
+  const exactMatch = plans.find((p) => p.name.toLowerCase() === planNameMatch.toLowerCase());
   if (exactMatch) return exactMatch.id;
 
   // Fuzzy match (handle "Pro" vs "Professional", "Biz" vs "Business")
   const normalized = planNameMatch.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const fuzzyMatch = plans.find(p => {
+  const fuzzyMatch = plans.find((p) => {
     const planNorm = p.name.toLowerCase().replace(/[^a-z0-9]/g, '');
     return planNorm.includes(normalized) || normalized.includes(planNorm);
   });
   if (fuzzyMatch) return fuzzyMatch.id;
 
   // No match - log warning and return null
-  console.warn(`[Constraints] Could not resolve plan "${planNameMatch}" to plan_id. Available: ${plans.map(p => p.name).join(', ')}`);
+  console.warn(
+    `[Constraints] Could not resolve plan "${planNameMatch}" to plan_id. Available: ${plans.map((p) => p.name).join(', ')}`
+  );
   return null;
 }

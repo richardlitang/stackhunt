@@ -33,10 +33,7 @@ const SCRAPER_CACHE = new Map<string, { expiresAt: number; content: string | nul
  * @param timeoutMs - Timeout in milliseconds (default 10s)
  * @returns Markdown content or null on failure
  */
-export async function scrapeUrl(
-  url: string,
-  timeoutMs = 10000
-): Promise<string | null> {
+export async function scrapeUrl(url: string, timeoutMs = 10000): Promise<string | null> {
   if (SCRAPER_CACHE_TTL_MS > 0) {
     const cached = SCRAPER_CACHE.get(url);
     if (cached && cached.expiresAt > Date.now()) {
@@ -104,10 +101,7 @@ export async function scrapeUrl(
  * @param timeoutMs - Timeout per URL
  * @returns Array of scrape results
  */
-export async function scrapeUrls(
-  urls: string[],
-  timeoutMs = 10000
-): Promise<ScrapeResult[]> {
+export async function scrapeUrls(urls: string[], timeoutMs = 10000): Promise<ScrapeResult[]> {
   return Promise.all(
     urls.map(async (url) => {
       const content = await scrapeUrl(url, timeoutMs);
@@ -139,9 +133,7 @@ export function identifyPricingUrls(
     .filter((r) => {
       const linkLower = r.link.toLowerCase();
       const titleLower = r.title.toLowerCase();
-      return pricingKeywords.some(
-        (kw) => linkLower.includes(kw) || titleLower.includes(kw)
-      );
+      return pricingKeywords.some((kw) => linkLower.includes(kw) || titleLower.includes(kw));
     })
     .map((r) => r.link)
     .filter((value, index, self) => self.indexOf(value) === index) // Deduplicate

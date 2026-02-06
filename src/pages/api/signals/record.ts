@@ -26,10 +26,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     // Validate required fields
     if (!itemId || !signalKey) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing required fields' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Missing required fields' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Hash IP server-side for better security
@@ -78,10 +78,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
         .eq('key', signalKey)
         .maybeSingle();
 
-      if (
-        signalDef &&
-        existingSignalForKey?.some((s: any) => s.signal_id === signalDef.id)
-      ) {
+      if (signalDef && existingSignalForKey?.some((s: any) => s.signal_id === signalDef.id)) {
         return new Response(
           JSON.stringify({
             success: false,
@@ -108,10 +105,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     if (error) {
       console.error('Failed to record signal:', error.code || error.message);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to record signal' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Failed to record signal' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Return success from RPC
@@ -121,9 +118,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     });
   } catch (err) {
     console.error('Signal recording error:', err);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

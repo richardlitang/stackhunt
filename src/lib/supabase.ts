@@ -11,9 +11,15 @@ import type { Database } from '../types/database';
 
 // Environment variables
 // In Astro/Vite: use import.meta.env, in Node scripts: use process.env
-const supabaseUrl = (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_URL : null) || process.env.SUPABASE_URL;
-const supabaseAnonKey = (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_ANON_KEY : null) || process.env.SUPABASE_ANON_KEY;
-const supabaseServiceKey = (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_SERVICE_ROLE_KEY : null) || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl =
+  (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_URL : null) ||
+  process.env.SUPABASE_URL;
+const supabaseAnonKey =
+  (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_ANON_KEY : null) ||
+  process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey =
+  (typeof import.meta.env !== 'undefined' ? import.meta.env.SUPABASE_SERVICE_ROLE_KEY : null) ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
   throw new Error('Missing SUPABASE_URL environment variable');
@@ -75,7 +81,8 @@ export function getAdminClient() {
 export async function getItemBySlug(slug: string, reviewLimit = 10) {
   const { data, error } = await supabase
     .from('items')
-    .select(`
+    .select(
+      `
       *,
       category:categories(*),
       affiliate_offers(*),
@@ -83,7 +90,8 @@ export async function getItemBySlug(slug: string, reviewLimit = 10) {
         *,
         context:contexts(*)
       )
-    `)
+    `
+    )
     .eq('slug', slug)
     .order('score', { foreignTable: 'reviews', ascending: false })
     .limit(reviewLimit, { foreignTable: 'reviews' })
@@ -102,7 +110,8 @@ export const getToolBySlug = getItemBySlug;
 export async function getContextBySlug(slug: string) {
   const { data, error } = await supabase
     .from('contexts')
-    .select(`
+    .select(
+      `
       *,
       category:categories!contexts_category_id_fkey(*),
       function_category:categories!contexts_function_category_id_fkey(*),
@@ -116,7 +125,8 @@ export async function getContextBySlug(slug: string) {
           affiliate_offers(*)
         )
       )
-    `)
+    `
+    )
     .eq('slug', slug)
     .order('score', { foreignTable: 'reviews', ascending: false })
     .maybeSingle();
@@ -131,10 +141,12 @@ export async function getContextBySlug(slug: string) {
 export async function getItemsByCategory(categorySlug: string) {
   const { data, error } = await supabase
     .from('items')
-    .select(`
+    .select(
+      `
       *,
       category:categories!inner(*)
-    `)
+    `
+    )
     .eq('category.slug', categorySlug)
     .order('avg_score', { ascending: false });
 
@@ -153,10 +165,12 @@ export async function getFeaturedItems(limit = 12) {
   // First try featured items
   const { data: featured, error: featuredError } = await supabase
     .from('items')
-    .select(`
+    .select(
+      `
       id, name, slug, logo_url, short_description, avg_score, pricing_type, verdict, base_score,
       category:categories(name, slug)
-    `)
+    `
+    )
     .eq('is_featured', true)
     .order('avg_score', { ascending: false })
     .limit(limit);
@@ -171,10 +185,12 @@ export async function getFeaturedItems(limit = 12) {
   // Fallback: get top-rated items (by avg_score, then by created_at)
   const { data: topRated, error: topRatedError } = await supabase
     .from('items')
-    .select(`
+    .select(
+      `
       id, name, slug, logo_url, short_description, avg_score, pricing_type, verdict, base_score,
       category:categories(name, slug)
-    `)
+    `
+    )
     .order('avg_score', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -194,10 +210,12 @@ export async function getFeaturedContexts(limit = 8) {
   // First try featured contexts
   const { data: featured, error: featuredError } = await supabase
     .from('contexts')
-    .select(`
+    .select(
+      `
       id, title, slug, tool_count,
       category:categories!contexts_category_id_fkey(name, slug, icon)
-    `)
+    `
+    )
     .eq('is_featured', true)
     .order('tool_count', { ascending: false })
     .limit(limit);
@@ -212,10 +230,12 @@ export async function getFeaturedContexts(limit = 8) {
   // Fallback: get contexts with most tools
   const { data: topContexts, error: topContextsError } = await supabase
     .from('contexts')
-    .select(`
+    .select(
+      `
       id, title, slug, tool_count,
       category:categories!contexts_category_id_fkey(name, slug, icon)
-    `)
+    `
+    )
     .gt('tool_count', 0)
     .order('tool_count', { ascending: false })
     .order('created_at', { ascending: false })
@@ -244,10 +264,12 @@ export async function getCategories() {
 export async function getContextsByCategory(categorySlug: string) {
   const { data, error } = await supabase
     .from('contexts')
-    .select(`
+    .select(
+      `
       *,
       category:categories!contexts_category_id_fkey!inner(*)
-    `)
+    `
+    )
     .eq('category.slug', categorySlug)
     .order('tool_count', { ascending: false });
 
@@ -261,10 +283,12 @@ export async function getContextsByCategory(categorySlug: string) {
 export async function getItemContexts(itemId: string, limit = 50) {
   const { data, error } = await supabase
     .from('reviews')
-    .select(`
+    .select(
+      `
       score,
       context:contexts(id, title, slug, tool_count)
-    `)
+    `
+    )
     .eq('item_id', itemId)
     .order('score', { ascending: false })
     .limit(limit);
@@ -297,12 +321,10 @@ export const searchToolsByText = searchItemsByText;
  * Get all item slugs for static generation
  */
 export async function getAllItemSlugs() {
-  const { data, error } = await supabase
-    .from('items')
-    .select('slug');
+  const { data, error } = await supabase.from('items').select('slug');
 
   if (error) throw error;
-  return data?.map(i => i.slug) || [];
+  return data?.map((i) => i.slug) || [];
 }
 
 /** @deprecated Use getAllItemSlugs instead */
@@ -312,13 +334,10 @@ export const getAllToolSlugs = getAllItemSlugs;
  * Get item slugs by type (for singular routing)
  */
 export async function getItemSlugsByType(type: 'tool' | 'gear') {
-  const { data, error } = await supabase
-    .from('items')
-    .select('slug')
-    .eq('type', type);
+  const { data, error } = await supabase.from('items').select('slug').eq('type', type);
 
   if (error) throw error;
-  return data?.map(i => i.slug) || [];
+  return data?.map((i) => i.slug) || [];
 }
 
 /** @deprecated Use getItemSlugsByType instead */
@@ -330,7 +349,8 @@ export const getToolSlugsByType = getItemSlugsByType;
 export async function getItemBySlugAndType(slug: string, type: 'tool' | 'gear') {
   const { data, error } = await supabase
     .from('items')
-    .select(`
+    .select(
+      `
       *,
       category:categories(*),
       affiliate_offers(*),
@@ -338,7 +358,8 @@ export async function getItemBySlugAndType(slug: string, type: 'tool' | 'gear') 
         *,
         context:contexts(*)
       )
-    `)
+    `
+    )
     .eq('slug', slug)
     .eq('type', type)
     .maybeSingle();
@@ -354,24 +375,20 @@ export const getToolBySlugAndType = getItemBySlugAndType;
  * Get all context slugs for static generation
  */
 export async function getAllContextSlugs() {
-  const { data, error } = await supabase
-    .from('contexts')
-    .select('slug');
+  const { data, error } = await supabase.from('contexts').select('slug');
 
   if (error) throw error;
-  return data?.map(c => c.slug) || [];
+  return data?.map((c) => c.slug) || [];
 }
 
 /**
  * Get all category slugs for static generation
  */
 export async function getAllCategorySlugs() {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('slug');
+  const { data, error } = await supabase.from('categories').select('slug');
 
   if (error) throw error;
-  return data?.map(c => c.slug) || [];
+  return data?.map((c) => c.slug) || [];
 }
 
 /**
@@ -380,9 +397,11 @@ export async function getAllCategorySlugs() {
 export async function getItemTags(itemId: string) {
   const { data, error } = await supabase
     .from('item_category_links')
-    .select(`
+    .select(
+      `
       category:categories(id, name, slug, type)
-    `)
+    `
+    )
     .eq('item_id', itemId);
 
   if (error) throw error;
@@ -426,7 +445,9 @@ export async function getCategoriesByType(type: 'function' | 'audience' | 'platf
 /**
  * Get a prompt template by key
  */
-export async function getPrompt(key: string): Promise<{ template: string; variables: unknown[] } | null> {
+export async function getPrompt(
+  key: string
+): Promise<{ template: string; variables: unknown[] } | null> {
   const { data, error } = await supabase.rpc('get_prompt', { p_key: key });
 
   if (error || !data || data.length === 0) {
@@ -523,10 +544,12 @@ export async function searchItemsBySpecs(specFilter: Record<string, unknown>, li
 export async function getItemsForComparison(slugs: string[]) {
   const { data, error } = await supabase
     .from('items')
-    .select(`
+    .select(
+      `
       *,
       affiliate_offers(*)
-    `)
+    `
+    )
     .in('slug', slugs);
 
   if (error) throw error;
@@ -552,13 +575,15 @@ export async function getCategoryBySlug(slug: string) {
   // Get items in this category (via item_category_links for Knowledge Graph)
   const { data: items, error: itemsError } = await supabase
     .from('item_category_links')
-    .select(`
+    .select(
+      `
       relevance_score,
       item:items(
         id, name, slug, logo_url, short_description,
         avg_score, review_count, pricing_type, type
       )
-    `)
+    `
+    )
     .eq('category_id', category.id)
     .order('relevance_score', { ascending: false });
 
@@ -566,6 +591,6 @@ export async function getCategoryBySlug(slug: string) {
 
   return {
     ...category,
-    items: items?.map(link => link.item).filter(Boolean) || [],
+    items: items?.map((link) => link.item).filter(Boolean) || [],
   };
 }

@@ -13,14 +13,8 @@
 
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
-import {
-  createVerificationService,
-  type CorrectionToVerify,
-} from '@/lib/verification';
-import {
-  sendCorrectionsSummary,
-  sendThresholdAlert,
-} from '@/lib/notifications/slack';
+import { createVerificationService, type CorrectionToVerify } from '@/lib/verification';
+import { sendCorrectionsSummary, sendThresholdAlert } from '@/lib/notifications/slack';
 
 export const prerender = false;
 
@@ -95,19 +89,12 @@ export const GET: APIRoute = async ({ request }) => {
 
     // Send threshold alert
     if (slackWebhookUrl) {
-      await sendThresholdAlert(
-        slackWebhookUrl,
-        stats.pendingCount,
-        stats.oldestDays,
-        adminUrl
-      );
+      await sendThresholdAlert(slackWebhookUrl, stats.pendingCount, stats.oldestDays, adminUrl);
     }
 
     // 4. Create verification batch record
     const triggerReason =
-      stats.pendingCount >= PENDING_THRESHOLD
-        ? 'threshold_reached'
-        : 'age_exceeded';
+      stats.pendingCount >= PENDING_THRESHOLD ? 'threshold_reached' : 'age_exceeded';
 
     const { data: batch, error: batchError } = await admin
       .from('verification_batches')

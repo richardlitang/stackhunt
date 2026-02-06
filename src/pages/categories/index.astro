@@ -10,13 +10,17 @@ import { getCategories } from '@/lib/supabase';
 import { getCanonicalUrl } from '@/lib/utils';
 
 // Cache for 10 minutes (categories change rarely)
-Astro.response.headers.set('Cache-Control', 'public, max-age=600, s-maxage=600, stale-while-revalidate=1200');
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=600, s-maxage=600, stale-while-revalidate=1200'
+);
 
 const categories = await getCategories();
 
 const meta = {
   title: 'Software Categories - Browse All Tool Types | StackHunt',
-  description: 'Browse software by category. Find the best CRM, marketing, productivity, developer tools, and more.',
+  description:
+    'Browse software by category. Find the best CRM, marketing, productivity, developer tools, and more.',
   canonical: getCanonicalUrl('/categories'),
   ogType: 'website' as const,
 };
@@ -26,11 +30,10 @@ const meta = {
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Header -->
     <header class="text-center">
-      <h1 class="text-3xl font-semibold text-zinc-100 sm:text-4xl">
-        Browse by Category
-      </h1>
+      <h1 class="text-3xl font-semibold text-zinc-100 sm:text-4xl">Browse by Category</h1>
       <p class="mx-auto mt-4 max-w-2xl text-base text-zinc-400">
-        Find the perfect tool for your needs. Explore our curated categories with reviews and comparisons.
+        Find the perfect tool for your needs. Explore our curated categories with reviews and
+        comparisons.
       </p>
     </header>
 

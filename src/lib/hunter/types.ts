@@ -35,7 +35,8 @@ export interface HunterInput {
   forceUpdate?: boolean; // Bypass duplicate detection and re-extract data
   huntType?: HuntType; // 'full' | 'refresh' | 'price_only'
   skipSynthesis?: boolean; // Two-stage pipeline: stop after research phase (for batch mode)
-  researchDossier?: {           // V5: Pre-generated queries from Classifier
+  researchDossier?: {
+    // V5: Pre-generated queries from Classifier
     normalized_tool_name: string;
     primary_category: string;
     scout_queries: string[];
@@ -47,15 +48,15 @@ export interface HunterInput {
 
 // Guidance for context hunt (optional hints for better articles)
 export interface ContextHuntGuidance {
-  mustIncludeTools?: string[];    // Tools that must be in the article
-  sourcesToCheck?: string[];       // Domains to prioritize (e.g., reddit.com)
-  specialInstructions?: string;    // Free-form instructions
+  mustIncludeTools?: string[]; // Tools that must be in the article
+  sourcesToCheck?: string[]; // Domains to prioritize (e.g., reddit.com)
+  specialInstructions?: string; // Free-form instructions
 }
 
 // Context-first hunt input (for "Best X for Y" discovery)
 export interface ContextHuntInput {
-  contextQuery: string;  // e.g., "Best Note-Taking Apps for Students"
-  maxTools?: number;     // How many tools to find (default 5)
+  contextQuery: string; // e.g., "Best Note-Taking Apps for Students"
+  maxTools?: number; // How many tools to find (default 5)
   guidance?: ContextHuntGuidance; // Optional hints for better research
 }
 
@@ -144,6 +145,12 @@ export interface HunterAnalysis {
   score: number;
   pros: (string | ClaimWithSource)[];
   cons: (string | ClaimWithSource)[];
+  faqs?: Array<{
+    question: string;
+    answer: string;
+    source_url?: string;
+    source?: 'paa' | 'forum' | 'reddit';
+  }>;
   summary: string;
   sentimentTags: string[];
   pricingType: PricingModel;
@@ -152,23 +159,23 @@ export interface HunterAnalysis {
   verdict?: string; // One-line conclusion
   // Knowledge Graph tags
   graphTags: {
-    functions: string[];   // What it does: "Notetaking", "CRM"
-    audiences: string[];   // Who it's for: "Students", "Small Teams"
-    platforms: string[];   // Where it runs: "Web", "iOS", "Mac"
+    functions: string[]; // What it does: "Notetaking", "CRM"
+    audiences: string[]; // Who it's for: "Students", "Small Teams"
+    platforms: string[]; // Where it runs: "Web", "iOS", "Mac"
   };
   // Structured title parts (for context)
   titleParts?: {
-    noun: string;          // "Note-Taking Apps"
-    modifier?: string;     // "for Students"
+    noun: string; // "Note-Taking Apps"
+    modifier?: string; // "for Students"
   };
   // Knowledge Card (structured facts from two-pass extraction)
   knowledgeCard?: KnowledgeCard;
   // Context-specific review fields (Migration 022)
-  fitScore?: number;              // 0-100: How well tool fits THIS context
-  valueRating?: number;           // 1-5: Value for money for this audience
-  standoutFeatures?: string[];    // Features especially relevant to this context
-  dealbreakers?: string[];        // Concerns that might be dealbreakers
-  switchingFrom?: string[];       // Common tools this audience switches FROM
+  fitScore?: number; // 0-100: How well tool fits THIS context
+  valueRating?: number; // 1-5: Value for money for this audience
+  standoutFeatures?: string[]; // Features especially relevant to this context
+  dealbreakers?: string[]; // Concerns that might be dealbreakers
+  switchingFrom?: string[]; // Common tools this audience switches FROM
   // V3.1: Review Context (The "Human Touch" Layer)
   reviewContext?: {
     humanVerdict?: string | null;
@@ -230,9 +237,10 @@ export interface HunterContext {
   contextTitle?: string;
   categorySlug?: string;
   queueItemId?: string;
-  forceUpdate?: boolean;        // Bypass duplicate detection
+  forceUpdate?: boolean; // Bypass duplicate detection
   huntType?: HuntType;
-  researchDossier?: {           // V5: Pre-generated queries from Classifier (moves intelligence from Hunter to Classifier)
+  researchDossier?: {
+    // V5: Pre-generated queries from Classifier (moves intelligence from Hunter to Classifier)
     normalized_tool_name: string;
     primary_category: string;
     scout_queries: string[];
@@ -242,8 +250,8 @@ export interface HunterContext {
   };
 
   // Flags for early exits (cost optimization)
-  skipAnalysis?: boolean;       // Set if duplicate found
-  skipPersistence?: boolean;    // Set if validation fails
+  skipAnalysis?: boolean; // Set if duplicate found
+  skipPersistence?: boolean; // Set if validation fails
   insufficientSources?: boolean; // Set if not enough snippets for quality review
 
   // Accumulated data
@@ -251,9 +259,9 @@ export interface HunterContext {
   analysis?: AnalysisOutput;
 
   // Two-stage pipeline fields (batch synthesis optimization)
-  detectedCategory?: string;        // Category detected during research (for batch grouping)
-  skipSynthesis?: boolean;          // If true, stop after research phase (batch mode)
-  batchId?: string;                 // UUID linking items in same synthesis batch
+  detectedCategory?: string; // Category detected during research (for batch grouping)
+  skipSynthesis?: boolean; // If true, stop after research phase (batch mode)
+  batchId?: string; // UUID linking items in same synthesis batch
 
   // Metadata
   startTime: number;
@@ -269,13 +277,13 @@ export interface ResearchOutput {
     reviewsSnippets: string[];
     pricingSnippets: string[];
     alternativesSnippets: string[];
-    companySnippets: string[];      // Company info, funding, history
-    technicalSnippets: string[];    // API, export, integrations
+    companySnippets: string[]; // Company info, funding, history
+    technicalSnippets: string[]; // API, export, integrations
     // V3.1: Tribal Knowledge Snippets (The "Human Touch")
-    budgetAnalystSnippets: string[];    // Hidden costs, billing logic, implementation fees
-    tribalKnowledgeSnippets: string[];  // Reddit reviews, honest feedback, power tips, "worth it" discussions
+    budgetAnalystSnippets: string[]; // Hidden costs, billing logic, implementation fees
+    tribalKnowledgeSnippets: string[]; // Reddit reviews, honest feedback, power tips, "worth it" discussions
     // V6: Deep tribal content (full discussions, not snippets)
-    tribalDeepContent?: string;         // Full Reddit/HN threads for authentic insights
+    tribalDeepContent?: string; // Full Reddit/HN threads for authentic insights
     faqs?: Array<{
       question: string;
       answer: string;
@@ -294,22 +302,25 @@ export interface ResearchOutput {
   };
   knowledgeCard: KnowledgeCard;
   tokensUsed: number;
-  isDuplicate?: boolean;        // Gatekeeper: hard duplicate detected
-  existingToolId?: string;      // If duplicate, reference to existing
-  defunctStatus?: {             // Defunct tool detection
+  isDuplicate?: boolean; // Gatekeeper: hard duplicate detected
+  existingToolId?: string; // If duplicate, reference to existing
+  defunctStatus?: {
+    // Defunct tool detection
     isDefunct: boolean;
     confidence: 'high' | 'medium' | 'low';
     shutdownDate?: string;
     reason?: string;
     evidence?: string;
   };
-  validationReport?: {          // Data quality validation results
+  validationReport?: {
+    // Data quality validation results
     isValid: boolean;
-    score: number;              // 0-100 quality score
-    shouldPublish: boolean;     // Gate low-quality content
+    score: number; // 0-100 quality score
+    shouldPublish: boolean; // Gate low-quality content
     humanReviewRequired: boolean;
   };
-  video?: {                     // Best video found for the tool
+  video?: {
+    // Best video found for the tool
     videoId: string;
     title: string;
     channel: string;
@@ -333,7 +344,7 @@ export interface PersistenceOutput {
   toolId: string;
   contextId: string | null;
   reviewId: string | null;
-  wasReused: boolean;           // True if existing tool/context reused
+  wasReused: boolean; // True if existing tool/context reused
 }
 
 /**
@@ -341,9 +352,9 @@ export interface PersistenceOutput {
  */
 export interface HunterDependencies {
   supabase: any; // SupabaseClient<Database> but avoiding circular deps
-  serper: any;   // SerperService
-  gemini: any;   // GeminiService
-  logo: any;     // LogoService
+  serper: any; // SerperService
+  gemini: any; // GeminiService
+  logo: any; // LogoService
   config: HunterConfig;
   withRetry: <T>(fn: () => Promise<T>, operation: string) => Promise<T>;
   log: (message: string) => void;
@@ -395,14 +406,26 @@ export const LegacyClaimSchema = z.string().min(10).max(300);
 
 // Support both legacy string[] and new object[] format during transition
 // New hunts should produce ClaimWithSource objects
-export const ClaimArraySchema = z.array(
-  z.union([LegacyClaimSchema, ClaimWithSourceSchema])
-).min(1).max(5);
+export const ClaimArraySchema = z
+  .array(z.union([LegacyClaimSchema, ClaimWithSourceSchema]))
+  .min(1)
+  .max(5);
 
 export const AnalysisSchema = z.object({
   score: z.number().min(0).max(100),
   pros: ClaimArraySchema,
   cons: ClaimArraySchema,
+  faqs: z
+    .array(
+      z.object({
+        question: z.string().min(5).max(140),
+        answer: z.string().min(10).max(300),
+        source_url: z.string().url().optional(),
+        source: z.enum(['paa', 'forum', 'reddit']).optional(),
+      })
+    )
+    .max(5)
+    .optional(),
   summary: z.string().min(50),
   sentimentTags: z.array(z.string()).min(1).max(5),
   pricingType: z.enum(['free', 'freemium', 'paid', 'enterprise', 'open_source']),
@@ -410,27 +433,39 @@ export const AnalysisSchema = z.object({
   shortDescription: z.string().max(200).optional(),
   verdict: z.string().max(200).optional(), // One-line conclusion
   // V6: Cynical CTO - Veto Logic and Reality Checks (REQUIRED for forensic analysis)
-  vetoLogic: z.array(z.object({
-    condition: z.string(),
-    alternative: z.string(),
-    reason: z.string(),
-    source_url: z.string().url(),
-  })).min(1).max(3),
-  realityChecks: z.array(z.object({
-    claim: z.string(),
-    reality: z.string(),
-    impact: z.string(),
-    source_url: z.string().url(),
-  })).min(1).max(3),
+  vetoLogic: z
+    .array(
+      z.object({
+        condition: z.string(),
+        alternative: z.string(),
+        reason: z.string(),
+        source_url: z.string().url(),
+      })
+    )
+    .min(1)
+    .max(3),
+  realityChecks: z
+    .array(
+      z.object({
+        claim: z.string(),
+        reality: z.string(),
+        impact: z.string(),
+        source_url: z.string().url(),
+      })
+    )
+    .min(1)
+    .max(3),
   graphTags: z.object({
     functions: z.array(z.string()).min(1).max(5),
     audiences: z.array(z.string()).min(1).max(5),
     platforms: z.array(z.string()).min(1).max(10),
   }),
-  titleParts: z.object({
-    noun: z.string(),
-    modifier: z.string().nullable().optional(),
-  }).optional(),
+  titleParts: z
+    .object({
+      noun: z.string(),
+      modifier: z.string().nullable().optional(),
+    })
+    .optional(),
   // Context-specific review fields (Migration 022)
   fitScore: z.number().min(0).max(100).optional(),
   valueRating: z.number().min(1).max(5).optional(),
@@ -438,24 +473,30 @@ export const AnalysisSchema = z.object({
   dealbreakers: z.array(z.string()).max(5).optional(),
   switchingFrom: z.array(z.string()).max(5).optional(),
   // V3.1: Review Context (The "Human Touch" Layer) - extracted from tribal knowledge
-  reviewContext: z.object({
-    humanVerdict: z.string().nullable().optional(),
-    budgetAnalyst: z.object({
-      costDrivers: z.array(z.string()).default([]),
-      oneTimeFees: z.array(z.string()).default([]),
-      commitmentTerms: z.string().nullable().optional(),
-      roiThreshold: z.string().nullable().optional(),
-    }).optional(),
-    userAdvocate: z.object({
-      vibe: z.string().nullable().optional(),
-      originStory: z.string().nullable().optional(),
-      idealFor: z.array(z.string()).default([]),
-      avoidIf: z.array(z.string()).default([]),
-      powerTip: z.string().nullable().optional(),
-      delighters: z.array(z.string()).default([]),
-      frustrations: z.array(z.string()).default([]),
-    }).optional(),
-  }).optional(),
+  reviewContext: z
+    .object({
+      humanVerdict: z.string().nullable().optional(),
+      budgetAnalyst: z
+        .object({
+          costDrivers: z.array(z.string()).default([]),
+          oneTimeFees: z.array(z.string()).default([]),
+          commitmentTerms: z.string().nullable().optional(),
+          roiThreshold: z.string().nullable().optional(),
+        })
+        .optional(),
+      userAdvocate: z
+        .object({
+          vibe: z.string().nullable().optional(),
+          originStory: z.string().nullable().optional(),
+          idealFor: z.array(z.string()).default([]),
+          avoidIf: z.array(z.string()).default([]),
+          powerTip: z.string().nullable().optional(),
+          delighters: z.array(z.string()).default([]),
+          frustrations: z.array(z.string()).default([]),
+        })
+        .optional(),
+    })
+    .optional(),
   // V4: Smart Schema - Category-specific extracted data
   categorySpecificData: z.record(z.string(), z.unknown()).optional(),
   // V4: Tool Hints - VIP tool-specific extracted data
@@ -496,8 +537,12 @@ export const KeywordIntentSchema = z.object({
   tools: z.array(z.string()),
   context: z.string().nullable().optional(),
   category: z.string().nullable().optional(),
-  actionPlan: z.array(z.object({
-    type: z.string(),
-    params: z.record(z.any()),
-  })).min(1),
+  actionPlan: z
+    .array(
+      z.object({
+        type: z.string(),
+        params: z.record(z.any()),
+      })
+    )
+    .min(1),
 });

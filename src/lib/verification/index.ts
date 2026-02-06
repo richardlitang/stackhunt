@@ -57,10 +57,7 @@ export class VerificationService {
   /**
    * Search for specific information about a tool
    */
-  private async searchForData(
-    toolName: string,
-    fieldName: string
-  ): Promise<string[]> {
+  private async searchForData(toolName: string, fieldName: string): Promise<string[]> {
     const queryMap: Record<string, string> = {
       pricing: `${toolName} pricing plans cost per month`,
       pros: `${toolName} advantages benefits review`,
@@ -86,11 +83,7 @@ export class VerificationService {
         }
       );
 
-      return (
-        response.data.organic?.map(
-          (r) => `[${r.link}] ${r.title}: ${r.snippet}`
-        ) || []
-      );
+      return response.data.organic?.map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
     } catch (error) {
       console.error('Search error:', error);
       return [];
@@ -100,14 +93,9 @@ export class VerificationService {
   /**
    * Verify a single correction using AI
    */
-  async verifySingleCorrection(
-    correction: CorrectionToVerify
-  ): Promise<VerificationResult> {
+  async verifySingleCorrection(correction: CorrectionToVerify): Promise<VerificationResult> {
     // 1. Search for current data
-    const searchResults = await this.searchForData(
-      correction.toolName,
-      correction.fieldName
-    );
+    const searchResults = await this.searchForData(correction.toolName, correction.fieldName);
 
     if (searchResults.length === 0) {
       return {
@@ -176,9 +164,7 @@ Respond with ONLY valid JSON in this exact format:
       return {
         correctionId: correction.id,
         result: parsed.result,
-        notes: parsed.evidence
-          ? `${parsed.notes} Evidence: ${parsed.evidence}`
-          : parsed.notes,
+        notes: parsed.evidence ? `${parsed.notes} Evidence: ${parsed.evidence}` : parsed.notes,
         scrapedData: searchResults.slice(0, 2).join('\n'),
         tokensUsed,
       };
@@ -232,10 +218,7 @@ Respond with ONLY valid JSON in this exact format:
 
       // Verify each correction in this field group
       for (const correction of fieldCorrections) {
-        const result = await this.verifyWithSearchResults(
-          correction,
-          searchResults
-        );
+        const result = await this.verifyWithSearchResults(correction, searchResults);
         results.push(result);
       }
     }

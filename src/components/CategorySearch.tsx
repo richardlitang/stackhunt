@@ -16,10 +16,12 @@ function getIconComponent(iconName: string | undefined) {
   // Convert "message-circle" to "MessageCircle"
   const pascalCase = iconName
     .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('');
 
-  const IconComponent = (LucideIcons as Record<string, React.ComponentType<{ className?: string }>>)[pascalCase];
+  const IconComponent = (
+    LucideIcons as Record<string, React.ComponentType<{ className?: string }>>
+  )[pascalCase];
   return IconComponent || Package;
 }
 
@@ -43,14 +45,15 @@ export default function CategorySearch({ categories }: Props) {
     if (!query.trim()) return categories;
 
     const searchTerm = query.toLowerCase();
-    return categories.filter(cat =>
-      cat.name.toLowerCase().includes(searchTerm) ||
-      cat.description?.toLowerCase().includes(searchTerm)
+    return categories.filter(
+      (cat) =>
+        cat.name.toLowerCase().includes(searchTerm) ||
+        cat.description?.toLowerCase().includes(searchTerm)
     );
   }, [categories, query]);
 
-  const featuredCategories = filteredCategories.filter(c => c.is_featured);
-  const otherCategories = filteredCategories.filter(c => !c.is_featured);
+  const featuredCategories = filteredCategories.filter((c) => c.is_featured);
+  const otherCategories = filteredCategories.filter((c) => !c.is_featured);
 
   return (
     <div>
@@ -78,7 +81,8 @@ export default function CategorySearch({ categories }: Props) {
         </div>
         {query && (
           <p className="mt-2 text-sm text-zinc-400">
-            {filteredCategories.length} {filteredCategories.length === 1 ? 'category' : 'categories'} found
+            {filteredCategories.length}{' '}
+            {filteredCategories.length === 1 ? 'category' : 'categories'} found
           </p>
         )}
       </div>
@@ -164,9 +168,7 @@ export default function CategorySearch({ categories }: Props) {
         <div className="rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-12 text-center">
           <Search className="mx-auto h-12 w-12 text-zinc-600" />
           <h3 className="mt-4 text-lg font-medium text-zinc-100">No categories found</h3>
-          <p className="mt-2 text-sm text-zinc-500">
-            Try a different search term
-          </p>
+          <p className="mt-2 text-sm text-zinc-500">Try a different search term</p>
           <Button
             variant="link"
             onClick={() => setQuery('')}

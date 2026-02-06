@@ -12,18 +12,9 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
-import {
-  SerperService,
-  GeminiService,
-  LogoService,
-  QueueService,
-} from './services';
+import { SerperService, GeminiService, LogoService, QueueService } from './services';
 import { HunterLogger } from './services/logger';
-import {
-  executeResearchPhase,
-  executeAnalysisPhase,
-  executePersistencePhase,
-} from './phases';
+import { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';
 import type {
   HunterConfig,
   HunterInput,
@@ -75,9 +66,7 @@ export class Hunter {
    */
   getLogs(): string[] {
     if (this.logger) {
-      return this.logger.getLogs().map(entry =>
-        `[${entry.timestamp}] ${entry.message}`
-      );
+      return this.logger.getLogs().map((entry) => `[${entry.timestamp}] ${entry.message}`);
     }
     return [];
   }
@@ -92,11 +81,7 @@ export class Hunter {
   /**
    * Retry wrapper with exponential backoff
    */
-  private async withRetry<T>(
-    fn: () => Promise<T>,
-    operation: string,
-    maxRetries = 3
-  ): Promise<T> {
+  private async withRetry<T>(fn: () => Promise<T>, operation: string, maxRetries = 3): Promise<T> {
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -176,7 +161,7 @@ export class Hunter {
       if (ctx.queueItemId) {
         const checkpoint = await this.queue.getCheckpoint(ctx.queueItemId);
         if (checkpoint) {
-          checkpointVersion = checkpoint.version;  // Track for version validation
+          checkpointVersion = checkpoint.version; // Track for version validation
           this.log(`🔄 Resuming from checkpoint (version ${checkpointVersion})`);
           if (checkpoint.research) {
             this.log(`   Phase 1 (Research) already completed - reusing data`);
@@ -200,7 +185,9 @@ export class Hunter {
         ctx.research = await executeResearchPhase(ctx, deps);
         ctx.tokensUsed += ctx.research.tokensUsed;
         if (ctx.tokensUsed > maxTokens) {
-          this.log(`🛑 Token budget exceeded after research (${ctx.tokensUsed}/${maxTokens}). Saving research only.`);
+          this.log(
+            `🛑 Token budget exceeded after research (${ctx.tokensUsed}/${maxTokens}). Saving research only.`
+          );
           ctx.skipSynthesis = true;
         }
         this.logger?.endPhase({
@@ -214,7 +201,7 @@ export class Hunter {
             ctx.queueItemId,
             1,
             { research: ctx.research },
-            checkpointVersion,  // Expected version for conflict detection
+            checkpointVersion, // Expected version for conflict detection
             this.log.bind(this)
           );
 
@@ -229,7 +216,7 @@ export class Hunter {
             };
           }
 
-          checkpointVersion = (checkpointVersion ?? 0) + 1;  // Update local version
+          checkpointVersion = (checkpointVersion ?? 0) + 1; // Update local version
         }
       }
 
@@ -282,8 +269,12 @@ export class Hunter {
         if (totalSnippets < minTotalSnippets || actualReviewTribal < minReviewTribal) {
           const huntType = ctx.contextTitle ? 'contextual' : 'discovery';
           this.log(`⚠️  Pre-flight: Insufficient source material for ${huntType} hunt`);
-          this.log(`   Found: ${totalSnippets} total snippets (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing)`);
-          this.log(`   Required: ${minTotalSnippets}+ total with ${minReviewTribal}+ reviews/tribal`);
+          this.log(
+            `   Found: ${totalSnippets} total snippets (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing)`
+          );
+          this.log(
+            `   Required: ${minTotalSnippets}+ total with ${minReviewTribal}+ reviews/tribal`
+          );
           this.log(`   Saving research data but skipping analysis to save API credits`);
           this.log(`   Re-run later to check if more sources available`);
 
@@ -291,7 +282,9 @@ export class Hunter {
           ctx.skipAnalysis = true;
           ctx.insufficientSources = true; // Flag for persistence phase
         } else {
-          this.log(`✅ Pre-flight passed: ${totalSnippets} snippets (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing)`);
+          this.log(
+            `✅ Pre-flight passed: ${totalSnippets} snippets (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing)`
+          );
         }
       }
 
@@ -339,7 +332,9 @@ export class Hunter {
         ctx.analysis = await executeAnalysisPhase(ctx, deps);
         ctx.tokensUsed += ctx.analysis.tokensUsed;
         if (ctx.tokensUsed > maxTokens) {
-          this.log(`🛑 Token budget exceeded after analysis (${ctx.tokensUsed}/${maxTokens}). Continuing to persistence (no additional tokens).`);
+          this.log(
+            `🛑 Token budget exceeded after analysis (${ctx.tokensUsed}/${maxTokens}). Continuing to persistence (no additional tokens).`
+          );
         }
         this.logger?.endPhase({
           tokens_used: ctx.analysis.tokensUsed,
@@ -354,7 +349,7 @@ export class Hunter {
             ctx.queueItemId,
             2,
             { research: ctx.research, analysis: ctx.analysis },
-            checkpointVersion,  // Expected version for conflict detection
+            checkpointVersion, // Expected version for conflict detection
             this.log.bind(this)
           );
 
@@ -368,7 +363,7 @@ export class Hunter {
             };
           }
 
-          checkpointVersion = (checkpointVersion ?? 0) + 1;  // Update local version
+          checkpointVersion = (checkpointVersion ?? 0) + 1; // Update local version
         }
       }
 
@@ -384,7 +379,9 @@ export class Hunter {
         });
 
         this.log(`✅ Hunt complete: ${input.toolName}`);
-        this.log(`Tool: ${persistence.toolId}, Context: ${persistence.contextId || 'none'}, Review: ${persistence.reviewId || 'none'}`);
+        this.log(
+          `Tool: ${persistence.toolId}, Context: ${persistence.contextId || 'none'}, Review: ${persistence.reviewId || 'none'}`
+        );
         this.log(`Tokens: ${ctx.tokensUsed}, Duration: ${Date.now() - ctx.startTime}ms`);
 
         // Clear checkpoint on successful completion
@@ -496,9 +493,7 @@ export class Hunter {
           );
 
           try {
-            const { assignToRelevantContexts } = await import(
-              './validation/context-validator.js'
-            );
+            const { assignToRelevantContexts } = await import('./validation/context-validator.js');
             const crossPollinationResult = await assignToRelevantContexts(
               result.toolId,
               result.contextId,
@@ -595,12 +590,16 @@ export class Hunter {
       else failed++;
 
       if (maxTokensPerBatch && tokensUsed >= maxTokensPerBatch) {
-        this.log(`[Queue] Token budget reached for batch (${tokensUsed}/${maxTokensPerBatch}). Stopping early.`);
+        this.log(
+          `[Queue] Token budget reached for batch (${tokensUsed}/${maxTokensPerBatch}). Stopping early.`
+        );
         break;
       }
     }
 
-      this.log(`[Queue] Batch complete: ${processed} processed, ${succeeded} succeeded, ${failed} failed, ${tokensUsed} tokens`);
+    this.log(
+      `[Queue] Batch complete: ${processed} processed, ${succeeded} succeeded, ${failed} failed, ${tokensUsed} tokens`
+    );
 
     return { processed, succeeded, failed, results, tokensUsed };
   }

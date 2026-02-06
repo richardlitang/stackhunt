@@ -13,9 +13,9 @@
  */
 
 export interface CircuitBreakerConfig {
-  failureThreshold: number;   // Number of failures before opening circuit
-  successThreshold: number;   // Number of successes to close circuit from half-open
-  resetTimeoutMs: number;     // Time to wait before attempting recovery
+  failureThreshold: number; // Number of failures before opening circuit
+  successThreshold: number; // Number of successes to close circuit from half-open
+  resetTimeoutMs: number; // Time to wait before attempting recovery
 }
 
 export class CircuitOpenError extends Error {
@@ -48,7 +48,9 @@ export class CircuitBreaker {
     if (this.state === 'open') {
       const elapsed = Date.now() - this.lastFailureTime;
       if (elapsed >= this.config.resetTimeoutMs) {
-        console.log(`[CircuitBreaker:${this.service}] Transitioning to HALF_OPEN (testing recovery)`);
+        console.log(
+          `[CircuitBreaker:${this.service}] Transitioning to HALF_OPEN (testing recovery)`
+        );
         this.state = 'half_open';
         this.successCount = 0;
       } else {
@@ -99,7 +101,9 @@ export class CircuitBreaker {
     } else if (this.state === 'closed') {
       this.failureCount++;
       if (this.failureCount >= this.config.failureThreshold) {
-        console.log(`[CircuitBreaker:${this.service}] OPEN (failure threshold reached: ${this.failureCount})`);
+        console.log(
+          `[CircuitBreaker:${this.service}] OPEN (failure threshold reached: ${this.failureCount})`
+        );
         this.state = 'open';
       }
     }
@@ -126,13 +130,13 @@ export class CircuitBreaker {
 
 // Pre-configured circuit breakers for different services
 export const serperCircuit = new CircuitBreaker('serper', {
-  failureThreshold: 5,    // Open after 5 consecutive failures
-  successThreshold: 2,    // Close after 2 consecutive successes
-  resetTimeoutMs: 30000,  // Try recovery after 30 seconds
+  failureThreshold: 5, // Open after 5 consecutive failures
+  successThreshold: 2, // Close after 2 consecutive successes
+  resetTimeoutMs: 30000, // Try recovery after 30 seconds
 });
 
 export const geminiCircuit = new CircuitBreaker('gemini', {
-  failureThreshold: 3,    // Open after 3 consecutive failures
-  successThreshold: 2,    // Close after 2 consecutive successes
-  resetTimeoutMs: 60000,  // Try recovery after 60 seconds
+  failureThreshold: 3, // Open after 3 consecutive failures
+  successThreshold: 2, // Close after 2 consecutive successes
+  resetTimeoutMs: 60000, // Try recovery after 60 seconds
 });

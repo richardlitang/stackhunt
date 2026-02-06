@@ -9,10 +9,7 @@ import { getAdminClient } from '@/lib/supabase';
 
 const admin = getAdminClient();
 
-const { data: guidelines } = await admin
-  .from('editorial_guidelines')
-  .select('*')
-  .order('key');
+const { data: guidelines } = await admin.from('editorial_guidelines').select('*').order('key');
 ---
 
 <AdminLayout title="Editorial Guidelines">
@@ -22,8 +19,14 @@ const { data: guidelines } = await admin
       <div>
         <div class="flex items-center gap-3">
           <a href="/admin/editorial" class="text-slate-400 hover:text-slate-600">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
             </svg>
           </a>
           <h1 class="text-2xl font-bold text-slate-900">Editorial Guidelines</h1>
@@ -36,61 +39,72 @@ const { data: guidelines } = await admin
 
     <!-- Guidelines Cards -->
     <div class="space-y-6">
-      {guidelines?.map((guideline) => (
-        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden guideline-card" data-key={guideline.key}>
-          <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
-            <div>
-              <h2 class="font-semibold text-slate-900">{guideline.name}</h2>
-              {guideline.description && (
-                <p class="text-sm text-slate-500">{guideline.description}</p>
-              )}
-            </div>
-            <div class="flex items-center gap-3">
-              <label class="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  class="active-toggle h-4 w-4 rounded border-slate-300 text-hunt-500 focus:ring-hunt-500"
-                  checked={guideline.is_active}
+      {
+        guidelines?.map((guideline) => (
+          <div
+            class="rounded-xl border border-slate-200 bg-white overflow-hidden guideline-card"
+            data-key={guideline.key}
+          >
+            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
+              <div>
+                <h2 class="font-semibold text-slate-900">{guideline.name}</h2>
+                {guideline.description && (
+                  <p class="text-sm text-slate-500">{guideline.description}</p>
+                )}
+              </div>
+              <div class="flex items-center gap-3">
+                <label class="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    class="active-toggle h-4 w-4 rounded border-slate-300 text-hunt-500 focus:ring-hunt-500"
+                    checked={guideline.is_active}
+                    data-key={guideline.key}
+                  />
+                  <span class="text-slate-600">Active</span>
+                </label>
+                <button
+                  class="edit-btn rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
                   data-key={guideline.key}
-                />
-                <span class="text-slate-600">Active</span>
-              </label>
-              <button
-                class="edit-btn rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                data-key={guideline.key}
-              >
-                Edit
-              </button>
+                >
+                  Edit
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="p-6">
-            <pre class="guideline-content text-sm text-slate-700 bg-slate-50 rounded-lg p-4 overflow-x-auto max-h-64 overflow-y-auto">{JSON.stringify(guideline.content, null, 2)}</pre>
-            <div class="guideline-editor hidden mt-4">
-              <textarea
-                class="guideline-textarea w-full h-64 font-mono text-sm rounded-lg border border-slate-300 p-4 focus:border-hunt-500 focus:ring-2 focus:ring-hunt-500/20 outline-none"
-                data-key={guideline.key}
-              >{JSON.stringify(guideline.content, null, 2)}</textarea>
-              <div class="flex items-center justify-between mt-3">
-                <p class="text-xs text-slate-500">Edit JSON directly. Invalid JSON will not be saved.</p>
-                <div class="flex gap-2">
-                  <button
-                    class="cancel-btn rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                    data-key={guideline.key}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    class="save-btn rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-600 transition"
-                    data-key={guideline.key}
-                  >
-                    Save Changes
-                  </button>
+            <div class="p-6">
+              <pre class="guideline-content text-sm text-slate-700 bg-slate-50 rounded-lg p-4 overflow-x-auto max-h-64 overflow-y-auto">
+                {JSON.stringify(guideline.content, null, 2)}
+              </pre>
+              <div class="guideline-editor hidden mt-4">
+                <textarea
+                  class="guideline-textarea w-full h-64 font-mono text-sm rounded-lg border border-slate-300 p-4 focus:border-hunt-500 focus:ring-2 focus:ring-hunt-500/20 outline-none"
+                  data-key={guideline.key}
+                >
+                  {JSON.stringify(guideline.content, null, 2)}
+                </textarea>
+                <div class="flex items-center justify-between mt-3">
+                  <p class="text-xs text-slate-500">
+                    Edit JSON directly. Invalid JSON will not be saved.
+                  </p>
+                  <div class="flex gap-2">
+                    <button
+                      class="cancel-btn rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                      data-key={guideline.key}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      class="save-btn rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-600 transition"
+                      data-key={guideline.key}
+                    >
+                      Save Changes
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))
+      }
     </div>
 
     <!-- Add New Guideline -->
@@ -98,7 +112,9 @@ const { data: guidelines } = await admin
       <h3 class="font-semibold text-slate-900 mb-4">Add New Guideline</h3>
       <form id="add-guideline-form" class="grid gap-4 sm:grid-cols-2">
         <div>
-          <label for="key" class="block text-sm font-medium text-slate-700 mb-1">Key (snake_case)</label>
+          <label for="key" class="block text-sm font-medium text-slate-700 mb-1"
+            >Key (snake_case)</label
+          >
           <input
             type="text"
             id="key"
@@ -110,7 +126,9 @@ const { data: guidelines } = await admin
           />
         </div>
         <div>
-          <label for="name" class="block text-sm font-medium text-slate-700 mb-1">Display Name</label>
+          <label for="name" class="block text-sm font-medium text-slate-700 mb-1"
+            >Display Name</label
+          >
           <input
             type="text"
             id="name"
@@ -121,7 +139,9 @@ const { data: guidelines } = await admin
           />
         </div>
         <div class="sm:col-span-2">
-          <label for="new-description" class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+          <label for="new-description" class="block text-sm font-medium text-slate-700 mb-1"
+            >Description</label
+          >
           <input
             type="text"
             id="new-description"
@@ -131,23 +151,30 @@ const { data: guidelines } = await admin
           />
         </div>
         <div class="sm:col-span-2">
-          <label for="new-content" class="block text-sm font-medium text-slate-700 mb-1">Content (JSON)</label>
+          <label for="new-content" class="block text-sm font-medium text-slate-700 mb-1"
+            >Content (JSON)</label
+          >
           <textarea
             id="new-content"
             name="content"
             rows="6"
             placeholder='{"rules": [], "settings": {}}'
             class="w-full font-mono rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-2 focus:ring-hunt-500/20 outline-none"
-            required
-          ></textarea>
+            required></textarea>
         </div>
         <div class="sm:col-span-2 flex justify-end">
           <button
             type="submit"
             class="inline-flex items-center gap-2 rounded-lg bg-hunt-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-hunt-600 transition"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
             </svg>
             Add Guideline
           </button>
@@ -209,7 +236,9 @@ const { data: guidelines } = await admin
   document.querySelectorAll('.save-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       const key = (e.target as HTMLElement).dataset.key;
-      const textarea = document.querySelector(`.guideline-textarea[data-key="${key}"]`) as HTMLTextAreaElement;
+      const textarea = document.querySelector(
+        `.guideline-textarea[data-key="${key}"]`
+      ) as HTMLTextAreaElement;
 
       let content;
       try {

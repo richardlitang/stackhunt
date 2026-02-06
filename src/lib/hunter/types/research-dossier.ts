@@ -15,20 +15,20 @@ import { z } from 'zod';
  * Tool categories with specific research strategies
  */
 export const ToolCategorySchema = z.enum([
-  'ai_model',           // Claude, GPT-4, Gemini → focus on token pricing, context limits
-  'api_platform',       // Twilio, Stripe → focus on rate limits, per-request pricing
+  'ai_model', // Claude, GPT-4, Gemini → focus on token pricing, context limits
+  'api_platform', // Twilio, Stripe → focus on rate limits, per-request pricing
   'saas_collaboration', // Slack, Notion → focus on seat limits, storage quotas
-  'saas_productivity',  // Asana, Monday → focus on project limits, automation caps
-  'crm_sales',          // Salesforce, HubSpot → focus on contact limits, email caps
-  'marketing_email',    // Mailchimp, SendGrid → focus on subscriber limits, send rates
-  'database_storage',   // Airtable, MongoDB → focus on record/doc limits, storage
-  'devtools',           // GitHub, GitLab → focus on repo limits, CI minutes
-  'legacy_defunct',     // Flash, Silverlight → focus on shutdown date, alternatives
-  'consumer_media',     // Spotify, Netflix → focus on household limits, quality tiers
-  'infrastructure',     // AWS, Vercel → focus on usage-based pricing, egress fees
-  'design_creative',    // Figma, Canva → focus on editor limits, export restrictions
+  'saas_productivity', // Asana, Monday → focus on project limits, automation caps
+  'crm_sales', // Salesforce, HubSpot → focus on contact limits, email caps
+  'marketing_email', // Mailchimp, SendGrid → focus on subscriber limits, send rates
+  'database_storage', // Airtable, MongoDB → focus on record/doc limits, storage
+  'devtools', // GitHub, GitLab → focus on repo limits, CI minutes
+  'legacy_defunct', // Flash, Silverlight → focus on shutdown date, alternatives
+  'consumer_media', // Spotify, Netflix → focus on household limits, quality tiers
+  'infrastructure', // AWS, Vercel → focus on usage-based pricing, egress fees
+  'design_creative', // Figma, Canva → focus on editor limits, export restrictions
   'video_conferencing', // Zoom, Meet → focus on participant limits, recording storage
-  'generic_saas',       // Catch-all when category unclear
+  'generic_saas', // Catch-all when category unclear
 ]);
 export type ToolCategory = z.infer<typeof ToolCategorySchema>;
 
@@ -47,7 +47,7 @@ export const ForensicTargetSchema = z.enum([
   'concurrent_users',
   'bandwidth_gb',
   'build_minutes',
-  'shutdown_status',  // Special: for defunct detection
+  'shutdown_status', // Special: for defunct detection
 ]);
 export type ForensicTarget = z.infer<typeof ForensicTargetSchema>;
 

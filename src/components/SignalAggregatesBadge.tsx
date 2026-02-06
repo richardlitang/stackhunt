@@ -33,10 +33,14 @@ function getSignalIcon(category: string, optionKey?: string) {
 
 function getSignalColor(category: string, isPositive: boolean): string {
   if (category === 'pros') {
-    return isPositive ? 'text-green-400 bg-green-500/10 border-green-700/50' : 'text-red-400 bg-red-500/10 border-red-700/50';
+    return isPositive
+      ? 'text-green-400 bg-green-500/10 border-green-700/50'
+      : 'text-red-400 bg-red-500/10 border-red-700/50';
   }
   if (category === 'cons') {
-    return isPositive ? 'text-red-400 bg-red-500/10 border-red-700/50' : 'text-green-400 bg-green-500/10 border-green-700/50';
+    return isPositive
+      ? 'text-red-400 bg-red-500/10 border-red-700/50'
+      : 'text-green-400 bg-green-500/10 border-green-700/50';
   }
   if (category === 'gotcha') {
     return 'text-amber-400 bg-amber-500/10 border-amber-700/50';
@@ -126,9 +130,7 @@ export default function SignalAggregatesBadge({
               {getSignalIcon(signal.signal_category, signal.option_key)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">
-                {signal.displayText}
-              </p>
+              <p className="text-sm font-medium">{signal.displayText}</p>
               {(signal.signal_category === 'pros' || signal.signal_category === 'cons') && (
                 <div className="mt-1.5 h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                   <div
@@ -150,7 +152,12 @@ export default function SignalAggregatesBadge({
 
       <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500 border-t border-zinc-800 pt-3">
         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         <span>Reported by community • Lightweight signals, not reviews</span>
       </div>

@@ -32,10 +32,18 @@ if (specs.pricing?.model) {
     enterprise: 'Enterprise',
     open_source: 'Open Source',
   };
-  rows.push({ label: 'Pricing Model', value: modelLabels[specs.pricing.model] || specs.pricing.model, icon: 'model' });
+  rows.push({
+    label: 'Pricing Model',
+    value: modelLabels[specs.pricing.model] || specs.pricing.model,
+    icon: 'model',
+  });
 }
 if (specs.pricing?.has_free_tier !== undefined) {
-  rows.push({ label: 'Free Tier', value: specs.pricing.has_free_tier ? 'Yes' : 'No', icon: 'free' });
+  rows.push({
+    label: 'Free Tier',
+    value: specs.pricing.has_free_tier ? 'Yes' : 'No',
+    icon: 'free',
+  });
 }
 if (specs.pricing?.has_free_trial) {
   const trialText = specs.pricing.trial_days ? `Yes (${specs.pricing.trial_days} days)` : 'Yes';
@@ -43,29 +51,38 @@ if (specs.pricing?.has_free_trial) {
 }
 
 // Platforms
-const availablePlatforms = specs.platforms?.filter(p => p.available).map(p => {
-  const labels: Record<string, string> = {
-    web: 'Web',
-    mac: 'Mac',
-    windows: 'Windows',
-    linux: 'Linux',
-    ios: 'iOS',
-    android: 'Android',
-    cli: 'CLI',
-    api: 'API',
-    'self-hosted': 'Self-Hosted',
-  };
-  return labels[p.platform] || p.platform;
-});
+const availablePlatforms = specs.platforms
+  ?.filter((p) => p.available)
+  .map((p) => {
+    const labels: Record<string, string> = {
+      web: 'Web',
+      mac: 'Mac',
+      windows: 'Windows',
+      linux: 'Linux',
+      ios: 'iOS',
+      android: 'Android',
+      cli: 'CLI',
+      api: 'API',
+      'self-hosted': 'Self-Hosted',
+    };
+    return labels[p.platform] || p.platform;
+  });
 if (availablePlatforms && availablePlatforms.length > 0) {
   rows.push({ label: 'Platforms', value: availablePlatforms.join(', '), icon: 'platform' });
 }
 
 // Integrations
 if (specs.integrations?.total_count) {
-  rows.push({ label: 'Integrations', value: `${specs.integrations.total_count}+ available`, icon: 'integration' });
+  rows.push({
+    label: 'Integrations',
+    value: `${specs.integrations.total_count}+ available`,
+    icon: 'integration',
+  });
 } else if (specs.integrations?.notable && specs.integrations.notable.length > 0) {
-  const notable = specs.integrations.notable.slice(0, 5).map(i => i.name).join(', ');
+  const notable = specs.integrations.notable
+    .slice(0, 5)
+    .map((i) => i.name)
+    .join(', ');
   rows.push({ label: 'Notable Integrations', value: notable, icon: 'integration' });
 }
 
@@ -86,7 +103,11 @@ if (specs.security?.soc2_certified) securityFeatures.push('SOC 2');
 if (specs.security?.gdpr_compliant) securityFeatures.push('GDPR');
 if (specs.security?.hipaa_compliant) securityFeatures.push('HIPAA');
 if (securityFeatures.length > 0) {
-  rows.push({ label: 'Security & Compliance', value: securityFeatures.join(', '), icon: 'security' });
+  rows.push({
+    label: 'Security & Compliance',
+    value: securityFeatures.join(', '),
+    icon: 'security',
+  });
 }
 if (specs.security?.self_hosted_option) {
   rows.push({ label: 'Self-Hosted Option', value: 'Available', icon: 'selfhost' });
@@ -100,7 +121,11 @@ if (specs.company?.headquarters) {
   rows.push({ label: 'Headquarters', value: specs.company.headquarters, icon: 'location' });
 }
 if (specs.company?.employee_count) {
-  rows.push({ label: 'Company Size', value: `${specs.company.employee_count} employees`, icon: 'team' });
+  rows.push({
+    label: 'Company Size',
+    value: `${specs.company.employee_count} employees`,
+    icon: 'team',
+  });
 }
 
 // Audience
@@ -112,7 +137,11 @@ if (specs.audience?.team_size) {
     enterprise: 'Enterprise (100+)',
     any: 'Any Team Size',
   };
-  rows.push({ label: 'Best For', value: sizeLabels[specs.audience.team_size] || specs.audience.team_size, icon: 'audience' });
+  rows.push({
+    label: 'Best For',
+    value: sizeLabels[specs.audience.team_size] || specs.audience.team_size,
+    icon: 'audience',
+  });
 }
 
 // Support
@@ -134,7 +163,11 @@ if (specs.learning_curve) {
     weeks: 'Weeks to learn',
     months: 'Months to learn',
   };
-  rows.push({ label: 'Learning Curve', value: curveLabels[specs.learning_curve] || specs.learning_curve, icon: 'learning' });
+  rows.push({
+    label: 'Learning Curve',
+    value: curveLabels[specs.learning_curve] || specs.learning_curve,
+    icon: 'learning',
+  });
 }
 
 // Don't render if no data
@@ -144,20 +177,28 @@ if (rows.length === 0) return null;
 <div class:list={['rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm', className]}>
   <h3 class="mb-4 text-lg font-semibold text-zinc-100">Specifications</h3>
   <dl class="space-y-3">
-    {rows.map(({ label, value }) => (
-      <div class="flex items-center justify-between py-2 border-b border-zinc-800 last:border-b-0 gap-4">
-        <dt class="text-sm font-medium text-zinc-400 pr-3">{label}</dt>
-        <dd class="text-sm font-medium text-zinc-100 text-right">{value}</dd>
-      </div>
-    ))}
+    {
+      rows.map(({ label, value }) => (
+        <div class="flex items-center justify-between py-2 border-b border-zinc-800 last:border-b-0 gap-4">
+          <dt class="text-sm font-medium text-zinc-400 pr-3">{label}</dt>
+          <dd class="text-sm font-medium text-zinc-100 text-right">{value}</dd>
+        </div>
+      ))
+    }
   </dl>
 
   {/* Data freshness indicator */}
-  {specs.meta?.extraction_date && (
-    <div class="mt-4 border-t border-zinc-800 pt-3">
-      <span class="text-xs text-zinc-500">
-        Data verified: {new Date(specs.meta.extraction_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-      </span>
-    </div>
-  )}
+  {
+    specs.meta?.extraction_date && (
+      <div class="mt-4 border-t border-zinc-800 pt-3">
+        <span class="text-xs text-zinc-500">
+          Data verified:{' '}
+          {new Date(specs.meta.extraction_date).toLocaleDateString('en-US', {
+            month: 'short',
+            year: 'numeric',
+          })}
+        </span>
+      </div>
+    )
+  }
 </div>

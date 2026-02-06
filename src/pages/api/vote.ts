@@ -34,7 +34,10 @@ function hashIP(ip: string): string {
   if (!salt && isProduction()) {
     throw new Error('CRITICAL: IP_HASH_SALT is required in production');
   }
-  return createHash('sha256').update(ip + (salt || 'dev-salt-only')).digest('hex').slice(0, 32);
+  return createHash('sha256')
+    .update(ip + (salt || 'dev-salt-only'))
+    .digest('hex')
+    .slice(0, 32);
 }
 
 // Environment detection
@@ -93,20 +96,20 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     // Validate input
     if (!reviewId || typeof reviewId !== 'string') {
       return addRateLimitHeaders(
-        new Response(
-          JSON.stringify({ success: false, error: 'Invalid review ID' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        ),
+        new Response(JSON.stringify({ success: false, error: 'Invalid review ID' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
         rateLimit
       );
     }
 
     if (voteType !== -1 && voteType !== 0 && voteType !== 1) {
       return addRateLimitHeaders(
-        new Response(
-          JSON.stringify({ success: false, error: 'Invalid vote type' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        ),
+        new Response(JSON.stringify({ success: false, error: 'Invalid vote type' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
         rateLimit
       );
     }
@@ -114,10 +117,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     // Verify Turnstile (REQUIRED in production)
     if (isProduction() && !turnstileToken) {
       return addRateLimitHeaders(
-        new Response(
-          JSON.stringify({ success: false, error: 'Verification token required' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        ),
+        new Response(JSON.stringify({ success: false, error: 'Verification token required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
         rateLimit
       );
     }
@@ -126,10 +129,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       const isValid = await verifyTurnstile(turnstileToken, ip);
       if (!isValid) {
         return addRateLimitHeaders(
-          new Response(
-            JSON.stringify({ success: false, error: 'Verification failed' }),
-            { status: 403, headers: { 'Content-Type': 'application/json' } }
-          ),
+          new Response(JSON.stringify({ success: false, error: 'Verification failed' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          }),
           rateLimit
         );
       }
@@ -142,10 +145,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     if (voteType === 0) {
       // For simplicity, we don't actually remove votes, just shadowban
       return addRateLimitHeaders(
-        new Response(
-          JSON.stringify({ success: true, action: 'removed' }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } }
-        ),
+        new Response(JSON.stringify({ success: true, action: 'removed' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
         rateLimit
       );
     }
@@ -162,26 +165,26 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     if (error) {
       console.error('Vote error:', error);
       return addRateLimitHeaders(
-        new Response(
-          JSON.stringify({ success: false, error: 'Vote failed' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        ),
+        new Response(JSON.stringify({ success: false, error: 'Vote failed' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
         rateLimit
       );
     }
 
     return addRateLimitHeaders(
-      new Response(
-        JSON.stringify(data),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      ),
+      new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
       rateLimit
     );
   } catch (error) {
     console.error('Vote API error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Internal error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

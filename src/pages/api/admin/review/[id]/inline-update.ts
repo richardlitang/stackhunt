@@ -79,7 +79,14 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     }
 
     // Handle direct review field updates
-    const allowedFields = ['score', 'pros', 'cons', 'summary_markdown', 'sentiment_tags', 'reviewer_notes'];
+    const allowedFields = [
+      'score',
+      'pros',
+      'cons',
+      'summary_markdown',
+      'sentiment_tags',
+      'reviewer_notes',
+    ];
 
     if (!allowedFields.includes(field)) {
       return ApiResponse.badRequest(`Field '${field}' is not editable`);
@@ -90,10 +97,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await admin
-      .from('reviews')
-      .update(updateData)
-      .eq('id', id);
+    const { error } = await admin.from('reviews').update(updateData).eq('id', id);
 
     if (error) {
       console.error('Update error:', error);

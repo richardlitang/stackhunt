@@ -31,9 +31,7 @@ export function GhostToolCard({
         {/* Tool name and domain */}
         <div>
           <h3 className="text-lg font-semibold text-foreground">{toolName}</h3>
-          {domain && (
-            <p className="text-sm text-muted-foreground">{domain}</p>
-          )}
+          {domain && <p className="text-sm text-muted-foreground">{domain}</p>}
         </div>
 
         {/* Status indicator */}
@@ -49,9 +47,8 @@ export function GhostToolCard({
         {/* Estimated time */}
         <div className="rounded-md bg-muted/50 p-3 text-sm">
           <p className="text-muted-foreground">
-            <strong className="text-foreground">Detected in search results.</strong>
-            {' '}
-            Deep analysis in progress... Check back in{' '}
+            <strong className="text-foreground">Detected in search results.</strong> Deep analysis
+            in progress... Check back in{' '}
             <span className="font-medium text-foreground">{estimatedTime}</span>
           </p>
         </div>
@@ -65,8 +62,8 @@ export function GhostToolCard({
 
       {/* SEO-friendly hidden text */}
       <div className="sr-only">
-        {toolName} is currently being researched and analyzed. Check back soon for
-        detailed pricing, features, pros, cons, and expert verdict.
+        {toolName} is currently being researched and analyzed. Check back soon for detailed pricing,
+        features, pros, cons, and expert verdict.
       </div>
     </div>
   );

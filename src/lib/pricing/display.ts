@@ -19,26 +19,26 @@ const SCALING_UNIT_LABELS: Record<string, string> = {
   // Team-based
   user: 'user',
   seat: 'seat',
-  member: 'user',      // Normalize to user
+  member: 'user', // Normalize to user
   agent: 'agent',
-  teammate: 'user',    // Normalize to user
+  teammate: 'user', // Normalize to user
   // Audience-based
   contact: 'contact',
   subscriber: 'contact', // Normalize to contact
-  lead: 'contact',       // Normalize to contact
+  lead: 'contact', // Normalize to contact
   // Resource-based
   GB: 'GB',
-  gb: 'GB',              // Case normalization
+  gb: 'GB', // Case normalization
   storage: 'GB',
   project: 'project',
   workspace: 'workspace',
   site: 'site',
   // Usage-based
   message: 'message',
-  email: 'message',      // Normalize
-  sms: 'message',        // Normalize
+  email: 'message', // Normalize
+  sms: 'message', // Normalize
   request: 'request',
-  api_call: 'request',   // Normalize
+  api_call: 'request', // Normalize
   minute: 'minute',
   hour: 'hour',
   call: 'call',
@@ -77,7 +77,23 @@ const RESOURCE_BASED_UNITS: string[] = ['GB', 'gb', 'storage', 'project', 'works
  * Represents "how much you consume"
  * Note: Unknown units default to this category (most flexible)
  */
-const USAGE_BASED_UNITS: string[] = ['message', 'email', 'sms', 'request', 'api_call', 'minute', 'hour', 'call', 'event', 'token', 'task', 'invocation', 'credit', 'zap', 'compute'];
+const USAGE_BASED_UNITS: string[] = [
+  'message',
+  'email',
+  'sms',
+  'request',
+  'api_call',
+  'minute',
+  'hour',
+  'call',
+  'event',
+  'token',
+  'task',
+  'invocation',
+  'credit',
+  'zap',
+  'compute',
+];
 
 /**
  * Format a scaling unit for display
@@ -231,7 +247,9 @@ export function getPricingModelLabel(model: SMPPricingData['model'] | null | und
  */
 export type PricingBadgeVariant = 'team' | 'audience' | 'resource' | 'usage' | 'flat' | 'free';
 
-export function getPricingBadgeVariant(pricingData: SMPPricingData | null | undefined): PricingBadgeVariant {
+export function getPricingBadgeVariant(
+  pricingData: SMPPricingData | null | undefined
+): PricingBadgeVariant {
   if (!pricingData) return 'team';
   if (pricingData.model === 'free') return 'free';
   if (pricingData.model === 'flat') return 'flat';
@@ -258,7 +276,9 @@ export function getScalingCategoryLabel(category: ScalingCategory): string {
  * Get explanatory text about how pricing scales
  * Used in pricing cards to explain non-team-based pricing
  */
-export function getScalingExplanation(pricingData: SMPPricingData | null | undefined): string | null {
+export function getScalingExplanation(
+  pricingData: SMPPricingData | null | undefined
+): string | null {
   const scalingUnit = getScalingUnit(pricingData);
   const category = getScalingCategory(scalingUnit);
 

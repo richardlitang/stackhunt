@@ -39,7 +39,7 @@ export interface DatabaseTypes {
 function inferTargetMarket(plans: any[]): 'consumer' | 'prosumer' | 'business' | 'enterprise' {
   if (!plans || plans.length === 0) return 'business'; // Default for tools without pricing
 
-  const audiences = plans.map(p => p.target_audience).filter(Boolean);
+  const audiences = plans.map((p) => p.target_audience).filter(Boolean);
 
   const hasEnterprise = audiences.includes('enterprise');
   const hasBusiness = audiences.includes('business');
@@ -63,7 +63,8 @@ function inferTargetMarket(plans: any[]): 'consumer' | 'prosumer' | 'business' |
 }
 
 const CONDITIONAL_MARKERS = /\b(if|when|unless|only if|as soon as|before|after)\b/i;
-const NEGATIVE_CUES = /\b(no|not|lacks|lack|doesn't|cannot|can't|won't|avoid|veto|issue|problem|risk|limit|limited|slow|expensive|broken|bug|fails|failure)\b/i;
+const NEGATIVE_CUES =
+  /\b(no|not|lacks|lack|doesn't|cannot|can't|won't|avoid|veto|issue|problem|risk|limit|limited|slow|expensive|broken|bug|fails|failure)\b/i;
 
 function isConditional(text: string): boolean {
   return CONDITIONAL_MARKERS.test(text);
@@ -74,11 +75,14 @@ function containsNegativeCue(text: string): boolean {
 }
 
 function isBackedByClaims(text: string, claims: ClaimWithSource[]): boolean {
-  const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+  const words = text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 4);
   if (words.length === 0) return false;
-  return claims.some(claim => {
+  return claims.some((claim) => {
     const claimText = claim.text.toLowerCase();
-    const matchCount = words.filter(w => claimText.includes(w)).length;
+    const matchCount = words.filter((w) => claimText.includes(w)).length;
     return matchCount >= words.length * 0.4;
   });
 }
@@ -89,7 +93,7 @@ function filterConditionalList(
   deps: HunterDependencies
 ): string[] {
   if (!items || items.length === 0) return [];
-  const filtered = items.filter(item => isConditional(item));
+  const filtered = items.filter((item) => isConditional(item));
   const dropped = items.length - filtered.length;
   if (dropped > 0) {
     deps.log(`[Guardrail] Filtered ${dropped} ${label} item(s) without conditional framing`);
@@ -198,38 +202,38 @@ export async function executePersistencePhase(
     // Map primary_function to category slug
     const funcToCategory: Record<string, string> = {
       'Project Management': 'project-management',
-      'Communication': 'communication',
-      'Notetaking': 'notetaking',
+      Communication: 'communication',
+      Notetaking: 'notetaking',
       'Note-Taking': 'notetaking',
       'Developer Tools': 'developer-tools',
       'Code Editor': 'developer-tools',
-      'Development': 'developer-tools',
-      'Design': 'design',
-      'CRM': 'crm-sales',
-      'Collaboration': 'collaboration',
-      'Productivity': 'productivity',
+      Development: 'developer-tools',
+      Design: 'design',
+      CRM: 'crm-sales',
+      Collaboration: 'collaboration',
+      Productivity: 'productivity',
       'AI & Automation': 'ai-automation',
       'AI Code Assistant': 'ai-automation',
       'AI Tools': 'ai-automation',
       'AI Audio Platform': 'ai-automation',
-      'Analytics': 'seo-analytics',
-      'SEO': 'seo-analytics',
+      Analytics: 'seo-analytics',
+      SEO: 'seo-analytics',
       'SEO Tools': 'seo-analytics',
       'Email Marketing': 'email-marketing',
       'Social Media': 'social-media',
       'Customer Support': 'customer-support',
-      'HR': 'hr-recruiting',
+      HR: 'hr-recruiting',
       'HR & Payroll': 'hr-recruiting',
-      'Accounting': 'accounting',
+      Accounting: 'accounting',
       'Accounting Software': 'accounting',
-      'Finance': 'accounting',
+      Finance: 'accounting',
       'Spend Management': 'accounting',
       'Business Banking': 'payments',
-      'Payments': 'payments',
+      Payments: 'payments',
       'Video Editing': 'video-editing',
       'Practice Management': 'healthcare',
       'Dental Practice Management': 'healthcare',
-      'Automation': 'ai-automation',
+      Automation: 'ai-automation',
       'Website Builder': 'no-code',
     };
 
@@ -298,7 +302,7 @@ export async function executePersistencePhase(
       const plans = knowledgeCard.smp_pricing.plans;
       const { resolvePlanId } = await import('@/lib/pricing/constraints.js');
 
-      constraints.hard_limits = constraints.hard_limits.map(limit => {
+      constraints.hard_limits = constraints.hard_limits.map((limit) => {
         const planId = resolvePlanId(limit.plan_name_match, plans);
 
         // Sanitize source_url or fall back to pricing_page_url
@@ -309,33 +313,48 @@ export async function executePersistencePhase(
 
         return {
           ...limit,
-          plan_id: planId,  // Resolved ID
+          plan_id: planId, // Resolved ID
           source_url: sourceUrl,
         };
       });
     }
 
-      specs.constraints = constraints;
-    deps.log(`[Persisted] Constraints: ${constraints.hard_limits?.length || 0} limits, ${constraints.hidden_costs?.length || 0} hidden costs`);
+    specs.constraints = constraints;
+    deps.log(
+      `[Persisted] Constraints: ${constraints.hard_limits?.length || 0} limits, ${constraints.hidden_costs?.length || 0} hidden costs`
+    );
   }
 
   // V6: Cynical CTO - Add veto logic and reality checks (with source validation)
   const sources = ctx.research.scoutResult.sources;
-  let vettedVetos: Array<{ condition: string; alternative: string; reason: string; source_url: string }> | null = null;
+  let vettedVetos: Array<{
+    condition: string;
+    alternative: string;
+    reason: string;
+    source_url: string;
+  }> | null = null;
 
   if (analysis.vetoLogic && analysis.vetoLogic.length > 0) {
     const validatedVetos = analysis.vetoLogic.filter((veto: any) => {
       // Validate negative claims in veto reason
       const validation = validateNegativeClaim(
-        { text: veto.reason, source_url: veto.source_url, source_type: 'community', claim_type: 'opinion' },
+        {
+          text: veto.reason,
+          source_url: veto.source_url,
+          source_type: 'community',
+          claim_type: 'opinion',
+        },
         sources
       );
 
       if (!validation.isValid) {
-        const sourcesInfo = validation.corroboratingSources && validation.corroboratingSources.length > 0
-          ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
-          : '';
-        deps.log(`[Guardrail] Filtered veto: "${veto.reason.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`);
+        const sourcesInfo =
+          validation.corroboratingSources && validation.corroboratingSources.length > 0
+            ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
+            : '';
+        deps.log(
+          `[Guardrail] Filtered veto: "${veto.reason.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`
+        );
         return false;
       }
       return true;
@@ -344,9 +363,13 @@ export async function executePersistencePhase(
     if (validatedVetos.length > 0) {
       vettedVetos = validatedVetos;
       specs.vetoLogic = validatedVetos;
-      deps.log(`[Persisted] Veto Logic: ${validatedVetos.length}/${analysis.vetoLogic.length} conditions (${analysis.vetoLogic.length - validatedVetos.length} filtered)`);
+      deps.log(
+        `[Persisted] Veto Logic: ${validatedVetos.length}/${analysis.vetoLogic.length} conditions (${analysis.vetoLogic.length - validatedVetos.length} filtered)`
+      );
     } else {
-      deps.log(`[Guardrail] All ${analysis.vetoLogic.length} veto conditions filtered due to insufficient corroboration`);
+      deps.log(
+        `[Guardrail] All ${analysis.vetoLogic.length} veto conditions filtered due to insufficient corroboration`
+      );
     }
   }
 
@@ -354,15 +377,23 @@ export async function executePersistencePhase(
     const validatedChecks = analysis.realityChecks.filter((check: any) => {
       // Validate negative claims in reality field
       const validation = validateNegativeClaim(
-        { text: check.reality, source_url: check.source_url, source_type: 'community', claim_type: 'opinion' },
+        {
+          text: check.reality,
+          source_url: check.source_url,
+          source_type: 'community',
+          claim_type: 'opinion',
+        },
         sources
       );
 
       if (!validation.isValid) {
-        const sourcesInfo = validation.corroboratingSources && validation.corroboratingSources.length > 0
-          ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
-          : '';
-        deps.log(`[Guardrail] Filtered reality check: "${check.reality.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`);
+        const sourcesInfo =
+          validation.corroboratingSources && validation.corroboratingSources.length > 0
+            ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
+            : '';
+        deps.log(
+          `[Guardrail] Filtered reality check: "${check.reality.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`
+        );
         return false;
       }
       return true;
@@ -370,16 +401,22 @@ export async function executePersistencePhase(
 
     if (validatedChecks.length > 0) {
       specs.realityChecks = validatedChecks;
-      deps.log(`[Persisted] Reality Checks: ${validatedChecks.length}/${analysis.realityChecks.length} checks (${analysis.realityChecks.length - validatedChecks.length} filtered)`);
+      deps.log(
+        `[Persisted] Reality Checks: ${validatedChecks.length}/${analysis.realityChecks.length} checks (${analysis.realityChecks.length - validatedChecks.length} filtered)`
+      );
     } else {
-      deps.log(`[Guardrail] All ${analysis.realityChecks.length} reality checks filtered due to insufficient corroboration`);
+      deps.log(
+        `[Guardrail] All ${analysis.realityChecks.length} reality checks filtered due to insufficient corroboration`
+      );
     }
   }
 
   // V4: Smart Schema - Add category-specific extracted data
   if (analysis.categorySpecificData && Object.keys(analysis.categorySpecificData).length > 0) {
     specs.categorySpecificData = analysis.categorySpecificData;
-    deps.log(`[Smart Schema] Saved ${Object.keys(analysis.categorySpecificData).length} category-specific fields`);
+    deps.log(
+      `[Smart Schema] Saved ${Object.keys(analysis.categorySpecificData).length} category-specific fields`
+    );
   }
 
   // V4: Tool Hints - Add VIP tool-specific data
@@ -419,7 +456,9 @@ export async function executePersistencePhase(
       if (validation.isValid) {
         validCons.push(con);
       } else {
-        deps.log(`[Item Guardrail] Filtered: "${con.text.substring(0, 40)}..." - insufficient sources`);
+        deps.log(
+          `[Item Guardrail] Filtered: "${con.text.substring(0, 40)}..." - insufficient sources`
+        );
       }
     }
 
@@ -427,7 +466,9 @@ export async function executePersistencePhase(
     specs.cons = validCons;
     deps.log(`[Item Content] Saved ${normalizedPros.length} pros, ${validCons.length} cons`);
     if (filteredForMissingSource > 0) {
-      deps.log(`[Guardrail] Filtered ${filteredForMissingSource} claim(s) missing a verifiable source URL`);
+      deps.log(
+        `[Guardrail] Filtered ${filteredForMissingSource} claim(s) missing a verifiable source URL`
+      );
     }
     if (normalizedPros.length === 0) {
       deps.log('[Guardrail] No valid pros after source validation');
@@ -435,6 +476,47 @@ export async function executePersistencePhase(
     if (validCons.length === 0) {
       deps.log('[Guardrail] No valid cons after source validation');
     }
+  }
+
+  if (validCons.length === 0) {
+    const derivedCons = buildDerivedConsFromConstraints(
+      knowledgeCard,
+      analysis.websiteUrl,
+      sourcesList
+    );
+    const vettedDerived = derivedCons.filter(
+      (con) => validateNegativeClaim(con, sourcesList).isValid
+    );
+    if (vettedDerived.length > 0) {
+      validCons = vettedDerived;
+      if (normalizedPros.length > 0) {
+        specs.pros = normalizedPros;
+      }
+      specs.cons = validCons;
+      deps.log(`[Guardrail] Added ${vettedDerived.length} derived cons from constraints/pricing`);
+    } else if (derivedCons.length > 0) {
+      deps.log('[Guardrail] Derived cons were filtered due to insufficient corroboration');
+    }
+  }
+
+  // Prefer curated FAQs from analysis if present
+  if (analysis.faqs && analysis.faqs.length > 0) {
+    const inferFaqSource = (url?: string): 'paa' | 'forum' | 'reddit' | null => {
+      if (!url) return null;
+      const lower = url.toLowerCase();
+      if (lower.includes('reddit.com')) return 'reddit';
+      if (lower.includes('forum') || lower.includes('community') || lower.includes('discourse'))
+        return 'forum';
+      return 'paa';
+    };
+    knowledgeCard.faqs = analysis.faqs
+      .map((faq) => ({
+        question: faq.question,
+        answer: faq.answer,
+        source: faq.source || inferFaqSource(faq.source_url),
+        source_url: faq.source_url,
+      }))
+      .filter((faq) => faq.source);
   }
 
   // Build V2 metadata (Knowledge Card + extended fields)
@@ -524,7 +606,9 @@ export async function executePersistencePhase(
   // Log persisted SMP data for QA
   if (specs.pricing_data) {
     const pd = specs.pricing_data as Record<string, unknown>;
-    deps.log(`[Persisted] SMP Pricing: model=${pd.model}, confidence=${pd.confidence}, plans=${(pd.plans as unknown[])?.length || 0}`);
+    deps.log(
+      `[Persisted] SMP Pricing: model=${pd.model}, confidence=${pd.confidence}, plans=${(pd.plans as unknown[])?.length || 0}`
+    );
   }
   if (specs.taxonomy) {
     deps.log(`[Persisted] SMP Taxonomy: saved`);
@@ -534,7 +618,9 @@ export async function executePersistencePhase(
   }
   if (specs.categorySpecificData) {
     const fields = Object.keys(specs.categorySpecificData as Record<string, unknown>);
-    deps.log(`[Persisted] Category Data: ${fields.slice(0, 5).join(', ')}${fields.length > 5 ? '...' : ''}`);
+    deps.log(
+      `[Persisted] Category Data: ${fields.slice(0, 5).join(', ')}${fields.length > 5 ? '...' : ''}`
+    );
   }
   if (specs.specifics) {
     const fields = Object.keys(specs.specifics as Record<string, unknown>);
@@ -549,11 +635,15 @@ export async function executePersistencePhase(
     }
     if (rc.budgetAnalyst) {
       const ba = rc.budgetAnalyst;
-      deps.log(`[Persisted] Budget Analyst: ${ba.costDrivers.length} cost drivers, ${ba.oneTimeFees.length} one-time fees`);
+      deps.log(
+        `[Persisted] Budget Analyst: ${ba.costDrivers.length} cost drivers, ${ba.oneTimeFees.length} one-time fees`
+      );
     }
     if (rc.userAdvocate) {
       const ua = rc.userAdvocate;
-      deps.log(`[Persisted] User Advocate: vibe="${ua.vibe || 'none'}", ${ua.idealFor.length} ideal-for, ${ua.avoidIf.length} avoid-if`);
+      deps.log(
+        `[Persisted] User Advocate: vibe="${ua.vibe || 'none'}", ${ua.idealFor.length} ideal-for, ${ua.avoidIf.length} avoid-if`
+      );
       if (ua.powerTip) {
         deps.log(`[Persisted] Power Tip: "${ua.powerTip}"`);
       }
@@ -586,8 +676,8 @@ export async function executePersistencePhase(
     // Extract sources from pros/cons
     const allClaims = [...normalizedPros, ...validCons];
     const sources = allClaims
-      .filter(claim => claim.source_url)
-      .map(claim => ({
+      .filter((claim) => claim.source_url)
+      .map((claim) => ({
         url: claim.source_url,
         domain: (() => {
           if (!claim.source_url) return null;
@@ -601,16 +691,16 @@ export async function executePersistencePhase(
       }));
 
     // Deduplicate sources
-    const uniqueSources = Array.from(
-      new Map(sources.map(s => [s.url, s])).values()
-    );
+    const uniqueSources = Array.from(new Map(sources.map((s) => [s.url, s])).values());
 
     // Auto-publish if high quality and robust sources
     const dataQuality = knowledgeCard?.meta?.data_quality || 'medium';
     const shouldAutoPublish = dataQuality === 'high' && uniqueSources.length >= 2;
     const reviewStatus = shouldAutoPublish ? 'published' : 'draft';
 
-    deps.log(`[Discovery Review] Quality: ${dataQuality}, Sources: ${uniqueSources.length}, Status: ${reviewStatus}`);
+    deps.log(
+      `[Discovery Review] Quality: ${dataQuality}, Sources: ${uniqueSources.length}, Status: ${reviewStatus}`
+    );
 
     // Create review with null context (discovery review)
     const { data: review, error: reviewError } = await deps.supabase
@@ -643,7 +733,9 @@ export async function executePersistencePhase(
 
     const suggestedContexts = await suggestContextIdeas(ctx, analysis, deps);
     if (suggestedContexts.length > 0) {
-      deps.log(`[Discovery Hunt] Suggested ${suggestedContexts.length} context ideas for gatekeeper`);
+      deps.log(
+        `[Discovery Hunt] Suggested ${suggestedContexts.length} context ideas for gatekeeper`
+      );
     }
 
     deps.log('[Phase 3] Complete - Discovery review created');
@@ -666,12 +758,7 @@ export async function executePersistencePhase(
     wasReused = true;
   } else {
     // Create new context
-    contextId = await createNewContext(
-      ctx.contextTitle,
-      ctx.analysis.analysis,
-      categoryId,
-      deps
-    );
+    contextId = await createNewContext(ctx.contextTitle, ctx.analysis.analysis, categoryId, deps);
     deps.log(`Created new context: ${ctx.contextTitle} (id: ${contextId})`);
   }
 
@@ -795,7 +882,7 @@ async function persistArticleInsights({
 function toTitleCase(value: string): string {
   return value
     .split(/\s+/)
-    .map(word => (word ? word[0].toUpperCase() + word.slice(1) : word))
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
     .join(' ');
 }
 
@@ -808,9 +895,8 @@ function normalizeContextSlug(contextTitle: string): string {
 }
 
 function buildContextCandidates(analysis: any): string[] {
-  const rawNoun = typeof analysis?.titleParts?.noun === 'string'
-    ? analysis.titleParts.noun.trim()
-    : '';
+  const rawNoun =
+    typeof analysis?.titleParts?.noun === 'string' ? analysis.titleParts.noun.trim() : '';
   const functionTag = analysis?.graphTags?.functions?.[0];
 
   let noun = rawNoun;
@@ -853,9 +939,9 @@ async function suggestContextIdeas(
     .in('slug', candidateSlugs)
     .limit(candidateSlugs.length);
 
-  const existingContextSlugs = new Set((existingContexts || []).map(c => c.slug));
-  const remainingCandidates = candidates.filter((candidate, index) =>
-    !existingContextSlugs.has(candidateSlugs[index])
+  const existingContextSlugs = new Set((existingContexts || []).map((c) => c.slug));
+  const remainingCandidates = candidates.filter(
+    (candidate, index) => !existingContextSlugs.has(candidateSlugs[index])
   );
 
   if (remainingCandidates.length === 0) return [];
@@ -873,22 +959,22 @@ async function suggestContextIdeas(
     .limit(remainingCandidates.length);
 
   const existingIdeaSet = new Set<string>([
-    ...(ideasByContext || []).map(idea => idea.context_query).filter(Boolean),
-    ...(ideasByKeyword || []).map(idea => idea.keyword).filter(Boolean),
+    ...(ideasByContext || []).map((idea) => idea.context_query).filter(Boolean),
+    ...(ideasByKeyword || []).map((idea) => idea.keyword).filter(Boolean),
   ]);
 
-  const insertable = remainingCandidates.filter(candidate => !existingIdeaSet.has(candidate));
+  const insertable = remainingCandidates.filter((candidate) => !existingIdeaSet.has(candidate));
   if (insertable.length === 0) return [];
 
-  const { error: insertError } = await deps.supabase
-    .from('content_ideas')
-    .insert(insertable.map(candidate => ({
+  const { error: insertError } = await deps.supabase.from('content_ideas').insert(
+    insertable.map((candidate) => ({
       keyword: candidate,
       tool_name: ctx.toolName,
       context_query: candidate,
       source: 'suggestion',
       notes: `Auto-suggested from discovery hunt (${ctx.toolName})`,
-    })));
+    }))
+  );
 
   if (insertError) {
     deps.log(`[Discovery Hunt] Warning: Failed to insert context ideas: ${insertError.message}`);
@@ -1112,7 +1198,9 @@ async function createGraphLinks(
     p_platforms: graphTags.platforms,
   });
 
-  deps.log(`Linked ${graphTags.functions.length} functions, ${graphTags.audiences.length} audiences, ${graphTags.platforms.length} platforms`);
+  deps.log(
+    `Linked ${graphTags.functions.length} functions, ${graphTags.audiences.length} audiences, ${graphTags.platforms.length} platforms`
+  );
 }
 
 /**
@@ -1137,7 +1225,9 @@ async function findSimilarContext(
 
   if (data && data.length > 0) {
     const match = data[0];
-    deps.log(`Found similar context: "${match.title}" (${(match.similarity * 100).toFixed(1)}% match)`);
+    deps.log(
+      `Found similar context: "${match.title}" (${(match.similarity * 100).toFixed(1)}% match)`
+    );
     return { id: match.id, title: match.title };
   }
 
@@ -1186,7 +1276,9 @@ async function createNewContext(
   // Build structured title parts
   const titleParts = analysis.titleParts || {
     noun: contextTitle.replace(/^best\s+/i, '').replace(/\s+for\s+.*$/i, ''),
-    modifier: contextTitle.match(/for\s+(.+)$/i)?.[1] ? `for ${contextTitle.match(/for\s+(.+)$/i)![1]}` : undefined,
+    modifier: contextTitle.match(/for\s+(.+)$/i)?.[1]
+      ? `for ${contextTitle.match(/for\s+(.+)$/i)![1]}`
+      : undefined,
   };
 
   const contextData = {
@@ -1220,7 +1312,15 @@ async function createNewContext(
  */
 function normalizeClaim(
   claim: string | ClaimWithSource,
-  sources: Array<{ url: string; title: string; snippet: string; domain: string; retrieved_at?: string; published_at?: string; time_since?: string }>,
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+    domain: string;
+    retrieved_at?: string;
+    published_at?: string;
+    time_since?: string;
+  }>,
   toolWebsite?: string
 ): ClaimWithSource | null {
   // Current timestamp for time-bound defense
@@ -1272,6 +1372,113 @@ function normalizeClaim(
   };
 }
 
+function buildDerivedConsFromConstraints(
+  knowledgeCard: any,
+  toolWebsite?: string,
+  allSources?: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+    domain: string;
+    retrieved_at?: string;
+    published_at?: string;
+    time_since?: string;
+  }>
+): ClaimWithSource[] {
+  const derived: ClaimWithSource[] = [];
+  const sources = allSources || [];
+  const pricingUrl: string | undefined = knowledgeCard?.smp_pricing?.pricing_page_url || undefined;
+  const toolHost = (() => {
+    if (!toolWebsite) return null;
+    try {
+      return new URL(toolWebsite).hostname.replace(/^www\./, '').toLowerCase();
+    } catch {
+      return null;
+    }
+  })();
+
+  const fallbackPricingUrl = (() => {
+    if (!toolHost || sources.length === 0) return undefined;
+    const candidates = sources.filter((source) => {
+      const domain = source.domain?.toLowerCase();
+      const url = source.url?.toLowerCase() || '';
+      const title = source.title?.toLowerCase() || '';
+      return domain === toolHost || domain?.endsWith(`.${toolHost}`) || url.includes(toolHost);
+    });
+    const pricingCandidate = candidates.find((source) => {
+      const url = source.url?.toLowerCase() || '';
+      const title = source.title?.toLowerCase() || '';
+      const snippet = source.snippet?.toLowerCase() || '';
+      return (
+        url.includes('pricing') ||
+        url.includes('plans') ||
+        title.includes('pricing') ||
+        title.includes('plans') ||
+        snippet.includes('pricing') ||
+        snippet.includes('plans')
+      );
+    });
+    return pricingCandidate?.url || candidates[0]?.url;
+  })();
+
+  const pricingSourceUrl = pricingUrl || fallbackPricingUrl;
+
+  const addDerivedCon = (text: string, sourceUrl?: string) => {
+    if (!sourceUrl) return;
+    const retrieved_at = sources.find((s) => s.url === sourceUrl)?.retrieved_at;
+    derived.push({
+      text,
+      source_url: sourceUrl,
+      source_type: classifySourceType(sourceUrl, toolWebsite),
+      claim_type: 'fact',
+      retrieved_at,
+    });
+  };
+
+  const hardLimits = knowledgeCard?.constraints?.hard_limits || [];
+  for (const limit of hardLimits) {
+    const sourceUrl = limit.source_url || undefined;
+    if (!sourceUrl) continue;
+    const description = limit.description
+      ? `Usage limits apply: ${limit.description}`
+      : `Usage limits apply to ${limit.type}: ${limit.value} (${limit.consequence})`;
+    addDerivedCon(description, sourceUrl);
+  }
+
+  if (pricingSourceUrl) {
+    const minSeats = knowledgeCard?.smp_pricing?.min_seats;
+    if (typeof minSeats === 'number' && minSeats > 1) {
+      addDerivedCon(`Minimum seat requirement: ${minSeats} seats`, pricingSourceUrl);
+    }
+
+    const implementationFee = knowledgeCard?.smp_pricing?.implementation_fee;
+    if (typeof implementationFee === 'number' && implementationFee > 0) {
+      addDerivedCon(`Implementation fee required (${implementationFee})`, pricingSourceUrl);
+    }
+
+    const billingCycles = knowledgeCard?.smp_pricing?.billing_cycles || [];
+    if (billingCycles.length === 1 && billingCycles[0] === 'annual') {
+      addDerivedCon('Annual billing only', pricingSourceUrl);
+    }
+
+    if (knowledgeCard?.smp_pricing?.model === 'contact_sales') {
+      addDerivedCon('Pricing requires contacting sales', pricingSourceUrl);
+    }
+
+    const hasFreeTier = knowledgeCard?.pricing?.has_free_tier;
+    if (hasFreeTier === false) {
+      addDerivedCon('No free tier', pricingSourceUrl);
+    }
+
+    const hasFreeTrial = knowledgeCard?.pricing?.has_free_trial;
+    if (hasFreeTrial === false) {
+      addDerivedCon('No free trial', pricingSourceUrl);
+    }
+  }
+
+  return derived.slice(0, 2);
+}
+
 /**
  * Negative Sentiment Guardrail
  *
@@ -1284,10 +1491,27 @@ function normalizeClaim(
  */
 function validateNegativeClaim(
   claim: ClaimWithSource,
-  allSources: Array<{ url: string; title: string; snippet: string; domain: string; retrieved_at?: string; published_at?: string; time_since?: string }>
-): { isValid: boolean; warning?: string; corroboratingSourceCount: number; corroboratingSources?: string[] } {
+  allSources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+    domain: string;
+    retrieved_at?: string;
+    published_at?: string;
+    time_since?: string;
+  }>
+): {
+  isValid: boolean;
+  warning?: string;
+  corroboratingSourceCount: number;
+  corroboratingSources?: string[];
+} {
   if (!claim.source_url) {
-    return { isValid: false, warning: 'Missing source URL for negative claim.', corroboratingSourceCount: 0 };
+    return {
+      isValid: false,
+      warning: 'Missing source URL for negative claim.',
+      corroboratingSourceCount: 0,
+    };
   }
   // Only apply guardrail to negative opinions from community sources
   // Facts from official sources don't need this check
@@ -1296,7 +1520,10 @@ function validateNegativeClaim(
   }
 
   // For opinions (especially from community), count corroborating sources
-  const claimWords = claim.text.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+  const claimWords = claim.text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 4);
 
   let corroboratingCount = 0;
   const matchedDomains = new Set<string>();
@@ -1305,7 +1532,7 @@ function validateNegativeClaim(
   for (const source of allSources) {
     const sourceText = `${source.title} ${source.snippet}`.toLowerCase();
     // Count how many significant claim words appear in this source
-    const matchingWords = claimWords.filter(w => sourceText.includes(w));
+    const matchingWords = claimWords.filter((w) => sourceText.includes(w));
 
     // If 40%+ of claim words match, this source corroborates
     if (matchingWords.length >= claimWords.length * 0.4) {
@@ -1367,8 +1594,10 @@ function sanitizeReviewContext(
     const avoidIfFiltered = filterConditionalList(ua.avoidIf, 'avoidIf', deps);
     const frustrationsFiltered = filterConditionalList(ua.frustrations, 'frustrations', deps);
 
-    const avoidIfBacked = avoidIfFiltered.filter(item => isBackedByClaims(item, validCons));
-    const frustrationsBacked = frustrationsFiltered.filter(item => isBackedByClaims(item, validCons));
+    const avoidIfBacked = avoidIfFiltered.filter((item) => isBackedByClaims(item, validCons));
+    const frustrationsBacked = frustrationsFiltered.filter((item) =>
+      isBackedByClaims(item, validCons)
+    );
 
     const avoidIfDropped = avoidIfFiltered.length - avoidIfBacked.length;
     const frustrationsDropped = frustrationsFiltered.length - frustrationsBacked.length;
@@ -1377,7 +1606,9 @@ function sanitizeReviewContext(
       deps.log(`[Guardrail] Filtered ${avoidIfDropped} avoidIf item(s) without corroborating cons`);
     }
     if (frustrationsDropped > 0) {
-      deps.log(`[Guardrail] Filtered ${frustrationsDropped} frustrations item(s) without corroborating cons`);
+      deps.log(
+        `[Guardrail] Filtered ${frustrationsDropped} frustrations item(s) without corroborating cons`
+      );
     }
 
     ua.avoidIf = avoidIfBacked;
@@ -1402,7 +1633,15 @@ async function createReview(
   itemId: string,
   contextId: string,
   analysis: any,
-  sources: Array<{ url: string; title: string; snippet: string; domain: string; retrieved_at?: string; published_at?: string; time_since?: string }>,
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+    domain: string;
+    retrieved_at?: string;
+    published_at?: string;
+    time_since?: string;
+  }>,
   knowledgeCard: any,
   deps: HunterDependencies
 ): Promise<string> {
@@ -1417,7 +1656,8 @@ async function createReview(
   const normalizedPros = normalizedProsRaw.filter(Boolean) as ClaimWithSource[];
   const normalizedConsCandidates = rawNormalizedCons.filter(Boolean) as ClaimWithSource[];
   const missingSourceCount =
-    (normalizedProsRaw.length - normalizedPros.length) +
+    normalizedProsRaw.length -
+    normalizedPros.length +
     (rawNormalizedCons.length - normalizedConsCandidates.length);
   if (missingSourceCount > 0) {
     deps.log(`[Guardrail] Filtered ${missingSourceCount} review claim(s) missing source URLs`);
@@ -1434,22 +1674,32 @@ async function createReview(
       normalizedCons.push(con);
     } else {
       filteredCons.push({ claim: con, reason: validation.warning || 'Failed validation' });
-      const sourcesInfo = validation.corroboratingSources && validation.corroboratingSources.length > 0
-        ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
-        : '';
-      deps.log(`[Guardrail] Filtered con: "${con.text.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`);
+      const sourcesInfo =
+        validation.corroboratingSources && validation.corroboratingSources.length > 0
+          ? ` Sources found: ${validation.corroboratingSources.join(', ')}`
+          : '';
+      deps.log(
+        `[Guardrail] Filtered con: "${con.text.substring(0, 50)}..." - ${validation.warning}${sourcesInfo}`
+      );
     }
   }
 
   // Log if any cons were filtered
   if (filteredCons.length > 0) {
-    deps.log(`[Guardrail] Filtered ${filteredCons.length} negative claim(s) due to insufficient source corroboration`);
+    deps.log(
+      `[Guardrail] Filtered ${filteredCons.length} negative claim(s) due to insufficient source corroboration`
+    );
   }
 
-  const conditionalDealbreakers = filterConditionalList(analysis.dealbreakers || [], 'dealbreakers', deps)
-    .filter((item: string) => isBackedByClaims(item, normalizedCons));
+  const conditionalDealbreakers = filterConditionalList(
+    analysis.dealbreakers || [],
+    'dealbreakers',
+    deps
+  ).filter((item: string) => isBackedByClaims(item, normalizedCons));
   if ((analysis.dealbreakers || []).length > 0) {
-    deps.log(`[Guardrail] dealbreakers: kept ${conditionalDealbreakers.length}/${analysis.dealbreakers.length} (conditional + corroborated)`);
+    deps.log(
+      `[Guardrail] dealbreakers: kept ${conditionalDealbreakers.length}/${analysis.dealbreakers.length} (conditional + corroborated)`
+    );
   }
 
   const vettedVetosForSummary = (analysis.vetoLogic || []).filter((v: any) => {
@@ -1515,11 +1765,15 @@ async function createReview(
 
   if (isHighConfidence && deps.config.isDraftMode !== false) {
     reviewData.status = 'published';
-    deps.log(`[Auto-publish] High confidence review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`);
+    deps.log(
+      `[Auto-publish] High confidence review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+    );
   } else if (deps.config.isDraftMode) {
     reviewData.status = 'draft';
     if (!isHighConfidence) {
-      deps.log(`[Draft] Review needs manual review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`);
+      deps.log(
+        `[Draft] Review needs manual review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+      );
       if (legalIssues.length > 0) {
         deps.log(`[Draft] Legal guardrail issues: ${legalIssues.join(', ')}`);
       }

@@ -13,7 +13,6 @@
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { getAdminClient } from '@/lib/supabase';
-import SpeedReviewCard from '@/components/SpeedReviewCard';
 
 const admin = getAdminClient();
 
@@ -151,7 +150,7 @@ const draftsJson = JSON.stringify(drafts || []);
     <!-- Main Review Area -->
     {drafts && drafts.length > 0 ? (
       <div id="review-container" class="max-w-4xl mx-auto">
-        <!-- React component will be mounted here -->
+        {/* React component will be mounted here */}
         <div id="speed-review-root"></div>
       </div>
     ) : (
@@ -476,7 +475,7 @@ const draftsJson = JSON.stringify(drafts || []);
     async function handleReject() {
       if (isSubmitting) return;
 
-      window.confirm2?.(
+      const confirmResult = window.confirm2?.(
         'Reject Review',
         'Are you sure you want to reject this review?',
         async () => {
@@ -497,7 +496,11 @@ const draftsJson = JSON.stringify(drafts || []);
             isSubmitting = false;
           }
         }
-      ) || handleRejectDirect();
+      );
+
+      if (!confirmResult) {
+        handleRejectDirect();
+      }
     }
 
     async function handleRejectDirect() {

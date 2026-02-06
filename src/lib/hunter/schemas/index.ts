@@ -12,34 +12,30 @@
 // ============================================================================
 // LAYER 1: Universal Baseline
 // ============================================================================
-export {
-  BaseToolSchema,
-  type BaseToolData,
-} from './category-schemas';
+export { BaseToolSchema, type BaseToolData } from './category-schemas';
 
 // ============================================================================
 // LAYER 2: Category Schemas (18 categories)
 // ============================================================================
 export {
-  InfrastructureSchema,      // A: Databases, serverless
-  EnterpriseSaaSSchema,      // B: Salesforce, Workday
-  ProductivitySchema,        // C: Notion, Obsidian
-  DevToolsSchema,            // D: GitHub, Postman
-  DesignMarketingSchema,     // E: Figma, Semrush
-  CRMSalesSchema,            // F: HubSpot, Pipedrive
-  CustomerSupportSchema,     // G: Intercom, Zendesk
-  HRRecruitingSchema,        // H: Deel, Rippling
-  FinanceSchema,             // I: QuickBooks, Xero
-  SecurityIdentitySchema,    // J: 1Password, Okta
-  CommunicationSchema,       // K: Slack, Zoom
-  EcommercePaymentsSchema,   // L: Stripe, Shopify
-  AIAutomationSchema,        // M: OpenAI, Zapier
-  AnalyticsBISchema,         // N: Mixpanel, Amplitude
-  CMSWebsiteSchema,          // O: WordPress, Webflow
-  NoCodeLowCodeSchema,       // P: Bubble, Retool
-  FileStorageSchema,         // Q: Dropbox, Box
-  SchedulingSchema,          // R: Calendly, Cal.com
-
+  InfrastructureSchema, // A: Databases, serverless
+  EnterpriseSaaSSchema, // B: Salesforce, Workday
+  ProductivitySchema, // C: Notion, Obsidian
+  DevToolsSchema, // D: GitHub, Postman
+  DesignMarketingSchema, // E: Figma, Semrush
+  CRMSalesSchema, // F: HubSpot, Pipedrive
+  CustomerSupportSchema, // G: Intercom, Zendesk
+  HRRecruitingSchema, // H: Deel, Rippling
+  FinanceSchema, // I: QuickBooks, Xero
+  SecurityIdentitySchema, // J: 1Password, Okta
+  CommunicationSchema, // K: Slack, Zoom
+  EcommercePaymentsSchema, // L: Stripe, Shopify
+  AIAutomationSchema, // M: OpenAI, Zapier
+  AnalyticsBISchema, // N: Mixpanel, Amplitude
+  CMSWebsiteSchema, // O: WordPress, Webflow
+  NoCodeLowCodeSchema, // P: Bubble, Retool
+  FileStorageSchema, // Q: Dropbox, Box
+  SchedulingSchema, // R: Calendly, Cal.com
   CategorySchemaMap,
   type CategorySlug,
   getSchemaForCategory,
@@ -158,10 +154,7 @@ export function resolveFullSchema(
  * const prompt = getFullExtractionPrompt('developer-tools', 'ci-cd');
  * // Returns instructions for DevTools fields + CI/CD-specific fields
  */
-export function getFullExtractionPrompt(
-  categorySlug: string,
-  subCategorySlug?: string
-): string {
+export function getFullExtractionPrompt(categorySlug: string, subCategorySlug?: string): string {
   const schema = resolveFullSchema(categorySlug, subCategorySlug);
   const fields = Object.entries(schema.shape)
     .filter(([key]) => key !== 'name') // Skip obvious fields
@@ -171,9 +164,9 @@ export function getFullExtractionPrompt(
       return `- ${key}${desc ? `: ${desc}` : ''}`;
     });
 
-  const categoryName = categorySlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const categoryName = categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   const subName = subCategorySlug
-    ? ` (${subCategorySlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())})`
+    ? ` (${subCategorySlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())})`
     : '';
 
   return `You are analyzing a ${categoryName}${subName} tool.

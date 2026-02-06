@@ -16,7 +16,7 @@ export interface ExtractionPromptInput {
   alternativesSnippets: string[];
   companySnippets: string[];
   technicalSnippets: string[];
-  corporateProfilerSnippets?: string[];  // V4: Crunchbase/LinkedIn/stock data
+  corporateProfilerSnippets?: string[]; // V4: Crunchbase/LinkedIn/stock data
   pricingDeepContent?: string;
 }
 
@@ -48,13 +48,17 @@ export function buildExtractionPrompt(input: ExtractionPromptInput): string {
   // Build source data section
   const sourceData = [
     input.pricingDeepContent ? `[PRICING PAGE - PRIMARY SOURCE]\n${input.pricingDeepContent}` : '',
-    input.corporateProfilerSnippets?.length ? `[CORPORATE DATA - Trust for employee counts]\n${input.corporateProfilerSnippets.join('\n')}` : '',
+    input.corporateProfilerSnippets?.length
+      ? `[CORPORATE DATA - Trust for employee counts]\n${input.corporateProfilerSnippets.join('\n')}`
+      : '',
     `[Reviews]\n${input.reviewsSnippets.join('\n')}`,
     `[Pricing]\n${input.pricingSnippets.join('\n')}`,
     `[Company]\n${input.companySnippets.join('\n')}`,
     `[Technical]\n${input.technicalSnippets.join('\n')}`,
     `[Alternatives]\n${input.alternativesSnippets.join('\n')}`,
-  ].filter(Boolean).join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 
   return `You are a SaaS Data Extraction Engine for "${toolName}".
 

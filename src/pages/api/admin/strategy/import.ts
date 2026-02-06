@@ -16,10 +16,10 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     const file = formData.get('file') as File | null;
 
     if (!file) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No file provided' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'No file provided' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Read file content
@@ -41,10 +41,10 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     }
 
     if (records.length === 0) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'CSV file is empty' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'CSV file is empty' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Create import batch
@@ -77,7 +77,10 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       const toolName = row.tool_name || row.tool || row.Tool || row['Tool Name'];
       const contextQuery = row.context_query || row.context || row.Context || row.audience;
       const searchVolume = parseInt(row.search_volume || row.volume || row.Volume || '0', 10);
-      const keywordDifficulty = parseInt(row.keyword_difficulty || row.difficulty || row.KD || row.kd || '50', 10);
+      const keywordDifficulty = parseInt(
+        row.keyword_difficulty || row.difficulty || row.KD || row.kd || '50',
+        10
+      );
       const cpc = parseFloat(row.cpc || row.CPC || '0');
 
       if (!keyword && !toolName) {
@@ -86,19 +89,17 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       }
 
       // Insert into content_ideas
-      const { error: insertError } = await admin
-        .from('content_ideas')
-        .insert({
-          keyword: keyword || toolName,
-          tool_name: toolName || keyword,
-          context_query: contextQuery || null,
-          search_volume: searchVolume,
-          keyword_difficulty: keywordDifficulty,
-          cpc: cpc,
-          source: 'csv_import',
-          import_batch_id: batch.id,
-          status: 'pending',
-        });
+      const { error: insertError } = await admin.from('content_ideas').insert({
+        keyword: keyword || toolName,
+        tool_name: toolName || keyword,
+        context_query: contextQuery || null,
+        search_volume: searchVolume,
+        keyword_difficulty: keywordDifficulty,
+        cpc: cpc,
+        source: 'csv_import',
+        import_batch_id: batch.id,
+        status: 'pending',
+      });
 
       if (insertError) {
         if (insertError.code === '23505') {
@@ -127,9 +128,9 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     return redirect('/admin/strategy');
   } catch (err) {
     console.error('Import error:', err);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Import failed' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Import failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

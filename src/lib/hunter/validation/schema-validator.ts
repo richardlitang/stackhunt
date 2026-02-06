@@ -31,63 +31,89 @@ export interface ValidationResult {
  */
 export interface ValidationReport {
   isValid: boolean;
-  score: number;  // 0-100
+  score: number; // 0-100
   validations: ValidationResult[];
-  shouldPublish: boolean;  // Gate low-quality content
+  shouldPublish: boolean; // Gate low-quality content
   humanReviewRequired: boolean;
 }
 
 /**
  * Zod schema for pricing validation
  */
-const PricingPlanSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, 'Plan name cannot be empty'),
-  price_monthly: z.number().nullable().refine(
-    val => val === null || (val >= 0 && val < 100000),
-    'Monthly price must be between $0-$100k'
-  ),
-  price_annual: z.number().nullable().refine(
-    val => val === null || (val >= 0 && val < 1000000),
-    'Annual price must be between $0-$1M'
-  ),
-  price_per_unit: z.number().nullable(),
-  scaling_unit: z.string().nullable(),
-  max_users: z.number().nullable().refine(
-    val => val === null || (val > 0 && val < 1000000),
-    'Max users must be positive and < 1M'
-  ),
-  included_units: z.number().nullable(),
-  includes_sso: z.boolean().nullable(),
-  includes_api: z.boolean().nullable(),
-  includes_sla: z.boolean().nullable(),
-}).passthrough();
+const PricingPlanSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().min(1, 'Plan name cannot be empty'),
+    price_monthly: z
+      .number()
+      .nullable()
+      .refine(
+        (val) => val === null || (val >= 0 && val < 100000),
+        'Monthly price must be between $0-$100k'
+      ),
+    price_annual: z
+      .number()
+      .nullable()
+      .refine(
+        (val) => val === null || (val >= 0 && val < 1000000),
+        'Annual price must be between $0-$1M'
+      ),
+    price_per_unit: z.number().nullable(),
+    scaling_unit: z.string().nullable(),
+    max_users: z
+      .number()
+      .nullable()
+      .refine(
+        (val) => val === null || (val > 0 && val < 1000000),
+        'Max users must be positive and < 1M'
+      ),
+    included_units: z.number().nullable(),
+    includes_sso: z.boolean().nullable(),
+    includes_api: z.boolean().nullable(),
+    includes_sla: z.boolean().nullable(),
+  })
+  .passthrough();
 
-const SMPPricingSchema = z.object({
-  model: z.enum(['free', 'flat', 'per_seat', 'per_unit', 'tiered', 'hybrid', 'contact_sales', 'ad_spend', 'usage_based']),
-  confidence: z.enum(['high', 'medium', 'low']),
-  currency: z.string().length(3, 'Currency must be 3-letter code'),
-  billing_cycles: z.array(z.string()).nullable(),
-  annual_discount_pct: z.number().min(0).max(100).nullable(),
-  min_seats: z.number().min(1).nullable(),
-  bundled_in: z.string().nullable(),
-  plans: z.array(PricingPlanSchema).nullable(),
-}).passthrough();
+const SMPPricingSchema = z
+  .object({
+    model: z.enum([
+      'free',
+      'flat',
+      'per_seat',
+      'per_unit',
+      'tiered',
+      'hybrid',
+      'contact_sales',
+      'ad_spend',
+      'usage_based',
+    ]),
+    confidence: z.enum(['high', 'medium', 'low']),
+    currency: z.string().length(3, 'Currency must be 3-letter code'),
+    billing_cycles: z.array(z.string()).nullable(),
+    annual_discount_pct: z.number().min(0).max(100).nullable(),
+    min_seats: z.number().min(1).nullable(),
+    bundled_in: z.string().nullable(),
+    plans: z.array(PricingPlanSchema).nullable(),
+  })
+  .passthrough();
 
 /**
  * Zod schema for company validation
  */
-const CompanySchema = z.object({
-  name: z.string().min(1, 'Company name required').optional(),
-  founded_year: z.number()
-    .min(1950, 'Founded year must be >= 1950')
-    .max(new Date().getFullYear(), 'Founded year cannot be in the future')
-    .nullable()
-    .optional(),
-  headquarters: z.string().nullable().optional(),
-  employee_count: z.string().nullable().optional(),
-  funding_stage: z.string().nullable().optional(),
-}).passthrough();
+const CompanySchema = z
+  .object({
+    name: z.string().min(1, 'Company name required').optional(),
+    founded_year: z
+      .number()
+      .min(1950, 'Founded year must be >= 1950')
+      .max(new Date().getFullYear(), 'Founded year cannot be in the future')
+      .nullable()
+      .optional(),
+    headquarters: z.string().nullable().optional(),
+    employee_count: z.string().nullable().optional(),
+    funding_stage: z.string().nullable().optional(),
+  })
+  .passthrough();
 
 /**
  * Validate Knowledge Card structure and business rules
@@ -103,7 +129,7 @@ export function validateKnowledgeCard(
   if (knowledgeCard.company) {
     const companyResult = CompanySchema.safeParse(knowledgeCard.company);
     if (!companyResult.success) {
-      companyResult.error.errors.forEach(err => {
+      companyResult.error.errors.forEach((err) => {
         validations.push({
           field: `company.${err.path.join('.')}`,
           severity: 'error',
@@ -119,7 +145,7 @@ export function validateKnowledgeCard(
   if (knowledgeCard.smp_pricing) {
     const pricingResult = SMPPricingSchema.safeParse(knowledgeCard.smp_pricing);
     if (!pricingResult.success) {
-      pricingResult.error.errors.forEach(err => {
+      pricingResult.error.errors.forEach((err) => {
         validations.push({
           field: `smp_pricing.${err.path.join('.')}`,
           severity: 'error',
@@ -158,9 +184,21 @@ export function validateKnowledgeCard(
   // 4. Completeness checks
   const requiredFields = [
     { field: 'company.name', value: knowledgeCard.company?.name, severity: 'warning' as const },
-    { field: 'short_description', value: knowledgeCard.short_description, severity: 'warning' as const },
-    { field: 'features.core', value: knowledgeCard.features?.core?.length, severity: 'warning' as const },
-    { field: 'smp_taxonomy.primary_function', value: knowledgeCard.smp_taxonomy?.primary_function, severity: 'warning' as const },
+    {
+      field: 'short_description',
+      value: knowledgeCard.short_description,
+      severity: 'warning' as const,
+    },
+    {
+      field: 'features.core',
+      value: knowledgeCard.features?.core?.length,
+      severity: 'warning' as const,
+    },
+    {
+      field: 'smp_taxonomy.primary_function',
+      value: knowledgeCard.smp_taxonomy?.primary_function,
+      severity: 'warning' as const,
+    },
   ];
 
   requiredFields.forEach(({ field, value, severity }) => {
@@ -195,8 +233,8 @@ export function validateKnowledgeCard(
   const score = Math.round((actualScore / maxScore) * 100);
 
   // 6. Publishing decision
-  const shouldPublish = errorCount === 0 && score >= 50;  // At least 50% complete
-  const humanReviewRequired = score < 70;  // Flag for review if < 70%
+  const shouldPublish = errorCount === 0 && score >= 50; // At least 50% complete
+  const humanReviewRequired = score < 70; // Flag for review if < 70%
 
   return {
     isValid: errorCount === 0,
@@ -253,8 +291,8 @@ export function validateAnalysis(analysis: {
   }
 
   // 3. Source attribution (V2: require sources)
-  const prosWithoutSources = analysis.pros.filter(p => !p.source).length;
-  const consWithoutSources = analysis.cons.filter(c => !c.source).length;
+  const prosWithoutSources = analysis.pros.filter((p) => !p.source).length;
+  const consWithoutSources = analysis.cons.filter((c) => !c.source).length;
 
   if (prosWithoutSources > 0) {
     validations.push({
@@ -340,7 +378,7 @@ export function formatValidationReport(report: ValidationReport, title: string):
 
   if (report.validations.length > 0) {
     lines.push('\nIssues:');
-    report.validations.forEach(v => {
+    report.validations.forEach((v) => {
       const icon = v.severity === 'error' ? '❌' : v.severity === 'warning' ? '⚠️ ' : 'ℹ️ ';
       lines.push(`  ${icon} ${v.field}: ${v.message}`);
     });

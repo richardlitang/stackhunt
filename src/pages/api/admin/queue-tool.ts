@@ -49,10 +49,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (!isAuthenticated) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Use admin client for operations (now that we've verified auth)
@@ -67,10 +67,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     } = await request.json();
 
     if (!toolId || !toolName) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: toolId, toolName' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing required fields: toolId, toolName' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Check if already in queue
@@ -112,10 +112,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (queueError) {
       console.error('Error queueing tool:', queueError.code);
-      return new Response(
-        JSON.stringify({ error: 'Failed to queue tool' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to queue tool' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(
@@ -128,9 +128,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   } catch (error) {
     console.error('Error in queue-tool API:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

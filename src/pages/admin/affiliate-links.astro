@@ -60,31 +60,41 @@ const pageTitle = 'Affiliate Links Management';
     <table class="min-w-full divide-y divide-slate-200">
       <thead class="bg-slate-50">
         <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+          <th
+            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+          >
             Tool
           </th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+          <th
+            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+          >
             Network
           </th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+          <th
+            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+          >
             Tier
           </th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+          <th
+            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+          >
             Status
           </th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+          <th
+            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+          >
             Last Verified
           </th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+          <th
+            class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+          >
             Actions
           </th>
         </tr>
       </thead>
       <tbody id="links-table-body" class="divide-y divide-slate-200 bg-white">
         <tr>
-          <td colspan="6" class="px-6 py-4 text-center text-sm text-slate-500">
-            Loading...
-          </td>
+          <td colspan="6" class="px-6 py-4 text-center text-sm text-slate-500"> Loading... </td>
         </tr>
       </tbody>
     </table>
@@ -162,26 +172,34 @@ const pageTitle = 'Affiliate Links Management';
         return;
       }
 
-      tbody.innerHTML = offers.map(offer => {
-        const statusBadge = {
-          healthy: '<span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">✅ Healthy</span>',
-          broken: '<span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">❌ Broken</span>',
-          unknown: '<span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">⚠️ Unknown</span>',
-          pending: '<span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">⏳ Pending</span>',
-          expired: '<span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800">🔒 Expired</span>',
-        }[offer.verification_status] || offer.verification_status;
+      tbody.innerHTML = offers
+        .map((offer) => {
+          const statusBadge =
+            {
+              healthy:
+                '<span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">✅ Healthy</span>',
+              broken:
+                '<span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">❌ Broken</span>',
+              unknown:
+                '<span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">⚠️ Unknown</span>',
+              pending:
+                '<span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">⏳ Pending</span>',
+              expired:
+                '<span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800">🔒 Expired</span>',
+            }[offer.verification_status] || offer.verification_status;
 
-        const lastVerified = offer.last_verified_at
-          ? new Date(offer.last_verified_at).toLocaleString()
-          : 'Never';
+          const lastVerified = offer.last_verified_at
+            ? new Date(offer.last_verified_at).toLocaleString()
+            : 'Never';
 
-        const tierBadge = {
-          1: '<span class="text-xs font-medium text-green-600">Tier 1</span>',
-          2: '<span class="text-xs font-medium text-yellow-600">Tier 2</span>',
-          3: '<span class="text-xs font-medium text-slate-600">Tier 3</span>',
-        }[offer.network_tier] || offer.network_tier;
+          const tierBadge =
+            {
+              1: '<span class="text-xs font-medium text-green-600">Tier 1</span>',
+              2: '<span class="text-xs font-medium text-yellow-600">Tier 2</span>',
+              3: '<span class="text-xs font-medium text-slate-600">Tier 3</span>',
+            }[offer.network_tier] || offer.network_tier;
 
-        return `
+          return `
           <tr>
             <td class="px-6 py-4 text-sm">
               <a href="/tools/${offer.tools?.slug}" class="font-medium text-hunt-600 hover:text-hunt-700" target="_blank">
@@ -202,11 +220,12 @@ const pageTitle = 'Affiliate Links Management';
             </td>
           </tr>
         `;
-      }).join('');
+        })
+        .join('');
     }
 
     // Manually verify a single link
-    window.verifyLink = async function(offerId) {
+    window.verifyLink = async function (offerId) {
       if (!confirm('Verify this link now?')) return;
 
       try {
@@ -220,7 +239,9 @@ const pageTitle = 'Affiliate Links Management';
           return;
         }
 
-        alert(`Verification complete!\nStatus: ${data.verification.status}\nHTTP Code: ${data.verification.statusCode || 'N/A'}`);
+        alert(
+          `Verification complete!\nStatus: ${data.verification.status}\nHTTP Code: ${data.verification.statusCode || 'N/A'}`
+        );
         loadLinks(); // Refresh table
       } catch (error) {
         console.error('Error verifying link:', error);

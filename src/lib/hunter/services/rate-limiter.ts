@@ -8,8 +8,8 @@
  */
 
 export interface RateLimiterConfig {
-  maxConcurrent: number;  // Maximum concurrent requests
-  minDelayMs: number;     // Minimum delay between requests
+  maxConcurrent: number; // Maximum concurrent requests
+  minDelayMs: number; // Minimum delay between requests
 }
 
 export class RateLimiter {
@@ -44,7 +44,7 @@ export class RateLimiter {
    * Execute multiple functions with rate limiting
    */
   async executeAll<T>(fns: Array<() => Promise<T>>): Promise<T[]> {
-    return Promise.all(fns.map(fn => this.execute(fn)));
+    return Promise.all(fns.map((fn) => this.execute(fn)));
   }
 
   /**
@@ -57,7 +57,7 @@ export class RateLimiter {
     }
 
     // Wait for a slot to become available
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       this.queue.push(resolve);
     });
   }
@@ -78,17 +78,17 @@ export class RateLimiter {
    * Sleep helper
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
 // Pre-configured rate limiters for different services
 export const serperRateLimiter = new RateLimiter({
-  maxConcurrent: 4,  // 4 concurrent requests
-  minDelayMs: 100,   // 100ms between requests
+  maxConcurrent: 4, // 4 concurrent requests
+  minDelayMs: 100, // 100ms between requests
 });
 
 export const geminiRateLimiter = new RateLimiter({
-  maxConcurrent: 3,  // 3 concurrent requests
-  minDelayMs: 200,   // 200ms between requests
+  maxConcurrent: 3, // 3 concurrent requests
+  minDelayMs: 200, // 200ms between requests
 });

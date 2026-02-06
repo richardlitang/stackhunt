@@ -149,8 +149,8 @@ export class HunterLogger {
     warnCount: number;
   } {
     const totalDurationMs = Date.now() - this.huntStartTime;
-    const errorCount = this.logs.filter(l => l.level === 'error').length;
-    const warnCount = this.logs.filter(l => l.level === 'warn').length;
+    const errorCount = this.logs.filter((l) => l.level === 'error').length;
+    const warnCount = this.logs.filter((l) => l.level === 'warn').length;
 
     return {
       totalDurationMs,
@@ -165,9 +165,13 @@ export class HunterLogger {
    * Export logs as JSON string
    */
   toJSON(): string {
-    return JSON.stringify({
-      summary: this.getSummary(),
-      logs: this.logs,
-    }, null, 2);
+    return JSON.stringify(
+      {
+        summary: this.getSummary(),
+        logs: this.logs,
+      },
+      null,
+      2
+    );
   }
 }

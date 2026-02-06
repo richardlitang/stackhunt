@@ -28,14 +28,14 @@ export interface GeminiConfig {
 
 export interface ExtractKnowledgeCardInput {
   toolName: string;
-  contextTitle?: string;          // Context for audience-aware extraction (e.g., "Google Ads alternatives")
+  contextTitle?: string; // Context for audience-aware extraction (e.g., "Google Ads alternatives")
   reviewsSnippets: string[];
   pricingSnippets: string[];
   alternativesSnippets: string[];
-  companySnippets: string[];      // Company info, funding, history
-  technicalSnippets: string[];    // API, export, integrations
-  corporateProfilerSnippets?: string[];  // V4: Crunchbase, LinkedIn, stock ticker (prevents employee hallucination)
-  pricingDeepContent?: string;    // Full page content from pricing pages (via Jina.ai)
+  companySnippets: string[]; // Company info, funding, history
+  technicalSnippets: string[]; // API, export, integrations
+  corporateProfilerSnippets?: string[]; // V4: Crunchbase, LinkedIn, stock ticker (prevents employee hallucination)
+  pricingDeepContent?: string; // Full page content from pricing pages (via Jina.ai)
 }
 
 export interface SynthesizeInput {
@@ -45,10 +45,10 @@ export interface SynthesizeInput {
   pricingSnippets: string[];
   alternativesSnippets: string[];
   // V3.1: Tribal Knowledge Snippets
-  budgetAnalystSnippets: string[];      // Hidden costs, billing logic, implementation fees
-  tribalKnowledgeSnippets: string[];    // Reddit reviews, honest feedback, power tips
+  budgetAnalystSnippets: string[]; // Hidden costs, billing logic, implementation fees
+  tribalKnowledgeSnippets: string[]; // Reddit reviews, honest feedback, power tips
   // V6: Deep tribal content (full discussions, not snippets)
-  tribalDeepContent?: string;           // Full Reddit/HN threads for authentic insights
+  tribalDeepContent?: string; // Full Reddit/HN threads for authentic insights
   knowledgeCardFacts: string;
   existingCategories: {
     functions: string[];
@@ -75,7 +75,10 @@ export class GeminiService {
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
     options?: { mode?: 'full' | 'pricing_only' }
   ): Promise<{ knowledgeCard: KnowledgeCard; tokensUsed: number }> {
-    const toolSlug = input.toolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const toolSlug = input.toolName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
 
     // Build prompt from extracted template (see prompts/extraction.ts)
     const prompt = buildExtractionPrompt({
@@ -102,9 +105,8 @@ export class GeminiService {
               responseMimeType: 'application/json',
               responseSchema: GeminiKnowledgeCardSchema,
               thinkingConfig: {
-                thinkingLevel: options?.mode === 'pricing_only'
-                  ? ThinkingLevel.LOW
-                  : ThinkingLevel.HIGH, // Deep reasoning for comprehensive extraction
+                thinkingLevel:
+                  options?.mode === 'pricing_only' ? ThinkingLevel.LOW : ThinkingLevel.HIGH, // Deep reasoning for comprehensive extraction
               },
             },
           });
@@ -136,8 +138,8 @@ export class GeminiService {
     const validated = KnowledgeCardSchema.parse(parsed);
 
     // Use actual token count from API response, fallback to heuristic
-    const tokensUsed = response.usageMetadata?.totalTokenCount
-      ?? Math.ceil((prompt.length + content.length) / 4);
+    const tokensUsed =
+      response.usageMetadata?.totalTokenCount ?? Math.ceil((prompt.length + content.length) / 4);
 
     return { knowledgeCard: validated, tokensUsed };
   }
@@ -214,7 +216,11 @@ export class GeminiService {
     }
 
     // Fix shortDescription: truncate if too long (max 200 chars)
-    if (parsed.shortDescription && typeof parsed.shortDescription === 'string' && parsed.shortDescription.length > 200) {
+    if (
+      parsed.shortDescription &&
+      typeof parsed.shortDescription === 'string' &&
+      parsed.shortDescription.length > 200
+    ) {
       parsed.shortDescription = parsed.shortDescription.slice(0, 197) + '...';
     }
 
@@ -229,8 +235,8 @@ export class GeminiService {
     const validated = AnalysisSchema.parse(parsed);
 
     // Use actual token count from API response, fallback to heuristic
-    const tokensUsed = response.usageMetadata?.totalTokenCount
-      ?? Math.ceil((prompt.length + content.length) / 4);
+    const tokensUsed =
+      response.usageMetadata?.totalTokenCount ?? Math.ceil((prompt.length + content.length) / 4);
 
     return {
       analysis: validated as HunterAnalysis,
@@ -257,9 +263,7 @@ export class GeminiService {
         }
       });
     };
-    const response = withRetry
-      ? await withRetry(embedFn, 'Gemini embedding')
-      : await embedFn();
+    const response = withRetry ? await withRetry(embedFn, 'Gemini embedding') : await embedFn();
 
     return response.embeddings[0].values;
   }

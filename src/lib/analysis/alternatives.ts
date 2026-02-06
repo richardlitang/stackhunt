@@ -57,8 +57,10 @@ function arePricingModelsCompatible(
   const targetIsConsumption = consumptionModels.includes(targetModel);
 
   // Same group: always compatible
-  if ((sourceIsSubscription && targetIsSubscription) ||
-      (sourceIsConsumption && targetIsConsumption)) {
+  if (
+    (sourceIsSubscription && targetIsSubscription) ||
+    (sourceIsConsumption && targetIsConsumption)
+  ) {
     return true;
   }
 
@@ -108,7 +110,7 @@ export async function getAlternatives(
   ): AlternativeResult[] => {
     // First, filter by pricing model compatibility
     // Note: similarity may come as string from Postgres, ensure numeric comparison
-    const compatible = data.filter(item =>
+    const compatible = data.filter((item) =>
       arePricingModelsCompatible(sourcePricingModel, item.pricing_model, Number(item.similarity))
     );
 
@@ -173,7 +175,7 @@ export async function getAlternatives(
   // IMPORTANT: Use much higher threshold for cross-category to avoid showing
   // completely unrelated tools (e.g., Vercel for Claude, Notion for Slack)
   if (tool.embedding) {
-    const crossCategoryThreshold = Math.max(matchThreshold, 0.70); // At least 0.70 for cross-category
+    const crossCategoryThreshold = Math.max(matchThreshold, 0.7); // At least 0.70 for cross-category
     const { data, error } = await supabase.rpc('match_items', {
       query_embedding: tool.embedding,
       match_threshold: crossCategoryThreshold,

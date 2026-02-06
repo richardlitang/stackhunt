@@ -89,7 +89,9 @@ export function evaluateContentConfidence(
   const hasShortDescription = !!tool.short_description && tool.short_description.length > 20;
   const hasPricingData = !!pricingData;
   const pricingConfidence = (pricingData?.confidence as 'high' | 'medium' | 'low') || null;
-  const hasReviewContent = !!(firstReview?.summary_markdown || (firstReview?.pros?.length ?? 0) > 0);
+  const hasReviewContent = !!(
+    firstReview?.summary_markdown || (firstReview?.pros?.length ?? 0) > 0
+  );
   const sourceCount = (firstReview?.sources as unknown[] | undefined)?.length ?? 0;
   const hasSources = sourceCount > 0;
   const hasKnowledgeCard = knowledgeCard && Object.keys(knowledgeCard).length > 5;
@@ -206,7 +208,7 @@ export function generateQualityReport(confidence: ConfidenceScore): string {
   report += `Noindex: ${confidence.shouldNoindex ? 'YES' : 'NO'}\n\n`;
 
   if (confidence.reasons.length > 0) {
-    report += `Issues:\n${confidence.reasons.map(r => `- ${r}`).join('\n')}\n\n`;
+    report += `Issues:\n${confidence.reasons.map((r) => `- ${r}`).join('\n')}\n\n`;
   }
 
   report += `Signals:\n`;

@@ -6,7 +6,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database, Item, ToolSpecs } from '@/types/database';
+import type { Database, ToolSpecs } from '@/types/database';
 import { normalizePricing } from './normalize';
 
 /**
@@ -89,11 +89,7 @@ export async function backfillNormalizedPricing(
         );
         updated++;
       } else {
-        const result = await updateNormalizedPricing(
-          supabase,
-          item.id,
-          item.specs as ToolSpecs
-        );
+        const result = await updateNormalizedPricing(supabase, item.id, item.specs as ToolSpecs);
 
         if (result.success) {
           updated++;
@@ -108,7 +104,9 @@ export async function backfillNormalizedPricing(
     }
 
     // Progress update
-    console.log(`Progress: ${processed}/${items.length} (${Math.round((processed / items.length) * 100)}%)`);
+    console.log(
+      `Progress: ${processed}/${items.length} (${Math.round((processed / items.length) * 100)}%)`
+    );
   }
 
   console.log(`\nBackfill complete:`);
@@ -118,7 +116,7 @@ export async function backfillNormalizedPricing(
 
   if (errors.length > 0) {
     console.log(`\nErrors:`);
-    errors.forEach(err => console.log(`  - ${err}`));
+    errors.forEach((err) => console.log(`  - ${err}`));
   }
 
   return { processed, updated, failed, errors };

@@ -10,7 +10,10 @@ import { supabase, getCategories } from '@/lib/supabase';
 import { getCanonicalUrl } from '@/lib/utils';
 
 // Cache for 5 minutes (SSR)
-Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=300, s-maxage=300, stale-while-revalidate=600'
+);
 
 // Pagination settings
 const ITEMS_PER_PAGE = 24;
@@ -40,10 +43,12 @@ const totalPages = Math.ceil((totalCount || 0) / ITEMS_PER_PAGE);
 // Fetch tools with pagination (software tools only)
 let query = supabase
   .from('tools')
-  .select(`
+  .select(
+    `
     id, name, slug, logo_url, short_description, avg_score, pricing_type, type,
     category:categories${categoryFilter ? '!inner' : ''}(name, slug)
-  `)
+  `
+  )
   .eq('type', 'tool');
 
 if (categoryFilter) {
@@ -72,10 +77,12 @@ function buildPageUrl(pageNum: number) {
 }
 
 const meta = {
-  title: page > 1
-    ? `All Software Tools - Page ${page} | StackHunt`
-    : 'All Software Tools - Browse Our Directory | StackHunt',
-  description: 'Browse our complete directory of software tools. Filter by category, compare features, and find the best tools for your stack.',
+  title:
+    page > 1
+      ? `All Software Tools - Page ${page} | StackHunt`
+      : 'All Software Tools - Browse Our Directory | StackHunt',
+  description:
+    'Browse our complete directory of software tools. Filter by category, compare features, and find the best tools for your stack.',
   canonical: getCanonicalUrl(buildPageUrl(page)),
   ogType: 'website' as const,
 };
@@ -102,11 +109,13 @@ const meta = {
           onchange="window.location.href = this.value ? `?category=${this.value}&sort=${new URLSearchParams(window.location.search).get('sort') || 'score'}` : `?sort=${new URLSearchParams(window.location.search).get('sort') || 'score'}`"
         >
           <option value="">All Categories</option>
-          {categories.map((cat) => (
-            <option value={cat.slug} selected={categoryFilter === cat.slug}>
-              {cat.name}
-            </option>
-          ))}
+          {
+            categories.map((cat) => (
+              <option value={cat.slug} selected={categoryFilter === cat.slug}>
+                {cat.name}
+              </option>
+            ))
+          }
         </select>
       </div>
 
@@ -126,82 +135,94 @@ const meta = {
     </div>
 
     <!-- Tools Grid -->
-    {tools && tools.length > 0 ? (
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {tools.map((tool) => (
-          <ToolCard tool={tool} category={tool.category} />
-        ))}
-      </div>
-    ) : (
-      <div class="rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-zinc-100">No tools found</h3>
-        <p class="mt-2 text-sm text-zinc-500">
-          {categoryFilter
-            ? 'No tools in this category. Try another filter.'
-            : 'Check back soon for more tools!'}
-        </p>
-      </div>
-    )}
+    {
+      tools && tools.length > 0 ? (
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {tools.map((tool) => (
+            <ToolCard tool={tool} category={tool.category} />
+          ))}
+        </div>
+      ) : (
+        <div class="rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-12 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-zinc-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-zinc-100">No tools found</h3>
+          <p class="mt-2 text-sm text-zinc-500">
+            {categoryFilter
+              ? 'No tools in this category. Try another filter.'
+              : 'Check back soon for more tools!'}
+          </p>
+        </div>
+      )
+    }
 
     <!-- Pagination -->
-    {totalPages > 1 && (
-      <nav class="mt-10 flex items-center justify-center gap-2" aria-label="Pagination">
-        {/* Previous */}
-        {page > 1 ? (
-          <a
-            href={buildPageUrl(page - 1)}
-            class="rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100"
-          >
-            ← Previous
-          </a>
-        ) : (
-          <span class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed">
-            ← Previous
-          </span>
-        )}
+    {
+      totalPages > 1 && (
+        <nav class="mt-10 flex items-center justify-center gap-2" aria-label="Pagination">
+          {/* Previous */}
+          {page > 1 ? (
+            <a
+              href={buildPageUrl(page - 1)}
+              class="rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100"
+            >
+              ← Previous
+            </a>
+          ) : (
+            <span class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed">
+              ← Previous
+            </span>
+          )}
 
-        {/* Page numbers */}
-        <div class="flex items-center gap-1">
-          {Array.from({ length: totalPages }, (_, i) => i + 1)
-            .filter(p => p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1))
-            .map((p, idx, arr) => (
-              <>
-                {idx > 0 && arr[idx - 1] !== p - 1 && (
-                  <span class="px-2 text-zinc-600">...</span>
-                )}
-                {p === page ? (
-                  <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 text-sm font-medium text-white">
-                    {p}
-                  </span>
-                ) : (
-                  <a
-                    href={buildPageUrl(p)}
-                    class="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900/50 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100"
-                  >
-                    {p}
-                  </a>
-                )}
-              </>
-            ))}
-        </div>
+          {/* Page numbers */}
+          <div class="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1))
+              .map((p, idx, arr) => (
+                <>
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span class="px-2 text-zinc-600">...</span>}
+                  {p === page ? (
+                    <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 text-sm font-medium text-white">
+                      {p}
+                    </span>
+                  ) : (
+                    <a
+                      href={buildPageUrl(p)}
+                      class="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900/50 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100"
+                    >
+                      {p}
+                    </a>
+                  )}
+                </>
+              ))}
+          </div>
 
-        {/* Next */}
-        {page < totalPages ? (
-          <a
-            href={buildPageUrl(page + 1)}
-            class="rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100"
-          >
-            Next →
-          </a>
-        ) : (
-          <span class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed">
-            Next →
-          </span>
-        )}
-      </nav>
-    )}
+          {/* Next */}
+          {page < totalPages ? (
+            <a
+              href={buildPageUrl(page + 1)}
+              class="rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-800/50 hover:text-zinc-100"
+            >
+              Next →
+            </a>
+          ) : (
+            <span class="rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-sm text-zinc-600 cursor-not-allowed">
+              Next →
+            </span>
+          )}
+        </nav>
+      )
+    }
   </div>
 </BaseLayout>

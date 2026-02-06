@@ -132,10 +132,10 @@ const SPECIFIC_STRENGTH_PATTERNS = [
   /\bSlack\b/i,
 
   // Quantitative claims
-  /\d+\s*ms/i,           // Response times
-  /\d+%/i,               // Percentages
-  /\d+x faster/i,        // Speed comparisons
-  /unlimited/i,          // Specific limit claims
+  /\d+\s*ms/i, // Response times
+  /\d+%/i, // Percentages
+  /\d+x faster/i, // Speed comparisons
+  /unlimited/i, // Specific limit claims
   /\d+\s*(users?|seats?|gb|projects?)/i, // Specific limits
 
   // Technical features
@@ -201,7 +201,7 @@ export function isGenericStrength(strength: string): boolean {
 export function filterGenericStrengths(strengths: string[]): string[] {
   if (!strengths || !Array.isArray(strengths)) return [];
 
-  return strengths.filter(strength => !isGenericStrength(strength));
+  return strengths.filter((strength) => !isGenericStrength(strength));
 }
 
 /**
@@ -247,5 +247,5 @@ export function isGenericFrustration(frustration: string): boolean {
 export function filterGenericFrustrations(frustrations: string[]): string[] {
   if (!frustrations || !Array.isArray(frustrations)) return [];
 
-  return frustrations.filter(frustration => !isGenericFrustration(frustration));
+  return frustrations.filter((frustration) => !isGenericFrustration(frustration));
 }

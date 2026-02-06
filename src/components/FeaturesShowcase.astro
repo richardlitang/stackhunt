@@ -16,11 +16,11 @@ interface Props {
 const { features, toolName } = Astro.props;
 
 // Check if we have any data to display
-const hasData = features && (
-  (features.core && features.core.length > 0) ||
-  (features.unique && features.unique.length > 0) ||
-  (features.capabilities && features.capabilities.length > 0)
-);
+const hasData =
+  features &&
+  ((features.core && features.core.length > 0) ||
+    (features.unique && features.unique.length > 0) ||
+    (features.capabilities && features.capabilities.length > 0));
 
 if (!hasData) return null;
 
@@ -42,62 +42,74 @@ const statusLabels = {
 };
 ---
 
-<section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow">
+<section
+  class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+>
   <h2 class="mb-2 text-lg font-semibold text-zinc-100">Features</h2>
   <p class="mb-6 text-sm text-zinc-400">
     Key capabilities and functionality that {toolName} offers
   </p>
 
   {/* Core Features */}
-  {features.core && features.core.length > 0 && (
-    <div class="mb-6">
-      <h3 class="mb-3 text-sm font-medium text-zinc-300">Core Features</h3>
-      <div class="grid gap-3 sm:grid-cols-2">
-        {features.core.map((feature) => (
-          <div class="flex items-start gap-2">
-            <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-            <span class="text-sm text-zinc-200">{feature}</span>
-          </div>
-        ))}
+  {
+    features.core && features.core.length > 0 && (
+      <div class="mb-6">
+        <h3 class="mb-3 text-sm font-medium text-zinc-300">Core Features</h3>
+        <div class="grid gap-3 sm:grid-cols-2">
+          {features.core.map((feature) => (
+            <div class="flex items-start gap-2">
+              <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+              <span class="text-sm text-zinc-200">{feature}</span>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  )}
+    )
+  }
 
   {/* Unique Features */}
-  {features.unique && features.unique.length > 0 && (
-    <div class="mb-6">
-      <h3 class="mb-3 text-sm font-medium text-zinc-300">What Makes It Unique</h3>
-      <div class="grid gap-3">
-        {features.unique.map((feature) => (
-          <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-3">
-            <div class="flex items-center gap-2">
-              <span class="text-lg shrink-0" role="img" aria-label="star">⭐</span>
-              <span class="text-sm font-medium text-zinc-100">{feature}</span>
+  {
+    features.unique && features.unique.length > 0 && (
+      <div class="mb-6">
+        <h3 class="mb-3 text-sm font-medium text-zinc-300">What Makes It Unique</h3>
+        <div class="grid gap-3">
+          {features.unique.map((feature) => (
+            <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg shrink-0" role="img" aria-label="star">
+                  ⭐
+                </span>
+                <span class="text-sm font-medium text-zinc-100">{feature}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  )}
+    )
+  }
 
   {/* Feature Capabilities Table */}
-  {features.capabilities && features.capabilities.length > 0 && (
-    <div>
-      <h3 class="mb-1 text-sm font-medium text-zinc-300">Feature Capabilities</h3>
-      <p class="mb-3 text-xs text-zinc-500">Detailed availability and implementation status</p>
-      <div class="space-y-2">
-        {features.capabilities.map(({ name, status, notes }) => (
-          <div class="flex items-start justify-between py-2 px-3 rounded-lg border border-zinc-800 bg-zinc-900">
-            <div class="flex-1 min-w-0 pr-3">
-              <div class="text-sm text-zinc-200">{name}</div>
-              {notes && <div class="mt-0.5 text-xs text-zinc-400">{notes}</div>}
+  {
+    features.capabilities && features.capabilities.length > 0 && (
+      <div>
+        <h3 class="mb-1 text-sm font-medium text-zinc-300">Feature Capabilities</h3>
+        <p class="mb-3 text-xs text-zinc-500">Detailed availability and implementation status</p>
+        <div class="space-y-2">
+          {features.capabilities.map(({ name, status, notes }) => (
+            <div class="flex items-start justify-between py-2 px-3 rounded-lg border border-zinc-800 bg-zinc-900">
+              <div class="flex-1 min-w-0 pr-3">
+                <div class="text-sm text-zinc-200">{name}</div>
+                {notes && <div class="mt-0.5 text-xs text-zinc-400">{notes}</div>}
+              </div>
+              <span
+                class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border whitespace-nowrap shrink-0 ${statusColors[status]}`}
+              >
+                {statusLabels[status]}
+              </span>
             </div>
-            <span class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border whitespace-nowrap shrink-0 ${statusColors[status]}`}>
-              {statusLabels[status]}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  )}
+    )
+  }
 </section>

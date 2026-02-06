@@ -15,12 +15,7 @@ interface Props {
 export default function VideoEmbed({ id, title, className = '' }: Props) {
   return (
     <div className={`rounded-xl overflow-hidden shadow-lg border border-slate-200 ${className}`}>
-      <LiteYouTubeEmbed
-        id={id}
-        title={title}
-        poster="maxresdefault"
-        webp
-      />
+      <LiteYouTubeEmbed id={id} title={title} poster="maxresdefault" webp />
     </div>
   );
 }

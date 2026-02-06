@@ -23,83 +23,91 @@ const { budgetAnalyst, variant = 'compact' } = Astro.props;
 // Don't render if no budget analyst data
 if (!budgetAnalyst) return null;
 
-const {
-  costDrivers = [],
-  oneTimeFees = [],
-  commitmentTerms,
-  roiThreshold,
-} = budgetAnalyst;
+const { costDrivers = [], oneTimeFees = [], commitmentTerms, roiThreshold } = budgetAnalyst;
 
 // Don't render if all fields are empty
-if (
-  costDrivers.length === 0 &&
-  oneTimeFees.length === 0 &&
-  !commitmentTerms &&
-  !roiThreshold
-) {
+if (costDrivers.length === 0 && oneTimeFees.length === 0 && !commitmentTerms && !roiThreshold) {
   return null;
 }
 ---
 
-<div class={variant === 'compact'
-  ? "mt-4 rounded-lg border border-blue-500/20 bg-blue-500/5 p-4"
-  : "rounded-lg border border-zinc-800 bg-zinc-900/50 p-6"
-}>
+<div
+  class={variant === 'compact'
+    ? 'mt-4 rounded-lg border border-blue-500/20 bg-blue-500/5 p-4'
+    : 'rounded-lg border border-zinc-800 bg-zinc-900/50 p-6'}
+>
   <div class="mb-3 flex items-start gap-2">
-    <svg class="h-4 w-4 flex-shrink-0 mt-0.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg
+      class="h-4 w-4 flex-shrink-0 mt-0.5 text-blue-400"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
     </svg>
     <div class="flex-1">
       <h4 class="text-sm font-medium text-blue-300">💡 Price Mechanics</h4>
-      <p class="mt-0.5 text-xs text-zinc-400">
-        What affects your bill
-      </p>
+      <p class="mt-0.5 text-xs text-zinc-400">What affects your bill</p>
     </div>
   </div>
 
   <div class="space-y-2.5">
-    <!-- Cost Drivers -->
-    {costDrivers.length > 0 && (
-      <div>
-        <ul class="space-y-1">
-          {costDrivers.map((driver) => (
-            <li class="flex items-start gap-1.5 text-xs text-zinc-300">
-              <span class="text-blue-400">•</span>
-              <span>{driver}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    )}
+    {/* Cost Drivers */}
+    {
+      costDrivers.length > 0 && (
+        <div>
+          <ul class="space-y-1">
+            {costDrivers.map((driver) => (
+              <li class="flex items-start gap-1.5 text-xs text-zinc-300">
+                <span class="text-blue-400">•</span>
+                <span>{driver}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
 
-    <!-- One-Time Fees -->
-    {oneTimeFees.length > 0 && (
-      <div class="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
-        <p class="text-xs font-medium text-amber-300 mb-1">⚠️ Setup Costs</p>
-        <ul class="space-y-0.5">
-          {oneTimeFees.map((fee) => (
-            <li class="text-xs text-amber-200/90">{fee}</li>
-          ))}
-        </ul>
-      </div>
-    )}
+    {/* One-Time Fees */}
+    {
+      oneTimeFees.length > 0 && (
+        <div class="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
+          <p class="text-xs font-medium text-amber-300 mb-1">⚠️ Setup Costs</p>
+          <ul class="space-y-0.5">
+            {oneTimeFees.map((fee) => (
+              <li class="text-xs text-amber-200/90">{fee}</li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
 
-    <!-- Commitment & ROI (compact inline) -->}
-    {(commitmentTerms || roiThreshold) && (
-      <div class="space-y-1.5 text-xs">
-        {commitmentTerms && (
-          <div class="flex items-start gap-1.5">
-            <span class="text-zinc-500">📅</span>
-            <span class="text-zinc-300"><strong class="text-zinc-200">Contract:</strong> {commitmentTerms}</span>
-          </div>
-        )}
-        {roiThreshold && (
-          <div class="flex items-start gap-1.5">
-            <span class="text-zinc-500">📈</span>
-            <span class="text-zinc-300"><strong class="text-zinc-200">Worth it when:</strong> {roiThreshold}</span>
-          </div>
-        )}
-      </div>
-    )}
+    {/* Commitment & ROI (compact inline) */}
+    {
+      (commitmentTerms || roiThreshold) && (
+        <div class="space-y-1.5 text-xs">
+          {commitmentTerms && (
+            <div class="flex items-start gap-1.5">
+              <span class="text-zinc-500">📅</span>
+              <span class="text-zinc-300">
+                <strong class="text-zinc-200">Contract:</strong> {commitmentTerms}
+              </span>
+            </div>
+          )}
+          {roiThreshold && (
+            <div class="flex items-start gap-1.5">
+              <span class="text-zinc-500">📈</span>
+              <span class="text-zinc-300">
+                <strong class="text-zinc-200">Worth it when:</strong> {roiThreshold}
+              </span>
+            </div>
+          )}
+        </div>
+      )
+    }
   </div>
 </div>

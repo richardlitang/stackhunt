@@ -85,19 +85,22 @@ export const GET: APIRoute = async ({ params, request }) => {
       }
 
       // Fire and forget - don't await
-      adminClient.rpc('log_click', {
-        p_offer_id: offer.id,
-        p_tool_id: tool.id,
-        p_referrer: referrer,
-        p_user_agent: userAgent,
-        p_ip_hash: ipHash,
-        p_country_code: countryCode,
-        p_source_page: sourcePage,
-      }).then(() => {
-        // Click logged successfully
-      }).catch((err) => {
-        console.error('Failed to log click:', err);
-      });
+      adminClient
+        .rpc('log_click', {
+          p_offer_id: offer.id,
+          p_tool_id: tool.id,
+          p_referrer: referrer,
+          p_user_agent: userAgent,
+          p_ip_hash: ipHash,
+          p_country_code: countryCode,
+          p_source_page: sourcePage,
+        })
+        .then(() => {
+          // Click logged successfully
+        })
+        .catch((err) => {
+          console.error('Failed to log click:', err);
+        });
     }
 
     // Step 4: 307 Temporary Redirect (preserves method, cacheable)

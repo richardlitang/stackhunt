@@ -17,11 +17,13 @@ import SmartComparisonTable from '@/components/SmartComparisonTable';
 import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import ProsCons from '@/components/ProsCons.astro';
 import { supabase } from '@/lib/supabase';
-import { getCanonicalUrl, getScoreColor, formatPricingType } from '@/lib/utils';
-import { computeComparison, getWinnerText, areToolsComparable, type ToolComparison } from '@/lib/analysis/comparator';
+import { getCanonicalUrl, formatPricingType } from '@/lib/utils';
 import {
-  generateBreadcrumbSchema,
-} from '@/lib/seo';
+  computeComparison,
+  areToolsComparable,
+  type ToolComparison,
+} from '@/lib/analysis/comparator';
+import { generateBreadcrumbSchema } from '@/lib/seo';
 import type { SMPPricingData } from '@/types/database';
 
 // Parse URL: /compare/slack-vs-discord
@@ -33,7 +35,7 @@ if (slugParts.length !== 2) {
   return Astro.redirect('/404');
 }
 
-const [slugA, slugB] = slugParts.map(s => s.trim());
+const [slugA, slugB] = slugParts.map((s) => s.trim());
 
 // SEO: Enforce alphabetical ordering to prevent duplicate content
 // /compare/notion-vs-linear should redirect to /compare/linear-vs-notion
@@ -44,7 +46,8 @@ if (slugA > slugB) {
 // Fetch both tools with their reviews, offers, and metadata (Knowledge Cards)
 const { data: tools } = await supabase
   .from('tools')
-  .select(`
+  .select(
+    `
     *,
     metadata,
     data_confidence,
@@ -64,7 +67,8 @@ const { data: tools } = await supabase
       switching_from,
       context:contexts(title, slug)
     )
-  `)
+  `
+  )
   .in('slug', [slugA, slugB]);
 
 // Fetch comparison insights if they exist (curated comparison data)
@@ -81,8 +85,8 @@ if (!tools || tools.length !== 2) {
 }
 
 // Ensure correct order (A then B)
-const toolA = tools.find(t => t.slug === slugA)!;
-const toolB = tools.find(t => t.slug === slugB)!;
+const toolA = tools.find((t) => t.slug === slugA)!;
+const toolB = tools.find((t) => t.slug === slugB)!;
 
 // Validation: Prevent nonsensical comparisons (Canva vs LinkedIn Ads)
 // Uses shared validation logic from comparator.ts
@@ -96,16 +100,26 @@ const hasHighSubstitutability = (comparisonInsights?.substitutability_score || 0
 
 // Redirect to 404 if tools are not comparable
 if (!toolsAreComparable && !hasHighSubstitutability) {
-  console.log(`[Comparison blocked] ${toolA.name} vs ${toolB.name} - Comparable: ${toolsAreComparable}, Substitutability: ${comparisonInsights?.substitutability_score || 0}`);
+  console.log(
+    `[Comparison blocked] ${toolA.name} vs ${toolB.name} - Comparable: ${toolsAreComparable}, Substitutability: ${comparisonInsights?.substitutability_score || 0}`
+  );
   return Astro.redirect('/404');
 }
 
 // Get primary offers
-const offerA = toolA.affiliate_offers?.find(o => o.is_primary) || toolA.affiliate_offers?.[0];
-const offerB = toolB.affiliate_offers?.find(o => o.is_primary) || toolB.affiliate_offers?.[0];
+const offerA = toolA.affiliate_offers?.find((o) => o.is_primary) || toolA.affiliate_offers?.[0];
+const offerB = toolB.affiliate_offers?.find((o) => o.is_primary) || toolB.affiliate_offers?.[0];
 
 // Aggregate pros/cons from all reviews (preserve claim objects when possible)
-type ClaimItem = string | { text?: string; source_url?: string; source_type?: string; claim_type?: string; retrieved_at?: string };
+type ClaimItem =
+  | string
+  | {
+      text?: string;
+      source_url?: string;
+      source_type?: string;
+      claim_type?: string;
+      retrieved_at?: string;
+    };
 const claimText = (item: ClaimItem) => (typeof item === 'string' ? item : item?.text) || '';
 const aggregateClaims = (reviews: typeof toolA.reviews, field: 'pros' | 'cons') => {
   const map = new Map<string, ClaimItem>();
@@ -121,7 +135,7 @@ const aggregateClaims = (reviews: typeof toolA.reviews, field: 'pros' | 'cons') 
 };
 
 const aggregateTags = (reviews: typeof toolA.reviews) =>
-  [...new Set(reviews?.flatMap(r => r.sentiment_tags || []) || [])].slice(0, 6);
+  [...new Set(reviews?.flatMap((r) => r.sentiment_tags || []) || [])].slice(0, 6);
 
 const prosA = aggregateClaims(toolA.reviews, 'pros');
 const consA = aggregateClaims(toolA.reviews, 'cons');
@@ -244,12 +258,24 @@ interface SuggestedComparison {
 const suggestions: SuggestedComparison[] = [];
 
 // Prep main tools for comparability check
-const mainToolAInfo = { slug: toolA.slug, category_id: toolA.category?.id, metadata: toolA.metadata as any };
-const mainToolBInfo = { slug: toolB.slug, category_id: toolB.category?.id, metadata: toolB.metadata as any };
+const mainToolAInfo = {
+  slug: toolA.slug,
+  category_id: toolA.category?.id,
+  metadata: toolA.metadata as any,
+};
+const mainToolBInfo = {
+  slug: toolB.slug,
+  category_id: toolB.category?.id,
+  metadata: toolB.metadata as any,
+};
 
 // Add category-based suggestions - only if comparable with one of the main tools
 for (const tool of suggestedComparisons || []) {
-  const toolInfo = { slug: tool.slug, category_id: tool.category_id, metadata: tool.metadata as any };
+  const toolInfo = {
+    slug: tool.slug,
+    category_id: tool.category_id,
+    metadata: tool.metadata as any,
+  };
 
   // Check if this tool is comparable with toolA
   if (areToolsComparable(mainToolAInfo, toolInfo)) {
@@ -280,7 +306,11 @@ if (switchingTools.size > 0 && suggestions.length < 4) {
     .in('slug', switchingSlugs);
 
   for (const tool of switchingToolsData || []) {
-    const toolInfo = { slug: tool.slug, category_id: tool.category_id, metadata: tool.metadata as any };
+    const toolInfo = {
+      slug: tool.slug,
+      category_id: tool.category_id,
+      metadata: tool.metadata as any,
+    };
 
     // Only add if comparable with one of the main tools
     if (areToolsComparable(mainToolAInfo, toolInfo)) {
@@ -303,12 +333,14 @@ if (switchingTools.size > 0 && suggestions.length < 4) {
 
 // Deduplicate and limit
 const uniqueSuggestions = suggestions
-  .filter((s, i, arr) =>
-    // Deduplicate
-    arr.findIndex(x =>
-      (x.toolA.slug === s.toolA.slug && x.toolB.slug === s.toolB.slug) ||
-      (x.toolA.slug === s.toolB.slug && x.toolB.slug === s.toolA.slug)
-    ) === i
+  .filter(
+    (s, i, arr) =>
+      // Deduplicate
+      arr.findIndex(
+        (x) =>
+          (x.toolA.slug === s.toolA.slug && x.toolB.slug === s.toolB.slug) ||
+          (x.toolA.slug === s.toolB.slug && x.toolB.slug === s.toolA.slug)
+      ) === i
   )
   .slice(0, 4);
 
@@ -339,11 +371,12 @@ const schemas = [
         name: `Is ${toolA.name} better than ${toolB.name}?`,
         acceptedAnswer: {
           '@type': 'Answer',
-          text: winner === 'A'
-            ? `Based on our analysis, ${toolA.name} scores higher (${scoreA}/100) compared to ${toolB.name} (${scoreB}/100). However, the best choice depends on your specific needs.`
-            : winner === 'B'
-            ? `Based on our analysis, ${toolB.name} scores higher (${scoreB}/100) compared to ${toolA.name} (${scoreA}/100). However, the best choice depends on your specific needs.`
-            : `Both tools score similarly. ${toolA.name} scores ${scoreA}/100 and ${toolB.name} scores ${scoreB}/100. The best choice depends on your specific needs.`,
+          text:
+            winner === 'A'
+              ? `Based on our analysis, ${toolA.name} scores higher (${scoreA}/100) compared to ${toolB.name} (${scoreB}/100). However, the best choice depends on your specific needs.`
+              : winner === 'B'
+                ? `Based on our analysis, ${toolB.name} scores higher (${scoreB}/100) compared to ${toolA.name} (${scoreA}/100). However, the best choice depends on your specific needs.`
+                : `Both tools score similarly. ${toolA.name} scores ${scoreA}/100 and ${toolB.name} scores ${scoreB}/100. The best choice depends on your specific needs.`,
         },
       },
       {
@@ -373,7 +406,9 @@ const schemas = [
     <!-- Header -->
     <header class="mb-12 text-center">
       <h1 class="text-3xl font-bold text-zinc-100 sm:text-4xl">
-        {toolA.name} <span class="text-hunt-500">vs</span> {toolB.name}
+        {toolA.name}
+        <span class="text-hunt-500">vs</span>
+        {toolB.name}
       </h1>
       <p class="mx-auto mt-4 max-w-2xl text-lg text-zinc-300">
         A detailed comparison to help you choose the right tool for your needs.
@@ -381,428 +416,572 @@ const schemas = [
     </header>
 
     <!-- Curated Verdict (if available) -->
-    {curatedVerdict && (
-      <div class="mb-6 rounded-xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-5 text-center shadow-md">
-        <div class="flex items-center justify-center gap-2 mb-2">
-          <svg class="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
-          </svg>
-          <span class="text-sm font-medium text-purple-700">{isCurated ? 'Expert Verdict' : 'Quick Take'}</span>
+    {
+      curatedVerdict && (
+        <div class="mb-6 rounded-xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-5 text-center shadow-md">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <svg class="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <span class="text-sm font-medium text-purple-700">
+              {isCurated ? 'Expert Verdict' : 'Quick Take'}
+            </span>
+          </div>
+          <p class="text-lg font-semibold text-slate-800">{curatedVerdict}</p>
         </div>
-        <p class="text-lg font-semibold text-slate-800">{curatedVerdict}</p>
-      </div>
-    )}
+      )
+    }
 
     <!-- Quick Verdict Banner -->
-    {winner !== 'tie' && !curatedVerdict && (
-      <div class={`mb-10 rounded-xl p-5 text-center ${winner === 'A' ? 'bg-green-900/20 border border-green-700/50' : 'bg-blue-900/20 border border-blue-700/50'}`}>
-        <span class="text-sm font-medium text-zinc-400">Higher Overall Score:</span>
-        <span class={`ml-2 font-bold ${winner === 'A' ? 'text-green-400' : 'text-blue-400'}`}>
-          {winner === 'A' ? toolA.name : toolB.name}
-        </span>
-        <span class="text-sm text-zinc-500 ml-1">
-          ({winner === 'A' ? scoreA : scoreB}/100)
-        </span>
-        <p class="mt-2 text-xs text-zinc-500">
-          Best choice depends on your specific needs — see detailed comparison below
-        </p>
-      </div>
-    )}
+    {
+      winner !== 'tie' && !curatedVerdict && (
+        <div
+          class={`mb-10 rounded-xl p-5 text-center ${winner === 'A' ? 'bg-green-900/20 border border-green-700/50' : 'bg-blue-900/20 border border-blue-700/50'}`}
+        >
+          <span class="text-sm font-medium text-zinc-400">Higher Overall Score:</span>
+          <span class={`ml-2 font-bold ${winner === 'A' ? 'text-green-400' : 'text-blue-400'}`}>
+            {winner === 'A' ? toolA.name : toolB.name}
+          </span>
+          <span class="text-sm text-zinc-500 ml-1">({winner === 'A' ? scoreA : scoreB}/100)</span>
+          <p class="mt-2 text-xs text-zinc-500">
+            Best choice depends on your specific needs — see detailed comparison below
+          </p>
+        </div>
+      )
+    }
 
     <!-- Side-by-Side Comparison -->
     <div class="grid gap-8 lg:grid-cols-2">
       <!-- Tool A -->
-      <div class={`rounded-xl border-2 ${winner === 'A' ? 'border-green-500/50 bg-green-900/10 shadow-lg' : 'border-zinc-800 bg-zinc-900/50 shadow-sm'} p-6 transition-shadow`}>
-        {winner === 'A' && (
-          <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-green-900/30 px-3 py-1 text-xs font-medium text-green-400 border border-green-700">
-            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            Higher Score
-          </div>
-        )}
+      <div
+        class={`rounded-xl border-2 ${winner === 'A' ? 'border-green-500/50 bg-green-900/10 shadow-lg' : 'border-zinc-800 bg-zinc-900/50 shadow-sm'} p-6 transition-shadow`}
+      >
+        {
+          winner === 'A' && (
+            <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-green-900/30 px-3 py-1 text-xs font-medium text-green-400 border border-green-700">
+              <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Higher Score
+            </div>
+          )
+        }
 
         <!-- Header -->
         <div class="flex items-start gap-4">
           <Logo domain={toolA.logo_url} name={toolA.name} size="xl" class="shrink-0" />
           <div class="flex-1">
-            <a href={`/tool/${toolA.slug}`} class="text-xl font-bold text-zinc-100 hover:text-indigo-400 transition">
+            <a
+              href={`/tool/${toolA.slug}`}
+              class="text-xl font-bold text-zinc-100 hover:text-indigo-400 transition"
+            >
               {toolA.name}
             </a>
             <div class="mt-1 flex items-center gap-2">
               <PricingBadge type={toolA.pricing_type} size="sm" />
-              {toolA.category && (
-                <span class="text-xs text-zinc-500">{toolA.category.name}</span>
-              )}
+              {toolA.category && <span class="text-xs text-zinc-500">{toolA.category.name}</span>}
             </div>
           </div>
           <ScoreBadge score={Math.round(scoreA)} size="md" />
         </div>
 
         <!-- About -->
-        {toolA.short_description && (
-          <div class="mt-6">
-            <h3 class="font-semibold text-zinc-100">About</h3>
-            <p class="mt-2 text-sm text-zinc-400">{toolA.short_description}</p>
-          </div>
-        )}
+        {
+          toolA.short_description && (
+            <div class="mt-6">
+              <h3 class="font-semibold text-zinc-100">About</h3>
+              <p class="mt-2 text-sm text-zinc-400">{toolA.short_description}</p>
+            </div>
+          )
+        }
 
         {/* Pros & Cons from Reviews */}
         <div class="mt-6">
-          <ProsCons
-            pros={prosA}
-            cons={consA}
-            sourceDisplay="inline"
-          />
+          <ProsCons pros={prosA} cons={consA} sourceDisplay="inline" />
         </div>
 
         <!-- Tags -->
-        {tagsA.length > 0 && (
-          <div class="mt-4 flex flex-wrap gap-1">
-            {tagsA.map(tag => (
-              <span class="rounded-full bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
-                {tag.replace(/-/g, ' ')}
-              </span>
-            ))}
-          </div>
-        )}
+        {
+          tagsA.length > 0 && (
+            <div class="mt-4 flex flex-wrap gap-1">
+              {tagsA.map((tag) => (
+                <span class="rounded-full bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+                  {tag.replace(/-/g, ' ')}
+                </span>
+              ))}
+            </div>
+          )
+        }
 
         <!-- CTA -->
-        {offerA && (
-          <div class="mt-6">
-            <AffiliateButton offer={offerA} toolName={toolA.name} size="md" variant="primary" />
-          </div>
-        )}
+        {
+          offerA && (
+            <div class="mt-6">
+              <AffiliateButton offer={offerA} toolName={toolA.name} size="md" variant="primary" />
+            </div>
+          )
+        }
       </div>
 
       <!-- Tool B -->
-      <div class={`rounded-xl border-2 ${winner === 'B' ? 'border-blue-500/50 bg-blue-900/10 shadow-lg' : 'border-zinc-800 bg-zinc-900/50 shadow-sm'} p-6 transition-shadow`}>
-        {winner === 'B' && (
-          <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-blue-900/30 px-3 py-1 text-xs font-medium text-blue-400 border border-blue-700">
-            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            Higher Score
-          </div>
-        )}
+      <div
+        class={`rounded-xl border-2 ${winner === 'B' ? 'border-blue-500/50 bg-blue-900/10 shadow-lg' : 'border-zinc-800 bg-zinc-900/50 shadow-sm'} p-6 transition-shadow`}
+      >
+        {
+          winner === 'B' && (
+            <div class="mb-4 inline-flex items-center gap-1 rounded-full bg-blue-900/30 px-3 py-1 text-xs font-medium text-blue-400 border border-blue-700">
+              <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Higher Score
+            </div>
+          )
+        }
 
         <!-- Header -->
         <div class="flex items-start gap-4">
           <Logo domain={toolB.logo_url} name={toolB.name} size="xl" class="shrink-0" />
           <div class="flex-1">
-            <a href={`/tool/${toolB.slug}`} class="text-xl font-bold text-zinc-100 hover:text-indigo-400 transition">
+            <a
+              href={`/tool/${toolB.slug}`}
+              class="text-xl font-bold text-zinc-100 hover:text-indigo-400 transition"
+            >
               {toolB.name}
             </a>
             <div class="mt-1 flex items-center gap-2">
               <PricingBadge type={toolB.pricing_type} size="sm" />
-              {toolB.category && (
-                <span class="text-xs text-zinc-500">{toolB.category.name}</span>
-              )}
+              {toolB.category && <span class="text-xs text-zinc-500">{toolB.category.name}</span>}
             </div>
           </div>
           <ScoreBadge score={Math.round(scoreB)} size="md" />
         </div>
 
         <!-- About -->
-        {toolB.short_description && (
-          <div class="mt-6">
-            <h3 class="font-semibold text-zinc-100">About</h3>
-            <p class="mt-2 text-sm text-zinc-400">{toolB.short_description}</p>
-          </div>
-        )}
+        {
+          toolB.short_description && (
+            <div class="mt-6">
+              <h3 class="font-semibold text-zinc-100">About</h3>
+              <p class="mt-2 text-sm text-zinc-400">{toolB.short_description}</p>
+            </div>
+          )
+        }
 
         {/* Pros & Cons from Reviews */}
         <div class="mt-6">
-          <ProsCons
-            pros={prosB}
-            cons={consB}
-            sourceDisplay="inline"
-          />
+          <ProsCons pros={prosB} cons={consB} sourceDisplay="inline" />
         </div>
 
         <!-- Tags -->
-        {tagsB.length > 0 && (
-          <div class="mt-4 flex flex-wrap gap-1">
-            {tagsB.map(tag => (
-              <span class="rounded-full bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
-                {tag.replace(/-/g, ' ')}
-              </span>
-            ))}
-          </div>
-        )}
+        {
+          tagsB.length > 0 && (
+            <div class="mt-4 flex flex-wrap gap-1">
+              {tagsB.map((tag) => (
+                <span class="rounded-full bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+                  {tag.replace(/-/g, ' ')}
+                </span>
+              ))}
+            </div>
+          )
+        }
 
         <!-- CTA -->
-        {offerB && (
-          <div class="mt-6">
-            <AffiliateButton offer={offerB} toolName={toolB.name} size="md" variant="primary" />
-          </div>
-        )}
+        {
+          offerB && (
+            <div class="mt-6">
+              <AffiliateButton offer={offerB} toolName={toolB.name} size="md" variant="primary" />
+            </div>
+          )
+        }
       </div>
     </div>
 
     <!-- Key Differences Table -->
-    {highlights.length > 0 && (
-      <section class="mt-12">
-        <h2 class="mb-6 text-xl font-semibold text-zinc-100">Key Differences</h2>
-        <div class="overflow-hidden rounded-xl border border-zinc-700 shadow-sm">
-          <table class="w-full">
-            <thead class="bg-zinc-900">
-              <tr>
-                <th class="px-6 py-3 text-left text-sm font-semibold text-zinc-300">Aspect</th>
-                <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">{toolA.name}</th>
-                <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">{toolB.name}</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-              <tr>
-                <td class="px-6 py-4 text-sm font-medium text-zinc-300">Overall Score</td>
-                <td class="px-6 py-4 text-center">
-                  <span class={`font-bold ${scoreA >= scoreB ? 'text-green-600' : 'text-zinc-300'}`}>
-                    {scoreA}/100
-                    {scoreA > scoreB && ' ✓'}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <span class={`font-bold ${scoreB >= scoreA ? 'text-green-600' : 'text-zinc-300'}`}>
-                    {scoreB}/100
-                    {scoreB > scoreA && ' ✓'}
-                  </span>
-                </td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4 text-sm font-medium text-zinc-300">Pricing</td>
-                <td class="px-6 py-4 text-center">
-                  <PricingBadge type={toolA.pricing_type} size="sm" />
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <PricingBadge type={toolB.pricing_type} size="sm" />
-                </td>
-              </tr>
-              {(toolA.learning_curve || toolB.learning_curve) && (
+    {
+      highlights.length > 0 && (
+        <section class="mt-12">
+          <h2 class="mb-6 text-xl font-semibold text-zinc-100">Key Differences</h2>
+          <div class="overflow-hidden rounded-xl border border-zinc-700 shadow-sm">
+            <table class="w-full">
+              <thead class="bg-zinc-900">
                 <tr>
-                  <td class="px-6 py-4 text-sm font-medium text-zinc-300">Learning Curve</td>
-                  <td class="px-6 py-4 text-center text-sm text-zinc-300">
-                    {formatLearningCurve(toolA.learning_curve)}
-                  </td>
-                  <td class="px-6 py-4 text-center text-sm text-zinc-300">
-                    {formatLearningCurve(toolB.learning_curve)}
-                  </td>
+                  <th class="px-6 py-3 text-left text-sm font-semibold text-zinc-300">Aspect</th>
+                  <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">
+                    {toolA.name}
+                  </th>
+                  <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">
+                    {toolB.name}
+                  </th>
                 </tr>
-              )}
-              {/* Filter out Learning Curve from highlights if we already show the dedicated row */}
-              {highlights.filter(h => !(h.label === 'Learning Curve' && (toolA.learning_curve || toolB.learning_curve))).map(h => (
+              </thead>
+              <tbody class="divide-y divide-slate-200">
                 <tr>
-                  <td class="px-6 py-4 text-sm font-medium text-zinc-300">{h.label}</td>
+                  <td class="px-6 py-4 text-sm font-medium text-zinc-300">Overall Score</td>
                   <td class="px-6 py-4 text-center">
-                    {h.winnerA ? (
-                      <span class="text-green-600">✓ Better</span>
-                    ) : (
-                      <span class="text-zinc-500">-</span>
-                    )}
+                    <span
+                      class={`font-bold ${scoreA >= scoreB ? 'text-green-600' : 'text-zinc-300'}`}
+                    >
+                      {scoreA}/100
+                      {scoreA > scoreB && ' ✓'}
+                    </span>
                   </td>
                   <td class="px-6 py-4 text-center">
-                    {h.winnerB ? (
-                      <span class="text-green-600">✓ Better</span>
-                    ) : (
-                      <span class="text-zinc-500">-</span>
-                    )}
+                    <span
+                      class={`font-bold ${scoreB >= scoreA ? 'text-green-600' : 'text-zinc-300'}`}
+                    >
+                      {scoreB}/100
+                      {scoreB > scoreA && ' ✓'}
+                    </span>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    )}
+                <tr>
+                  <td class="px-6 py-4 text-sm font-medium text-zinc-300">Pricing</td>
+                  <td class="px-6 py-4 text-center">
+                    <PricingBadge type={toolA.pricing_type} size="sm" />
+                  </td>
+                  <td class="px-6 py-4 text-center">
+                    <PricingBadge type={toolB.pricing_type} size="sm" />
+                  </td>
+                </tr>
+                {(toolA.learning_curve || toolB.learning_curve) && (
+                  <tr>
+                    <td class="px-6 py-4 text-sm font-medium text-zinc-300">Learning Curve</td>
+                    <td class="px-6 py-4 text-center text-sm text-zinc-300">
+                      {formatLearningCurve(toolA.learning_curve)}
+                    </td>
+                    <td class="px-6 py-4 text-center text-sm text-zinc-300">
+                      {formatLearningCurve(toolB.learning_curve)}
+                    </td>
+                  </tr>
+                )}
+                {/* Filter out Learning Curve from highlights if we already show the dedicated row */}
+                {highlights
+                  .filter(
+                    (h) =>
+                      !(
+                        h.label === 'Learning Curve' &&
+                        (toolA.learning_curve || toolB.learning_curve)
+                      )
+                  )
+                  .map((h) => (
+                    <tr>
+                      <td class="px-6 py-4 text-sm font-medium text-zinc-300">{h.label}</td>
+                      <td class="px-6 py-4 text-center">
+                        {h.winnerA ? (
+                          <span class="text-green-600">✓ Better</span>
+                        ) : (
+                          <span class="text-zinc-500">-</span>
+                        )}
+                      </td>
+                      <td class="px-6 py-4 text-center">
+                        {h.winnerB ? (
+                          <span class="text-green-600">✓ Better</span>
+                        ) : (
+                          <span class="text-zinc-500">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )
+    }
 
     <!-- Choose If Section (from curated insights) -->
-    {(chooseAIf.length > 0 || chooseBIf.length > 0) && (
-      <section class="mt-12">
-        <h2 class="mb-6 text-xl font-semibold text-zinc-100">When to Choose</h2>
-        <div class="grid gap-6 lg:grid-cols-2">
-          {chooseAIf.length > 0 && (
-            <div class="rounded-xl border-2 border-green-200 bg-green-50/50 p-5">
-              <h3 class="flex items-center gap-2 font-semibold text-green-800 mb-3">
-                <Logo domain={toolA.logo_url} name={toolA.name} size="sm" class="rounded-lg" />
-                Choose {toolA.name} if...
-              </h3>
-              <ul class="space-y-2">
-                {chooseAIf.map((reason: string) => (
-                  <li class="flex items-start gap-2 text-sm text-zinc-300">
-                    <svg class="h-4 w-4 mt-0.5 text-green-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                    </svg>
-                    {reason}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {chooseBIf.length > 0 && (
-            <div class="rounded-xl border-2 border-blue-200 bg-blue-50/50 p-5">
-              <h3 class="flex items-center gap-2 font-semibold text-blue-800 mb-3">
-                <Logo domain={toolB.logo_url} name={toolB.name} size="sm" class="rounded-lg" />
-                Choose {toolB.name} if...
-              </h3>
-              <ul class="space-y-2">
-                {chooseBIf.map((reason: string) => (
-                  <li class="flex items-start gap-2 text-sm text-zinc-300">
-                    <svg class="h-4 w-4 mt-0.5 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                    </svg>
-                    {reason}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      </section>
-    )}
+    {
+      (chooseAIf.length > 0 || chooseBIf.length > 0) && (
+        <section class="mt-12">
+          <h2 class="mb-6 text-xl font-semibold text-zinc-100">When to Choose</h2>
+          <div class="grid gap-6 lg:grid-cols-2">
+            {chooseAIf.length > 0 && (
+              <div class="rounded-xl border-2 border-green-200 bg-green-50/50 p-5">
+                <h3 class="flex items-center gap-2 font-semibold text-green-800 mb-3">
+                  <Logo domain={toolA.logo_url} name={toolA.name} size="sm" class="rounded-lg" />
+                  Choose {toolA.name} if...
+                </h3>
+                <ul class="space-y-2">
+                  {chooseAIf.map((reason: string) => (
+                    <li class="flex items-start gap-2 text-sm text-zinc-300">
+                      <svg
+                        class="h-4 w-4 mt-0.5 text-green-500 shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {chooseBIf.length > 0 && (
+              <div class="rounded-xl border-2 border-blue-200 bg-blue-50/50 p-5">
+                <h3 class="flex items-center gap-2 font-semibold text-blue-800 mb-3">
+                  <Logo domain={toolB.logo_url} name={toolB.name} size="sm" class="rounded-lg" />
+                  Choose {toolB.name} if...
+                </h3>
+                <ul class="space-y-2">
+                  {chooseBIf.map((reason: string) => (
+                    <li class="flex items-start gap-2 text-sm text-zinc-300">
+                      <svg
+                        class="h-4 w-4 mt-0.5 text-blue-500 shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )
+    }
 
     <!-- Why People Switch (from curated insights) -->
-    {(whySwitchAtoB.length > 0 || whySwitchBtoA.length > 0) && (
-      <section class="mt-12">
-        <h2 class="mb-6 text-xl font-semibold text-zinc-100">Why People Switch</h2>
-        <div class="grid gap-6 lg:grid-cols-2">
-          {whySwitchAtoB.length > 0 && (
-            <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+    {
+      (whySwitchAtoB.length > 0 || whySwitchBtoA.length > 0) && (
+        <section class="mt-12">
+          <h2 class="mb-6 text-xl font-semibold text-zinc-100">Why People Switch</h2>
+          <div class="grid gap-6 lg:grid-cols-2">
+            {whySwitchAtoB.length > 0 && (
+              <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+                <h3 class="text-sm font-medium text-zinc-300 mb-3">
+                  {toolA.name} → {toolB.name}
+                </h3>
+                <ul class="space-y-2">
+                  {whySwitchAtoB.map((reason: string) => (
+                    <li class="flex items-start gap-2 text-sm text-zinc-300">
+                      <svg
+                        class="h-4 w-4 mt-0.5 text-zinc-500 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M13 7l5 5m0 0l-5 5m5-5H6"
+                        />
+                      </svg>
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {whySwitchBtoA.length > 0 && (
+              <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+                <h3 class="text-sm font-medium text-zinc-300 mb-3">
+                  {toolB.name} → {toolA.name}
+                </h3>
+                <ul class="space-y-2">
+                  {whySwitchBtoA.map((reason: string) => (
+                    <li class="flex items-start gap-2 text-sm text-zinc-300">
+                      <svg
+                        class="h-4 w-4 mt-0.5 text-zinc-500 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M13 7l5 5m0 0l-5 5m5-5H6"
+                        />
+                      </svg>
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- Migration Analysis (Computed) -->
+    {
+      computed && (migrationAToB || migrationBToA) && (
+        <section class="mt-12">
+          <h2 class="mb-6 text-xl font-semibold text-zinc-100">Can You Switch?</h2>
+          <div class="grid gap-6 lg:grid-cols-2">
+            <div
+              class={`rounded-xl border p-5 ${migrationAToB ? 'border-green-700 bg-green-900/20' : 'border-zinc-700 bg-zinc-900'}`}
+            >
               <h3 class="text-sm font-medium text-zinc-300 mb-3">
                 {toolA.name} → {toolB.name}
               </h3>
-              <ul class="space-y-2">
-                {whySwitchAtoB.map((reason: string) => (
-                  <li class="flex items-start gap-2 text-sm text-zinc-300">
-                    <svg class="h-4 w-4 mt-0.5 text-zinc-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                    {reason}
-                  </li>
-                ))}
-              </ul>
+              {migrationAToB ? (
+                <div class="flex items-center gap-2 text-green-400">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                  <span class="text-sm">
+                    {toolB.name} can import from {toolA.name}
+                  </span>
+                </div>
+              ) : (
+                <div class="flex items-center gap-2 text-zinc-500">
+                  <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span class="text-sm">Manual migration may be required</span>
+                </div>
+              )}
+              {computed.migration.difficulty_leaving_a && (
+                <p class="mt-2 text-xs text-zinc-500">
+                  Difficulty leaving {toolA.name}: {computed.migration.difficulty_leaving_a}/5
+                </p>
+              )}
             </div>
-          )}
-          {whySwitchBtoA.length > 0 && (
-            <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+
+            <div
+              class={`rounded-xl border p-5 ${migrationBToA ? 'border-green-700 bg-green-900/20' : 'border-zinc-700 bg-zinc-900'}`}
+            >
               <h3 class="text-sm font-medium text-zinc-300 mb-3">
                 {toolB.name} → {toolA.name}
               </h3>
-              <ul class="space-y-2">
-                {whySwitchBtoA.map((reason: string) => (
-                  <li class="flex items-start gap-2 text-sm text-zinc-300">
-                    <svg class="h-4 w-4 mt-0.5 text-zinc-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                    {reason}
-                  </li>
-                ))}
-              </ul>
+              {migrationBToA ? (
+                <div class="flex items-center gap-2 text-green-400">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                  <span class="text-sm">
+                    {toolA.name} can import from {toolB.name}
+                  </span>
+                </div>
+              ) : (
+                <div class="flex items-center gap-2 text-zinc-500">
+                  <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span class="text-sm">Manual migration may be required</span>
+                </div>
+              )}
+              {computed.migration.difficulty_leaving_b && (
+                <p class="mt-2 text-xs text-zinc-500">
+                  Difficulty leaving {toolB.name}: {computed.migration.difficulty_leaving_b}/5
+                </p>
+              )}
             </div>
-          )}
-        </div>
-      </section>
-    )}
-
-    <!-- Migration Analysis (Computed) -->
-    {computed && (migrationAToB || migrationBToA) && (
-      <section class="mt-12">
-        <h2 class="mb-6 text-xl font-semibold text-zinc-100">Can You Switch?</h2>
-        <div class="grid gap-6 lg:grid-cols-2">
-          <div class={`rounded-xl border p-5 ${migrationAToB ? 'border-green-700 bg-green-900/20' : 'border-zinc-700 bg-zinc-900'}`}>
-            <h3 class="text-sm font-medium text-zinc-300 mb-3">
-              {toolA.name} → {toolB.name}
-            </h3>
-            {migrationAToB ? (
-              <div class="flex items-center gap-2 text-green-400">
-                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-sm">{toolB.name} can import from {toolA.name}</span>
-              </div>
-            ) : (
-              <div class="flex items-center gap-2 text-zinc-500">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span class="text-sm">Manual migration may be required</span>
-              </div>
-            )}
-            {computed.migration.difficulty_leaving_a && (
-              <p class="mt-2 text-xs text-zinc-500">
-                Difficulty leaving {toolA.name}: {computed.migration.difficulty_leaving_a}/5
-              </p>
-            )}
           </div>
-
-          <div class={`rounded-xl border p-5 ${migrationBToA ? 'border-green-700 bg-green-900/20' : 'border-zinc-700 bg-zinc-900'}`}>
-            <h3 class="text-sm font-medium text-zinc-300 mb-3">
-              {toolB.name} → {toolA.name}
-            </h3>
-            {migrationBToA ? (
-              <div class="flex items-center gap-2 text-green-400">
-                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-sm">{toolA.name} can import from {toolB.name}</span>
-              </div>
-            ) : (
-              <div class="flex items-center gap-2 text-zinc-500">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span class="text-sm">Manual migration may be required</span>
-              </div>
-            )}
-            {computed.migration.difficulty_leaving_b && (
-              <p class="mt-2 text-xs text-zinc-500">
-                Difficulty leaving {toolB.name}: {computed.migration.difficulty_leaving_b}/5
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
-    )}
+        </section>
+      )
+    }
 
     <!-- Audience Fit (Computed) -->
-    {audienceFits.length > 0 && (
-      <section class="mt-12">
-        <h2 class="mb-6 text-xl font-semibold text-zinc-100">Best For Different Audiences</h2>
-        <div class="overflow-hidden rounded-xl border border-zinc-700 shadow-sm">
-          <table class="w-full">
-            <thead class="bg-zinc-900">
-              <tr>
-                <th class="px-6 py-3 text-left text-sm font-semibold text-zinc-300">Audience</th>
-                <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">Better Choice</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-700">
-              {audienceFits.filter(fit => fit.better_for !== 'unknown').map(fit => (
+    {
+      audienceFits.length > 0 && (
+        <section class="mt-12">
+          <h2 class="mb-6 text-xl font-semibold text-zinc-100">Best For Different Audiences</h2>
+          <div class="overflow-hidden rounded-xl border border-zinc-700 shadow-sm">
+            <table class="w-full">
+              <thead class="bg-zinc-900">
                 <tr>
-                  <td class="px-6 py-4 text-sm text-zinc-300 capitalize">{fit.audience}</td>
-                  <td class="px-6 py-4 text-center">
-                    {fit.better_for === 'a' && (
-                      <span class="inline-flex items-center gap-1 text-green-400 text-sm">
-                        <Logo domain={toolA.logo_url} name={toolA.name} size="xs" class="rounded" />
-                        {toolA.name}
-                      </span>
-                    )}
-                    {fit.better_for === 'b' && (
-                      <span class="inline-flex items-center gap-1 text-blue-400 text-sm">
-                        <Logo domain={toolB.logo_url} name={toolB.name} size="xs" class="rounded" />
-                        {toolB.name}
-                      </span>
-                    )}
-                    {fit.better_for === 'tie' && (
-                      <span class="text-zinc-400 text-sm">Both work well</span>
-                    )}
-                  </td>
+                  <th class="px-6 py-3 text-left text-sm font-semibold text-zinc-300">Audience</th>
+                  <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">
+                    Better Choice
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    )}
+              </thead>
+              <tbody class="divide-y divide-zinc-700">
+                {audienceFits
+                  .filter((fit) => fit.better_for !== 'unknown')
+                  .map((fit) => (
+                    <tr>
+                      <td class="px-6 py-4 text-sm text-zinc-300 capitalize">{fit.audience}</td>
+                      <td class="px-6 py-4 text-center">
+                        {fit.better_for === 'a' && (
+                          <span class="inline-flex items-center gap-1 text-green-400 text-sm">
+                            <Logo
+                              domain={toolA.logo_url}
+                              name={toolA.name}
+                              size="xs"
+                              class="rounded"
+                            />
+                            {toolA.name}
+                          </span>
+                        )}
+                        {fit.better_for === 'b' && (
+                          <span class="inline-flex items-center gap-1 text-blue-400 text-sm">
+                            <Logo
+                              domain={toolB.logo_url}
+                              name={toolB.name}
+                              size="xs"
+                              class="rounded"
+                            />
+                            {toolB.name}
+                          </span>
+                        )}
+                        {fit.better_for === 'tie' && (
+                          <span class="text-zinc-400 text-sm">Both work well</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )
+    }
 
     <!-- Pricing Crossover Chart - THE KILLER FEATURE -->
     <section class="mt-12">
@@ -844,77 +1023,118 @@ const schemas = [
     </section>
 
     <!-- You Might Also Compare -->
-    {uniqueSuggestions.length > 0 && (
-      <section class="mt-12">
-        <div class="mb-6 flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-zinc-100">You Might Also Compare</h2>
-          {toolA.category && (
-            <a
-              href={`/categories/${toolA.category.slug}`}
-              class="text-sm text-indigo-400 transition hover:text-indigo-300"
-            >
-              All {toolA.category.name} →
-            </a>
-          )}
-        </div>
-
-        <div class="grid gap-4 sm:grid-cols-2">
-          {uniqueSuggestions.map((suggestion) => {
-            // Ensure alphabetical order for URL
-            const [first, second] = suggestion.toolA.slug < suggestion.toolB.slug
-              ? [suggestion.toolA, suggestion.toolB]
-              : [suggestion.toolB, suggestion.toolA];
-
-            return (
+    {
+      uniqueSuggestions.length > 0 && (
+        <section class="mt-12">
+          <div class="mb-6 flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-zinc-100">You Might Also Compare</h2>
+            {toolA.category && (
               <a
-                href={`/compare/${first.slug}-vs-${second.slug}`}
-                class="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition hover:border-indigo-500/50 hover:bg-zinc-900/80"
+                href={`/categories/${toolA.category.slug}`}
+                class="text-sm text-indigo-400 transition hover:text-indigo-300"
               >
-                {/* Reason Badge */}
-                <div class="absolute right-3 top-3">
-                  {suggestion.reason === 'switching' ? (
-                    <span class="inline-flex items-center gap-1 rounded-full bg-purple-900/30 px-2 py-0.5 text-xs text-purple-400 border border-purple-700">
-                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                      Often switched
-                    </span>
-                  ) : (
-                    <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500 border border-zinc-700">
-                      Similar category
-                    </span>
-                  )}
-                </div>
-
-                {/* Comparison Preview */}
-                <div class="flex items-center gap-3">
-                  <div class="flex items-center gap-2">
-                    <Logo domain={suggestion.toolA.logo_url} name={suggestion.toolA.name} size="md" />
-                    <span class="font-medium text-zinc-200 text-sm">{suggestion.toolA.name}</span>
-                  </div>
-
-                  <svg class="h-4 w-4 shrink-0 text-zinc-600 transition group-hover:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
-
-                  <div class="flex items-center gap-2">
-                    <Logo domain={suggestion.toolB.logo_url} name={suggestion.toolB.name} size="md" />
-                    <span class="font-medium text-zinc-200 text-sm">{suggestion.toolB.name}</span>
-                  </div>
-                </div>
-
-                {/* Hover Arrow */}
-                <div class="absolute bottom-3 right-3 opacity-0 transition group-hover:opacity-100">
-                  <svg class="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </div>
+                All {toolA.category.name} →
               </a>
-            );
-          })}
-        </div>
-      </section>
-    )}
+            )}
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            {uniqueSuggestions.map((suggestion) => {
+              // Ensure alphabetical order for URL
+              const [first, second] =
+                suggestion.toolA.slug < suggestion.toolB.slug
+                  ? [suggestion.toolA, suggestion.toolB]
+                  : [suggestion.toolB, suggestion.toolA];
+
+              return (
+                <a
+                  href={`/compare/${first.slug}-vs-${second.slug}`}
+                  class="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition hover:border-indigo-500/50 hover:bg-zinc-900/80"
+                >
+                  {/* Reason Badge */}
+                  <div class="absolute right-3 top-3">
+                    {suggestion.reason === 'switching' ? (
+                      <span class="inline-flex items-center gap-1 rounded-full bg-purple-900/30 px-2 py-0.5 text-xs text-purple-400 border border-purple-700">
+                        <svg
+                          class="h-3 w-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                          />
+                        </svg>
+                        Often switched
+                      </span>
+                    ) : (
+                      <span class="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500 border border-zinc-700">
+                        Similar category
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Comparison Preview */}
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                      <Logo
+                        domain={suggestion.toolA.logo_url}
+                        name={suggestion.toolA.name}
+                        size="md"
+                      />
+                      <span class="font-medium text-zinc-200 text-sm">{suggestion.toolA.name}</span>
+                    </div>
+
+                    <svg
+                      class="h-4 w-4 shrink-0 text-zinc-600 transition group-hover:text-indigo-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                      />
+                    </svg>
+
+                    <div class="flex items-center gap-2">
+                      <Logo
+                        domain={suggestion.toolB.logo_url}
+                        name={suggestion.toolB.name}
+                        size="md"
+                      />
+                      <span class="font-medium text-zinc-200 text-sm">{suggestion.toolB.name}</span>
+                    </div>
+                  </div>
+
+                  {/* Hover Arrow */}
+                  <div class="absolute bottom-3 right-3 opacity-0 transition group-hover:opacity-100">
+                    <svg
+                      class="h-4 w-4 text-indigo-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                      />
+                    </svg>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      )
+    }
 
     <!-- Quick Links -->
     <section class="mt-8 border-t border-zinc-800 pt-6">
@@ -926,14 +1146,19 @@ const schemas = [
         <a href={`/tool/${toolB.slug}`} class="hover:text-indigo-400 transition">
           More about {toolB.name} →
         </a>
-        {toolA.category && (
-          <>
-            <span class="text-zinc-700">|</span>
-            <a href={`/categories/${toolA.category.slug}`} class="hover:text-indigo-400 transition">
-              All {toolA.category.name} tools →
-            </a>
-          </>
-        )}
+        {
+          toolA.category && (
+            <>
+              <span class="text-zinc-700">|</span>
+              <a
+                href={`/categories/${toolA.category.slug}`}
+                class="hover:text-indigo-400 transition"
+              >
+                All {toolA.category.name} tools →
+              </a>
+            </>
+          )
+        }
       </div>
     </section>
   </div>

@@ -13,7 +13,7 @@ function hashIP(ip: string): string {
   let hash = 0;
   for (let i = 0; i < ip.length; i++) {
     const char = ip.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return hash.toString(16);
@@ -26,10 +26,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     // Validation
     if (!feedback_text || !feedback_type) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     if (feedback_text.length < 10) {
@@ -40,29 +40,37 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     }
 
     if (feedback_text.length > 1000) {
-      return new Response(
-        JSON.stringify({ error: 'Feedback too long (max 1000 characters)' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Feedback too long (max 1000 characters)' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Validate feedback type
-    const validTypes = ['outdated_info', 'missing_info', 'incorrect_pricing', 'incorrect_features', 'broken_link', 'suggestion', 'other'];
+    const validTypes = [
+      'outdated_info',
+      'missing_info',
+      'incorrect_pricing',
+      'incorrect_features',
+      'broken_link',
+      'suggestion',
+      'other',
+    ];
     if (!validTypes.includes(feedback_type)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid feedback type' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid feedback type' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Email validation if provided
     if (reporter_email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(reporter_email)) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid email address' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: 'Invalid email address' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
     }
 
@@ -87,25 +95,23 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     }
 
     // Insert feedback
-    const { error: insertError } = await admin
-      .from('user_feedback')
-      .insert({
-        tool_id: tool_id || null,
-        tool_name: tool_name || null,
-        page_url: page_url || null,
-        feedback_type,
-        feedback_text: feedback_text.trim(),
-        reporter_email: reporter_email || null,
-        ip_hash: ipHash,
-        status: 'pending',
-      });
+    const { error: insertError } = await admin.from('user_feedback').insert({
+      tool_id: tool_id || null,
+      tool_name: tool_name || null,
+      page_url: page_url || null,
+      feedback_type,
+      feedback_text: feedback_text.trim(),
+      reporter_email: reporter_email || null,
+      ip_hash: ipHash,
+      status: 'pending',
+    });
 
     if (insertError) {
       console.error('Failed to insert feedback:', insertError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to submit feedback' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to submit feedback' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Check if we should trigger a QA review based on feedback volume
@@ -119,10 +125,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     );
   } catch (err) {
     console.error('Feedback API error:', err);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };
 
@@ -176,24 +182,24 @@ async function checkAndTriggerQA(admin: any, toolId: string, feedbackType: strin
     }
 
     // Queue the tool for QA review
-    const { error: queueError } = await admin
-      .from('hunt_queue')
-      .insert({
-        item_id: toolId,
-        hunt_type: threshold.huntType,
-        priority: threshold.priority,
-        source: 'feedback_trigger',
-        metadata: {
-          trigger_reason: `${count} ${feedbackType} reports`,
-          auto_queued: true,
-          triggered_at: new Date().toISOString(),
-        },
-      });
+    const { error: queueError } = await admin.from('hunt_queue').insert({
+      item_id: toolId,
+      hunt_type: threshold.huntType,
+      priority: threshold.priority,
+      source: 'feedback_trigger',
+      metadata: {
+        trigger_reason: `${count} ${feedbackType} reports`,
+        auto_queued: true,
+        triggered_at: new Date().toISOString(),
+      },
+    });
 
     if (queueError) {
       console.error('Failed to queue tool for QA:', queueError);
     } else {
-      console.log(`Auto-queued tool ${toolId} for ${threshold.huntType} due to ${count} ${feedbackType} reports`);
+      console.log(
+        `Auto-queued tool ${toolId} for ${threshold.huntType} due to ${count} ${feedbackType} reports`
+      );
 
       // Mark all pending feedback of this type as having triggered QA
       await admin

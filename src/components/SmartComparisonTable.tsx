@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { Check, X, HelpCircle } from 'lucide-react';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 
@@ -88,10 +88,14 @@ function extractComparisonData(
       rows.push({
         label: 'Free Trial',
         valueA: metaA?.pricing.has_free_trial
-          ? (metaA.pricing.trial_days ? `${metaA.pricing.trial_days} days` : 'Yes')
+          ? metaA.pricing.trial_days
+            ? `${metaA.pricing.trial_days} days`
+            : 'Yes'
           : false,
         valueB: metaB?.pricing.has_free_trial
-          ? (metaB.pricing.trial_days ? `${metaB.pricing.trial_days} days` : 'Yes')
+          ? metaB.pricing.trial_days
+            ? `${metaB.pricing.trial_days} days`
+            : 'Yes'
           : false,
         isDifferent: metaA?.pricing.has_free_trial !== metaB?.pricing.has_free_trial,
       });
@@ -103,11 +107,20 @@ function extractComparisonData(
       });
       break;
 
-    case 'platforms':
-      const platforms = ['web', 'mac', 'windows', 'ios', 'android', 'linux', 'api', 'self-hosted'] as const;
+    case 'platforms': {
+      const platforms = [
+        'web',
+        'mac',
+        'windows',
+        'ios',
+        'android',
+        'linux',
+        'api',
+        'self-hosted',
+      ] as const;
       for (const platform of platforms) {
-        const availA = metaA?.platforms.find(p => p.platform === platform)?.available ?? null;
-        const availB = metaB?.platforms.find(p => p.platform === platform)?.available ?? null;
+        const availA = metaA?.platforms.find((p) => p.platform === platform)?.available ?? null;
+        const availB = metaB?.platforms.find((p) => p.platform === platform)?.available ?? null;
         rows.push({
           label: platform.charAt(0).toUpperCase() + platform.slice(1).replace('-', ' '),
           valueA: availA,
@@ -116,6 +129,7 @@ function extractComparisonData(
         });
       }
       break;
+    }
 
     case 'integrations':
       rows.push({
@@ -239,11 +253,15 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
   ];
 
   const rows = extractComparisonData(metaA, metaB, activeCategory);
-  const displayRows = showOnlyDifferences ? rows.filter(r => r.isDifferent) : rows;
-  const differenceCount = rows.filter(r => r.isDifferent).length;
+  const displayRows = showOnlyDifferences ? rows.filter((r) => r.isDifferent) : rows;
+  const differenceCount = rows.filter((r) => r.isDifferent).length;
 
   return (
-    <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as ComparisonCategory)} className="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm">
+    <Tabs
+      value={activeCategory}
+      onValueChange={(v) => setActiveCategory(v as ComparisonCategory)}
+      className="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm"
+    >
       {/* Header */}
       <div className="border-b border-zinc-800 bg-zinc-900/50 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -257,7 +275,10 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
             />
             <span>Show differences only</span>
             {differenceCount > 0 && (
-              <Badge variant="secondary" className="bg-indigo-900/30 text-indigo-400 border-indigo-700">
+              <Badge
+                variant="secondary"
+                className="bg-indigo-900/30 text-indigo-400 border-indigo-700"
+              >
                 {differenceCount}
               </Badge>
             )}
@@ -291,7 +312,11 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
                 <div className="flex items-center justify-center gap-2">
                   {toolA.logo_url && (
                     <div className="h-6 w-6 rounded bg-white flex items-center justify-center overflow-hidden border border-zinc-700/50">
-                      <img src={toolA.logo_url} alt={toolA.name} className="h-full w-full object-contain p-0.5" />
+                      <img
+                        src={toolA.logo_url}
+                        alt={toolA.name}
+                        className="h-full w-full object-contain p-0.5"
+                      />
                     </div>
                   )}
                   <span>{toolA.name}</span>
@@ -301,7 +326,11 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
                 <div className="flex items-center justify-center gap-2">
                   {toolB.logo_url && (
                     <div className="h-6 w-6 rounded bg-white flex items-center justify-center overflow-hidden border border-zinc-700/50">
-                      <img src={toolB.logo_url} alt={toolB.name} className="h-full w-full object-contain p-0.5" />
+                      <img
+                        src={toolB.logo_url}
+                        alt={toolB.name}
+                        className="h-full w-full object-contain p-0.5"
+                      />
                     </div>
                   )}
                   <span>{toolB.name}</span>
@@ -318,10 +347,7 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
               </tr>
             ) : (
               displayRows.map((row, idx) => (
-                <tr
-                  key={idx}
-                  className={row.isDifferent ? 'bg-amber-900/10' : ''}
-                >
+                <tr key={idx} className={row.isDifferent ? 'bg-amber-900/10' : ''}>
                   <td className="px-6 py-3 text-sm font-medium text-zinc-300">
                     {row.label}
                     {row.isDifferent && (
@@ -350,7 +376,6 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
           </tbody>
         </table>
       </div>
-
     </Tabs>
   );
 }

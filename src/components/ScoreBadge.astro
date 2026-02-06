@@ -40,9 +40,9 @@ const labelSizeClasses = {
   >
     {score}
   </div>
-  {showLabel && (
-    <span class:list={['font-medium', labelSizeClasses[size], colors.text]}>
-      {colors.label}
-    </span>
-  )}
+  {
+    showLabel && (
+      <span class:list={['font-medium', labelSizeClasses[size], colors.text]}>{colors.label}</span>
+    )
+  }
 </div>

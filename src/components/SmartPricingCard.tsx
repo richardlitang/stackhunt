@@ -72,7 +72,7 @@ interface SmartPricingCardProps {
 export default function SmartPricingCard({
   item,
   className,
-  showCalculator = true
+  showCalculator = true,
 }: SmartPricingCardProps) {
   const teamSize = useTeamSize();
   const [calculatedCost, setCalculatedCost] = useState<number | null>(null);
@@ -80,7 +80,10 @@ export default function SmartPricingCard({
   const specs = item.specs as ToolSpecs;
   const pricingData = specs?.pricing_data as SMPPricingData | undefined;
   const displayType = getPricingDisplayType(pricingData?.model);
-  const isSeatBased = pricingData?.model === 'per_seat' || pricingData?.model === 'per_unit' || pricingData?.model === 'tiered';
+  const isSeatBased =
+    pricingData?.model === 'per_seat' ||
+    pricingData?.model === 'per_unit' ||
+    pricingData?.model === 'tiered';
   const isTeamBased = isTeamBasedPricing(pricingData);
   const scalingUnit = getScalingUnit(pricingData);
   const scalingCategory = getScalingCategory(scalingUnit);
@@ -154,9 +157,7 @@ export default function SmartPricingCard({
             <div>
               <div className="text-xs text-zinc-500 mb-1">Minimum Spend</div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-zinc-100">
-                  ${effectiveStarting}
-                </span>
+                <span className="text-3xl font-bold text-zinc-100">${effectiveStarting}</span>
                 <span className="text-sm text-zinc-400">/mo</span>
               </div>
             </div>
@@ -169,9 +170,7 @@ export default function SmartPricingCard({
         {variableLogic && (
           <div className="pt-4 border-t border-zinc-800">
             <div className="text-xs text-zinc-500 mb-2">How pricing works</div>
-            <div className="text-sm text-blue-300">
-              {variableLogic}
-            </div>
+            <div className="text-sm text-blue-300">{variableLogic}</div>
           </div>
         )}
 
@@ -190,7 +189,10 @@ export default function SmartPricingCard({
           <div className="pt-4 border-t border-zinc-800">
             <div className="flex flex-wrap gap-2">
               {oneTimeFees.map((fee, i) => (
-                <span key={i} className="text-xs px-2 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/50">
+                <span
+                  key={i}
+                  className="text-xs px-2 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/50"
+                >
                   💰 {fee}
                 </span>
               ))}
@@ -220,9 +222,7 @@ export default function SmartPricingCard({
         <div>
           <div className="text-xs text-zinc-500 mb-1">Base Subscription</div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-zinc-100">
-              ${effectiveStarting}
-            </span>
+            <span className="text-3xl font-bold text-zinc-100">${effectiveStarting}</span>
             <span className="text-sm text-zinc-400">/mo</span>
           </div>
 
@@ -246,24 +246,16 @@ export default function SmartPricingCard({
                 <span className="text-sm text-purple-400">/ {variableUnit}</span>
               </div>
             )}
-            {variableLogic && (
-              <div className="text-sm text-purple-300 mt-2">
-                {variableLogic}
-              </div>
-            )}
+            {variableLogic && <div className="text-sm text-purple-300 mt-2">{variableLogic}</div>}
           </div>
         )}
 
         {/* Team Calculator */}
         {showCalculator && calculatedCost !== null && teamSize > 1 && isTeamBased && (
           <div className="pt-4 border-t border-zinc-800">
-            <div className="text-xs text-zinc-500 mb-2">
-              Base cost for your team ({teamSize})
-            </div>
+            <div className="text-xs text-zinc-500 mb-2">Base cost for your team ({teamSize})</div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-hunt-400">
-                ${calculatedCost}
-              </span>
+              <span className="text-2xl font-bold text-hunt-400">${calculatedCost}</span>
               <span className="text-sm text-zinc-400">/mo + usage</span>
             </div>
           </div>
@@ -274,7 +266,10 @@ export default function SmartPricingCard({
           <div className="pt-4 border-t border-zinc-800">
             <div className="flex flex-wrap gap-2">
               {oneTimeFees.map((fee, i) => (
-                <span key={i} className="text-xs px-2 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/50">
+                <span
+                  key={i}
+                  className="text-xs px-2 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/50"
+                >
                   💰 {fee}
                 </span>
               ))}
@@ -301,9 +296,7 @@ export default function SmartPricingCard({
       <div>
         <div className="text-xs text-zinc-500 mb-1">Starting from</div>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-zinc-100">
-            ${effectiveStarting}
-          </span>
+          <span className="text-3xl font-bold text-zinc-100">${effectiveStarting}</span>
           <span className="text-sm text-zinc-400">/mo</span>
           {!isTeamBased && (
             <span className="text-xs px-2 py-0.5 rounded bg-purple-900/50 text-purple-300">
@@ -328,10 +321,22 @@ export default function SmartPricingCard({
 
         {hasCaveat && (
           <div className="mt-2 text-xs text-amber-400 flex items-start gap-1">
-            <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              className="w-4 h-4 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
-            <span>Minimum {minSeats} {formatScalingUnit(scalingUnit, minSeats !== 1)} required</span>
+            <span>
+              Minimum {minSeats} {formatScalingUnit(scalingUnit, minSeats !== 1)} required
+            </span>
           </div>
         )}
       </div>
@@ -341,28 +346,31 @@ export default function SmartPricingCard({
         <div className="pt-4 border-t border-zinc-800">
           <div className="text-xs text-zinc-500 mb-2">
             {needsMoreSeats ? (
-              <span>Cost for {minSeats} {formatScalingUnit(scalingUnit, minSeats !== 1)} (minimum)</span>
+              <span>
+                Cost for {minSeats} {formatScalingUnit(scalingUnit, minSeats !== 1)} (minimum)
+              </span>
             ) : (
               <span>Cost for your team ({teamSize})</span>
             )}
           </div>
 
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-hunt-400">
-              ${calculatedCost}
-            </span>
+            <span className="text-2xl font-bold text-hunt-400">${calculatedCost}</span>
             <span className="text-sm text-zinc-400">/mo</span>
           </div>
 
           {isSeatBased && perSeat && (
             <div className="text-xs text-zinc-500 mt-1">
-              {Math.max(teamSize, minSeats)} {formatScalingUnit(scalingUnit, Math.max(teamSize, minSeats) !== 1)} × ${perSeat}/{formatScalingUnit(scalingUnit)}
+              {Math.max(teamSize, minSeats)}{' '}
+              {formatScalingUnit(scalingUnit, Math.max(teamSize, minSeats) !== 1)} × ${perSeat}/
+              {formatScalingUnit(scalingUnit)}
             </div>
           )}
 
           {needsMoreSeats && (
             <div className="mt-2 text-xs text-amber-400">
-              Your team ({teamSize}) is below the {minSeats}-{formatScalingUnit(scalingUnit)} minimum
+              Your team ({teamSize}) is below the {minSeats}-{formatScalingUnit(scalingUnit)}{' '}
+              minimum
             </div>
           )}
         </div>
@@ -372,9 +380,7 @@ export default function SmartPricingCard({
       {showCalculator && !isTeamBased && (
         <div className="pt-4 border-t border-zinc-800">
           <div className="text-xs text-zinc-500 mb-2">About pricing</div>
-          <div className="text-sm text-purple-300">
-            {getScalingExplanation(pricingData)}
-          </div>
+          <div className="text-sm text-purple-300">{getScalingExplanation(pricingData)}</div>
           <div className="text-xs text-zinc-500 mt-2">
             Adjust your plan based on how many {formatScalingUnit(scalingUnit, true)} you need
           </div>
@@ -386,7 +392,10 @@ export default function SmartPricingCard({
         <div className="pt-4 border-t border-zinc-800">
           <div className="flex flex-wrap gap-2">
             {oneTimeFees.map((fee, i) => (
-              <span key={i} className="text-xs px-2 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/50">
+              <span
+                key={i}
+                className="text-xs px-2 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/50"
+              >
                 💰 {fee}
               </span>
             ))}

@@ -15,10 +15,7 @@ export const GET: APIRoute = async ({ url }) => {
   const admin = getAdminClient();
   const activeOnly = url.searchParams.get('active') !== 'false';
 
-  let query = admin
-    .from('editorial_guidelines')
-    .select('*')
-    .order('key');
+  let query = admin.from('editorial_guidelines').select('*').order('key');
 
   if (activeOnly) {
     query = query.eq('is_active', true);

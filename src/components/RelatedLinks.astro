@@ -41,48 +41,53 @@ const iconNames: Record<string, string> = {
     {title}
   </h3>
 
-  {variant === 'compact' ? (
-    <ul class="space-y-2">
-      {links.map((link) => (
-        <li>
+  {
+    variant === 'compact' ? (
+      <ul class="space-y-2">
+        {links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="flex items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-800"
+            >
+              {link.icon && (
+                <Icon name={iconNames[link.icon]} class="h-4 w-4 flex-shrink-0 text-zinc-500" />
+              )}
+              <span class="flex-1">{link.title}</span>
+              <Icon name="lucide:chevron-right" class="h-4 w-4 flex-shrink-0 text-zinc-600" />
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <div class="space-y-3">
+        {links.map((link) => (
           <a
             href={link.href}
-            class="flex items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-800"
+            class="group block rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 transition hover:border-zinc-600 hover:bg-zinc-800"
           >
-            {link.icon && (
-              <Icon name={iconNames[link.icon]} class="h-4 w-4 flex-shrink-0 text-zinc-500" />
-            )}
-            <span class="flex-1">{link.title}</span>
-            <Icon name="lucide:chevron-right" class="h-4 w-4 flex-shrink-0 text-zinc-600" />
-          </a>
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <div class="space-y-3">
-      {links.map((link) => (
-        <a
-          href={link.href}
-          class="group block rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 transition hover:border-zinc-600 hover:bg-zinc-800"
-        >
-          <div class="flex items-start gap-3">
-            {link.icon && (
-              <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-700">
-                <Icon name={iconNames[link.icon]} class="h-4 w-4 text-zinc-400" />
-              </div>
-            )}
-            <div class="flex-1 min-w-0">
-              <div class="font-medium text-zinc-100 group-hover:text-indigo-400 transition">
-                {link.title}
-              </div>
-              {link.description && (
-                <p class="mt-1 text-xs text-zinc-400 line-clamp-2">{link.description}</p>
+            <div class="flex items-start gap-3">
+              {link.icon && (
+                <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-700">
+                  <Icon name={iconNames[link.icon]} class="h-4 w-4 text-zinc-400" />
+                </div>
               )}
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-zinc-100 group-hover:text-indigo-400 transition">
+                  {link.title}
+                </div>
+                {link.description && (
+                  <p class="mt-1 text-xs text-zinc-400 line-clamp-2">{link.description}</p>
+                )}
+              </div>
+              <Icon
+                name="lucide:chevron-right"
+                class="h-5 w-5 flex-shrink-0 text-zinc-600 group-hover:text-zinc-500"
+              />
             </div>
-            <Icon name="lucide:chevron-right" class="h-5 w-5 flex-shrink-0 text-zinc-600 group-hover:text-zinc-500" />
-          </div>
-        </a>
-      ))}
-    </div>
-  )}
+          </a>
+        ))}
+      </div>
+    )
+  }
 </nav>

@@ -31,10 +31,10 @@ export interface DiscordEmbed {
 
 // Discord color constants
 const COLORS = {
-  error: 0xff0000,    // Red
-  warning: 0xffaa00,  // Orange
-  success: 0x00ff00,  // Green
-  info: 0x0099ff,     // Blue
+  error: 0xff0000, // Red
+  warning: 0xffaa00, // Orange
+  success: 0x00ff00, // Green
+  info: 0x0099ff, // Blue
 };
 
 /**
@@ -144,7 +144,9 @@ export async function alertQueueSummary(
 
     embed.fields!.push({
       name: `Generated (${options.successes.length})`,
-      value: successList + (options.successes.length > 10 ? `\n_...and ${options.successes.length - 10} more_` : ''),
+      value:
+        successList +
+        (options.successes.length > 10 ? `\n_...and ${options.successes.length - 10} more_` : ''),
       inline: false,
     });
   }
@@ -170,7 +172,9 @@ export async function alertQueueSummary(
 
     embed.fields!.push({
       name: `Failures (${options.errors.length})`,
-      value: errorList + (options.errors.length > 8 ? `\n_...and ${options.errors.length - 8} more_` : ''),
+      value:
+        errorList +
+        (options.errors.length > 8 ? `\n_...and ${options.errors.length - 8} more_` : ''),
       inline: false,
     });
   }
@@ -183,7 +187,11 @@ export async function alertQueueSummary(
 
     embed.fields!.push({
       name: `Processed Items (${options.processedTitles.length})`,
-      value: list + (options.processedTitles.length > 12 ? `\n_...and ${options.processedTitles.length - 12} more_` : ''),
+      value:
+        list +
+        (options.processedTitles.length > 12
+          ? `\n_...and ${options.processedTitles.length - 12} more_`
+          : ''),
       inline: false,
     });
   }

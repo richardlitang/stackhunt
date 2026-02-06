@@ -18,7 +18,8 @@ const { data: queueItems } = await admin
   .order('created_at', { ascending: true });
 
 const pending = queueItems?.filter((i) => i.status === 'pending') || [];
-const processing = queueItems?.filter((i) => i.status === 'processing' || i.status === 'claimed') || [];
+const processing =
+  queueItems?.filter((i) => i.status === 'processing' || i.status === 'claimed') || [];
 const completed = queueItems?.filter((i) => i.status === 'completed') || [];
 const failed = queueItems?.filter((i) => i.status === 'failed') || [];
 ---
@@ -85,134 +86,152 @@ const failed = queueItems?.filter((i) => i.status === 'failed') || [];
       <h2 class="mb-4 text-lg font-semibold text-slate-900">
         Pending ({pending.length})
       </h2>
-      {pending.length > 0 ? (
-        <div class="overflow-hidden rounded-xl border border-slate-200">
-          <table class="w-full">
-            <thead class="bg-slate-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Tool</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Context</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Priority</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Source</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Added</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-slate-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-              {pending.map((item) => (
-                <tr class="hover:bg-slate-50">
-                  <td class="px-4 py-3 text-sm font-medium text-slate-900">{item.tool_name}</td>
-                  <td class="px-4 py-3 text-sm text-slate-600">{item.context_title || '-'}</td>
-                  <td class="px-4 py-3">
-                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                      {item.priority}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-slate-500">{item.source}</td>
-                  <td class="px-4 py-3 text-sm text-slate-500">
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </td>
-                  <td class="px-4 py-3 text-right">
-                    <form method="POST" action={`/api/admin/queue/${item.id}/delete`} class="inline">
-                      <button type="submit" class="text-sm text-red-600 hover:text-red-700">
-                        Remove
-                      </button>
-                    </form>
-                  </td>
+      {
+        pending.length > 0 ? (
+          <div class="overflow-hidden rounded-xl border border-slate-200">
+            <table class="w-full">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Tool</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Context</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Priority</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Source</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Added</th>
+                  <th class="px-4 py-3 text-right text-sm font-medium text-slate-700">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">
-          Queue is empty
-        </div>
-      )}
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                {pending.map((item) => (
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-900">{item.tool_name}</td>
+                    <td class="px-4 py-3 text-sm text-slate-600">{item.context_title || '-'}</td>
+                    <td class="px-4 py-3">
+                      <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                        {item.priority}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-slate-500">{item.source}</td>
+                    <td class="px-4 py-3 text-sm text-slate-500">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <form
+                        method="POST"
+                        action={`/api/admin/queue/${item.id}/delete`}
+                        class="inline"
+                      >
+                        <button type="submit" class="text-sm text-red-600 hover:text-red-700">
+                          Remove
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">
+            Queue is empty
+          </div>
+        )
+      }
     </section>
 
     <!-- Failed Items -->
-    {failed.length > 0 && (
-      <section>
-        <h2 class="mb-4 text-lg font-semibold text-slate-900">
-          Failed ({failed.length})
-        </h2>
-        <div class="overflow-hidden rounded-xl border border-red-200">
-          <table class="w-full">
-            <thead class="bg-red-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-red-700">Tool</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-red-700">Error</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-red-700">Attempts</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-red-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-red-100 bg-white">
-              {failed.map((item) => (
-                <tr class="hover:bg-red-50">
-                  <td class="px-4 py-3 text-sm font-medium text-slate-900">{item.tool_name}</td>
-                  <td class="px-4 py-3 text-sm text-red-600">{item.error_message || 'Unknown error'}</td>
-                  <td class="px-4 py-3 text-sm text-slate-500">{item.attempts}</td>
-                  <td class="px-4 py-3 text-right space-x-2">
-                    <form method="POST" action={`/api/admin/queue/${item.id}/retry`} class="inline">
-                      <button type="submit" class="text-sm text-hunt-600 hover:text-hunt-700">
-                        Retry
-                      </button>
-                    </form>
-                    <form method="POST" action={`/api/admin/queue/${item.id}/delete`} class="inline">
-                      <button type="submit" class="text-sm text-red-600 hover:text-red-700">
-                        Remove
-                      </button>
-                    </form>
-                  </td>
+    {
+      failed.length > 0 && (
+        <section>
+          <h2 class="mb-4 text-lg font-semibold text-slate-900">Failed ({failed.length})</h2>
+          <div class="overflow-hidden rounded-xl border border-red-200">
+            <table class="w-full">
+              <thead class="bg-red-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-red-700">Tool</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-red-700">Error</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-red-700">Attempts</th>
+                  <th class="px-4 py-3 text-right text-sm font-medium text-red-700">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    )}
+              </thead>
+              <tbody class="divide-y divide-red-100 bg-white">
+                {failed.map((item) => (
+                  <tr class="hover:bg-red-50">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-900">{item.tool_name}</td>
+                    <td class="px-4 py-3 text-sm text-red-600">
+                      {item.error_message || 'Unknown error'}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-slate-500">{item.attempts}</td>
+                    <td class="px-4 py-3 text-right space-x-2">
+                      <form
+                        method="POST"
+                        action={`/api/admin/queue/${item.id}/retry`}
+                        class="inline"
+                      >
+                        <button type="submit" class="text-sm text-hunt-600 hover:text-hunt-700">
+                          Retry
+                        </button>
+                      </form>
+                      <form
+                        method="POST"
+                        action={`/api/admin/queue/${item.id}/delete`}
+                        class="inline"
+                      >
+                        <button type="submit" class="text-sm text-red-600 hover:text-red-700">
+                          Remove
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )
+    }
 
     <!-- Recent Completed -->
-    {completed.length > 0 && (
-      <section>
-        <h2 class="mb-4 text-lg font-semibold text-slate-900">
-          Recently Completed ({completed.length})
-        </h2>
-        <div class="overflow-hidden rounded-xl border border-slate-200">
-          <table class="w-full">
-            <thead class="bg-slate-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Tool</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Context</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Processed</th>
-                <th class="px-4 py-3 text-right text-sm font-medium text-slate-700">Review</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-              {completed.slice(0, 10).map((item) => (
-                <tr class="hover:bg-slate-50">
-                  <td class="px-4 py-3 text-sm font-medium text-slate-900">{item.tool_name}</td>
-                  <td class="px-4 py-3 text-sm text-slate-600">{item.context_title || '-'}</td>
-                  <td class="px-4 py-3 text-sm text-slate-500">
-                    {item.completed_at ? new Date(item.completed_at).toLocaleDateString() : '-'}
-                  </td>
-                  <td class="px-4 py-3 text-right">
-                    {item.review_id && (
-                      <a
-                        href={`/admin/review/${item.review_id}`}
-                        class="text-sm text-hunt-600 hover:text-hunt-700"
-                      >
-                        View Draft →
-                      </a>
-                    )}
-                  </td>
+    {
+      completed.length > 0 && (
+        <section>
+          <h2 class="mb-4 text-lg font-semibold text-slate-900">
+            Recently Completed ({completed.length})
+          </h2>
+          <div class="overflow-hidden rounded-xl border border-slate-200">
+            <table class="w-full">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Tool</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Context</th>
+                  <th class="px-4 py-3 text-left text-sm font-medium text-slate-700">Processed</th>
+                  <th class="px-4 py-3 text-right text-sm font-medium text-slate-700">Review</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    )}
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                {completed.slice(0, 10).map((item) => (
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 text-sm font-medium text-slate-900">{item.tool_name}</td>
+                    <td class="px-4 py-3 text-sm text-slate-600">{item.context_title || '-'}</td>
+                    <td class="px-4 py-3 text-sm text-slate-500">
+                      {item.completed_at ? new Date(item.completed_at).toLocaleDateString() : '-'}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      {item.review_id && (
+                        <a
+                          href={`/admin/review/${item.review_id}`}
+                          class="text-sm text-hunt-600 hover:text-hunt-700"
+                        >
+                          View Draft →
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )
+    }
   </div>
 </AdminLayout>

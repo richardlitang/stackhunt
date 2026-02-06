@@ -85,11 +85,13 @@ export function buildFactSummary(card: KnowledgeCard): string {
   lines.push(`\n### Pricing`);
   lines.push(`- Model: ${card.pricing.model}`);
   lines.push(`- Free Tier: ${card.pricing.has_free_tier ? 'Yes' : 'No'}`);
-  lines.push(`- Free Trial: ${card.pricing.has_free_trial ? (card.pricing.trial_days ? `${card.pricing.trial_days} days` : 'Yes') : 'No'}`);
+  lines.push(
+    `- Free Trial: ${card.pricing.has_free_trial ? (card.pricing.trial_days ? `${card.pricing.trial_days} days` : 'Yes') : 'No'}`
+  );
   if (card.pricing.starting_price) lines.push(`- Starting Price: ${card.pricing.starting_price}`);
 
   // Platforms
-  const availablePlatforms = card.platforms.filter(p => p.available).map(p => p.platform);
+  const availablePlatforms = card.platforms.filter((p) => p.available).map((p) => p.platform);
   if (availablePlatforms.length > 0) {
     lines.push(`\n### Platforms`);
     lines.push(`- Available on: ${availablePlatforms.join(', ')}`);
@@ -98,11 +100,11 @@ export function buildFactSummary(card: KnowledgeCard): string {
   // Features
   if (card.features.core.length > 0) {
     lines.push(`\n### Core Features`);
-    card.features.core.forEach(f => lines.push(`- ${f}`));
+    card.features.core.forEach((f) => lines.push(`- ${f}`));
   }
   if (card.features.unique.length > 0) {
     lines.push(`\n### Unique Differentiators`);
-    card.features.unique.forEach(f => lines.push(`- ${f}`));
+    card.features.unique.forEach((f) => lines.push(`- ${f}`));
   }
 
   // Integrations
@@ -110,7 +112,7 @@ export function buildFactSummary(card: KnowledgeCard): string {
   lines.push(`- API: ${card.integrations.has_api ? 'Yes' : 'No'}`);
   lines.push(`- Zapier: ${card.integrations.has_zapier ? 'Yes' : 'No'}`);
   if (card.integrations.notable.length > 0) {
-    lines.push(`- Notable: ${card.integrations.notable.map(i => i.name).join(', ')}`);
+    lines.push(`- Notable: ${card.integrations.notable.map((i) => i.name).join(', ')}`);
   }
 
   // Audience
@@ -287,11 +289,14 @@ export function getHedgingPrefix(
  * })
  * // => "Users report that the customer support is slow"
  */
-export function formatClaimWithHedging(claim: {
-  text: string;
-  source_type: 'official' | 'editorial' | 'community';
-  claim_type: 'fact' | 'opinion';
-}, index: number = 0): string {
+export function formatClaimWithHedging(
+  claim: {
+    text: string;
+    source_type: 'official' | 'editorial' | 'community';
+    claim_type: 'fact' | 'opinion';
+  },
+  index: number = 0
+): string {
   // Facts from official sources don't need hedging
   if (claim.claim_type === 'fact' && claim.source_type === 'official') {
     return claim.text;
