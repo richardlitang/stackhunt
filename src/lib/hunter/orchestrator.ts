@@ -41,9 +41,11 @@ export class Hunter {
   private queue: QueueService;
   private config: HunterConfig;
   private logger: HunterLogger | null = null;
+  private maxTokensPerHunt: number;
 
   constructor(config: HunterConfig) {
     this.config = config;
+    this.maxTokensPerHunt = config.maxTokensPerHunt ?? 150000;
 
     // Initialize Supabase
     this.supabase = createClient<Database>(config.supabaseUrl, config.supabaseServiceKey, {
@@ -126,6 +128,8 @@ export class Hunter {
   async hunt(input: HunterInput): Promise<HunterResult> {
     const startTime = Date.now();
     this.logger = new HunterLogger();
+    const maxTokens = this.maxTokensPerHunt;
+    const softTokenThreshold = Math.floor(maxTokens * 0.85);
 
     this.log(`Starting hunt for: ${input.toolName}`);
     if (input.contextTitle) this.log(`Context: ${input.contextTitle}`);
@@ -195,6 +199,10 @@ export class Hunter {
         this.logger?.startPhase('research');
         ctx.research = await executeResearchPhase(ctx, deps);
         ctx.tokensUsed += ctx.research.tokensUsed;
+        if (ctx.tokensUsed > maxTokens) {
+          this.log(`🛑 Token budget exceeded after research (${ctx.tokensUsed}/${maxTokens}). Saving research only.`);
+          ctx.skipSynthesis = true;
+        }
         this.logger?.endPhase({
           tokens_used: ctx.research.tokensUsed,
           sources_found: ctx.research.scoutResult.sources.length,
@@ -295,6 +303,11 @@ export class Hunter {
         this.log(`🧾 price_only hunt: skipping analysis phase`);
       }
 
+      if (!ctx.skipAnalysis && ctx.tokensUsed >= softTokenThreshold) {
+        ctx.skipSynthesis = true;
+        this.log(`[Budget] Near token cap (${ctx.tokensUsed}/${maxTokens}). Saving research only.`);
+      }
+
       // Two-stage pipeline: Skip analysis if in batch mode
       if (ctx.skipSynthesis) {
         ctx.skipAnalysis = true;
@@ -325,6 +338,9 @@ export class Hunter {
         this.logger?.startPhase('analysis');
         ctx.analysis = await executeAnalysisPhase(ctx, deps);
         ctx.tokensUsed += ctx.analysis.tokensUsed;
+        if (ctx.tokensUsed > maxTokens) {
+          this.log(`🛑 Token budget exceeded after analysis (${ctx.tokensUsed}/${maxTokens}). Continuing to persistence (no additional tokens).`);
+        }
         this.logger?.endPhase({
           tokens_used: ctx.analysis.tokensUsed,
           score: ctx.analysis.analysis.score,
@@ -546,16 +562,22 @@ export class Hunter {
   /**
    * Process multiple items from the queue
    */
-  async processQueueBatch(maxItems: number = 5): Promise<{
+  async processQueueBatch(
+    maxItems: number = 5,
+    options: { maxTokens?: number } = {}
+  ): Promise<{
     processed: number;
     succeeded: number;
     failed: number;
     results: HunterResult[];
+    tokensUsed: number;
   }> {
     const results: HunterResult[] = [];
     let processed = 0;
     let succeeded = 0;
     let failed = 0;
+    let tokensUsed = 0;
+    const maxTokensPerBatch = options.maxTokens;
 
     for (let i = 0; i < maxItems; i++) {
       const result = await this.processNextFromQueue();
@@ -567,14 +589,20 @@ export class Hunter {
 
       results.push(result);
       processed++;
+      tokensUsed += result.tokensUsed || 0;
 
       if (result.success) succeeded++;
       else failed++;
+
+      if (maxTokensPerBatch && tokensUsed >= maxTokensPerBatch) {
+        this.log(`[Queue] Token budget reached for batch (${tokensUsed}/${maxTokensPerBatch}). Stopping early.`);
+        break;
+      }
     }
 
-    this.log(`[Queue] Batch complete: ${processed} processed, ${succeeded} succeeded, ${failed} failed`);
+      this.log(`[Queue] Batch complete: ${processed} processed, ${succeeded} succeeded, ${failed} failed, ${tokensUsed} tokens`);
 
-    return { processed, succeeded, failed, results };
+    return { processed, succeeded, failed, results, tokensUsed };
   }
 
   /**
@@ -608,6 +636,11 @@ export function createHunter(options: { isDraftMode?: boolean } = {}): Hunter {
     geminiApiKey: getEnv('GEMINI_API_KEY')!,
     serperApiKey: getEnv('SERPER_API_KEY')!,
     isDraftMode: options.isDraftMode ?? true, // Default to draft mode for safety
+    maxTokensPerHunt: (() => {
+      const raw = getEnv('HUNTER_MAX_TOKENS_PER_HUNT');
+      const parsed = raw ? Number(raw) : NaN;
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 150000;
+    })(),
   };
 
   // Validate

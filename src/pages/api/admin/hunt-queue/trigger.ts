@@ -114,14 +114,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Process queue
     const errors: Array<{ tool: string; error: string }> = [];
     const successes: Array<{ tool: string; context?: string }> = [];
-    let result: { processed: number; succeeded: number; failed: number };
+    const maxTokensPerRun = (() => {
+      const raw = getEnv('HUNTER_MAX_TOKENS_PER_RUN');
+      const parsed = raw ? Number(raw) : NaN;
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 600000;
+    })();
+
+    let result: { processed: number; succeeded: number; failed: number; tokensUsed: number };
+    let processedTitles: string[] = [];
 
     try {
-      const batchResult = await hunter.processQueueBatch(maxItems);
+      const batchResult = await hunter.processQueueBatch(maxItems, { maxTokens: maxTokensPerRun });
       result = {
         processed: batchResult.processed,
         succeeded: batchResult.succeeded,
         failed: batchResult.failed,
+        tokensUsed: batchResult.tokensUsed,
       };
 
       // Collect errors and successes
@@ -132,6 +140,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           successes.push({ tool: r.toolName, context: r.contextTitle });
         }
       }
+      processedTitles = Array.from(new Set([
+        ...successes.map(s => s.tool),
+        ...errors.map(e => e.tool),
+      ].filter(t => t && t !== 'Unknown')));
     } catch (error) {
       // Check for critical API errors
       if (error instanceof ApiError && error.isCritical) {
@@ -170,6 +182,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         succeeded: result.succeeded,
         failed: result.failed,
         successes,
+        processedTitles,
         errors,
       });
     }
@@ -180,6 +193,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         processed: result.processed,
         succeeded: result.succeeded,
         failed: result.failed,
+        tokensUsed: result.tokensUsed,
         errors: errors.length > 0 ? errors : undefined,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }

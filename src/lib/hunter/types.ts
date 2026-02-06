@@ -20,6 +20,7 @@ export interface HunterConfig {
   geminiApiKey: string;
   serperApiKey: string;
   isDraftMode?: boolean; // If true, reviews are created as 'draft'
+  maxTokensPerHunt?: number; // Hard cap for total tokens used in a single hunt
 }
 
 // ============================================================================

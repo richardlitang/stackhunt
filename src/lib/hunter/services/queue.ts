@@ -83,9 +83,11 @@ export class QueueService {
     const log = onLog || (() => {});
     log(`Claiming next item from queue (worker: ${this.workerId})...`);
 
-    const { data: queueItem, error } = await this.supabase.rpc('claim_hunt_queue_item', {
+    const { data, error } = await this.supabase.rpc('claim_hunt_queue_item', {
       p_worker_id: this.workerId,
     });
+
+    const queueItem = Array.isArray(data) ? data[0] : data;
 
     if (error || !queueItem) {
       log('No items in queue or error claiming');

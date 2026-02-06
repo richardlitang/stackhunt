@@ -101,6 +101,11 @@ const intervalMs = parseInterval(values.interval || '6h');
 const batchSize = Math.min(Math.max(parseInt(values.batch || '5'), 1), 20);
 const runOnce = values.once || false;
 const runDiscover = values.discover || false;
+const maxTokensPerRun = (() => {
+  const raw = process.env.HUNTER_MAX_TOKENS_PER_RUN;
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 600000;
+})();
 
 // Main processing function
 async function processQueue(): Promise<void> {
@@ -154,9 +159,9 @@ async function processQueue(): Promise<void> {
       isDraftMode: true,
     });
 
-    console.log(`Processing up to ${batchSize} items...`);
+    console.log(`Processing up to ${batchSize} items (token cap: ${maxTokensPerRun.toLocaleString()})...`);
 
-    const result = await hunter.processQueueBatch(batchSize);
+    const result = await hunter.processQueueBatch(batchSize, { maxTokens: maxTokensPerRun });
     const errors: Array<{ tool: string; error: string; category?: string }> = [];
     const successes: Array<{ tool: string; context?: string }> = [];
 
@@ -184,9 +189,14 @@ async function processQueue(): Promise<void> {
         });
       }
     }
+    const processedTitles = Array.from(new Set([
+      ...successes.map(s => s.tool),
+      ...errors.map(e => e.tool),
+    ].filter(t => t && t !== 'Unknown')));
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`\n📊 Results: ${result.processed} processed, ${result.succeeded} succeeded, ${result.failed} failed (${duration}s)`);
+    console.log(`   Tokens: ${result.tokensUsed.toLocaleString()}`);
 
     // macOS notification
     if (result.processed > 0) {
@@ -201,6 +211,7 @@ async function processQueue(): Promise<void> {
         succeeded: result.succeeded,
         failed: result.failed,
         successes,
+        processedTitles,
         errors,
       });
     }

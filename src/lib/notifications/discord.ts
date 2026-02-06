@@ -112,6 +112,7 @@ export async function alertQueueSummary(
     succeeded: number;
     failed: number;
     successes?: Array<{ tool: string; context?: string }>;
+    processedTitles?: string[];
     errors: Array<{ tool: string; error: string }>;
   }
 ): Promise<void> {
@@ -156,7 +157,10 @@ export async function alertQueueSummary(
       // Remove "Error: " prefix if present
       const cleaned = firstLine.replace(/^(Error|TypeError|ValidationError|ApiError):\s*/i, '');
       // Truncate to 80 chars max
-      return cleaned.length > 80 ? cleaned.slice(0, 77) + '...' : cleaned;
+      const truncated = cleaned.length > 80 ? cleaned.slice(0, 77) + '...' : cleaned;
+      return truncated.length > 0
+        ? truncated.charAt(0).toUpperCase() + truncated.slice(1)
+        : truncated;
     };
 
     const errorList = options.errors
@@ -167,6 +171,19 @@ export async function alertQueueSummary(
     embed.fields!.push({
       name: `Failures (${options.errors.length})`,
       value: errorList + (options.errors.length > 8 ? `\n_...and ${options.errors.length - 8} more_` : ''),
+      inline: false,
+    });
+  }
+
+  if (options.processedTitles && options.processedTitles.length > 0) {
+    const list = options.processedTitles
+      .slice(0, 12)
+      .map((t) => `• **${t}**`)
+      .join('\n');
+
+    embed.fields!.push({
+      name: `Processed Items (${options.processedTitles.length})`,
+      value: list + (options.processedTitles.length > 12 ? `\n_...and ${options.processedTitles.length - 12} more_` : ''),
       inline: false,
     });
   }

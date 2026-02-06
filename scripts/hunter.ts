@@ -484,16 +484,22 @@ async function runBatchProcess(maxItems: number) {
     isDraftMode: true,
   });
 
+  const maxTokensPerRun = (() => {
+    const raw = process.env.HUNTER_MAX_TOKENS_PER_RUN;
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 600000;
+  })();
+
   console.log('═'.repeat(60));
-  console.log(`🔄 Starting batch processing (max ${maxItems} items)`);
+  console.log(`🔄 Starting batch processing (max ${maxItems} items, token cap ${maxTokensPerRun.toLocaleString()})`);
   console.log('═'.repeat(60));
 
-  let result: { processed: number; succeeded: number; failed: number; results: Array<{ success: boolean; error?: string; toolName?: string; contextTitle?: string }> };
+  let result: { processed: number; succeeded: number; failed: number; results: Array<{ success: boolean; error?: string; toolName?: string; contextTitle?: string }>; tokensUsed: number };
   const errors: Array<{ tool: string; error: string }> = [];
   const successes: Array<{ tool: string; context?: string }> = [];
 
   try {
-    result = await hunter.processQueueBatch(maxItems);
+    result = await hunter.processQueueBatch(maxItems, { maxTokens: maxTokensPerRun });
 
     // Collect errors and successes from results
     for (const r of result.results) {
@@ -503,6 +509,7 @@ async function runBatchProcess(maxItems: number) {
         successes.push({ tool: r.toolName, context: r.contextTitle });
       }
     }
+    console.log(`   Tokens: ${result.tokensUsed.toLocaleString()}`);
   } catch (error) {
     // Check if this is a critical API error
     if (error instanceof ApiError && error.isCritical) {
