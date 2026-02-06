@@ -76,6 +76,7 @@ export async function executeAnalysisPhase(
 
   // Step 6: Build fact summary from Knowledge Card
   const factSummary = buildFactSummary(ctx.research.knowledgeCard);
+  const existingContentBaseline = await buildExistingContentBaseline(ctx, deps);
   const faqCandidates = (ctx.research.scoutResult.faqs || [])
     .map((faq) =>
       [
@@ -112,6 +113,7 @@ export async function executeAnalysisPhase(
     tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets.join('\n'),
     tribalDeepContent: ctx.research.scoutResult.tribalDeepContent || '',
     knowledgeCardFacts: factSummary,
+    existingContentBaseline: existingContentBaseline || 'None',
     faqCandidates: faqCandidates || 'None',
     faqSourcePool: faqSourcePool || 'None',
   });
@@ -265,6 +267,97 @@ async function getExistingCategories(deps: HunterDependencies): Promise<{
 }
 
 // Prompts are stored in code (no DB access required).
+
+async function buildExistingContentBaseline(
+  ctx: HunterContext,
+  deps: HunterDependencies
+): Promise<string> {
+  const existingToolId = ctx.research?.existingToolId;
+  if (!existingToolId) return 'None';
+
+  const truncate = (value: string, max = 420) =>
+    value.length > max ? `${value.slice(0, max - 3)}...` : value;
+  const formatList = (items?: string[] | null, maxItems = 6) =>
+    items && items.length ? items.slice(0, maxItems).join('; ') : null;
+
+  const { data: item, error: itemError } = await deps.supabase
+    .from('items')
+    .select('name, short_description, verdict, review_context, pricing_type')
+    .eq('id', existingToolId)
+    .maybeSingle();
+
+  if (itemError) {
+    deps.log(`⚠️ Existing item fetch failed: ${itemError.message}`);
+    return 'None';
+  }
+
+  const { data: review, error: reviewError } = await deps.supabase
+    .from('reviews')
+    .select(
+      'summary_markdown, pros, cons, sentiment_tags, fit_score, value_rating, standout_features, dealbreakers, switching_from, updated_at'
+    )
+    .eq('item_id', existingToolId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (reviewError) {
+    deps.log(`⚠️ Existing review fetch failed: ${reviewError.message}`);
+  }
+
+  const lines: string[] = [];
+  lines.push(`tool_id: ${existingToolId}`);
+  if (item?.name) lines.push(`name: ${item.name}`);
+  if (item?.short_description)
+    lines.push(`short_description: ${truncate(item.short_description, 320)}`);
+  if (item?.verdict) lines.push(`verdict: ${truncate(item.verdict, 320)}`);
+  if (item?.pricing_type) lines.push(`pricing_type: ${item.pricing_type}`);
+
+  const reviewContext = item?.review_context as
+    | {
+        humanVerdict?: string;
+        userAdvocate?: {
+          vibe?: string;
+          idealFor?: string[];
+          avoidIf?: string[];
+          powerTip?: string;
+        };
+      }
+    | undefined;
+
+  if (reviewContext?.humanVerdict) {
+    lines.push(`human_verdict: ${truncate(reviewContext.humanVerdict, 360)}`);
+  }
+  if (reviewContext?.userAdvocate?.vibe) {
+    lines.push(`user_vibe: ${reviewContext.userAdvocate.vibe}`);
+  }
+  if (reviewContext?.userAdvocate?.idealFor?.length) {
+    lines.push(`ideal_for: ${formatList(reviewContext.userAdvocate.idealFor)}`);
+  }
+  if (reviewContext?.userAdvocate?.avoidIf?.length) {
+    lines.push(`avoid_if: ${formatList(reviewContext.userAdvocate.avoidIf)}`);
+  }
+  if (reviewContext?.userAdvocate?.powerTip) {
+    lines.push(`power_tip: ${truncate(reviewContext.userAdvocate.powerTip, 240)}`);
+  }
+
+  if (review?.summary_markdown) {
+    lines.push(`latest_review_summary: ${truncate(review.summary_markdown, 520)}`);
+  }
+  if (review?.pros?.length) lines.push(`latest_review_pros: ${formatList(review.pros)}`);
+  if (review?.cons?.length) lines.push(`latest_review_cons: ${formatList(review.cons)}`);
+  if (review?.sentiment_tags?.length)
+    lines.push(`sentiment_tags: ${formatList(review.sentiment_tags, 8)}`);
+  if (review?.standout_features?.length)
+    lines.push(`standout_features: ${formatList(review.standout_features)}`);
+  if (review?.dealbreakers?.length)
+    lines.push(`dealbreakers: ${formatList(review.dealbreakers)}`);
+  if (review?.switching_from?.length)
+    lines.push(`switching_from: ${formatList(review.switching_from)}`);
+
+  if (lines.length === 0) return 'None';
+  return lines.join('\n');
+}
 
 /**
  * Detect tool category from context or knowledge card.

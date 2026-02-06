@@ -260,11 +260,18 @@ async function classifyTool(
     }
   );
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
   try {
-    const result = await model.generateContent(prompt);
-    const response = result.response.text().trim();
+    const result = await genAI.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.2,
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.MEDIUM,
+        },
+      },
+    });
+    const response = result.text?.trim() || '';
 
     // Validate response is one of the valid sub-categories
     if (subCategories.includes(response)) {

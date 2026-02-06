@@ -210,6 +210,18 @@ export class GeminiService {
       parsed.cons = parsed.cons.map(fixClaim);
     }
 
+    if (Array.isArray(parsed.faqs)) {
+      parsed.faqs = parsed.faqs.map((faq: any) => {
+        if (typeof faq?.answer === 'string') {
+          faq.answer = faq.answer.trim();
+          if (faq.answer.endsWith('...')) {
+            faq.answer = faq.answer.replace(/\.\.\.$/, '.').trim();
+          }
+        }
+        return faq;
+      });
+    }
+
     // Fix verdict: truncate if too long (max 200 chars)
     if (parsed.verdict && typeof parsed.verdict === 'string' && parsed.verdict.length > 200) {
       parsed.verdict = parsed.verdict.slice(0, 197) + '...';

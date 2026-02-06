@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { assignToRelevantContexts } from '../src/lib/hunter/services/context-matcher.js';
+import { assignToRelevantContexts } from '../src/lib/hunter/validation/context-validator.js';
 import { config } from 'dotenv';
 
 config();

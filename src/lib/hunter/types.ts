@@ -421,7 +421,7 @@ export const AnalysisSchema = z.object({
     .array(
       z.object({
         question: z.string().min(5).max(140),
-        answer: z.string().min(10).max(300),
+        answer: z.string().min(10).max(600),
         question_source: z.enum(['paa', 'forum', 'reddit']),
         question_source_url: z.string().url().optional(),
         answer_source_url: z.string().url(),

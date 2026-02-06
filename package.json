@@ -21,6 +21,7 @@
     "subcategory:backfill": "npx tsx scripts/backfill-subcategory.ts",
     "db:migrate": "supabase db push",
     "db:reset": "supabase db reset",
+    "types:db": "supabase gen types typescript --project-id vhelpqzbtzwiddoebnyy > src/types/supabase.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

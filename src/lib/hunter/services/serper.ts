@@ -505,12 +505,7 @@ export class SerperService {
       if (text.includes('worth it')) return true;
       return false;
     };
-    const truncateAnswer = (value: string, max = 200): string => {
-      const text = cleanText(value);
-      if (text.length <= max) return text;
-      const trimmed = text.slice(0, max).replace(/\s+\S*$/, '');
-      return `${trimmed}...`;
-    };
+    const normalizeAnswer = (value: string): string => cleanText(value);
     const hasToolMention = (text: string): boolean =>
       toolTokenRegexes.some((regex) => regex.test(text)) ||
       text.toLowerCase().includes(`${toolNameLower}.com`);
@@ -562,7 +557,7 @@ export class SerperService {
       source_url?: string;
     }) => {
       const question = cleanText(candidate.question);
-      const answer = truncateAnswer(candidate.answer);
+      const answer = normalizeAnswer(candidate.answer);
       if (!question || !answer || answer.length < 30) return;
       if (!isQuestionLike(question)) return;
       if (!isRelevantToTool(question, answer, candidate.source_url)) return;

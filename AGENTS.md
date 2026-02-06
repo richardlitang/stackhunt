@@ -55,6 +55,7 @@ npm run dev          # Astro dev (port 4321)
 npm run build        # Production build
 npm run hunt -- [args]  # Hunter CLI (see scripts/README.md)
 npm run queue:worker    # Continuous queue processor
+npm run types:db        # Regenerate Supabase types -> src/types/supabase.ts
 npm run typecheck    # TypeScript check
 npm run test         # Vitest tests
 ```
@@ -176,6 +177,11 @@ Use `mcp__supabase__*` tools for database operations:
 - `apply_migration` for DDL changes
 - `list_tables` to explore schema
 - `get_advisors` after DDL to check for security issues
+
+### Supabase Types Sync
+- `src/types/supabase.ts` is generated (do not hand-edit).
+- After any DB migration or RPC change, run `npm run types:db`.
+- Requires `SUPABASE_ACCESS_TOKEN` to be set (or `supabase login`).
 
 ### Testing Changes
 After code changes:

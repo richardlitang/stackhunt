@@ -196,6 +196,16 @@ Example transformation:
 - Input: 10 reviews say "clunky UI", "confusing navigation", "hard to find features"
 - Output: "Interface can be difficult to navigate for new users"
 
+## EXISTING CONTENT BASELINE (Continuity)
+
+If a baseline is provided, use it as a starting point to preserve good wording and continuity.
+- Update or replace only where new sources contradict or add higher-confidence facts.
+- Do NOT treat baseline as authoritative; sources still rule.
+- Do NOT copy from sources verbatim; rewrite in your own words.
+
+EXISTING CONTENT BASELINE:
+{existingContentBaseline}
+
 ## CRITICAL: Source Attribution Requirements
 
 Every pro and con MUST include:
@@ -344,7 +354,7 @@ You will be given a list of candidate FAQ questions from PAA, forums, and Reddit
 Rules:
 1. Select up to 5 **most important** questions users actually ask about this tool.
 2. Discard generic or off-topic questions (e.g., “How to write reviews?”).
-3. Answers must be concise, factual, and written in your own words (no verbatim copying).
+3. Answers must be concise, factual, and written in your own words (no verbatim copying). Keep answers under ~540 characters (about 10% under the max). Do NOT end answers with "..." — rewrite complete sentences.
 4. Prefer answering from official docs; otherwise reputable/editorial sources; use forums/Reddit only if needed.
 5. Every FAQ answer MUST include an answer_source_url from the source pool below. Do NOT invent URLs.
 6. Preserve the candidate question_source (paa/forum/reddit) and question_source_url when provided.
