@@ -120,7 +120,7 @@ const CompanySchema = z
  */
 export function validateKnowledgeCard(
   knowledgeCard: KnowledgeCard,
-  toolName: string
+  _toolName: string
 ): ValidationReport {
   const validations: ValidationResult[] = [];
   let errorCount = 0;

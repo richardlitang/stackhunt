@@ -243,7 +243,7 @@ const { data: guidelines } = await admin.from('editorial_guidelines').select('*'
       let content;
       try {
         content = JSON.parse(textarea.value);
-      } catch (err) {
+      } catch {
         showToast('Invalid JSON format', true);
         return;
       }
@@ -302,7 +302,7 @@ const { data: guidelines } = await admin.from('editorial_guidelines').select('*'
     let content;
     try {
       content = JSON.parse(formData.get('content') as string);
-    } catch (err) {
+    } catch {
       showToast('Invalid JSON format in content', true);
       return;
     }

@@ -393,7 +393,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
             }
           }
         }
-      } catch (error) {
+      } catch {
         if (uploadStatus) {
           uploadStatus.innerHTML =
             '<span class="text-red-600">Upload failed. Please try again.</span>';

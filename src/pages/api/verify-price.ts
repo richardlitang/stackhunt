@@ -61,7 +61,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     // 1. Record the verification
     // 2. Check for duplicate votes from same IP
     // 3. Queue for re-hunt if inaccurate (via trigger or RPC logic)
-    const { data, error: verifyError } = await (supabase.rpc as Function)(
+    const { data: _data, error: verifyError } = await (supabase.rpc as Function)(
       'record_price_verification',
       {
         p_item_id: toolId,
@@ -109,7 +109,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       ),
       rateLimit
     );
-  } catch (error) {
+  } catch {
     console.error('Error in verify-price API');
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,

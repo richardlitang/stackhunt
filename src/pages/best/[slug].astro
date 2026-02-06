@@ -149,7 +149,7 @@ const hasAffiliateLinks = sortedReviews.some(
   (review) => review.item.affiliate_offers?.some((offer) => offer.is_affiliate)
 );
 
-function extractHighlights(specs: Record<string, unknown> | null | undefined, limit = 2) {
+function _extractHighlights(specs: Record<string, unknown> | null | undefined, limit = 2) {
   const pros = Array.isArray((specs as any)?.pros) ? (specs as any).pros : [];
   const cons = Array.isArray((specs as any)?.cons) ? (specs as any).cons : [];
   const pickText = (items: any[]) =>

@@ -23,7 +23,7 @@ interface SignalAggregatesBadgeProps {
   className?: string;
 }
 
-function getSignalIcon(category: string, optionKey?: string) {
+function getSignalIcon(category: string, _optionKey?: string) {
   if (category === 'pros') return <Check className="h-4 w-4" />;
   if (category === 'cons') return <X className="h-4 w-4" />;
   if (category === 'gotcha') return <AlertTriangle className="h-4 w-4" />;
@@ -59,7 +59,13 @@ export default function SignalAggregatesBadge({
 
   // Process aggregates for display
   const processedSignals = aggregates.map((agg) => {
-    const { signal_key, signal_category, count_total, count_positive, count_negative } = agg;
+    const {
+      signal_key: _signal_key,
+      signal_category,
+      count_total,
+      count_positive,
+      count_negative: _count_negative,
+    } = agg;
 
     // Calculate percentage for pros/cons agreement
     let displayText = '';

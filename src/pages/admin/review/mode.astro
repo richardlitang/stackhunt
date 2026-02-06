@@ -271,7 +271,7 @@ const draftsJson = JSON.stringify(drafts || []);
         } else {
           window.toast?.error('Failed to publish');
         }
-      } catch (err) {
+      } catch {
         window.toast?.error('Network error');
       } finally {
         isSubmitting = false;
@@ -296,7 +296,7 @@ const draftsJson = JSON.stringify(drafts || []);
             } else {
               window.toast?.error('Failed to reject');
             }
-          } catch (err) {
+          } catch {
             window.toast?.error('Network error');
           } finally {
             isSubmitting = false;

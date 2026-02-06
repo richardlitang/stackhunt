@@ -568,7 +568,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
         } else {
           alert('Failed to submit. Please try again.');
         }
-      } catch (err) {
+      } catch {
         alert('Network error. Please try again.');
       }
     });

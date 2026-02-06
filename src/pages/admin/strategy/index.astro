@@ -250,7 +250,7 @@ if (!sessionToken) {
         try {
           const text = await file.text();
           csvContent.value = text;
-        } catch (error) {
+    } catch {
           alert('Failed to read file');
           console.error(error);
         }
@@ -322,7 +322,7 @@ if (!sessionToken) {
               results?.appendChild(msg);
             }
           }, 500);
-        } catch (error) {
+        } catch {
           progress?.classList.add('hidden');
           alert(error.message);
         }
@@ -356,7 +356,7 @@ if (!sessionToken) {
           } else {
             container.innerHTML = '<p class="text-sm text-slate-500">No content ideas yet.</p>';
           }
-        } catch (error) {
+        } catch {
           container.innerHTML = '<p class="text-sm text-red-600">Failed to load ideas</p>';
         }
       }

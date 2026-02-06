@@ -26,7 +26,6 @@ interface HealthStatus {
 }
 
 export const GET: APIRoute = async () => {
-  const startTime = Date.now();
   const health: HealthStatus = {
     status: 'healthy',
     timestamp: new Date().toISOString(),

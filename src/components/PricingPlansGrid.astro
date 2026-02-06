@@ -15,7 +15,7 @@ interface Props {
   toolName: string;
 }
 
-const { smp_pricing, legacy_pricing, toolName } = Astro.props;
+const { smp_pricing, legacy_pricing, toolName: _toolName } = Astro.props;
 
 // Determine which pricing data to use
 const hasSMPPricing = smp_pricing && smp_pricing.plans && smp_pricing.plans.length > 0;

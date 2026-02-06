@@ -73,29 +73,6 @@ const AUDIENCE_BASED_UNITS: string[] = ['contact', 'subscriber', 'lead'];
 const RESOURCE_BASED_UNITS: string[] = ['GB', 'gb', 'storage', 'project', 'workspace', 'site'];
 
 /**
- * Usage-based scaling units - API/messaging tools
- * Represents "how much you consume"
- * Note: Unknown units default to this category (most flexible)
- */
-const USAGE_BASED_UNITS: string[] = [
-  'message',
-  'email',
-  'sms',
-  'request',
-  'api_call',
-  'minute',
-  'hour',
-  'call',
-  'event',
-  'token',
-  'task',
-  'invocation',
-  'credit',
-  'zap',
-  'compute',
-];
-
-/**
  * Format a scaling unit for display
  * Normalizes synonyms and passes through unknown units
  *

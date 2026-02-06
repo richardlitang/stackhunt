@@ -19,7 +19,7 @@ export interface MetaProps {
   noindex?: boolean;
 }
 
-export function generateToolMeta(tool: Tool, reviewCount?: number): MetaProps {
+export function generateToolMeta(tool: Tool, _reviewCount?: number): MetaProps {
   const title = `${tool.name} Review & Alternatives ${new Date().getFullYear()} | StackHunt`;
   const description = tool.short_description
     ? `${tool.short_description} Compare ${tool.name} with alternatives, see pricing, pros & cons.`
@@ -34,7 +34,7 @@ export function generateToolMeta(tool: Tool, reviewCount?: number): MetaProps {
   };
 }
 
-export function generateContextMeta(context: Context, categoryName?: string): MetaProps {
+export function generateContextMeta(context: Context, _categoryName?: string): MetaProps {
   const title = `${context.title} (${new Date().getFullYear()}) | StackHunt`;
   const description =
     context.meta_description ||

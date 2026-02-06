@@ -21,8 +21,8 @@ interface Props {
 export default function PriceVerification({
   toolId,
   toolName,
-  currentPrice,
-  pricingType = 'unknown',
+  currentPrice: _currentPrice,
+  pricingType: _pricingType = 'unknown',
   verificationCount = 0,
   variant = 'default',
 }: Props) {

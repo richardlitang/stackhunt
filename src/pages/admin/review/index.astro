@@ -17,7 +17,7 @@ const page = parseInt(url.searchParams.get('page') || '1');
 const perPage = 10;
 
 // Get counts for tabs first
-const [{ count: pendingCount }, { count: publishedCount }, { count: rejectedCount }] =
+const [{ count: pendingCount }, { count: _publishedCount }, { count: _rejectedCount }] =
   await Promise.all([
     admin
       .from('reviews')

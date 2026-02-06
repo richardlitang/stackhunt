@@ -12,7 +12,7 @@ interface Props {
   toolName: string;
 }
 
-const { setupComplexity, toolName } = Astro.props;
+const { setupComplexity, toolName: _toolName } = Astro.props;
 
 if (!setupComplexity) return null;
 

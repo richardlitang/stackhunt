@@ -510,13 +510,16 @@ export async function executePersistencePhase(
       return 'paa';
     };
     knowledgeCard.faqs = analysis.faqs
+      .filter((faq) => !!faq.answer_source_url)
       .map((faq) => ({
         question: faq.question,
         answer: faq.answer,
-        source: faq.source || inferFaqSource(faq.source_url),
-        source_url: faq.source_url,
+        question_source: faq.question_source || inferFaqSource(faq.question_source_url),
+        question_source_url: faq.question_source_url,
+        answer_source_url: faq.answer_source_url,
+        answer_source_type: faq.answer_source_type || classifySourceType(faq.answer_source_url, analysis.websiteUrl),
       }))
-      .filter((faq) => faq.source);
+      .filter((faq) => faq.question_source && faq.answer_source_url);
   }
 
   // Build V2 metadata (Knowledge Card + extended fields)
@@ -1402,7 +1405,7 @@ function buildDerivedConsFromConstraints(
     const candidates = sources.filter((source) => {
       const domain = source.domain?.toLowerCase();
       const url = source.url?.toLowerCase() || '';
-      const title = source.title?.toLowerCase() || '';
+      const _title = source.title?.toLowerCase() || '';
       return domain === toolHost || domain?.endsWith(`.${toolHost}`) || url.includes(toolHost);
     });
     const pricingCandidate = candidates.find((source) => {

@@ -344,13 +344,17 @@ You will be given a list of candidate FAQ questions from PAA, forums, and Reddit
 Rules:
 1. Select up to 5 **most important** questions users actually ask about this tool.
 2. Discard generic or off-topic questions (e.g., “How to write reviews?”).
-3. Answers must be concise and factual. If the candidate answer is weak, rewrite it.
-4. Include source_url when available. Do NOT invent URLs.
-5. Preserve the candidate "source" when possible (paa/forum/reddit).
-6. Only use sources from the candidates below.
+3. Answers must be concise, factual, and written in your own words (no verbatim copying).
+4. Prefer answering from official docs; otherwise reputable/editorial sources; use forums/Reddit only if needed.
+5. Every FAQ answer MUST include an answer_source_url from the source pool below. Do NOT invent URLs.
+6. Preserve the candidate question_source (paa/forum/reddit) and question_source_url when provided.
+7. Only use sources from the candidates or source pool below.
 
 FAQ CANDIDATES:
 {faqCandidates}
+
+FAQ SOURCE POOL (for answers):
+{faqSourcePool}
 
 ### 📅 MODEL PRIORITIES (Feb 2026 - Current Frontier)
 
@@ -463,8 +467,10 @@ Output ONLY valid JSON matching this exact schema:
     {
       "question": "<real user question>",
       "answer": "<concise factual answer>",
-      "source_url": "<URL from candidates, if available>",
-      "source": "<paa|forum|reddit>"
+      "question_source": "<paa|forum|reddit>",
+      "question_source_url": "<URL from candidates if available>",
+      "answer_source_url": "<URL from source pool (required)>",
+      "answer_source_type": "<official|editorial|community>"
     }
   ],  // OPTIONAL: include up to 5, only if candidates are relevant
   "summary": "<150-300 word Markdown TL;DR. CRITICAL: Use Cynical CTO voice (RULE 1-4). Lead with hard limits and veto conditions. NO generic praise ('solid choice', 'great tool'). Structure: 1) Tool's hard ceiling (with numbers), 2) Who it's perfect for (with thresholds), 3) When to switch away (with alternative). Include a 3-bullet 'Decision Factors' list with concrete numbers. LEGAL: Hedge all negative claims from community sources. Example opening: 'Claude Sonnet 4.5 caps at 200k context windows and rate-limits Pro users to ~500 messages/day. If you're processing multi-million token datasets, switch to Gemini 2.0 (2M context, $1.20/1M vs $3/1M). For teams building agentic workflows who can tolerate rate limits, it's the current reasoning leader (87% on GPQA vs 83% for GPT-4).'>"

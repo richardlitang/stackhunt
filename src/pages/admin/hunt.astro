@@ -16,7 +16,7 @@ const { data: recentTools } = await supabase
   .limit(10);
 
 // Fetch contexts for dropdown
-const { data: contexts } = await supabase
+const { data: _contexts } = await supabase
   .from('contexts')
   .select('id, title, slug')
   .order('title')
@@ -400,7 +400,7 @@ const { data: categories } = await supabase
       }
     });
 
-    function showToolResult(result: any, mode: string) {
+    function showToolResult(result: any, _mode: string) {
       resultsPanel.classList.remove('hidden');
       if (result.success) {
         resultsContent.innerHTML = `
@@ -425,7 +425,7 @@ const { data: categories } = await supabase
       }
     }
 
-    function showContextResult(result: any, mode: string) {
+    function showContextResult(result: any, _mode: string) {
       resultsPanel.classList.remove('hidden');
       if (result.success) {
         resultsContent.innerHTML = `

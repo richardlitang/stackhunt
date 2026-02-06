@@ -119,7 +119,7 @@ const PHASE_2_SIGNALS: SignalDefinition[] = [
 
 export default function SignalReportWidget({
   itemId,
-  itemName,
+  itemName: _itemName,
   phase = 1,
 }: SignalReportWidgetProps) {
   const [selectedSignals, setSelectedSignals] = useState<Record<string, string>>({});

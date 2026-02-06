@@ -43,7 +43,7 @@ export const GET: APIRoute = async ({ params, request }) => {
     }
 
     // Step 2: Get highest priority active affiliate offer
-    const { data: offer, error: offerError } = await supabase
+    const { data: offer, error: _offerError } = await supabase
       .from('affiliate_offers')
       .select('id, url, cta_text, network, is_affiliate')
       .eq('tool_id', tool.id)

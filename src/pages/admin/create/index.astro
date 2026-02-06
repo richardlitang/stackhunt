@@ -12,7 +12,7 @@ const admin = getAdminClient();
 // Fetch data in parallel
 const [
   { data: recentTools },
-  { data: categories },
+  { data: _categories },
   { data: queueItems },
 ] = await Promise.all([
   supabase.from('tools').select('id, name, slug').order('created_at', { ascending: false }).limit(10),

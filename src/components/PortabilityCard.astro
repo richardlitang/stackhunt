@@ -12,7 +12,7 @@ interface Props {
   toolName: string;
 }
 
-const { portability, toolName } = Astro.props;
+const { portability, toolName: _toolName } = Astro.props;
 
 if (!portability) return null;
 

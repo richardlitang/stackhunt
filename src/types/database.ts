@@ -422,8 +422,10 @@ export interface ItemMetadata {
   faqs?: Array<{
     question: string;
     answer: string;
-    source: 'paa' | 'forum' | 'reddit';
-    source_url?: string;
+    question_source: 'paa' | 'forum' | 'reddit';
+    question_source_url?: string;
+    answer_source_url: string;
+    answer_source_type: 'official' | 'editorial' | 'community';
   }>;
 
   // V2: Company info

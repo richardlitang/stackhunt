@@ -14,7 +14,7 @@ interface Props {
   toolName: string;
 }
 
-const { platforms, integrations, toolName } = Astro.props;
+const { platforms, integrations, toolName: _toolName } = Astro.props;
 
 // Check if we have any data to display
 const hasData =

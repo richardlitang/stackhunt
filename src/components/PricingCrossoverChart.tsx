@@ -184,7 +184,7 @@ export default function PricingCrossoverChart({
   const displayTools = compatibleTools.slice(0, 5);
 
   // Tools that were filtered out (incompatible scaling)
-  const incompatibleTools = tools.filter((tool) => !compatibleTools.includes(tool));
+  const _incompatibleTools = tools.filter((tool) => !compatibleTools.includes(tool));
 
   // Generate chart data using the axis config range
   const chartData = useMemo<DataPoint[]>(() => {

@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     const limit = parseInt(formData.get('limit') as string) || 100;
 
     // Call the analyze function
-    const { data, error } = await admin.rpc('analyze_content_ideas', {
+    const { data: _data, error } = await admin.rpc('analyze_content_ideas', {
       p_limit: limit,
     });
 

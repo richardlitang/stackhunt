@@ -156,8 +156,8 @@ const extractHighlights = (specs: Record<string, unknown> | null | undefined, li
   return { pros: pickText(pros), cons: pickText(cons).slice(0, 1) };
 };
 
-const techA = extractHighlights(toolA.specs as Record<string, unknown> | null);
-const techB = extractHighlights(toolB.specs as Record<string, unknown> | null);
+const _techA = extractHighlights(toolA.specs as Record<string, unknown> | null);
+const _techB = extractHighlights(toolB.specs as Record<string, unknown> | null);
 
 // Find contrasting tags (A has "expensive", B has "affordable" = highlight)
 const contrastingTags = [
@@ -172,8 +172,8 @@ const contrastingTags = [
 const highlights: Array<{ label: string; winnerA: boolean; winnerB: boolean }> = [];
 
 for (const contrast of contrastingTags) {
-  const aHasGood = tagsA.includes(contrast.tagA) || tagsB.includes(contrast.tagB);
-  const bHasGood = tagsB.includes(contrast.tagA) || tagsA.includes(contrast.tagB);
+  const _aHasGood = tagsA.includes(contrast.tagA) || tagsB.includes(contrast.tagB);
+  const _bHasGood = tagsB.includes(contrast.tagA) || tagsA.includes(contrast.tagB);
 
   // Check if there's a clear difference
   if (tagsA.includes(contrast.tagA) && !tagsB.includes(contrast.tagA)) {
@@ -223,8 +223,8 @@ if (toolA.type === 'tool' && toolB.type === 'tool') {
 // Extracted computed insights
 const migrationAToB = computed?.migration.can_migrate_a_to_b;
 const migrationBToA = computed?.migration.can_migrate_b_to_a;
-const priceWinner = computed?.price.winner;
-const learningWinner = computed?.learning_curve.easier;
+const _priceWinner = computed?.price.winner;
+const _learningWinner = computed?.learning_curve.easier;
 const audienceFits = computed?.audience_fits || [];
 
 // Fetch suggested comparisons (tools in same category + switching patterns)

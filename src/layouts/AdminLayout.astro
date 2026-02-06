@@ -16,7 +16,7 @@ const pathname = currentPath || Astro.url.pathname;
 
 // Fetch counts for badges
 const admin = getAdminClient();
-const [{ count: draftCount }, { count: queueCount }] = await Promise.all([
+const [{ count: draftCount }, { count: _queueCount }] = await Promise.all([
   admin
     .from('reviews')
     .select('*', { count: 'exact', head: true })

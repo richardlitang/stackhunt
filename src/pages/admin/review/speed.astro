@@ -443,7 +443,7 @@ const draftsJson = JSON.stringify(drafts || []);
           el.textContent = original;
           window.toast?.error('Failed to save');
         }
-      } catch (err) {
+      } catch {
         el.textContent = original;
         window.toast?.error('Network error');
       }
@@ -464,7 +464,7 @@ const draftsJson = JSON.stringify(drafts || []);
         } else {
           window.toast?.error('Failed to approve');
         }
-      } catch (err) {
+      } catch {
         window.toast?.error('Network error');
       } finally {
         isSubmitting = false;
@@ -490,7 +490,7 @@ const draftsJson = JSON.stringify(drafts || []);
             } else {
               window.toast?.error('Failed to reject');
             }
-          } catch (err) {
+          } catch {
             window.toast?.error('Network error');
           } finally {
             isSubmitting = false;
@@ -598,7 +598,7 @@ const draftsJson = JSON.stringify(drafts || []);
             } else {
               window.toast?.error('Batch approve failed');
             }
-          } catch (err) {
+          } catch {
             window.toast?.error('Network error');
           } finally {
             isSubmitting = false;

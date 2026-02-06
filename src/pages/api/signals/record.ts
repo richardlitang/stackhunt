@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       valueText,
       valueNum,
       fingerprintHash,
-      ipHash: clientIpHash,
+      ipHash: _clientIpHash,
       userAgent,
       sourcePage,
     } = body;

@@ -11,14 +11,6 @@ import { z } from 'zod';
 export const ConfidenceLevel = z.enum(['verified', 'inferred', 'unknown']);
 export type ConfidenceLevel = z.infer<typeof ConfidenceLevel>;
 
-// Fact with confidence tracking
-const FactWithConfidence = <T extends z.ZodTypeAny>(schema: T) =>
-  z.object({
-    value: schema,
-    confidence: ConfidenceLevel.default('inferred'),
-    source_url: z.string().url().optional(),
-  });
-
 // Pricing tier structure (legacy)
 export const PricingTierSchema = z.object({
   name: z.string(), // "Free", "Pro", "Enterprise"
@@ -394,8 +386,10 @@ export type FeatureCapability = z.infer<typeof FeatureCapabilitySchema>;
 export const FAQItemSchema = z.object({
   question: z.string(),
   answer: z.string(),
-  source: z.enum(['paa', 'forum', 'reddit']),
-  source_url: z.string().url().optional(),
+  question_source: z.enum(['paa', 'forum', 'reddit']),
+  question_source_url: z.string().url().optional(),
+  answer_source_url: z.string().url(),
+  answer_source_type: z.enum(['official', 'editorial', 'community']),
 });
 export type FAQItem = z.infer<typeof FAQItemSchema>;
 

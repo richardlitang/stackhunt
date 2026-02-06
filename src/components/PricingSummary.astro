@@ -12,7 +12,7 @@ interface Props {
   pricingType?: string;
 }
 
-const { pricing, pricingType } = Astro.props;
+const { pricing, pricingType: _pricingType } = Astro.props;
 
 // Check if we have any pricing data to display
 const hasData =

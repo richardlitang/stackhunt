@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     const limit = parseInt(formData.get('limit') as string) || 20;
 
     // Call bulk approve function
-    const { data, error } = await admin.rpc('bulk_approve_ideas', {
+    const { data: _data, error } = await admin.rpc('bulk_approve_ideas', {
       p_min_roi: minRoi,
       p_limit: limit,
     });

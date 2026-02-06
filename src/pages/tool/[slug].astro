@@ -71,7 +71,7 @@ if (tool.parent_id) {
   parentTool = data;
 }
 
-const contextLinks = await getToolContexts(tool.id);
+const _contextLinks = await getToolContexts(tool.id);
 const tags = await getToolTags(tool.id);
 
 // Build related links for internal linking (SEO)
@@ -220,7 +220,7 @@ const sourceDomains = firstReview?.sources
 
 // Fetch signal aggregates for community signals
 // Note: Fetching via API to avoid TypeScript issues with complex joins
-let signalAggregates: Array<{
+let _signalAggregates: Array<{
   signal_key: string;
   signal_label: string;
   signal_category: string;
@@ -237,7 +237,7 @@ try {
   );
   if (signalResponse.ok) {
     const result = await signalResponse.json();
-    signalAggregates = result.aggregates || [];
+    _signalAggregates = result.aggregates || [];
   }
 } catch (err) {
   console.error('Failed to fetch signal aggregates:', err);
@@ -270,7 +270,7 @@ const schemas = [
   ...(faqSchema ? [faqSchema] : []),
 ];
 
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
+const _turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
 const hasAbout = Boolean(tool.long_description || tool.short_description || knowledgeCard?.tagline);
 const hasVerdict = Boolean(firstReview?.summary_markdown);
@@ -1212,9 +1212,9 @@ const hasFAQ = faqItems.length > 0;
                 </summary>
                 <div class="mt-2 space-y-2">
                   <p class="text-sm text-zinc-300">{item.answer}</p>
-                  {item.source_url && (
+                  {item.answer_source_url && (
                     <a
-                      href={item.source_url}
+                      href={item.answer_source_url}
                       target="_blank"
                       rel="noopener"
                       class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-hunt-500"
@@ -1410,7 +1410,7 @@ const hasFAQ = faqItems.length > 0;
         } else {
           alert('Failed to submit. Please try again.');
         }
-      } catch (err) {
+      } catch {
         alert('Network error. Please try again.');
       }
     });

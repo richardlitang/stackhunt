@@ -10,7 +10,7 @@
  */
 
 import type { HunterContext, HunterDependencies, AnalysisOutput } from '../types';
-import { buildFactSummary, interpolateTemplate } from '../utils';
+import { buildFactSummary, interpolateTemplate, classifySourceType } from '../utils';
 import {
   SYNTHESIS_PROMPT,
   buildCategoryExtractionFields,
@@ -81,8 +81,19 @@ export async function executeAnalysisPhase(
       [
         `- question: ${faq.question}`,
         `  answer: ${faq.answer}`,
-        faq.source_url ? `  source_url: ${faq.source_url}` : '  source_url: null',
-        `  source: ${faq.source}`,
+        faq.source_url ? `  question_source_url: ${faq.source_url}` : '  question_source_url: null',
+        `  question_source: ${faq.source}`,
+      ].join('\n')
+    )
+    .join('\n');
+  const faqSourcePool = (ctx.research.scoutResult.sources || [])
+    .slice(0, 20)
+    .map((source) =>
+      [
+        `- url: ${source.url}`,
+        `  title: ${source.title}`,
+        `  snippet: ${source.snippet}`,
+        `  source_type: ${classifySourceType(source.url, ctx.research?.knowledgeCard?.website_url)}`,
       ].join('\n')
     )
     .join('\n');
@@ -102,6 +113,7 @@ export async function executeAnalysisPhase(
     tribalDeepContent: ctx.research.scoutResult.tribalDeepContent || '',
     knowledgeCardFacts: factSummary,
     faqCandidates: faqCandidates || 'None',
+    faqSourcePool: faqSourcePool || 'None',
   });
 
   // Step 8: Synthesize analysis (Pass 2 - The Architect + Human Context Roles)
@@ -126,13 +138,17 @@ export async function executeAnalysisPhase(
   analysis.knowledgeCard = ctx.research.knowledgeCard;
   if (analysis.faqs && analysis.faqs.length > 0) {
     ctx.research.knowledgeCard.faqs = analysis.faqs
+      .filter((faq) => !!faq.answer_source_url)
       .map((faq) => ({
         question: faq.question,
         answer: faq.answer,
-        source: faq.source || inferFaqSource(faq.source_url),
-        source_url: faq.source_url,
+        question_source: faq.question_source || inferFaqSource(faq.question_source_url),
+        question_source_url: faq.question_source_url,
+        answer_source_url: faq.answer_source_url,
+        answer_source_type: faq.answer_source_type
+          || classifySourceType(faq.answer_source_url, ctx.research?.knowledgeCard?.website_url),
       }))
-      .filter((faq) => faq.source);
+      .filter((faq) => faq.question_source && faq.answer_source_url);
   }
 
   deps.log(`[Pass 2] Analysis complete - Score: ${analysis.score}/100`);

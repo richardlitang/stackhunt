@@ -356,7 +356,7 @@ const aiResultLabels: Record<string, { label: string; color: string }> = {
             btn.disabled = false;
             btn.textContent = action === 'accept' ? 'Accept' : 'Reject';
           }
-        } catch (err) {
+        } catch {
           window.toast?.error('Network error');
           btn.disabled = false;
           btn.textContent = action === 'accept' ? 'Accept' : 'Reject';

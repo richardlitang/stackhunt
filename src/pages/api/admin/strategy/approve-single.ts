@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     }
 
     // Call approve function
-    const { data, error } = await admin.rpc('approve_content_idea', {
+    const { data: _data, error } = await admin.rpc('approve_content_idea', {
       p_idea_id: id,
     });
 

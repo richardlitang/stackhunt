@@ -142,7 +142,7 @@ export const onRequest = defineMiddleware(
 
       if (!isExempt) {
         const csrfToken = request.headers.get(CSRF_HEADER_NAME);
-        const csrfCookie = cookies.get(CSRF_COOKIE_NAME)?.value;
+        const _csrfCookie = cookies.get(CSRF_COOKIE_NAME)?.value;
 
         // Must have both header token and cookie, and they must match context
         if (!csrfToken || !validateCsrfToken(csrfToken, sessionId)) {

@@ -148,8 +148,10 @@ export interface HunterAnalysis {
   faqs?: Array<{
     question: string;
     answer: string;
-    source_url?: string;
-    source?: 'paa' | 'forum' | 'reddit';
+    question_source: 'paa' | 'forum' | 'reddit';
+    question_source_url?: string;
+    answer_source_url: string;
+    answer_source_type?: 'official' | 'editorial' | 'community';
   }>;
   summary: string;
   sentimentTags: string[];
@@ -420,8 +422,10 @@ export const AnalysisSchema = z.object({
       z.object({
         question: z.string().min(5).max(140),
         answer: z.string().min(10).max(300),
-        source_url: z.string().url().optional(),
-        source: z.enum(['paa', 'forum', 'reddit']).optional(),
+        question_source: z.enum(['paa', 'forum', 'reddit']),
+        question_source_url: z.string().url().optional(),
+        answer_source_url: z.string().url(),
+        answer_source_type: z.enum(['official', 'editorial', 'community']).optional(),
       })
     )
     .max(5)

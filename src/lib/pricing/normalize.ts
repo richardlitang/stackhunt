@@ -220,7 +220,7 @@ export function comparePricing(
   } else if (toolA.pricing.is_seat_based && toolB.pricing.is_seat_based) {
     const seatPriceA = toolA.pricing.normalized_price_per_seat_monthly || 0;
     const seatPriceB = toolB.pricing.normalized_price_per_seat_monthly || 0;
-    const seatDiff = Math.abs(seatPriceA - seatPriceB);
+    const _seatDiff = Math.abs(seatPriceA - seatPriceB);
     summary += ` (${Math.abs(seatPriceA - seatPriceB).toFixed(2)}/user/mo difference)`;
   }
 

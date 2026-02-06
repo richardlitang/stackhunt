@@ -101,7 +101,6 @@ const pageTitle = 'Affiliate Links Management';
   </div>
 
   <script is:inline>
-    let currentData = null;
 
     // Fetch and display affiliate links
     async function loadLinks() {
@@ -121,7 +120,6 @@ const pageTitle = 'Affiliate Links Management';
           return;
         }
 
-        currentData = data;
         renderStats(data.stats);
         renderTable(data.offers);
       } catch (error) {
