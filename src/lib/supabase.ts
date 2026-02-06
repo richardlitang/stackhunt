@@ -84,7 +84,10 @@ export async function getItemBySlug(slug: string, reviewLimit = 10) {
     .select(
       `
       *,
-      category:categories(*),
+      item_category_links(
+        relevance_score,
+        category:categories(*)
+      ),
       affiliate_offers(*),
       reviews!inner(
         *,
@@ -98,7 +101,7 @@ export async function getItemBySlug(slug: string, reviewLimit = 10) {
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return attachPrimaryCategory(data);
 }
 
 /** @deprecated Use getItemBySlug instead */
@@ -117,11 +120,21 @@ export async function getContextBySlug(slug: string) {
       function_category:categories!contexts_function_category_id_fkey(*),
       audience_category:categories!contexts_audience_category_id_fkey(*),
       platform_category:categories!contexts_platform_category_id_fkey(*),
-      primary_item:items!contexts_primary_item_id_fkey(*),
+      primary_item:items!contexts_primary_item_id_fkey(
+        *,
+        item_category_links(
+          relevance_score,
+          category:categories(*)
+        )
+      ),
       reviews(
         *,
         item:items(
           *,
+          item_category_links(
+            relevance_score,
+            category:categories(*)
+          ),
           affiliate_offers(*)
         )
       )
@@ -132,6 +145,16 @@ export async function getContextBySlug(slug: string) {
     .maybeSingle();
 
   if (error) throw error;
+  if (!data) return data;
+  if (data.primary_item) {
+    data.primary_item = attachPrimaryCategory(data.primary_item);
+  }
+  if (Array.isArray(data.reviews)) {
+    data.reviews = data.reviews.map((review: any) => ({
+      ...review,
+      item: review.item ? attachPrimaryCategory(review.item) : review.item,
+    }));
+  }
   return data;
 }
 
@@ -139,19 +162,37 @@ export async function getContextBySlug(slug: string) {
  * Fetch all items for a category
  */
 export async function getItemsByCategory(categorySlug: string) {
+  const { data: category, error: categoryError } = await supabase
+    .from('categories')
+    .select('id, name, slug, icon')
+    .eq('slug', categorySlug)
+    .maybeSingle();
+
+  if (categoryError) throw categoryError;
+  if (!category) return [];
+
   const { data, error } = await supabase
-    .from('items')
+    .from('item_category_links')
     .select(
       `
-      *,
-      category:categories!inner(*)
+      relevance_score,
+      item:items(
+        *,
+        item_category_links(
+          relevance_score,
+          category:categories(*)
+        )
+      )
     `
     )
-    .eq('category.slug', categorySlug)
-    .order('avg_score', { ascending: false });
+    .eq('category_id', category.id)
+    .order('relevance_score', { ascending: false });
 
   if (error) throw error;
-  return data;
+  return (data || [])
+    .map((link) => (link as any).item)
+    .filter(Boolean)
+    .map((item: any) => attachPrimaryCategory(item));
 }
 
 /** @deprecated Use getItemsByCategory instead */
@@ -168,7 +209,10 @@ export async function getFeaturedItems(limit = 12) {
     .select(
       `
       id, name, slug, logo_url, short_description, avg_score, pricing_type, verdict, base_score,
-      category:categories(name, slug)
+      item_category_links(
+        relevance_score,
+        category:categories(name, slug)
+      )
     `
     )
     .eq('is_featured', true)
@@ -179,7 +223,7 @@ export async function getFeaturedItems(limit = 12) {
 
   // If we have featured items, return them
   if (featured && featured.length > 0) {
-    return featured;
+    return featured.map((item: any) => attachPrimaryCategory(item));
   }
 
   // Fallback: get top-rated items (by avg_score, then by created_at)
@@ -188,7 +232,10 @@ export async function getFeaturedItems(limit = 12) {
     .select(
       `
       id, name, slug, logo_url, short_description, avg_score, pricing_type, verdict, base_score,
-      category:categories(name, slug)
+      item_category_links(
+        relevance_score,
+        category:categories(name, slug)
+      )
     `
     )
     .order('avg_score', { ascending: false, nullsFirst: false })
@@ -196,11 +243,25 @@ export async function getFeaturedItems(limit = 12) {
     .limit(limit);
 
   if (topRatedError) throw topRatedError;
-  return topRated;
+  return (topRated || []).map((item: any) => attachPrimaryCategory(item));
 }
 
 /** @deprecated Use getFeaturedItems instead */
 export const getFeaturedTools = getFeaturedItems;
+
+function attachPrimaryCategory<T extends Record<string, any>>(item: T | null): T | null {
+  if (!item) return item;
+  const links = Array.isArray(item.item_category_links) ? item.item_category_links : [];
+  const primary = links
+    .slice()
+    .sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0))[0];
+  const category = primary?.category || null;
+  return {
+    ...item,
+    category,
+    category_id: category?.id || null,
+  };
+}
 
 /**
  * Fetch featured contexts/lists for homepage
@@ -352,7 +413,10 @@ export async function getItemBySlugAndType(slug: string, type: 'tool' | 'gear') 
     .select(
       `
       *,
-      category:categories(*),
+      item_category_links(
+        relevance_score,
+        category:categories(*)
+      ),
       affiliate_offers(*),
       reviews(
         *,
@@ -365,7 +429,7 @@ export async function getItemBySlugAndType(slug: string, type: 'tool' | 'gear') 
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return attachPrimaryCategory(data);
 }
 
 /** @deprecated Use getItemBySlugAndType instead */

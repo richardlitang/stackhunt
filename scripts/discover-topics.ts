@@ -60,9 +60,10 @@ async function analyzeCoverageGaps(): Promise<string[]> {
 
   // Get existing tools and their contexts
   const { data: tools } = await supabase
-    .from('tools')
-    .select('name, category_id, review_count')
-    .order('review_count', { ascending: true })
+    .from('item_category_links')
+    .select('category_id, item:items!inner(id, name, review_count, type)')
+    .eq('item.type', 'tool')
+    .order('review_count', { ascending: true, foreignTable: 'item' })
     .limit(50);
 
   // Get categories
@@ -78,7 +79,11 @@ async function analyzeCoverageGaps(): Promise<string[]> {
   const gaps: string[] = [];
 
   // Find tools with few reviews
-  const underReviewed = tools?.filter(t => t.review_count < 2) || [];
+  const underReviewed =
+    tools
+      ?.map((link) => link.item as { id?: string; name: string; review_count: number } | null)
+      .filter(Boolean)
+      .filter((t) => (t?.review_count || 0) < 2) || [];
   if (underReviewed.length > 0) {
     gaps.push(`Under-reviewed tools: ${underReviewed.slice(0, 5).map(t => t.name).join(', ')}`);
   }

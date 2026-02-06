@@ -74,8 +74,8 @@ if (sortedReviews.length >= 2) {
   const tool1 = sortedReviews[0].item;
   const tool2 = sortedReviews[1].item;
   const canCompare = areToolsComparable(
-    { slug: tool1.slug, category_id: tool1.category_id, metadata: tool1.metadata as any },
-    { slug: tool2.slug, category_id: tool2.category_id, metadata: tool2.metadata as any }
+    { slug: tool1.slug, category_id: tool1.category?.id || null, metadata: tool1.metadata as any },
+    { slug: tool2.slug, category_id: tool2.category?.id || null, metadata: tool2.metadata as any }
   );
   if (canCompare) {
     exploreMoreItems.push({

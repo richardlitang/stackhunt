@@ -578,7 +578,6 @@ export async function executePersistencePhase(
     logo_path: ctx.analysis.logo?.path || null,
     logo_url: ctx.analysis.logo?.url || null,
     short_description: analysis.shortDescription || null,
-    category_id: categoryId,
     pricing_type: analysis.pricingType,
     embedding: ctx.analysis.embedding,
     // V2: Enhanced fields
@@ -611,6 +610,21 @@ export async function executePersistencePhase(
   if (itemError) throw new Error(`Failed to save item: ${itemError.message}`);
 
   deps.log(`Item saved: ${ctx.toolName} (id: ${item.id})`);
+
+  if (categoryId) {
+    const { error: linkError } = await deps.supabase.from('item_category_links').upsert(
+      {
+        item_id: item.id,
+        category_id: categoryId,
+        relevance_score: 1,
+      },
+      { onConflict: 'item_id,category_id' }
+    );
+
+    if (linkError) {
+      throw new Error(`Failed to link item to category: ${linkError.message}`);
+    }
+  }
 
   // Update normalized pricing columns (for apples-to-apples comparison)
   const pricingResult = await updateNormalizedPricing(deps.supabase, item.id, specs);

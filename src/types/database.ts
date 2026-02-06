@@ -477,7 +477,6 @@ export interface Item {
   logo_url: string | null;
   short_description: string | null;
   long_description: string | null;
-  category_id: string | null;
   pricing_type: PricingModel;
   avg_score: number; // Aggregated from contextual reviews
   review_count: number;
@@ -940,7 +939,6 @@ export interface ItemInsert {
   logo_url?: string | null;
   short_description?: string | null;
   long_description?: string | null;
-  category_id?: string | null;
   pricing_type?: PricingModel;
   embedding?: number[] | null;
   metadata?: ItemMetadata | null;

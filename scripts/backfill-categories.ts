@@ -54,28 +54,35 @@ const funcToCategory: Record<string, string> = {
 async function main() {
   console.log('🔄 Backfilling categories for items...\n');
 
-  // Fetch all items without categories
+  // Fetch all items (filter to those without category links in JS)
   const { data: items, error } = await supabase
     .from('items')
-    .select('id, name, specs, category_id')
-    .is('category_id', null);
+    .select(
+      `
+      id, name, specs,
+      item_category_links(id)
+    `
+    );
 
   if (error) {
     console.error('Error fetching items:', error);
     process.exit(1);
   }
 
-  if (!items || items.length === 0) {
+  const itemsWithoutCategories =
+    items?.filter((item) => (item.item_category_links || []).length === 0) || [];
+
+  if (itemsWithoutCategories.length === 0) {
     console.log('✅ No items need category assignment');
     return;
   }
 
-  console.log(`Found ${items.length} items without categories\n`);
+  console.log(`Found ${itemsWithoutCategories.length} items without categories\n`);
 
   let updated = 0;
   let skipped = 0;
 
-  for (const item of items) {
+  for (const item of itemsWithoutCategories) {
     const taxonomy = (item.specs as any)?.taxonomy;
     const primaryFunction = taxonomy?.primary_function;
 
@@ -106,11 +113,14 @@ async function main() {
       continue;
     }
 
-    // Update item
-    const { error: updateError } = await supabase
-      .from('items')
-      .update({ category_id: category.id })
-      .eq('id', item.id);
+    const { error: updateError } = await supabase.from('item_category_links').upsert(
+      {
+        item_id: item.id,
+        category_id: category.id,
+        relevance_score: 1,
+      },
+      { onConflict: 'item_id,category_id' }
+    );
 
     if (updateError) {
       console.error(`❌ ${item.name}: Update failed:`, updateError);
@@ -125,7 +135,7 @@ async function main() {
   console.log(`\n📊 Summary:`);
   console.log(`   Updated: ${updated}`);
   console.log(`   Skipped: ${skipped}`);
-  console.log(`   Total: ${items.length}`);
+  console.log(`   Total: ${itemsWithoutCategories.length}`);
 }
 
 main().catch(console.error);

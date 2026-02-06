@@ -28,42 +28,97 @@ const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
 const offset = (page - 1) * ITEMS_PER_PAGE;
 
 // First get total count (software tools only)
-let countQuery = supabase
-  .from('tools')
-  .select('id', { count: 'exact', head: true })
-  .eq('type', 'tool');
+let totalCount = 0;
+let categoryRecord: { id: string; name: string; slug: string } | null = null;
 
 if (categoryFilter) {
-  countQuery = countQuery.eq('category_id', categoryFilter);
-}
+  const { data: category } = await supabase
+    .from('categories')
+    .select('id, name, slug')
+    .eq('slug', categoryFilter)
+    .maybeSingle();
+  categoryRecord = category || null;
 
-const { count: totalCount } = await countQuery;
+  if (categoryRecord) {
+    const { count } = await supabase
+      .from('item_category_links')
+      .select('id, item:items!inner(type)', { count: 'exact', head: true })
+      .eq('category_id', categoryRecord.id)
+      .eq('item.type', 'tool');
+    totalCount = count || 0;
+  }
+} else {
+  const { count } = await supabase
+    .from('tools')
+    .select('id', { count: 'exact', head: true })
+    .eq('type', 'tool');
+  totalCount = count || 0;
+}
 const totalPages = Math.ceil((totalCount || 0) / ITEMS_PER_PAGE);
 
 // Fetch tools with pagination (software tools only)
-let query = supabase
-  .from('tools')
-  .select(
+let tools: any[] = [];
+
+if (categoryFilter && categoryRecord) {
+  let query = supabase
+    .from('item_category_links')
+    .select(
+      `
+      relevance_score,
+      item:items(
+        id, name, slug, logo_url, short_description, avg_score, pricing_type, type
+      )
     `
-    id, name, slug, logo_url, short_description, avg_score, pricing_type, type,
-    category:categories${categoryFilter ? '!inner' : ''}(name, slug)
-  `
-  )
-  .eq('type', 'tool');
+    )
+    .eq('category_id', categoryRecord.id)
+    .eq('item.type', 'tool');
 
-if (categoryFilter) {
-  query = query.eq('category.slug', categoryFilter);
+  if (sortBy === 'score') {
+    query = query.order('avg_score', { ascending: false, nullsFirst: false, foreignTable: 'item' });
+  } else if (sortBy === 'name') {
+    query = query.order('name', { ascending: true, foreignTable: 'item' });
+  } else if (sortBy === 'newest') {
+    query = query.order('created_at', { ascending: false, foreignTable: 'item' });
+  }
+
+  const { data } = await query.range(offset, offset + ITEMS_PER_PAGE - 1);
+  tools = (data || [])
+    .map((link: any) => link.item)
+    .filter(Boolean)
+    .map((tool: any) => ({
+      ...tool,
+      category: categoryRecord,
+    }));
+} else {
+  let query = supabase
+    .from('tools')
+    .select(
+      `
+      id, name, slug, logo_url, short_description, avg_score, pricing_type, type,
+      item_category_links(
+        relevance_score,
+        category:categories(name, slug)
+      )
+    `
+    )
+    .eq('type', 'tool')
+    .order('relevance_score', { foreignTable: 'item_category_links', ascending: false })
+    .limit(1, { foreignTable: 'item_category_links' });
+
+  if (sortBy === 'score') {
+    query = query.order('avg_score', { ascending: false, nullsFirst: false });
+  } else if (sortBy === 'name') {
+    query = query.order('name', { ascending: true });
+  } else if (sortBy === 'newest') {
+    query = query.order('created_at', { ascending: false });
+  }
+
+  const { data } = await query.range(offset, offset + ITEMS_PER_PAGE - 1);
+  tools = (data || []).map((tool: any) => ({
+    ...tool,
+    category: tool.item_category_links?.[0]?.category || null,
+  }));
 }
-
-if (sortBy === 'score') {
-  query = query.order('avg_score', { ascending: false, nullsFirst: false });
-} else if (sortBy === 'name') {
-  query = query.order('name', { ascending: true });
-} else if (sortBy === 'newest') {
-  query = query.order('created_at', { ascending: false });
-}
-
-const { data: tools } = await query.range(offset, offset + ITEMS_PER_PAGE - 1);
 const categories = await getCategories();
 
 // Build page URL helper

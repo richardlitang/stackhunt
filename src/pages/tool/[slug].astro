@@ -136,7 +136,14 @@ const { data: alternatives } =
     ? await supabase
         .from('items')
         .select(
-          'id, name, slug, logo_url, short_description, avg_score, pricing_type, learning_curve, base_score, specs, category_id, metadata'
+          `
+          id, name, slug, logo_url, short_description, avg_score, pricing_type, learning_curve,
+          base_score, specs, metadata,
+          item_category_links(
+            relevance_score,
+            category:categories(id, slug, name)
+          )
+        `
         )
         .in('id', alternativeIds)
         .eq('type', 'tool')
@@ -193,6 +200,9 @@ if (altSlugs.length > 0) {
     }
   }
 }
+
+const getPrimaryCategoryId = (item: any) =>
+  item?.category?.id || item?.item_category_links?.[0]?.category?.id || null;
 
 const sourceDomains = firstReview?.sources
   ? [
@@ -1162,8 +1172,8 @@ const hasFAQ = faqItems.length > 0;
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {orderedAlternatives.map((alt) => {
               const canCompare = areToolsComparable(
-                { slug: tool.slug, category_id: tool.category_id, metadata: tool.metadata as any },
-                { slug: alt.slug, category_id: alt.category_id, metadata: alt.metadata as any }
+                { slug: tool.slug, category_id: getPrimaryCategoryId(tool), metadata: tool.metadata as any },
+                { slug: alt.slug, category_id: getPrimaryCategoryId(alt), metadata: alt.metadata as any }
               );
               return (
                 <AlternativeCard

@@ -80,14 +80,20 @@ export const GET: APIRoute = async ({ request }) => {
       .eq('type', 'function');
 
     const { data: toolCounts } = await admin
-      .from('tools')
-      .select('category_id')
-      .not('category_id', 'is', null);
+      .from('item_category_links')
+      .select('category_id, item:items!inner(id, type)')
+      .eq('item.type', 'tool');
 
     // Find underserved categories
     const categoryCounts: Record<string, number> = {};
-    for (const tool of toolCounts || []) {
-      categoryCounts[tool.category_id] = (categoryCounts[tool.category_id] || 0) + 1;
+    const seen = new Set<string>();
+    for (const link of toolCounts || []) {
+      if (!link.category_id) continue;
+      const itemId = (link.item as { id?: string } | null)?.id;
+      const key = itemId ? `${link.category_id}:${itemId}` : link.category_id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      categoryCounts[link.category_id] = (categoryCounts[link.category_id] || 0) + 1;
     }
 
     // 3. Find stale content needing refresh
