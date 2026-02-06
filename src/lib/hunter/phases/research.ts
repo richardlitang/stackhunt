@@ -13,6 +13,7 @@ import type { KnowledgeCard } from '../../knowledge-card';
 import type { HunterContext, HunterDependencies, ResearchOutput } from '../types';
 import { detectDefunctTool, extractSearchSnippets } from '../services/defunct-detector.js';
 import { normalizeCategory } from '../validation/category-validator.js';
+import { buildSnippetBucketsFromScout } from '../utils.js';
 
 /**
  * Execute the Research Phase
@@ -57,7 +58,7 @@ export async function executeResearchPhase(
           ctx.researchDossier?.scout_queries // Pass dossier queries to Serper
         );
 
-  deps.log(`Scout completed: ${scoutResult.sources.length} sources found`);
+  deps.log(`Scout completed: ${scoutResult.raw_sources.length} sources found`);
 
   // Step 1.5: Name Collision Detection (prevent mixing data from different companies)
   const { detectNameCollision, filterConflictingSources } =
@@ -66,7 +67,12 @@ export async function executeResearchPhase(
   const collisionCheck = detectNameCollision(
     ctx.toolName,
     ctx.website || '', // Expected domain from classification
-    scoutResult.sources,
+    scoutResult.raw_sources.map((source) => ({
+      url: source.url,
+      title: source.title,
+      snippet: source.snippet,
+      domain: source.domain,
+    })),
     [], // Will check categories after extraction
     ctx.classification?.category // Expected category from classification
   );
@@ -88,13 +94,22 @@ export async function executeResearchPhase(
     }
 
     // Filter out conflicting sources
-    const originalCount = scoutResult.sources.length;
-    scoutResult.sources = filterConflictingSources(
-      scoutResult.sources,
+    const originalCount = scoutResult.raw_sources.length;
+    const filtered = filterConflictingSources(
+      scoutResult.raw_sources.map((source) => ({
+        url: source.url,
+        title: source.title,
+        snippet: source.snippet,
+        domain: source.domain,
+      })),
       collisionCheck.primaryDomain,
       collisionCheck.conflictingDomains
     );
-    const filteredCount = originalCount - scoutResult.sources.length;
+    const filteredUrls = new Set(filtered.map((source) => source.url));
+    scoutResult.raw_sources = scoutResult.raw_sources.filter((source) =>
+      filteredUrls.has(source.url)
+    );
+    const filteredCount = originalCount - scoutResult.raw_sources.length;
     if (filteredCount > 0) {
       deps.log(`[Name Collision] Filtered ${filteredCount} sources from conflicting domains`);
     }
@@ -104,7 +119,12 @@ export async function executeResearchPhase(
 
   // Step 1.6: Check if tool is defunct (save API costs on dead tools)
   if (ctx.huntType !== 'price_only') {
-    const searchSnippets = extractSearchSnippets(scoutResult.sources);
+    const searchSnippets = extractSearchSnippets(
+      scoutResult.raw_sources.map((source) => ({
+        snippet: source.snippet,
+        title: source.title,
+      }))
+    );
     const defunctStatus = await detectDefunctTool(ctx.toolName, searchSnippets);
 
     if (defunctStatus.isDefunct && defunctStatus.confidence === 'high') {
@@ -123,16 +143,17 @@ export async function executeResearchPhase(
   }
 
   // Step 2: Extract structured facts (Pass 1 - The Librarian + Forensic Accountant + Investigator + Corporate Profiler)
+  const snippetBuckets = buildSnippetBucketsFromScout(scoutResult.raw_sources);
   const { knowledgeCard, tokensUsed } = await deps.gemini.extractKnowledgeCard(
     {
       toolName: ctx.toolName,
       contextTitle: ctx.contextTitle, // Pass context for audience-aware extraction
-      reviewsSnippets: scoutResult.reviewsSnippets,
-      pricingSnippets: scoutResult.pricingSnippets,
-      alternativesSnippets: scoutResult.alternativesSnippets,
-      companySnippets: scoutResult.companySnippets,
-      technicalSnippets: scoutResult.technicalSnippets,
-      corporateProfilerSnippets: scoutResult.corporateProfilerSnippets, // V4: Crunchbase/LinkedIn/stock data
+      reviewsSnippets: snippetBuckets.reviewsSnippets,
+      pricingSnippets: snippetBuckets.pricingSnippets,
+      alternativesSnippets: snippetBuckets.alternativesSnippets,
+      companySnippets: snippetBuckets.companySnippets,
+      technicalSnippets: snippetBuckets.technicalSnippets,
+      corporateProfilerSnippets: [],
       pricingDeepContent: scoutResult.pricingDeepContent, // Full page content from pricing pages
     },
     deps.withRetry,
@@ -191,7 +212,12 @@ export async function executeResearchPhase(
     const domainValidation = validateExtractedDomain(
       ctx.toolName,
       knowledgeCard.website,
-      scoutResult.sources,
+      scoutResult.raw_sources.map((source) => ({
+        url: source.url,
+        title: source.title,
+        snippet: source.snippet,
+        domain: source.domain,
+      })),
       collisionCheck.primaryDomain
     );
 
@@ -206,7 +232,7 @@ export async function executeResearchPhase(
         // Find conflicting domains to filter out
         const conflicting = Array.from(
           new Set(
-            scoutResult.sources
+            scoutResult.raw_sources
               .map((s) => s.domain)
               .filter((d) => {
                 const domainLower = d.toLowerCase();
@@ -221,14 +247,23 @@ export async function executeResearchPhase(
         );
 
         if (conflicting.length > 0) {
-          const originalCount = scoutResult.sources.length;
-          scoutResult.sources = filterConflictingSources(
-            scoutResult.sources,
+          const originalCount = scoutResult.raw_sources.length;
+          const filtered = filterConflictingSources(
+            scoutResult.raw_sources.map((source) => ({
+              url: source.url,
+              title: source.title,
+              snippet: source.snippet,
+              domain: source.domain,
+            })),
             domainValidation.correctDomain,
             conflicting
           );
+          const filteredUrls = new Set(filtered.map((source) => source.url));
+          scoutResult.raw_sources = scoutResult.raw_sources.filter((source) =>
+            filteredUrls.has(source.url)
+          );
           deps.log(
-            `[Domain Validation] Filtered ${originalCount - scoutResult.sources.length} sources from: ${conflicting.join(', ')}`
+            `[Domain Validation] Filtered ${originalCount - scoutResult.raw_sources.length} sources from: ${conflicting.join(', ')}`
           );
           deps.log(
             `[Domain Validation] ⚠️  WARNING: Data was extracted from mixed sources. Consider re-running extraction.`
@@ -469,16 +504,12 @@ export async function executeResearchPhase(
     deps.log(`⚠️ Duplicate detected: "${ctx.toolName}" already exists (id: ${existingTool.id})`);
     return {
       scoutResult: {
-        reviewsSnippets: scoutResult.reviewsSnippets,
-        pricingSnippets: scoutResult.pricingSnippets,
-        alternativesSnippets: scoutResult.alternativesSnippets,
-        companySnippets: scoutResult.companySnippets,
-        technicalSnippets: scoutResult.technicalSnippets,
-        budgetAnalystSnippets: scoutResult.budgetAnalystSnippets,
-        tribalKnowledgeSnippets: scoutResult.tribalKnowledgeSnippets,
-        tribalDeepContent: scoutResult.tribalDeepContent,
+        raw_sources: scoutResult.raw_sources,
+        curated_sources: scoutResult.curated_sources,
+        facts: scoutResult.facts,
+        scrape_plan: scoutResult.scrape_plan,
+        quality: scoutResult.quality,
         faqs: scoutResult.faqs,
-        sources: scoutResult.sources,
       },
       knowledgeCard,
       tokensUsed,
@@ -497,16 +528,12 @@ export async function executeResearchPhase(
 
   return {
     scoutResult: {
-      reviewsSnippets: scoutResult.reviewsSnippets,
-      pricingSnippets: scoutResult.pricingSnippets,
-      alternativesSnippets: scoutResult.alternativesSnippets,
-      companySnippets: scoutResult.companySnippets,
-      technicalSnippets: scoutResult.technicalSnippets,
-      budgetAnalystSnippets: scoutResult.budgetAnalystSnippets,
-      tribalKnowledgeSnippets: scoutResult.tribalKnowledgeSnippets,
-      tribalDeepContent: scoutResult.tribalDeepContent,
+      raw_sources: scoutResult.raw_sources,
+      curated_sources: scoutResult.curated_sources,
+      facts: scoutResult.facts,
+      scrape_plan: scoutResult.scrape_plan,
+      quality: scoutResult.quality,
       faqs: scoutResult.faqs,
-      sources: scoutResult.sources,
     },
     knowledgeCard,
     tokensUsed,

@@ -7,6 +7,8 @@
  * @module hunter/utils/scraper
  */
 
+import type { SourcePolicyGate } from '../services/source-policy';
+
 export interface ScrapeResult {
   url: string;
   content: string | null;
@@ -33,7 +35,20 @@ const SCRAPER_CACHE = new Map<string, { expiresAt: number; content: string | nul
  * @param timeoutMs - Timeout in milliseconds (default 10s)
  * @returns Markdown content or null on failure
  */
-export async function scrapeUrl(url: string, timeoutMs = 10000): Promise<string | null> {
+export async function scrapeUrl(
+  url: string,
+  timeoutMs = 10000,
+  policy?: SourcePolicyGate | null
+): Promise<string | null> {
+  if (!policy) {
+    console.warn(`[Scraper] Blocked (no policy) for ${url}`);
+    return null;
+  }
+  if (policy.acquisition_mode !== 'SCRAPE_ALLOWED' || policy.llm_ingestion_allowed === 'NO') {
+    console.warn(`[Scraper] Blocked (policy) for ${url}`);
+    return null;
+  }
+
   if (SCRAPER_CACHE_TTL_MS > 0) {
     const cached = SCRAPER_CACHE.get(url);
     if (cached && cached.expiresAt > Date.now()) {
@@ -65,7 +80,10 @@ export async function scrapeUrl(url: string, timeoutMs = 10000): Promise<string 
     const text = await response.text();
 
     // Truncate massive pages (save tokens, Gemini Flash handles it but costs add up)
-    const maxLength = 50000;
+    const maxLength =
+      typeof policy.max_chars_ingested === 'number' && policy.max_chars_ingested > 0
+        ? policy.max_chars_ingested
+        : 50000;
     if (text.length > maxLength) {
       return text.substring(0, maxLength) + '\n...[TRUNCATED]';
     }

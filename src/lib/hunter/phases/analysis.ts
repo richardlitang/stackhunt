@@ -10,7 +10,7 @@
  */
 
 import type { HunterContext, HunterDependencies, AnalysisOutput } from '../types';
-import { buildFactSummary, interpolateTemplate, classifySourceType } from '../utils';
+import { buildFactSummary, interpolateTemplate, classifySourceType, buildSnippetBucketsFromScout } from '../utils';
 import {
   SYNTHESIS_PROMPT,
   buildCategoryExtractionFields,
@@ -87,7 +87,7 @@ export async function executeAnalysisPhase(
       ].join('\n')
     )
     .join('\n');
-  const faqSourcePool = (ctx.research.scoutResult.sources || [])
+  const faqSourcePool = (ctx.research.scoutResult.raw_sources || [])
     .slice(0, 20)
     .map((source) =>
       [
@@ -99,6 +99,8 @@ export async function executeAnalysisPhase(
     )
     .join('\n');
 
+  const snippetBuckets = buildSnippetBucketsFromScout(ctx.research.scoutResult.raw_sources);
+
   // Step 7: Interpolate prompt variables
   const interpolatedPrompt = interpolateTemplate(promptTemplate, {
     toolName: ctx.toolName,
@@ -106,12 +108,12 @@ export async function executeAnalysisPhase(
     existingFunctions: existingCategories.functions.join(', ') || 'None yet',
     existingAudiences: existingCategories.audiences.join(', ') || 'None yet',
     existingPlatforms: existingCategories.platforms.join(', ') || 'None yet',
-    reviewsSnippets: ctx.research.scoutResult.reviewsSnippets.join('\n'),
-    pricingSnippets: ctx.research.scoutResult.pricingSnippets.join('\n'),
-    alternativesSnippets: ctx.research.scoutResult.alternativesSnippets.join('\n'),
-    budgetAnalystSnippets: ctx.research.scoutResult.budgetAnalystSnippets.join('\n'),
-    tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets.join('\n'),
-    tribalDeepContent: ctx.research.scoutResult.tribalDeepContent || '',
+    reviewsSnippets: snippetBuckets.reviewsSnippets.join('\n'),
+    pricingSnippets: snippetBuckets.pricingSnippets.join('\n'),
+    alternativesSnippets: snippetBuckets.alternativesSnippets.join('\n'),
+    budgetAnalystSnippets: snippetBuckets.budgetAnalystSnippets.join('\n'),
+    tribalKnowledgeSnippets: snippetBuckets.tribalKnowledgeSnippets.join('\n'),
+    tribalDeepContent: '',
     knowledgeCardFacts: factSummary,
     existingContentBaseline: existingContentBaseline || 'None',
     faqCandidates: faqCandidates || 'None',
@@ -123,12 +125,12 @@ export async function executeAnalysisPhase(
     {
       toolName: ctx.toolName,
       contextTitle: ctx.contextTitle,
-      reviewsSnippets: ctx.research.scoutResult.reviewsSnippets,
-      pricingSnippets: ctx.research.scoutResult.pricingSnippets,
-      alternativesSnippets: ctx.research.scoutResult.alternativesSnippets,
-      budgetAnalystSnippets: ctx.research.scoutResult.budgetAnalystSnippets,
-      tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets,
-      tribalDeepContent: ctx.research.scoutResult.tribalDeepContent,
+      reviewsSnippets: snippetBuckets.reviewsSnippets,
+      pricingSnippets: snippetBuckets.pricingSnippets,
+      alternativesSnippets: snippetBuckets.alternativesSnippets,
+      budgetAnalystSnippets: snippetBuckets.budgetAnalystSnippets,
+      tribalKnowledgeSnippets: snippetBuckets.tribalKnowledgeSnippets,
+      tribalDeepContent: undefined,
       knowledgeCardFacts: factSummary,
       existingCategories,
       promptTemplate: interpolatedPrompt,

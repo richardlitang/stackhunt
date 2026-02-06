@@ -267,8 +267,9 @@ export class GeminiService {
       return geminiCircuit.execute(async () => {
         try {
           return await this.client.models.embedContent({
-            model: 'text-embedding-004',
+            model: 'gemini-embedding-001',
             contents: text,
+            outputDimensionality: 768,
           });
         } catch (error) {
           throw classifyGeminiError(error);
@@ -277,6 +278,14 @@ export class GeminiService {
     };
     const response = withRetry ? await withRetry(embedFn, 'Gemini embedding') : await embedFn();
 
-    return response.embeddings[0].values;
+    const values = response.embeddings[0].values;
+    if (values.length === 768) {
+      const norm = Math.sqrt(values.reduce((sum, v) => sum + v * v, 0));
+      if (norm > 0) {
+        return values.map((v) => v / norm);
+      }
+    }
+
+    return values;
   }
 }

@@ -7,14 +7,46 @@
  */
 
 import axios from 'axios';
-import type { SerperResponse } from '../types';
+import type {
+  CuratedSources,
+  RawSource,
+  ScoutFacts,
+  ScoutQuality,
+  ScrapePlan,
+  SerperResponse,
+  SourceIntent,
+} from '../types';
 import { classifySerperError } from '../errors';
-import { scrapeUrl, identifyPricingUrls } from '../utils/scraper';
+import { scrapeUrl } from '../utils/scraper';
+import type { SourcePolicyGate } from './source-policy';
 import { serperRateLimiter } from './rate-limiter';
+import { rankSources } from './source-ranking';
 import { serperCircuit } from './circuit-breaker';
+
+type QueryType =
+  | 'reviews'
+  | 'pricing'
+  | 'pricing_compare'
+  | 'alternatives'
+  | 'company'
+  | 'technical'
+  | 'release_notes'
+  | 'budget_hidden'
+  | 'budget_setup'
+  | 'forums'
+  | 'tribal_reddit_hate'
+  | 'tribal_hn_pricing'
+  | 'tribal_reddit_vs'
+  | 'tribal_reddit_gotchas'
+  | 'corp_profiler'
+  | 'dossier';
 
 export interface SerperConfig {
   apiKey: string;
+  policyProvider?: {
+    getPolicyGate: (url: string) => Promise<SourcePolicyGate | null>;
+    recordUnknownDomain: (domain: string, sampleUrl?: string, sampleTitle?: string) => Promise<void>;
+  };
 }
 
 export interface VideoResult {
@@ -25,32 +57,14 @@ export interface VideoResult {
 }
 
 export interface SearchResult {
-  reviewsSnippets: string[];
-  pricingSnippets: string[];
-  alternativesSnippets: string[];
-  companySnippets: string[]; // Company info, funding, history
-  technicalSnippets: string[]; // API, export, integrations
-  // V3.1: Tribal Knowledge Snippets (The "Human Touch")
-  budgetAnalystSnippets: string[]; // Hidden costs, billing logic, implementation fees
-  tribalKnowledgeSnippets: string[]; // Reddit reviews, honest feedback, power tips, "worth it" discussions
-  // V4: Corporate Profiler Snippets (prevents employee count hallucination)
-  corporateProfilerSnippets: string[]; // Crunchbase, LinkedIn, stock ticker, official company data
-  rawResponses: SerperResponse[];
-  sources: Array<{
-    url: string;
-    title: string;
-    snippet: string;
-    domain: string;
-    retrieved_at?: string;
-    published_at?: string;
-    time_since?: string;
-  }>;
+  raw_sources: RawSource[];
+  curated_sources: CuratedSources;
+  scrape_plan: ScrapePlan;
+  facts: ScoutFacts;
+  quality: ScoutQuality;
   video?: VideoResult;
-  // Deep-dive content for pricing pages (full markdown, not just snippets)
+  // Internal use: deep-dive content for pricing pages (not stored in scout output)
   pricingDeepContent?: string;
-  // V6: Deep-dive content for tribal threads (full Reddit/HN discussions, not snippets)
-  // The "Source Resolution" fix - actual content instead of 160-char snippets
-  tribalDeepContent?: string;
   faqs?: Array<{
     question: string;
     answer: string;
@@ -61,9 +75,11 @@ export interface SearchResult {
 
 export class SerperService {
   private apiKey: string;
+  private policyProvider?: SerperConfig['policyProvider'];
 
   constructor(config: SerperConfig) {
     this.apiKey = config.apiKey;
+    this.policyProvider = config.policyProvider;
   }
 
   private static cache = new Map<string, { expiresAt: number; value: SerperResponse }>();
@@ -249,24 +265,6 @@ export class SerperService {
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
     dossierQueries?: string[] // NEW: Pre-generated queries from Classifier's Research Dossier
   ): Promise<SearchResult> {
-    type QueryType =
-      | 'reviews'
-      | 'pricing'
-      | 'pricing_compare'
-      | 'alternatives'
-      | 'company'
-      | 'technical'
-      | 'release_notes'
-      | 'budget_hidden'
-      | 'budget_setup'
-      | 'forums'
-      | 'tribal_reddit_hate'
-      | 'tribal_hn_pricing'
-      | 'tribal_reddit_vs'
-      | 'tribal_reddit_gotchas'
-      | 'corp_profiler'
-      | 'dossier';
-
     const classifyDossierQuery = (query: string): QueryType => {
       const q = query.toLowerCase();
       if (
@@ -433,23 +431,14 @@ export class SerperService {
 
     // Extract sources for storage (deduplicated by URL)
     const retrievedAt = new Date().toISOString();
-    const sourceMap = new Map<
-      string,
-      {
-        url: string;
-        title: string;
-        snippet: string;
-        domain: string;
-        retrieved_at: string;
-        published_at?: string;
-        time_since?: string;
-      }
-    >();
+    const sourceMap = new Map<string, RawSource>();
     for (const response of results) {
       for (const result of response.organic?.slice(0, 5) || []) {
         if (!sourceMap.has(result.link)) {
           try {
             const domain = new URL(result.link).hostname.replace(/^www\./, '');
+            const policyDecision = await this.getPolicyDecision(result.link, result.title);
+            const gate = policyDecision?.gate;
             sourceMap.set(result.link, {
               url: result.link,
               title: result.title,
@@ -457,7 +446,16 @@ export class SerperService {
               domain,
               retrieved_at: retrievedAt,
               published_at: (result as any).date || (result as any).dateString || undefined,
-              time_since: (result as any).timeSince || undefined,
+              canonical_url: canonicalizeUrl(result.link),
+              source_type: classifyScoutSourceType(result.link, undefined),
+              intent_tags: [],
+              policy: {
+                acquisition_mode: gate?.acquisition_mode || 'LINK_ONLY',
+                llm_ingestion_allowed: gate?.llm_ingestion_allowed || 'NO',
+                display_mode: gate?.display_mode || 'LINK_ONLY',
+                reason: policyDecision?.blockReason || (gate ? undefined : 'policy_missing'),
+                policy_version: gate?.policy_version || undefined,
+              },
             });
           } catch {
             // Skip invalid URLs
@@ -475,12 +473,6 @@ export class SerperService {
         resultsByType.set(plan.type, bucket);
       }
     });
-
-    const getSnippetsForTypes = (types: QueryType[]) =>
-      types.flatMap((type) => (resultsByType.get(type) || []).flatMap(extractSnippets));
-
-    const getOrganicForTypes = (types: QueryType[]) =>
-      types.flatMap((type) => (resultsByType.get(type) || []).flatMap((r) => r.organic || []));
 
     const cleanText = (value: string): string => value.replace(/\s+/g, ' ').trim();
     const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -578,6 +570,7 @@ export class SerperService {
     }
 
     const sources = Array.from(sourceMap.values());
+    const sourcesByUrl = new Map(sources.map((s) => [s.url, s]));
     for (const source of sources) {
       if (source.domain.includes('reddit.com')) {
         addFaqCandidate({
@@ -619,16 +612,75 @@ export class SerperService {
 
     const faqs = dedupedFaqs.slice(0, 5);
 
-    // DEEP DIVE: Scrape pricing pages for full content
-    const pricingResults = getOrganicForTypes(['pricing', 'pricing_compare']);
-    const pricingUrls = identifyPricingUrls(pricingResults, coreSnippets.length >= 24 ? 2 : 3);
+    const defaultIntentTags = (source: RawSource, type: QueryType): SourceIntent[] => {
+      switch (type) {
+        case 'pricing':
+        case 'pricing_compare':
+        case 'budget_hidden':
+        case 'budget_setup':
+          return ['pricing'];
+        case 'technical':
+          return ['integrations', 'portability', 'limits'];
+        case 'release_notes':
+          return ['limits'];
+        case 'alternatives':
+          return ['alternatives'];
+        case 'reviews':
+        case 'tribal_reddit_hate':
+        case 'tribal_reddit_vs':
+        case 'tribal_reddit_gotchas':
+        case 'tribal_hn_pricing':
+        case 'forums':
+          return ['reviews'];
+        case 'company':
+        case 'corp_profiler':
+        case 'dossier':
+        default:
+          return [];
+      }
+    };
+
+    const addIntentTags = (type: QueryType, resultsForType: SerperResponse[]) => {
+      for (const response of resultsForType) {
+        for (const result of response.organic || []) {
+          const existing = sourcesByUrl.get(result.link);
+          if (!existing) continue;
+          const tags = defaultIntentTags(existing, type);
+          if (tags.length === 0) continue;
+          const merged = new Set(existing.intent_tags);
+          tags.forEach((tag) => merged.add(tag));
+          existing.intent_tags = Array.from(merged);
+        }
+      }
+    };
+
+    resultsByType.forEach((responses, type) => addIntentTags(type, responses));
+
+    const toolHostHint = detectToolHostHint(sources, toolName);
+    for (const source of sources) {
+      source.source_type = classifyScoutSourceType(source.url, toolHostHint || undefined);
+      if (source.intent_tags.length === 0) {
+        source.intent_tags = inferIntentTags(source.url, source.title);
+      }
+    }
+
+    const curated_sources = await buildCuratedSources(
+      sources,
+      toolHostHint || undefined,
+      toolName,
+      (url) => this.getPolicyGate(url)
+    );
+
+    const scrape_plan = buildScrapePlan(curated_sources, sources);
 
     let pricingDeepContent: string | undefined;
-    if (pricingUrls.length > 0) {
-      console.log(`[Serper] Deep diving into ${pricingUrls.length} pricing pages...`);
+    const pricingSelected = scrape_plan.pricing?.selected || [];
+    if (pricingSelected.length > 0) {
+      console.log(`[Serper] Deep diving into ${pricingSelected.length} pricing pages...`);
       const scrapedPages = await Promise.all(
-        pricingUrls.map(async (url) => {
-          const content = await scrapeUrl(url);
+        pricingSelected.map(async (url) => {
+          const policyGate = await this.getPolicyGate(url);
+          const content = await scrapeUrl(url, 10000, policyGate);
           if (content) {
             return `\n=== PRICING PAGE: ${url} ===\n${content}\n`;
           }
@@ -640,94 +692,64 @@ export class SerperService {
       if (validContent) {
         pricingDeepContent = validContent;
         console.log(
-          `[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingUrls.length} pricing pages successfully`
+          `[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingSelected.length} pricing pages successfully`
         );
       }
     }
 
-    const budgetAnalystSnippets = getSnippetsForTypes(['budget_hidden', 'budget_setup']);
-
-    const tribalKnowledgeSnippets = getSnippetsForTypes([
-      'tribal_reddit_hate',
-      'tribal_hn_pricing',
-      'tribal_reddit_vs',
-      'tribal_reddit_gotchas',
-    ]);
-
-    // DEEP DIVE: Scrape tribal threads for FULL discussions (not snippets)
-    // This is the "Source Resolution" fix - we need actual content, not 160-char snippets
-    const tribalResults = getOrganicForTypes([
-      'tribal_reddit_hate',
-      'tribal_hn_pricing',
-      'tribal_reddit_vs',
-      'tribal_reddit_gotchas',
-    ]);
-
-    // Filter to ONLY reddit.com and news.ycombinator.com (the nerds, not marketers)
-    const tribalUrls = tribalResults
-      .filter((result) => {
-        try {
-          const domain = new URL(result.link).hostname;
-          return domain.includes('reddit.com') || domain.includes('ycombinator.com');
-        } catch {
-          return false;
-        }
-      })
-      .slice(0, 7) // Top 7 tribal sources for better source diversity
-      .map((r) => r.link);
-
-    let tribalDeepContent: string | undefined;
-    const shouldDeepReadTribal = tribalUrls.length >= 2 && shouldRunSupplemental;
-    if (shouldDeepReadTribal) {
-      console.log(`[Serper] Deep reading ${tribalUrls.length} tribal threads (Reddit/HN)...`);
-      const scrapedThreads = await Promise.all(
-        tribalUrls.map(async (url) => {
-          const content = await scrapeUrl(url);
-          if (content) {
-            // Limit each thread to ~2000 words to avoid token explosion
-            const truncated = content.split(/\s+/).slice(0, 2000).join(' ');
-            return `\n=== TRIBAL THREAD: ${url} ===\n${truncated}\n`;
-          }
-          return null;
-        })
-      );
-
-      const validContent = scrapedThreads.filter(Boolean).join('\n');
-      if (validContent) {
-        tribalDeepContent = validContent;
-        console.log(
-          `[Serper] Scraped ${scrapedThreads.filter(Boolean).length}/${tribalUrls.length} tribal threads successfully`
-        );
-      } else {
-        console.log('[Serper] No tribal threads could be scraped, falling back to snippets');
-      }
-    }
-
-    // V4: Corporate Profiler query (employee counts, stock ticker, official data)
-    const corporateProfilerSnippets = getSnippetsForTypes(['corp_profiler']);
-
-    const reviewsSnippets = getSnippetsForTypes(['reviews', 'dossier']);
-    const pricingSnippets = getSnippetsForTypes(['pricing', 'pricing_compare']);
-    const alternativesSnippets = getSnippetsForTypes(['alternatives']);
-    const companySnippets = getSnippetsForTypes(['company']);
-    const technicalSnippets = getSnippetsForTypes(['technical', 'release_notes']);
+    const facts = buildScoutFacts(sources, curated_sources, toolName, toolHostHint || undefined);
+    const quality = buildScoutQuality(facts, curated_sources);
 
     return {
-      reviewsSnippets,
-      pricingSnippets,
-      alternativesSnippets,
-      companySnippets,
-      technicalSnippets,
-      budgetAnalystSnippets,
-      tribalKnowledgeSnippets,
-      corporateProfilerSnippets,
-      rawResponses: results,
-      sources: Array.from(sourceMap.values()),
+      raw_sources: sources,
+      curated_sources,
+      scrape_plan,
+      facts,
+      quality,
       video: video || undefined,
       pricingDeepContent,
-      tribalDeepContent, // V6: Full Reddit/HN threads (not snippets) for authentic insights
       faqs,
     };
+  }
+
+  private async getPolicyDecision(url: string, title?: string): Promise<{
+    gate: SourcePolicyGate | null;
+    isDeepScrapeAllowed: boolean;
+    blockReason?: string;
+  } | null> {
+    if (!this.policyProvider) {
+      return { gate: null, isDeepScrapeAllowed: false, blockReason: 'policy_unavailable' };
+    }
+
+    const gate = await this.policyProvider.getPolicyGate(url);
+    if (!gate) {
+      const domain = this.extractDomain(url);
+      if (domain) {
+        await this.policyProvider.recordUnknownDomain(domain, url, title);
+      }
+      return { gate: null, isDeepScrapeAllowed: false, blockReason: 'policy_missing' };
+    }
+
+    const isDeepScrapeAllowed =
+      gate.acquisition_mode === 'SCRAPE_ALLOWED' && gate.llm_ingestion_allowed !== 'NO';
+    return {
+      gate,
+      isDeepScrapeAllowed,
+      blockReason: isDeepScrapeAllowed ? undefined : 'policy_restricted',
+    };
+  }
+
+  private async getPolicyGate(url: string): Promise<SourcePolicyGate | null> {
+    if (!this.policyProvider) return null;
+    return await this.policyProvider.getPolicyGate(url);
+  }
+
+  private extractDomain(url: string): string | null {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -753,23 +775,14 @@ export class SerperService {
       response.organic?.slice(0, 5).map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
 
     const retrievedAt = new Date().toISOString();
-    const sourceMap = new Map<
-      string,
-      {
-        url: string;
-        title: string;
-        snippet: string;
-        domain: string;
-        retrieved_at: string;
-        published_at?: string;
-        time_since?: string;
-      }
-    >();
+    const sourceMap = new Map<string, RawSource>();
     for (const response of results) {
       for (const result of response.organic?.slice(0, 5) || []) {
         if (!sourceMap.has(result.link)) {
           try {
             const domain = new URL(result.link).hostname.replace(/^www\./, '');
+            const policyDecision = await this.getPolicyDecision(result.link, result.title);
+            const gate = policyDecision?.gate;
             sourceMap.set(result.link, {
               url: result.link,
               title: result.title,
@@ -777,7 +790,16 @@ export class SerperService {
               domain,
               retrieved_at: retrievedAt,
               published_at: (result as any).date || (result as any).dateString || undefined,
-              time_since: (result as any).timeSince || undefined,
+              canonical_url: canonicalizeUrl(result.link),
+              source_type: classifyScoutSourceType(result.link, undefined),
+              intent_tags: ['pricing'],
+              policy: {
+                acquisition_mode: gate?.acquisition_mode || 'LINK_ONLY',
+                llm_ingestion_allowed: gate?.llm_ingestion_allowed || 'NO',
+                display_mode: gate?.display_mode || 'LINK_ONLY',
+                reason: policyDecision?.blockReason || (gate ? undefined : 'policy_missing'),
+                policy_version: gate?.policy_version || undefined,
+              },
             });
           } catch {
             // Skip invalid URLs
@@ -785,16 +807,28 @@ export class SerperService {
         }
       }
     }
+    const sources = Array.from(sourceMap.values());
+    const toolHostHint = detectToolHostHint(sources, toolName);
+    for (const source of sources) {
+      source.source_type = classifyScoutSourceType(source.url, toolHostHint || undefined);
+    }
 
-    const pricingResults = results.flatMap((r) => r.organic || []);
-    const pricingUrls = identifyPricingUrls(pricingResults, 3);
+    const curated_sources = await buildCuratedSources(
+      sources,
+      toolHostHint || undefined,
+      toolName,
+      (url) => this.getPolicyGate(url)
+    );
 
+    const scrape_plan = buildScrapePlan(curated_sources, sources);
     let pricingDeepContent: string | undefined;
-    if (pricingUrls.length > 0) {
-      console.log(`[Serper] Deep diving into ${pricingUrls.length} pricing pages...`);
+    const pricingSelected = scrape_plan.pricing?.selected || [];
+    if (pricingSelected.length > 0) {
+      console.log(`[Serper] Deep diving into ${pricingSelected.length} pricing pages...`);
       const scrapedPages = await Promise.all(
-        pricingUrls.map(async (url) => {
-          const content = await scrapeUrl(url);
+        pricingSelected.map(async (url) => {
+          const policyGate = await this.getPolicyGate(url);
+          const content = await scrapeUrl(url, 10000, policyGate);
           if (content) {
             return `\n=== PRICING PAGE: ${url} ===\n${content}\n`;
           }
@@ -806,22 +840,20 @@ export class SerperService {
       if (validContent) {
         pricingDeepContent = validContent;
         console.log(
-          `[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingUrls.length} pricing pages successfully`
+          `[Serper] Scraped ${scrapedPages.filter(Boolean).length}/${pricingSelected.length} pricing pages successfully`
         );
       }
     }
 
+    const facts = buildScoutFacts(sources, curated_sources, toolName, toolHostHint || undefined);
+    const quality = buildScoutQuality(facts, curated_sources);
+
     return {
-      reviewsSnippets: [],
-      pricingSnippets: results.flatMap(extractSnippets),
-      alternativesSnippets: [],
-      companySnippets: [],
-      technicalSnippets: [],
-      budgetAnalystSnippets: [],
-      tribalKnowledgeSnippets: [],
-      corporateProfilerSnippets: [],
-      rawResponses: results,
-      sources: Array.from(sourceMap.values()),
+      raw_sources: sources,
+      curated_sources,
+      scrape_plan,
+      facts,
+      quality,
       pricingDeepContent,
     };
   }
@@ -847,4 +879,291 @@ export class SerperService {
       pricingSnippets: extractSnippets(results[2]),
     };
   }
+}
+
+function canonicalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.forEach((_, key) => {
+      if (key.startsWith('utm_') || key === 'ref' || key === 'source') {
+        parsed.searchParams.delete(key);
+      }
+    });
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+function detectToolHostHint(sources: RawSource[], toolName: string): string | null {
+  const toolNameLower = toolName.toLowerCase();
+  const candidates = sources
+    .map((source) => source.domain.toLowerCase())
+    .filter((domain) =>
+      domain.includes(toolNameLower) &&
+      !domain.includes('reddit') &&
+      !domain.includes('ycombinator')
+    );
+  if (candidates.length === 0) return null;
+  const counts = new Map<string, number>();
+  for (const domain of candidates) {
+    counts.set(domain, (counts.get(domain) || 0) + 1);
+  }
+  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+function classifyScoutSourceType(url: string, toolWebsite?: string): RawSource['source_type'] {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    if (toolWebsite) {
+      const toolHostname = new URL(
+        toolWebsite.startsWith('http') ? toolWebsite : `https://${toolWebsite}`
+      ).hostname.replace(/^www\./, '').toLowerCase();
+      if (hostname === toolHostname || hostname.endsWith(`.${toolHostname}`)) {
+        return 'official';
+      }
+    }
+
+    if (
+      hostname.includes('docs.') ||
+      hostname.includes('developer.') ||
+      hostname.includes('api.')
+    ) {
+      return 'docs';
+    }
+
+    if (hostname.includes('help.') || hostname.includes('support.') || hostname.includes('kb.')) {
+      return 'support';
+    }
+
+    if (hostname.includes('privacy') || hostname.includes('legal') || hostname.includes('terms')) {
+      return 'legal';
+    }
+
+    const directoryHosts = [
+      'g2.com',
+      'capterra.com',
+      'getapp.com',
+      'softwareadvice.com',
+      'trustradius.com',
+      'sourceforge.net',
+      'alternativeto.net',
+      'slant.co',
+      'crozdesk.com',
+      'saasworthy.com',
+      'financesonline.com',
+    ];
+    if (directoryHosts.some((host) => hostname === host || hostname.endsWith(`.${host}`))) {
+      return 'directory';
+    }
+
+    const communityHosts = [
+      'reddit.com',
+      'news.ycombinator.com',
+      'stackexchange.com',
+      'stackoverflow.com',
+      'quora.com',
+      'medium.com',
+      'dev.to',
+      'indiehackers.com',
+      'lobste.rs',
+      'slashdot.org',
+    ];
+    if (communityHosts.some((host) => hostname === host || hostname.endsWith(`.${host}`))) {
+      return 'community';
+    }
+
+    return 'editorial';
+  } catch {
+    return 'editorial';
+  }
+}
+
+function inferIntentTags(url: string, title: string): SourceIntent[] {
+  const haystack = `${url} ${title}`.toLowerCase();
+  const intents: SourceIntent[] = [];
+  if (/(pricing|plans|cost|subscription|billing)/.test(haystack)) intents.push('pricing');
+  if (/(security|compliance|soc|iso|gdpr|dpa|privacy)/.test(haystack)) intents.push('security');
+  if (/(export|import|csv|migration|portability)/.test(haystack)) intents.push('portability');
+  if (/(integrations|api|webhook|zapier|connect)/.test(haystack)) intents.push('integrations');
+  if (/(limits|rate|quota|cap|constraint)/.test(haystack)) intents.push('limits');
+  if (/(review|ratings|testimonial|forum|community|reddit|hn)/.test(haystack)) intents.push('reviews');
+  if (/(alternatives|competitor|vs|compare)/.test(haystack)) intents.push('alternatives');
+  return intents.length > 0 ? intents : [];
+}
+
+async function buildCuratedSources(
+  sources: RawSource[],
+  toolWebsite: string | undefined,
+  toolName: string,
+  policyLookup: (url: string) => Promise<SourcePolicyGate | null>
+): Promise<CuratedSources> {
+  const intents: SourceIntent[] = [
+    'pricing',
+    'security',
+    'portability',
+    'integrations',
+    'limits',
+    'reviews',
+    'alternatives',
+  ];
+
+  const curated: CuratedSources = {
+    pricing: [],
+    security: [],
+    portability: [],
+    integrations: [],
+    limits: [],
+    reviews: [],
+    alternatives: [],
+  };
+
+  const normalizedToolWebsite = toolWebsite
+    ? toolWebsite.startsWith('http')
+      ? toolWebsite
+      : `https://${toolWebsite}`
+    : undefined;
+
+  for (const intent of intents) {
+    const ranked = await rankSources(
+      sources.map((source) => ({
+        url: source.url,
+        title: source.title,
+        snippet: source.snippet,
+        domain: source.domain,
+        published_at: source.published_at,
+      })),
+      intent,
+      policyLookup,
+      { toolWebsite: normalizedToolWebsite, toolName }
+    );
+
+    const toolHost = normalizedToolWebsite ? extractDomain(normalizedToolWebsite) : null;
+    curated[intent] = ranked.slice(0, 5).map((source) => ({
+      url: source.url,
+      canonical_url: canonicalizeUrl(source.url),
+      domain: source.domain,
+      score: source.score,
+      authority: toolHost && source.domain === toolHost
+        ? 'A'
+        : source.deep_scrape_allowed
+          ? 'B'
+          : 'C',
+      deep_scrape_allowed: source.deep_scrape_allowed,
+      notes: source.reasons.join(', '),
+    }));
+  }
+
+  return curated;
+}
+
+function extractDomain(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function buildScrapePlan(curated: CuratedSources, sources: RawSource[]): ScrapePlan {
+  const plan: ScrapePlan = {
+    pricing: { candidates: [], selected: [], blocked: [] },
+    security: { candidates: [], selected: [], blocked: [] },
+    portability: { candidates: [], selected: [], blocked: [] },
+    integrations: { candidates: [], selected: [], blocked: [] },
+    limits: { candidates: [], selected: [], blocked: [] },
+    reviews: { candidates: [], selected: [], blocked: [] },
+    alternatives: { candidates: [], selected: [], blocked: [] },
+  };
+
+  const sourceMap = new Map(sources.map((s) => [s.url, s]));
+
+  (Object.keys(curated) as SourceIntent[]).forEach((intent) => {
+    const ranked = curated[intent] || [];
+    const candidates = ranked.map((entry) => entry.canonical_url);
+    plan[intent].candidates = candidates;
+    const selected = ranked.filter((entry) => entry.deep_scrape_allowed).slice(0, 2);
+    plan[intent].selected = selected.map((entry) => entry.canonical_url);
+    plan[intent].blocked = ranked
+      .filter((entry) => !entry.deep_scrape_allowed)
+      .map((entry) => ({
+        url: entry.canonical_url,
+        reason: sourceMap.get(entry.url)?.policy.reason || 'policy_restricted',
+      }));
+  });
+
+  return plan;
+}
+
+function buildScoutFacts(
+  sources: RawSource[],
+  curated: CuratedSources,
+  toolName: string,
+  toolWebsite?: string
+): ScoutFacts {
+  const facts: ScoutFacts = {
+    facts_ledger: [],
+  };
+
+  if (toolName) {
+    facts.identity = { official_name: toolName };
+  }
+
+  if (toolWebsite) {
+    const normalizedWebsite = toolWebsite.startsWith('http')
+      ? toolWebsite
+      : `https://${toolWebsite}`;
+    facts.identity = { ...(facts.identity || {}), website_url: normalizedWebsite };
+  }
+
+  const pricingSource = curated.pricing?.[0];
+  if (pricingSource) {
+    facts.pricing = {
+      pricing_page_url: pricingSource.url,
+    };
+    facts.facts_ledger.push({
+      key: 'pricing.pricing_page_url',
+      value: pricingSource.url,
+      confidence: 'high',
+      evidence: [{ url: pricingSource.url, domain: pricingSource.domain }],
+    });
+  }
+
+  if (facts.identity?.website_url) {
+    facts.facts_ledger.push({
+      key: 'identity.website_url',
+      value: facts.identity.website_url,
+      confidence: 'med',
+      evidence: curated.pricing?.[0]
+        ? [{ url: curated.pricing[0].url, domain: curated.pricing[0].domain }]
+        : sources.slice(0, 1).map((source) => ({ url: source.url, domain: source.domain })),
+    });
+  }
+
+  return facts;
+}
+
+function buildScoutQuality(facts: ScoutFacts, curated: CuratedSources): ScoutQuality {
+  const missing: string[] = [];
+  if (!facts.identity?.website_url) missing.push('identity.website_url');
+  if (!facts.pricing?.pricing_page_url) missing.push('pricing.pricing_page_url');
+
+  const freshness: ScoutQuality['freshness'] = {
+    pricing: 'unknown',
+    security: 'unknown',
+    portability: 'unknown',
+    integrations: 'unknown',
+    limits: 'unknown',
+    reviews: 'unknown',
+    alternatives: 'unknown',
+  };
+
+  const needs_review = missing.length > 0 || curated.pricing.length === 0;
+
+  return {
+    conflicts: [],
+    missing,
+    freshness,
+    needs_review,
+  };
 }

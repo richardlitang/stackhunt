@@ -271,35 +271,108 @@ export interface HunterContext {
   logs: string[];
 }
 
+export type SourceIntent =
+  | 'pricing'
+  | 'security'
+  | 'portability'
+  | 'integrations'
+  | 'limits'
+  | 'reviews'
+  | 'alternatives';
+
+export type ScoutSourceType =
+  | 'official'
+  | 'docs'
+  | 'support'
+  | 'legal'
+  | 'editorial'
+  | 'community'
+  | 'directory';
+
+export type RawSource = {
+  url: string;
+  title: string;
+  snippet: string;
+  domain: string;
+  published_at?: string;
+  retrieved_at: string;
+  canonical_url: string;
+  source_type: ScoutSourceType;
+  intent_tags: SourceIntent[];
+  policy: {
+    acquisition_mode: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+    llm_ingestion_allowed: 'NO' | 'YES_LIMITED' | 'YES';
+    display_mode: 'LINK_ONLY' | 'ATTRIBUTED_EXCERPT' | 'NO_DISPLAY';
+    reason?: string;
+    policy_version?: string;
+  };
+};
+
+export type CuratedSources = Record<
+  SourceIntent,
+  Array<{
+    url: string;
+    canonical_url: string;
+    domain: string;
+    score: number;
+    authority: 'A' | 'B' | 'C';
+    deep_scrape_allowed: boolean;
+    notes?: string;
+  }>
+>;
+
+export type Fact = {
+  key: string;
+  value: unknown;
+  confidence: 'high' | 'med' | 'low';
+  evidence: Array<{ url: string; domain: string }>;
+};
+
+export type ScoutFacts = {
+  identity?: { official_name?: string; website_url?: string };
+  pricing?: {
+    pricing_type?: 'freemium' | 'paid' | 'free';
+    paid_pricing_metric?: 'per_seat' | 'usage' | 'flat';
+    pricing_page_url?: string;
+  };
+  security?: { soc2?: { claimed: boolean }; gdpr?: { claimed: boolean } };
+  portability?: { export_formats?: string[]; api_export?: boolean };
+  integrations?: { has_api?: boolean; has_webhooks?: boolean; notable?: string[] };
+  facts_ledger: Fact[];
+};
+
+export type ScrapePlan = Record<
+  SourceIntent,
+  {
+    candidates: string[];
+    selected: string[];
+    blocked: Array<{ url: string; reason: string }>;
+  }
+>;
+
+export type ScoutQuality = {
+  conflicts: Array<{ key: string; values: unknown[]; sources: string[] }>;
+  missing: string[];
+  freshness: Record<SourceIntent, 'fresh' | 'stale' | 'unknown'>;
+  needs_review: boolean;
+  notes?: string[];
+};
+
 /**
  * Phase 1 (Research) Output
  */
 export interface ResearchOutput {
   scoutResult: {
-    reviewsSnippets: string[];
-    pricingSnippets: string[];
-    alternativesSnippets: string[];
-    companySnippets: string[]; // Company info, funding, history
-    technicalSnippets: string[]; // API, export, integrations
-    // V3.1: Tribal Knowledge Snippets (The "Human Touch")
-    budgetAnalystSnippets: string[]; // Hidden costs, billing logic, implementation fees
-    tribalKnowledgeSnippets: string[]; // Reddit reviews, honest feedback, power tips, "worth it" discussions
-    // V6: Deep tribal content (full discussions, not snippets)
-    tribalDeepContent?: string; // Full Reddit/HN threads for authentic insights
+    raw_sources: RawSource[];
+    curated_sources: CuratedSources;
+    facts: ScoutFacts;
+    scrape_plan: ScrapePlan;
+    quality: ScoutQuality;
     faqs?: Array<{
       question: string;
       answer: string;
       source: 'paa' | 'forum' | 'reddit';
       source_url?: string;
-    }>;
-    sources: Array<{
-      url: string;
-      title: string;
-      snippet: string;
-      domain: string;
-      retrieved_at?: string;
-      published_at?: string;
-      time_since?: string;
     }>;
   };
   knowledgeCard: KnowledgeCard;

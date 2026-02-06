@@ -8,6 +8,7 @@
  */
 
 import type { KnowledgeCard } from '../knowledge-card';
+import type { RawSource } from './types';
 
 /**
  * Convert a string to a URL-safe slug.
@@ -314,6 +315,85 @@ export function formatClaimWithHedging(
   }
 
   return claim.text;
+}
+
+export type ScoutSnippetBuckets = {
+  reviewsSnippets: string[];
+  pricingSnippets: string[];
+  alternativesSnippets: string[];
+  companySnippets: string[];
+  technicalSnippets: string[];
+  budgetAnalystSnippets: string[];
+  tribalKnowledgeSnippets: string[];
+};
+
+const DEFAULT_SNIPPET_LIMIT = 8;
+
+function formatSnippet(source: RawSource): string {
+  return `[${source.url}] ${source.title}: ${source.snippet}`;
+}
+
+function capSnippets(snippets: string[], limit = DEFAULT_SNIPPET_LIMIT): string[] {
+  return snippets.slice(0, limit);
+}
+
+export function buildSnippetBucketsFromScout(rawSources: RawSource[]): ScoutSnippetBuckets {
+  const reviews: string[] = [];
+  const pricing: string[] = [];
+  const alternatives: string[] = [];
+  const company: string[] = [];
+  const technical: string[] = [];
+  const budget: string[] = [];
+  const tribal: string[] = [];
+
+  const companyRegex = /(about|company|press|newsroom|funding|headquarters|careers|team|investor)/i;
+  const budgetRegex = /(hidden cost|billing|overage|implementation|setup fee|min seat|commitment|annual)/i;
+
+  for (const source of rawSources) {
+    const snippet = formatSnippet(source);
+    const haystack = `${source.title} ${source.snippet} ${source.url}`;
+
+    if (source.intent_tags.includes('reviews')) {
+      reviews.push(snippet);
+    }
+
+    if (source.intent_tags.includes('pricing')) {
+      pricing.push(snippet);
+      if (budgetRegex.test(haystack)) {
+        budget.push(snippet);
+      }
+    }
+
+    if (source.intent_tags.includes('alternatives')) {
+      alternatives.push(snippet);
+    }
+
+    if (
+      source.intent_tags.includes('integrations') ||
+      source.intent_tags.includes('portability') ||
+      source.intent_tags.includes('limits')
+    ) {
+      technical.push(snippet);
+    }
+
+    if (source.source_type === 'community') {
+      tribal.push(snippet);
+    }
+
+    if (companyRegex.test(haystack)) {
+      company.push(snippet);
+    }
+  }
+
+  return {
+    reviewsSnippets: capSnippets(reviews),
+    pricingSnippets: capSnippets(pricing),
+    alternativesSnippets: capSnippets(alternatives),
+    companySnippets: capSnippets(company),
+    technicalSnippets: capSnippets(technical),
+    budgetAnalystSnippets: capSnippets(budget),
+    tribalKnowledgeSnippets: capSnippets(tribal),
+  };
 }
 
 /**

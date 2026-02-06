@@ -12,7 +12,13 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
-import { SerperService, GeminiService, LogoService, QueueService } from './services';
+import {
+  SerperService,
+  GeminiService,
+  LogoService,
+  QueueService,
+  SourcePolicyService,
+} from './services';
 import { HunterLogger } from './services/logger';
 import { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';
 import type {
@@ -44,7 +50,15 @@ export class Hunter {
     });
 
     // Initialize services
-    this.serper = new SerperService({ apiKey: config.serperApiKey });
+    const sourcePolicyService = new SourcePolicyService(this.supabase);
+    this.serper = new SerperService({
+      apiKey: config.serperApiKey,
+      policyProvider: {
+        getPolicyGate: (url) => sourcePolicyService.getPolicyGate(url),
+        recordUnknownDomain: (domain, sampleUrl, sampleTitle) =>
+          sourcePolicyService.recordUnknownDomain(domain, sampleUrl, sampleTitle),
+      },
+    });
     this.gemini = new GeminiService({ apiKey: config.geminiApiKey });
     this.logo = new LogoService({ supabase: this.supabase });
     this.queue = new QueueService({ supabase: this.supabase });
@@ -192,7 +206,7 @@ export class Hunter {
         }
         this.logger?.endPhase({
           tokens_used: ctx.research.tokensUsed,
-          sources_found: ctx.research.scoutResult.sources.length,
+          sources_found: ctx.research.scoutResult.raw_sources.length,
         });
 
         // Save checkpoint after Phase 1 with version check
@@ -254,9 +268,10 @@ export class Hunter {
       // Saves research for dedup, but skips analysis if insufficient data
       if (!ctx.skipAnalysis && ctx.research && ctx.huntType !== 'price_only') {
         const scout = ctx.research.scoutResult;
-        const reviewCount = scout.reviewsSnippets.length;
-        const tribalCount = scout.tribalKnowledgeSnippets.length;
-        const pricingCount = scout.pricingSnippets.length;
+        const reviewCount = scout.curated_sources.reviews.length;
+        const tribalCount = scout.raw_sources.filter((source) => source.source_type === 'community')
+          .length;
+        const pricingCount = scout.curated_sources.pricing.length;
         const totalSnippets = reviewCount + tribalCount + pricingCount;
 
         // Thresholds for quality review generation:

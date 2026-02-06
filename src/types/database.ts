@@ -624,6 +624,63 @@ export interface ArticleInsight {
   created_at: string;
 }
 
+export interface SourcePolicyRegistry {
+  domain: string;
+  acquisition_mode: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+  storage_mode: 'URL_ONLY' | 'METADATA_ONLY' | 'SHORT_EXCERPT' | 'NO_STORE';
+  display_mode: 'LINK_ONLY' | 'ATTRIBUTED_EXCERPT' | 'NO_DISPLAY';
+  llm_ingestion_allowed: 'NO' | 'YES_LIMITED' | 'YES';
+  review_status: 'VERIFIED' | 'DEFAULT';
+  tos_url: string | null;
+  last_reviewed_at: string | null;
+  policy_version: string | null;
+  notes: string | null;
+  path_overrides: Array<{
+    path_prefix: string;
+    acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+    llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
+    notes?: string;
+  }> | null;
+  max_chars_ingested: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SourcePolicyRegistryInsert = SourcePolicyRegistry;
+export type SourcePolicyRegistryUpdate = Partial<SourcePolicyRegistry>;
+
+export interface SourcePolicyReviewQueue {
+  domain: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  count_seen: number;
+  sample_urls: string[] | null;
+  sample_titles: string[] | null;
+  suggested_tos_url: string | null;
+  status: 'OPEN' | 'TRIAGED' | 'APPROVED' | 'BLOCKED';
+  updated_at: string;
+}
+
+export type SourcePolicyReviewQueueInsert = SourcePolicyReviewQueue;
+export type SourcePolicyReviewQueueUpdate = Partial<SourcePolicyReviewQueue>;
+
+export interface Claim {
+  id: string;
+  item_id: string;
+  context_id: string | null;
+  claim_type: string;
+  value_json: Record<string, unknown> | null;
+  source_url: string | null;
+  source_domain: string | null;
+  policy_snapshot: Record<string, unknown> | null;
+  confidence: number | null;
+  intent: string | null;
+  extracted_at: string;
+}
+
+export type ClaimInsert = Omit<Claim, 'id' | 'extracted_at'> & { id?: string; extracted_at?: string };
+export type ClaimUpdate = Partial<Claim>;
+
 // V2.2: Item-Audience Fit (links items to audience categories)
 export interface ItemAudienceFit {
   id: string;
@@ -1277,6 +1334,21 @@ export interface Database {
         Row: ArticleInsight;
         Insert: ArticleInsightInsert;
         Update: ArticleInsightUpdate;
+      };
+      source_policy_registry: {
+        Row: SourcePolicyRegistry;
+        Insert: SourcePolicyRegistryInsert;
+        Update: SourcePolicyRegistryUpdate;
+      };
+      source_policy_review_queue: {
+        Row: SourcePolicyReviewQueue;
+        Insert: SourcePolicyReviewQueueInsert;
+        Update: SourcePolicyReviewQueueUpdate;
+      };
+      claims: {
+        Row: Claim;
+        Insert: ClaimInsert;
+        Update: ClaimUpdate;
       };
       affiliate_offers: {
         Row: AffiliateOffer;

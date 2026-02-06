@@ -35,3 +35,5 @@ export {
   geminiCircuit,
 } from './circuit-breaker';
 export { HunterLogger, type StructuredLogEntry, type LogLevel, type PhaseSummary } from './logger';
+export { SourcePolicyService, type SourcePolicyGate } from './source-policy';
+export { rankSources, type SourceIntent, type RankedSource } from './source-ranking';

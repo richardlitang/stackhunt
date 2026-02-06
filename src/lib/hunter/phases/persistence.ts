@@ -326,7 +326,14 @@ export async function executePersistencePhase(
   }
 
   // V6: Cynical CTO - Add veto logic and reality checks (with source validation)
-  const sources = ctx.research.scoutResult.sources;
+  const sources = ctx.research.scoutResult.raw_sources.map((source) => ({
+    url: source.url,
+    title: source.title,
+    snippet: source.snippet,
+    domain: source.domain,
+    retrieved_at: source.retrieved_at,
+    published_at: source.published_at,
+  }));
   let vettedVetos: Array<{
     condition: string;
     alternative: string;
@@ -427,7 +434,14 @@ export async function executePersistencePhase(
 
   // V4: Add pros/cons to item (not just contextual reviews)
   // This ensures every tool has pros/cons regardless of context
-  const sourcesList = ctx.research.scoutResult.sources;
+  const sourcesList = ctx.research.scoutResult.raw_sources.map((source) => ({
+    url: source.url,
+    title: source.title,
+    snippet: source.snippet,
+    domain: source.domain,
+    retrieved_at: source.retrieved_at,
+    published_at: source.published_at,
+  }));
   let normalizedPros: ClaimWithSource[] = [];
   let validCons: ClaimWithSource[] = [];
   let filteredForMissingSource = 0;
@@ -770,7 +784,14 @@ export async function executePersistencePhase(
     item.id,
     contextId,
     ctx.analysis.analysis,
-    ctx.research.scoutResult.sources,
+    ctx.research.scoutResult.raw_sources.map((source) => ({
+      url: source.url,
+      title: source.title,
+      snippet: source.snippet,
+      domain: source.domain,
+      retrieved_at: source.retrieved_at,
+      published_at: source.published_at,
+    })),
     ctx.research.knowledgeCard,
     deps
   );
@@ -1084,13 +1105,11 @@ async function persistResearchOnly(
     // Store research data for batch synthesis (will be processed later)
     research_data: {
       scoutResult: {
-        reviewsSnippets: ctx.research.scoutResult.reviewsSnippets,
-        pricingSnippets: ctx.research.scoutResult.pricingSnippets,
-        alternativesSnippets: ctx.research.scoutResult.alternativesSnippets,
-        budgetAnalystSnippets: ctx.research.scoutResult.budgetAnalystSnippets,
-        tribalKnowledgeSnippets: ctx.research.scoutResult.tribalKnowledgeSnippets,
-        tribalDeepContent: ctx.research.scoutResult.tribalDeepContent,
-        sources: ctx.research.scoutResult.sources,
+        raw_sources: ctx.research.scoutResult.raw_sources,
+        curated_sources: ctx.research.scoutResult.curated_sources,
+        facts: ctx.research.scoutResult.facts,
+        scrape_plan: ctx.research.scoutResult.scrape_plan,
+        quality: ctx.research.scoutResult.quality,
       },
       knowledgeCard,
     },
@@ -1132,7 +1151,7 @@ async function persistResearchOnly(
     slug: toolSlug,
     website: knowledgeCard?.website_url || null,
     short_description: null, // Will be filled in synthesis
-    pricing_type: knowledgeCard?.smp_pricing?.model || null,
+    pricing_type: mapSmpPricingToPricingModel(knowledgeCard?.smp_pricing?.model),
     metadata,
     specs,
     data_confidence: dataConfidence,
@@ -1178,6 +1197,16 @@ async function persistResearchOnly(
     reviewId: null,
     wasReused: false,
   };
+}
+
+function mapSmpPricingToPricingModel(
+  model?: string | null
+): 'free' | 'freemium' | 'paid' | 'enterprise' | 'open_source' | null {
+  if (!model) return null;
+  if (model === 'free') return 'free';
+  if (model === 'contact_sales') return 'enterprise';
+  if (model === 'open_source') return 'open_source';
+  return 'paid';
 }
 
 /**
@@ -1791,5 +1820,88 @@ async function createReview(
 
   if (reviewError) throw new Error(`Failed to save review: ${reviewError.message}`);
 
+  if (sources && sources.length > 0) {
+    const claimRows = buildClaimLedgerRows(
+      itemId,
+      contextId,
+      normalizedPros,
+      normalizedCons,
+      sources
+    );
+    if (claimRows.length > 0) {
+      const { error: claimsError } = await deps.supabase.from('claims').insert(claimRows);
+      if (claimsError) {
+        deps.log(`[Claims] Warning: Failed to persist claim ledger (${claimsError.message})`);
+      }
+    }
+  }
+
   return review.id;
+}
+
+function buildClaimLedgerRows(
+  itemId: string,
+  contextId: string | null,
+  pros: ClaimWithSource[],
+  cons: ClaimWithSource[],
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+    domain: string;
+    retrieved_at?: string;
+    published_at?: string;
+    time_since?: string;
+    acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+    llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
+    is_deep_scrape_allowed?: boolean;
+    block_reason?: string;
+  }>
+): Array<{
+  item_id: string;
+  context_id: string | null;
+  claim_type: string;
+  value_json: Record<string, unknown>;
+  source_url: string | null;
+  source_domain: string | null;
+  policy_snapshot: Record<string, unknown> | null;
+  confidence: number | null;
+  intent: string | null;
+  extracted_at?: string;
+}> {
+  const byUrl = new Map<string, (typeof sources)[number]>();
+  for (const source of sources) {
+    if (source.url) byUrl.set(source.url, source);
+  }
+
+  const toRow = (claim: ClaimWithSource, type: string) => {
+    const source = claim.source_url ? byUrl.get(claim.source_url) : undefined;
+    const policySnapshot = source
+      ? {
+          acquisition_mode: source.acquisition_mode,
+          llm_ingestion_allowed: source.llm_ingestion_allowed,
+          is_deep_scrape_allowed: source.is_deep_scrape_allowed,
+          block_reason: source.block_reason,
+          retrieved_at: source.retrieved_at,
+        }
+      : null;
+
+    return {
+      item_id: itemId,
+      context_id: contextId,
+      claim_type: type,
+      value_json: { text: claim.text },
+      source_url: claim.source_url || null,
+      source_domain: source?.domain || null,
+      policy_snapshot: policySnapshot,
+      confidence: null,
+      intent: 'reviews',
+      extracted_at: claim.retrieved_at || undefined,
+    };
+  };
+
+  return [
+    ...pros.map((claim) => toRow(claim, 'pro')),
+    ...cons.map((claim) => toRow(claim, 'con')),
+  ];
 }

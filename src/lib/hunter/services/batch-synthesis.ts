@@ -16,7 +16,7 @@ import {
   isFrameworkCacheable,
   type ExistingCategories,
 } from './forensic-framework.js';
-import { buildFactSummary } from '../utils.js';
+import { buildFactSummary, buildSnippetBucketsFromScout } from '../utils.js';
 import type { KnowledgeCard } from '../../knowledge-card.js';
 
 export interface BatchSynthesisInput {
@@ -25,17 +25,30 @@ export interface BatchSynthesisInput {
   contextTitle?: string;
   researchData: {
     scoutResult: {
-      reviewsSnippets: string[];
-      pricingSnippets: string[];
-      alternativesSnippets: string[];
-      budgetAnalystSnippets: string[];
-      tribalKnowledgeSnippets: string[];
-      tribalDeepContent?: string;
-      sources: Array<{
+      raw_sources: Array<{
         url: string;
         title: string;
         snippet: string;
         domain: string;
+        retrieved_at: string;
+        canonical_url: string;
+        source_type: 'official' | 'docs' | 'support' | 'legal' | 'editorial' | 'community' | 'directory';
+        intent_tags: Array<
+          | 'pricing'
+          | 'security'
+          | 'portability'
+          | 'integrations'
+          | 'limits'
+          | 'reviews'
+          | 'alternatives'
+        >;
+        policy: {
+          acquisition_mode: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+          llm_ingestion_allowed: 'NO' | 'YES_LIMITED' | 'YES';
+          display_mode: 'LINK_ONLY' | 'ATTRIBUTED_EXCERPT' | 'NO_DISPLAY';
+          reason?: string;
+          policy_version?: string;
+        };
       }>;
     };
     knowledgeCard: KnowledgeCard;
@@ -229,6 +242,7 @@ export class BatchSynthesisService {
   private buildToolPrompt(input: BatchSynthesisInput): string {
     const factSummary = buildFactSummary(input.researchData.knowledgeCard);
     const scout = input.researchData.scoutResult;
+    const snippetBuckets = buildSnippetBucketsFromScout(scout.raw_sources);
 
     return `
 TOOL: ${input.toolName}
@@ -238,29 +252,22 @@ ${input.contextTitle ? `CONTEXT: ${input.contextTitle}` : ''}
 ${factSummary}
 
 === REVIEWS & OPINIONS ===
-${scout.reviewsSnippets.join('\n')}
+${snippetBuckets.reviewsSnippets.join('\n')}
 
 === PRICING & FEATURES ===
-${scout.pricingSnippets.join('\n')}
+${snippetBuckets.pricingSnippets.join('\n')}
 
 === ALTERNATIVES & COMPARISONS ===
-${scout.alternativesSnippets.join('\n')}
+${snippetBuckets.alternativesSnippets.join('\n')}
 
 === BUDGET ANALYST (Hidden Costs) ===
-${scout.budgetAnalystSnippets.join('\n')}
+${snippetBuckets.budgetAnalystSnippets.join('\n')}
 
 === TRIBAL KNOWLEDGE (Reddit/HN) ===
-${scout.tribalKnowledgeSnippets.join('\n')}
-
-${
-  scout.tribalDeepContent
-    ? `=== DEEP TRIBAL CONTENT (Full Discussions) ===
-${scout.tribalDeepContent}`
-    : ''
-}
+${snippetBuckets.tribalKnowledgeSnippets.join('\n')}
 
 === SOURCES (Use these URLs for source_url) ===
-${scout.sources
+${scout.raw_sources
   .slice(0, 20)
   .map((s) => `- ${s.url} (${s.domain}): ${s.title}`)
   .join('\n')}
@@ -366,6 +373,7 @@ Follow these rules:
 
   const factSummary = buildFactSummary(input.researchData.knowledgeCard);
   const scout = input.researchData.scoutResult;
+  const snippetBuckets = buildSnippetBucketsFromScout(scout.raw_sources);
 
   const prompt = `${systemPrompt}
 
@@ -375,13 +383,13 @@ VERIFIED FACTS:
 ${factSummary}
 
 REVIEWS:
-${scout.reviewsSnippets.join('\n')}
+${snippetBuckets.reviewsSnippets.join('\n')}
 
 PRICING:
-${scout.pricingSnippets.join('\n')}
+${snippetBuckets.pricingSnippets.join('\n')}
 
 TRIBAL KNOWLEDGE:
-${scout.tribalKnowledgeSnippets.join('\n')}
+${snippetBuckets.tribalKnowledgeSnippets.join('\n')}
 
 Existing Knowledge Graph tags to reuse:
 - Functions: ${existingCategories.functions.join(', ')}
