@@ -32,6 +32,7 @@ export interface QueueItem {
   is_discovery_hunt?: boolean;
   context_id?: string | null;
   force_regenerate?: boolean;
+  error_details?: Record<string, unknown> | null;
   // V5: Research Dossier from Classifier (pre-generated queries + forensic targets)
   research_dossier?: {
     normalized_tool_name: string;
@@ -103,7 +104,10 @@ export class QueueService {
    */
   async markStarted(queueId: string, onLog?: (message: string) => void): Promise<void> {
     const log = onLog || (() => {});
-    await this.supabase.rpc('start_hunt', { p_queue_id: queueId });
+    const { error } = await this.supabase.rpc('start_hunt', { p_queue_id: queueId });
+    if (error) {
+      throw new Error(`Failed to mark queue item as processing: ${error.message}`);
+    }
     log(`Queue item marked as processing: ${queueId}`);
   }
 
@@ -121,15 +125,49 @@ export class QueueService {
     onLog?: (message: string) => void
   ): Promise<void> {
     const log = onLog || (() => {});
-    const { error } = await this.supabase.rpc('complete_hunt', {
+    let { error } = await this.supabase.rpc('complete_hunt', {
       p_queue_id: queueId,
       p_item_id: result.toolId || null,
       p_context_id: result.contextId || null,
       p_review_id: result.reviewId || null,
       p_tokens_used: result.tokensUsed || null,
     });
+
+    // Backward compatibility: older DB function signature uses p_tool_id.
+    if (
+      error?.message?.includes('complete_hunt') &&
+      error.message.includes('p_item_id') &&
+      error.message.includes('Could not find the function')
+    ) {
+      ({ error } = await this.supabase.rpc('complete_hunt', {
+        p_queue_id: queueId,
+        p_tool_id: result.toolId || null,
+        p_context_id: result.contextId || null,
+        p_review_id: result.reviewId || null,
+        p_tokens_used: result.tokensUsed || null,
+      }));
+    }
+
     if (error) {
-      throw new Error(`Failed to complete hunt: ${error.message}`);
+      log(`⚠️ complete_hunt RPC failed, using direct update fallback: ${error.message}`);
+      const completedAt = new Date().toISOString();
+      const { error: updateError } = await this.supabase
+        .from('hunt_queue')
+        .update({
+          status: 'completed',
+          item_id: result.toolId || null,
+          context_id: result.contextId || null,
+          review_id: result.reviewId || null,
+          tokens_used: result.tokensUsed || null,
+          completed_at: completedAt,
+          updated_at: completedAt,
+        })
+        .eq('id', queueId);
+      if (updateError) {
+        throw new Error(`Failed to complete hunt: ${updateError.message}`);
+      }
+      log(`Queue item completed (fallback): ${queueId}`);
+      return;
     }
     log(`Queue item completed: ${queueId}`);
   }
@@ -150,11 +188,14 @@ export class QueueService {
     onLog?: (message: string) => void
   ): Promise<void> {
     const log = onLog || (() => {});
-    await this.supabase.rpc('mark_hunt_defunct', {
+    const { error } = await this.supabase.rpc('mark_hunt_defunct', {
       p_queue_id: queueId,
       p_defunct_status: defunctStatus as any,
       p_tokens_used: tokensUsed || null,
     });
+    if (error) {
+      throw new Error(`Failed to mark defunct hunt: ${error.message}`);
+    }
     log(`Queue item marked defunct: ${queueId}`);
   }
 
@@ -169,12 +210,30 @@ export class QueueService {
     onLog?: (message: string) => void
   ): Promise<void> {
     const log = onLog || (() => {});
-    await this.supabase.rpc('fail_hunt', {
+    const { error: rpcError } = await this.supabase.rpc('fail_hunt', {
       p_queue_id: queueId,
       p_error: error,
       p_error_details: errorDetails || null,
       p_dlq_reason: dlqReason || 'unknown',
     });
+    if (rpcError) {
+      log(`⚠️ fail_hunt RPC failed, using direct update fallback: ${rpcError.message}`);
+      const { error: updateError } = await this.supabase
+        .from('hunt_queue')
+        .update({
+          status: 'failed',
+          error_message: error,
+          error_details: errorDetails || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', queueId);
+      if (updateError) {
+        log(`⚠️ Failed to mark queue item as failed: ${updateError.message}`);
+        return;
+      }
+      log(`Queue item failed (fallback): ${queueId} (reason: ${dlqReason || 'unknown'})`);
+      return;
+    }
     log(`Queue item failed: ${queueId} (reason: ${dlqReason || 'unknown'})`);
   }
 
@@ -239,11 +298,15 @@ export class QueueService {
       ...data,
     };
 
-    await this.supabase.rpc('save_hunt_checkpoint', {
+    const { error } = await this.supabase.rpc('save_hunt_checkpoint', {
       p_queue_id: queueId,
       p_phase: phase,
       p_checkpoint: checkpointWithVersion as any,
     });
+    if (error) {
+      log(`⚠️ Failed to save checkpoint: ${error.message}`);
+      return false;
+    }
     log(`Checkpoint saved: phase ${phase}, version ${newVersion}`);
     return true;
   }
@@ -277,9 +340,12 @@ export class QueueService {
    */
   async clearCheckpoint(queueId: string, onLog?: (message: string) => void): Promise<void> {
     const log = onLog || (() => {});
-    await this.supabase.rpc('clear_hunt_checkpoint', {
+    const { error } = await this.supabase.rpc('clear_hunt_checkpoint', {
       p_queue_id: queueId,
     });
+    if (error) {
+      throw new Error(`Failed to clear checkpoint: ${error.message}`);
+    }
     log(`Checkpoint cleared`);
   }
 

@@ -9,6 +9,7 @@
 
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import axios from 'axios';
+import { generateContentWithThinkingFallback } from '@/lib/hunter/services/gemini-compat';
 
 export interface VerificationConfig {
   geminiApiKey: string;
@@ -129,7 +130,7 @@ Respond with ONLY valid JSON in this exact format:
 }`;
 
     try {
-      const response = await this.gemini.models.generateContent({
+      const response = await generateContentWithThinkingFallback(this.gemini, {
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
@@ -254,7 +255,7 @@ Respond with ONLY valid JSON:
 }`;
 
     try {
-      const response = await this.gemini.models.generateContent({
+      const response = await generateContentWithThinkingFallback(this.gemini, {
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {

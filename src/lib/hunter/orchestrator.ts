@@ -18,6 +18,7 @@ import {
   LogoService,
   QueueService,
   SourcePolicyService,
+  ModelInventoryService,
 } from './services';
 import { HunterLogger } from './services/logger';
 import { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';
@@ -27,6 +28,7 @@ import type {
   HunterResult,
   HunterContext,
   HunterDependencies,
+  ResearchOutput,
 } from './types';
 import { classifyErrorForDlq } from './errors';
 
@@ -35,10 +37,12 @@ export class Hunter {
   private serper: SerperService;
   private gemini: GeminiService;
   private logo: LogoService;
+  private inventory: ModelInventoryService;
   private queue: QueueService;
   private config: HunterConfig;
   private logger: HunterLogger | null = null;
   private maxTokensPerHunt: number;
+  private readonly resumeResearchMaxAgeMs = 60 * 24 * 60 * 60 * 1000; // 60 days
 
   constructor(config: HunterConfig) {
     this.config = config;
@@ -60,6 +64,9 @@ export class Hunter {
       },
     });
     this.gemini = new GeminiService({ apiKey: config.geminiApiKey });
+    this.inventory = new ModelInventoryService({
+      apiKeys: config.inventoryApiKeys,
+    });
     this.logo = new LogoService({ supabase: this.supabase });
     this.queue = new QueueService({ supabase: this.supabase });
   }
@@ -73,6 +80,67 @@ export class Hunter {
     } else {
       console.log(`[Hunter] ${message}`);
     }
+  }
+
+  private contextMatches(candidate: string | null | undefined, target?: string): boolean {
+    const normalizedCandidate = (candidate || '').trim().toLowerCase();
+    const normalizedTarget = (target || '').trim().toLowerCase();
+    if (!normalizedTarget) return normalizedCandidate.length === 0;
+    return normalizedCandidate === normalizedTarget;
+  }
+
+  private async loadLatestResearchCheckpoint(
+    toolName: string,
+    contextTitle?: string
+  ): Promise<ResearchOutput | null> {
+    const { data, error } = await this.supabase
+      .from('hunt_queue')
+      .select('id, context_title, last_completed_phase, phase_checkpoint, updated_at')
+      .eq('tool_name', toolName)
+      .order('updated_at', { ascending: false })
+      .limit(25);
+
+    if (error) {
+      this.log(`⚠️  Resume lookup failed for ${toolName}: ${error.message}`);
+      return null;
+    }
+
+    const rows = (data || []) as Array<{
+      id: string;
+      context_title: string | null;
+      last_completed_phase: number | null;
+      phase_checkpoint: Record<string, unknown> | null;
+      updated_at: string | null;
+    }>;
+
+    const match = rows.find((row) => {
+      if ((row.last_completed_phase || 0) < 1) return false;
+      if (!this.contextMatches(row.context_title, contextTitle)) return false;
+      if (!row.phase_checkpoint || typeof row.phase_checkpoint !== 'object') return false;
+      const checkpointResearch = (row.phase_checkpoint as any).research;
+      if (!checkpointResearch?.scoutResult || !checkpointResearch?.knowledgeCard) return false;
+
+      const extractionDate = checkpointResearch?.knowledgeCard?.meta?.extraction_date;
+      const freshnessCandidate = extractionDate || row.updated_at;
+      if (!freshnessCandidate) return false;
+      const freshnessMs = Date.parse(freshnessCandidate);
+      if (Number.isNaN(freshnessMs)) return false;
+      const ageMs = Date.now() - freshnessMs;
+      if (ageMs > this.resumeResearchMaxAgeMs) {
+        this.log(
+          `⚠️  Skipping stale checkpoint ${row.id}: research is older than 60 days (${Math.floor(ageMs / (1000 * 60 * 60 * 24))}d)`
+        );
+        return false;
+      }
+      return true;
+    });
+
+    if (!match) return null;
+    const research = (match.phase_checkpoint as any).research as ResearchOutput;
+    this.log(
+      `🔄 Reusing prior research checkpoint from queue item ${match.id} (updated ${match.updated_at || 'unknown'})`
+    );
+    return research;
   }
 
   /**
@@ -96,11 +164,17 @@ export class Hunter {
    * Retry wrapper with exponential backoff
    */
   private async withRetry<T>(fn: () => Promise<T>, operation: string, maxRetries = 3): Promise<T> {
+    const attemptTimeoutMs = 120000;
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return await fn();
+        return await Promise.race([
+          fn(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`${operation} timed out after ${attemptTimeoutMs}ms`)), attemptTimeoutMs)
+          ),
+        ]);
       } catch (error) {
         lastError = error as Error;
         this.log(`${operation} failed (attempt ${attempt}/${maxRetries}): ${lastError.message}`);
@@ -140,6 +214,7 @@ export class Hunter {
       contextTitle: input.contextTitle,
       categorySlug: input.categorySlug,
       queueItemId: input.queueItemId,
+      specialInstructions: input.specialInstructions,
       forceUpdate: input.forceUpdate,
       huntType: input.huntType || 'full',
       skipAnalysis: false,
@@ -159,6 +234,7 @@ export class Hunter {
       supabase: this.supabase,
       serper: this.serper,
       gemini: this.gemini,
+      inventory: this.inventory,
       logo: this.logo,
       config: this.config,
       withRetry: this.withRetry.bind(this),
@@ -167,6 +243,7 @@ export class Hunter {
 
     // Track checkpoint version for optimistic locking
     let checkpointVersion: number | undefined;
+    let resumedResearchFromCheckpoint = false;
 
     try {
       // ===================================================================
@@ -194,6 +271,19 @@ export class Hunter {
       // ===================================================================
       // PHASE 1: RESEARCH (Scout + Extract Knowledge Card)
       // ===================================================================
+      if (!ctx.research && ctx.forceUpdate) {
+        const resumedResearch = await this.loadLatestResearchCheckpoint(
+          input.toolName,
+          input.contextTitle
+        );
+        if (resumedResearch) {
+          ctx.research = resumedResearch;
+          ctx.tokensUsed += resumedResearch.tokensUsed || 0;
+          resumedResearchFromCheckpoint = true;
+          this.log(`↪️  Resumed at post-research checkpoint (force update path)`);
+        }
+      }
+
       if (!ctx.research) {
         this.logger?.startPhase('research');
         ctx.research = await executeResearchPhase(ctx, deps);
@@ -267,38 +357,122 @@ export class Hunter {
       // Pre-flight check: Validate sufficient source material before analysis
       // Saves research for dedup, but skips analysis if insufficient data
       if (!ctx.skipAnalysis && ctx.research && ctx.huntType !== 'price_only') {
+        const passesPreflight = (eligibleCount: number, officialCount: number): boolean => {
+          // Adaptive threshold: allow 2 eligible sources when we have at least 2 official sources.
+          // This prevents over-blocking well-documented tools while preserving strictness for weak evidence.
+          const baseMinEligible = ctx.contextTitle ? 3 : 4;
+          const adaptiveMinEligible = officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
+          const minOfficialSources = 1;
+          return eligibleCount >= adaptiveMinEligible && officialCount >= minOfficialSources;
+        };
+
         const scout = ctx.research.scoutResult;
         const reviewCount = scout.curated_sources.reviews.length;
-        const tribalCount = scout.raw_sources.filter((source) => source.source_type === 'community')
+        const tribalCount = scout.raw_sources.filter(
+          (source) =>
+            source.source_type === 'community' &&
+            source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+            source.policy.llm_ingestion_allowed !== 'NO'
+        )
+          .length;
+        const officialCount = scout.raw_sources.filter((source) =>
+          ['official', 'docs', 'support', 'legal'].includes(source.source_type)
+        ).filter(
+          (source) =>
+            source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+            source.policy.llm_ingestion_allowed !== 'NO'
+        )
           .length;
         const pricingCount = scout.curated_sources.pricing.length;
+        const eligibleCount = scout.raw_sources.filter(
+          (source) =>
+            source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+            source.policy.llm_ingestion_allowed !== 'NO'
+        ).length;
         const totalSnippets = reviewCount + tribalCount + pricingCount;
 
-        // Thresholds for quality review generation:
-        // - Discovery hunts: Need at least 5 total snippets with 3+ from reviews/tribal
-        // - Contextual hunts: Need at least 4 total snippets with 2+ from reviews/tribal
-        const minTotalSnippets = ctx.contextTitle ? 4 : 5;
-        const minReviewTribal = ctx.contextTitle ? 2 : 3;
-        const actualReviewTribal = reviewCount + tribalCount;
+        if (!passesPreflight(eligibleCount, officialCount)) {
+          const baseMinEligible = ctx.contextTitle ? 3 : 4;
+          const adaptiveMinEligible = officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
+          const minOfficialSources = 1;
+          if (resumedResearchFromCheckpoint) {
+            this.log(
+              `↻ Resumed checkpoint failed pre-flight (${eligibleCount} eligible, ${officialCount} official). Re-running fresh research once.`
+            );
+            this.logger?.startPhase('research');
+            const freshResearch = await executeResearchPhase(ctx, deps);
+            ctx.research = freshResearch;
+            ctx.tokensUsed += freshResearch.tokensUsed;
+            this.logger?.endPhase({
+              tokens_used: freshResearch.tokensUsed,
+              sources_found: freshResearch.scoutResult.raw_sources.length,
+            });
+            resumedResearchFromCheckpoint = false;
 
-        if (totalSnippets < minTotalSnippets || actualReviewTribal < minReviewTribal) {
+            // Re-evaluate pre-flight with fresh research output
+            const freshScout = freshResearch.scoutResult;
+            const freshReviewCount = freshScout.curated_sources.reviews.length;
+            const freshTribalCount = freshScout.raw_sources.filter(
+              (source) =>
+                source.source_type === 'community' &&
+                source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+                source.policy.llm_ingestion_allowed !== 'NO'
+            ).length;
+            const freshOfficialCount = freshScout.raw_sources.filter((source) =>
+              ['official', 'docs', 'support', 'legal'].includes(source.source_type)
+            ).filter(
+              (source) =>
+                source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+                source.policy.llm_ingestion_allowed !== 'NO'
+            ).length;
+            const freshPricingCount = freshScout.curated_sources.pricing.length;
+            const freshEligibleCount = freshScout.raw_sources.filter(
+              (source) =>
+                source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+                source.policy.llm_ingestion_allowed !== 'NO'
+            ).length;
+            if (passesPreflight(freshEligibleCount, freshOfficialCount)) {
+              this.log(
+                `✅ Pre-flight passed after fresh research: ${freshEligibleCount} eligible sources (${freshReviewCount} reviews, ${freshTribalCount} tribal, ${freshPricingCount} pricing, ${freshOfficialCount} official)`
+              );
+            } else {
+              const freshBaseMinEligible = ctx.contextTitle ? 3 : 4;
+              const freshAdaptiveMinEligible =
+                freshOfficialCount >= 2 ? Math.min(freshBaseMinEligible, 2) : freshBaseMinEligible;
+              this.log(`⚠️  Fresh research still insufficient for pre-flight.`);
+              this.log(
+                `   Found: ${freshEligibleCount} eligible sources (${freshReviewCount} reviews, ${freshTribalCount} tribal, ${freshPricingCount} pricing, ${freshOfficialCount} official)`
+              );
+              this.log(
+                `   Required: ${freshAdaptiveMinEligible}+ eligible, 1+ official`
+              );
+              this.log(`   Saving research data but skipping analysis to save API credits`);
+              this.log(`   Re-run later to check if more sources available`);
+              ctx.skipAnalysis = true;
+              ctx.skipSynthesis = true;
+              ctx.insufficientSources = true;
+            }
+            // Continue to next phase decision without applying the old insufficient result
+          } else if (!ctx.skipAnalysis) {
           const huntType = ctx.contextTitle ? 'contextual' : 'discovery';
           this.log(`⚠️  Pre-flight: Insufficient source material for ${huntType} hunt`);
           this.log(
-            `   Found: ${totalSnippets} total snippets (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing)`
+            `   Found: ${eligibleCount} eligible sources (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing, ${officialCount} official)`
           );
           this.log(
-            `   Required: ${minTotalSnippets}+ total with ${minReviewTribal}+ reviews/tribal`
+            `   Required: ${adaptiveMinEligible}+ eligible, ${minOfficialSources}+ official`
           );
           this.log(`   Saving research data but skipping analysis to save API credits`);
           this.log(`   Re-run later to check if more sources available`);
 
-          // Skip analysis but continue to persistence to save Knowledge Card
+          // Skip analysis and persist via the research-only path.
           ctx.skipAnalysis = true;
+          ctx.skipSynthesis = true;
           ctx.insufficientSources = true; // Flag for persistence phase
+          }
         } else {
           this.log(
-            `✅ Pre-flight passed: ${totalSnippets} snippets (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing)`
+            `✅ Pre-flight passed: ${eligibleCount} eligible sources (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing, ${officialCount} official)`
           );
         }
       }
@@ -469,6 +643,10 @@ export class Hunter {
         toolName: queueItem.tool_name,
         contextTitle: queueItem.context_title || undefined,
         categorySlug: queueItem.category_slug || undefined,
+        specialInstructions:
+          typeof queueItem.error_details?.admin_instructions === 'string'
+            ? queueItem.error_details.admin_instructions
+            : undefined,
         queueItemId: queueItem.id,
         huntType: (queueItem.hunt_type as any) || 'full',
         forceUpdate: queueItem.force_regenerate, // Pass force_regenerate flag to override duplicate detection
@@ -649,6 +827,10 @@ export function createHunter(options: { isDraftMode?: boolean } = {}): Hunter {
     supabaseServiceKey: getEnv('SUPABASE_SERVICE_ROLE_KEY')!,
     geminiApiKey: getEnv('GEMINI_API_KEY')!,
     serperApiKey: getEnv('SERPER_API_KEY')!,
+    inventoryApiKeys: {
+      openai: getEnv('OPENAI_API_KEY'),
+      anthropic: getEnv('ANTHROPIC_API_KEY'),
+    },
     isDraftMode: options.isDraftMode ?? true, // Default to draft mode for safety
     maxTokensPerHunt: (() => {
       const raw = getEnv('HUNTER_MAX_TOKENS_PER_HUNT');

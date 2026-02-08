@@ -10,6 +10,7 @@
  */
 
 import type { Item, ToolSpecs, GearSpecs } from '../../types/database';
+import { computeBestPlanPricingV2, mapSmpPricingToV2 } from '../pricing';
 
 // ============================================================================
 // TYPES
@@ -140,6 +141,15 @@ function normalizeFeatureList(value: unknown): string[] | undefined {
   return Array.isArray(value) ? (value as string[]) : undefined;
 }
 
+function formatMonthlyPrice(amount: number, currency: string): string {
+  return `${new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'code',
+    maximumFractionDigits: 2,
+  }).format(amount)}/mo`;
+}
+
 /**
  * Compare features and return structured comparison
  */
@@ -182,18 +192,60 @@ function comparePrices(
   specsA: ToolSpecs | GearSpecs | undefined,
   specsB: ToolSpecs | GearSpecs | undefined,
   confidenceA: number,
-  confidenceB: number
+  confidenceB: number,
+  itemA?: Item,
+  itemB?: Item
 ): PriceComparison {
-  const priceA = (specsA as ToolSpecs)?.starting_price || null;
-  const priceB = (specsB as ToolSpecs)?.starting_price || null;
+  const toolSpecsA = specsA as ToolSpecs | undefined;
+  const toolSpecsB = specsB as ToolSpecs | undefined;
+
+  const pricingV2A =
+    toolSpecsA?.pricing_v2 ??
+    (itemA?.id ? mapSmpPricingToV2(itemA.id, toolSpecsA?.pricing_data) : null);
+  const pricingV2B =
+    toolSpecsB?.pricing_v2 ??
+    (itemB?.id ? mapSmpPricingToV2(itemB.id, toolSpecsB?.pricing_data) : null);
+
+  const breakdownA =
+    pricingV2A != null
+      ? computeBestPlanPricingV2(pricingV2A, {
+          currency: pricingV2A.currency_default,
+          cadence: 'monthly',
+          seats: 1,
+          meters: { seat: 1 },
+        }, { baseline_mode: 'paid_entry' })
+      : null;
+  const breakdownB =
+    pricingV2B != null
+      ? computeBestPlanPricingV2(pricingV2B, {
+          currency: pricingV2B.currency_default,
+          cadence: 'monthly',
+          seats: 1,
+          meters: { seat: 1 },
+        }, { baseline_mode: 'paid_entry' })
+      : null;
+
+  const currencyMismatch =
+    breakdownA?.currency != null &&
+    breakdownB?.currency != null &&
+    breakdownA.currency !== breakdownB.currency;
+
+  const priceA =
+    breakdownA?.total != null
+      ? formatMonthlyPrice(Number(breakdownA.total.toFixed(2)), breakdownA.currency)
+      : toolSpecsA?.starting_price || null;
+  const priceB =
+    breakdownB?.total != null
+      ? formatMonthlyPrice(Number(breakdownB.total.toFixed(2)), breakdownB.currency)
+      : toolSpecsB?.starting_price || null;
   const freeA = (specsA as ToolSpecs)?.free_tier_limits || null;
   const freeB = (specsB as ToolSpecs)?.free_tier_limits || null;
 
-  const centsA = parsePriceToCents(priceA);
-  const centsB = parsePriceToCents(priceB);
+  const centsA = breakdownA?.total != null ? Math.round(breakdownA.total * 100) : parsePriceToCents(priceA);
+  const centsB = breakdownB?.total != null ? Math.round(breakdownB.total * 100) : parsePriceToCents(priceB);
 
   let winner: 'a' | 'b' | 'tie' | 'unknown' = 'unknown';
-  if (centsA !== null && centsB !== null) {
+  if (!currencyMismatch && centsA !== null && centsB !== null) {
     if (centsA < centsB) winner = 'a';
     else if (centsB < centsA) winner = 'b';
     else winner = 'tie';
@@ -289,7 +341,7 @@ function computeToolComparison(itemA: Item, itemB: Item): ToolComparison {
     security: compareFeatures(specsA.security, specsB.security),
     support: compareFeatures(specsA.support_options, specsB.support_options),
 
-    price: comparePrices(specsA, specsB, confA, confB),
+    price: comparePrices(specsA, specsB, confA, confB, itemA, itemB),
 
     migration,
 
@@ -360,7 +412,7 @@ function computeGearComparison(itemA: Item, itemB: Item): GearComparison {
     connectivity: compareFeatures(specsA.connectivity, specsB.connectivity),
     certifications: compareFeatures(specsA.certifications, specsB.certifications),
 
-    price: comparePrices(specsA as any, specsB as any, confA, confB),
+    price: comparePrices(specsA as any, specsB as any, confA, confB, itemA, itemB),
 
     scores: {
       base_a: itemA.base_score,

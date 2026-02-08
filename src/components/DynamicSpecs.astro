@@ -18,6 +18,42 @@ interface Props {
 
 const { categorySpecificData, specifics, toolName, categoryName } = Astro.props;
 
+const PRICING_KEYWORDS = [
+  'price',
+  'cost',
+  'fee',
+  'billing',
+  'annual',
+  'monthly',
+  'discount',
+  'tier',
+  'plan',
+  'seat',
+  'per_month',
+  'per_year',
+  'usd',
+  'eur',
+  'gbp',
+  'max_tier_cost',
+  'min_tier_cost',
+  'starting_price',
+  'pricing',
+];
+const LOW_SIGNAL_STRING = /^(n\/a|na|none|unknown|not available|not specified|tbd|nil)$/i;
+const VALUE_PRICING_KEYWORDS =
+  /\b(price|pricing|cost|costs|fee|fees|billing|billed|monthly|annual|yearly|per seat|seat price|enterprise|pro\b|max\b|plan)\b/i;
+const UNVERIFIED_QUANT_CLAIM =
+  /\b\d+\s*x\b|\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b|\b\d+(?:\.\d+)?%\b/i;
+const SEAT_MODEL_ABSOLUTE =
+  /\bsingle seat\b.*\b(access|includes|provides)\b.*\b(design|dev mode|figjam|slides)\b/i;
+const ZERO_PLACEHOLDER_KEYS = [
+  'action_count',
+  'free_tier_quota',
+  'data_retention_months',
+  'trigger_count',
+  'trigger_types_count',
+];
+
 // Helper to format field keys nicely
 function formatLabel(key: string): string {
   return key
@@ -68,6 +104,25 @@ function filterFields(data: Record<string, unknown> | undefined): [string, unkno
     if (Array.isArray(value) && value.length === 0) return false;
     // Skip empty strings
     if (typeof value === 'string' && !value.trim()) return false;
+    // Skip low-signal placeholders
+    if (typeof value === 'string' && LOW_SIGNAL_STRING.test(value.trim())) return false;
+    // Skip pricing-like narrative values in this section; pricing belongs in dedicated pricing module.
+    if (typeof value === 'string' && VALUE_PRICING_KEYWORDS.test(value)) return false;
+    // Skip unsupported quantitative claims that cannot be audited in this section.
+    if (typeof value === 'string' && UNVERIFIED_QUANT_CLAIM.test(value)) return false;
+    // Guard against misleading absolute seat-model claims.
+    if (typeof value === 'string' && SEAT_MODEL_ABSOLUTE.test(value)) return false;
+    // Skip known placeholder zeros that usually mean "unknown" in extraction.
+    if (
+      typeof value === 'number' &&
+      value === 0 &&
+      ZERO_PLACEHOLDER_KEYS.includes(key.toLowerCase())
+    ) {
+      return false;
+    }
+    // Keep this section operational, not pricing.
+    const keyLower = key.toLowerCase();
+    if (PRICING_KEYWORDS.some((kw) => keyLower.includes(kw))) return false;
     return true;
   });
 }
@@ -86,11 +141,11 @@ const hasData = categoryFields.length > 0 || vipFields.length > 0;
     >
       <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
         <div>
-          <h2 class="text-lg font-semibold text-zinc-100">Technical Specs</h2>
+          <h2 class="text-lg font-semibold text-zinc-100">Operational Specs</h2>
           <p class="mt-1 text-sm text-zinc-400">
             {categoryName
-              ? `${categoryName}-specific details`
-              : `Detailed specifications for ${toolName}`}
+              ? `${categoryName}-specific rollout and operational details`
+              : `Hard facts for integration, rollout, and day-2 operations for ${toolName}`}
           </p>
         </div>
         <svg

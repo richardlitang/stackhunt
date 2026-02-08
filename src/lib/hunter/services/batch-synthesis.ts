@@ -18,6 +18,8 @@ import {
 } from './forensic-framework.js';
 import { buildFactSummary, buildSnippetBucketsFromScout } from '../utils.js';
 import type { KnowledgeCard } from '../../knowledge-card.js';
+import { getGeminiModelForStage, toCacheModelName } from './model-router.js';
+import { generateContentWithThinkingFallback } from './gemini-compat.js';
 
 export interface BatchSynthesisInput {
   itemId: string;
@@ -91,6 +93,8 @@ export class BatchSynthesisService {
     benchmarkTools?: string[]
   ): Promise<BatchSynthesisResult> {
     const startTime = Date.now();
+    const cacheModel = getGeminiModelForStage('batch_cache');
+    const synthesisModel = getGeminiModelForStage('batch_synthesis');
 
     if (inputs.length === 0) {
       throw new Error('Empty batch');
@@ -114,7 +118,7 @@ export class BatchSynthesisService {
     try {
       // Create the cache with the Forensic Framework
       const cache = await (this.client as any).cacheManager.create({
-        model: 'models/gemini-3-flash-preview',
+        model: toCacheModelName(cacheModel),
         displayName: `forensic_${category}_${Date.now()}`,
         systemInstruction: framework.systemInstruction,
         ttl: '120s', // 2 minutes - enough for batch
@@ -145,7 +149,7 @@ export class BatchSynthesisService {
 
             const response = await geminiCircuit.execute(async () => {
               const config: any = {
-                model: 'gemini-3-flash-preview',
+                model: synthesisModel,
                 contents: prompt,
                 config: {
                   temperature: 0.3,
@@ -161,7 +165,7 @@ export class BatchSynthesisService {
                 config.cachedContent = cachedContentName;
               }
 
-              return this.client.models.generateContent(config);
+              return generateContentWithThinkingFallback(this.client, config);
             });
 
             const content = response.text;
@@ -362,6 +366,7 @@ export async function synthesizeIndividual(
   existingCategories: ExistingCategories
 ): Promise<HunterAnalysis> {
   const client = new GoogleGenAI({ apiKey });
+  const model = getGeminiModelForStage('batch_synthesis');
 
   // Use a simpler system prompt for individual synthesis
   const systemPrompt = `You are a forensic software analyst. Analyze the tool and output structured JSON.
@@ -398,8 +403,8 @@ Existing Knowledge Graph tags to reuse:
 Output ONLY valid JSON matching the HunterAnalysis schema.`;
 
   const response = await geminiCircuit.execute(async () => {
-    return client.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    return generateContentWithThinkingFallback(client, {
+      model,
       contents: prompt,
       config: {
         temperature: 0.3,

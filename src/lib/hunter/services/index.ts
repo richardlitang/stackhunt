@@ -37,3 +37,15 @@ export {
 export { HunterLogger, type StructuredLogEntry, type LogLevel, type PhaseSummary } from './logger';
 export { SourcePolicyService, type SourcePolicyGate } from './source-policy';
 export { rankSources, type SourceIntent, type RankedSource } from './source-ranking';
+export {
+  getGeminiModelForStage,
+  getGeminiModelForTier,
+  toCacheModelName,
+  type HunterModelStage,
+  type ModelTier,
+} from './model-router';
+export {
+  ModelInventoryService,
+  type ModelInventoryConfig,
+  type ModelInventoryResult,
+} from './model-inventory';

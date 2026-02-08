@@ -214,6 +214,8 @@ export function getPricingModelLabel(model: SMPPricingData['model'] | null | und
     freemium: 'Freemium',
     free: 'Free',
     hybrid: 'Hybrid pricing',
+    usage_based: 'Usage-based pricing',
+    ad_spend: 'Ad-spend pricing',
     contact_sales: 'Contact sales',
   };
   return model ? labels[model] || model : 'Unknown';

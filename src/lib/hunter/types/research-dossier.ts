@@ -99,8 +99,9 @@ export type KeywordClassification = z.infer<typeof KeywordClassificationSchema>;
 export const CATEGORY_QUERY_TEMPLATES: Record<ToolCategory, string[]> = {
   ai_model: [
     '{{tool}} pricing tokens vs subscription',
-    '{{tool}} context window limit maximum',
-    '{{tool}} vs competitors benchmark',
+    '{{tool}} official docs models overview release notes',
+    '{{tool}} context window rate limits model deprecations',
+    '{{tool}} benchmark GPQA MMLU SWE-bench LiveBench official report',
     '{{tool}} API rate limits documentation',
     '{{tool}} hidden costs enterprise',
   ],

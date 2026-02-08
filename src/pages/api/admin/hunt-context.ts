@@ -33,11 +33,12 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   try {
     const body = await request.json();
-    const { contextQuery, maxTools, publish, guidance } = body as {
+    const { contextQuery, maxTools, publish, guidance, runInstructions } = body as {
       contextQuery: string;
       maxTools?: number;
       publish?: boolean;
       guidance?: Guidance;
+      runInstructions?: string;
     };
 
     if (!contextQuery || typeof contextQuery !== 'string') {
@@ -49,6 +50,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
         rateLimit
       );
     }
+    const normalizedInstructions =
+      typeof runInstructions === 'string' ? runInstructions.trim() : '';
 
     // Dynamically import the hunter (server-side only)
     const { createHunter } = await import('@/lib/hunter');
@@ -63,7 +66,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     const result = await hunterAny.huntContext({
       contextQuery,
       maxTools: maxTools || 5,
-      guidance,
+      guidance: {
+        ...(guidance || {}),
+        ...(normalizedInstructions ? { specialInstructions: normalizedInstructions } : {}),
+      },
     });
 
     return addRateLimitHeaders(

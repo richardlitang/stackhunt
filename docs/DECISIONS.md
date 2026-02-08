@@ -15,3 +15,9 @@ Impact: ...
 Notes:
 - Keep entries short.
 - Use concrete dates.
+
+2026-02-08 - Canonical Hunt Freshness Basis
+Context: Queue prioritization and “what is stale” decisions were inconsistent because `items.updated_at` and review timestamps were being mixed ad hoc.
+Decision: Use `max(last_terminal_hunt_at, last_review_at)` as the single freshness basis. `last_terminal_hunt_at` comes from `hunt_queue.completed_at` for `completed/failed` and `hunt_queue.research_completed_at` for `research_complete`. Apply a 24-hour cooldown (priority floor) for recently-run tools.
+Why: `items.updated_at` changes for metadata writes and does not represent hunt freshness. Terminal queue timestamps and review updates are the only operationally relevant signals.
+Impact: `scripts/prioritize-by-staleness.ts` and `scripts/find-oldest-items.ts` now compute priorities/reports from the same deterministic basis, eliminating timestamp debates.

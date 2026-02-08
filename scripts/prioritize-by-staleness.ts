@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import type { Database } from '../src/types/database.js';
+import { buildFreshnessMap } from './lib/hunt-freshness.js';
 
 dotenv.config();
 
@@ -9,11 +10,11 @@ const supabase = createClient<Database>(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-async function prioritizeByStleness() {
+async function prioritizeByStaleness() {
   // Get all pending queue items
   const { data: queueItems, error: queueError } = await supabase
     .from('hunt_queue')
-    .select('id, tool_name')
+    .select('id, tool_name, priority')
     .eq('status', 'pending');
 
   if (queueError) {
@@ -26,46 +27,36 @@ async function prioritizeByStleness() {
     return;
   }
 
-  console.log(`\n📋 Prioritizing ${queueItems.length} pending items by staleness...\n`);
+  console.log(`\n📋 Prioritizing ${queueItems.length} pending items by canonical freshness...\n`);
 
-  // Get updated_at for all these items
-  const toolNames = queueItems.map(q => q.tool_name);
-  const { data: items, error: itemsError } = await supabase
-    .from('items')
-    .select('name, updated_at')
-    .in('name', toolNames);
+  const toolNames = queueItems.map((q) => q.tool_name);
+  const freshness = await buildFreshnessMap(supabase, toolNames, { cooldownHours: 24 });
 
-  if (itemsError) {
-    console.error('Items error:', itemsError);
-    return;
-  }
-
-  // Create map of tool name to updated_at
-  const updateMap = new Map(items?.map(i => [i.name, new Date(i.updated_at).getTime()]) || []);
-
-  // Calculate staleness score for each queue item
-  const now = Date.now();
-  const prioritized = queueItems.map(q => {
-    const lastUpdate = updateMap.get(q.tool_name) || now;
-    const ageInDays = (now - lastUpdate) / (1000 * 60 * 60 * 24);
-
-    // Priority: 100 for items >30 days old, down to 50 for items <1 day old
-    const priority = Math.min(100, Math.max(50, Math.floor(50 + ageInDays)));
-
+  const prioritized = queueItems.map((q) => {
+    const basis = freshness.get(q.tool_name);
     return {
       id: q.id,
       tool_name: q.tool_name,
-      ageInDays: Math.floor(ageInDays),
-      priority,
+      currentPriority: q.priority,
+      priority: basis?.priority ?? 50,
+      ageInDays: basis?.ageDays,
+      reason: basis?.reason ?? 'missing_basis',
+      basisAt: basis?.freshnessBasisAt ?? null,
+      lastTerminalHuntAt: basis?.lastTerminalHuntAt ?? null,
+      lastReviewAt: basis?.lastReviewAt ?? null,
     };
   });
 
   // Sort by priority (highest first)
-  prioritized.sort((a, b) => b.priority - a.priority);
+  prioritized.sort((a, b) => b.priority - a.priority || a.tool_name.localeCompare(b.tool_name));
 
   console.log('Top 20 items by staleness:');
   prioritized.slice(0, 20).forEach((item, idx) => {
-    console.log(`${(idx + 1).toString().padStart(2)}. ${item.tool_name.padEnd(30)} - ${item.ageInDays}d old → priority ${item.priority}`);
+    const ageLabel = item.ageInDays === null ? 'n/a' : `${item.ageInDays}d`;
+    const basisLabel = item.basisAt ? item.basisAt.slice(0, 19).replace('T', ' ') : 'none';
+    console.log(
+      `${(idx + 1).toString().padStart(2)}. ${item.tool_name.padEnd(24)} ${ageLabel.padStart(8)} | ${String(item.currentPriority).padStart(3)} -> ${String(item.priority).padStart(3)} | ${item.reason} | basis=${basisLabel}`
+    );
   });
 
   console.log('\nUpdating priorities in database...');
@@ -81,7 +72,9 @@ async function prioritizeByStleness() {
     if (!error) updated++;
   }
 
-  console.log(`✅ Updated ${updated}/${prioritized.length} queue items with staleness-based priorities`);
+  console.log(
+    `✅ Updated ${updated}/${prioritized.length} queue items with canonical freshness priorities`
+  );
 }
 
-prioritizeByStleness();
+prioritizeByStaleness();

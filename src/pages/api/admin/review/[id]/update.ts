@@ -30,6 +30,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     const consRaw = formData.get('cons') as string;
     const tagsRaw = formData.get('sentiment_tags') as string;
     const reviewerNotes = formData.get('reviewer_notes') as string;
+    const faqJsonRaw = (formData.get('faq_json') as string) || '[]';
 
     // Parse arrays
     const pros = prosRaw
@@ -44,6 +45,17 @@ export const POST: APIRoute = async ({ params, request }) => {
       .split(',')
       .map((s) => s.trim().toLowerCase().replace(/\s+/g, '-'))
       .filter(Boolean);
+
+    let parsedFaqs: unknown[] = [];
+    try {
+      const parsed = JSON.parse(faqJsonRaw || '[]');
+      if (!Array.isArray(parsed)) {
+        return new Response('FAQ JSON must be an array', { status: 400 });
+      }
+      parsedFaqs = parsed;
+    } catch {
+      return new Response('FAQ JSON is invalid', { status: 400 });
+    }
 
     // Base update
     const updateData: Record<string, unknown> = {
@@ -72,6 +84,37 @@ export const POST: APIRoute = async ({ params, request }) => {
     if (error) {
       console.error('Update error:', error);
       return new Response(`Update failed: ${error.message}`, { status: 500 });
+    }
+
+    // Persist FAQ edits to the associated tool metadata
+    const { data: reviewRow, error: reviewFetchError } = await admin
+      .from('reviews')
+      .select('item_id')
+      .eq('id', id)
+      .single();
+    if (reviewFetchError || !reviewRow?.item_id) {
+      return new Response('Failed to resolve tool for FAQ update', { status: 500 });
+    }
+
+    const { data: toolRow, error: toolFetchError } = await admin
+      .from('tools')
+      .select('id, metadata')
+      .eq('id', reviewRow.item_id)
+      .single();
+    if (toolFetchError || !toolRow) {
+      return new Response('Failed to load tool metadata for FAQ update', { status: 500 });
+    }
+
+    const nextMetadata = {
+      ...((toolRow.metadata as Record<string, unknown> | null) || {}),
+      faqs: parsedFaqs,
+    };
+    const { error: toolUpdateError } = await admin
+      .from('tools')
+      .update({ metadata: nextMetadata, updated_at: new Date().toISOString() })
+      .eq('id', toolRow.id);
+    if (toolUpdateError) {
+      return new Response(`FAQ update failed: ${toolUpdateError.message}`, { status: 500 });
     }
 
     // Redirect back to review list

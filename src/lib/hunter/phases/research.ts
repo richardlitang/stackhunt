@@ -654,6 +654,7 @@ function detectCategoryFromResearch(
       'File Storage': 'file-storage',
       Scheduling: 'scheduling',
       AI: 'ai-automation',
+      'Artificial Intelligence': 'ai-automation',
       'AI Tools': 'ai-automation',
       Automation: 'ai-automation',
     };

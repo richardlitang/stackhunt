@@ -405,6 +405,10 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
     geminiApiKey: process.env.GEMINI_API_KEY!,
     serperApiKey: process.env.SERPER_API_KEY!,
+    inventoryApiKeys: {
+      openai: process.env.OPENAI_API_KEY,
+      anthropic: process.env.ANTHROPIC_API_KEY,
+    },
     isDraftMode,
   });
 
@@ -430,6 +434,9 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
       console.log('\n🔬 Research phase complete');
       console.log('   Status: research_complete (awaiting batch synthesis)');
       console.log('   Run batch synthesis: npm run queue:worker');
+    } else if (!result.reviewId) {
+      console.log('\n📦 Research persisted, analysis/review not created');
+      console.log('   This run did not generate a review (likely pre-flight gated)');
     } else if (isDraftMode) {
       console.log('\n📝 Review created as DRAFT');
       console.log('   Visit /admin/review to approve and publish');
@@ -453,6 +460,10 @@ async function runQueueProcess() {
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
     geminiApiKey: process.env.GEMINI_API_KEY!,
     serperApiKey: process.env.SERPER_API_KEY!,
+    inventoryApiKeys: {
+      openai: process.env.OPENAI_API_KEY,
+      anthropic: process.env.ANTHROPIC_API_KEY,
+    },
     isDraftMode: true, // Always draft when processing queue
   });
 
@@ -481,6 +492,10 @@ async function runBatchProcess(maxItems: number) {
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
     geminiApiKey: process.env.GEMINI_API_KEY!,
     serperApiKey: process.env.SERPER_API_KEY!,
+    inventoryApiKeys: {
+      openai: process.env.OPENAI_API_KEY,
+      anthropic: process.env.ANTHROPIC_API_KEY,
+    },
     isDraftMode: true,
   });
 

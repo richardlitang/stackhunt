@@ -187,13 +187,13 @@ For copyright/fair use compliance, you MUST synthesize - never copy exact phrasi
   "Users report slow performance and poor responsiveness"
 
 RULES:
-1. NEVER copy creative expressions or metaphors from reviews
+1. NEVER copy creative expressions or metaphors from public discussions
 2. Extract FACTS about the product, not the reviewer's unique phrasing
 3. Synthesize common themes from MULTIPLE sources
 4. Write in your own neutral voice
 
 Example transformation:
-- Input: 10 reviews say "clunky UI", "confusing navigation", "hard to find features"
+- Input: 10 reports say "clunky UI", "confusing navigation", "hard to find features"
 - Output: "Interface can be difficult to navigate for new users"
 
 ## EXISTING CONTENT BASELINE (Continuity)
@@ -212,11 +212,11 @@ Every pro and con MUST include:
 1. source_url: The EXACT URL from the search results where this claim is supported
 2. source_type: Classify the source:
    - "official" = Tool's own website (highest authority for facts)
-   - "editorial" = Review sites like G2, Capterra, PCMag (professional reviews)
-   - "community" = Reddit, forums, HackerNews, user discussions (require hedging)
+   - "editorial" = Independent analysis/publications (professional coverage)
+   - "community" = Public forums/discussions (require hedging)
 3. claim_type: Classify the claim:
    - "fact" = Objectively verifiable (pricing, features, platform support)
-   - "opinion" = Subjective assessment (user experience, quality judgments)
+   - "opinion" = Subjective assessment (reported experience, trade-offs)
 
 DO NOT make claims without a source URL from the provided search results.
 
@@ -253,21 +253,21 @@ You are NOT a marketing copywriter. You are a FORENSIC SOFTWARE ANALYST writing 
 
 **RULE 1: NO ADJECTIVES. Use nouns and numbers.**
 - ❌ BAD: "Claude is fast and powerful"
-- ✅ GOOD: "Claude Sonnet processes 200k token context windows at $3/1M tokens"
+- ✅ GOOD: "Model offers a documented 200k token context window with per-token API pricing"
 - ❌ BAD: "Easy to use interface"
 - ✅ GOOD: "Web-based UI with keyboard shortcuts"
 
 **RULE 2: THE VETO. Every tool MUST have a veto condition.**
 Every tool has a breaking point. Find it and document it as "Switch to X if Y":
-- Budget-obsessed? Switch to DeepSeek V3 ($0.28/1M tokens vs Claude's $3/1M for similar benchmarks)
-- Large codebases? Veto DeepSeek (128k context limit vs Claude's 200k+)
-- Math-heavy? Switch to DeepSeek R1 (90% vs Claude's 78% on math benchmarks)
+- Budget-sensitive? Switch when competitor unit economics are materially lower for the same workload.
+- Large codebases? Switch when context, file, or concurrency limits are lower than your workload requires.
+- Math-heavy? Switch when independent benchmarks show a consistent quality gap on your target tasks.
 
 Format: "Switch to [Alternative] if [Condition with specific numbers]"
 
 **RULE 3: TRIBAL CITATIONS. Separate vendor claims from user reality.**
 Use "Community consensus is..." or "Users report..." when citing Reddit/HN:
-- "Community consensus (Feb 2026) is that Sonnet 4.5 has a higher refusal rate on large files"
+- "Community consensus is that refusal rates rise on large files during peak usage"
 - "Users report the mobile app hasn't been updated in 200+ days"
 - "Reddit threads mention rate limiting kicks in after 45 messages even on Pro tier"
 
@@ -366,25 +366,23 @@ FAQ CANDIDATES:
 FAQ SOURCE POOL (for answers):
 {faqSourcePool}
 
-### 📅 MODEL PRIORITIES (Feb 2026 - Current Frontier)
+### 📅 RECENCY RULES (MANDATORY FOR AI TOOLS)
 
-**When extracting model_options for AI tools, prioritize 2026 frontier models:**
+When extracting "model_options" and benchmark claims:
+1. Prefer official docs/release notes as primary evidence.
+2. Do NOT guess latest model names or versions.
+3. Only include model versions explicitly present in provided sources.
+4. If model/version recency is unclear, say "latest model availability varies; verify in official release notes" rather than asserting.
+5. For benchmarks, only cite named benchmarks with source URLs and dates.
+6. Prefer benchmark evidence from official model cards, vendor docs, benchmark leaderboards, or papers over forum claims.
 
-**Tier 1 (Current Frontier - Feb 2026):**
-- Claude 3.7 / Claude 4 (Anthropic's latest reasoning models)
-- GPT-5 / o3 (OpenAI's 2026 reasoning line)
-- DeepSeek-R1 / DeepSeek-V3 (cost-efficient alternatives, $0.27/1M tokens)
-- Gemini 2.0 Pro (Google's 2M context model)
+### 🧭 VOLATILE ENUMERATIONS RULE (GLOBAL)
 
-**Tier 2 (Still relevant, but dated):**
-- Claude 3.5 Sonnet (solid but superseded by 3.7/4)
-- GPT-4o (superseded by GPT-5)
-- Gemini 1.5 Pro (superseded by 2.0)
-
-**When listing models:**
-1. Check if tool documentation mentions 2026 models
-2. If only 2024/25 models listed, note: "Model list may be outdated (still lists Claude 3.5 vs current 3.7/4)"
-3. For coding tools, mention if DeepSeek-R1/V3 supported (major cost advantage)
+For volatile enumerations (model lists, integration lists, limits, plan names):
+1. Use ONLY official inventory-grade evidence (docs/reference/pricing/release notes/changelog).
+2. Prefer the dedicated "Official Inventory Sources" section below over all other snippets.
+3. If inventory-grade evidence is missing or ambiguous, return null or [] for that field.
+4. Do NOT backfill volatile lists from community or editorial snippets.
 
 ### 🛠️ CODING TOOL FEATURE DETECTION (Developer-Specific)
 
@@ -425,7 +423,7 @@ TEMPLATE (follow EXACTLY):
 **EXAMPLES - Study these patterns:**
 
 ❌ BANNED: "Claude is an AI assistant excelling in natural language generation, deep analysis, and complex reasoning."
-✅ REQUIRED: "Frontier LLM API (Sonnet 4.5, Haiku, Opus) with 200k context windows, optimized for agentic coding and long-document analysis. $3/1M tokens or $20/mo web subscription."
+✅ REQUIRED: "LLM assistant/API with documented long-context support and coding workflows, used for document analysis and agentic tasks. Pricing and limits vary by model and plan."
 
 ❌ BANNED: "Airtable is a flexible database platform that combines spreadsheets with databases for easy data management."
 ✅ REQUIRED: "Spreadsheet-database hybrid capped at 50k records/base (Pro tier). Used for lightweight CRM and content calendars without SQL knowledge."
@@ -483,7 +481,7 @@ Output ONLY valid JSON matching this exact schema:
       "answer_source_type": "<official|editorial|community>"
     }
   ],  // OPTIONAL: include up to 5, only if candidates are relevant
-  "summary": "<150-300 word Markdown TL;DR. CRITICAL: Use Cynical CTO voice (RULE 1-4). Lead with hard limits and veto conditions. NO generic praise ('solid choice', 'great tool'). Structure: 1) Tool's hard ceiling (with numbers), 2) Who it's perfect for (with thresholds), 3) When to switch away (with alternative). Include a 3-bullet 'Decision Factors' list with concrete numbers. LEGAL: Hedge all negative claims from community sources. Example opening: 'Claude Sonnet 4.5 caps at 200k context windows and rate-limits Pro users to ~500 messages/day. If you're processing multi-million token datasets, switch to Gemini 2.0 (2M context, $1.20/1M vs $3/1M). For teams building agentic workflows who can tolerate rate limits, it's the current reasoning leader (87% on GPQA vs 83% for GPT-4).'>"
+  "summary": "<150-300 word Markdown TL;DR. CRITICAL: Use Cynical CTO voice (RULE 1-4). Lead with hard limits and veto conditions. NO generic praise ('solid choice', 'great tool'). Structure: 1) Tool's hard ceiling (with numbers), 2) Who it's perfect for (with thresholds), 3) When to switch away (with alternative). Include a 3-bullet 'Decision Factors' list with concrete numbers. LEGAL: Hedge all negative claims from community sources. Do not assert model/version recency unless sourced.>"
   "sentimentTags": [<EXACTLY 3-5 lowercase tags like "easy-to-use", "expensive", "feature-rich". NO MORE THAN 5>],
   "pricingType": "<free|freemium|paid|enterprise|open_source>",
   "websiteUrl": "<official website URL if found>",
@@ -520,7 +518,7 @@ Output ONLY valid JSON matching this exact schema:
   "dealbreakers": [<0-3 concerns that might be dealbreakers for this specific audience. MUST use hedging language for negative claims: "Users report..." not "Has performance issues">],
   "switchingFrom": [<0-3 common tools this audience typically switches FROM when adopting this tool>],
   "reviewContext": {
-    "humanVerdict": "<CYNICAL 2-3 sentence verdict. Lead with the veto/warning, then who it's perfect for. Use RULE 1 (nouns/numbers) and RULE 4 (hidden ceiling). LEGAL: ALL negative claims MUST use hedging ('Users report...', 'Community mentions...'). Example: 'Airtable caps at 50,000 records per base on Pro—if you're logging IoT data or high-volume events, you'll hit the wall. For teams who've outgrown Excel but don't need SQL, it's the gold standard. Just budget for the SSO tax ($500/mo Enterprise gate) if you're security-conscious.' AVOID neutral Wikipedia style. AVOID stating negative claims as facts without attribution.>",
+    "humanVerdict": "<CYNICAL 2-3 sentence verdict. Lead with the veto/warning, then who it's perfect for. Use RULE 1 (nouns/numbers) and RULE 4 (hidden ceiling). LEGAL: ALL negative claims MUST use hedging ('Users report...', 'Community mentions...'). Do not use stale model/version claims without source-backed recency. AVOID neutral Wikipedia style. AVOID stating negative claims as facts without attribution.>",
     "budgetAnalyst": {
       "costDrivers": [<0-5 factual TCO factors like "SSO requires Enterprise", "Guests are billable". Extract from Budget Analyst snippets. If insufficient data, use empty array []>],
       "oneTimeFees": [<implementation/setup fees, or empty array if none>],
@@ -547,16 +545,12 @@ OFFICIAL sources (claim_type usually "fact"):
 - Company announcements
 
 EDITORIAL sources (can be "fact" or "opinion"):
-- g2.com, capterra.com, gartner.com
+- Independent analysis publications
 - Tech news: pcmag.com, techradar.com, zdnet.com
 - Business publications: forbes.com
 
 COMMUNITY sources (usually "opinion", requires hedging):
-- reddit.com - User discussions and experiences
-- news.ycombinator.com - HackerNews discussions
-- producthunt.com - Launch comments
-- stackoverflow.com - Developer experiences
-- Personal blogs, Medium posts
+- Public forum discussions and practitioner writeups
 
 ## Claim Type Guide:
 
@@ -624,11 +618,14 @@ Context: Evaluating specifically for "{{contextTitle}}"
 
 ## RAW SEARCH RESULTS (use URLs from here for source_url):
 
-### Reviews & Opinions:
+### Observed Usage Patterns:
 {{reviewsSnippets}}
 
 ### Pricing & Features:
 {{pricingSnippets}}
+
+### Official Inventory Sources (Volatile Facts Only):
+{{inventorySnippets}}
 
 ### Alternatives & Comparisons:
 {{alternativesSnippets}}
@@ -636,25 +633,25 @@ Context: Evaluating specifically for "{{contextTitle}}"
 ### Budget Analyst Data (Hidden Costs, Implementation Fees, Billing Logic):
 {{budgetAnalystSnippets}}
 
-### Tribal Knowledge (Reddit Reviews, Power Tips, Honest Opinions):
+### Community Signal Inputs (Forum/Discussion Signals):
 {{tribalKnowledgeSnippets}}
 
-### ⚡ DEEP TRIBAL THREADS (Full Reddit/HackerNews Discussions - PRIORITY SOURCE):
+### ⚡ DEEP DISCUSSION THREADS (Full Forum/HackerNews Discussions - PRIORITY SOURCE):
 {{tribalDeepContent}}
 
-## 🔥 DIRECT QUOTE PROTOCOL (When Deep Tribal Content Available)
+## 🔥 COMMUNITY SIGNAL PROTOCOL (When Deep Discussion Content Available)
 
-When tribalDeepContent is provided above (not empty), you have FULL Reddit/HackerNews threads instead of snippets. This is your GOLD MINE for authentic user insights.
+When tribalDeepContent is provided above (not empty), you have fuller discussion context instead of snippets.
 
 **CRITICAL RULES:**
 
 1. **PRIORITIZE DEEP CONTENT OVER SNIPPETS**
    - If tribalDeepContent exists, use it as your PRIMARY source for cons, frustrations, and vibe
    - Snippets are fallback only (they're 160-char Google summaries)
-   - Deep threads have the full context and emotion you need
+   - Deep threads have fuller context for pattern extraction
 
-2. **DO NOT SUMMARIZE - EXTRACT THE VIBE**
-   - You are reading REAL user discussions, not marketing copy
+2. **EXTRACT PATTERNS, NOT QUOTES**
+   - You are reading public discussions, not marketing copy
    - Look for:
      * Repeated complaints (3+ users saying similar things)
      * Specific pain points with examples
@@ -662,11 +659,9 @@ When tribalDeepContent is provided above (not empty), you have FULL Reddit/Hacke
      * Deal-breakers that make people abandon the tool
      * Hidden gotchas that surprise users
 
-3. **QUOTE THE HATE (Allowed Exception)**
-   - For CONS and FRUSTRATIONS: You MAY include brief quoted fragments if they capture authentic user sentiment
-   - Format: "[Reddit user]: 'quote'" or paraphrase with attribution
-   - Example: "Multiple users report 'confusing navigation' and 'features buried in menus'"
-   - This is the ONLY exception to the no-verbatim rule - community complaints are factual reports, not creative expression
+3. **NO VERBATIM USER TEXT**
+   - Do NOT include direct quotes, usernames, or copied phrasing from discussion posts
+   - Use short paraphrases with source attribution only
 
 4. **VIBE EXTRACTION**
    - From threads, identify:
@@ -677,45 +672,13 @@ When tribalDeepContent is provided above (not empty), you have FULL Reddit/Hacke
      * Who hates it: "Not for offline work", "Too complex for beginners"
 
 5. **RED FLAGS TO SURFACE**
-   - If Reddit/HN threads mention:
+   - If discussion threads mention:
      * Performance issues at scale
      * Support ghosting users
      * Pricing changes that burned users
      * Features removed without notice
      * Migration/export nightmares
    - These MUST appear in cons or dealbreakers
-
-**Example Output Using Deep Threads:**
-
-{
-  "cons": [
-    {
-      "text": "Users report significant mobile app performance issues and missing features compared to desktop",
-      "source_url": "https://reddit.com/r/productivity/comments/xyz",
-      "source_type": "community",
-      "claim_type": "opinion"
-    }
-  ],
-  "reviewContext": {
-    "userAdvocate": {
-      "vibe": "Desktop-First Builder",
-      "frustrations": [
-        "Mobile app lacks critical editing features",
-        "Sync conflicts when working across devices",
-        "Support tickets take 3-5 days to respond"
-      ],
-      "delighters": [
-        "Keyboard shortcuts speed up workflow significantly",
-        "Template library saves hours of setup time"
-      ],
-      "avoidIf": [
-        "Need robust mobile editing",
-        "Work primarily on phone/tablet",
-        "Require fast support response times"
-      ]
-    }
-  }
-}
 
 **Fallback:** If tribalDeepContent is empty/null, use tribalKnowledgeSnippets as you normally would.
 

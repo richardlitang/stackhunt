@@ -18,6 +18,7 @@ import {
   buildAdaptiveSpecificsPrompt,
 } from '../services/prompts';
 import { getCategoryDefinition } from '../schemas';
+import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 
 /**
  * Execute the Analysis Phase
@@ -102,7 +103,43 @@ export async function executeAnalysisPhase(
     )
     .join('\n');
 
-  const snippetBuckets = buildSnippetBucketsFromScout(ctx.research.scoutResult.raw_sources);
+  const curatedUrls = new Set(
+    Object.values(ctx.research.scoutResult.curated_sources || {})
+      .flat()
+      .map((entry) => entry.url)
+  );
+  const policyEligibleSources = (ctx.research.scoutResult.raw_sources || []).filter(
+    (source) =>
+      source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+      source.policy.llm_ingestion_allowed !== 'NO'
+  );
+  const synthesisSources = policyEligibleSources.filter((source) => curatedUrls.has(source.url));
+  const baselineSources = synthesisSources.length > 0 ? synthesisSources : policyEligibleSources;
+  const officialSupplement = policyEligibleSources.filter((source) =>
+    ['official', 'docs', 'support', 'legal'].includes(source.source_type)
+  );
+  const synthesisInputSources = Array.from(
+    new Map([...baselineSources, ...officialSupplement].map((source) => [source.url, source])).values()
+  );
+  const inventoryApiResult = await deps.inventory.fetchModelInventory({
+    toolName: ctx.toolName,
+    websiteUrl: ctx.research.knowledgeCard.website_url || undefined,
+    rawSources: synthesisInputSources,
+  });
+  const snippetBuckets = buildSnippetBucketsFromScout(synthesisInputSources);
+  const inventorySources = synthesisInputSources
+    .filter(
+      (source) =>
+        ['official', 'docs', 'support', 'legal'].includes(source.source_type) &&
+        /(\/pricing|\/plans|\/docs|\/reference|\/models|\/changelog|\/release|\/limits|\/deprecat)/i.test(
+          source.url
+        )
+    )
+    .slice(0, 12);
+  const inventorySourceSnippets = inventorySources.map(
+    (source) => `[${source.url}] ${source.title}: ${source.snippet}`
+  );
+  const inventorySnippets = [...inventorySourceSnippets, ...inventoryApiResult.snippets].join('\n');
 
   // Step 7: Interpolate prompt variables
   const interpolatedPrompt = interpolateTemplate(promptTemplate, {
@@ -121,7 +158,11 @@ export async function executeAnalysisPhase(
     existingContentBaseline: existingContentBaseline || 'None',
     faqCandidates: faqCandidates || 'None',
     faqSourcePool: faqSourcePool || 'None',
+    inventorySnippets: inventorySnippets || 'None',
   });
+  const promptWithAdminInstructions = ctx.specialInstructions?.trim()
+    ? `${interpolatedPrompt}\n\n## Admin Instructions\n${ctx.specialInstructions.trim()}\n\nPrioritize these instructions unless they conflict with source evidence or policy guardrails.`
+    : interpolatedPrompt;
 
   // Step 8: Synthesize analysis (Pass 2 - The Architect + Human Context Roles)
   const { analysis, tokensUsed: synthesisTokens } = await deps.gemini.synthesize(
@@ -136,15 +177,27 @@ export async function executeAnalysisPhase(
       tribalDeepContent: undefined,
       knowledgeCardFacts: factSummary,
       existingCategories,
-      promptTemplate: interpolatedPrompt,
+      promptTemplate: promptWithAdminInstructions,
     },
     deps.withRetry
   );
 
+  sanitizeModelOptions(
+    analysis,
+    [...inventorySources, ...inventoryApiResult.snippets.map((snippet: string, i: number) => ({
+      url: inventoryApiResult.sourceUrls[i] || inventoryApiResult.sourceUrls[0] || '',
+      title: `Official ${inventoryApiResult.provider || 'inventory'} API models`,
+      snippet,
+    }))],
+    deps.log
+  );
+  applyAuthoritativeModelInventory(analysis, inventoryApiResult.modelOptions, deps.log);
+  applyCanonicalSetupTracks(analysis, ctx.research.knowledgeCard);
+
   // Attach Knowledge Card to analysis
   analysis.knowledgeCard = ctx.research.knowledgeCard;
   if (analysis.faqs && analysis.faqs.length > 0) {
-    ctx.research.knowledgeCard.faqs = analysis.faqs
+    const mappedFaqs = analysis.faqs
       .filter((faq: any) => !!faq.answer_source_url)
       .map((faq: any) => ({
         question: faq.question,
@@ -159,6 +212,36 @@ export async function executeAnalysisPhase(
           ),
       }))
       .filter((faq: any) => faq.question_source && faq.answer_source_url);
+    const canonicalModels = analysis.canonicalFacts?.latest_models_comparison || [];
+    const faqGuard = guardFaqVolatileFacts(mappedFaqs, canonicalModels);
+    if (faqGuard.dropped.length > 0) {
+      deps.log(`[FAQ Guard] Dropped ${faqGuard.dropped.length} volatile FAQ(s) during analysis`);
+    }
+    if (faqGuard.conflictsCount > 0) {
+      deps.log(`[FAQ Guard] Found ${faqGuard.conflictsCount} canonical model conflict(s)`);
+    }
+    ctx.research.knowledgeCard.faqs = faqGuard.accepted.filter(
+      (
+        faq
+      ): faq is {
+        question: string;
+        answer: string;
+        question_source: 'paa' | 'forum' | 'reddit';
+        question_source_url?: string;
+        answer_source_url: string;
+        answer_source_type: 'official' | 'editorial' | 'community';
+      } =>
+        !!faq.question_source &&
+        !!faq.answer_source_url &&
+        !!faq.answer_source_type
+    );
+    analysis.canonicalFacts = {
+      ...analysis.canonicalFacts,
+      quality: {
+        ...analysis.canonicalFacts?.quality,
+        conflicts_count: faqGuard.conflictsCount,
+      },
+    };
   }
 
   deps.log(`[Pass 2] Analysis complete - Score: ${analysis.score}/100`);
@@ -247,6 +330,171 @@ export async function executeAnalysisPhase(
     logo,
     tokensUsed: synthesisTokens,
   };
+}
+
+function sanitizeModelOptions(
+  analysis: { categorySpecificData?: Record<string, unknown> },
+  inventorySources: Array<{ url: string; title: string; snippet: string }>,
+  log: (message: string) => void
+): void {
+  const categoryData = analysis.categorySpecificData;
+  if (!categoryData || !Array.isArray(categoryData.model_options)) return;
+
+  const rawOptions = categoryData.model_options
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+    .filter(Boolean);
+  if (rawOptions.length === 0) {
+    categoryData.model_options = null;
+    return;
+  }
+
+  if (inventorySources.length === 0) {
+    log('[Recency] model_options removed: no official inventory sources available');
+    categoryData.model_options = null;
+    return;
+  }
+
+  const corpus = inventorySources
+    .map((source) => `${source.url}\n${source.title}\n${source.snippet}`.toLowerCase())
+    .join('\n');
+  const supported = rawOptions.filter((option) => corpus.includes(option.toLowerCase()));
+  const deduped = Array.from(new Set(supported));
+
+  if (deduped.length === 0) {
+    log('[Recency] model_options removed: no options were source-backed in official inventory');
+    categoryData.model_options = null;
+    return;
+  }
+
+  if (deduped.length !== rawOptions.length) {
+    log(`[Recency] model_options pruned: kept ${deduped.length}/${rawOptions.length} source-backed entries`);
+  }
+  categoryData.model_options = deduped;
+}
+
+function applyAuthoritativeModelInventory(
+  analysis: {
+    categorySpecificData?: Record<string, unknown>;
+    canonicalFacts?: Record<string, unknown>;
+  },
+  modelOptions: string[],
+  log: (message: string) => void
+): void {
+  if (modelOptions.length === 0) return;
+
+  const rawInventory = Array.from(
+    new Set(modelOptions.map((entry) => entry.trim()).filter((entry) => entry.length > 0))
+  );
+  const latestComparison = curateLatestModelsComparison(rawInventory);
+
+  analysis.canonicalFacts = {
+    ...analysis.canonicalFacts,
+    model_inventory_raw: rawInventory,
+    latest_models_comparison: latestComparison,
+  };
+
+  if (!analysis.categorySpecificData) {
+    analysis.categorySpecificData = {};
+  }
+  analysis.categorySpecificData.model_options = latestComparison;
+  log(
+    `[Recency] model_options set from authoritative inventory API (${latestComparison.length}/${rawInventory.length} curated models)`
+  );
+}
+
+function applyCanonicalSetupTracks(
+  analysis: {
+    canonicalFacts?: {
+      setup_tracks?: {
+        dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
+        non_dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
+      };
+    };
+  },
+  knowledgeCard: Record<string, any>
+): void {
+  const steps = Array.isArray(knowledgeCard?.setup_complexity?.steps)
+    ? knowledgeCard.setup_complexity.steps
+    : [];
+  if (steps.length === 0) return;
+
+  const normalizeStep = (step: any, index: number) => ({
+    step: typeof step?.step === 'number' ? step.step : index + 1,
+    action: String(step?.action || '').trim(),
+    command: typeof step?.command === 'string' ? step.command.trim() : undefined,
+    description: typeof step?.description === 'string' ? step.description.trim() : undefined,
+  });
+
+  const normalized = steps
+    .map(normalizeStep)
+    .filter((step: any) => step.action.length > 0);
+  if (normalized.length === 0) return;
+
+  const dev = normalized.filter((step: any) => step.command);
+  const nonDev = normalized.filter((step: any) => !step.command);
+
+  analysis.canonicalFacts = {
+    ...analysis.canonicalFacts,
+    setup_tracks: {
+      dev: dev.length > 0 ? dev : undefined,
+      non_dev: nonDev.length > 0 ? nonDev : undefined,
+    },
+  };
+}
+
+function curateLatestModelsComparison(rawModels: string[]): string[] {
+  if (rawModels.length === 0) return [];
+
+  const familyPattern = /\b(gpt|claude|codex|chatgpt|o[1-9])\b/i;
+  const normalized = rawModels
+    .map((model) => normalizeComparisonModelName(model))
+    .filter((model): model is string => Boolean(model))
+    .filter((model) => familyPattern.test(model));
+
+  const deduped = Array.from(new Set(normalized.map((entry) => entry.trim())));
+  return deduped.slice(0, 6);
+}
+
+function normalizeComparisonModelName(rawModel: string): string | null {
+  if (!rawModel || typeof rawModel !== 'string') return null;
+
+  const cleaned = rawModel
+    .replace(/\b(19|20)\d{2}[- ]?(0[1-9]|1[0-2])[- ]?(0[1-9]|[12]\d|3[01])\b/g, '')
+    .replace(/\b\d{6,8}\b/g, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned) return null;
+
+  const byFamilyFirst = cleaned.match(
+    /^claude\s+(opus|sonnet|haiku)\s+(\d+)(?:[.\s]+(\d+))?$/i
+  );
+  if (byFamilyFirst) {
+    const family = capitalizeToken(byFamilyFirst[1]);
+    const major = byFamilyFirst[2];
+    const minor = byFamilyFirst[3];
+    return minor ? `Claude ${family} ${major}.${minor}` : `Claude ${family} ${major}`;
+  }
+
+  const byVersionFirst = cleaned.match(
+    /^claude\s+(\d+)(?:[.\s]+(\d+))?\s+(opus|sonnet|haiku)$/i
+  );
+  if (byVersionFirst) {
+    const major = byVersionFirst[1];
+    const minor = byVersionFirst[2];
+    const family = capitalizeToken(byVersionFirst[3]);
+    return minor ? `Claude ${family} ${major}.${minor}` : `Claude ${family} ${major}`;
+  }
+
+  return cleaned
+    .replace(/\b(gpt)\b/gi, 'GPT')
+    .replace(/\b(chatgpt)\b/gi, 'ChatGPT')
+    .replace(/\b(codex)\b/gi, 'Codex')
+    .replace(/\bo([1-9])\b/g, 'o$1');
+}
+
+function capitalizeToken(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
 /**
@@ -436,6 +684,7 @@ export function detectToolCategory(
       'File Storage': 'file-storage',
       Scheduling: 'scheduling',
       AI: 'ai-automation',
+      'Artificial Intelligence': 'ai-automation',
       Automation: 'ai-automation',
     };
 

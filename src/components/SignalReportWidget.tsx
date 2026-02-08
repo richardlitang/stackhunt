@@ -1,5 +1,5 @@
 /**
- * SignalReportWidget - Structured signal capture (not free-form reviews)
+ * SignalReportWidget - Structured signal capture (not free-form review aggregation)
  * Phase 1: Agree with pros/cons, Gotcha signals
  *
  * Uses anonymous fingerprinting for anti-spam
@@ -68,7 +68,7 @@ async function getIpHash(): Promise<string> {
 const PHASE_1_SIGNALS: SignalDefinition[] = [
   {
     key: 'review_helpful',
-    label: 'Was this review helpful?',
+    label: 'Was this analysis helpful?',
     category: 'pros',
     options: [
       { key: 'yes', label: 'Yes', icon: <Check className="h-4 w-4" /> },

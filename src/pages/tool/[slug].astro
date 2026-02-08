@@ -46,9 +46,10 @@ import {
   generateVideoSchema,
   generateToolFAQSchema,
 } from '@/lib/seo';
-import { simpleMarkdown } from '@/lib/utils';
+import { getCanonicalUrl, simpleMarkdown } from '@/lib/utils';
 import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
+import { evaluateIndexReadiness } from '@/lib/quality-gate';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -92,7 +93,8 @@ if (tool.category) {
   });
 }
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
-const firstReview = tool.reviews?.[0];
+const publishedReviews = (tool.reviews || []).filter((review) => review.status === 'published');
+const firstReview = publishedReviews[0] || null;
 
 // Extract Knowledge Card data for new components
 const knowledgeCard = tool.metadata as KnowledgeCard | null;
@@ -100,8 +102,19 @@ const toolSpecs = tool.specs as Record<string, unknown> | null;
 const globalPros = Array.isArray(toolSpecs?.pros) ? toolSpecs?.pros : [];
 const globalCons = Array.isArray(toolSpecs?.cons) ? toolSpecs?.cons : [];
 const constraints = toolSpecs?.constraints as ToolConstraints | null;
+const canonicalFacts = toolSpecs?.canonical as Record<string, unknown> | undefined;
+const setupTracks = canonicalFacts?.setup_tracks as
+  | { dev?: Array<Record<string, unknown>>; non_dev?: Array<Record<string, unknown>> }
+  | undefined;
 // V4: Smart Schema - Category-specific and VIP tool-specific data
 const categorySpecificData = toolSpecs?.categorySpecificData as Record<string, unknown> | undefined;
+const canonicalLatestModels = Array.isArray(canonicalFacts?.latest_models_comparison)
+  ? canonicalFacts.latest_models_comparison.filter((entry): entry is string => typeof entry === 'string')
+  : [];
+const displayCategorySpecificData =
+  categorySpecificData && canonicalLatestModels.length > 0
+    ? { ...categorySpecificData, model_options: canonicalLatestModels }
+    : categorySpecificData;
 const vipSpecifics = toolSpecs?.specifics as Record<string, unknown> | undefined;
 const reviewContext = tool.review_context as Record<string, unknown> | null;
 const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<
@@ -227,41 +240,153 @@ const sourceDomains = firstReview?.sources
       ),
     ].slice(0, 5)
   : [];
-
-// Fetch signal aggregates for community signals
-// Note: Fetching via API to avoid TypeScript issues with complex joins
-let _signalAggregates: Array<{
-  signal_key: string;
-  signal_label: string;
-  signal_category: string;
-  option_key?: string;
-  option_label?: string;
-  count_total: number;
-  count_positive: number;
-  count_negative: number;
-}> = [];
-
-try {
-  const signalResponse = await fetch(
-    `${Astro.url.origin}/api/signals/aggregates?itemId=${tool.id}`
-  );
-  if (signalResponse.ok) {
-    const result = await signalResponse.json();
-    _signalAggregates = result.aggregates || [];
+const sourceEvidenceDomains = new Set(
+  firstReview?.sources
+    ? (firstReview.sources as Array<{ domain?: string; url?: string }>)
+        .map((source) => {
+          if (source.domain) return source.domain.replace(/^www\./, '').toLowerCase();
+          if (!source.url) return null;
+          try {
+            return new URL(source.url).hostname.replace(/^www\./, '').toLowerCase();
+          } catch {
+            return null;
+          }
+        })
+        .filter((domain): domain is string => Boolean(domain))
+    : []
+);
+const isEligibleEvidenceUrl = (url?: string | null): boolean => {
+  if (!url) return false;
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    return (
+      !hostname.includes('reddit.com') &&
+      !hostname.includes('ycombinator.com') &&
+      !hostname.includes('g2.com') &&
+      !hostname.includes('capterra.com') &&
+      !hostname.includes('trustpilot.com') &&
+      !hostname.includes('stackexchange.com') &&
+      !hostname.includes('stackoverflow.com')
+    );
+  } catch {
+    return false;
   }
-} catch (err) {
-  console.error('Failed to fetch signal aggregates:', err);
-}
+};
+const getEvidenceDomain = (url: string): string => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return '';
+  }
+};
+type EvidenceBullet = { text: string; sourceUrl: string };
+const toEvidenceBullet = (claim: unknown): EvidenceBullet | null => {
+  if (!claim || typeof claim !== 'object') return null;
+  const value = claim as Record<string, unknown>;
+  const text = typeof value.text === 'string' ? value.text.trim() : '';
+  const sourceUrl = typeof value.source_url === 'string' ? value.source_url.trim() : '';
+  if (!text || !sourceUrl || !isEligibleEvidenceUrl(sourceUrl)) return null;
+  return { text, sourceUrl };
+};
+const BLOCKED_EVIDENCE_DOMAINS = new Set([
+  'g2.com',
+  'capterra.com',
+  'trustpilot.com',
+  'reddit.com',
+  'old.reddit.com',
+  'm.reddit.com',
+]);
+const eligibleSignalEvidenceCount = Array.from(sourceEvidenceDomains).filter(
+  (domain) =>
+    !Array.from(BLOCKED_EVIDENCE_DOMAINS).some(
+      (blockedDomain) => domain === blockedDomain || domain.endsWith(`.${blockedDomain}`)
+    )
+).length;
 
-// SEO: Automated confidence scoring for noindex decision
+// SEO: quality/index gate (with confidence retained for trust signal display)
 const confidence = evaluateContentConfidence(tool, firstReview);
 const contentConfidenceLevel = getConfidenceLevel(confidence.score);
-
-const meta = {
-  ...generateToolMeta(tool, tool.review_count),
-  noindex: confidence.shouldNoindex,
+const indexReadiness = evaluateIndexReadiness(tool, firstReview);
+const persistedQuality =
+  (canonicalFacts?.quality as
+    | {
+        should_index?: boolean;
+        noindex_reasons?: string[];
+        section_publishability?: Record<string, boolean>;
+        section_status?: Record<string, 'show' | 'hide' | 'procedural'>;
+        evidence_counts?: Record<string, number>;
+      }
+    | undefined) || undefined;
+const sectionPublishability = {
+  ...indexReadiness.signals.section_publishability,
+  ...(persistedQuality?.section_publishability || {}),
 };
-const faqSchema = generateToolFAQSchema(tool, knowledgeCard);
+const sectionStatus = {
+  ...indexReadiness.signals.section_status,
+  ...(persistedQuality?.section_status || {}),
+};
+const evidenceCounts = {
+  ...indexReadiness.signals.evidence_counts,
+  ...(persistedQuality?.evidence_counts || {}),
+};
+const hasDraftReview = (tool.reviews || []).some((review) => review.status === 'draft');
+const isDraftPage = publishedReviews.length === 0 && hasDraftReview;
+
+const VOLATILE_FAQ_TERMS =
+  /\b(model|version|pricing|price|plan|quota|limit|token|tokens|rate limit|context window|deprecated|deprecation|gpt|claude|opus|sonnet|haiku|o[1-9])\b/i;
+const filteredFaqItems = (Array.isArray(knowledgeCard?.faqs) ? knowledgeCard.faqs : []).filter((item) => {
+  if (!item?.question || !item?.answer) return false;
+  if (!item.answer_source_url) return false;
+  if (VOLATILE_FAQ_TERMS.test(`${item.question} ${item.answer}`) && item.answer_source_type !== 'official') {
+    return false;
+  }
+  return true;
+});
+const knowledgeCardForSeo =
+  knowledgeCard && filteredFaqItems.length !== (knowledgeCard.faqs?.length || 0)
+    ? { ...knowledgeCard, faqs: filteredFaqItems }
+    : knowledgeCard;
+const faqItems = filteredFaqItems;
+const hasFAQ = faqItems.length > 0 && sectionPublishability.faq;
+const faqSchema = hasFAQ ? generateToolFAQSchema(tool, knowledgeCardForSeo) : null;
+
+const gateShouldIndex =
+  typeof persistedQuality?.should_index === 'boolean'
+    ? persistedQuality.should_index
+    : indexReadiness.shouldIndex;
+const gateReasons =
+  Array.isArray(persistedQuality?.noindex_reasons) && persistedQuality.noindex_reasons.length > 0
+    ? persistedQuality.noindex_reasons
+    : indexReadiness.reasons;
+const shouldNoindex = !gateShouldIndex || isDraftPage;
+const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
+const NEGATIVE_CLAIM_GUARD =
+  /\b(no|not|lacks|lack|cannot|can't|won't|avoid|veto|problem|risk|limit|limited|slow|expensive|broken|fails|failure)\b/i;
+const hasEligibleNegativeEvidence = eligibleSignalEvidenceCount >= 2;
+const guardedVerdict = firstReview?.summary_markdown
+  ? !NEGATIVE_CLAIM_GUARD.test(firstReview.summary_markdown) || hasEligibleNegativeEvidence
+    ? firstReview.summary_markdown
+    : null
+  : null;
+const guardedHumanVerdict =
+  humanVerdict && (!NEGATIVE_CLAIM_GUARD.test(humanVerdict) || hasEligibleNegativeEvidence)
+    ? humanVerdict
+    : null;
+const guardedToolVerdict =
+  tool.verdict && (!NEGATIVE_CLAIM_GUARD.test(tool.verdict) || hasEligibleNegativeEvidence)
+    ? tool.verdict
+    : null;
+const renderVerdict = guardedVerdict || guardedToolVerdict || guardedHumanVerdict;
+const guardedAvoidIf = hasEligibleNegativeEvidence ? avoidIf : [];
+
+const toolMeta = generateToolMeta(tool, tool.review_count);
+const meta = {
+  ...toolMeta,
+  description: shouldNoindex ? safeDraftDescription : toolMeta.description,
+  canonical: shouldNoindex ? getCanonicalUrl('/tools') : toolMeta.canonical,
+  noindex: shouldNoindex,
+};
+Astro.response.headers.set('X-Robots-Tag', meta.noindex ? 'noindex,nofollow' : 'index,follow');
 const schemas = [
   generateToolSchema(tool, primaryOffer, tool.review_count),
   generateBreadcrumbSchema([
@@ -282,8 +407,16 @@ const schemas = [
 
 const _turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
-const hasAbout = Boolean(tool.long_description || tool.short_description || knowledgeCard?.tagline);
-const hasVerdict = Boolean(firstReview?.summary_markdown);
+const hasAbout = (() => {
+  const longDescription =
+    typeof tool.long_description === 'string' ? tool.long_description.trim() : '';
+  if (!longDescription) return false;
+  const shortDescription =
+    typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return normalize(longDescription) !== normalize(shortDescription);
+})();
+const hasVerdict = Boolean(renderVerdict && sectionStatus.verdict === 'show');
 const hasStrengths = Boolean(
   globalPros.length > 0 ||
   globalCons.length > 0 ||
@@ -292,16 +425,190 @@ const hasStrengths = Boolean(
 const hasFeatures = Boolean(
   knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0
 );
-const hasGettingStarted = Boolean(knowledgeCard?.setup_complexity);
-const hasSpecs = Boolean(categorySpecificData || vipSpecifics);
-const hasPricing = Boolean(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0);
+const hasGettingStarted = Boolean(
+  knowledgeCard?.setup_complexity ||
+    (Array.isArray(setupTracks?.non_dev) && setupTracks.non_dev.length > 0) ||
+    (Array.isArray(setupTracks?.dev) && setupTracks.dev.length > 0)
+);
+const hasSpecs = Boolean((categorySpecificData || vipSpecifics) && sectionStatus.specs === 'show');
+const hasMeaningfulPricingPlanName = (name?: string): boolean => {
+  if (!name || !name.trim()) return false;
+  const normalized = name.trim().toLowerCase();
+  if (/^plan\s+\d+$/i.test(normalized)) return false;
+  if (/^product\s+\d+$/i.test(normalized)) return false;
+  return true;
+};
+const hasRenderableSmpPlans = Boolean(
+  knowledgeCard?.smp_pricing?.plans?.some((plan) => hasMeaningfulPricingPlanName((plan as any)?.name))
+);
+const hasPricing = Boolean(
+  ((hasRenderableSmpPlans || knowledgeCard?.pricing?.tiers?.length > 0) && sectionStatus.pricing === 'show')
+);
 const hasPlatform = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
 const hasVideo = Boolean(tool.video_id);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
-const hasCommunity = true;
+const hasCommunity = Boolean(eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show');
+const showProceduralVerdict = sectionStatus.verdict === 'procedural' && !hasVerdict;
+const showProceduralPricing = sectionStatus.pricing === 'procedural' && !hasPricing;
+const showProceduralSpecs = sectionStatus.specs === 'procedural' && !hasSpecs;
+const showProceduralCommunity = sectionStatus.community === 'procedural' && !hasCommunity;
 
-const faqItems = Array.isArray(knowledgeCard?.faqs) ? knowledgeCard.faqs : [];
-const hasFAQ = faqItems.length > 0;
+const decisionSnapshotWhatItIs =
+  tool.short_description || knowledgeCard?.tagline || `Editorial analysis for ${tool.name}.`;
+const decisionSnapshotBestFit = (
+  idealFor.length > 0
+    ? idealFor
+    : tags.audiences.length > 0
+      ? tags.audiences.map((tag) => tag.name)
+      : (firstReview?.pros || [])
+).slice(0, 3);
+const decisionSnapshotTriggers =
+  guardedAvoidIf.length > 0
+    ? guardedAvoidIf.slice(0, 2)
+    : (firstReview?.cons || []).slice(0, 2).map((con) => `Avoid if ${con}`);
+const implementationSurface =
+  knowledgeCard?.setup_complexity?.estimated_setup_time ||
+  (tool.learning_curve ? `${tool.learning_curve} learning curve` : null) ||
+  'Varies by workflow depth';
+const verificationChecklist = [
+  'Validate pricing drivers with your expected monthly usage.',
+  'Run one production-like workflow and record failure points.',
+  'Confirm required integrations, export paths, and API limits.',
+  'Check security and compliance docs against your procurement checklist.',
+];
+const evidenceLinks = (firstReview?.sources || [])
+  .map((source) => {
+    const url = typeof source?.url === 'string' ? source.url : null;
+    if (!url) return null;
+    let hostname = '';
+    try {
+      hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    } catch {
+      return null;
+    }
+    const path = (() => {
+      try {
+        return new URL(url).pathname.toLowerCase();
+      } catch {
+        return '';
+      }
+    })();
+    const blocked =
+      hostname.includes('reddit.com') ||
+      hostname.includes('ycombinator.com') ||
+      hostname.includes('g2.com') ||
+      hostname.includes('capterra.com') ||
+      hostname.includes('trustpilot.com') ||
+      hostname.includes('stackexchange.com') ||
+      hostname.includes('stackoverflow.com');
+    if (blocked) return null;
+    const basis =
+      hostname.includes('github.com') && path.includes('/issues')
+        ? 'GitHub issues'
+        : hostname.startsWith('status.') || path.includes('/status')
+          ? 'Status page'
+          : path.includes('/changelog') || path.includes('/release') || path.includes('/updates')
+            ? 'Changelog'
+            : path.includes('/docs') || path.includes('/help') || path.includes('/developer')
+              ? 'Docs'
+              : 'Independent writeups';
+    return {
+      url,
+      title:
+        typeof source?.title === 'string' && source.title.trim().length > 0
+          ? source.title
+          : hostname,
+      domain: hostname,
+      basis,
+    };
+  })
+  .filter((entry): entry is { url: string; title: string; domain: string; basis: string } => Boolean(entry));
+const evidenceBasis = ['Docs', 'Changelog', 'Status page', 'GitHub issues', 'Independent writeups']
+  .map((label) => {
+    const domains = new Set(
+      evidenceLinks.filter((entry) => entry.basis === label).map((entry) => entry.domain)
+    );
+    return { label, count: domains.size };
+  })
+  .filter((entry) => entry.count > 0);
+const formatVerifiedDate = (value?: string | null): string | null => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+const pricingVerifiedLabel = formatVerifiedDate(tool.pricing_verified_at || tool.last_verified_at);
+const specsVerifiedLabel = formatVerifiedDate(
+  (knowledgeCard?.meta?.extraction_date as string | undefined) || tool.last_verified_at
+);
+const communityVerifiedLabel = formatVerifiedDate(
+  ((firstReview as any)?.updated_at as string | undefined) ||
+    ((firstReview as any)?.created_at as string | undefined) ||
+    tool.last_verified_at
+);
+const normalizeText = (value?: string | null): string =>
+  (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+const shortDescriptionText = typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
+const taglineText = typeof knowledgeCard?.tagline === 'string' ? knowledgeCard.tagline.trim() : '';
+const hasDistinctTagline =
+  Boolean(taglineText) && normalizeText(taglineText) !== normalizeText(shortDescriptionText);
+const aboutFallbackText = hasDistinctTagline ? taglineText : '';
+const contextualEvidenceCons = (Array.isArray(firstReview?.cons) ? firstReview.cons : [])
+  .map(toEvidenceBullet)
+  .filter((item): item is EvidenceBullet => Boolean(item));
+const hardLimitFromConstraints = Array.isArray(constraints?.hard_limits)
+  ? constraints.hard_limits
+      .map((limit: any) => {
+        const sourceUrl = typeof limit?.source_url === 'string' ? limit.source_url : '';
+        if (!isEligibleEvidenceUrl(sourceUrl)) return null;
+        const metric = typeof limit?.metric === 'string' ? limit.metric.replace(/_/g, ' ') : 'Limit';
+        const value =
+          typeof limit?.value === 'number' || typeof limit?.value === 'string' ? String(limit.value) : '';
+        const unit = typeof limit?.unit === 'string' ? ` ${limit.unit}` : '';
+        const plan = typeof limit?.plan_name_match === 'string' ? ` (${limit.plan_name_match})` : '';
+        const text = `${metric}: ${value}${unit}${plan}`.trim();
+        if (!text || text === 'Limit:') return null;
+        return { text, sourceUrl } as EvidenceBullet;
+      })
+      .filter((item): item is EvidenceBullet => Boolean(item))
+  : [];
+const withUniqueText = (items: EvidenceBullet[]): EvidenceBullet[] => {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.text.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+const hardLimitBullets = withUniqueText(
+  [
+    ...hardLimitFromConstraints,
+    ...contextualEvidenceCons.filter((item) =>
+      /\b(limit|limited|quota|cap|hard stop|ceiling|overage|maximum|max)\b/i.test(item.text)
+    ),
+  ].slice(0, 6)
+);
+const notIncludedBullets = withUniqueText(
+  contextualEvidenceCons
+    .filter((item) =>
+      /\b(no\b|not\b|without|lacks|lack|requires integration|not included|missing)\b/i.test(item.text)
+    )
+    .slice(0, 6)
+);
+const trialNotesBullets = withUniqueText(
+  contextualEvidenceCons
+    .filter((item) =>
+      /\b(users report|teams report|can become|workflow|operational|maintenance|manual|overhead|stale|governance|friction)\b/i.test(
+        item.text
+      )
+    )
+    .slice(0, 6)
+);
+const hasOperationalFit = Boolean(firstReview || constraints);
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -346,19 +653,19 @@ const hasFAQ = faqItems.length > 0;
         />
       </div>
 
-      {/* Content Confidence Indicator (shown when noindexed or low confidence) */}
+      {/* Index Readiness Indicator */}
       {
-        (confidence.shouldNoindex || confidence.score < 7) && (
+        (!gateShouldIndex || indexReadiness.signals.score < 90) && (
           <div
             class:list={[
               'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium',
-              confidence.shouldNoindex
+              !gateShouldIndex
                 ? 'border-red-500/30 bg-red-500/10 text-red-400'
                 : 'border-amber-500/30 bg-amber-500/10 text-amber-400',
             ]}
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {confidence.shouldNoindex ? (
+              {!gateShouldIndex ? (
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -375,12 +682,11 @@ const hasFAQ = faqItems.length > 0;
               )}
             </svg>
             <span>
-              {confidence.shouldNoindex ? 'Not indexed' : 'Content confidence'} (
-              {confidence.score.toFixed(1)}/10)
+              {!gateShouldIndex ? 'Not indexed' : 'Index readiness'}
             </span>
-            {confidence.shouldNoindex && (
+            {!gateShouldIndex && (
               <span class="text-xs opacity-75">
-                ({confidence.reasons[0] || 'Low content confidence'})
+                ({gateReasons[0] || 'Quality gate not met'})
               </span>
             )}
           </div>
@@ -528,6 +834,75 @@ const hasFAQ = faqItems.length > 0;
       </div>
     </header>
 
+    {/* Decision Snapshot (MVUP) */}
+    <section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+      <h2 class="text-lg font-semibold text-zinc-100">Decision Snapshot</h2>
+      <p class="mt-2 text-sm text-zinc-300">{decisionSnapshotWhatItIs}</p>
+      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Best Fit</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {(decisionSnapshotBestFit.length > 0
+              ? decisionSnapshotBestFit
+              : ['General-purpose teams evaluating options']).map((item) => (
+              <li>- {item}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Decision Triggers</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {(decisionSnapshotTriggers.length > 0
+              ? decisionSnapshotTriggers
+              : ['Run the verification checklist to validate fit for your workflow.']).map((item) => (
+              <li>- {item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+        <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
+          Implementation: {implementationSurface}
+        </span>
+        <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
+          Verification checklist available
+        </span>
+        <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
+          Index gate: {gateShouldIndex ? 'Pass' : 'Hold'}
+        </span>
+      </div>
+    </section>
+
+    {
+      evidenceBasis.length > 0 && (
+        <section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+          <h2 class="text-lg font-semibold text-zinc-100">Evidence Basis</h2>
+          <div class="mt-3 flex flex-wrap gap-2">
+            {evidenceBasis.map((chip) => (
+              <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
+                {chip.label} ({chip.count})
+              </span>
+            ))}
+          </div>
+          <details class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+            <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
+            <ul class="mt-3 space-y-2 text-sm">
+              {evidenceLinks.slice(0, 12).map((source) => (
+                <li>
+                  <a href={source.url} target="_blank" rel="noopener" class="text-zinc-300 hover:text-hunt-500">
+                    {source.title}
+                  </a>
+                  <span class="ml-2 text-xs text-zinc-500">
+                    {source.domain} · {source.basis}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </section>
+      )
+    }
+
     {/* Table of Contents */}
     <nav
       class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
@@ -546,7 +921,7 @@ const hasFAQ = faqItems.length > 0;
           )
         }
         {
-          hasVerdict && (
+          (hasVerdict || showProceduralVerdict) && (
             <a
               href="#verdict"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -586,7 +961,17 @@ const hasFAQ = faqItems.length > 0;
           )
         }
         {
-          hasSpecs && (
+          hasOperationalFit && (
+            <a
+              href="#operational-fit"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Operational fit
+            </a>
+          )
+        }
+        {
+          (hasSpecs || showProceduralSpecs) && (
             <a
               href="#specs"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -596,7 +981,7 @@ const hasFAQ = faqItems.length > 0;
           )
         }
         {
-          hasPricing && (
+          (hasPricing || showProceduralPricing) && (
             <a
               href="#pricing-plans"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -636,7 +1021,7 @@ const hasFAQ = faqItems.length > 0;
           )
         }
         {
-          hasCommunity && (
+          (hasCommunity || showProceduralCommunity) && (
             <a
               href="#community"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -661,6 +1046,18 @@ const hasFAQ = faqItems.length > 0;
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-8 lg:col-span-2">
+        <section id="verification-checklist" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+          <h2 class="text-lg font-semibold text-zinc-100">Verification Checklist</h2>
+          <p class="mt-2 text-sm text-zinc-400">
+            Use this quick pass before committing budget or migration effort.
+          </p>
+          <ul class="mt-4 space-y-2 text-sm text-zinc-300">
+            {verificationChecklist.map((item) => (
+              <li>- {item}</li>
+            ))}
+          </ul>
+        </section>
+
         {/* About - What is it? (FIRST for users learning about the tool) */}
         {
           hasAbout && (
@@ -691,9 +1088,7 @@ const hasFAQ = faqItems.length > 0;
                   set:html={simpleMarkdown(tool.long_description)}
                 />
               ) : (
-                <div class="mt-4 text-zinc-300 leading-relaxed">
-                  {tool.short_description || knowledgeCard?.tagline || `Overview of ${tool.name}.`}
-                </div>
+                <div class="mt-4 text-zinc-300 leading-relaxed">{aboutFallbackText}</div>
               )}
             </details>
           )
@@ -701,7 +1096,7 @@ const hasFAQ = faqItems.length > 0;
 
         {/* Our Verdict - Quick summary with key points */}
         {
-          firstReview?.summary_markdown && (
+          hasVerdict && (
             <section
               id="verdict"
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -709,7 +1104,7 @@ const hasFAQ = faqItems.length > 0;
               <h2 class="mb-4 text-lg font-semibold text-zinc-100">Our Verdict</h2>
               <div
                 class="prose prose-slate prose-sm max-w-none"
-                set:html={simpleMarkdown(firstReview.summary_markdown)}
+                set:html={simpleMarkdown(renderVerdict)}
               />
 
               {/* Value Rating and Fit Score */}
@@ -755,6 +1150,22 @@ const hasFAQ = faqItems.length > 0;
                   <SentimentTags tags={firstReview.sentiment_tags} />
                 </div>
               )}
+            </section>
+          )
+        }
+        {
+          showProceduralVerdict && (
+            <section id="verdict" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+              <h2 class="text-lg font-semibold text-zinc-100">Decision Conditions</h2>
+              <p class="mt-2 text-sm text-zinc-400">
+                Evidence is not strong enough for a publishable verdict yet. Use these checks:
+              </p>
+              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
+                <li>- Run one real workflow and capture where the tool fails first.</li>
+                <li>- Validate migration and rollback paths before replacing incumbents.</li>
+                <li>- Confirm your must-have integrations are supported in current plans.</li>
+                <li>- Re-check this page after new evidence is verified.</li>
+              </ul>
             </section>
           )
         }
@@ -811,6 +1222,103 @@ const hasFAQ = faqItems.length > 0;
           )
         }
 
+        {
+          hasOperationalFit && (
+            <section
+              id="operational-fit"
+              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <h2 class="text-lg font-semibold text-zinc-100">Operational Fit</h2>
+              <p class="mt-2 text-sm text-zinc-400">
+                Evidence-backed constraints and rollout considerations before you scale usage.
+              </p>
+
+              <div class="mt-5 grid gap-4 md:grid-cols-3">
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Hard Limits</h3>
+                  {hardLimitBullets.length > 0 ? (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {hardLimitBullets.map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      <li>- Verify quota units and reset windows before rollout.</li>
+                      <li>- Test p95 usage against hard caps in a staging workflow.</li>
+                      <li>- Confirm overage behavior for failed and retried actions.</li>
+                    </ul>
+                  )}
+                </div>
+
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Not Included</h3>
+                  {notIncludedBullets.length > 0 ? (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {notIncludedBullets.map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      <li>- Verify which required features are plan-gated.</li>
+                      <li>- Confirm missing workflows and required integrations.</li>
+                      <li>- Validate export/migration paths before commitment.</li>
+                    </ul>
+                  )}
+                </div>
+
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Trial Notes</h3>
+                  {trialNotesBullets.length > 0 ? (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {trialNotesBullets.map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      <li>- Run a week-long pilot with real contributors.</li>
+                      <li>- Track failure reasons and manual workarounds daily.</li>
+                      <li>- Re-check fit after migration and permissions setup.</li>
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </section>
+          )
+        }
+
         {/* Features Showcase */}
         {
           (knowledgeCard?.features?.core?.length > 0 ||
@@ -823,36 +1331,64 @@ const hasFAQ = faqItems.length > 0;
 
         {/* Getting Started - Setup guide with friction score and actual steps */}
         {
-          knowledgeCard?.setup_complexity && (
+          hasGettingStarted && (
             <section id="getting-started">
               <GettingStarted
-                setupComplexity={knowledgeCard.setup_complexity}
+                setupComplexity={knowledgeCard?.setup_complexity}
                 toolName={tool.name}
+                hasApi={Boolean(knowledgeCard?.integrations?.has_api)}
+                websiteUrl={knowledgeCard?.website_url || tool.website}
+                setupTracks={setupTracks}
               />
             </section>
           )
         }
 
         {/* Technical Specs - Category-specific and VIP tool details */}
-        <section id="specs">
-          <DynamicSpecs
-            categorySpecificData={categorySpecificData}
-            specifics={vipSpecifics}
-            toolName={tool.name}
-            categoryName={tool.category?.name}
-          />
-        </section>
+        {
+          hasSpecs && (
+            <section id="specs">
+              {specsVerifiedLabel && (
+                <p class="mb-3 text-xs text-zinc-500">Specs verified {specsVerifiedLabel}</p>
+              )}
+              <DynamicSpecs
+                categorySpecificData={displayCategorySpecificData}
+                specifics={vipSpecifics}
+                toolName={tool.name}
+                categoryName={tool.category?.name}
+              />
+            </section>
+          )
+        }
+        {
+          showProceduralSpecs && (
+            <section id="specs" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+              <h2 class="text-lg font-semibold text-zinc-100">Technical Validation Steps</h2>
+              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
+                <li>- Confirm API limits and throttling behavior using your expected peak load.</li>
+                <li>- Verify export formats and data portability before onboarding large datasets.</li>
+                <li>- Check release cadence and changelog quality for operational predictability.</li>
+                <li>- Validate admin controls needed by your security/compliance process.</li>
+              </ul>
+            </section>
+          )
+        }
 
         {/* Pricing Plans */}
         {
-          (knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) && (
+          hasPricing && (
             <details
               id="pricing-plans"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
               open
             >
               <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
-                <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
+                <div>
+                  <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
+                  {pricingVerifiedLabel && (
+                    <p class="mt-1 text-xs text-zinc-500">Pricing verified {pricingVerifiedLabel}</p>
+                  )}
+                </div>
                 <svg
                   class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
                   fill="none"
@@ -924,10 +1460,23 @@ const hasFAQ = faqItems.length > 0;
             </details>
           )
         }
+        {
+          showProceduralPricing && (
+            <section id="pricing-plans" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+              <h2 class="text-lg font-semibold text-zinc-100">Pricing Verification Steps</h2>
+              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
+                <li>- Identify the billing unit and estimate monthly usage at p50 and p95.</li>
+                <li>- Check overage behavior, annual commitments, and seat minimums.</li>
+                <li>- Validate whether critical features are gated to higher plans.</li>
+                <li>- Confirm cancellation/export terms before committing procurement.</li>
+              </ul>
+            </section>
+          )
+        }
 
         {/* Community Insights (Real user insights) */}
         {
-          (userAdvocate || humanVerdict) && (
+          hasCommunity && (userAdvocate || guardedHumanVerdict) && (
             <TribalKnowledge
               userAdvocate={
                 userAdvocate
@@ -935,14 +1484,14 @@ const hasFAQ = faqItems.length > 0;
                       vibe,
                       originStory,
                       idealFor,
-                      avoidIf,
+                      avoidIf: guardedAvoidIf,
                       powerTip,
                       delighters,
                       frustrations,
                     }
                   : undefined
               }
-              humanVerdict={humanVerdict}
+              humanVerdict={guardedHumanVerdict}
             />
           )
         }
@@ -1013,7 +1562,7 @@ const hasFAQ = faqItems.length > 0;
                   <p class="font-medium text-zinc-100 mb-1">What is this?</p>
                   <p>
                     Calculated from feature density, update frequency, and market adoption—not user
-                    votes. Community reviews appear separately below.
+                    votes. Community signals appear separately below.
                   </p>
                 </div>
               </dt>
@@ -1035,9 +1584,9 @@ const hasFAQ = faqItems.length > 0;
               </dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-sm text-zinc-400">Reviews</dt>
+              <dt class="text-sm text-zinc-400">Published Analyses</dt>
               <dd class="text-sm font-medium text-zinc-100">
-                {tool.review_count < 3 ? 'Not enough reviews yet' : tool.review_count}
+                {tool.review_count < 3 ? 'Not enough evidence yet' : tool.review_count}
               </dd>
             </div>
             {
@@ -1250,33 +1799,56 @@ const hasFAQ = faqItems.length > 0;
   </div>
 
   {/* Community Feedback - Compact consolidated section */}
-  <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-    <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
-    <div class="sm:text-right shrink-0">
-      <button
-        type="button"
-        data-suggest-edit
-        data-tool-id={tool.id}
-        data-tool-name={tool.name}
-        class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 hover:border-zinc-600 transition"
-      >
-        <svg
-          class="h-3.5 w-3.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-          ></path>
-        </svg>
-        Report correction
-      </button>
-    </div>
-  </section>
+  {
+    hasCommunity && (
+      <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        {communityVerifiedLabel && (
+          <p class="mb-3 text-xs text-zinc-500">Community signals verified {communityVerifiedLabel}</p>
+        )}
+        <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
+        <div class="sm:text-right shrink-0">
+          <button
+            type="button"
+            data-suggest-edit
+            data-tool-id={tool.id}
+            data-tool-name={tool.name}
+            class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 hover:border-zinc-600 transition"
+          >
+            <svg
+              class="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              ></path>
+            </svg>
+            Report correction
+          </button>
+        </div>
+      </section>
+    )
+  }
+  {
+    showProceduralCommunity && (
+      <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <h2 class="text-lg font-semibold text-zinc-100">Observed Usage Patterns</h2>
+        <p class="mt-2 text-sm text-zinc-400">
+          Community evidence is currently below publication threshold. Use this lightweight audit:
+        </p>
+        <ul class="mt-4 space-y-2 text-sm text-zinc-300">
+          <li>- Ask references what failed first after rollout and how they mitigated it.</li>
+          <li>- Validate support responsiveness during your local business hours.</li>
+          <li>- Compare one critical workflow against two alternatives before locking in.</li>
+          <li>- Re-check after the next product release cycle for fresher field evidence.</li>
+        </ul>
+      </section>
+    )
+  }
 
   <!-- Suggest Edit Modal -->
   <div

@@ -16,6 +16,7 @@ export type SerperSource = {
   domain: string;
   published_at?: string;
   time_since?: string;
+  source_type?: 'official' | 'docs' | 'support' | 'legal' | 'editorial' | 'community' | 'directory';
 };
 
 export type RankedSource = SerperSource & {
@@ -23,6 +24,14 @@ export type RankedSource = SerperSource & {
   deep_scrape_allowed: boolean;
   reasons: string[];
 };
+
+const VOLATILE_INTENTS: SourceIntent[] = [
+  'pricing',
+  'security',
+  'portability',
+  'integrations',
+  'limits',
+];
 
 export async function rankSources(
   sources: SerperSource[],
@@ -41,6 +50,7 @@ export async function rankSources(
     deduped.map(async (source) => {
       const reasons: string[] = [];
       let score = 0;
+      const isVolatileIntent = VOLATILE_INTENTS.includes(intent);
 
       const gate = await policyLookup(source.url);
       const deepScrapeAllowed =
@@ -64,6 +74,24 @@ export async function rankSources(
       if (matchesIntent(source.url, source.title, intent)) {
         score += 20;
         reasons.push('intent_match');
+      }
+
+      if (isInventoryGradeSource(source.url, source.title, source.snippet)) {
+        score += 25;
+        reasons.push('inventory_grade');
+      } else if (isVolatileIntent) {
+        score -= 15;
+        reasons.push('narrative_source_for_volatile_fact');
+      }
+
+      if (isVolatileIntent) {
+        if (source.source_type === 'community') {
+          score -= 40;
+          reasons.push('community_deprioritized_for_volatile_fact');
+        } else if (source.source_type === 'editorial') {
+          score -= 15;
+          reasons.push('editorial_deprioritized_for_volatile_fact');
+        }
       }
 
       if (source.published_at || source.time_since) {
@@ -121,4 +149,16 @@ function extractDomain(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+function isInventoryGradeSource(url: string, title: string, snippet: string): boolean {
+  const haystack = `${url} ${title} ${snippet}`.toLowerCase();
+  return (
+    /(\/pricing|\/plans|\/docs|\/doc|\/developers?|\/api|\/reference|\/changelog|\/release-notes|\/limits|\/quotas|\/integrations|\/supported|\/models|\/model-deprecations)/.test(
+      haystack
+    ) ||
+    /(pricing|plans|api reference|developer docs|release notes|changelog|supported integrations|rate limits|quotas|model deprecations|models overview)/.test(
+      haystack
+    )
+  );
 }

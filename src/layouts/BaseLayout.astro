@@ -24,7 +24,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
     <title>{meta.title}</title>
     <meta name="title" content={meta.title} />
     <meta name="description" content={meta.description} />
-    {meta.noindex && <meta name="robots" content="noindex, nofollow" />}
+    <meta name="robots" content={meta.noindex ? 'noindex,nofollow' : 'index,follow'} />
 
     <!-- Canonical -->
     <link rel="canonical" href={meta.canonical} />
@@ -239,6 +239,9 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
               StackHunt is an independent, AI-powered research platform. Some links may earn us a
               commission at no cost to you.
               <a href="/disclosure" class="underline hover:text-indigo-400"> Full disclosure → </a>
+            </p>
+            <p class="text-xs text-zinc-500 leading-relaxed mb-4">
+              Community insights reflect aggregated, subjective reports and may not represent all user experiences.
             </p>
             <div
               class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-zinc-800"

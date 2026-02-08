@@ -159,16 +159,12 @@ export function buildFactSummary(card: KnowledgeCard): string {
 // ============================================================================
 
 /**
- * Known domains classified by source type for legal protection
+ * Known domains classified by source type for legal protection.
+ * Blocked review aggregators should not be classified here; they are excluded by source policy.
  */
 const DOMAIN_CLASSIFICATIONS: Record<string, 'official' | 'editorial' | 'community'> = {
-  // Editorial review sites (high authority)
-  'g2.com': 'editorial',
-  'capterra.com': 'editorial',
+  // Editorial/analysis publications
   'gartner.com': 'editorial',
-  'trustpilot.com': 'editorial',
-  'softwareadvice.com': 'editorial',
-  'getapp.com': 'editorial',
   'pcmag.com': 'editorial',
   'techradar.com': 'editorial',
   'cnet.com': 'editorial',
@@ -201,7 +197,7 @@ const DOMAIN_CLASSIFICATIONS: Record<string, 'official' | 'editorial' | 'communi
  *
  * @example
  * classifySourceType("https://reddit.com/r/notion") // => "community"
- * classifySourceType("https://g2.com/products/notion") // => "editorial"
+ * classifySourceType("https://techradar.com/reviews/notion") // => "editorial"
  * classifySourceType("https://notion.so/pricing") // => "official" (if toolWebsite matches)
  */
 export function classifySourceType(
@@ -242,16 +238,16 @@ export function classifySourceType(
 const HEDGING_PREFIXES = {
   community: [
     'Users report that',
-    'According to community feedback,',
+    'According to observed community reports,',
     'Based on user discussions,',
     'Community members note that',
-    'User reviews indicate that',
+    'Reported usage patterns suggest that',
   ],
   editorial: [
-    'According to reviews,',
-    'Reviewers note that',
+    'According to editorial analysis,',
+    'Analysts note that',
     'Industry analysts observe that',
-    'Based on professional reviews,',
+    'Based on independent coverage,',
   ],
   official: [], // No hedging needed for official sources - these are facts
 };
@@ -350,6 +346,14 @@ export function buildSnippetBucketsFromScout(rawSources: RawSource[]): ScoutSnip
   const budgetRegex = /(hidden cost|billing|overage|implementation|setup fee|min seat|commitment|annual)/i;
 
   for (const source of rawSources) {
+    // Hard guardrail: only sources explicitly allowed for ingestion should influence synthesis.
+    if (
+      source.policy.acquisition_mode !== 'SCRAPE_ALLOWED' ||
+      source.policy.llm_ingestion_allowed === 'NO'
+    ) {
+      continue;
+    }
+
     const snippet = formatSnippet(source);
     const haystack = `${source.title} ${source.snippet} ${source.url}`;
 

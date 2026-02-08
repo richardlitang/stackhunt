@@ -76,9 +76,12 @@ function normalizeClaim(
 
 const normalizedPros = pros.map((item, i) => normalizeClaim(item, i));
 const normalizedCons = cons.map((item, i) => normalizeClaim(item, i));
+const evidenceBackedPros = normalizedPros.filter((item) => Boolean(item.source_url));
+const evidenceBackedCons = normalizedCons.filter((item) => Boolean(item.source_url));
+const hasEvidenceBackedClaims = evidenceBackedPros.length > 0 || evidenceBackedCons.length > 0;
 
 const sourceEntries = (() => {
-  const entries = [...normalizedPros, ...normalizedCons]
+  const entries = [...evidenceBackedPros, ...evidenceBackedCons]
     .filter((item) => item.source_url)
     .map((item) => ({
       url: item.source_url as string,
@@ -211,7 +214,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
 
       <ul class="space-y-3">
         {
-          normalizedPros.map((pro) => (
+          evidenceBackedPros.map((pro) => (
             <li class="text-sm text-zinc-300">
               <div class="flex items-start gap-3">
                 <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
@@ -260,7 +263,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
 
       <ul class="space-y-3">
         {
-          normalizedCons.map((con) => (
+          evidenceBackedCons.map((con) => (
             <li class="text-sm text-zinc-300">
               <div class="flex items-start gap-3">
                 <MinusIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
@@ -298,6 +301,14 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
       </ul>
     </div>
   </div>
+
+  {
+    !hasEvidenceBackedClaims && (
+      <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3 text-xs text-zinc-500">
+        Strength and weakness bullets are hidden until source-backed evidence is available.
+      </div>
+    )
+  }
 
   {
     resolvedSourceDisplay === 'block' && sourceEntries.length > 0 && (

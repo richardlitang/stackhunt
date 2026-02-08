@@ -16,7 +16,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
   meta={{
     title: 'Research Methodology | StackHunt',
     description:
-      'Learn how StackHunt researches, evaluates, and verifies software recommendations using AI-powered analysis and human oversight.',
+      'Learn how StackHunt builds evidence-backed software intelligence reports with source policy controls, quality gates, and human oversight.',
     canonical: 'https://stackhunt.co/methodology',
   }}
 >
@@ -33,8 +33,8 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 
         <h1 class="text-4xl font-bold text-zinc-100 mb-3">How StackHunt Works</h1>
         <p class="text-lg text-zinc-400">
-          We use AI to research, humans to verify. Every recommendation is backed by sources, and
-          every claim is verifiable. Here's exactly how our process works.
+          We publish editorial intelligence reports for software buyers. Reports are source-backed,
+          draft-first, and quality-gated before indexing.
         </p>
       </div>
     </div>
@@ -96,9 +96,8 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
               <div>
                 <h3 class="text-lg font-semibold text-zinc-100">Our Commitment</h3>
                 <p class="mt-2 text-sm text-zinc-400">
-                  We use AI to research at scale, but we don't blindly trust it. Every tool review
-                  is created as a draft, verified for accuracy, and linked to original sources. We
-                  clearly label opinions and distinguish them from facts.
+                  We optimize for decision usefulness and trust. When evidence is weak or conflicting,
+                  we hide sections instead of publishing filler.
                 </p>
               </div>
             </div>
@@ -107,54 +106,39 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           <h2 id="hunter">The "Hunter" Research Process</h2>
 
           <p>
-            StackHunt uses a three-phase pipeline we call "The Hunter" to research and evaluate
-            software tools. The entire process is automated for efficiency, but designed with human
-            verification in mind.
+            StackHunt uses a three-phase pipeline to research and evaluate tools. The process is
+            automated for speed and consistency, then reviewed with editorial guardrails.
           </p>
 
           <h3 id="research">Phase 1: Research (The Scout)</h3>
 
-          <p>
-            When we research a tool, we don't just look at the official website. We run
-            <strong>12 parallel Google searches</strong> to gather comprehensive information from multiple
-            perspectives:
-          </p>
+          <p>We gather evidence from eligible public sources with strict source-policy controls.</p>
 
           <div class="not-prose my-6 grid gap-4 md:grid-cols-2">
             <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              <h4 class="font-semibold text-zinc-100">Factual Queries (6)</h4>
+              <h4 class="font-semibold text-zinc-100">Evidence Intake</h4>
               <ul class="mt-2 space-y-1 text-sm text-zinc-400">
-                <li>• User reviews and feedback</li>
-                <li>• Pricing plans and features</li>
-                <li>• Annual vs monthly pricing comparison</li>
-                <li>• Alternatives and competitors</li>
-                <li>• Company info (funding, history)</li>
-                <li>• Technical capabilities (API, integrations)</li>
+                <li>• Official docs, help centers, and pricing pages</li>
+                <li>• Changelogs, developer references, and status pages</li>
+                <li>• Independent technical coverage and public metadata APIs</li>
+                <li>• Release and compatibility evidence</li>
               </ul>
             </div>
 
             <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              <h4 class="font-semibold text-zinc-100">Tribal Knowledge (6)</h4>
+              <h4 class="font-semibold text-zinc-100">Policy & Quality Controls</h4>
               <ul class="mt-2 space-y-1 text-sm text-zinc-400">
-                <li>• Hidden costs and billing gotchas</li>
-                <li>• Implementation and setup fees</li>
-                <li>• Reddit reviews and honest feedback</li>
-                <li>• "What I wish I knew before" insights</li>
-                <li>• Power user tips and shortcuts</li>
-                <li>• "Is it worth it?" discussions</li>
+                <li>• Restricted domains cannot drive generated claims</li>
+                <li>• Unsupported comparative or absolute claims are suppressed</li>
+                <li>• Sections are publishable only when evidence thresholds are met</li>
+                <li>• Draft/noindex is default when confidence is low</li>
               </ul>
             </div>
           </div>
 
           <p>
-            In addition to search snippets, we perform <strong>deep scraping</strong> of official pricing
-            pages to capture full pricing tables, tier comparisons, and fine print that might not appear
-            in search results.
-          </p>
-
-          <p>
-            We also search for relevant YouTube videos (demos, tutorials, reviews) to provide visual
-            context for users who prefer video content.
+            We prioritize first-party documentation for factual claims. Public discussion signals, when
+            used, are aggregated and treated as subjective context.
           </p>
 
           <h3 id="analysis">Phase 2: Analysis (Two-Pass AI Synthesis)</h3>
@@ -182,8 +166,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           </ul>
 
           <p>
-            This pass focuses on <em>facts</em>, not opinions. Everything must be verifiable from
-            the search results.
+            This pass focuses on facts, with claim-source binding for traceability.
           </p>
 
           <h4>Pass 2: The Architect (Contextual Synthesis)</h4>
@@ -244,11 +227,10 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
                   </svg>
                 </div>
                 <div class="flex-1">
-                  <h5 class="font-semibold text-zinc-100">The User Advocate</h5>
+                  <h5 class="font-semibold text-zinc-100">Observed Usage Patterns</h5>
                   <p class="mt-1 text-sm text-zinc-400">
-                    Captures the "vibe" and tribal knowledge. Who's it ideal for? Who should avoid
-                    it? What do power users love? What are common frustrations? Includes insider
-                    tips from Reddit, forums, and community discussions.
+                    Captures likely fit, friction points, and operational caveats. Subjective insights
+                    are framed as reported patterns, not universal facts.
                   </p>
                 </div>
               </div>
@@ -293,7 +275,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           <ul>
             <li><strong>source_url</strong> - The exact URL where this claim is supported</li>
             <li>
-              <strong>source_type</strong> - Official website, editorial review, or community discussion
+              <strong>source_type</strong> - Official, independent editorial, or community-derived signal
             </li>
             <li><strong>claim_type</strong> - Fact (verifiable) or opinion (subjective)</li>
           </ul>
@@ -312,8 +294,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           </ol>
 
           <p>
-            This draft-first workflow ensures that AI-generated content is always verified by humans
-            before it reaches our users.
+            This draft-first workflow prevents thin or risky content from shipping by default.
           </p>
 
           <h2 id="sources">Source Attribution & Legal Protection</h2>
@@ -348,8 +329,8 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
               <div>
                 <div class="font-medium text-zinc-100">Editorial Sources</div>
                 <div class="text-sm text-zinc-400">
-                  Professional review sites (G2, Capterra, Gartner) and tech publications (PCMag,
-                  TechRadar). Can include both facts and expert opinions.
+                  Independent technical publications and analysis. Useful for context, but lower authority
+                  than first-party product documentation.
                 </div>
               </div>
             </div>
@@ -363,8 +344,8 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
               <div>
                 <div class="font-medium text-zinc-100">Community Sources</div>
                 <div class="text-sm text-zinc-400">
-                  Reddit discussions, HackerNews threads, user forums, and personal blogs. Valuable
-                  for "vibe" and real-world experiences, but subjective by nature.
+                  Public practitioner discussions can inform friction patterns. These are subjective and
+                  do not override official documentation for factual claims.
                 </div>
               </div>
             </div>
@@ -382,7 +363,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
               <strong>Verification dates</strong> - Every tool page shows when it was last verified
             </li>
             <li>
-              <strong>Stale data alerts</strong> - If data is over 60 days old, we display a warning banner
+              <strong>Stale data alerts</strong> - Older volatile fields are flagged for re-verification
             </li>
             <li>
               <strong>Community verification</strong> - Users can report outdated information, which automatically
@@ -400,17 +381,16 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 
           <ul>
             <li>
-              <strong>We don't test tools hands-on</strong> - Our reviews are based on publicly available
-              information, not direct usage. This means we can cover more tools, but can't provide first-hand
-              experience insights.
+              <strong>We don't claim universal truth</strong> - We publish evidence-backed editorial analysis,
+              not absolute judgments.
             </li>
             <li>
-              <strong>We don't contact vendors</strong> - All information comes from public sources (websites,
-              reviews, community discussions). We don't get special access or briefings.
+              <strong>We don't republish third-party posts</strong> - We summarize signals and preserve citation
+              links; we do not mirror long-form community content.
             </li>
             <li>
-              <strong>We don't have NDAs or partnerships</strong> - We maintain editorial independence
-              by not entering into special relationships with vendors (beyond standard affiliate programs).
+              <strong>We don't rely on restricted review aggregation</strong> - If source policy blocks a domain
+              from ingestion, it cannot drive generated claims.
             </li>
             <li>
               <strong>We can't guarantee 100% accuracy</strong> - We verify everything we can, but software

@@ -17,15 +17,27 @@ interface Props {
 
 const { smp_pricing, legacy_pricing, toolName: _toolName } = Astro.props;
 
+const hasMeaningfulPlanName = (name?: string): boolean => {
+  if (!name || !name.trim()) return false;
+  const normalized = name.trim().toLowerCase();
+  if (/^plan\s+\d+$/i.test(normalized)) return false;
+  if (/^[a-z]+\s+\d+$/i.test(normalized) && normalized.startsWith('product')) return false;
+  return true;
+};
+
+const filteredSmpPlans = Array.isArray(smp_pricing?.plans)
+  ? smp_pricing!.plans.filter((plan) => hasMeaningfulPlanName(plan?.name))
+  : [];
+
 // Determine which pricing data to use
-const hasSMPPricing = smp_pricing && smp_pricing.plans && smp_pricing.plans.length > 0;
+const hasSMPPricing = Boolean(smp_pricing && filteredSmpPlans.length > 0);
 const hasLegacyPricing = legacy_pricing?.tiers && legacy_pricing.tiers.length > 0;
 
 if (!hasSMPPricing && !hasLegacyPricing) return null;
 
 // Use compact table view for multi-product platforms (>6 plans)
-const useCompactView = hasSMPPricing && smp_pricing.plans.length > 6;
-const planCount = hasSMPPricing ? smp_pricing.plans.length : 0;
+const useCompactView = hasSMPPricing && filteredSmpPlans.length > 6;
+const planCount = hasSMPPricing ? filteredSmpPlans.length : 0;
 
 // Pricing model labels
 const modelLabels = {
@@ -75,7 +87,7 @@ const discountLabels = {
   {
     hasSMPPricing && useCompactView && (
       <div>
-        <p class="mb-4 text-sm text-zinc-400">{planCount} products with usage-based pricing</p>
+        <p class="mb-4 text-sm text-zinc-400">{planCount} plans with published pricing data</p>
         <div class="overflow-hidden rounded-lg border border-zinc-700">
           <table class="w-full text-sm">
             <thead class="bg-zinc-800/50">
@@ -86,7 +98,7 @@ const discountLabels = {
               </tr>
             </thead>
             <tbody class="divide-y divide-zinc-800">
-              {smp_pricing.plans.map((plan) => (
+              {filteredSmpPlans.map((plan) => (
                 <tr class="hover:bg-zinc-800/30 transition-colors">
                   <td class="px-4 py-3 font-medium text-zinc-100">{plan.name}</td>
                   <td class="px-4 py-3 text-right tabular-nums">
@@ -121,7 +133,7 @@ const discountLabels = {
   {
     hasSMPPricing && !useCompactView && (
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {smp_pricing.plans.map((plan) => (
+        {filteredSmpPlans.map((plan) => (
           <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-4 hover:border-zinc-600 transition">
             {/* Plan Header */}
             <div class="mb-4 border-b border-zinc-800 pb-4">

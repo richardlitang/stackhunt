@@ -2,13 +2,13 @@
 /**
  * Admin: Content Quality Dashboard
  *
- * Lists all tools with low confidence scores / noindexed status.
+ * Lists all tools by quality gate / index readiness status.
  * Allows bulk re-hunting to improve data quality.
  */
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { supabase } from '@/lib/supabase';
-import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
+import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import type { Tool, Review } from '@/types/database';
 
 // Fetch all tools with their first review
@@ -44,33 +44,93 @@ if (error) {
   console.error('Error fetching tools:', error);
 }
 
-// Evaluate confidence for each tool
-const toolsWithConfidence = (tools || []).map((tool) => {
-  const firstReview = tool.reviews?.[0] as Review | undefined;
-  const confidence = evaluateContentConfidence(tool as Tool, firstReview);
+// Evaluate index readiness for each tool
+const toolsWithQuality = (tools || []).map((tool) => {
+  const publishedReviews = (tool.reviews || [])
+    .filter((review: any) => review.status === 'published')
+    .sort(
+      (a: any, b: any) =>
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+  const firstReview = publishedReviews[0] as Review | undefined;
+  const readiness = evaluateIndexReadiness(tool as Tool, firstReview);
   return {
     ...tool,
-    confidence,
-    confidenceLevel: getConfidenceLevel(confidence.score),
+    hasPublishedReview: publishedReviews.length > 0,
+    readiness,
   };
 });
 
 // Separate by status
-const noindexed = toolsWithConfidence.filter((t) => t.confidence.shouldNoindex);
-const lowQuality = toolsWithConfidence.filter(
-  (t) => !t.confidence.shouldNoindex && t.confidence.score < 7
+const noindexed = toolsWithQuality.filter((t) => !t.readiness.shouldIndex);
+const lowQuality = toolsWithQuality.filter(
+  (t) => t.readiness.shouldIndex && t.readiness.signals.score < 90
 );
-const highQuality = toolsWithConfidence.filter((t) => t.confidence.score >= 7);
+const highQuality = toolsWithQuality.filter(
+  (t) => t.readiness.shouldIndex && t.readiness.signals.score >= 90
+);
 
-// Sort by confidence score (lowest first)
-noindexed.sort((a, b) => a.confidence.score - b.confidence.score);
-lowQuality.sort((a, b) => a.confidence.score - b.confidence.score);
+// Sort by quality score (lowest first)
+noindexed.sort((a, b) => a.readiness.signals.score - b.readiness.signals.score);
+lowQuality.sort((a, b) => a.readiness.signals.score - b.readiness.signals.score);
 
 // Stats
-const totalTools = toolsWithConfidence.length;
+const totalTools = toolsWithQuality.length;
 const noindexedCount = noindexed.length;
 const lowQualityCount = lowQuality.length;
 const noindexedPercent = ((noindexedCount / totalTools) * 100).toFixed(1);
+
+const requiredSections = [
+  { key: 'summary', label: 'Summary' },
+  { key: 'pricing', label: 'Pricing' },
+  { key: 'models', label: 'Models' },
+  { key: 'setup', label: 'Setup' },
+  { key: 'faq', label: 'FAQ' },
+] as const;
+
+const requiredSectionCoverage = requiredSections.map((section) => {
+  const passing = toolsWithQuality.filter(
+    (tool) => tool.readiness.signals.section_publishability[section.key]
+  ).length;
+  const pct = totalTools > 0 ? ((passing / totalTools) * 100).toFixed(1) : '0.0';
+  return { ...section, passing, pct };
+});
+
+const sectionStatusKeys = [
+  { key: 'pricing', label: 'Pricing' },
+  { key: 'specs', label: 'Specs' },
+  { key: 'faq', label: 'FAQ' },
+  { key: 'community', label: 'Community' },
+  { key: 'verdict', label: 'Verdict' },
+] as const;
+
+const sectionStatusSummary = sectionStatusKeys.map((section) => {
+  const scoped = noindexed.length > 0 ? noindexed : toolsWithQuality;
+  const show = scoped.filter((tool) => tool.readiness.signals.section_status[section.key] === 'show').length;
+  const procedural = scoped.filter(
+    (tool) => tool.readiness.signals.section_status[section.key] === 'procedural'
+  ).length;
+  const hide = scoped.filter((tool) => tool.readiness.signals.section_status[section.key] === 'hide').length;
+  return { ...section, show, procedural, hide };
+});
+
+const noindexReasonCounts = new Map<string, number>();
+for (const tool of noindexed) {
+  const reasons = tool.readiness.reasons.length > 0 ? tool.readiness.reasons : ['noindex_unknown'];
+  for (const reason of reasons) {
+    noindexReasonCounts.set(reason, (noindexReasonCounts.get(reason) || 0) + 1);
+  }
+  if (!tool.hasPublishedReview) {
+    noindexReasonCounts.set(
+      'no_published_review',
+      (noindexReasonCounts.get('no_published_review') || 0) + 1
+    );
+  }
+}
+
+const topNoindexReasons = Array.from(noindexReasonCounts.entries())
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 8);
 ---
 
 <AdminLayout title="Content Quality Dashboard">
@@ -79,8 +139,8 @@ const noindexedPercent = ((noindexedCount / totalTools) * 100).toFixed(1);
     <div>
       <h1 class="text-3xl font-bold text-zinc-100">Content Quality Dashboard</h1>
       <p class="mt-2 text-zinc-400">
-        Monitor and improve tool data quality. Low confidence pages are automatically noindexed to
-        protect SEO.
+        Monitor and improve tool data quality. Pages failing required-section, freshness, or
+        conflict gates are automatically noindexed.
       </p>
     </div>
 
@@ -100,15 +160,74 @@ const noindexedPercent = ((noindexedCount / totalTools) * 100).toFixed(1);
       <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-6">
         <div class="text-sm font-medium text-amber-400">Low Quality</div>
         <div class="mt-2 text-3xl font-bold text-amber-400">{lowQualityCount}</div>
-        <div class="mt-1 text-xs text-amber-400/70">Score &lt; 7/10</div>
+        <div class="mt-1 text-xs text-amber-400/70">Readiness score &lt; 90/100</div>
       </div>
 
       <div class="rounded-lg border border-green-500/30 bg-green-500/5 p-6">
         <div class="text-sm font-medium text-green-400">High Quality</div>
         <div class="mt-2 text-3xl font-bold text-green-400">{highQuality.length}</div>
-        <div class="mt-1 text-xs text-green-400/70">Score ≥ 7/10</div>
+        <div class="mt-1 text-xs text-green-400/70">Readiness score ≥ 90/100</div>
       </div>
     </div>
+
+    <!-- Gate Telemetry -->
+    <section class="space-y-4">
+      <div>
+        <h2 class="text-xl font-semibold text-zinc-100">Gate Telemetry</h2>
+        <p class="mt-1 text-sm text-zinc-400">
+          Section-by-section coverage and top blockers across current tool pages.
+        </p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-3">
+        <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-5">
+          <h3 class="text-sm font-semibold text-zinc-200">Top Noindex Reasons</h3>
+          <div class="mt-3 space-y-2">
+            {topNoindexReasons.length > 0 ? (
+              topNoindexReasons.map(([reason, count]) => (
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-zinc-400">{reason}</span>
+                  <span class="rounded bg-zinc-800 px-2 py-0.5 text-zinc-200">{count}</span>
+                </div>
+              ))
+            ) : (
+              <p class="text-sm text-zinc-500">No noindex reasons found.</p>
+            )}
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-5">
+          <h3 class="text-sm font-semibold text-zinc-200">Required Section Coverage</h3>
+          <div class="mt-3 space-y-2">
+            {requiredSectionCoverage.map((section) => (
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-zinc-400">{section.label}</span>
+                <span class="text-zinc-200">
+                  {section.passing}/{totalTools} ({section.pct}%)
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-5">
+          <h3 class="text-sm font-semibold text-zinc-200">Section Status (Noindexed)</h3>
+          <div class="mt-3 space-y-2">
+            {sectionStatusSummary.map((section) => (
+              <div class="text-sm">
+                <div class="mb-1 flex items-center justify-between">
+                  <span class="text-zinc-400">{section.label}</span>
+                  <span class="text-zinc-500">show/proc/hide</span>
+                </div>
+                <div class="text-zinc-200">
+                  {section.show}/{section.procedural}/{section.hide}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Noindexed Tools -->
     {
@@ -146,28 +265,49 @@ const noindexedPercent = ((noindexedCount / totalTools) * 100).toFixed(1);
                         {tool.name}
                       </a>
                       <span class="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-400">
-                        {tool.confidence.score.toFixed(1)}/10
+                        {tool.readiness.signals.score}/100
                       </span>
                     </div>
 
                     <div class="mt-2 space-y-1">
                       <div class="text-sm text-zinc-400">
                         <span class="font-medium text-red-400">Issues:</span>
-                        {tool.confidence.reasons.map((reason, idx) => (
+                        {!tool.hasPublishedReview && (
+                          <span> no_published_review</span>
+                        )}
+                        {tool.readiness.reasons.map((reason, idx) => (
                           <span>
-                            {idx > 0 && ' • '}
+                            {(idx > 0 || !tool.hasPublishedReview) && ' • '}
                             {reason}
                           </span>
                         ))}
                       </div>
 
                       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-                        <span>Desc: {tool.confidence.signals.hasShortDescription ? '✓' : '✗'}</span>
-                        <span>KC: {tool.confidence.signals.hasKnowledgeCard ? '✓' : '✗'}</span>
-                        <span>Review: {tool.confidence.signals.hasReviewContent ? '✓' : '✗'}</span>
-                        <span>Sources: {tool.confidence.signals.sourceCount}</span>
-                        <span>QA: {tool.confidence.signals.qaScore}/8</span>
-                        <span>Pricing: {tool.confidence.signals.pricingConfidence || 'none'}</span>
+                        <span>
+                          Required: {tool.readiness.signals.required_sections_complete ? '✓' : '✗'}
+                        </span>
+                        <span>MVUP: {tool.readiness.signals.mvup_complete ? '✓' : '✗'}</span>
+                        <span>Fresh: {tool.readiness.signals.volatiles_fresh ? '✓' : '✗'}</span>
+                        <span>Conflicts: {tool.readiness.signals.conflicts_count}</span>
+                        <span>Risky claims: {tool.readiness.signals.has_risky_claims ? '⚠️' : '✓'}</span>
+                      </div>
+                      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                        <span>
+                          Sections:
+                          {tool.readiness.signals.section_publishability.summary ? ' S✓' : ' S✗'}
+                          {tool.readiness.signals.section_publishability.pricing ? ' P✓' : ' P✗'}
+                          {tool.readiness.signals.section_publishability.models ? ' M✓' : ' M✗'}
+                          {tool.readiness.signals.section_publishability.setup ? ' U✓' : ' U✗'}
+                          {tool.readiness.signals.section_publishability.faq ? ' F✓' : ' F✗'}
+                        </span>
+                        <span>
+                          Evidence:
+                          faq={tool.readiness.signals.evidence_counts.faq}
+                          · pricing={tool.readiness.signals.evidence_counts.pricing}
+                          · specs={tool.readiness.signals.evidence_counts.specs}
+                          · community={tool.readiness.signals.evidence_counts.community_domains}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -231,16 +371,15 @@ const noindexedPercent = ((noindexedCount / totalTools) * 100).toFixed(1);
                         {tool.name}
                       </a>
                       <span class="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-400">
-                        {tool.confidence.score.toFixed(1)}/10
+                        {tool.readiness.signals.score}/100
                       </span>
                     </div>
 
                     <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-                      <span>Desc: {tool.confidence.signals.hasShortDescription ? '✓' : '✗'}</span>
-                      <span>KC: {tool.confidence.signals.hasKnowledgeCard ? '✓' : '✗'}</span>
-                      <span>Review: {tool.confidence.signals.hasReviewContent ? '✓' : '✗'}</span>
-                      <span>Sources: {tool.confidence.signals.sourceCount}</span>
-                      <span>QA: {tool.confidence.signals.qaScore}/8</span>
+                      <span>Required: {tool.readiness.signals.required_sections_complete ? '✓' : '✗'}</span>
+                      <span>MVUP: {tool.readiness.signals.mvup_complete ? '✓' : '✗'}</span>
+                      <span>Fresh: {tool.readiness.signals.volatiles_fresh ? '✓' : '✗'}</span>
+                      <span>Conflicts: {tool.readiness.signals.conflicts_count}</span>
                     </div>
                   </div>
 
@@ -287,13 +426,15 @@ const noindexedPercent = ((noindexedCount / totalTools) * 100).toFixed(1);
                     {tool.name}
                   </a>
                   <span class="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-400">
-                    {tool.confidence.score.toFixed(1)}/10
+                    {tool.readiness.signals.score}/100
                   </span>
                 </div>
 
                 <div class="flex gap-x-4 text-xs text-zinc-500">
-                  <span>Sources: {tool.confidence.signals.sourceCount}</span>
-                  <span>QA: {tool.confidence.signals.qaScore}/8</span>
+                  <span>Required: {tool.readiness.signals.required_sections_complete ? '✓' : '✗'}</span>
+                  <span>MVUP: {tool.readiness.signals.mvup_complete ? '✓' : '✗'}</span>
+                  <span>Fresh: {tool.readiness.signals.volatiles_fresh ? '✓' : '✗'}</span>
+                  <span>Conflicts: {tool.readiness.signals.conflicts_count}</span>
                 </div>
               </div>
             </div>

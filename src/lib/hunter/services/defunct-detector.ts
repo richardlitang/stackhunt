@@ -7,6 +7,8 @@
 
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { DefunctStatusSchema } from '../types';
+import { getGeminiModelForStage } from './model-router';
+import { generateContentWithThinkingFallback } from './gemini-compat';
 
 export interface DefunctStatus {
   isDefunct: boolean;
@@ -144,6 +146,7 @@ export async function detectDefunctTool(
   }
 
   const genAI = new GoogleGenAI({ apiKey });
+  const model = getGeminiModelForStage('defunct_detection');
 
   // Use first 10 search result snippets
   const snippets = searchResults.slice(0, 10).join('\n\n');
@@ -154,8 +157,8 @@ export async function detectDefunctTool(
   );
 
   try {
-    const result = await genAI.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    const result = await generateContentWithThinkingFallback(genAI, {
+      model,
       contents: prompt,
       config: {
         temperature: 0, // Zero temperature for factual analysis

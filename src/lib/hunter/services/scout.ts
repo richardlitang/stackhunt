@@ -9,6 +9,8 @@
 
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { DiscoveredToolSchema } from '../types';
+import { getGeminiModelForStage } from './model-router';
+import { generateContentWithThinkingFallback } from './gemini-compat';
 
 export interface DiscoveredTool {
   name: string;
@@ -66,6 +68,7 @@ export async function discoverTools(
   }
 
   const genAI = new GoogleGenAI({ apiKey });
+  const model = getGeminiModelForStage('tool_discovery');
 
   // Format search results for prompt
   const formattedResults = searchResults
@@ -78,8 +81,8 @@ export async function discoverTools(
   );
 
   try {
-    const result = await genAI.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    const result = await generateContentWithThinkingFallback(genAI, {
+      model,
       contents: prompt,
       config: {
         temperature: 0.1,

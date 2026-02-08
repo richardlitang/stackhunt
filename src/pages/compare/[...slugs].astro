@@ -72,7 +72,9 @@ const { data: tools } = await supabase
     )
   `
   )
-  .in('slug', [slugA, slugB]);
+  .in('slug', [slugA, slugB])
+  .limit(2)
+  .limit(50, { foreignTable: 'reviews' });
 
 // Fetch comparison insights if they exist (curated comparison data)
 const [orderedSlugA, orderedSlugB] = slugA < slugB ? [slugA, slugB] : [slugB, slugA];
@@ -142,31 +144,51 @@ const aggregateClaims = (reviews: typeof toolA.reviews, field: 'pros' | 'cons') 
   }
   return Array.from(map.values()).slice(0, 5);
 };
+const extractSpecsClaims = (
+  specs: Record<string, unknown> | null | undefined,
+  field: 'pros' | 'cons'
+): ClaimItem[] => {
+  const raw = (specs as Record<string, unknown> | null)?.[field];
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (item): item is ClaimItem =>
+      typeof item === 'string' ||
+      (typeof item === 'object' && item !== null && typeof (item as { text?: unknown }).text === 'string')
+  );
+};
+const mergeClaims = (primary: ClaimItem[], fallback: ClaimItem[], limit = 5) => {
+  const map = new Map<string, ClaimItem>();
+  for (const claim of [...primary, ...fallback]) {
+    const text = claimText(claim);
+    if (!text || map.has(text)) continue;
+    map.set(text, claim);
+    if (map.size >= limit) break;
+  }
+  return Array.from(map.values());
+};
 
 const aggregateTags = (reviews: typeof toolA.reviews) =>
   [...new Set(reviews?.flatMap((r) => r.sentiment_tags || []) || [])].slice(0, 6);
 
-const prosA = aggregateClaims(toolA.reviews, 'pros');
-const consA = aggregateClaims(toolA.reviews, 'cons');
+const prosA = mergeClaims(
+  aggregateClaims(toolA.reviews, 'pros'),
+  extractSpecsClaims(toolA.specs as Record<string, unknown> | null, 'pros')
+);
+const consA = mergeClaims(
+  aggregateClaims(toolA.reviews, 'cons'),
+  extractSpecsClaims(toolA.specs as Record<string, unknown> | null, 'cons')
+);
 const tagsA = aggregateTags(toolA.reviews);
 
-const prosB = aggregateClaims(toolB.reviews, 'pros');
-const consB = aggregateClaims(toolB.reviews, 'cons');
+const prosB = mergeClaims(
+  aggregateClaims(toolB.reviews, 'pros'),
+  extractSpecsClaims(toolB.specs as Record<string, unknown> | null, 'pros')
+);
+const consB = mergeClaims(
+  aggregateClaims(toolB.reviews, 'cons'),
+  extractSpecsClaims(toolB.specs as Record<string, unknown> | null, 'cons')
+);
 const tagsB = aggregateTags(toolB.reviews);
-
-const extractHighlights = (specs: Record<string, unknown> | null | undefined, limit = 2) => {
-  const pros = Array.isArray((specs as any)?.pros) ? (specs as any).pros : [];
-  const cons = Array.isArray((specs as any)?.cons) ? (specs as any).cons : [];
-  const pickText = (items: any[]) =>
-    items
-      .map((item) => (typeof item === 'string' ? item : item?.text))
-      .filter(Boolean)
-      .slice(0, limit);
-  return { pros: pickText(pros), cons: pickText(cons).slice(0, 1) };
-};
-
-const _techA = extractHighlights(toolA.specs as Record<string, unknown> | null);
-const _techB = extractHighlights(toolB.specs as Record<string, unknown> | null);
 
 // Find contrasting tags (A has "expensive", B has "affordable" = highlight)
 const contrastingTags = [

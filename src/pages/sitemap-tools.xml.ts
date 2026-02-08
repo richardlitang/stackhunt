@@ -16,12 +16,15 @@ export const GET: APIRoute = async () => {
   try {
     const { data: tools } = await supabase
       .from('items')
-      .select('slug, updated_at')
+      .select('slug, updated_at, specs')
       .eq('type', 'tool')
       .order('updated_at', { ascending: false });
 
     if (tools) {
       for (const tool of tools) {
+        const specs = (tool.specs as Record<string, any> | null) || {};
+        const shouldIndex = specs?.canonical?.quality?.should_index === true;
+        if (!shouldIndex) continue;
         urls.push({
           loc: `${SITE_URL}/tool/${tool.slug}`,
           lastmod: tool.updated_at?.split('T')[0],

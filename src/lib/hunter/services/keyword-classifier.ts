@@ -10,6 +10,8 @@
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
+import { getGeminiModelForStage } from './model-router';
+import { generateContentWithThinkingFallback } from './gemini-compat';
 
 export interface ClassificationResult {
   success: boolean;
@@ -166,10 +168,11 @@ export async function classifyKeyword(
     // Classify with Gemini
     log(`[Classifier] Classifying keyword: "${keyword}"`);
     const genAI = new GoogleGenAI({ apiKey });
+    const model = getGeminiModelForStage('keyword_classifier');
 
     const prompt = buildClassificationPrompt(keyword);
-    const result = await genAI.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    const result = await generateContentWithThinkingFallback(genAI, {
+      model,
       contents: prompt,
       config: {
         temperature: 0.1,

@@ -22,6 +22,7 @@ interface HuntRequest {
   toolName: string;
   contextTitle?: string;
   categorySlug?: string;
+  runInstructions?: string;
   priority?: number;
   huntType?: 'full' | 'refresh' | 'price_only';
 }
@@ -41,7 +42,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   try {
     const body: HuntRequest = await request.json();
-    const { toolName, contextTitle, categorySlug, priority, huntType } = body;
+    const { toolName, contextTitle, categorySlug, runInstructions, priority, huntType } = body;
 
     // Validate toolName
     if (!toolName || typeof toolName !== 'string') {
@@ -58,6 +59,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     const MAX_TOOL_NAME_LENGTH = 255;
     const MAX_CONTEXT_TITLE_LENGTH = 500;
     const MAX_CATEGORY_SLUG_LENGTH = 100;
+    const MAX_RUN_INSTRUCTIONS_LENGTH = 2000;
 
     if (toolName.length > MAX_TOOL_NAME_LENGTH) {
       return addRateLimitHeaders(
@@ -106,6 +108,21 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
         rateLimit
       );
     }
+    if (runInstructions && runInstructions.length > MAX_RUN_INSTRUCTIONS_LENGTH) {
+      return addRateLimitHeaders(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: `Run instructions exceed ${MAX_RUN_INSTRUCTIONS_LENGTH} characters`,
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        ),
+        rateLimit
+      );
+    }
 
     // Validate huntType enum
     const validHuntTypes = ['full', 'refresh', 'price_only'];
@@ -122,6 +139,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     // Validate and constrain priority
     const safePriority = Math.max(0, Math.min(100, priority ?? 50));
 
+    const normalizedInstructions =
+      typeof runInstructions === 'string' ? runInstructions.trim() : '';
+
     const adminClient = getAdminClient();
 
     // Insert into hunt_queue instead of running hunter directly
@@ -131,6 +151,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
         tool_name: toolName.trim(),
         context_title: contextTitle?.trim() || null,
         category_slug: categorySlug?.trim() || null,
+        error_details: normalizedInstructions
+          ? { admin_instructions: normalizedInstructions }
+          : null,
         priority: safePriority,
         hunt_type: huntType || 'full',
         source: 'admin',

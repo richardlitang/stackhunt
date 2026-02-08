@@ -21,7 +21,11 @@ import { slugify, classifySourceType } from '../utils';
 import { normalizeCategory } from '../../config/taxonomy';
 import { ensureParentSuite } from '../utils/suite-manager';
 import { updateNormalizedPricing } from '../../pricing/persist';
+import { mapSmpPricingToV2 } from '../../pricing';
+import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
+import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
+import { evaluateIndexReadiness } from '@/lib/quality-gate';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -66,6 +70,28 @@ function inferTargetMarket(plans: any[]): 'consumer' | 'prosumer' | 'business' |
 const CONDITIONAL_MARKERS = /\b(if|when|unless|only if|as soon as|before|after)\b/i;
 const NEGATIVE_CUES =
   /\b(no|not|lacks|lack|doesn't|cannot|can't|won't|avoid|veto|issue|problem|risk|limit|limited|slow|expensive|broken|bug|fails|failure)\b/i;
+const RISKY_ABSOLUTE_TERMS =
+  /\b(always|never|broken|scam|unreliable|guaranteed|everyone|nobody)\b/i;
+const PRICING_LIKE_VALUE_TERMS =
+  /\b(price|pricing|cost|costs|fee|fees|billing|billed|monthly|annual|yearly|enterprise|pro\b|max\b|plan|seat)\b/i;
+const UNVERIFIED_QUANT_VALUE =
+  /\b\d+\s*x\b|\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b|\b\d+(?:\.\d+)?%\b/i;
+const SEAT_ACCESS_ABSOLUTE =
+  /\bsingle seat\b.*\b(access|includes|provides)\b.*\b(design|dev mode|figjam|slides)\b/i;
+const COMPARATOR_TOKENS =
+  /\b(vs\.?|versus|compared to|more than|less than|faster than|slower than|better than|worse than|higher than|lower than|double|doubles|doubling|half|halve|premium)\b/i;
+const COMPARATOR_QUANT_TOKENS = /\b\d+(?:\.\d+)?\s*x\b|\b\d+(?:\.\d+)?%/i;
+const DERIVED_METRIC_TOKENS = /\b(density|ratio|score|index|rate|lift|uplift)\b/i;
+const SALES_GATED_TOKENS = /\b(sales[-\s]?gated|contact sales|talk to sales|sales contact)\b/i;
+const ENTERPRISE_SCOPE_TOKENS = /\b(enterprise|business|advanced plan|custom plan)\b/i;
+const CONTACT_SALES_TOKENS = /\b(contact sales|talk to sales|request demo|enterprise)\b/i;
+const SELF_SERVE_TOKENS =
+  /\b(start now|get started|sign up|try free|free trial|create account|api key|start building)\b/i;
+const RANKING_CLAIM_TOKENS =
+  /\b(rank(?:ed|ing)?|#\d+|top\s*\d+|world.?s\s+\w+-ranked|leaderboard)\b/i;
+const TIME_QUANT_TOKENS = /\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b/i;
+const LE_CHAT_SCOPE_TOKENS = /\b(flash answers?|deep research|file uploads?)\b/i;
+const LE_CHAT_NAME_TOKENS = /\b(le\s*chat)\b/i;
 
 function isConditional(text: string): boolean {
   return CONDITIONAL_MARKERS.test(text);
@@ -73,6 +99,413 @@ function isConditional(text: string): boolean {
 
 function containsNegativeCue(text: string): boolean {
   return NEGATIVE_CUES.test(text);
+}
+
+function containsRiskyAbsolute(text: string): boolean {
+  return RISKY_ABSOLUTE_TERMS.test(text);
+}
+
+function hasComparatorToken(text: string): boolean {
+  return COMPARATOR_TOKENS.test(text) || COMPARATOR_QUANT_TOKENS.test(text);
+}
+
+function sourceTierForClaim(url?: string | null): 'A' | 'B' | 'C' {
+  if (!url) return 'C';
+  const lower = url.toLowerCase();
+  if (
+    lower.includes('/docs') ||
+    lower.includes('docs.') ||
+    lower.includes('/help') ||
+    lower.includes('help-center') ||
+    lower.includes('/support') ||
+    lower.includes('/developers') ||
+    lower.includes('/api') ||
+    lower.includes('/trust') ||
+    lower.includes('/security') ||
+    lower.includes('/legal')
+  ) {
+    return 'A';
+  }
+  if (lower.includes('/pricing') || lower.includes('/plans')) return 'B';
+  return 'C';
+}
+
+function hasAbsoluteMarketingTerm(text: string): boolean {
+  return /\b(unlimited|never|guaranteed)\b/i.test(text);
+}
+
+function softenAbsoluteMarketingLanguage(text: string): string {
+  let next = text;
+  next = next.replace(/\bunlimited\b/gi, 'expanded');
+  next = next.replace(/\bnever\b/gi, 'rarely');
+  next = next.replace(/\bguaranteed\b/gi, 'designed to');
+  return next.replace(/\s{2,}/g, ' ').trim();
+}
+
+function extractNamedFeatures(text: string): string[] {
+  const quoted = Array.from(text.matchAll(/["'“”]([^"'“”]{3,80})["'“”]/g)).map((m) => m[1].trim());
+  const titleCase = Array.from(
+    text.matchAll(/\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){1,4})\b/g)
+  ).map((m) => m[1].trim());
+  const candidates = [...quoted, ...titleCase];
+  const deny = new Set([
+    'OpenAI',
+    'Anthropic',
+    'Google',
+    'xAI',
+    'API',
+    'Enterprise',
+    'Pro',
+    'Max',
+  ]);
+  return Array.from(
+    new Set(
+      candidates.filter((item) => {
+        if (item.length < 4) return false;
+        if (deny.has(item)) return false;
+        if (/^(The|This|That|These|Those)\b/.test(item)) return false;
+        return true;
+      })
+    )
+  );
+}
+
+function overlapRatio(a: string, b: string): number {
+  const aw = new Set(
+    a
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => w.replace(/[^a-z0-9]/g, ''))
+      .filter((w) => w.length > 3)
+  );
+  const bw = new Set(
+    b
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => w.replace(/[^a-z0-9]/g, ''))
+      .filter((w) => w.length > 3)
+  );
+  if (aw.size === 0 || bw.size === 0) return 0;
+  let matches = 0;
+  for (const token of aw) {
+    if (bw.has(token)) matches++;
+  }
+  return matches / aw.size;
+}
+
+function collectFirstPartyCorpus(
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+  }>,
+  toolWebsite?: string
+): string {
+  if (!toolWebsite) return '';
+  let toolHost: string | null = null;
+  try {
+    toolHost = new URL(toolWebsite).hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return '';
+  }
+
+  return sources
+    .filter((source) => {
+      try {
+        const sourceHost = new URL(source.url).hostname.replace(/^www\./, '').toLowerCase();
+        return sourceHost === toolHost || sourceHost.endsWith(`.${toolHost}`);
+      } catch {
+        return false;
+      }
+    })
+    .map((source) => `${source.title || ''} ${source.snippet || ''}`.trim())
+    .join(' ')
+    .toLowerCase();
+}
+
+function suppressSalesGatedClaim(
+  text: string,
+  sourceUrl: string | undefined,
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+  }>,
+  toolWebsite?: string
+): boolean {
+  if (!SALES_GATED_TOKENS.test(text)) return false;
+  const corpus = collectFirstPartyCorpus(sources, toolWebsite);
+  const sourceText = (() => {
+    if (!sourceUrl) return '';
+    const source = sources.find((entry) => entry.url === sourceUrl);
+    return `${source?.title || ''} ${source?.snippet || ''}`.toLowerCase();
+  })();
+
+  const hasSelfServe = SELF_SERVE_TOKENS.test(corpus) || SELF_SERVE_TOKENS.test(sourceText);
+  const hasContactSales = CONTACT_SALES_TOKENS.test(corpus) || CONTACT_SALES_TOKENS.test(sourceText);
+  const scopedToEnterprise = ENTERPRISE_SCOPE_TOKENS.test(text);
+
+  if (!hasContactSales) return true;
+  if (hasSelfServe && !scopedToEnterprise) return true;
+  return false;
+}
+
+function rewriteVendorRankingClaim(text: string, sourceDate?: string): string {
+  const normalized = text.replace(/\s{2,}/g, ' ').trim().replace(/\.$/, '');
+  const dated = sourceDate ? ` (${sourceDate.slice(0, 10)})` : '';
+  return `Vendor materials describe this claim as: ${normalized}${dated}.`;
+}
+
+function stripUnsupportedQuantitativePhrases(text: string): string {
+  let next = text;
+  next = next.replace(TIME_QUANT_TOKENS, '').replace(/\b\d+(?:\.\d+)?\s*x\b/gi, '');
+  next = next.replace(/\s{2,}/g, ' ').replace(/\s+([.,;!?])/g, '$1').trim();
+  return next;
+}
+
+function enforceOfferingScope(
+  text: string,
+  sourceUrl: string | undefined,
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+  }>
+): string | null {
+  if (!LE_CHAT_SCOPE_TOKENS.test(text)) return text;
+  if (LE_CHAT_NAME_TOKENS.test(text)) return text;
+
+  const sourceText = (() => {
+    if (!sourceUrl) return '';
+    const source = sources.find((entry) => entry.url === sourceUrl);
+    return `${source?.title || ''} ${source?.snippet || ''}`.toLowerCase();
+  })();
+  const corpus = sources
+    .map((source) => `${source.title || ''} ${source.snippet || ''}`)
+    .join(' ')
+    .toLowerCase();
+  const hasLeChatEvidence = LE_CHAT_NAME_TOKENS.test(sourceText) || LE_CHAT_NAME_TOKENS.test(corpus);
+  if (!hasLeChatEvidence) return null;
+  return `In Le Chat, ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
+}
+
+function detectClaimKind(
+  text: string,
+  claimType: 'fact' | 'opinion'
+): 'verbatim_feature' | 'derived_metric' | 'comparison' | 'inference' {
+  if (COMPARATOR_TOKENS.test(text) || COMPARATOR_QUANT_TOKENS.test(text)) return 'comparison';
+  if (DERIVED_METRIC_TOKENS.test(text) || /\b\d+(?:\.\d+)?%\b/i.test(text)) return 'derived_metric';
+  if (claimType === 'fact') return 'verbatim_feature';
+  return 'inference';
+}
+
+function downgradeComparativeClause(text: string): string | null {
+  let next = text;
+  next = next.replace(/\([^)]*(?:vs\.?|versus|compared to)[^)]*\)/gi, '');
+  next = next.replace(/\b(?:compared to|vs\.?|versus)\b[^.?!;]*/gi, '');
+  next = next.replace(
+    /\b(?:more|less|faster|slower|better|worse|higher|lower)\s+than\b[^.?!;]*/gi,
+    ''
+  );
+  next = next.replace(/\b(?:double|doubles|doubling|half|halve|premium)\b[^.?!;]*/gi, '');
+  next = next.replace(COMPARATOR_QUANT_TOKENS, '').trim();
+  next = next.replace(/\b\d+(?:\.\d+)?%/g, '').trim();
+  next = next.replace(/\s{2,}/g, ' ').replace(/\s+([.,;!?])/g, '$1').trim();
+  if (next.length < 10) return null;
+  return next;
+}
+
+function buildCanonicalPricingPlans(pricingData: any): {
+  entities: Array<{
+    plan_id: string;
+    plan_name: string;
+    audience?: string | null;
+    seat_type?: string | null;
+    price_monthly?: number | null;
+    price_annual?: number | null;
+    source_url?: string | null;
+    currency?: string | null;
+  }>;
+  conflicts: Array<{ key: string; values: unknown[]; urls: string[] }>;
+} {
+  const plans = Array.isArray(pricingData?.plans) ? pricingData.plans : [];
+  const sourceUrl: string | null =
+    typeof pricingData?.pricing_page_url === 'string' ? pricingData.pricing_page_url : null;
+  const currency: string | null = typeof pricingData?.currency === 'string' ? pricingData.currency : null;
+
+  const entities = plans.map((plan: any) => ({
+    plan_id: String(plan?.id || slugify(String(plan?.name || 'plan'))),
+    plan_name: String(plan?.name || 'Unknown'),
+    audience: typeof plan?.target_audience === 'string' ? plan.target_audience : null,
+    seat_type: typeof plan?.scaling_unit === 'string' ? plan.scaling_unit : null,
+    price_monthly: typeof plan?.price_monthly === 'number' ? plan.price_monthly : null,
+    price_annual: typeof plan?.price_annual === 'number' ? plan.price_annual : null,
+    source_url: sourceUrl,
+    currency,
+  }));
+
+  const byCanonicalPlan = new Map<string, { monthly: Set<number>; annual: Set<number>; urls: Set<string> }>();
+  for (const entity of entities) {
+    const key = `${entity.plan_id}|${(entity.audience || 'unknown').toLowerCase()}`;
+    if (!byCanonicalPlan.has(key)) {
+      byCanonicalPlan.set(key, {
+        monthly: new Set<number>(),
+        annual: new Set<number>(),
+        urls: new Set<string>(),
+      });
+    }
+    const bucket = byCanonicalPlan.get(key)!;
+    if (typeof entity.price_monthly === 'number') bucket.monthly.add(entity.price_monthly);
+    if (typeof entity.price_annual === 'number') bucket.annual.add(entity.price_annual);
+    if (entity.source_url) bucket.urls.add(entity.source_url);
+  }
+
+  const conflicts: Array<{ key: string; values: unknown[]; urls: string[] }> = [];
+  for (const [key, bucket] of byCanonicalPlan.entries()) {
+    if (bucket.monthly.size > 1) {
+      conflicts.push({
+        key: `${key}:price_monthly`,
+        values: Array.from(bucket.monthly.values()),
+        urls: Array.from(bucket.urls.values()),
+      });
+    }
+    if (bucket.annual.size > 1) {
+      conflicts.push({
+        key: `${key}:price_annual`,
+        values: Array.from(bucket.annual.values()),
+        urls: Array.from(bucket.urls.values()),
+      });
+    }
+  }
+
+  return { entities, conflicts };
+}
+
+function sanitizeOperationalFields(
+  data: Record<string, unknown> | undefined,
+  label: string,
+  deps: HunterDependencies
+): Record<string, unknown> {
+  if (!data || typeof data !== 'object') return {};
+
+  const result: Record<string, unknown> = {};
+  let dropped = 0;
+
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (
+        PRICING_LIKE_VALUE_TERMS.test(trimmed) ||
+        UNVERIFIED_QUANT_VALUE.test(trimmed) ||
+        SEAT_ACCESS_ABSOLUTE.test(trimmed)
+      ) {
+        dropped++;
+        continue;
+      }
+    }
+    result[key] = value;
+  }
+
+  if (dropped > 0) {
+    deps.log(`[Guardrail] Dropped ${dropped} ${label} field(s) with pricing/quantitative narrative risk`);
+  }
+
+  return result;
+}
+
+function isIntegrationGapClaim(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    (lower.includes('zapier') ||
+      lower.includes('make.com') ||
+      /\bn8n\b/.test(lower) ||
+      lower.includes('integration')) &&
+    (lower.includes('lack') ||
+      lower.includes('lacks') ||
+      lower.includes('missing') ||
+      lower.includes('no ') ||
+      lower.includes('without') ||
+      lower.includes('necessitating'))
+  );
+}
+
+function isIntegrationCriticalContext(contextTitle?: string): boolean {
+  if (!contextTitle) return false;
+  const ctx = contextTitle.toLowerCase();
+  return (
+    ctx.includes('automation') ||
+    ctx.includes('workflow') ||
+    ctx.includes('integration') ||
+    ctx.includes('zapier') ||
+    ctx.includes('make') ||
+    ctx.includes('n8n') ||
+    ctx.includes('no-code')
+  );
+}
+
+function sanitizeShortDescription(shortDescription: string | undefined, contextTitle?: string): string | null {
+  if (!shortDescription || typeof shortDescription !== 'string') return null;
+
+  const criticalIntegration = isIntegrationCriticalContext(contextTitle);
+  let sanitized = shortDescription.trim();
+  if (!criticalIntegration) {
+    sanitized = sanitized.replace(
+      /(?:,?\s*(?:but|while)?\s*)?lacking\s+(?:(?:a\s+)?free tier\s+(?:or|and)\s+)?(?:a\s+)?(?:native\s+)?zapier integration\.?/i,
+      ''
+    );
+    sanitized = sanitized.replace(/\s{2,}/g, ' ').replace(/\s+\./g, '.').trim();
+  }
+  sanitized = sanitized.replace(
+    /\s*this action is redundant with the description above\.?/i,
+    ''
+  );
+  sanitized = sanitized.replace(/\s{2,}/g, ' ').replace(/\s+\./g, '.').trim();
+
+  return sanitized || null;
+}
+
+function sanitizeSetupComplexityWithEvidence(
+  knowledgeCard: any,
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+  }>,
+  toolWebsite: string | undefined,
+  deps: HunterDependencies
+): void {
+  const setup = knowledgeCard?.setup_complexity;
+  if (!setup || typeof setup !== 'object') return;
+
+  const hasCliCommandEvidence = Array.isArray(setup.steps)
+    ? setup.steps.some((step: any) => typeof step?.command === 'string' && step.command.trim().length > 0)
+    : false;
+  const firstPartyCorpus = collectFirstPartyCorpus(sources, toolWebsite);
+  const hasCliTextEvidence = /\b(cli|command line|terminal|npm\s+install|pip\s+install|brew\s+install)\b/i.test(
+    firstPartyCorpus
+  );
+
+  if (setup.setup_type === 'hybrid' && !hasCliCommandEvidence && !hasCliTextEvidence) {
+    setup.setup_type = 'web';
+    deps.log('[Setup Guard] Downgraded setup_type hybrid -> web (no CLI evidence)');
+  }
+
+  if (setup.red_tape && typeof setup.red_tape === 'object') {
+    if (
+      setup.red_tape.sales_gated === true &&
+      suppressSalesGatedClaim('sales-gated', undefined, sources, toolWebsite)
+    ) {
+      setup.red_tape.sales_gated = false;
+      deps.log('[Setup Guard] Removed sales_gated red-tape flag (self-serve flow detected)');
+    }
+
+    if (setup.red_tape.cc_required === true && /\bno credit card required\b/i.test(firstPartyCorpus)) {
+      setup.red_tape.cc_required = false;
+      deps.log('[Setup Guard] Removed cc_required red-tape flag (free signup evidence found)');
+    }
+  }
+
+  knowledgeCard.setup_complexity = setup;
 }
 
 function isBackedByClaims(text: string, claims: ClaimWithSource[]): boolean {
@@ -186,6 +619,13 @@ export async function executePersistencePhase(
   let categoryId: string | null = null;
   const analysis = ctx.analysis.analysis;
   const knowledgeCard = ctx.research.knowledgeCard;
+  const guardrailSources = ctx.research.scoutResult.raw_sources.map((source) => ({
+    url: source.url,
+    title: source.title,
+    snippet: source.snippet,
+  }));
+
+  sanitizeSetupComplexityWithEvidence(knowledgeCard, guardrailSources, analysis.websiteUrl, deps);
 
   if (ctx.categorySlug) {
     // Legacy: explicit category slug provided
@@ -214,6 +654,8 @@ export async function executePersistencePhase(
       Collaboration: 'collaboration',
       Productivity: 'productivity',
       'AI & Automation': 'ai-automation',
+      'Artificial Intelligence': 'ai-automation',
+      AI: 'ai-automation',
       'AI Code Assistant': 'ai-automation',
       'AI Tools': 'ai-automation',
       'AI Audio Platform': 'ai-automation',
@@ -270,6 +712,7 @@ export async function executePersistencePhase(
   // V3: Add SMP pricing data if extracted
   if (knowledgeCard?.smp_pricing) {
     specs.pricing_data = knowledgeCard.smp_pricing;
+    specs.pricing_v2 = mapSmpPricingToV2(toolSlug, knowledgeCard.smp_pricing) ?? undefined;
   }
 
   // V3: Add SMP taxonomy data if extracted (with normalization)
@@ -419,16 +862,83 @@ export async function executePersistencePhase(
 
   // V4: Smart Schema - Add category-specific extracted data
   if (analysis.categorySpecificData && Object.keys(analysis.categorySpecificData).length > 0) {
-    specs.categorySpecificData = analysis.categorySpecificData;
+    const sanitizedCategorySpecificData = sanitizeOperationalFields(
+      analysis.categorySpecificData,
+      'category-specific',
+      deps
+    );
+    if (Object.keys(sanitizedCategorySpecificData).length > 0) {
+      specs.categorySpecificData = sanitizedCategorySpecificData;
+    }
     deps.log(
-      `[Smart Schema] Saved ${Object.keys(analysis.categorySpecificData).length} category-specific fields`
+      `[Smart Schema] Saved ${Object.keys(sanitizedCategorySpecificData).length} category-specific fields`
     );
   }
 
   // V4: Tool Hints - Add VIP tool-specific data
   if (analysis.specifics && Object.keys(analysis.specifics).length > 0) {
-    specs.specifics = analysis.specifics;
-    deps.log(`[Tool Hints] Saved ${Object.keys(analysis.specifics).length} VIP-specific fields`);
+    const sanitizedSpecifics = sanitizeOperationalFields(analysis.specifics, 'VIP specifics', deps);
+    if (Object.keys(sanitizedSpecifics).length > 0) {
+      specs.specifics = sanitizedSpecifics;
+    }
+    deps.log(`[Tool Hints] Saved ${Object.keys(sanitizedSpecifics).length} VIP-specific fields`);
+  }
+
+  if (analysis.canonicalFacts) {
+    const existingCanonical = (specs.canonical as Record<string, any>) || {};
+    const existingQuality = (existingCanonical.quality as Record<string, any>) || {};
+    const canonical = {
+      ...existingCanonical,
+      latest_models_comparison:
+        analysis.canonicalFacts.latest_models_comparison || existingCanonical.latest_models_comparison || [],
+      model_inventory_raw:
+        analysis.canonicalFacts.model_inventory_raw || existingCanonical.model_inventory_raw || [],
+      setup_tracks: analysis.canonicalFacts.setup_tracks || existingCanonical.setup_tracks || undefined,
+      quality: {
+        ...existingQuality,
+        ...((analysis.canonicalFacts.quality as Record<string, unknown>) || {}),
+      },
+    };
+    if (
+      canonical.latest_models_comparison.length > 0 ||
+      canonical.model_inventory_raw.length > 0 ||
+      (canonical.setup_tracks?.dev && canonical.setup_tracks.dev.length > 0) ||
+      (canonical.setup_tracks?.non_dev && canonical.setup_tracks.non_dev.length > 0) ||
+      (canonical.quality && Object.keys(canonical.quality).length > 0)
+    ) {
+      specs.canonical = canonical;
+      deps.log(
+        `[Canonical] Saved models split: latest=${canonical.latest_models_comparison.length}, raw=${canonical.model_inventory_raw.length}`
+      );
+    }
+  }
+
+  if (knowledgeCard?.smp_pricing) {
+    const pricingCanonical = buildCanonicalPricingPlans(knowledgeCard.smp_pricing);
+    const currentCanonical = (specs.canonical as Record<string, any>) || {};
+    const currentQuality = (currentCanonical.quality as Record<string, any>) || {};
+    const nextPricingConflictCount = pricingCanonical.conflicts.length;
+    const existingConflictCount = Number(currentQuality.conflicts_count || 0);
+    const priorPricingConflictCount = Number(currentQuality.pricing_conflicts_count || 0);
+    const nextConflictCount =
+      existingConflictCount - priorPricingConflictCount + nextPricingConflictCount;
+
+    specs.canonical = {
+      ...currentCanonical,
+      pricing_plan_entities: pricingCanonical.entities,
+      quality: {
+        ...currentQuality,
+        conflicts_count: Math.max(0, nextConflictCount),
+        pricing_conflicts_count: nextPricingConflictCount,
+        pricing_conflicts: pricingCanonical.conflicts,
+      },
+    };
+
+    if (nextPricingConflictCount > 0) {
+      deps.log(
+        `[Pricing Guard] Detected ${nextPricingConflictCount} pricing contradiction(s); pricing sections will be suppressed`
+      );
+    }
   }
 
   // V4: Add pros/cons to item (not just contextual reviews)
@@ -465,6 +975,10 @@ export async function executePersistencePhase(
 
     // Apply negative sentiment guardrail to cons
     for (const con of normalizedConsCandidates) {
+      if (isIntegrationGapClaim(con.text) && !isIntegrationCriticalContext(ctx.contextTitle)) {
+        deps.log(`[Item Guardrail] Filtered: "${con.text.substring(0, 40)}..." - not material for context`);
+        continue;
+      }
       const validation = validateNegativeClaim(con, sourcesList);
       if (validation.isValid) {
         validCons.push(con);
@@ -522,7 +1036,7 @@ export async function executePersistencePhase(
         return 'forum';
       return 'paa';
     };
-    knowledgeCard.faqs = analysis.faqs
+    const mappedFaqs = analysis.faqs
       .filter((faq) => !!faq.answer_source_url)
       .map((faq) => ({
         question: faq.question,
@@ -533,6 +1047,22 @@ export async function executePersistencePhase(
         answer_source_type: faq.answer_source_type || classifySourceType(faq.answer_source_url, analysis.websiteUrl),
       }))
       .filter((faq) => faq.question_source && faq.answer_source_url);
+    const canonicalModels = analysis.canonicalFacts?.latest_models_comparison || [];
+    const faqGuard = guardFaqVolatileFacts(mappedFaqs, canonicalModels);
+    knowledgeCard.faqs = faqGuard.accepted;
+    specs.canonical = {
+      ...(specs.canonical || {}),
+      quality: {
+        ...((specs.canonical as any)?.quality || {}),
+        conflicts_count: faqGuard.conflictsCount,
+      },
+    };
+    if (faqGuard.dropped.length > 0) {
+      deps.log(`[FAQ Guard] Dropped ${faqGuard.dropped.length} volatile FAQ(s) in persistence`);
+    }
+    if (faqGuard.conflictsCount > 0) {
+      deps.log(`[FAQ Guard] Canonical conflicts detected: ${faqGuard.conflictsCount}`);
+    }
   }
 
   // Build V2 metadata (Knowledge Card + extended fields)
@@ -569,6 +1099,7 @@ export async function executePersistencePhase(
   if (!derivedVerdict) {
     deps.log('[Guardrail] Derived verdict unavailable (insufficient vetted claims)');
   }
+  const sanitizedReviewContext = sanitizeReviewContext(analysis.reviewContext, validCons, deps);
 
   const itemData: Record<string, unknown> = {
     name: ctx.toolName,
@@ -576,7 +1107,7 @@ export async function executePersistencePhase(
     website: analysis.websiteUrl || null,
     logo_path: ctx.analysis.logo?.path || null,
     logo_url: ctx.analysis.logo?.url || null,
-    short_description: analysis.shortDescription || null,
+    short_description: sanitizeShortDescription(analysis.shortDescription, ctx.contextTitle),
     pricing_type: analysis.pricingType,
     embedding: ctx.analysis.embedding,
     // V2: Enhanced fields
@@ -593,7 +1124,7 @@ export async function executePersistencePhase(
     pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
     pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
     // V3.1: Review Context (The "Human Touch" Layer)
-    review_context: sanitizeReviewContext(analysis.reviewContext, validCons, deps),
+    review_context: sanitizedReviewContext,
     // V3.2: Parent/Child Relationship (Suite Bundling)
     parent_id: parentId,
     // Infer target_market from pricing plans
@@ -658,8 +1189,8 @@ export async function executePersistencePhase(
   }
 
   // Log persisted Review Context (V3.1: Human Touch Layer)
-  if (analysis.reviewContext) {
-    const rc = analysis.reviewContext;
+  if (sanitizedReviewContext) {
+    const rc = sanitizedReviewContext;
     if (rc.humanVerdict) {
       deps.log(`[Persisted] Human Verdict: "${rc.humanVerdict}"`);
     }
@@ -725,33 +1256,55 @@ export async function executePersistencePhase(
 
     // Auto-publish if high quality and robust sources
     const dataQuality = knowledgeCard?.meta?.data_quality || 'medium';
-    const shouldAutoPublish = dataQuality === 'high' && uniqueSources.length >= 2;
+    const canonicalConflicts = Number((specs.canonical as any)?.quality?.conflicts_count || 0);
+    const shouldAutoPublish =
+      deps.config.isDraftMode === false &&
+      dataQuality === 'high' &&
+      uniqueSources.length >= 2 &&
+      canonicalConflicts === 0;
     const reviewStatus = shouldAutoPublish ? 'published' : 'draft';
 
     deps.log(
-      `[Discovery Review] Quality: ${dataQuality}, Sources: ${uniqueSources.length}, Status: ${reviewStatus}`
+      `[Discovery Review] Quality: ${dataQuality}, Sources: ${uniqueSources.length}, Conflicts: ${canonicalConflicts}, Status: ${reviewStatus}`
     );
 
-    // Create review with null context (discovery review)
-    const { data: review, error: reviewError } = await deps.supabase
+    // Upsert-like behavior for discovery review (context_id is null, so onConflict is unreliable).
+    const { data: existingDiscoveryReview } = await deps.supabase
       .from('reviews')
-      .insert({
-        item_id: item.id,
-        context_id: null, // Discovery review
-        score: ctx.analysis.analysis?.score || null,
-        pros: normalizedPros,
-        cons: validCons,
-        sources: uniqueSources,
-        quality: dataQuality,
-        status: reviewStatus,
-      })
       .select('id')
-      .single();
+      .eq('item_id', item.id)
+      .is('context_id', null)
+      .maybeSingle();
+
+    const reviewPayload = {
+      item_id: item.id,
+      context_id: null,
+      score: ctx.analysis.analysis?.score || null,
+      pros: normalizedPros,
+      cons: validCons,
+      sources: uniqueSources,
+      quality: dataQuality,
+      status: reviewStatus,
+    };
+
+    const reviewQuery = existingDiscoveryReview
+      ? deps.supabase
+          .from('reviews')
+          .update(reviewPayload)
+          .eq('id', existingDiscoveryReview.id)
+          .select('id')
+          .single()
+      : deps.supabase.from('reviews').insert(reviewPayload).select('id').single();
+
+    const { data: review, error: reviewError } = await reviewQuery;
 
     if (reviewError) {
       deps.log(`[Discovery Review] Warning: Failed to create review: ${reviewError.message}`);
     } else {
-      deps.log(`[Discovery Review] Created: ${review.id} (${reviewStatus})`);
+      deps.log(
+        `[Discovery Review] ${existingDiscoveryReview ? 'Updated' : 'Created'}: ${review.id} (${reviewStatus})`
+      );
+      await persistQualityGateSnapshot(item.id, review.id, deps);
     }
 
     await persistArticleInsights({
@@ -759,6 +1312,8 @@ export async function executePersistencePhase(
       itemId: item.id,
       contextId: null,
       analysis,
+      derivedVerdict,
+      sanitizedReviewContext,
     });
 
     const suggestedContexts = await suggestContextIdeas(ctx, analysis, deps);
@@ -806,15 +1361,20 @@ export async function executePersistencePhase(
       published_at: source.published_at,
     })),
     ctx.research.knowledgeCard,
+    Number((specs.canonical as any)?.quality?.conflicts_count || 0),
+    ctx.contextTitle,
     deps
   );
 
   deps.log(`Review created: ${reviewId}`);
+  await persistQualityGateSnapshot(item.id, reviewId, deps);
   await persistArticleInsights({
     deps,
     itemId: item.id,
     contextId,
     analysis,
+    derivedVerdict,
+    sanitizedReviewContext,
   });
   deps.log(`[Phase 3] Complete`);
 
@@ -826,29 +1386,114 @@ export async function executePersistencePhase(
   };
 }
 
+async function persistQualityGateSnapshot(
+  itemId: string,
+  reviewId: string | null,
+  deps: HunterDependencies
+): Promise<void> {
+  const { data: itemRow, error: itemError } = await deps.supabase
+    .from('items')
+    .select('id, metadata, specs, pricing_verified_at')
+    .eq('id', itemId)
+    .single();
+
+  if (itemError || !itemRow) {
+    deps.log(`[Quality Gate] Warning: Unable to load item for snapshot (${itemError?.message || 'missing'})`);
+    return;
+  }
+
+  const reviewQuery = deps.supabase
+    .from('reviews')
+    .select('id, status, summary_markdown, pros, cons, sources, created_at, updated_at')
+    .eq('item_id', itemId)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  const { data: reviewRows, error: reviewError } = reviewId
+    ? await reviewQuery.eq('id', reviewId)
+    : await reviewQuery;
+
+  if (reviewError) {
+    deps.log(`[Quality Gate] Warning: Unable to load review for snapshot (${reviewError.message})`);
+    return;
+  }
+
+  const gateReview = (reviewRows && reviewRows.length > 0 ? reviewRows[0] : null) as any;
+  const readiness = evaluateIndexReadiness(itemRow as any, gateReview);
+  const isDraftReview = gateReview?.status !== 'published';
+  const shouldIndex = readiness.shouldIndex && !isDraftReview;
+  const noindexReasons = [...readiness.reasons];
+
+  if (isDraftReview) {
+    noindexReasons.push('draft_review');
+  }
+
+  const specs = (itemRow.specs as Record<string, unknown>) || {};
+  const canonical = (specs.canonical as Record<string, unknown>) || {};
+  const quality = {
+    ...((canonical.quality as Record<string, unknown>) || {}),
+    should_index: shouldIndex,
+    noindex_reasons: noindexReasons,
+    required_sections_complete: readiness.signals.required_sections_complete,
+    volatiles_fresh: readiness.signals.volatiles_fresh,
+    conflicts_count: readiness.signals.conflicts_count,
+    score: readiness.signals.score,
+    section_publishability: readiness.signals.section_publishability,
+    section_status: readiness.signals.section_status,
+    evidence_counts: readiness.signals.evidence_counts,
+    last_evaluated_at: new Date().toISOString(),
+  };
+
+  const mergedSpecs = {
+    ...specs,
+    canonical: {
+      ...canonical,
+      quality,
+    },
+  };
+
+  const { error: updateError } = await deps.supabase
+    .from('items')
+    .update({ specs: mergedSpecs })
+    .eq('id', itemId);
+
+  if (updateError) {
+    deps.log(`[Quality Gate] Warning: Failed to persist snapshot (${updateError.message})`);
+    return;
+  }
+
+  deps.log(
+    `[Quality Gate] Snapshot persisted: should_index=${String(shouldIndex)} reasons=${noindexReasons.join(',') || 'none'}`
+  );
+}
+
 async function persistArticleInsights({
   deps,
   itemId,
   contextId,
   analysis,
+  derivedVerdict,
+  sanitizedReviewContext,
 }: {
   deps: HunterDependencies;
   itemId: string;
   contextId: string | null;
   analysis: any;
+  derivedVerdict?: string | null;
+  sanitizedReviewContext?: any | null;
 }): Promise<void> {
   if (!analysis) return;
 
   const insights: Array<Record<string, unknown>> = [];
 
-  if (analysis.verdict) {
+  if (derivedVerdict || analysis.verdict) {
     insights.push({
       insight_type: 'verdict',
-      insight: analysis.verdict,
+      insight: derivedVerdict || analysis.verdict,
     });
   }
 
-  const humanVerdict = analysis.reviewContext?.humanVerdict;
+  const humanVerdict = sanitizedReviewContext?.humanVerdict ?? analysis.reviewContext?.humanVerdict;
   if (humanVerdict) {
     insights.push({
       insight_type: 'human_verdict',
@@ -1056,7 +1701,11 @@ async function updatePricingOnly(
   }
 
   if (knowledgeCard?.smp_pricing) {
-    specs = { ...specs, pricing_data: knowledgeCard.smp_pricing };
+    const mappedPricingV2 = mapSmpPricingToV2(toolSlug, knowledgeCard.smp_pricing);
+    specs = mergeDefined(specs, {
+      pricing_data: knowledgeCard.smp_pricing,
+      pricing_v2: mappedPricingV2,
+    });
   }
 
   let parentId: string | null = null;
@@ -1133,6 +1782,7 @@ async function persistResearchOnly(
   // Add pricing data if extracted
   if (knowledgeCard?.smp_pricing) {
     specs.pricing_data = knowledgeCard.smp_pricing;
+    specs.pricing_v2 = mapSmpPricingToV2(toolSlug, knowledgeCard.smp_pricing) ?? undefined;
   }
 
   // Add taxonomy data if extracted
@@ -1264,8 +1914,8 @@ async function findSimilarContext(
   });
 
   if (error) {
-    deps.log(`⚠️ Similar context lookup failed: ${error.message}`);
-    return null;
+    deps.log(`⚠️ Similar context RPC failed: ${error.message}`);
+    return await findSimilarContextFallback(contextTitle, deps, threshold);
   }
 
   if (data && data.length > 0) {
@@ -1277,6 +1927,71 @@ async function findSimilarContext(
   }
 
   return null;
+}
+
+async function findSimilarContextFallback(
+  contextTitle: string,
+  deps: HunterDependencies,
+  threshold: number
+): Promise<{ id: string; title: string } | null> {
+  const { data: contexts, error } = await deps.supabase
+    .from('contexts')
+    .select('id, title')
+    .order('updated_at', { ascending: false })
+    .limit(200);
+
+  if (error) {
+    deps.log(`⚠️ Similar context fallback failed: ${error.message}`);
+    return null;
+  }
+
+  const targetTokens = tokenizeForSimilarity(contextTitle);
+  if (targetTokens.size === 0) return null;
+
+  let bestMatch: { id: string; title: string; similarity: number } | null = null;
+  for (const context of contexts || []) {
+    const candidateTokens = tokenizeForSimilarity(context.title);
+    const similarity = jaccardSimilarity(targetTokens, candidateTokens);
+    if (similarity >= threshold && (!bestMatch || similarity > bestMatch.similarity)) {
+      bestMatch = {
+        id: context.id,
+        title: context.title,
+        similarity,
+      };
+    }
+  }
+
+  if (bestMatch) {
+    deps.log(
+      `Found similar context (fallback): "${bestMatch.title}" (${(bestMatch.similarity * 100).toFixed(1)}% match)`
+    );
+    return { id: bestMatch.id, title: bestMatch.title };
+  }
+
+  return null;
+}
+
+function tokenizeForSimilarity(input: string): Set<string> {
+  const normalized = input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2)
+    .filter((token) => !['best', 'for', 'the', 'and', 'with'].includes(token));
+  return new Set(normalized);
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 1;
+  if (a.size === 0 || b.size === 0) return 0;
+
+  let intersection = 0;
+  for (const token of a) {
+    if (b.has(token)) intersection++;
+  }
+  const union = new Set([...a, ...b]).size;
+  return union === 0 ? 0 : intersection / union;
 }
 
 /**
@@ -1371,19 +2086,113 @@ function normalizeClaim(
   // Current timestamp for time-bound defense
   const retrievedAt = new Date().toISOString();
 
+  const findSourceText = (url?: string): string => {
+    if (!url) return '';
+    const source = sources.find((s) => s.url === url);
+    return source ? `${source.title || ''} ${source.snippet || ''}`.trim() : '';
+  };
+  const findSource = (url?: string) => {
+    if (!url) return undefined;
+    return sources.find((s) => s.url === url);
+  };
+
+  const hasTierABCorroboration = (text: string): boolean => {
+    return sources.some((source) => {
+      const tier = sourceTierForClaim(source.url);
+      if (tier === 'C') return false;
+      const sourceText = `${source.title || ''} ${source.snippet || ''}`;
+      return overlapRatio(text, sourceText) >= 0.3;
+    });
+  };
+
+  const passesNamedFeatureExistence = (text: string, sourceUrl?: string): boolean => {
+    const featureNames = extractNamedFeatures(text);
+    if (featureNames.length === 0) return true;
+
+    const firstPartySources = sources.filter((source) => {
+      if (!toolWebsite) return false;
+      try {
+        const toolHost = new URL(toolWebsite).hostname.replace(/^www\./, '').toLowerCase();
+        const sourceHost = new URL(source.url).hostname.replace(/^www\./, '').toLowerCase();
+        return sourceHost === toolHost || sourceHost.endsWith(`.${toolHost}`);
+      } catch {
+        return false;
+      }
+    });
+
+    const baselineText = `${findSourceText(sourceUrl)} ${firstPartySources
+      .map((s) => `${s.title || ''} ${s.snippet || ''}`)
+      .join(' ')}`.toLowerCase();
+
+    return featureNames.every((feature) => baselineText.includes(feature.toLowerCase()));
+  };
+
   // Already enriched - validate and return with timestamp
   if (typeof claim === 'object' && 'text' in claim && 'source_url' in claim) {
+    const claimType = claim.claim_type || 'opinion';
+    const vendorPhrase = (claim.vendor_phrase || claim.text || '').trim();
+    const comparisonBasisSourceUrl = claim.comparison_basis_source_url?.trim() || undefined;
+    const strictKind = detectClaimKind(claim.text, claimType);
+    const detectedKind =
+      strictKind === 'comparison' || strictKind === 'derived_metric'
+        ? strictKind
+        : claim.claim_kind || strictKind;
+    const needsComparatorBasis =
+      strictKind === 'comparison' || strictKind === 'derived_metric' || hasComparatorToken(claim.text);
+    let normalizedText =
+      needsComparatorBasis && !comparisonBasisSourceUrl
+        ? downgradeComparativeClause(claim.text)
+        : claim.text.trim();
+    if (!normalizedText) return null;
+
+    if (hasAbsoluteMarketingTerm(normalizedText)) {
+      const sourceTier = sourceTierForClaim(claim.source_url);
+      const corroborated = sourceTier !== 'C' || hasTierABCorroboration(normalizedText);
+      if (!corroborated) {
+        normalizedText = softenAbsoluteMarketingLanguage(normalizedText);
+      }
+    }
+
+    if (!passesNamedFeatureExistence(normalizedText, claim.source_url)) {
+      return null;
+    }
+    if (suppressSalesGatedClaim(normalizedText, claim.source_url, sources, toolWebsite)) {
+      return null;
+    }
+    if (RANKING_CLAIM_TOKENS.test(normalizedText)) {
+      const sourceTier = sourceTierForClaim(claim.source_url);
+      const hasSupport = sourceTier !== 'C' && hasTierABCorroboration(normalizedText);
+      if (!hasSupport) return null;
+      const sourceDate = findSource(claim.source_url)?.published_at || findSource(claim.source_url)?.retrieved_at;
+      normalizedText = rewriteVendorRankingClaim(normalizedText, sourceDate);
+    }
+    if (UNVERIFIED_QUANT_VALUE.test(normalizedText) && !hasTierABCorroboration(normalizedText)) {
+      normalizedText = stripUnsupportedQuantitativePhrases(normalizedText);
+      if (!normalizedText) return null;
+    }
+    const scopedText = enforceOfferingScope(normalizedText, claim.source_url, sources);
+    if (!scopedText) return null;
+    normalizedText = scopedText;
+
     return {
-      text: claim.text,
+      text: normalizedText,
       source_url: claim.source_url,
       source_type: claim.source_type || classifySourceType(claim.source_url, toolWebsite),
-      claim_type: claim.claim_type || 'opinion', // Default to opinion for safety
+      claim_type: claimType, // Default to opinion for safety
       retrieved_at: claim.retrieved_at || retrievedAt,
+      claim_kind:
+        needsComparatorBasis && !comparisonBasisSourceUrl ? 'inference' : detectedKind,
+      vendor_phrase: vendorPhrase || normalizedText,
+      comparison_basis_source_url: comparisonBasisSourceUrl,
     };
   }
 
   // Legacy string - try to find a relevant source
   const claimText = typeof claim === 'string' ? claim : (claim as any).text;
+  const normalizedLegacyText = hasComparatorToken(claimText)
+    ? downgradeComparativeClause(claimText)
+    : claimText;
+  if (!normalizedLegacyText) return null;
 
   // Try to match claim keywords to source snippets
   const claimWords = claimText.toLowerCase().split(/\s+/);
@@ -1408,12 +2217,40 @@ function normalizeClaim(
     return null;
   }
 
+  let legacyText = normalizedLegacyText;
+  if (hasAbsoluteMarketingTerm(legacyText) && !hasTierABCorroboration(legacyText)) {
+    legacyText = softenAbsoluteMarketingLanguage(legacyText);
+  }
+  if (!passesNamedFeatureExistence(legacyText, bestSource.url)) {
+    return null;
+  }
+  if (suppressSalesGatedClaim(legacyText, bestSource.url, sources, toolWebsite)) {
+    return null;
+  }
+  if (RANKING_CLAIM_TOKENS.test(legacyText)) {
+    const sourceTier = sourceTierForClaim(bestSource.url);
+    if (sourceTier === 'C' || !hasTierABCorroboration(legacyText)) {
+      return null;
+    }
+    const sourceDate = bestSource.published_at || bestSource.retrieved_at;
+    legacyText = rewriteVendorRankingClaim(legacyText, sourceDate);
+  }
+  if (UNVERIFIED_QUANT_VALUE.test(legacyText) && !hasTierABCorroboration(legacyText)) {
+    legacyText = stripUnsupportedQuantitativePhrases(legacyText);
+    if (!legacyText) return null;
+  }
+  const scopedLegacy = enforceOfferingScope(legacyText, bestSource.url, sources);
+  if (!scopedLegacy) return null;
+  legacyText = scopedLegacy;
+
   return {
-    text: claimText,
+    text: legacyText,
     source_url: bestSource.url,
     source_type: classifySourceType(bestSource.url, toolWebsite),
     claim_type: 'opinion', // Assume opinion for legacy claims (safer)
     retrieved_at: retrievedAt,
+    claim_kind: detectClaimKind(legacyText, 'opinion'),
+    vendor_phrase: claimText,
   };
 }
 
@@ -1689,6 +2526,8 @@ async function createReview(
     time_since?: string;
   }>,
   knowledgeCard: any,
+  canonicalConflictsCount: number,
+  contextTitle: string | undefined,
   deps: HunterDependencies
 ): Promise<string> {
   // Normalize pros and cons with source attribution
@@ -1715,6 +2554,17 @@ async function createReview(
   const filteredCons: Array<{ claim: ClaimWithSource; reason: string }> = [];
 
   for (const con of normalizedConsCandidates) {
+    if (isIntegrationGapClaim(con.text) && !isIntegrationCriticalContext(contextTitle)) {
+      filteredCons.push({
+        claim: con,
+        reason: 'Integration-gap claim is not material for this context',
+      });
+      deps.log(
+        `[Guardrail] Filtered con: "${con.text.substring(0, 50)}..." - not material for context`
+      );
+      continue;
+    }
+
     const validation = validateNegativeClaim(con, sources);
     if (validation.isValid) {
       normalizedCons.push(con);
@@ -1775,6 +2625,22 @@ async function createReview(
   const legalIssues: string[] = [];
   if (missingSourceCount > 0) legalIssues.push('claims_missing_sources');
   if (derivedSummary === null) legalIssues.push('summary_unavailable');
+  const riskyNarrativeFields = [
+    analysis.verdict,
+    analysis.reviewContext?.humanVerdict,
+    ...(Array.isArray(analysis.dealbreakers) ? analysis.dealbreakers : []),
+    ...(Array.isArray(analysis.reviewContext?.userAdvocate?.avoidIf)
+      ? analysis.reviewContext.userAdvocate.avoidIf
+      : []),
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map((value) => value.trim());
+  const hasUnsupportedNegativeClaim =
+    riskyNarrativeFields.some((value) => containsRiskyAbsolute(value)) && normalizedCons.length < 2;
+  if (hasUnsupportedNegativeClaim) {
+    legalIssues.push('UNSUPPORTED_NEGATIVE_CLAIM');
+    deps.log('[Guardrail] Forced draft: unsupported risky narrative claim without sufficient evidence');
+  }
 
   const reviewData: Record<string, unknown> = {
     item_id: itemId, // V2: renamed from tool_id
@@ -1807,14 +2673,15 @@ async function createReview(
     analysis.score >= 70 &&
     filteredCons.length <= 1 &&
     normalizedCons.length >= 2 &&
-    legalIssues.length === 0;
+    legalIssues.length === 0 &&
+    canonicalConflictsCount === 0;
 
-  if (isHighConfidence && deps.config.isDraftMode !== false) {
+  if (isHighConfidence && deps.config.isDraftMode === false && !hasUnsupportedNegativeClaim) {
     reviewData.status = 'published';
     deps.log(
       `[Auto-publish] High confidence review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
     );
-  } else if (deps.config.isDraftMode) {
+  } else {
     reviewData.status = 'draft';
     if (!isHighConfidence) {
       deps.log(
@@ -1822,6 +2689,9 @@ async function createReview(
       );
       if (legalIssues.length > 0) {
         deps.log(`[Draft] Legal guardrail issues: ${legalIssues.join(', ')}`);
+      }
+      if (canonicalConflictsCount > 0) {
+        deps.log(`[Draft] Canonical conflicts require review: ${canonicalConflictsCount}`);
       }
     }
   }
@@ -1904,12 +2774,17 @@ function buildClaimLedgerRows(
       item_id: itemId,
       context_id: contextId,
       claim_type: type,
-      value_json: { text: claim.text },
+      value_json: {
+        text: claim.text,
+        vendor_phrase: claim.vendor_phrase || claim.text,
+        kind: claim.claim_kind || detectClaimKind(claim.text, claim.claim_type || 'opinion'),
+        comparison_basis_source_url: claim.comparison_basis_source_url || null,
+      },
       source_url: claim.source_url || null,
       source_domain: source?.domain || null,
       policy_snapshot: policySnapshot,
       confidence: null,
-      intent: 'reviews',
+      intent: 'editorial_intelligence',
       extracted_at: claim.retrieved_at || undefined,
     };
   };

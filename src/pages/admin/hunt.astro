@@ -91,6 +91,19 @@ const { data: categories } = await supabase
             </div>
           </div>
 
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Run Instructions <span class="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              name="runInstructions"
+              rows="3"
+              placeholder="e.g., Prioritize official pricing pages, keep cons material for startup CTOs, avoid generic integration-gap claims."
+              class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
+            ></textarea>
+            <p class="mt-1 text-xs text-slate-500">Optional guidance to steer extraction quality.</p>
+          </div>
+
           <div class="grid gap-4 md:grid-cols-2">
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">
@@ -232,6 +245,19 @@ const { data: categories } = await supabase
             </div>
           </div>
 
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Run Instructions <span class="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              name="runInstructions"
+              rows="3"
+              placeholder="e.g., Must include tools with strong API docs; emphasize pricing predictability and onboarding friction."
+              class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-hunt-500 focus:ring-hunt-500"
+            ></textarea>
+            <p class="mt-1 text-xs text-slate-500">Optional guidance to steer discovery and scoring.</p>
+          </div>
+
           <div class="flex items-center gap-4 pt-2">
             <button
               type="submit"
@@ -348,6 +374,7 @@ const { data: categories } = await supabase
             toolName: formData.get('toolName'),
             contextTitle: formData.get('contextTitle') || undefined,
             categorySlug: formData.get('categorySlug') || undefined,
+            runInstructions: formData.get('runInstructions'),
             publish: formData.get('mode') === 'publish',
           }),
         });
@@ -384,6 +411,7 @@ const { data: categories } = await supabase
           body: JSON.stringify({
             contextQuery: formData.get('contextQuery'),
             maxTools: parseInt(formData.get('maxTools') as string) || 5,
+            runInstructions: formData.get('runInstructions'),
             publish: formData.get('contextMode') === 'publish',
           }),
         });

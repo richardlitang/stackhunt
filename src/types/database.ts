@@ -104,6 +104,29 @@ export type PricingConfidence = 'high' | 'medium' | 'low';
 export type MigrationDifficulty = 'trivial' | 'easy' | 'moderate' | 'hard' | 'locked';
 
 export type DiscountType = 'startup' | 'nonprofit' | 'education' | 'government' | 'annual_prepay';
+export type PricingValidationStatus = 'verified' | 'inferred' | 'conflicted';
+export type PricingV2BillingCadence = 'monthly' | 'annual' | 'one_time';
+export type PricingV2ChargeTiming = 'in_advance' | 'in_arrears';
+export type PricingV2RateType =
+  | 'flat'
+  | 'unit'
+  | 'tiered_graduated'
+  | 'tiered_volume'
+  | 'package'
+  | 'percentage';
+export type PricingV2ComponentKind = 'base' | 'addon' | 'overage';
+export type PricingV2SourceType =
+  | 'official'
+  | 'docs'
+  | 'support'
+  | 'legal'
+  | 'editorial'
+  | 'community';
+export type PricingV2AcquisitionMode = 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+export type PricingV2LlmIngestionAllowed = 'NO' | 'YES_LIMITED' | 'YES';
+export type PricingV2Category = 'team' | 'usage' | 'resource' | 'audience' | 'money';
+export type PricingV2RoundingMode = 'ceil' | 'floor' | 'nearest';
+export type PricingV2OverageMode = 'none' | 'unit_overage' | 'tiered_overage';
 
 // ============================================================================
 // V3: SMP PRICING & TAXONOMY SCHEMAS (for SaaS Management Platform)
@@ -351,6 +374,134 @@ export interface SMPPortabilityData {
   cancellation_notice_days?: number | null;
 }
 
+export interface ToolCanonicalFacts {
+  pricing_plan_entities?: Array<{
+    plan_id: string;
+    plan_name: string;
+    audience?: string | null;
+    seat_type?: string | null;
+    price_monthly?: number | null;
+    price_annual?: number | null;
+    source_url?: string | null;
+    currency?: string | null;
+  }>;
+  latest_models_comparison?: string[];
+  model_inventory_raw?: string[];
+  setup_tracks?: {
+    dev?: SetupStep[];
+    non_dev?: SetupStep[];
+  };
+  quality?: {
+    conflicts_count?: number;
+    pricing_conflicts_count?: number;
+    pricing_conflicts?: Array<{
+      key: string;
+      values: unknown[];
+      urls: string[];
+    }>;
+  };
+  faq_locked?: Array<{
+    question: string;
+    answer: string;
+    answer_source_url?: string;
+    answer_source_type?: 'official' | 'editorial' | 'community';
+  }>;
+}
+
+// ============================================================================
+// PRICING V2 (Compositional pricing model for deterministic comparisons)
+// ============================================================================
+
+export interface PricingV2PolicySnapshot {
+  acquisition_mode: PricingV2AcquisitionMode;
+  llm_ingestion_allowed: PricingV2LlmIngestionAllowed;
+  policy_version?: string;
+}
+
+export interface PricingV2EvidenceRef {
+  url: string;
+  source_type: PricingV2SourceType;
+  retrieved_at: string;
+  claim_id: string;
+  policy_snapshot: PricingV2PolicySnapshot;
+}
+
+export interface PricingV2Meter {
+  id: string;
+  label: string;
+  unit_ucum: string;
+  category: PricingV2Category;
+}
+
+export interface PricingV2Tier {
+  up_to?: number | null;
+  unit_price?: number | null;
+  package_size?: number | null;
+  package_price?: number | null;
+  percent_rate?: number | null;
+}
+
+export interface PricingV2PriceComponent {
+  id: string;
+  component_kind: PricingV2ComponentKind;
+  meter_id: string | null;
+  rate_type: PricingV2RateType;
+  cadence: PricingV2BillingCadence;
+  timing: PricingV2ChargeTiming;
+  currency: string;
+  min_units?: number | null;
+  included_units?: number | null;
+  max_units?: number | null;
+  is_optional: boolean;
+  requires_component_ids?: string[];
+  flat_price?: number | null;
+  unit_price?: number | null;
+  tiers?: PricingV2Tier[] | null;
+  percent_rate?: number | null;
+  min_charge?: number | null;
+  max_charge?: number | null;
+  rounding_mode?: PricingV2RoundingMode;
+  overage_mode?: PricingV2OverageMode;
+  evidence: PricingV2EvidenceRef[];
+  notes?: string | null;
+  validation_status: PricingValidationStatus;
+  needs_review?: boolean;
+}
+
+export interface PricingV2PlanBillingOption {
+  cadence: Exclude<PricingV2BillingCadence, 'one_time'>;
+  price_components: PricingV2PriceComponent[];
+}
+
+export interface PricingV2Plan {
+  id: string;
+  name: string;
+  is_free: boolean;
+  is_enterprise: boolean;
+  billing_options: PricingV2PlanBillingOption[];
+  contract_terms?: {
+    annual_only?: boolean;
+  } | null;
+  evidence: PricingV2EvidenceRef[];
+}
+
+export interface PricingV2Conflict {
+  key: string;
+  values: unknown[];
+  urls: string[];
+}
+
+export interface PricingV2ProductPricing {
+  product_id: string;
+  official_pricing_url: string | null;
+  currency_default: string;
+  meters: PricingV2Meter[];
+  plans: PricingV2Plan[];
+  last_verified_at: string | null;
+  confidence: 'high' | 'med' | 'low';
+  conflicts: PricingV2Conflict[];
+}
+
 // ============================================================================
 // SPECS TYPES (Type-specific structured data in JSONB)
 // ============================================================================
@@ -365,6 +516,7 @@ export interface ToolSpecs {
 
   // V3: SMP Pricing Data (structured for cost calculations)
   pricing_data?: SMPPricingData;
+  pricing_v2?: PricingV2ProductPricing;
 
   // V3: SMP Taxonomy (for spend-by-category analysis)
   taxonomy?: SMPTaxonomyData;
@@ -407,6 +559,7 @@ export interface ToolSpecs {
   // V4: Category-specific extracted data
   categorySpecificData?: Record<string, unknown>;
   specifics?: Record<string, unknown>;
+  canonical?: ToolCanonicalFacts;
   research_data?: Record<string, unknown>;
   detected_category?: string;
 

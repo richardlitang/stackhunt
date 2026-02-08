@@ -8,13 +8,25 @@
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 
 interface Props {
-  setupComplexity: KnowledgeCard['setup_complexity'];
+  setupComplexity?: KnowledgeCard['setup_complexity'];
   toolName: string;
+  hasApi?: boolean;
+  websiteUrl?: string | null;
+  setupTracks?: {
+    dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
+    non_dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
+  };
 }
 
-const { setupComplexity, toolName: _toolName } = Astro.props;
+const {
+  setupComplexity,
+  toolName: _toolName,
+  hasApi = false,
+  websiteUrl = null,
+  setupTracks,
+} = Astro.props;
 
-if (!setupComplexity) return null;
+if (!setupComplexity && !setupTracks) return null;
 
 // Setup time labels
 const setupTimeLabels: Record<string, string> = {
@@ -28,13 +40,14 @@ const setupTimeLabels: Record<string, string> = {
 const setupTypeLabels: Record<string, { label: string; icon: string }> = {
   cli: { label: 'CLI Install', icon: '⌨️' },
   web: { label: 'Web Sign-Up', icon: '🌐' },
+  web_api: { label: 'Web + API', icon: '🌐' },
   installer: { label: 'Desktop App', icon: '💾' },
   hybrid: { label: 'CLI + Web', icon: '🔀' },
   api_only: { label: 'API/SDK Only', icon: '🔌' },
 };
 
 // Calculate friction bar width and color
-const frictionScore = setupComplexity.friction_score || 0;
+const frictionScore = setupComplexity?.friction_score || 0;
 const frictionPercent = (frictionScore / 10) * 100;
 const frictionColor =
   frictionScore <= 3 ? 'bg-green-500' : frictionScore <= 6 ? 'bg-yellow-500' : 'bg-red-500';
@@ -42,7 +55,7 @@ const frictionLabel =
   frictionScore <= 3 ? 'Quick Setup' : frictionScore <= 6 ? 'Moderate Setup' : 'Complex Setup';
 
 // Check if we have any red tape
-const redTape = setupComplexity.red_tape;
+const redTape = setupComplexity?.red_tape;
 const hasRedTape =
   redTape &&
   (redTape.cc_required ||
@@ -53,13 +66,36 @@ const hasRedTape =
 
 // Check if we have technical blockers
 const hasBlockers =
-  setupComplexity.technical_blockers && setupComplexity.technical_blockers.length > 0;
+  setupComplexity?.technical_blockers && setupComplexity.technical_blockers.length > 0;
+
+const hasCliStep = Boolean(
+  setupComplexity?.steps?.some((step) => typeof step.command === 'string' && step.command.trim())
+);
+const effectiveSetupType =
+  setupComplexity?.setup_type === 'hybrid' && !hasCliStep
+    ? hasApi
+      ? 'web_api'
+      : 'web'
+    : setupComplexity?.setup_type;
+const displaySetupTypeLabel =
+  effectiveSetupType && setupTypeLabels[effectiveSetupType]
+    ? setupTypeLabels[effectiveSetupType]
+    : null;
+const showDeveloperPath = hasApi && !hasCliStep;
+const nonDevTrack = Array.isArray(setupTracks?.non_dev) ? setupTracks.non_dev : [];
+const devTrack = Array.isArray(setupTracks?.dev) ? setupTracks.dev : [];
+const hasCanonicalTracks = nonDevTrack.length > 0 || devTrack.length > 0;
+const genericAhaPattern =
+  /^completing the first successful task in-app\.?$/i;
+const hasMeaningfulAhaMoment = Boolean(
+  setupComplexity?.aha_moment && !genericAhaPattern.test(setupComplexity.aha_moment.trim())
+);
 
 // Check required roles
 const requiresRoles =
-  setupComplexity.requires_developer ||
-  setupComplexity.requires_it_admin ||
-  setupComplexity.implementation_partner_needed;
+  setupComplexity?.requires_developer ||
+  setupComplexity?.requires_it_admin ||
+  setupComplexity?.implementation_partner_needed;
 ---
 
 <details
@@ -74,53 +110,57 @@ const requiresRoles =
 
   <div class="mt-5 space-y-6">
     {/* Setup Overview - Time, Type, Friction */}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Setup Time */}
-      <div class="rounded-lg bg-zinc-800/50 p-4">
-        <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Time</div>
-        <div class="text-lg font-semibold text-zinc-100">
+    {
+      setupComplexity && (
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Setup Time */}
+          <div class="rounded-lg bg-zinc-800/50 p-4">
+            <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Time</div>
+            <div class="text-lg font-semibold text-zinc-100">
+              {
+                setupTimeLabels[setupComplexity.estimated_setup_time] ||
+                  setupComplexity.estimated_setup_time
+              }
+            </div>
+          </div>
+
+          {/* Setup Type */}
           {
-            setupTimeLabels[setupComplexity.estimated_setup_time] ||
-              setupComplexity.estimated_setup_time
+            displaySetupTypeLabel && (
+              <div class="rounded-lg bg-zinc-800/50 p-4">
+                <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Type</div>
+                <div class="text-lg font-semibold text-zinc-100 flex items-center gap-2">
+                  <span>{displaySetupTypeLabel.icon}</span>
+                  <span>{displaySetupTypeLabel.label}</span>
+                </div>
+              </div>
+            )
+          }
+
+          {/* Friction Score */}
+          {
+            frictionScore > 0 && (
+              <div class="rounded-lg bg-zinc-800/50 p-4">
+                <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Friction Score</div>
+                <div class="text-lg font-semibold text-zinc-100 mb-2">
+                  {frictionScore}/10 · {frictionLabel}
+                </div>
+                <div class="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+                  <div
+                    class={`h-full ${frictionColor} transition-all`}
+                    style={`width: ${frictionPercent}%`}
+                  />
+                </div>
+              </div>
+            )
           }
         </div>
-      </div>
-
-      {/* Setup Type */}
-      {
-        setupComplexity.setup_type && (
-          <div class="rounded-lg bg-zinc-800/50 p-4">
-            <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Type</div>
-            <div class="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-              <span>{setupTypeLabels[setupComplexity.setup_type].icon}</span>
-              <span>{setupTypeLabels[setupComplexity.setup_type].label}</span>
-            </div>
-          </div>
-        )
-      }
-
-      {/* Friction Score */}
-      {
-        frictionScore > 0 && (
-          <div class="rounded-lg bg-zinc-800/50 p-4">
-            <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Friction Score</div>
-            <div class="text-lg font-semibold text-zinc-100 mb-2">
-              {frictionScore}/10 · {frictionLabel}
-            </div>
-            <div class="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
-              <div
-                class={`h-full ${frictionColor} transition-all`}
-                style={`width: ${frictionPercent}%`}
-              />
-            </div>
-          </div>
-        )
-      }
-    </div>
+      )
+    }
 
     {/* Red Tape Warnings */}
     {
-      hasRedTape && (
+      setupComplexity && hasRedTape && (
         <div class="rounded-lg border border-red-500/30 bg-red-950/20 p-4">
           <h3 class="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
             <span>⚠️</span>
@@ -156,7 +196,7 @@ const requiresRoles =
               <li class="flex items-start gap-2">
                 <span class="text-red-400">•</span>
                 <span>
-                  <strong>Sales-gated</strong> — no self-serve signup, must "Contact Sales"
+                  <strong>Sales-gated</strong> — some advanced plans may require sales contact
                 </span>
               </li>
             )}
@@ -175,7 +215,7 @@ const requiresRoles =
 
     {/* Required Roles */}
     {
-      requiresRoles && (
+      setupComplexity && requiresRoles && (
         <div class="rounded-lg bg-zinc-800/50 p-4">
           <h3 class="text-sm font-semibold text-zinc-300 mb-2">Who Needs to Be Involved?</h3>
           <div class="flex flex-wrap gap-2">
@@ -201,7 +241,7 @@ const requiresRoles =
 
     {/* Technical Blockers */}
     {
-      hasBlockers && (
+      setupComplexity && hasBlockers && (
         <div class="rounded-lg bg-zinc-800/50 p-4">
           <h3 class="text-sm font-semibold text-zinc-300 mb-3">Technical Requirements</h3>
           <ul class="space-y-2 text-sm text-zinc-400">
@@ -218,7 +258,7 @@ const requiresRoles =
 
     {/* Setup Steps */}
     {
-      setupComplexity.steps && setupComplexity.steps.length > 0 && (
+      !hasCanonicalTracks && setupComplexity.steps && setupComplexity.steps.length > 0 && (
         <div>
           <h3 class="text-sm font-semibold text-zinc-100 mb-4">The Fast Path</h3>
           <ol class="space-y-4">
@@ -245,9 +285,97 @@ const requiresRoles =
       )
     }
 
+    {
+      hasCanonicalTracks && (
+        <div class="space-y-6">
+          {nonDevTrack.length > 0 && (
+            <div>
+              <h3 class="text-sm font-semibold text-zinc-100 mb-4">Non-Developer Path</h3>
+              <ol class="space-y-4">
+                {nonDevTrack.map((step) => (
+                  <li class="flex gap-4">
+                    <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-sm border border-blue-500/30">
+                      {step.step}
+                    </div>
+                    <div class="flex-1 pt-1">
+                      <div class="text-sm text-zinc-100 font-medium">{step.action}</div>
+                      {step.description && <p class="mt-1 text-xs text-zinc-500">{step.description}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {devTrack.length > 0 && (
+            <div>
+              <h3 class="text-sm font-semibold text-zinc-100 mb-4">Developer Path (API / CLI)</h3>
+              <ol class="space-y-4">
+                {devTrack.map((step) => (
+                  <li class="flex gap-4">
+                    <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-300 font-semibold text-sm border border-cyan-500/30">
+                      {step.step}
+                    </div>
+                    <div class="flex-1 pt-1">
+                      <div class="text-sm text-zinc-100 font-medium">{step.action}</div>
+                      {step.command && (
+                        <div class="mt-2">
+                          <code class="block bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-xs text-green-400 font-mono overflow-x-auto">
+                            {step.command}
+                          </code>
+                        </div>
+                      )}
+                      {step.description && <p class="mt-1 text-xs text-zinc-500">{step.description}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    {/* Developer Path Fallback */}
+    {
+      setupComplexity && showDeveloperPath && (
+        <div class="rounded-lg border border-cyan-500/30 bg-cyan-950/20 p-4">
+          <h3 class="text-sm font-semibold text-cyan-300 mb-2 flex items-center gap-2">
+            <span>⌨️</span>
+            <span>Developer Path (API / CLI)</span>
+          </h3>
+          <ol class="space-y-2 text-sm text-zinc-300 list-decimal list-inside">
+            <li>Create an API key from the developer dashboard.</li>
+            <li>
+              Install your SDK/CLI from official docs (for example: <code>npm install ...</code>).
+            </li>
+            <li>Run a first request locally to verify auth and quotas.</li>
+          </ol>
+          {(setupComplexity.setup_url || websiteUrl) && (
+            <a
+              href={setupComplexity.setup_url || websiteUrl || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 mt-3 text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              <span>Open official API setup docs</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+            </a>
+          )}
+        </div>
+      )
+    }
+
     {/* Aha Moment */}
     {
-      setupComplexity.aha_moment && (
+      setupComplexity && hasMeaningfulAhaMoment && (
         <div class="rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 p-4">
           <div class="flex items-start gap-3">
             <span class="text-2xl">🎉</span>
@@ -262,7 +390,7 @@ const requiresRoles =
 
     {/* Setup Documentation Link */}
     {
-      setupComplexity.setup_url && (
+      setupComplexity && setupComplexity.setup_url && (
         <div class="pt-2">
           <a
             href={setupComplexity.setup_url}

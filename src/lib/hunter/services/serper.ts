@@ -23,6 +23,16 @@ import { serperRateLimiter } from './rate-limiter';
 import { rankSources } from './source-ranking';
 import { serperCircuit } from './circuit-breaker';
 
+const RESTRICTED_FALLBACK_DOMAINS = [
+  'reddit.com',
+  'news.ycombinator.com',
+  'g2.com',
+  'capterra.com',
+  'trustpilot.com',
+  'getapp.com',
+  'softwareadvice.com',
+];
+
 type QueryType =
   | 'reviews'
   | 'pricing'
@@ -104,6 +114,42 @@ export class SerperService {
       value,
       expiresAt: Date.now() + SerperService.cacheTtlMs,
     });
+  }
+
+  private async executePlanResilient(
+    plan: Array<{ type: QueryType; query: string }>,
+    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
+    recencyResolver?: (type: QueryType) => string | undefined
+  ): Promise<{
+    results: SerperResponse[];
+    successfulPlan: Array<{ type: QueryType; query: string }>;
+    failed: Array<{ type: QueryType; query: string; error: string }>;
+  }> {
+    const settled = await Promise.allSettled(
+      plan.map(({ query, type }) =>
+        serperRateLimiter.execute(async () => {
+          const searchFn = () => this.search(query, { tbs: recencyResolver?.(type) });
+          return withRetry ? withRetry(searchFn, `Search: ${query}`) : searchFn();
+        })
+      )
+    );
+
+    const results: SerperResponse[] = [];
+    const successfulPlan: Array<{ type: QueryType; query: string }> = [];
+    const failed: Array<{ type: QueryType; query: string; error: string }> = [];
+
+    settled.forEach((entry, idx) => {
+      const planEntry = plan[idx];
+      if (entry.status === 'fulfilled') {
+        results.push(entry.value);
+        successfulPlan.push(planEntry);
+      } else {
+        const message = entry.reason instanceof Error ? entry.reason.message : String(entry.reason);
+        failed.push({ ...planEntry, error: message });
+      }
+    });
+
+    return { results, successfulPlan, failed };
   }
 
   /**
@@ -387,19 +433,20 @@ export class SerperService {
 
     const { core: corePlan, supplemental: supplementalPlan } = buildQueryPlans();
 
-    // Execute searches with rate limiting (with retry if provided)
-    const executePlan = (plan: Array<{ type: QueryType; query: string }>) =>
-      serperRateLimiter.executeAll(
-        plan.map(({ query, type }) => () => {
-          const searchFn = () => this.search(query, { tbs: recencyTbsForType(type) });
-          return withRetry ? withRetry(searchFn, `Search: ${query}`) : searchFn();
-        })
-      );
-
-    const [coreResults, video] = await Promise.all([
-      executePlan(corePlan),
+    const [coreExecution, video] = await Promise.all([
+      this.executePlanResilient(corePlan, withRetry, recencyTbsForType),
       this.searchVideos(`${toolName} demo tutorial overview`),
     ]);
+    const coreResults = coreExecution.results;
+    const successfulCorePlan = coreExecution.successfulPlan;
+    if (coreExecution.failed.length > 0) {
+      console.warn(
+        `[Serper] Core queries failed: ${coreExecution.failed.length}/${corePlan.length}`
+      );
+    }
+    if (coreResults.length === 0) {
+      throw new Error(`Serper core query plan failed for ${toolName}`);
+    }
 
     const extractSnippets = (response: SerperResponse): string[] =>
       response.organic?.slice(0, 5).map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
@@ -420,7 +467,16 @@ export class SerperService {
 
     const shouldRunSupplemental = coreSnippets.length < 18 || coreDomains.size < 7;
 
-    const supplementalResults = shouldRunSupplemental ? await executePlan(supplementalPlan) : [];
+    const supplementalExecution = shouldRunSupplemental
+      ? await this.executePlanResilient(supplementalPlan, withRetry, recencyTbsForType)
+      : { results: [], successfulPlan: [], failed: [] };
+    const supplementalResults = supplementalExecution.results;
+    const successfulSupplementalPlan = supplementalExecution.successfulPlan;
+    if (supplementalExecution.failed.length > 0) {
+      console.warn(
+        `[Serper] Supplemental queries failed: ${supplementalExecution.failed.length}/${supplementalPlan.length}`
+      );
+    }
 
     if (!shouldRunSupplemental) {
       console.log(
@@ -430,7 +486,7 @@ export class SerperService {
 
     // Include URL in snippets so AI can cite sources
     const results = [...coreResults, ...supplementalResults];
-    const queryPlan = [...corePlan, ...supplementalPlan];
+    const queryPlan = [...successfulCorePlan, ...successfulSupplementalPlan];
 
     // Extract sources for storage (deduplicated by URL)
     const retrievedAt = new Date().toISOString();
@@ -660,8 +716,44 @@ export class SerperService {
     resultsByType.forEach((responses, type) => addIntentTags(type, responses));
 
     const toolHostHint = detectToolHostHint(sources, toolName);
+    const policyLookupWithFallback = async (url: string): Promise<SourcePolicyGate | null> => {
+      const gate = await this.getPolicyGate(url);
+      const override = inferOfficialOverrideGate(url, toolHostHint || undefined, gate || undefined);
+      if (override) return override;
+      if (gate) return gate;
+      return inferOfficialFallbackGate(url, toolHostHint || undefined);
+    };
     for (const source of sources) {
       source.source_type = classifyScoutSourceType(source.url, toolHostHint || undefined);
+      const overrideGate = inferOfficialOverrideGate(
+        source.url,
+        toolHostHint || undefined,
+        source.policy as SourcePolicyGate
+      );
+      if (overrideGate) {
+        source.policy = {
+          acquisition_mode: overrideGate.acquisition_mode,
+          llm_ingestion_allowed: overrideGate.llm_ingestion_allowed,
+          display_mode: overrideGate.display_mode,
+          reason: source.policy.reason === 'policy_missing' ? 'inferred_official_fallback' : 'target_vendor_override',
+          policy_version: overrideGate.policy_version || undefined,
+        };
+      } else if (
+        source.policy.reason === 'policy_missing' &&
+        source.policy.acquisition_mode === 'LINK_ONLY' &&
+        source.policy.llm_ingestion_allowed === 'NO'
+      ) {
+        const fallbackGate = inferOfficialFallbackGate(source.url, toolHostHint || undefined);
+        if (fallbackGate) {
+          source.policy = {
+            acquisition_mode: fallbackGate.acquisition_mode,
+            llm_ingestion_allowed: fallbackGate.llm_ingestion_allowed,
+            display_mode: fallbackGate.display_mode,
+            reason: 'inferred_official_fallback',
+            policy_version: fallbackGate.policy_version || undefined,
+          };
+        }
+      }
       if (source.intent_tags.length === 0) {
         source.intent_tags = inferIntentTags(source.url, source.title);
       }
@@ -671,7 +763,7 @@ export class SerperService {
       sources,
       toolHostHint || undefined,
       toolName,
-      (url) => this.getPolicyGate(url)
+      policyLookupWithFallback
     );
 
     const scrape_plan = buildScrapePlan(curated_sources, sources);
@@ -680,9 +772,9 @@ export class SerperService {
     const pricingSelected = scrape_plan.pricing?.selected || [];
     if (pricingSelected.length > 0) {
       console.log(`[Serper] Deep diving into ${pricingSelected.length} pricing pages...`);
-      const scrapedPages = await Promise.all(
+      const scrapeSettled = await Promise.allSettled(
         pricingSelected.map(async (url) => {
-          const policyGate = await this.getPolicyGate(url);
+          const policyGate = await policyLookupWithFallback(url);
           const content = await scrapeUrl(url, 10000, policyGate);
           if (content) {
             return `\n=== PRICING PAGE: ${url} ===\n${content}\n`;
@@ -690,6 +782,12 @@ export class SerperService {
           return null;
         })
       );
+      const scrapedPages = scrapeSettled.map((entry, idx) => {
+        if (entry.status === 'fulfilled') return entry.value;
+        const message = entry.reason instanceof Error ? entry.reason.message : String(entry.reason);
+        console.warn(`[Serper] Pricing deep scrape failed for ${pricingSelected[idx]}: ${message}`);
+        return null;
+      });
 
       const validContent = scrapedPages.filter(Boolean).join('\n');
       if (validContent) {
@@ -762,17 +860,25 @@ export class SerperService {
     toolName: string,
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
   ): Promise<SearchResult> {
-    const queryPlan = [
+    const queryPlan: Array<{ type: QueryType; query: string }> = [
       { type: 'pricing', query: `${toolName} pricing plans features` },
       { type: 'pricing_compare', query: `${toolName} pricing annual vs monthly cost` },
     ];
 
-    const results = await serperRateLimiter.executeAll(
-      queryPlan.map(({ query }) => () => {
-        const searchFn = () => this.search(query, { tbs: 'qdr:y' });
-        return withRetry ? withRetry(searchFn, `Search: ${query}`) : searchFn();
-      })
+    const pricingExecution = await this.executePlanResilient(
+      queryPlan,
+      withRetry,
+      () => 'qdr:y'
     );
+    const results = pricingExecution.results;
+    if (pricingExecution.failed.length > 0) {
+      console.warn(
+        `[Serper] Pricing-only queries failed: ${pricingExecution.failed.length}/${queryPlan.length}`
+      );
+    }
+    if (results.length === 0) {
+      throw new Error(`Serper pricing queries failed for ${toolName}`);
+    }
 
     const extractSnippets = (response: SerperResponse): string[] =>
       response.organic?.slice(0, 5).map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
@@ -812,15 +918,51 @@ export class SerperService {
     }
     const sources = Array.from(sourceMap.values());
     const toolHostHint = detectToolHostHint(sources, toolName);
+    const policyLookupWithFallback = async (url: string): Promise<SourcePolicyGate | null> => {
+      const gate = await this.getPolicyGate(url);
+      const override = inferOfficialOverrideGate(url, toolHostHint || undefined, gate || undefined);
+      if (override) return override;
+      if (gate) return gate;
+      return inferOfficialFallbackGate(url, toolHostHint || undefined);
+    };
     for (const source of sources) {
       source.source_type = classifyScoutSourceType(source.url, toolHostHint || undefined);
+      const overrideGate = inferOfficialOverrideGate(
+        source.url,
+        toolHostHint || undefined,
+        source.policy as SourcePolicyGate
+      );
+      if (overrideGate) {
+        source.policy = {
+          acquisition_mode: overrideGate.acquisition_mode,
+          llm_ingestion_allowed: overrideGate.llm_ingestion_allowed,
+          display_mode: overrideGate.display_mode,
+          reason: source.policy.reason === 'policy_missing' ? 'inferred_official_fallback' : 'target_vendor_override',
+          policy_version: overrideGate.policy_version || undefined,
+        };
+      } else if (
+        source.policy.reason === 'policy_missing' &&
+        source.policy.acquisition_mode === 'LINK_ONLY' &&
+        source.policy.llm_ingestion_allowed === 'NO'
+      ) {
+        const fallbackGate = inferOfficialFallbackGate(source.url, toolHostHint || undefined);
+        if (fallbackGate) {
+          source.policy = {
+            acquisition_mode: fallbackGate.acquisition_mode,
+            llm_ingestion_allowed: fallbackGate.llm_ingestion_allowed,
+            display_mode: fallbackGate.display_mode,
+            reason: 'inferred_official_fallback',
+            policy_version: fallbackGate.policy_version || undefined,
+          };
+        }
+      }
     }
 
     const curated_sources = await buildCuratedSources(
       sources,
       toolHostHint || undefined,
       toolName,
-      (url) => this.getPolicyGate(url)
+      policyLookupWithFallback
     );
 
     const scrape_plan = buildScrapePlan(curated_sources, sources);
@@ -828,9 +970,9 @@ export class SerperService {
     const pricingSelected = scrape_plan.pricing?.selected || [];
     if (pricingSelected.length > 0) {
       console.log(`[Serper] Deep diving into ${pricingSelected.length} pricing pages...`);
-      const scrapedPages = await Promise.all(
+      const scrapeSettled = await Promise.allSettled(
         pricingSelected.map(async (url) => {
-          const policyGate = await this.getPolicyGate(url);
+          const policyGate = await policyLookupWithFallback(url);
           const content = await scrapeUrl(url, 10000, policyGate);
           if (content) {
             return `\n=== PRICING PAGE: ${url} ===\n${content}\n`;
@@ -838,6 +980,12 @@ export class SerperService {
           return null;
         })
       );
+      const scrapedPages = scrapeSettled.map((entry, idx) => {
+        if (entry.status === 'fulfilled') return entry.value;
+        const message = entry.reason instanceof Error ? entry.reason.message : String(entry.reason);
+        console.warn(`[Serper] Pricing deep scrape failed for ${pricingSelected[idx]}: ${message}`);
+        return null;
+      });
 
       const validContent = scrapedPages.filter(Boolean).join('\n');
       if (validContent) {
@@ -871,15 +1019,36 @@ export class SerperService {
   }> {
     const queries = [contextQuery, `${contextQuery} reviews comparison`, `${contextQuery} pricing`];
 
-    const results = await Promise.all(queries.map((q) => this.search(q)));
+    const settled = await Promise.allSettled(queries.map((q) => this.search(q)));
+    const results: Array<SerperResponse | null> = settled.map((entry) =>
+      entry.status === 'fulfilled' ? entry.value : null
+    );
 
-    const extractSnippets = (response: SerperResponse): string[] =>
-      response.organic?.slice(0, 8).map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
+    const extractSnippets = async (response: SerperResponse | null): Promise<string[]> => {
+      if (!response?.organic || response.organic.length === 0) return [];
+      const snippets: string[] = [];
+      const candidates = response.organic.slice(0, 10);
+      for (const result of candidates) {
+        const policyDecision = await this.getPolicyDecision(result.link, result.title);
+        if (!policyDecision?.isDeepScrapeAllowed) {
+          continue;
+        }
+        snippets.push(`[${result.link}] ${result.title}: ${result.snippet}`);
+        if (snippets.length >= 8) break;
+      }
+      return snippets;
+    };
+
+    const [toolsSnippets, reviewsSnippets, pricingSnippets] = await Promise.all([
+      extractSnippets(results[0]),
+      extractSnippets(results[1]),
+      extractSnippets(results[2]),
+    ]);
 
     return {
-      toolsSnippets: extractSnippets(results[0]),
-      reviewsSnippets: extractSnippets(results[1]),
-      pricingSnippets: extractSnippets(results[2]),
+      toolsSnippets,
+      reviewsSnippets,
+      pricingSnippets,
     };
   }
 }
@@ -900,10 +1069,11 @@ function canonicalizeUrl(url: string): string {
 
 function detectToolHostHint(sources: RawSource[], toolName: string): string | null {
   const toolNameLower = toolName.toLowerCase();
+  const toolTokens = toolNameLower.split(/\s+/).filter((token) => token.length > 2);
   const candidates = sources
     .map((source) => source.domain.toLowerCase())
     .filter((domain) =>
-      domain.includes(toolNameLower) &&
+      (domain.includes(toolNameLower) || toolTokens.some((token) => domain.includes(token))) &&
       !domain.includes('reddit') &&
       !domain.includes('ycombinator')
     );
@@ -915,6 +1085,65 @@ function detectToolHostHint(sources: RawSource[], toolName: string): string | nu
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 }
 
+function inferOfficialFallbackGate(url: string, toolWebsite?: string): SourcePolicyGate | null {
+  if (!toolWebsite) return null;
+
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    if (
+      RESTRICTED_FALLBACK_DOMAINS.some(
+        (blocked) => hostname === blocked || hostname.endsWith(`.${blocked}`)
+      )
+    ) {
+      return null;
+    }
+
+    const toolHostname = new URL(
+      toolWebsite.startsWith('http') ? toolWebsite : `https://${toolWebsite}`
+    ).hostname.replace(/^www\./, '').toLowerCase();
+    const sameRootDomain = getRootDomain(hostname) === getRootDomain(toolHostname);
+    if (hostname !== toolHostname && !hostname.endsWith(`.${toolHostname}`) && !sameRootDomain) {
+      return null;
+    }
+
+    return {
+      acquisition_mode: 'SCRAPE_ALLOWED',
+      llm_ingestion_allowed: 'YES_LIMITED',
+      display_mode: 'LINK_ONLY',
+      policy_version: 'inferred_official_fallback_v1',
+      max_chars_ingested: 6000,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getRootDomain(hostname: string): string {
+  const parts = hostname.split('.').filter(Boolean);
+  if (parts.length <= 2) return hostname;
+  return parts.slice(-2).join('.');
+}
+
+function inferOfficialOverrideGate(
+  url: string,
+  toolWebsite?: string,
+  existingGate?: SourcePolicyGate
+): SourcePolicyGate | null {
+  const fallback = inferOfficialFallbackGate(url, toolWebsite);
+  if (!fallback) return null;
+
+  // Apply override when the existing policy is too restrictive for a first-party source.
+  if (
+    !existingGate ||
+    existingGate.llm_ingestion_allowed === 'NO' ||
+    existingGate.acquisition_mode !== 'SCRAPE_ALLOWED'
+  ) {
+    return fallback;
+  }
+
+  return null;
+}
+
 function classifyScoutSourceType(url: string, toolWebsite?: string): RawSource['source_type'] {
   try {
     const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
@@ -922,7 +1151,8 @@ function classifyScoutSourceType(url: string, toolWebsite?: string): RawSource['
       const toolHostname = new URL(
         toolWebsite.startsWith('http') ? toolWebsite : `https://${toolWebsite}`
       ).hostname.replace(/^www\./, '').toLowerCase();
-      if (hostname === toolHostname || hostname.endsWith(`.${toolHostname}`)) {
+      const sameRootDomain = getRootDomain(hostname) === getRootDomain(toolHostname);
+      if (hostname === toolHostname || hostname.endsWith(`.${toolHostname}`) || sameRootDomain) {
         return 'official';
       }
     }
@@ -1035,6 +1265,7 @@ async function buildCuratedSources(
         snippet: source.snippet,
         domain: source.domain,
         published_at: source.published_at,
+        source_type: source.source_type,
       })),
       intent,
       policyLookup,
@@ -1042,7 +1273,11 @@ async function buildCuratedSources(
     );
 
     const toolHost = normalizedToolWebsite ? extractDomain(normalizedToolWebsite) : null;
-    curated[intent] = ranked.slice(0, 5).map((source) => ({
+    // Compliance hard gate:
+    // BLOCKED/LINK_ONLY/API_ONLY sources may remain in raw_sources for evidence locker,
+    // but must not influence curated extraction/facts.
+    const eligible = ranked.filter((source) => source.deep_scrape_allowed);
+    curated[intent] = eligible.slice(0, 5).map((source) => ({
       url: source.url,
       canonical_url: canonicalizeUrl(source.url),
       domain: source.domain,
@@ -1083,16 +1318,32 @@ function buildScrapePlan(curated: CuratedSources, sources: RawSource[]): ScrapeP
 
   (Object.keys(curated) as SourceIntent[]).forEach((intent) => {
     const ranked = curated[intent] || [];
-    const candidates = ranked.map((entry) => entry.canonical_url);
+    const blockedFromRaw = sources
+      .filter(
+        (source) =>
+          source.intent_tags.includes(intent) &&
+          (source.policy.acquisition_mode !== 'SCRAPE_ALLOWED' ||
+            source.policy.llm_ingestion_allowed === 'NO')
+      )
+      .map((source) => ({
+        url: source.canonical_url,
+        reason: source.policy.reason || 'policy_restricted',
+      }));
+
+    const candidates = Array.from(
+      new Set([...ranked.map((entry) => entry.canonical_url), ...blockedFromRaw.map((b) => b.url)])
+    );
     plan[intent].candidates = candidates;
     const selected = ranked.filter((entry) => entry.deep_scrape_allowed).slice(0, 2);
     plan[intent].selected = selected.map((entry) => entry.canonical_url);
-    plan[intent].blocked = ranked
-      .filter((entry) => !entry.deep_scrape_allowed)
-      .map((entry) => ({
-        url: entry.canonical_url,
-        reason: sourceMap.get(entry.url)?.policy.reason || 'policy_restricted',
-      }));
+    plan[intent].blocked = blockedFromRaw.length
+      ? blockedFromRaw
+      : ranked
+          .filter((entry) => !entry.deep_scrape_allowed)
+          .map((entry) => ({
+            url: entry.canonical_url,
+            reason: sourceMap.get(entry.url)?.policy.reason || 'policy_restricted',
+          }));
   });
 
   return plan;
@@ -1148,6 +1399,7 @@ function buildScoutFacts(
 
 function buildScoutQuality(facts: ScoutFacts, curated: CuratedSources): ScoutQuality {
   const missing: string[] = [];
+  const notes: string[] = [];
   if (!facts.identity?.website_url) missing.push('identity.website_url');
   if (!facts.pricing?.pricing_page_url) missing.push('pricing.pricing_page_url');
 
@@ -1161,6 +1413,24 @@ function buildScoutQuality(facts: ScoutFacts, curated: CuratedSources): ScoutQua
     alternatives: 'unknown',
   };
 
+  const volatileIntents: SourceIntent[] = [
+    'pricing',
+    'security',
+    'portability',
+    'integrations',
+    'limits',
+  ];
+
+  for (const intent of volatileIntents) {
+    const hasInventoryGrade = (curated[intent] || []).some((entry) =>
+      (entry.notes || '').includes('inventory_grade')
+    );
+    if (!hasInventoryGrade) {
+      missing.push(`${intent}.inventory_grade_source`);
+      notes.push(`${intent}: no inventory-grade source in curated pool`);
+    }
+  }
+
   const needs_review = missing.length > 0 || curated.pricing.length === 0;
 
   return {
@@ -1168,5 +1438,6 @@ function buildScoutQuality(facts: ScoutFacts, curated: CuratedSources): ScoutQua
     missing,
     freshness,
     needs_review,
+    notes,
   };
 }

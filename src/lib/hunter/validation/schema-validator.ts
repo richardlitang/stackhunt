@@ -58,19 +58,20 @@ const PricingPlanSchema = z
         (val) => val === null || (val >= 0 && val < 1000000),
         'Annual price must be between $0-$1M'
       ),
-    price_per_unit: z.number().nullable(),
-    scaling_unit: z.string().nullable(),
+    price_per_unit: z.number().nullable().optional(),
+    scaling_unit: z.string().nullable().optional(),
     max_users: z
       .number()
       .nullable()
       .refine(
         (val) => val === null || (val > 0 && val < 1000000),
         'Max users must be positive and < 1M'
-      ),
-    included_units: z.number().nullable(),
-    includes_sso: z.boolean().nullable(),
-    includes_api: z.boolean().nullable(),
-    includes_sla: z.boolean().nullable(),
+      )
+      .optional(),
+    included_units: z.number().nullable().optional(),
+    includes_sso: z.boolean().nullable().optional(),
+    includes_api: z.boolean().nullable().optional(),
+    includes_sla: z.boolean().nullable().optional(),
   })
   .passthrough();
 
@@ -89,11 +90,11 @@ const SMPPricingSchema = z
     ]),
     confidence: z.enum(['high', 'medium', 'low']),
     currency: z.string().length(3, 'Currency must be 3-letter code'),
-    billing_cycles: z.array(z.string()).nullable(),
-    annual_discount_pct: z.number().min(0).max(100).nullable(),
-    min_seats: z.number().min(1).nullable(),
-    bundled_in: z.string().nullable(),
-    plans: z.array(PricingPlanSchema).nullable(),
+    billing_cycles: z.array(z.string()).nullable().optional(),
+    annual_discount_pct: z.number().min(0).max(100).nullable().optional(),
+    min_seats: z.number().min(1).nullable().optional(),
+    bundled_in: z.string().nullable().optional(),
+    plans: z.array(PricingPlanSchema).nullable().optional(),
   })
   .passthrough();
 

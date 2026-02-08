@@ -19,6 +19,7 @@ export interface HunterConfig {
   supabaseServiceKey: string;
   geminiApiKey: string;
   serperApiKey: string;
+  inventoryApiKeys?: Record<string, string | undefined>;
   isDraftMode?: boolean; // If true, reviews are created as 'draft'
   maxTokensPerHunt?: number; // Hard cap for total tokens used in a single hunt
 }
@@ -32,6 +33,7 @@ export interface HunterInput {
   contextTitle?: string;
   categorySlug?: string;
   website?: string;
+  specialInstructions?: string; // Admin-provided guidance for this run
   queueItemId?: string; // If processing from queue
   forceUpdate?: boolean; // Bypass duplicate detection and re-extract data
   huntType?: HuntType; // 'full' | 'refresh' | 'price_only'
@@ -103,17 +105,18 @@ export interface ContextHuntResult {
 /**
  * Source type classification for legal protection
  * - official: From the tool's own website (highest confidence, factual)
- * - editorial: From established review sites like G2, Capterra, Gartner (high confidence)
- * - community: From Reddit, forums, HackerNews (opinion, requires hedging)
+ * - editorial: From independent analysis/publications (high confidence)
+ * - community: From public discussions/forums (opinion, requires hedging)
  */
 export type SourceType = 'official' | 'editorial' | 'community';
 
 /**
  * Claim type classification
  * - fact: Objectively verifiable (pricing, features, platform support)
- * - opinion: Subjective assessment (user sentiment, experience reports)
+ * - opinion: Subjective assessment (reported experiences)
  */
 export type ClaimType = 'fact' | 'opinion';
+export type ClaimKind = 'verbatim_feature' | 'derived_metric' | 'comparison' | 'inference';
 
 // ============================================================================
 // ANALYSIS TYPES
@@ -134,6 +137,9 @@ export interface ClaimWithSource {
   source_type: SourceType;
   claim_type: ClaimType;
   retrieved_at: string; // ISO 8601 timestamp - provides "staleness" defense
+  claim_kind?: ClaimKind;
+  vendor_phrase?: string;
+  comparison_basis_source_url?: string;
 }
 
 /**
@@ -219,6 +225,17 @@ export interface HunterAnalysis {
   categorySpecificData?: Record<string, unknown>;
   // V4: Tool Hints - VIP tool-specific extracted data
   specifics?: Record<string, unknown>;
+  canonicalFacts?: {
+    latest_models_comparison?: string[];
+    model_inventory_raw?: string[];
+    setup_tracks?: {
+      dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
+      non_dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
+    };
+    quality?: {
+      conflicts_count?: number;
+    };
+  };
 }
 
 // ============================================================================
@@ -257,6 +274,7 @@ export interface HunterContext {
   contextTitle?: string;
   categorySlug?: string;
   website?: string;
+  specialInstructions?: string;
   queueItemId?: string;
   forceUpdate?: boolean; // Bypass duplicate detection
   huntType?: HuntType;
@@ -452,6 +470,7 @@ export interface HunterDependencies {
   supabase: any; // SupabaseClient<Database> but avoiding circular deps
   serper: any; // SerperService
   gemini: any; // GeminiService
+  inventory: any; // ModelInventoryService
   logo: any; // LogoService
   config: HunterConfig;
   withRetry: <T>(fn: () => Promise<T>, operation: string) => Promise<T>;
@@ -489,6 +508,12 @@ export const SourceTypeSchema = z.enum(['official', 'editorial', 'community']);
 
 // Claim type enum for validation
 export const ClaimTypeSchema = z.enum(['fact', 'opinion']);
+export const ClaimKindSchema = z.enum([
+  'verbatim_feature',
+  'derived_metric',
+  'comparison',
+  'inference',
+]);
 
 // Schema for pro/con with REQUIRED source attribution (new format)
 export const ClaimWithSourceSchema = z.object({
@@ -497,6 +522,9 @@ export const ClaimWithSourceSchema = z.object({
   source_type: SourceTypeSchema,
   claim_type: ClaimTypeSchema,
   retrieved_at: z.string().datetime().optional(), // Optional in schema since it's added during persistence
+  claim_kind: ClaimKindSchema.optional(),
+  vendor_phrase: z.string().min(3).max(300).optional(),
+  comparison_basis_source_url: z.string().url().optional(),
 });
 
 // Legacy schema (plain string) - for backwards compatibility

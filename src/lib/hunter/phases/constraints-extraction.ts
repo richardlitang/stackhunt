@@ -7,6 +7,7 @@
 
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { ToolConstraintsSchema, type ToolConstraints } from '@/lib/knowledge-card';
+import { generateContentWithThinkingFallback } from '@/lib/hunter/services/gemini-compat';
 
 export interface ExtractConstraintsInput {
   toolName: string;
@@ -68,7 +69,7 @@ Content:
 
   log('Calling Gemini for constraints extraction...');
 
-  const response = await client.models.generateContent({
+  const response = await generateContentWithThinkingFallback(client, {
     model: 'gemini-2.0-flash',
     contents: prompt,
     config: {

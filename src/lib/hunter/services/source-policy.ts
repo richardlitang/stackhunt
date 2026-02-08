@@ -32,7 +32,7 @@ export class SourcePolicyService {
     const policies = await this.loadPolicies();
     if (!policies) return null;
 
-    const base = this.cache.get(domain) || null;
+    const base = findPolicyForDomain(this.cache, domain);
     if (!base) return null;
 
     return applyPathOverrides(base, url);
@@ -147,4 +147,23 @@ function mergeSamples(existing: string[] | null | undefined, next?: string): str
   const merged = [...(existing || [])];
   if (!merged.includes(next)) merged.push(next);
   return merged.slice(0, 5);
+}
+
+function findPolicyForDomain(
+  cache: Map<string, PolicyCacheEntry>,
+  domain: string
+): PolicyCacheEntry | null {
+  const exact = cache.get(domain);
+  if (exact) return exact;
+
+  const parts = domain.split('.');
+  if (parts.length <= 2) return null;
+
+  for (let i = 1; i < parts.length - 1; i++) {
+    const parent = parts.slice(i).join('.');
+    const match = cache.get(parent);
+    if (match) return match;
+  }
+
+  return null;
 }

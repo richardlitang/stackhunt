@@ -239,6 +239,7 @@ export const ConstraintSchema = z.object({
       unit: z.string(), // e.g., "per 1k records", "per GB"
       currency: z.string().default('USD'),
     })
+    .nullable()
     .optional(),
 });
 export type Constraint = z.infer<typeof ConstraintSchema>;
@@ -339,7 +340,7 @@ export const ReviewContextSchema = z.object({
   human_verdict: z
     .string()
     .describe(
-      "Opinionated 2-3 sentence verdict with reviewer's voice. Include: who it's perfect for, who should avoid it, and one specific limitation. Example: 'Airtable is the gold standard for teams who have outgrown Excel but aren't ready for Salesforce. However, it's a trap for big data—if you need to log millions of rows, look elsewhere.'"
+      "Opinionated 2-3 sentence verdict with reviewer's voice. Include: who it's perfect for, who should avoid it, and one specific limitation. Example: 'Airtable is strong for teams moving past spreadsheets but not ready for full CRM complexity. If you need multi-million row logging, record ceilings become a blocker.'"
     )
     .nullable()
     .optional(),
@@ -994,7 +995,7 @@ export const GeminiKnowledgeCardSchema = {
           type: 'string',
           nullable: true,
           description:
-            'Opinionated 2-3 sentence verdict with reviewer\'s voice. Include: (1) who it\'s perfect for, (2) who should avoid it, (3) one specific limitation. Example: "Airtable is the gold standard for teams who have outgrown Excel but aren\'t ready for Salesforce. However, it\'s a trap for big data—if you need to log millions of rows, look elsewhere." AVOID neutral/Wikipedia style. NO jargon like "powerful", "versatile", "seamless".',
+        'Opinionated 2-3 sentence verdict with reviewer\'s voice. Include: (1) who it\'s perfect for, (2) who should avoid it, (3) one specific limitation. Example: "Airtable works for teams moving past spreadsheets, but record ceilings can block high-volume use cases." AVOID neutral/Wikipedia style. NO jargon like "powerful", "versatile", "seamless".',
         },
         budget_analyst: {
           type: 'object',

@@ -31,8 +31,8 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 
         <h1 class="text-4xl font-bold text-zinc-100 mb-3">Affiliate & Data Disclosure</h1>
         <p class="text-lg text-zinc-400 mb-4">
-          Transparency is our core currency. This page explains how StackHunt earns revenue, how we
-          generate our data, and the boundaries of our research.
+          This page explains how StackHunt earns revenue, how we produce intelligence reports, and
+          where our content boundaries are.
         </p>
         <p class="text-sm text-zinc-600">Last Updated: February 2026</p>
       </div>
@@ -99,15 +99,15 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           <ul>
             <li>
               <strong>Algorithm-First:</strong> Our "Fit Scores" and search rankings are generated programmatically
-              based on feature matching, vector similarity, and user sentiment—not commission rates.
+              based on feature matching, vector similarity, and observed usage patterns—not commission rates.
             </li>
             <li>
-              <strong>Universal Coverage:</strong> We list and review tools that have no affiliate program
+              <strong>Universal Coverage:</strong> We analyze tools that have no affiliate program
               (like Trello or Notion's free tiers) with the exact same rigor as high-paying partners.
             </li>
             <li>
-              <strong>Negative Reviews:</strong> We do not censor "User Advocate" data. If a tool has
-              a high "Frustration Score" on Reddit, we publish it, even if they are a partner.
+              <strong>Negative Signals:</strong> We do not censor field-reported friction. If recurring
+              operational issues are observed, we publish them even if a tool is a partner.
             </li>
           </ul>
 
@@ -118,8 +118,8 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           </p>
 
           <p>
-            <strong>Synthesis, Not Generation:</strong> We use Artificial Intelligence to read thousands
-            of documentation pages and synthesize community discussions. We do not let AI "invent" features.
+            <strong>Synthesis, Not Fabrication:</strong> We use AI to extract and synthesize evidence from
+            eligible public sources. Unsupported claims are suppressed or kept draft-only.
           </p>
 
           <p>
@@ -174,26 +174,24 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 
           <h2 id="research">5. How Our Research Works</h2>
 
-          <p>Our "Hunter" system performs comprehensive research on each tool:</p>
+          <p>Our pipeline uses deterministic controls before content is indexable:</p>
 
           <ol>
             <li>
-              <strong>Automated Research</strong> - We run 12 parallel Google searches to gather information
-              from multiple sources: official websites, professional reviews (G2, Capterra, Gartner),
-              technical documentation, and community discussions (Reddit, HackerNews).
+              <strong>Evidence Intake</strong> - We collect first-party documentation, pricing/help pages,
+              and independent technical coverage that pass source policy checks.
             </li>
             <li>
-              <strong>AI Analysis</strong> - Google's Gemini AI processes the search results in two passes:
-              first to extract verifiable facts (pricing, features, platforms), then to synthesize contextual
-              insights (who it's best for, common gotchas, tribal knowledge).
+              <strong>AI Analysis</strong> - Gemini is used to extract factual claims and produce editorial
+              summaries with source binding.
             </li>
             <li>
-              <strong>Source Attribution</strong> - Every claim is linked to its source URL and classified
-              by source type (official, editorial, community) and claim type (fact vs opinion).
+              <strong>Claim Guardrails</strong> - Unsupported comparative, absolute, or risky narrative claims
+              are downgraded, hidden, or rejected.
             </li>
             <li>
-              <strong>Human Verification</strong> - All AI-generated reviews are created as drafts and
-              verified by our team before publishing. We correct errors and update outdated information.
+              <strong>Draft-First Publishing</strong> - Content is stored as draft and may be noindexed until
+              quality and freshness gates pass.
             </li>
           </ol>
 
@@ -213,12 +211,11 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
               (highest authority for factual claims)
             </li>
             <li>
-              <strong>Editorial sources</strong> - Professional review sites (G2, Capterra) and tech publications
-              (PCMag, TechRadar)
+              <strong>Editorial sources</strong> - Independent technical analysis and publications
             </li>
             <li>
-              <strong>Community sources</strong> - Reddit discussions, HackerNews threads, user forums
-              (valuable for real-world experiences but subjective)
+              <strong>Community-derived signals</strong> - Subjective patterns from public discussions,
+              used with caution and never as sole support for factual claims
             </li>
           </ul>
 
@@ -232,15 +229,23 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
               availability, feature lists, and integration support
             </li>
             <li>
-              <strong>Opinions</strong> - Subjective assessments like user experience quality, customer
-              support ratings, and value judgments from community discussions
+              <strong>Opinions</strong> - Subjective assessments from reported user experiences
+              and community discussions
             </li>
           </ul>
 
           <p>
-            Every pro and con in our reviews includes metadata showing the source URL, source type,
+            Every pro and con in our analyses includes metadata showing the source URL, source type,
             and whether it's a fact or opinion.
           </p>
+
+          <h3>What We Do Not Do</h3>
+
+          <ul>
+            <li>We do not republish long-form third-party posts as our own content</li>
+            <li>We do not rely on blocked/restricted domains to drive generated factual claims</li>
+            <li>We do not present a global sentiment score as a substitute for evidence</li>
+          </ul>
 
           <h2>Data Freshness & Accuracy</h2>
 

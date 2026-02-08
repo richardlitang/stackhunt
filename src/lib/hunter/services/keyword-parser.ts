@@ -7,6 +7,8 @@
 
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { KeywordIntentSchema } from '../types';
+import { getGeminiModelForStage } from './model-router';
+import { generateContentWithThinkingFallback } from './gemini-compat';
 
 export type KeywordType =
   | 'CONTEXT' // "best X for Y"
@@ -115,12 +117,13 @@ export async function parseKeywordIntent(keyword: string): Promise<KeywordIntent
   }
 
   const genAI = new GoogleGenAI({ apiKey });
+  const model = getGeminiModelForStage('keyword_parser');
 
   const prompt = KEYWORD_ANALYSIS_PROMPT.replace('{{keyword}}', keyword);
 
   try {
-    const result = await genAI.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    const result = await generateContentWithThinkingFallback(genAI, {
+      model,
       contents: prompt,
       config: {
         temperature: 0.1, // Low temperature for consistency
