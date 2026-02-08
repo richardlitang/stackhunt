@@ -75,13 +75,38 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
   const knowledgeCard = metadata || {};
   const canonical = (specs.canonical as Record<string, any>) || {};
   const categorySpecificData = (specs.categorySpecificData as Record<string, any>) || {};
+  const taxonomyPrimary =
+    typeof knowledgeCard?.smp_taxonomy?.primary_function === 'string'
+      ? knowledgeCard.smp_taxonomy.primary_function.toLowerCase()
+      : '';
+  const categoryHint = `${tool.category?.slug || ''} ${taxonomyPrimary}`.toLowerCase();
+  const isModelCategory =
+    /\b(ai|automation|model|llm|assistant|developer-tools)\b/.test(categoryHint);
+  const isPaymentsOrFinanceCategory =
+    /\b(payment|payments|bank|banking|finance|financial|accounting|treasury|billing)\b/.test(
+      categoryHint
+    );
 
-  const hasSummary = Boolean(firstReview?.summary_markdown && firstReview.summary_markdown.trim().length >= 40);
+  const hasSummary = Boolean(
+    (firstReview?.summary_markdown && firstReview.summary_markdown.trim().length >= 40) ||
+      (typeof tool.verdict === 'string' && tool.verdict.trim().length >= 40) ||
+      (typeof tool.short_description === 'string' && tool.short_description.trim().length >= 80)
+  );
   const pricingConflictsCount =
     Number((canonical?.quality as Record<string, unknown> | undefined)?.pricing_conflicts_count || 0) || 0;
+  const hasPricingSignalsInCategoryData = Object.keys(categorySpecificData).some((key) =>
+    /\b(price|pricing|cost|fee|rate|monthly|overage|transaction)\b/i.test(key)
+  );
+  const hasHiddenCosts = Array.isArray((specs.constraints as Record<string, unknown> | undefined)?.hidden_costs)
+    ? ((specs.constraints as Record<string, unknown>).hidden_costs as unknown[]).length > 0
+    : false;
   const hasPricing =
-    Boolean(knowledgeCard?.smp_pricing || knowledgeCard?.pricing?.tiers?.length > 0) &&
-    pricingConflictsCount === 0;
+    Boolean(
+      knowledgeCard?.smp_pricing ||
+        knowledgeCard?.pricing?.tiers?.length > 0 ||
+        hasPricingSignalsInCategoryData ||
+        hasHiddenCosts
+    ) && pricingConflictsCount === 0;
   const hasModels = Boolean(
     (Array.isArray(canonical.latest_models_comparison) && canonical.latest_models_comparison.length > 0) ||
       (Array.isArray(categorySpecificData.model_options) && categorySpecificData.model_options.length > 0)
@@ -150,7 +175,15 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
     hasDecisionTriggers &&
     hasImplementationSurface;
 
-  const requiredSectionsComplete = hasSummary && hasPricing && hasModels && hasSetup && hasFaq;
+  const requiredSectionsComplete = (() => {
+    if (isModelCategory) {
+      return hasSummary && hasPricing && hasSetup && hasSpecs && (hasModels || hasFaq);
+    }
+    if (isPaymentsOrFinanceCategory) {
+      return hasSummary && hasSetup && hasSpecs;
+    }
+    return hasSummary && hasPricing && hasSetup && (hasFaq || hasSpecs);
+  })();
 
   const volatileFaqs = validFaqs.filter((faq: any) =>
     VOLATILE_FAQ_TERMS.test(`${faq.question || ''} ${faq.answer || ''}`)
@@ -158,9 +191,11 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
   const faqVolatilesFresh = volatileFaqs.every(
     (faq: any) => faq.answer_source_url && faq.answer_source_type === 'official'
   );
-  const pricingFresh = isFresh(tool.pricing_verified_at);
+  const pricingFresh = isFresh(
+    tool.pricing_verified_at || knowledgeCard?.meta?.extraction_date || tool.updated_at
+  );
   const modelFresh = isFresh(knowledgeCard?.meta?.extraction_date);
-  const volatilesFresh = pricingFresh && modelFresh && faqVolatilesFresh;
+  const volatilesFresh = pricingFresh && faqVolatilesFresh && (isModelCategory ? modelFresh : true);
 
   const conflictsCount =
     Number(canonical?.quality?.conflicts_count) > 0 ? Number(canonical.quality.conflicts_count) : 0;

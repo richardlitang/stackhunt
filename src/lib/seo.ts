@@ -271,7 +271,7 @@ export function generateFAQSchema(faqs: Array<{ question: string; answer: string
 
 /**
  * Review schema for individual tool reviews
- * Uses 'publisher' not 'author' per EEAT best practices for organization-led content
+ * Includes both author and publisher for Review rich result eligibility
  */
 export function generateReviewSchema(tool: Tool, review: Review, contextTitle: string) {
   return {
@@ -290,6 +290,11 @@ export function generateReviewSchema(tool: Tool, review: Review, contextTitle: s
     },
     name: `${tool.name} Review for ${contextTitle}`,
     reviewBody: review.summary_markdown,
+    author: {
+      '@type': 'Organization',
+      name: 'StackHunt Editorial Team',
+      url: getCanonicalUrl('/methodology'),
+    },
     publisher: {
       '@type': 'Organization',
       name: 'StackHunt',
@@ -328,6 +333,11 @@ export function generateContextReviewSchemas(
       review.summary_markdown ||
       review.item.short_description ||
       `Analysis of ${review.item.name} for ${contextTitle}`,
+    author: {
+      '@type': 'Organization',
+      name: 'StackHunt Editorial Team',
+      url: getCanonicalUrl('/methodology'),
+    },
     publisher: {
       '@type': 'Organization',
       name: 'StackHunt',

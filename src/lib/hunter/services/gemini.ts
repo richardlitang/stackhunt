@@ -376,16 +376,34 @@ export class GeminiService {
     }
 
     if (parsed.constraints?.hidden_costs && Array.isArray(parsed.constraints.hidden_costs)) {
-      parsed.constraints.hidden_costs = parsed.constraints.hidden_costs.map((cost: any) => ({
-        ...cost,
-        description:
-          typeof cost?.description === 'string' && cost.description.trim()
-            ? cost.description
-            : 'Additional cost may apply',
-        trigger:
-          typeof cost?.trigger === 'string' && cost.trigger.trim() ? cost.trigger : 'Usage over limit',
-        currency: typeof cost?.currency === 'string' && cost.currency.trim() ? cost.currency : 'USD',
-      }));
+      parsed.constraints.hidden_costs = parsed.constraints.hidden_costs.map((cost: any) => {
+        const normalizedCost =
+          typeof cost?.cost === 'number' && Number.isFinite(cost.cost)
+            ? cost.cost
+            : typeof cost?.cost === 'string'
+              ? (() => {
+                  const cleaned = cost.cost.replace(/[^0-9.\-]/g, '');
+                  const parsedValue = Number.parseFloat(cleaned);
+                  return Number.isFinite(parsedValue) ? parsedValue : null;
+                })()
+              : null;
+        const normalizedUrl =
+          typeof cost?.source_url === 'string' && cost.source_url.trim()
+            ? sanitizeUrl(cost.source_url)
+            : null;
+        return {
+          ...cost,
+          cost: normalizedCost,
+          description:
+            typeof cost?.description === 'string' && cost.description.trim()
+              ? cost.description
+              : 'Additional cost may apply',
+          trigger:
+            typeof cost?.trigger === 'string' && cost.trigger.trim() ? cost.trigger : 'Usage over limit',
+          currency: typeof cost?.currency === 'string' && cost.currency.trim() ? cost.currency : 'USD',
+          source_url: normalizedUrl || undefined,
+        };
+      });
     }
 
     if (parsed.constraints && typeof parsed.constraints === 'object') {

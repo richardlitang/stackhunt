@@ -452,6 +452,28 @@ const showProceduralVerdict = sectionStatus.verdict === 'procedural' && !hasVerd
 const showProceduralPricing = sectionStatus.pricing === 'procedural' && !hasPricing;
 const showProceduralSpecs = sectionStatus.specs === 'procedural' && !hasSpecs;
 const showProceduralCommunity = sectionStatus.community === 'procedural' && !hasCommunity;
+const taxonomyPrimary =
+  typeof knowledgeCard?.smp_taxonomy?.primary_function === 'string'
+    ? knowledgeCard.smp_taxonomy.primary_function.toLowerCase()
+    : '';
+const categoryHint = `${tool.category?.slug || ''} ${taxonomyPrimary}`.toLowerCase();
+const isPaymentsCategory =
+  /\b(payment|payments|bank|banking|finance|accounting|treasury|billing)\b/.test(categoryHint);
+const extractClaimText = (claim: unknown): string => {
+  if (typeof claim === 'string') return claim.trim();
+  if (claim && typeof claim === 'object' && typeof (claim as Record<string, unknown>).text === 'string') {
+    return ((claim as Record<string, unknown>).text as string).trim();
+  }
+  return '';
+};
+const fallbackConsText = (Array.isArray(globalCons) ? globalCons : [])
+  .map(extractClaimText)
+  .filter((text) => text.length > 0);
+const paymentTriggerCons = fallbackConsText.filter((text) =>
+  /\b(fee|fees|fx|foreign exchange|gateway|merchant|kyb|kyc|verification|card|transfer|settlement)\b/i.test(
+    text
+  )
+);
 
 const decisionSnapshotWhatItIs =
   tool.short_description || knowledgeCard?.tagline || `Editorial analysis for ${tool.name}.`;
@@ -465,7 +487,11 @@ const decisionSnapshotBestFit = (
 const decisionSnapshotTriggers =
   guardedAvoidIf.length > 0
     ? guardedAvoidIf.slice(0, 2)
-    : (firstReview?.cons || []).slice(0, 2).map((con) => `Avoid if ${con}`);
+    : isPaymentsCategory && paymentTriggerCons.length > 0
+      ? paymentTriggerCons.slice(0, 2).map((con) => `Avoid if ${con}`)
+      : fallbackConsText.length > 0
+        ? fallbackConsText.slice(0, 2).map((con) => `Avoid if ${con}`)
+        : (firstReview?.cons || []).slice(0, 2).map((con) => `Avoid if ${con}`);
 const implementationSurface =
   knowledgeCard?.setup_complexity?.estimated_setup_time ||
   (tool.learning_curve ? `${tool.learning_curve} learning curve` : null) ||
@@ -546,19 +572,26 @@ const communityVerifiedLabel = formatVerifiedDate(
     ((firstReview as any)?.created_at as string | undefined) ||
     tool.last_verified_at
 );
-const normalizeText = (value?: string | null): string =>
-  (value || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-const shortDescriptionText = typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
-const taglineText = typeof knowledgeCard?.tagline === 'string' ? knowledgeCard.tagline.trim() : '';
-const hasDistinctTagline =
-  Boolean(taglineText) && normalizeText(taglineText) !== normalizeText(shortDescriptionText);
-const aboutFallbackText = hasDistinctTagline ? taglineText : '';
 const contextualEvidenceCons = (Array.isArray(firstReview?.cons) ? firstReview.cons : [])
   .map(toEvidenceBullet)
   .filter((item): item is EvidenceBullet => Boolean(item));
+const globalEvidenceCons = (Array.isArray(globalCons) ? globalCons : [])
+  .map(toEvidenceBullet)
+  .filter((item): item is EvidenceBullet => Boolean(item));
+const effectiveEvidenceCons =
+  contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
+const hiddenCostBullets = Array.isArray(constraints?.hidden_costs)
+  ? constraints.hidden_costs
+      .map((cost: any) => {
+        const sourceUrl = typeof cost?.source_url === 'string' ? cost.source_url.trim() : '';
+        if (!isEligibleEvidenceUrl(sourceUrl)) return null;
+        const name = typeof cost?.name === 'string' ? cost.name.trim() : 'Hidden cost';
+        const amount = typeof cost?.amount === 'string' ? ` (${cost.amount})` : '';
+        const whenCharged = typeof cost?.when_charged === 'string' ? ` — ${cost.when_charged}` : '';
+        return { text: `${name}${amount}${whenCharged}`, sourceUrl } as EvidenceBullet;
+      })
+      .filter((item): item is EvidenceBullet => Boolean(item))
+  : [];
 const hardLimitFromConstraints = Array.isArray(constraints?.hard_limits)
   ? constraints.hard_limits
       .map((limit: any) => {
@@ -587,20 +620,23 @@ const withUniqueText = (items: EvidenceBullet[]): EvidenceBullet[] => {
 const hardLimitBullets = withUniqueText(
   [
     ...hardLimitFromConstraints,
-    ...contextualEvidenceCons.filter((item) =>
+    ...effectiveEvidenceCons.filter((item) =>
       /\b(limit|limited|quota|cap|hard stop|ceiling|overage|maximum|max)\b/i.test(item.text)
     ),
+    ...hiddenCostBullets.filter((item) => /\b(setup fee|one-time|activation)\b/i.test(item.text)),
   ].slice(0, 6)
 );
 const notIncludedBullets = withUniqueText(
-  contextualEvidenceCons
+  [...effectiveEvidenceCons, ...hiddenCostBullets]
     .filter((item) =>
-      /\b(no\b|not\b|without|lacks|lack|requires integration|not included|missing)\b/i.test(item.text)
+      /\b(no\b|not\b|without|lacks|lack|requires integration|not included|missing|merchant gateway|separate fee|one-time fee)\b/i.test(
+        item.text
+      )
     )
     .slice(0, 6)
 );
 const trialNotesBullets = withUniqueText(
-  contextualEvidenceCons
+  [...effectiveEvidenceCons, ...hiddenCostBullets]
     .filter((item) =>
       /\b(users report|teams report|can become|workflow|operational|maintenance|manual|overhead|stale|governance|friction)\b/i.test(
         item.text
@@ -1082,14 +1118,10 @@ const hasOperationalFit = Boolean(firstReview || constraints);
                   />
                 </svg>
               </summary>
-              {tool.long_description ? (
-                <div
-                  class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed"
-                  set:html={simpleMarkdown(tool.long_description)}
-                />
-              ) : (
-                <div class="mt-4 text-zinc-300 leading-relaxed">{aboutFallbackText}</div>
-              )}
+              <div
+                class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed"
+                set:html={simpleMarkdown(tool.long_description || '')}
+              />
             </details>
           )
         }
