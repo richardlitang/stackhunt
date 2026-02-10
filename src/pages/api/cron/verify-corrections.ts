@@ -47,8 +47,7 @@ export const GET: APIRoute = async ({ request }) => {
   const admin = getAdminClient();
   const slackWebhookUrl = import.meta.env.SLACK_WEBHOOK_URL;
   const adminUrl =
-    import.meta.env.PUBLIC_SITE_URL + '/admin/corrections' ||
-    'https://stackhunt.com/admin/corrections';
+    (import.meta.env.PUBLIC_SITE_URL || 'https://stackhunt.io') + '/admin/corrections';
 
   try {
     // 1. Get verification stats

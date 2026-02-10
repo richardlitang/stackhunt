@@ -12,6 +12,14 @@
   "regions": ["iad1"],
   "redirects": [
     {
+      "source": "/:path*",
+      "has": [
+        { "type": "host", "value": "www.stackhunt.io" }
+      ],
+      "destination": "https://stackhunt.io/:path*",
+      "permanent": true
+    },
+    {
       "source": "/tools/:slug",
       "destination": "/tool/:slug",
       "permanent": true

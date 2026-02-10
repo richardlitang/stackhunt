@@ -18,6 +18,18 @@ export interface CollisionWarning {
   recommendation: string;
 }
 
+function normalizeDomain(value?: string): string {
+  if (!value) return '';
+  const raw = value.trim().toLowerCase();
+  if (!raw) return '';
+  try {
+    const withProtocol = raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
+    return new URL(withProtocol).hostname.replace(/^www\./, '');
+  } catch {
+    return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+  }
+}
+
 /**
  * Detect if research data contains mixed signals from different companies
  */
@@ -33,17 +45,19 @@ export function detectNameCollision(
   const domainCategories = new Map<string, Set<string>>();
 
   for (const source of sources) {
-    const count = domainCounts.get(source.domain) || 0;
-    domainCounts.set(source.domain, count + 1);
+    const normalizedDomain = normalizeDomain(source.domain || source.url);
+    if (!normalizedDomain) continue;
+    const count = domainCounts.get(normalizedDomain) || 0;
+    domainCounts.set(normalizedDomain, count + 1);
 
     // Track what categories each domain discusses
     for (const category of extractedCategories) {
       const lowerSnippet = `${source.title} ${source.snippet}`.toLowerCase();
       if (lowerSnippet.includes(category.toLowerCase())) {
-        if (!domainCategories.has(source.domain)) {
-          domainCategories.set(source.domain, new Set());
+        if (!domainCategories.has(normalizedDomain)) {
+          domainCategories.set(normalizedDomain, new Set());
         }
-        domainCategories.get(source.domain)!.add(category);
+        domainCategories.get(normalizedDomain)!.add(category);
       }
     }
   }
@@ -51,6 +65,7 @@ export function detectNameCollision(
   // HYBRID APPROACH: Smart primary domain detection
   let primaryDomain: string;
   const toolNameLower = toolName.toLowerCase();
+  const compactToolToken = toolNameLower.replace(/[^a-z0-9]/g, '');
 
   // Step 1: Find all domains that match the tool name (e.g., aider.chat, aider.ai)
   const toolDomains = Array.from(domainCounts.entries())
@@ -65,9 +80,17 @@ export function detectNameCollision(
     })
     .sort((a, b) => b[1] - a[1]); // Sort by source count
 
-  if (expectedDomain && toolDomains.some(([d]) => d === expectedDomain)) {
+  const normalizedExpectedDomain = normalizeDomain(expectedDomain);
+  const expectedLooksLikeToolDomain =
+    normalizedExpectedDomain.replace(/[^a-z0-9]/g, '').includes(compactToolToken);
+
+  if (
+    normalizedExpectedDomain &&
+    expectedLooksLikeToolDomain &&
+    toolDomains.some(([d]) => d === normalizedExpectedDomain)
+  ) {
     // Step 2a: If we have an expected domain and it's in the matches, use it
-    primaryDomain = expectedDomain;
+    primaryDomain = normalizedExpectedDomain;
   } else if (toolDomains.length === 1) {
     // Step 2b: Only one tool domain found, use it
     primaryDomain = toolDomains[0][0];
@@ -84,7 +107,7 @@ export function detectNameCollision(
     let bestMatch = toolDomains[0][0]; // Default to most common
 
     for (const [domain] of toolDomains) {
-      const domainSources = sources.filter((s) => s.domain === domain);
+      const domainSources = sources.filter((s) => normalizeDomain(s.domain || s.url) === domain);
       const domainText = domainSources
         .map((s) => `${s.title} ${s.snippet}`)
         .join(' ')
@@ -102,15 +125,23 @@ export function detectNameCollision(
       }
     }
     primaryDomain = bestMatch;
-  } else if (expectedDomain) {
+  } else if (normalizedExpectedDomain && expectedLooksLikeToolDomain) {
     // Step 2d: Use expected domain if provided
-    primaryDomain = expectedDomain;
+    primaryDomain = normalizedExpectedDomain;
   } else {
     // Step 2e: Fallback to most common non-tribal domain
     const sortedDomains = Array.from(domainCounts.entries())
       .filter(([d]) => !d.includes('reddit') && !d.includes('ycombinator'))
       .sort((a, b) => b[1] - a[1]);
-    primaryDomain = sortedDomains[0]?.[0] || toolDomains[0]?.[0] || expectedDomain || 'unknown';
+    primaryDomain = sortedDomains[0]?.[0] || toolDomains[0]?.[0] || normalizedExpectedDomain || 'unknown';
+  }
+
+  // Final guardrail: if a tool-matching domain exists, don't allow a review site to become primary.
+  const primaryLooksLikeToolDomain = primaryDomain
+    .replace(/[^a-z0-9]/g, '')
+    .includes(compactToolToken);
+  if (!primaryLooksLikeToolDomain && toolDomains.length > 0) {
+    primaryDomain = toolDomains[0][0];
   }
 
   // Step 3: Identify conflicting domains (tool domains that aren't primary)
@@ -166,13 +197,26 @@ export function filterConflictingSources(
   primaryDomain: string,
   conflictingDomains: string[]
 ): Array<{ url: string; title: string; snippet: string; domain: string }> {
+  const normalizedPrimary = normalizeDomain(primaryDomain);
+  const normalizedConflicts = conflictingDomains.map((domain) => normalizeDomain(domain)).filter(Boolean);
   return sources.filter((source) => {
+    const sourceDomain = normalizeDomain(source.domain || source.url);
+    if (!sourceDomain) return false;
     // Keep if from primary domain or subdomain
-    if (source.domain.includes(primaryDomain) || primaryDomain.includes(source.domain)) {
+    if (
+      sourceDomain === normalizedPrimary ||
+      sourceDomain.endsWith(`.${normalizedPrimary}`) ||
+      normalizedPrimary.endsWith(`.${sourceDomain}`)
+    ) {
       return true;
     }
     // Remove if from conflicting domain
-    return !conflictingDomains.some((conflict) => source.domain.includes(conflict));
+    return !normalizedConflicts.some(
+      (conflict) =>
+        sourceDomain === conflict ||
+        sourceDomain.endsWith(`.${conflict}`) ||
+        conflict.endsWith(`.${sourceDomain}`)
+    );
   });
 }
 
@@ -211,30 +255,34 @@ export function validateExtractedDomain(
   }
 
   // Check if extracted domain matches expected
+  const normalizedExpected = normalizeDomain(expectedDomain);
+  const normalizedExtracted = normalizeDomain(extractedDomain);
   if (
-    expectedDomain &&
-    extractedDomain !== expectedDomain &&
-    !extractedDomain.includes(expectedDomain)
+    normalizedExpected &&
+    normalizedExtracted &&
+    normalizedExtracted !== normalizedExpected &&
+    !normalizedExtracted.endsWith(`.${normalizedExpected}`)
   ) {
     return {
       isValid: false,
-      warning: `Extracted website (${extractedDomain}) doesn't match expected domain (${expectedDomain})`,
+      warning: `Extracted website (${normalizedExtracted}) doesn't match expected domain (${normalizedExpected})`,
       shouldRefilter: true,
-      correctDomain: extractedDomain,
+      correctDomain: normalizedExtracted,
     };
   }
 
   // Check if we have sources from conflicting domains
   const toolNameLower = toolName.toLowerCase();
   const conflictingDomains = sources
-    .map((s) => s.domain)
+    .map((s) => normalizeDomain(s.domain || s.url))
+    .filter(Boolean)
     .filter((d) => {
       const domainLower = d.toLowerCase();
       return (
         domainLower.includes(toolNameLower) &&
-        d !== extractedDomain &&
-        !d.includes(extractedDomain) &&
-        !extractedDomain.includes(d)
+        d !== normalizedExtracted &&
+        !d.endsWith(`.${normalizedExtracted}`) &&
+        !normalizedExtracted.endsWith(`.${d}`)
       );
     });
 

@@ -201,7 +201,38 @@ export class GeminiService {
     parsed.integrations =
       typeof parsed.integrations === 'object' && parsed.integrations !== null ? parsed.integrations : {};
     parsed.integrations.notable = Array.isArray(parsed.integrations.notable)
-      ? parsed.integrations.notable
+      ? parsed.integrations.notable.map((item: any) => {
+          if (typeof item === 'string') {
+            return { name: item, type: 'native', direction: null };
+          }
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+          const rawType = typeof item.type === 'string' ? item.type.toLowerCase() : 'native';
+          const normalizedType =
+            rawType === 'native' ||
+            rawType === 'api' ||
+            rawType === 'zapier' ||
+            rawType === 'webhook' ||
+            rawType === 'plugin'
+              ? rawType
+              : rawType === 'certified_partner'
+                ? 'plugin'
+                : 'native';
+          const rawDirection =
+            typeof item.direction === 'string' ? item.direction.toLowerCase() : null;
+          const normalizedDirection =
+            rawDirection === 'import' ||
+            rawDirection === 'export' ||
+            rawDirection === 'bidirectional'
+              ? rawDirection
+              : null;
+          return {
+            name: typeof item.name === 'string' && item.name.trim() ? item.name.trim() : 'Integration',
+            type: normalizedType,
+            direction: normalizedDirection,
+          };
+        }).filter(Boolean)
       : [];
     parsed.competitive =
       typeof parsed.competitive === 'object' && parsed.competitive !== null ? parsed.competitive : {};
@@ -288,6 +319,14 @@ export class GeminiService {
       }));
     }
     if (parsed.setup_complexity && typeof parsed.setup_complexity === 'object') {
+      parsed.setup_complexity.steps = Array.isArray(parsed.setup_complexity.steps)
+        ? parsed.setup_complexity.steps
+        : [];
+      parsed.setup_complexity.technical_blockers = Array.isArray(
+        parsed.setup_complexity.technical_blockers
+      )
+        ? parsed.setup_complexity.technical_blockers
+        : [];
       parsed.setup_complexity.requires_developer =
         typeof parsed.setup_complexity.requires_developer === 'boolean'
           ? parsed.setup_complexity.requires_developer

@@ -93,25 +93,30 @@ export async function executeResearchPhase(
       );
     }
 
-    // Filter out conflicting sources
-    const originalCount = scoutResult.raw_sources.length;
-    const filtered = filterConflictingSources(
-      scoutResult.raw_sources.map((source: any) => ({
-        url: source.url,
-        title: source.title,
-        snippet: source.snippet,
-        domain: source.domain,
-      })),
-      collisionCheck.primaryDomain,
-      collisionCheck.conflictingDomains
-    );
-    const filteredUrls = new Set(filtered.map((source: any) => source.url));
-    scoutResult.raw_sources = scoutResult.raw_sources.filter((source: any) =>
-      filteredUrls.has(source.url)
-    );
-    const filteredCount = originalCount - scoutResult.raw_sources.length;
-    if (filteredCount > 0) {
-      deps.log(`[Name Collision] Filtered ${filteredCount} sources from conflicting domains`);
+    // Only auto-filter for high-confidence collisions.
+    // Medium/low confidence signals are logged for observability but not enforced.
+    if (collisionCheck.confidence === 'high') {
+      const originalCount = scoutResult.raw_sources.length;
+      const filtered = filterConflictingSources(
+        scoutResult.raw_sources.map((source: any) => ({
+          url: source.url,
+          title: source.title,
+          snippet: source.snippet,
+          domain: source.domain,
+        })),
+        collisionCheck.primaryDomain,
+        collisionCheck.conflictingDomains
+      );
+      const filteredUrls = new Set(filtered.map((source: any) => source.url));
+      scoutResult.raw_sources = scoutResult.raw_sources.filter((source: any) =>
+        filteredUrls.has(source.url)
+      );
+      const filteredCount = originalCount - scoutResult.raw_sources.length;
+      if (filteredCount > 0) {
+        deps.log(`[Name Collision] Filtered ${filteredCount} sources from conflicting domains`);
+      }
+    } else {
+      deps.log('[Name Collision] Observed only (no filtering for medium/low confidence)');
     }
   } else {
     deps.log(`[Name Collision] ✓ No collision detected`);

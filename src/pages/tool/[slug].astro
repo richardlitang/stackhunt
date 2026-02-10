@@ -305,7 +305,7 @@ const eligibleSignalEvidenceCount = Array.from(sourceEvidenceDomains).filter(
 
 // SEO: quality/index gate (with confidence retained for trust signal display)
 const confidence = evaluateContentConfidence(tool, firstReview);
-const contentConfidenceLevel = getConfidenceLevel(confidence.score);
+const contentConfidenceLevelRaw = getConfidenceLevel(confidence.score);
 const indexReadiness = evaluateIndexReadiness(tool, firstReview);
 const persistedQuality =
   (canonicalFacts?.quality as
@@ -325,6 +325,11 @@ const sectionStatus = {
   ...indexReadiness.signals.section_status,
   ...(persistedQuality?.section_status || {}),
 };
+const hasProceduralSignals =
+  sectionStatus.verdict === 'procedural' ||
+  sectionStatus.pricing === 'procedural' ||
+  sectionStatus.community === 'procedural' ||
+  sectionStatus.specs === 'procedural';
 const evidenceCounts = {
   ...indexReadiness.signals.evidence_counts,
   ...(persistedQuality?.evidence_counts || {}),
@@ -358,7 +363,12 @@ const gateReasons =
   Array.isArray(persistedQuality?.noindex_reasons) && persistedQuality.noindex_reasons.length > 0
     ? persistedQuality.noindex_reasons
     : indexReadiness.reasons;
+const gateBlocksFoundations =
+  gateReasons.includes('missing_required_sections') || gateReasons.includes('mvup_incomplete');
+const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
+const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
 const shouldNoindex = !gateShouldIndex || isDraftPage;
+const isVerificationMode = shouldNoindex || hasProceduralSignals;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
 const NEGATIVE_CLAIM_GUARD =
   /\b(no|not|lacks|lack|cannot|can't|won't|avoid|veto|problem|risk|limit|limited|slow|expensive|broken|fails|failure)\b/i;
@@ -448,10 +458,11 @@ const hasPlatform = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCar
 const hasVideo = Boolean(tool.video_id);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
 const hasCommunity = Boolean(eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show');
-const showProceduralVerdict = sectionStatus.verdict === 'procedural' && !hasVerdict;
-const showProceduralPricing = sectionStatus.pricing === 'procedural' && !hasPricing;
-const showProceduralSpecs = sectionStatus.specs === 'procedural' && !hasSpecs;
-const showProceduralCommunity = sectionStatus.community === 'procedural' && !hasCommunity;
+const showProceduralVerdict = hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
+const showProceduralPricing = hasProceduralGuidance && sectionStatus.pricing === 'procedural' && !hasPricing;
+const showProceduralSpecs = hasProceduralGuidance && sectionStatus.specs === 'procedural' && !hasSpecs;
+const showProceduralCommunity =
+  hasProceduralGuidance && sectionStatus.community === 'procedural' && !hasCommunity;
 const taxonomyPrimary =
   typeof knowledgeCard?.smp_taxonomy?.primary_function === 'string'
     ? knowledgeCard.smp_taxonomy.primary_function.toLowerCase()
@@ -669,6 +680,18 @@ const hasOperationalFit = Boolean(firstReview || constraints);
       <span>/</span>
       <span class="text-zinc-300">{tool.name}</span>
     </nav>
+
+    {
+      isVerificationMode && (
+        <section class="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <h2 class="text-sm font-semibold text-amber-300">Verification Mode</h2>
+          <p class="mt-1 text-sm text-amber-100/90">
+            This page is in evidence-building mode. Goal: gather enough verified sources to publish a
+            final verdict and become index-ready.
+          </p>
+        </section>
+      )
+    }
 
     <!-- Verification Badge -->
     <div class="mb-6 flex flex-wrap items-start gap-4">
@@ -890,7 +913,9 @@ const hasOperationalFit = Boolean(firstReview || constraints);
           <ul class="mt-2 space-y-1 text-sm text-zinc-300">
             {(decisionSnapshotTriggers.length > 0
               ? decisionSnapshotTriggers
-              : ['Run the verification checklist to validate fit for your workflow.']).map((item) => (
+              : hasProceduralGuidance
+                ? ['Run the verification checklist to validate fit for your workflow.']
+                : ['Validate this tool against your highest-risk workflow before rollout.']).map((item) => (
               <li>- {item}</li>
             ))}
           </ul>
@@ -900,9 +925,13 @@ const hasOperationalFit = Boolean(firstReview || constraints);
         <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
           Implementation: {implementationSurface}
         </span>
-        <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
-          Verification checklist available
-        </span>
+        {
+          hasProceduralGuidance && (
+            <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
+              Verification checklist available
+            </span>
+          )
+        }
         <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
           Index gate: {gateShouldIndex ? 'Pass' : 'Hold'}
         </span>
@@ -1082,17 +1111,21 @@ const hasOperationalFit = Boolean(firstReview || constraints);
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-8 lg:col-span-2">
-        <section id="verification-checklist" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
-          <h2 class="text-lg font-semibold text-zinc-100">Verification Checklist</h2>
-          <p class="mt-2 text-sm text-zinc-400">
-            Use this quick pass before committing budget or migration effort.
-          </p>
-          <ul class="mt-4 space-y-2 text-sm text-zinc-300">
-            {verificationChecklist.map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
-        </section>
+        {
+          hasProceduralGuidance && (
+            <section id="verification-checklist" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+              <h2 class="text-lg font-semibold text-zinc-100">Verification Checklist</h2>
+              <p class="mt-2 text-sm text-zinc-400">
+                Use this quick pass before committing budget or migration effort.
+              </p>
+              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
+                {verificationChecklist.map((item) => (
+                  <li>- {item}</li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
 
         {/* About - What is it? (FIRST for users learning about the tool) */}
         {
@@ -1140,15 +1173,15 @@ const hasOperationalFit = Boolean(firstReview || constraints);
               />
 
               {/* Value Rating and Fit Score */}
-              {(firstReview.value_rating || firstReview.fit_score) && (
+              {(firstReview?.value_rating || firstReview?.fit_score) && (
                 <div class="mt-4 border-t border-zinc-800 pt-4 flex flex-wrap gap-4">
-                  {firstReview.value_rating && (
+                  {firstReview?.value_rating && (
                     <div class="flex items-center gap-2">
                       <span class="text-sm text-zinc-400">Value:</span>
                       <div class="flex">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <svg
-                            class={`h-4 w-4 ${star <= firstReview.value_rating ? 'text-amber-400' : 'text-slate-200'}`}
+                            class={`h-4 w-4 ${star <= (firstReview?.value_rating ?? 0) ? 'text-amber-400' : 'text-slate-200'}`}
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >
@@ -1158,7 +1191,7 @@ const hasOperationalFit = Boolean(firstReview || constraints);
                       </div>
                     </div>
                   )}
-                  {firstReview.fit_score && (
+                  {firstReview?.fit_score && (
                     <div class="flex items-center gap-2">
                       <span class="text-sm text-zinc-400">Context Fit:</span>
                       <span class="text-sm font-medium text-zinc-300">
@@ -1170,14 +1203,14 @@ const hasOperationalFit = Boolean(firstReview || constraints);
               )}
 
               {/* Switching From */}
-              {firstReview.switching_from?.length > 0 && (
+              {firstReview?.switching_from?.length > 0 && (
                 <div class="mt-4 border-t border-zinc-800 pt-4">
                   <span class="text-xs text-zinc-400">Users often switch from: </span>
                   <span class="text-xs text-zinc-300">{firstReview.switching_from.join(', ')}</span>
                 </div>
               )}
 
-              {firstReview.sentiment_tags?.length > 0 && (
+              {firstReview?.sentiment_tags?.length > 0 && (
                 <div class="mt-6 border-t border-zinc-800 pt-4">
                   <SentimentTags tags={firstReview.sentiment_tags} />
                 </div>

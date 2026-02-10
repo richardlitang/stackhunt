@@ -97,7 +97,7 @@ export function truncate(text: string, length: number): string {
  * Generate canonical URL
  */
 export function getCanonicalUrl(path: string): string {
-  const base = import.meta.env.PUBLIC_SITE_URL || 'https://stackhunt.com';
+  const base = import.meta.env.PUBLIC_SITE_URL || 'https://stackhunt.io';
   return `${base}${path}`;
 }
 
