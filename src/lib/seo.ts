@@ -20,10 +20,10 @@ export interface MetaProps {
 }
 
 export function generateToolMeta(tool: Tool, _reviewCount?: number): MetaProps {
-  const title = `${tool.name} Review & Alternatives ${new Date().getFullYear()} | StackHunt`;
+  const title = `${tool.name} Review: Pricing, Features, Pros & Cons (${new Date().getFullYear()}) | StackHunt`;
   const description = tool.short_description
-    ? `${tool.short_description} Compare ${tool.name} with alternatives, see pricing, pros & cons.`
-    : `Discover ${tool.name} alternatives, read reviews, compare features and pricing. Find the best ${tool.name} replacement for your needs.`;
+    ? `${tool.short_description} See who ${tool.name} is best for, pricing details, constraints, and alternatives.`
+    : `Evaluate ${tool.name} with pricing, feature coverage, operational constraints, and alternatives.`;
 
   return {
     title,

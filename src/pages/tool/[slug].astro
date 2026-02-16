@@ -635,16 +635,21 @@ const evidenceLinks = (firstReview?.sources || [])
       hostname.includes('stackexchange.com') ||
       hostname.includes('stackoverflow.com');
     if (blocked) return null;
+    const sourceType = String((source as Record<string, unknown>)?.source_type || source?.type || '').toLowerCase();
     const basis =
-      hostname.includes('github.com') && path.includes('/issues')
-        ? 'GitHub issues'
-        : hostname.startsWith('status.') || path.includes('/status')
-          ? 'Status page'
-          : path.includes('/changelog') || path.includes('/release') || path.includes('/updates')
-            ? 'Changelog'
-            : path.includes('/docs') || path.includes('/help') || path.includes('/developer')
-              ? 'Docs'
-              : 'Independent writeups';
+      sourceType === 'official'
+        ? hostname.startsWith('status.') || path.includes('/status')
+          ? 'Official status pages'
+          : path.includes('/pricing') || path.includes('/plans') || path.includes('/subscription')
+            ? 'Official pricing pages'
+            : path.includes('/changelog') || path.includes('/release') || path.includes('/updates')
+              ? 'Official changelogs'
+              : 'Official docs/help center'
+        : sourceType === 'community'
+          ? 'Community discussions'
+          : hostname.includes('github.com') && path.includes('/issues')
+            ? 'GitHub issues'
+            : 'Independent reviews';
     return {
       url,
       title:
@@ -656,7 +661,15 @@ const evidenceLinks = (firstReview?.sources || [])
     };
   })
   .filter((entry): entry is { url: string; title: string; domain: string; basis: string } => Boolean(entry));
-const evidenceBasis = ['Docs', 'Changelog', 'Status page', 'GitHub issues', 'Independent writeups']
+const evidenceBasis = [
+  'Official docs/help center',
+  'Official pricing pages',
+  'Official changelogs',
+  'Official status pages',
+  'Independent reviews',
+  'Community discussions',
+  'GitHub issues',
+]
   .map((label) => {
     const domains = new Set(
       evidenceLinks.filter((entry) => entry.basis === label).map((entry) => entry.domain)
@@ -926,6 +939,12 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 )
               }
             </div>
+            {evidenceLinks.length > 0 && (
+              <div class="mt-2 text-xs text-zinc-500">
+                Sources: {evidenceLinks.length}
+                {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
+              </div>
+            )}
             {
               (tags.functions.length > 0 ||
                 tags.audiences.length > 0 ||
@@ -1041,36 +1060,6 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
       </div>
     </section>
 
-    {
-      evidenceBasis.length > 0 && (
-        <section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
-          <h2 class="text-lg font-semibold text-zinc-100">Evidence Basis</h2>
-          <div class="mt-3 flex flex-wrap gap-2">
-            {evidenceBasis.map((chip) => (
-              <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
-                {chip.label} ({chip.count})
-              </span>
-            ))}
-          </div>
-          <details class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-            <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
-            <ul class="mt-3 space-y-2 text-sm">
-              {evidenceLinks.slice(0, 12).map((source) => (
-                <li>
-                  <a href={source.url} target="_blank" rel="noopener" class="text-zinc-300 hover:text-hunt-500">
-                    {source.title}
-                  </a>
-                  <span class="ml-2 text-xs text-zinc-500">
-                    {source.domain} · {source.basis}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        </section>
-      )
-    }
-
     {/* Table of Contents */}
     <nav
       class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
@@ -1079,42 +1068,12 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">On this page</h2>
       <div class="flex flex-wrap gap-2 text-sm">
         {
-          hasProceduralGuidance && (
-            <a
-              href="#verification-checklist"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Verify first
-            </a>
-          )
-        }
-        {
-          hasAbout && (
-            <a
-              href="#about"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              About
-            </a>
-          )
-        }
-        {
           (hasVerdict || showProceduralVerdict) && (
             <a
               href="#verdict"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
               Verdict
-            </a>
-          )
-        }
-        {
-          hasStrengths && (
-            <a
-              href="#strengths"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Strengths
             </a>
           )
         }
@@ -1139,32 +1098,22 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
         {
-          showOperationalFit && (
-            <a
-              href="#operational-fit"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Operational fit
-            </a>
-          )
-        }
-        {
-          (hasSpecs || showProceduralSpecs) && (
-            <a
-              href="#specs"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Specs
-            </a>
-          )
-        }
-        {
           (hasPricing || showProceduralPricing) && (
             <a
               href="#pricing-plans"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
               Pricing
+            </a>
+          )
+        }
+        {
+          showOperationalFit && (
+            <a
+              href="#operational-fit"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Operational fit
             </a>
           )
         }
@@ -1179,16 +1128,6 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
         {
-          hasVideo && (
-            <a
-              href="#video"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Video
-            </a>
-          )
-        }
-        {
           hasAlternatives && (
             <a
               href="#alternatives"
@@ -1199,22 +1138,32 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
         {
-          (hasCommunity || showProceduralCommunity) && (
-            <a
-              href="#community"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Community
-            </a>
-          )
-        }
-        {
           hasFAQ && (
             <a
               href="#faq"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
               FAQ
+            </a>
+          )
+        }
+        {
+          evidenceBasis.length > 0 && (
+            <a
+              href="#sources"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Sources
+            </a>
+          )
+        }
+        {
+          hasProceduralGuidance && (
+            <a
+              href="#verification-checklist"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Verify first
             </a>
           )
         }
@@ -1284,6 +1233,41 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 class="prose prose-slate prose-sm max-w-none"
                 set:html={simpleMarkdown(renderVerdict)}
               />
+              <div class="mt-5 grid gap-3 md:grid-cols-2">
+                <div class="rounded-lg border border-emerald-700/30 bg-emerald-950/20 p-3">
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">
+                    Choose {tool.name} if
+                  </h3>
+                  <ul class="mt-2 space-y-1 text-sm text-zinc-200">
+                    {(decisionSnapshotBestWhen.length > 0
+                      ? decisionSnapshotBestWhen
+                      : ['You need proven fit for your primary workflow.']
+                    ).map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div class="rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Avoid if</h3>
+                  <ul class="mt-2 space-y-1 text-sm text-zinc-200">
+                    {(decisionSnapshotWatchOuts.length > 0
+                      ? decisionSnapshotWatchOuts
+                      : ['You cannot accept unresolved risks in critical workflows.']
+                    ).map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              {hasAlternatives && (
+                <p class="mt-3 text-xs text-zinc-400">
+                  Need a different tradeoff? Check{' '}
+                  <a href="#alternatives" class="text-hunt-500 hover:text-hunt-400">
+                    alternatives
+                  </a>
+                  .
+                </p>
+              )}
 
               {/* Value Rating and Fit Score */}
               {(firstReview?.value_rating || firstReview?.fit_score) && (
@@ -1397,103 +1381,6 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 )}
               </div>
             </details>
-          )
-        }
-
-        {
-          showOperationalFit && (
-            <section
-              id="operational-fit"
-              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <h2 class="text-lg font-semibold text-zinc-100">Operational Fit</h2>
-              <p class="mt-2 text-sm text-zinc-400">
-                Evidence-backed constraints and rollout considerations before you scale usage.
-              </p>
-
-              <div class="mt-5 grid gap-4 md:grid-cols-3">
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Hard Limits</h3>
-                  {hardLimitBullets.length > 0 ? (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {hardLimitBullets.map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
-                          >
-                            Source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      <li>- Verify quota units and reset windows before rollout.</li>
-                      <li>- Test p95 usage against hard caps in a staging workflow.</li>
-                      <li>- Confirm overage behavior for failed and retried actions.</li>
-                    </ul>
-                  )}
-                </div>
-
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Not Included</h3>
-                  {notIncludedBullets.length > 0 ? (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {notIncludedBullets.map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
-                          >
-                            Source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      <li>- Verify which required features are plan-gated.</li>
-                      <li>- Confirm missing workflows and required integrations.</li>
-                      <li>- Validate export/migration paths before commitment.</li>
-                    </ul>
-                  )}
-                </div>
-
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Trial Notes</h3>
-                  {trialNotesBullets.length > 0 ? (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {trialNotesBullets.map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
-                          >
-                            Source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      <li>- Run a week-long pilot with real contributors.</li>
-                      <li>- Track failure reasons and manual workarounds daily.</li>
-                      <li>- Re-check fit after migration and permissions setup.</li>
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </section>
           )
         }
 
@@ -1637,6 +1524,102 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 <li>- Validate whether critical features are gated to higher plans.</li>
                 <li>- Confirm cancellation/export terms before committing procurement.</li>
               </ul>
+            </section>
+          )
+        }
+        {
+          showOperationalFit && (
+            <section
+              id="operational-fit"
+              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <h2 class="text-lg font-semibold text-zinc-100">Operational Fit</h2>
+              <p class="mt-2 text-sm text-zinc-400">
+                Evidence-backed constraints and rollout considerations before you scale usage.
+              </p>
+
+              <div class="mt-5 grid gap-4 md:grid-cols-3">
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Hard Limits</h3>
+                  {hardLimitBullets.length > 0 ? (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {hardLimitBullets.map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      <li>- Verify quota units and reset windows before rollout.</li>
+                      <li>- Test p95 usage against hard caps in a staging workflow.</li>
+                      <li>- Confirm overage behavior for failed and retried actions.</li>
+                    </ul>
+                  )}
+                </div>
+
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Not Included</h3>
+                  {notIncludedBullets.length > 0 ? (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {notIncludedBullets.map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      <li>- Verify which required features are plan-gated.</li>
+                      <li>- Confirm missing workflows and required integrations.</li>
+                      <li>- Validate export/migration paths before commitment.</li>
+                    </ul>
+                  )}
+                </div>
+
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Trial Notes</h3>
+                  {trialNotesBullets.length > 0 ? (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {trialNotesBullets.map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      <li>- Run a week-long pilot with real contributors.</li>
+                      <li>- Track failure reasons and manual workarounds daily.</li>
+                      <li>- Re-check fit after migration and permissions setup.</li>
+                    </ul>
+                  )}
+                </div>
+              </div>
             </section>
           )
         }
@@ -1908,6 +1891,36 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
               );
             })}
           </div>
+        </section>
+      )
+    }
+
+    {
+      evidenceBasis.length > 0 && (
+        <section id="sources" class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+          <h2 class="text-lg font-semibold text-zinc-100">Methodology & Sources</h2>
+          <div class="mt-3 flex flex-wrap gap-2">
+            {evidenceBasis.map((chip) => (
+              <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
+                {chip.label} ({chip.count})
+              </span>
+            ))}
+          </div>
+          <details class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+            <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
+            <ul class="mt-3 space-y-2 text-sm">
+              {evidenceLinks.slice(0, 12).map((source) => (
+                <li>
+                  <a href={source.url} target="_blank" rel="noopener" class="text-zinc-300 hover:text-hunt-500">
+                    {source.title}
+                  </a>
+                  <span class="ml-2 text-xs text-zinc-500">
+                    {source.domain} · {source.basis}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
         </section>
       )
     }

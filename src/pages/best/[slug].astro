@@ -25,7 +25,6 @@ import {
   generateContextMeta,
   generateListSchema,
   generateBreadcrumbSchema,
-  generateContextReviewSchemas,
 } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
 import { areToolsComparable } from '@/lib/analysis/comparator';
@@ -138,8 +137,6 @@ const schemas = [
     ...(context.category ? [{ name: context.category.name, url: `/categories/${context.category.slug}` }] : []),
     { name: context.title, url: `/best/${context.slug}` },
   ]),
-  // Add Review schemas for top 3 tools (eligible for review rich snippets)
-  ...generateContextReviewSchemas(context.title, sortedReviews, 3),
 ];
 
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';

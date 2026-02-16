@@ -672,17 +672,48 @@ function buildDerivedVerdict(
   pros: ClaimWithSource[],
   vetos: Array<{ condition: string; alternative: string }> | null
 ): string | null {
+  const summaryCons = selectSummaryClaims(cons);
+  const summaryPros = selectSummaryClaims(pros);
   if (vetos && vetos.length > 0) {
     const veto = vetos[0];
+    if (summaryPros.length > 0) {
+      return `Choose when ${summaryPros[0].text}. Switch to ${veto.alternative} if ${veto.condition}.`;
+    }
     return `Switch to ${veto.alternative} if ${veto.condition}.`;
   }
-  if (cons.length > 0) {
-    return `Veto if ${cons[0].text}.`;
+  if (summaryPros.length > 0 && summaryCons.length > 0) {
+    return `Choose when ${summaryPros[0].text}. Avoid when ${summaryCons[0].text}.`;
   }
-  if (pros.length > 0) {
-    return `Best for teams that need ${pros[0].text}.`;
+  if (summaryCons.length > 0) {
+    return `Avoid when ${summaryCons[0].text}.`;
+  }
+  if (summaryPros.length > 0) {
+    return `Choose when ${summaryPros[0].text}.`;
   }
   return null;
+}
+
+function isAuthoritativeClaim(claim: ClaimWithSource): boolean {
+  return AUTHORITATIVE_SOURCE_TYPES.has((claim.source_type || '').toLowerCase());
+}
+
+function selectSummaryClaims(claims: ClaimWithSource[], limit = 2): ClaimWithSource[] {
+  const valid = claims.filter((claim) => Boolean(claim.source_url) && isRenderableClaimText(claim.text));
+  if (valid.length === 0) return [];
+
+  const authoritative = valid.filter((claim) => isAuthoritativeClaim(claim));
+  const preferred = authoritative.length > 0 ? authoritative : valid;
+
+  const deduped: ClaimWithSource[] = [];
+  const seen = new Set<string>();
+  for (const claim of preferred) {
+    const key = stripTerminalPunctuation(sanitizeNarrativeClaimText(claim.text)).toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(claim);
+    if (deduped.length >= limit) break;
+  }
+  return deduped;
 }
 
 function buildDerivedSummary(
@@ -690,21 +721,27 @@ function buildDerivedSummary(
   pros: ClaimWithSource[],
   vetos: Array<{ condition: string; alternative: string }> | null
 ): string | null {
-  if (cons.length === 0 && pros.length === 0 && (!vetos || vetos.length === 0)) return null;
+  const summaryCons = selectSummaryClaims(cons);
+  const summaryPros = selectSummaryClaims(pros);
+  if (summaryCons.length === 0 && summaryPros.length === 0 && (!vetos || vetos.length === 0)) return null;
 
   const lines: string[] = [];
-  if (cons.length > 0) {
-    lines.push('**Hard limits**');
-    lines.push(`- ${cons[0].text}`);
+  if (summaryPros.length > 0) {
+    lines.push('**Choose if**');
+    for (const claim of summaryPros.slice(0, 2)) {
+      lines.push(`- ${claim.text}`);
+    }
   }
-  if (pros.length > 0) {
+  if (summaryCons.length > 0) {
     if (lines.length > 0) lines.push('');
-    lines.push('**Best for**');
-    lines.push(`- ${pros[0].text}`);
+    lines.push('**Avoid if**');
+    for (const claim of summaryCons.slice(0, 2)) {
+      lines.push(`- ${claim.text}`);
+    }
   }
   if (vetos && vetos.length > 0) {
     if (lines.length > 0) lines.push('');
-    lines.push('**Switch away when**');
+    lines.push('**Pick an alternative when**');
     lines.push(`- Switch to ${vetos[0].alternative} if ${vetos[0].condition}.`);
   }
 
