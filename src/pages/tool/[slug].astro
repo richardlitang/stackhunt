@@ -28,7 +28,6 @@ import VerifiedBadge from '@/components/VerifiedBadge.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
 import TribalKnowledge from '@/components/TribalKnowledge.astro';
 import TrustSignals from '@/components/TrustSignals.astro';
-import HiddenCeiling from '@/components/HiddenCeiling.astro';
 import PriceVerification from '@/components/PriceVerification';
 import SuiteNavigation from '@/components/SuiteNavigation.astro';
 import DynamicSpecs from '@/components/DynamicSpecs.astro';
@@ -279,13 +278,61 @@ const getEvidenceDomain = (url: string): string => {
     return '';
   }
 };
+const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
+const stripControlChars = (value: string): string =>
+  value
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+const extractJsonClaimText = (snippet: string): string | null => {
+  try {
+    const parsed = JSON.parse(snippet) as Record<string, unknown>;
+    if (typeof parsed.text !== 'string') return null;
+    const cleaned = stripControlChars(parsed.text);
+    return cleaned || null;
+  } catch {
+    return null;
+  }
+};
+const sanitizeStructuredClaimMarkdown = (value: string | null): string | null => {
+  if (!value || typeof value !== 'string') return value;
+  return value.replace(/\{[^{}\n]*"text"[^{}\n]*\}/g, (snippet) => {
+    const claimText = extractJsonClaimText(snippet);
+    return claimText || snippet;
+  });
+};
+const isLikelyIncompleteClause = (value: string): boolean => {
+  const text = stripControlChars(value).replace(TERMINAL_PUNCTUATION, '').trim();
+  if (!text) return true;
+  const lower = text.toLowerCase();
+  if (lower.length < 12) return false;
+  return /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/.test(
+    lower
+  );
+};
 type EvidenceBullet = { text: string; sourceUrl: string };
 const toEvidenceBullet = (claim: unknown): EvidenceBullet | null => {
   if (!claim || typeof claim !== 'object') return null;
   const value = claim as Record<string, unknown>;
-  const text = typeof value.text === 'string' ? value.text.trim() : '';
-  const sourceUrl = typeof value.source_url === 'string' ? value.source_url.trim() : '';
-  if (!text || !sourceUrl || !isEligibleEvidenceUrl(sourceUrl)) return null;
+  const rawText = typeof value.text === 'string' ? value.text : '';
+  let text = rawText ? stripControlChars(rawText) : '';
+  let sourceUrl = typeof value.source_url === 'string' ? value.source_url.trim() : '';
+  if (rawText && rawText.includes('"text"')) {
+    try {
+      const nested = JSON.parse(rawText) as Record<string, unknown>;
+      if (typeof nested.text === 'string') {
+        text = stripControlChars(nested.text);
+      }
+      if (!sourceUrl && typeof nested.source_url === 'string') {
+        sourceUrl = nested.source_url.trim();
+      }
+    } catch {
+      // Keep original text/source fallback when nested payload is not valid JSON.
+    }
+  }
+  if (!text || isLikelyIncompleteClause(text) || !sourceUrl || !isEligibleEvidenceUrl(sourceUrl))
+    return null;
   return { text, sourceUrl };
 };
 const BLOCKED_EVIDENCE_DOMAINS = new Set([
@@ -368,7 +415,7 @@ const gateBlocksFoundations =
 const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
 const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
 const shouldNoindex = !gateShouldIndex || isDraftPage;
-const isVerificationMode = shouldNoindex || hasProceduralSignals;
+const isVerificationMode = shouldNoindex;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
 const NEGATIVE_CLAIM_GUARD =
   /\b(no|not|lacks|lack|cannot|can't|won't|avoid|veto|problem|risk|limit|limited|slow|expensive|broken|fails|failure)\b/i;
@@ -386,7 +433,9 @@ const guardedToolVerdict =
   tool.verdict && (!NEGATIVE_CLAIM_GUARD.test(tool.verdict) || hasEligibleNegativeEvidence)
     ? tool.verdict
     : null;
-const renderVerdict = guardedVerdict || guardedToolVerdict || guardedHumanVerdict;
+const renderVerdict = sanitizeStructuredClaimMarkdown(
+  guardedVerdict || guardedToolVerdict || guardedHumanVerdict
+);
 const guardedAvoidIf = hasEligibleNegativeEvidence ? avoidIf : [];
 
 const toolMeta = generateToolMeta(tool, tool.review_count);
@@ -471,9 +520,13 @@ const categoryHint = `${tool.category?.slug || ''} ${taxonomyPrimary}`.toLowerCa
 const isPaymentsCategory =
   /\b(payment|payments|bank|banking|finance|accounting|treasury|billing)\b/.test(categoryHint);
 const extractClaimText = (claim: unknown): string => {
-  if (typeof claim === 'string') return claim.trim();
+  if (typeof claim === 'string') {
+    const cleaned = stripControlChars(claim);
+    return isLikelyIncompleteClause(cleaned) ? '' : cleaned;
+  }
   if (claim && typeof claim === 'object' && typeof (claim as Record<string, unknown>).text === 'string') {
-    return ((claim as Record<string, unknown>).text as string).trim();
+    const cleaned = stripControlChars((claim as Record<string, unknown>).text as string);
+    return isLikelyIncompleteClause(cleaned) ? '' : cleaned;
   }
   return '';
 };
@@ -486,27 +539,70 @@ const paymentTriggerCons = fallbackConsText.filter((text) =>
   )
 );
 
-const decisionSnapshotWhatItIs =
-  tool.short_description || knowledgeCard?.tagline || `Editorial analysis for ${tool.name}.`;
-const decisionSnapshotBestFit = (
+const cleanDecisionText = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const cleaned = stripControlChars(
+    value
+    .trim()
+    .replace(/^[\-\u2022]\s*/, '')
+    .replace(/^avoid if\s*/i, '')
+    .replace(/^best fit:\s*/i, '')
+    .replace(/^best when\s*/i, '')
+    .replace(/\s+/g, ' ')
+  );
+  if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+};
+const uniqueDecisionText = (items: Array<unknown>): string[] => {
+  const seen = new Set<string>();
+  return items
+    .map((item) => cleanDecisionText(item))
+    .filter((item): item is string => Boolean(item))
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
+const decisionSnapshotSummary =
+  tool.short_description || knowledgeCard?.tagline || `${tool.name} across pricing, fit, and rollout risk.`;
+const decisionSnapshotBestWhen = uniqueDecisionText(
   idealFor.length > 0
     ? idealFor
     : tags.audiences.length > 0
       ? tags.audiences.map((tag) => tag.name)
       : (firstReview?.pros || [])
 ).slice(0, 3);
-const decisionSnapshotTriggers =
+const decisionSnapshotWatchOuts = uniqueDecisionText(
   guardedAvoidIf.length > 0
     ? guardedAvoidIf.slice(0, 2)
     : isPaymentsCategory && paymentTriggerCons.length > 0
-      ? paymentTriggerCons.slice(0, 2).map((con) => `Avoid if ${con}`)
+      ? paymentTriggerCons.slice(0, 2)
       : fallbackConsText.length > 0
-        ? fallbackConsText.slice(0, 2).map((con) => `Avoid if ${con}`)
-        : (firstReview?.cons || []).slice(0, 2).map((con) => `Avoid if ${con}`);
+        ? fallbackConsText.slice(0, 2)
+        : (firstReview?.cons || []).slice(0, 2)
+).slice(0, 3);
+const decisionSnapshotQuickChecks = hasProceduralGuidance
+  ? uniqueDecisionText([
+      'Use the full verification checklist below before procurement.',
+      'Run one production-like workflow and record failure points.',
+      'Confirm required integrations, export paths, and API limits.',
+    ]).slice(0, 3)
+  : uniqueDecisionText([
+      'Validate pricing drivers with your expected monthly usage.',
+      'Run one production-like workflow and record failure points.',
+      'Confirm required integrations, export paths, and API limits.',
+    ]).slice(0, 3);
 const implementationSurface =
   knowledgeCard?.setup_complexity?.estimated_setup_time ||
   (tool.learning_curve ? `${tool.learning_curve} learning curve` : null) ||
   'Varies by workflow depth';
+const decisionSnapshotSignals = uniqueDecisionText([
+  implementationSurface ? `Implementation: ${implementationSurface}` : null,
+  hasProceduralGuidance ? 'Verification checklist available' : null,
+  gateShouldIndex ? 'Quality gate: pass' : 'Quality gate: hold',
+]).slice(0, 3);
 const verificationChecklist = [
   'Validate pricing drivers with your expected monthly usage.',
   'Run one production-like workflow and record failure points.',
@@ -656,6 +752,9 @@ const trialNotesBullets = withUniqueText(
     .slice(0, 6)
 );
 const hasOperationalFit = Boolean(firstReview || constraints);
+const hasOperationalEvidence =
+  hardLimitBullets.length > 0 || notIncludedBullets.length > 0 || trialNotesBullets.length > 0;
+const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasPricing);
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -893,48 +992,52 @@ const hasOperationalFit = Boolean(firstReview || constraints);
       </div>
     </header>
 
-    {/* Decision Snapshot (MVUP) */}
-    <section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
-      <h2 class="text-lg font-semibold text-zinc-100">Decision Snapshot</h2>
-      <p class="mt-2 text-sm text-zinc-300">{decisionSnapshotWhatItIs}</p>
-      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+    <section class="mb-8 rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-5 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Best Fit</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {(decisionSnapshotBestFit.length > 0
-              ? decisionSnapshotBestFit
-              : ['General-purpose teams evaluating options']).map((item) => (
+          <h2 class="text-lg font-semibold text-zinc-100">Should You Choose {tool.name}?</h2>
+          <p class="mt-1 text-sm text-zinc-300">Fast go/no-go summary based on verified fit and risk signals.</p>
+        </div>
+        <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+          {decisionSnapshotSummary}
+        </span>
+      </div>
+      <div class="mt-4 grid gap-3 lg:grid-cols-3">
+        <div class="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Best when</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-200">
+            {(decisionSnapshotBestWhen.length > 0
+              ? decisionSnapshotBestWhen
+              : ['Your team needs a general-purpose option with low switching risk.']).map((item) => (
               <li>- {item}</li>
             ))}
           </ul>
         </div>
-        <div>
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Decision Triggers</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {(decisionSnapshotTriggers.length > 0
-              ? decisionSnapshotTriggers
-              : hasProceduralGuidance
-                ? ['Run the verification checklist to validate fit for your workflow.']
-                : ['Validate this tool against your highest-risk workflow before rollout.']).map((item) => (
+        <div class="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Watch-outs</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-200">
+            {(decisionSnapshotWatchOuts.length > 0
+              ? decisionSnapshotWatchOuts
+              : ['Validate this tool against your highest-risk workflow before rollout.']).map((item) => (
+              <li>- {item}</li>
+            ))}
+          </ul>
+        </div>
+        <div class="rounded-xl border border-sky-700/40 bg-sky-950/20 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-sky-300">Verify first</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-200">
+            {(decisionSnapshotQuickChecks.length > 0
+              ? decisionSnapshotQuickChecks
+              : ['Run one production-like workflow and document friction points.']).map((item) => (
               <li>- {item}</li>
             ))}
           </ul>
         </div>
       </div>
       <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
-        <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
-          Implementation: {implementationSurface}
-        </span>
-        {
-          hasProceduralGuidance && (
-            <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
-              Verification checklist available
-            </span>
-          )
-        }
-        <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">
-          Index gate: {gateShouldIndex ? 'Pass' : 'Hold'}
-        </span>
+        {decisionSnapshotSignals.map((signal) => (
+          <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">{signal}</span>
+        ))}
       </div>
     </section>
 
@@ -975,6 +1078,16 @@ const hasOperationalFit = Boolean(firstReview || constraints);
     >
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">On this page</h2>
       <div class="flex flex-wrap gap-2 text-sm">
+        {
+          hasProceduralGuidance && (
+            <a
+              href="#verification-checklist"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Verify first
+            </a>
+          )
+        }
         {
           hasAbout && (
             <a
@@ -1026,7 +1139,7 @@ const hasOperationalFit = Boolean(firstReview || constraints);
           )
         }
         {
-          hasOperationalFit && (
+          showOperationalFit && (
             <a
               href="#operational-fit"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -1288,7 +1401,7 @@ const hasOperationalFit = Boolean(firstReview || constraints);
         }
 
         {
-          hasOperationalFit && (
+          showOperationalFit && (
             <section
               id="operational-fit"
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -1469,17 +1582,6 @@ const hasOperationalFit = Boolean(firstReview || constraints);
                 </svg>
               </summary>
               <div class="mt-4">
-                {/* Constraints warnings */}
-                {constraints && (
-                  <div class="mb-6">
-                    <HiddenCeiling
-                      constraints={constraints}
-                      toolName={tool.name}
-                      lastVerifiedAt={tool.pricing_verified_at}
-                    />
-                  </div>
-                )}
-
                 <PricingPlansGrid
                   smp_pricing={knowledgeCard?.smp_pricing}
                   legacy_pricing={knowledgeCard?.pricing}
