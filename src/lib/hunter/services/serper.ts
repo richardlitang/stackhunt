@@ -1101,8 +1101,7 @@ function inferOfficialFallbackGate(url: string, toolWebsite?: string): SourcePol
     const toolHostname = new URL(
       toolWebsite.startsWith('http') ? toolWebsite : `https://${toolWebsite}`
     ).hostname.replace(/^www\./, '').toLowerCase();
-    const sameRootDomain = getRootDomain(hostname) === getRootDomain(toolHostname);
-    if (hostname !== toolHostname && !hostname.endsWith(`.${toolHostname}`) && !sameRootDomain) {
+    if (hostname !== toolHostname && !hostname.endsWith(`.${toolHostname}`)) {
       return null;
     }
 
@@ -1118,12 +1117,6 @@ function inferOfficialFallbackGate(url: string, toolWebsite?: string): SourcePol
   }
 }
 
-function getRootDomain(hostname: string): string {
-  const parts = hostname.split('.').filter(Boolean);
-  if (parts.length <= 2) return hostname;
-  return parts.slice(-2).join('.');
-}
-
 function inferOfficialOverrideGate(
   url: string,
   toolWebsite?: string,
@@ -1132,12 +1125,8 @@ function inferOfficialOverrideGate(
   const fallback = inferOfficialFallbackGate(url, toolWebsite);
   if (!fallback) return null;
 
-  // Apply override when the existing policy is too restrictive for a first-party source.
-  if (
-    !existingGate ||
-    existingGate.llm_ingestion_allowed === 'NO' ||
-    existingGate.acquisition_mode !== 'SCRAPE_ALLOWED'
-  ) {
+  // Never override explicit policy entries. Fallback only applies when registry has no policy.
+  if (!existingGate) {
     return fallback;
   }
 
@@ -1151,8 +1140,7 @@ function classifyScoutSourceType(url: string, toolWebsite?: string): RawSource['
       const toolHostname = new URL(
         toolWebsite.startsWith('http') ? toolWebsite : `https://${toolWebsite}`
       ).hostname.replace(/^www\./, '').toLowerCase();
-      const sameRootDomain = getRootDomain(hostname) === getRootDomain(toolHostname);
-      if (hostname === toolHostname || hostname.endsWith(`.${toolHostname}`) || sameRootDomain) {
+      if (hostname === toolHostname || hostname.endsWith(`.${toolHostname}`)) {
         return 'official';
       }
     }

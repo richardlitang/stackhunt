@@ -26,6 +26,7 @@ import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
+import { sanitizeUrl } from '@/lib/utils/url';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -92,6 +93,81 @@ const RANKING_CLAIM_TOKENS =
 const TIME_QUANT_TOKENS = /\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b/i;
 const LE_CHAT_SCOPE_TOKENS = /\b(flash answers?|deep research|file uploads?)\b/i;
 const LE_CHAT_NAME_TOKENS = /\b(le\s*chat)\b/i;
+const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
+const INCOMPLETE_CLAUSE_ENDING =
+  /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/i;
+const COMMUNITY_HEDGING_PREFIX =
+  /^(users report(?: that)?|community (?:reports|mentions|consensus (?:is|suggests)|feedback)|according to (?:reddit|hn|community)|based on user discussions)/i;
+const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
+type PopularityTier = 'popular' | 'standard' | 'below_standard';
+
+const POPULARITY_PROFILES: Record<
+  PopularityTier,
+  {
+    minScore: number;
+    allowedDataQualities: Array<'high' | 'medium' | 'low'>;
+    maxFilteredCons: number;
+    minValidCons: number;
+    minAuthoritativeSources: number;
+    minAuthoritativeDomains: number;
+    minDiscoveryOfficialSources: number;
+    minDiscoveryOfficialDomains: number;
+  }
+> = {
+  popular: {
+    minScore: 70,
+    allowedDataQualities: ['high', 'medium'],
+    maxFilteredCons: 2,
+    minValidCons: 1,
+    minAuthoritativeSources: 2,
+    minAuthoritativeDomains: 1,
+    minDiscoveryOfficialSources: 2,
+    minDiscoveryOfficialDomains: 1,
+  },
+  standard: {
+    minScore: 75,
+    allowedDataQualities: ['high', 'medium'],
+    maxFilteredCons: 2,
+    minValidCons: 1,
+    minAuthoritativeSources: 3,
+    minAuthoritativeDomains: 2,
+    minDiscoveryOfficialSources: 2,
+    minDiscoveryOfficialDomains: 1,
+  },
+  below_standard: {
+    minScore: 80,
+    allowedDataQualities: ['high'],
+    maxFilteredCons: 1,
+    minValidCons: 2,
+    minAuthoritativeSources: 4,
+    minAuthoritativeDomains: 2,
+    minDiscoveryOfficialSources: 3,
+    minDiscoveryOfficialDomains: 2,
+  },
+};
+
+function meetsAuthoritativeSourceThreshold(
+  tier: PopularityTier,
+  count: number,
+  minRequired: number,
+  score: number
+): boolean {
+  if (count >= minRequired) return true;
+  if (tier === 'popular' && count >= 1 && score >= 88) return true;
+  return false;
+}
+
+function meetsAuthoritativeDomainThreshold(
+  tier: PopularityTier,
+  domains: number,
+  minRequired: number,
+  sourceCount: number,
+  score: number
+): boolean {
+  if (domains >= minRequired) return true;
+  if (tier === 'standard' && domains >= 1 && sourceCount >= 4 && score >= 80) return true;
+  return false;
+}
 
 function isConditional(text: string): boolean {
   return CONDITIONAL_MARKERS.test(text);
@@ -107,6 +183,41 @@ function containsRiskyAbsolute(text: string): boolean {
 
 function hasComparatorToken(text: string): boolean {
   return COMPARATOR_TOKENS.test(text) || COMPARATOR_QUANT_TOKENS.test(text);
+}
+
+function sanitizeNarrativeClaimText(text: string): string {
+  return text
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripTerminalPunctuation(text: string): string {
+  return text.replace(TERMINAL_PUNCTUATION, '').trim();
+}
+
+function hasCommunityHedgingLanguage(text: string): boolean {
+  return COMMUNITY_HEDGING_PREFIX.test(stripTerminalPunctuation(sanitizeNarrativeClaimText(text)));
+}
+
+function isRenderableClaimText(text: string): boolean {
+  const cleaned = stripTerminalPunctuation(sanitizeNarrativeClaimText(text));
+  if (!cleaned) return false;
+  if (cleaned.length < 12) return true;
+  return !INCOMPLETE_CLAUSE_ENDING.test(cleaned);
+}
+
+function resolvePopularityTier(metadata?: Record<string, unknown> | null): PopularityTier {
+  const explicit =
+    metadata?.popularity_tier ||
+    (metadata?.meta && typeof metadata.meta === 'object'
+      ? (metadata.meta as Record<string, unknown>).popularity_tier
+      : null);
+  const normalized = typeof explicit === 'string' ? explicit.trim().toLowerCase() : '';
+  if (normalized === 'popular') return 'popular';
+  if (normalized === 'below_standard') return 'below_standard';
+  return 'standard';
 }
 
 function sourceTierForClaim(url?: string | null): 'A' | 'B' | 'C' {
@@ -191,6 +302,26 @@ function overlapRatio(a: string, b: string): number {
     if (bw.has(token)) matches++;
   }
   return matches / aw.size;
+}
+
+function normalizeEvidenceUrl(rawUrl?: string | null): string | null {
+  const sanitized = sanitizeUrl(rawUrl);
+  if (!sanitized) return null;
+  try {
+    const parsed = new URL(sanitized);
+    parsed.hash = '';
+    for (const key of Array.from(parsed.searchParams.keys())) {
+      if (key.startsWith('utm_') || key === 'ref' || key === 'source') {
+        parsed.searchParams.delete(key);
+      }
+    }
+    if (parsed.pathname !== '/' && parsed.pathname.endsWith('/')) {
+      parsed.pathname = parsed.pathname.slice(0, -1);
+    }
+    return parsed.toString();
+  } catch {
+    return sanitized;
+  }
 }
 
 function collectFirstPartyCorpus(
@@ -580,6 +711,33 @@ function buildDerivedSummary(
   return lines.join('\n');
 }
 
+function buildDiscoverySummary(
+  analysis: any,
+  cons: ClaimWithSource[],
+  pros: ClaimWithSource[]
+): string | null {
+  const derived = buildDerivedSummary(cons, pros, null);
+  if (derived && derived.trim().length >= 40) return derived;
+
+  const lines: string[] = [];
+  const shortDescription =
+    typeof analysis?.shortDescription === 'string' ? analysis.shortDescription.trim() : '';
+  if (shortDescription.length > 0) {
+    lines.push(shortDescription);
+  }
+
+  if (pros.length > 0) {
+    lines.push(`Best fit: ${pros[0].text}`);
+  }
+
+  if (cons.length > 0) {
+    lines.push(`Primary caution: ${cons[0].text}`);
+  }
+
+  const summary = lines.join('\n\n').trim();
+  return summary.length >= 40 ? summary : null;
+}
+
 /**
  * Execute the Persistence Phase
  *
@@ -773,9 +931,13 @@ export async function executePersistencePhase(
   // V6: Cynical CTO - Add veto logic and reality checks (with source validation)
   const sources = ctx.research.scoutResult.raw_sources.map((source) => ({
     url: source.url,
+    canonical_url: source.canonical_url,
     title: source.title,
     snippet: source.snippet,
     domain: source.domain,
+    source_type: source.source_type,
+    acquisition_mode: source.policy?.acquisition_mode,
+    llm_ingestion_allowed: source.policy?.llm_ingestion_allowed,
     retrieved_at: source.retrieved_at,
     published_at: source.published_at,
   }));
@@ -945,15 +1107,20 @@ export async function executePersistencePhase(
   // This ensures every tool has pros/cons regardless of context
   const sourcesList = ctx.research.scoutResult.raw_sources.map((source) => ({
     url: source.url,
+    canonical_url: source.canonical_url,
     title: source.title,
     snippet: source.snippet,
     domain: source.domain,
+    source_type: source.source_type,
+    acquisition_mode: source.policy?.acquisition_mode,
+    llm_ingestion_allowed: source.policy?.llm_ingestion_allowed,
     retrieved_at: source.retrieved_at,
     published_at: source.published_at,
   }));
   let normalizedPros: ClaimWithSource[] = [];
   let validCons: ClaimWithSource[] = [];
   let filteredForMissingSource = 0;
+  let filteredForMalformedText = 0;
 
   if (analysis.pros?.length || analysis.cons?.length) {
     // Normalize pros with source attribution
@@ -966,11 +1133,29 @@ export async function executePersistencePhase(
       normalizeClaim(claim, sourcesList, analysis.websiteUrl)
     );
 
-    const normalizedProsFiltered = normalizedProsRaw.filter(Boolean) as ClaimWithSource[];
+    const normalizedProsFiltered = (normalizedProsRaw.filter(Boolean) as ClaimWithSource[]).filter(
+      (claim) => {
+        const keep = isRenderableClaimText(claim.text);
+        if (!keep) {
+          filteredForMalformedText += 1;
+          deps.log(`[Guardrail] Filtered malformed pro claim: "${claim.text.substring(0, 60)}..."`);
+        }
+        return keep;
+      }
+    );
     filteredForMissingSource += normalizedProsRaw.length - normalizedProsFiltered.length;
     normalizedPros = normalizedProsFiltered;
 
-    const normalizedConsCandidates = rawNormalizedCons.filter(Boolean) as ClaimWithSource[];
+    const normalizedConsCandidates = (rawNormalizedCons.filter(Boolean) as ClaimWithSource[]).filter(
+      (claim) => {
+        const keep = isRenderableClaimText(claim.text);
+        if (!keep) {
+          filteredForMalformedText += 1;
+          deps.log(`[Guardrail] Filtered malformed con claim: "${claim.text.substring(0, 60)}..."`);
+        }
+        return keep;
+      }
+    );
     filteredForMissingSource += rawNormalizedCons.length - normalizedConsCandidates.length;
 
     // Apply negative sentiment guardrail to cons
@@ -996,6 +1181,9 @@ export async function executePersistencePhase(
       deps.log(
         `[Guardrail] Filtered ${filteredForMissingSource} claim(s) missing a verifiable source URL`
       );
+    }
+    if (filteredForMalformedText > 0) {
+      deps.log(`[Guardrail] Filtered ${filteredForMalformedText} malformed/truncated claim(s)`);
     }
     if (normalizedPros.length === 0) {
       deps.log('[Guardrail] No valid pros after source validation');
@@ -1065,11 +1253,26 @@ export async function executePersistencePhase(
     }
   }
 
+  const { data: existingItemForMetadata } = await deps.supabase
+    .from('items')
+    .select('metadata')
+    .eq('slug', toolSlug)
+    .maybeSingle();
+  const existingMetadata =
+    existingItemForMetadata?.metadata && typeof existingItemForMetadata.metadata === 'object'
+      ? (existingItemForMetadata.metadata as Record<string, unknown>)
+      : null;
+
   // Build V2 metadata (Knowledge Card + extended fields)
   const metadata: Record<string, unknown> = {
+    ...(existingMetadata || {}),
     ...knowledgeCard,
     // Space for company info and competitors to be added later
   };
+  if (existingMetadata && typeof existingMetadata.popularity_tier === 'string') {
+    metadata.popularity_tier = existingMetadata.popularity_tier;
+  }
+  const popularityTier = resolvePopularityTier(metadata);
 
   // Calculate data_confidence from Knowledge Card's data_quality
   // high=0.9, medium=0.7, low=0.5
@@ -1109,7 +1312,6 @@ export async function executePersistencePhase(
     logo_url: ctx.analysis.logo?.url || null,
     short_description: sanitizeShortDescription(analysis.shortDescription, ctx.contextTitle),
     pricing_type: analysis.pricingType,
-    embedding: ctx.analysis.embedding,
     // V2: Enhanced fields
     metadata,
     specs,
@@ -1130,6 +1332,9 @@ export async function executePersistencePhase(
     // Infer target_market from pricing plans
     target_market: inferTargetMarket(knowledgeCard?.smp_pricing?.plans || []),
   };
+  if (Array.isArray(ctx.analysis.embedding) && ctx.analysis.embedding.length > 0) {
+    itemData.embedding = ctx.analysis.embedding;
+  }
 
   const { data: item, error: itemError } = await deps.supabase
     .from('items')
@@ -1257,15 +1462,39 @@ export async function executePersistencePhase(
     // Auto-publish if high quality and robust sources
     const dataQuality = knowledgeCard?.meta?.data_quality || 'medium';
     const canonicalConflicts = Number((specs.canonical as any)?.quality?.conflicts_count || 0);
+    const discoveryScore = Number(ctx.analysis.analysis?.score || 0);
+    const profile = POPULARITY_PROFILES[popularityTier];
+    const officialEvidenceSources = uniqueSources.filter((source) => source.type === 'official');
+    const officialEvidenceDomains = new Set(
+      officialEvidenceSources
+        .map((source) => source.domain?.replace(/^www\./i, '').toLowerCase())
+        .filter((domain): domain is string => Boolean(domain))
+    );
+    const qualifiesDiscoveryFastPath =
+      profile.allowedDataQualities.includes(dataQuality as 'high' | 'medium' | 'low') &&
+      discoveryScore >= profile.minScore &&
+      meetsAuthoritativeSourceThreshold(
+        popularityTier,
+        officialEvidenceSources.length,
+        profile.minDiscoveryOfficialSources,
+        discoveryScore
+      ) &&
+      meetsAuthoritativeDomainThreshold(
+        popularityTier,
+        officialEvidenceDomains.size,
+        profile.minDiscoveryOfficialDomains,
+        officialEvidenceSources.length,
+        discoveryScore
+      ) &&
+      canonicalConflicts === 0;
     const shouldAutoPublish =
       deps.config.isDraftMode === false &&
-      dataQuality === 'high' &&
-      uniqueSources.length >= 2 &&
-      canonicalConflicts === 0;
+      ((dataQuality === 'high' && uniqueSources.length >= 2 && canonicalConflicts === 0) ||
+        qualifiesDiscoveryFastPath);
     const reviewStatus = shouldAutoPublish ? 'published' : 'draft';
 
     deps.log(
-      `[Discovery Review] Quality: ${dataQuality}, Sources: ${uniqueSources.length}, Conflicts: ${canonicalConflicts}, Status: ${reviewStatus}`
+      `[Discovery Review] Tier: ${popularityTier}, Quality: ${dataQuality}, Score: ${discoveryScore}, Sources: ${uniqueSources.length}, Official Sources: ${officialEvidenceSources.length}, Conflicts: ${canonicalConflicts}, Status: ${reviewStatus}`
     );
 
     // Upsert-like behavior for discovery review (context_id is null, so onConflict is unreliable).
@@ -1280,6 +1509,7 @@ export async function executePersistencePhase(
       item_id: item.id,
       context_id: null,
       score: ctx.analysis.analysis?.score || null,
+      summary_markdown: buildDiscoverySummary(ctx.analysis.analysis, validCons, normalizedPros),
       pros: normalizedPros,
       cons: validCons,
       sources: uniqueSources,
@@ -1354,15 +1584,24 @@ export async function executePersistencePhase(
     ctx.analysis.analysis,
     ctx.research.scoutResult.raw_sources.map((source) => ({
       url: source.url,
+      canonical_url: source.canonical_url,
       title: source.title,
       snippet: source.snippet,
       domain: source.domain,
+      source_type: source.source_type,
+      acquisition_mode: source.policy?.acquisition_mode,
+      llm_ingestion_allowed: source.policy?.llm_ingestion_allowed,
+      is_deep_scrape_allowed:
+        source.policy?.acquisition_mode === 'SCRAPE_ALLOWED' &&
+        source.policy?.llm_ingestion_allowed !== 'NO',
+      block_reason: source.policy?.reason,
       retrieved_at: source.retrieved_at,
       published_at: source.published_at,
     })),
     ctx.research.knowledgeCard,
     Number((specs.canonical as any)?.quality?.conflicts_count || 0),
     ctx.contextTitle,
+    popularityTier,
     deps
   );
 
@@ -1795,10 +2034,24 @@ async function persistResearchOnly(
     };
   }
 
+  const { data: existingItemForMetadata } = await deps.supabase
+    .from('items')
+    .select('metadata')
+    .eq('slug', toolSlug)
+    .maybeSingle();
+  const existingMetadata =
+    existingItemForMetadata?.metadata && typeof existingItemForMetadata.metadata === 'object'
+      ? (existingItemForMetadata.metadata as Record<string, unknown>)
+      : null;
+
   // Build minimal metadata from Knowledge Card
   const metadata: Record<string, unknown> = {
+    ...(existingMetadata || {}),
     ...knowledgeCard,
   };
+  if (existingMetadata && typeof existingMetadata.popularity_tier === 'string') {
+    metadata.popularity_tier = existingMetadata.popularity_tier;
+  }
 
   // Calculate data_confidence from Knowledge Card's data_quality
   const dataConfidenceMap: Record<string, number> = {
@@ -2074,6 +2327,7 @@ function normalizeClaim(
   claim: string | ClaimWithSource,
   sources: Array<{
     url: string;
+    canonical_url?: string;
     title: string;
     snippet: string;
     domain: string;
@@ -2086,14 +2340,32 @@ function normalizeClaim(
   // Current timestamp for time-bound defense
   const retrievedAt = new Date().toISOString();
 
+  const normalizedSourceUrlToOriginal = new Map<string, string>();
+  for (const source of sources) {
+    const normalizedSourceUrl = normalizeEvidenceUrl(source.url);
+    if (normalizedSourceUrl && !normalizedSourceUrlToOriginal.has(normalizedSourceUrl)) {
+      normalizedSourceUrlToOriginal.set(normalizedSourceUrl, source.url);
+    }
+    const normalizedCanonical = normalizeEvidenceUrl(source.canonical_url);
+    if (normalizedCanonical && !normalizedSourceUrlToOriginal.has(normalizedCanonical)) {
+      normalizedSourceUrlToOriginal.set(normalizedCanonical, source.url);
+    }
+  }
+
   const findSourceText = (url?: string): string => {
     if (!url) return '';
-    const source = sources.find((s) => s.url === url);
+    const normalized = normalizeEvidenceUrl(url);
+    if (!normalized) return '';
+    const originalUrl = normalizedSourceUrlToOriginal.get(normalized) || url;
+    const source = sources.find((s) => s.url === originalUrl);
     return source ? `${source.title || ''} ${source.snippet || ''}`.trim() : '';
   };
   const findSource = (url?: string) => {
     if (!url) return undefined;
-    return sources.find((s) => s.url === url);
+    const normalized = normalizeEvidenceUrl(url);
+    if (!normalized) return undefined;
+    const originalUrl = normalizedSourceUrlToOriginal.get(normalized) || url;
+    return sources.find((s) => s.url === originalUrl);
   };
 
   const hasTierABCorroboration = (text: string): boolean => {
@@ -2129,9 +2401,24 @@ function normalizeClaim(
 
   // Already enriched - validate and return with timestamp
   if (typeof claim === 'object' && 'text' in claim && 'source_url' in claim) {
+    const normalizedClaimSourceUrl = normalizeEvidenceUrl(claim.source_url);
+    if (!normalizedClaimSourceUrl) return null;
+    const matchedSourceUrl = normalizedSourceUrlToOriginal.get(normalizedClaimSourceUrl);
+    if (!matchedSourceUrl) {
+      return null;
+    }
+
     const claimType = claim.claim_type || 'opinion';
-    const vendorPhrase = (claim.vendor_phrase || claim.text || '').trim();
-    const comparisonBasisSourceUrl = claim.comparison_basis_source_url?.trim() || undefined;
+    const vendorPhrase = sanitizeNarrativeClaimText((claim.vendor_phrase || claim.text || '').trim());
+    const normalizedComparisonBasisSourceUrl = normalizeEvidenceUrl(
+      claim.comparison_basis_source_url?.trim()
+    );
+    const comparisonBasisSourceUrl =
+      normalizedComparisonBasisSourceUrl &&
+      normalizedSourceUrlToOriginal.get(normalizedComparisonBasisSourceUrl)
+        ? normalizedSourceUrlToOriginal.get(normalizedComparisonBasisSourceUrl)
+        : undefined;
+    const sourceType = claim.source_type || classifySourceType(matchedSourceUrl, toolWebsite);
     const strictKind = detectClaimKind(claim.text, claimType);
     const detectedKind =
       strictKind === 'comparison' || strictKind === 'derived_metric'
@@ -2142,42 +2429,55 @@ function normalizeClaim(
     let normalizedText =
       needsComparatorBasis && !comparisonBasisSourceUrl
         ? downgradeComparativeClause(claim.text)
-        : claim.text.trim();
+        : claim.text;
+    if (!normalizedText) return null;
+    normalizedText = sanitizeNarrativeClaimText(normalizedText);
     if (!normalizedText) return null;
 
+    // Salvage truncated model output when original vendor phrase is complete.
+    if (vendorPhrase && !isRenderableClaimText(normalizedText) && isRenderableClaimText(vendorPhrase)) {
+      normalizedText = vendorPhrase;
+    }
+    if (!isRenderableClaimText(normalizedText)) return null;
+
+    // "Users report..." style language must not be tied to official first-party sources.
+    if (sourceType === 'official' && hasCommunityHedgingLanguage(normalizedText)) {
+      return null;
+    }
+
     if (hasAbsoluteMarketingTerm(normalizedText)) {
-      const sourceTier = sourceTierForClaim(claim.source_url);
+      const sourceTier = sourceTierForClaim(matchedSourceUrl);
       const corroborated = sourceTier !== 'C' || hasTierABCorroboration(normalizedText);
       if (!corroborated) {
         normalizedText = softenAbsoluteMarketingLanguage(normalizedText);
       }
     }
 
-    if (!passesNamedFeatureExistence(normalizedText, claim.source_url)) {
+    if (!passesNamedFeatureExistence(normalizedText, matchedSourceUrl)) {
       return null;
     }
-    if (suppressSalesGatedClaim(normalizedText, claim.source_url, sources, toolWebsite)) {
+    if (suppressSalesGatedClaim(normalizedText, matchedSourceUrl, sources, toolWebsite)) {
       return null;
     }
     if (RANKING_CLAIM_TOKENS.test(normalizedText)) {
-      const sourceTier = sourceTierForClaim(claim.source_url);
+      const sourceTier = sourceTierForClaim(matchedSourceUrl);
       const hasSupport = sourceTier !== 'C' && hasTierABCorroboration(normalizedText);
       if (!hasSupport) return null;
-      const sourceDate = findSource(claim.source_url)?.published_at || findSource(claim.source_url)?.retrieved_at;
+      const sourceDate = findSource(matchedSourceUrl)?.published_at || findSource(matchedSourceUrl)?.retrieved_at;
       normalizedText = rewriteVendorRankingClaim(normalizedText, sourceDate);
     }
     if (UNVERIFIED_QUANT_VALUE.test(normalizedText) && !hasTierABCorroboration(normalizedText)) {
       normalizedText = stripUnsupportedQuantitativePhrases(normalizedText);
       if (!normalizedText) return null;
     }
-    const scopedText = enforceOfferingScope(normalizedText, claim.source_url, sources);
+    const scopedText = enforceOfferingScope(normalizedText, matchedSourceUrl, sources);
     if (!scopedText) return null;
     normalizedText = scopedText;
 
     return {
       text: normalizedText,
-      source_url: claim.source_url,
-      source_type: claim.source_type || classifySourceType(claim.source_url, toolWebsite),
+      source_url: matchedSourceUrl,
+      source_type: sourceType,
       claim_type: claimType, // Default to opinion for safety
       retrieved_at: claim.retrieved_at || retrievedAt,
       claim_kind:
@@ -2217,7 +2517,8 @@ function normalizeClaim(
     return null;
   }
 
-  let legacyText = normalizedLegacyText;
+  let legacyText = sanitizeNarrativeClaimText(normalizedLegacyText);
+  if (!legacyText || !isRenderableClaimText(legacyText)) return null;
   if (hasAbsoluteMarketingTerm(legacyText) && !hasTierABCorroboration(legacyText)) {
     legacyText = softenAbsoluteMarketingLanguage(legacyText);
   }
@@ -2242,11 +2543,15 @@ function normalizeClaim(
   const scopedLegacy = enforceOfferingScope(legacyText, bestSource.url, sources);
   if (!scopedLegacy) return null;
   legacyText = scopedLegacy;
+  const legacySourceType = classifySourceType(bestSource.url, toolWebsite);
+  if (legacySourceType === 'official' && hasCommunityHedgingLanguage(legacyText)) {
+    return null;
+  }
 
   return {
     text: legacyText,
     source_url: bestSource.url,
-    source_type: classifySourceType(bestSource.url, toolWebsite),
+    source_type: legacySourceType,
     claim_type: 'opinion', // Assume opinion for legacy claims (safer)
     retrieved_at: retrievedAt,
     claim_kind: detectClaimKind(legacyText, 'opinion'),
@@ -2376,9 +2681,13 @@ function validateNegativeClaim(
   claim: ClaimWithSource,
   allSources: Array<{
     url: string;
+    canonical_url?: string;
     title: string;
     snippet: string;
     domain: string;
+    source_type?: 'official' | 'docs' | 'support' | 'legal' | 'editorial' | 'community' | 'directory';
+    acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+    llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
     retrieved_at?: string;
     published_at?: string;
     time_since?: string;
@@ -2402,17 +2711,40 @@ function validateNegativeClaim(
     return { isValid: true, corroboratingSourceCount: 1 };
   }
 
+  const LOW_TRUST_DIRECTORY_DOMAINS = ['g2.com', 'capterra.com', 'trustpilot.com', 'getapp.com', 'softwareadvice.com'];
+  const corroborationPool = allSources.filter((source) => {
+    if (source.acquisition_mode && source.acquisition_mode !== 'SCRAPE_ALLOWED') return false;
+    if (source.llm_ingestion_allowed === 'NO') return false;
+    if (source.source_type === 'directory') return false;
+    const domain = (source.domain || '').toLowerCase();
+    if (
+      LOW_TRUST_DIRECTORY_DOMAINS.some(
+        (blockedDomain) => domain === blockedDomain || domain.endsWith(`.${blockedDomain}`)
+      )
+    ) {
+      return false;
+    }
+    return true;
+  });
+
   // For opinions (especially from community), count corroborating sources
   const claimWords = claim.text
     .toLowerCase()
     .split(/\s+/)
     .filter((w) => w.length > 4);
+  if (claimWords.length === 0) {
+    return {
+      isValid: false,
+      warning: 'Negative claim lacks enough specific terms for corroboration matching.',
+      corroboratingSourceCount: 0,
+    };
+  }
 
   let corroboratingCount = 0;
   const matchedDomains = new Set<string>();
   const corroboratingSources: string[] = [];
 
-  for (const source of allSources) {
+  for (const source of corroborationPool) {
     const sourceText = `${source.title} ${source.snippet}`.toLowerCase();
     // Count how many significant claim words appear in this source
     const matchingWords = claimWords.filter((w) => sourceText.includes(w));
@@ -2445,7 +2777,7 @@ function validateNegativeClaim(
     if (corroboratingCount < 1) {
       return {
         isValid: false,
-        warning: `Editorial opinion has no corroborating sources.`,
+        warning: `Editorial opinion has no corroborating sources in eligible source pool (${corroborationPool.length}).`,
         corroboratingSourceCount: corroboratingCount,
         corroboratingSources,
       };
@@ -2518,9 +2850,15 @@ async function createReview(
   analysis: any,
   sources: Array<{
     url: string;
+    canonical_url?: string;
     title: string;
     snippet: string;
     domain: string;
+    source_type?: 'official' | 'docs' | 'support' | 'legal' | 'editorial' | 'community' | 'directory';
+    acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+    llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
+    is_deep_scrape_allowed?: boolean;
+    block_reason?: string;
     retrieved_at?: string;
     published_at?: string;
     time_since?: string;
@@ -2528,6 +2866,7 @@ async function createReview(
   knowledgeCard: any,
   canonicalConflictsCount: number,
   contextTitle: string | undefined,
+  popularityTier: PopularityTier,
   deps: HunterDependencies
 ): Promise<string> {
   // Normalize pros and cons with source attribution
@@ -2538,14 +2877,25 @@ async function createReview(
     normalizeClaim(claim, sources, analysis.websiteUrl)
   );
 
-  const normalizedPros = normalizedProsRaw.filter(Boolean) as ClaimWithSource[];
-  const normalizedConsCandidates = rawNormalizedCons.filter(Boolean) as ClaimWithSource[];
+  const normalizedProsPresent = normalizedProsRaw.filter(Boolean) as ClaimWithSource[];
+  const normalizedConsPresent = rawNormalizedCons.filter(Boolean) as ClaimWithSource[];
+  const normalizedPros = normalizedProsPresent.filter((claim) => isRenderableClaimText(claim.text));
+  const normalizedConsCandidates = normalizedConsPresent.filter((claim) =>
+    isRenderableClaimText(claim.text)
+  );
   const missingSourceCount =
     normalizedProsRaw.length -
+    normalizedProsPresent.length +
+    (rawNormalizedCons.length - normalizedConsPresent.length);
+  const malformedClaimCount =
+    normalizedProsPresent.length -
     normalizedPros.length +
-    (rawNormalizedCons.length - normalizedConsCandidates.length);
+    (normalizedConsPresent.length - normalizedConsCandidates.length);
   if (missingSourceCount > 0) {
     deps.log(`[Guardrail] Filtered ${missingSourceCount} review claim(s) missing source URLs`);
+  }
+  if (malformedClaimCount > 0) {
+    deps.log(`[Guardrail] Filtered ${malformedClaimCount} malformed/truncated review claim(s)`);
   }
 
   // Apply negative sentiment guardrail to cons
@@ -2642,6 +2992,16 @@ async function createReview(
     deps.log('[Guardrail] Forced draft: unsupported risky narrative claim without sufficient evidence');
   }
 
+  const authoritativeSources = sources.filter((source) =>
+    AUTHORITATIVE_SOURCE_TYPES.has((source.source_type || '').toLowerCase())
+  );
+  const authoritativeDomains = new Set(
+    authoritativeSources
+      .map((source) => source.domain?.replace(/^www\./i, '').toLowerCase())
+      .filter((domain): domain is string => Boolean(domain))
+  );
+  const profile = POPULARITY_PROFILES[popularityTier];
+
   const reviewData: Record<string, unknown> = {
     item_id: itemId, // V2: renamed from tool_id
     context_id: contextId,
@@ -2675,12 +3035,38 @@ async function createReview(
     normalizedCons.length >= 2 &&
     legalIssues.length === 0 &&
     canonicalConflictsCount === 0;
+  const qualifiesFastPath =
+    profile.allowedDataQualities.includes(knowledgeCard.meta.data_quality as 'high' | 'medium' | 'low') &&
+    analysis.score >= profile.minScore &&
+    filteredCons.length <= profile.maxFilteredCons &&
+    normalizedCons.length >= profile.minValidCons &&
+    meetsAuthoritativeSourceThreshold(
+      popularityTier,
+      authoritativeSources.length,
+      profile.minAuthoritativeSources,
+      analysis.score
+    ) &&
+    meetsAuthoritativeDomainThreshold(
+      popularityTier,
+      authoritativeDomains.size,
+      profile.minAuthoritativeDomains,
+      authoritativeSources.length,
+      analysis.score
+    ) &&
+    legalIssues.length === 0 &&
+    canonicalConflictsCount === 0;
 
-  if (isHighConfidence && deps.config.isDraftMode === false && !hasUnsupportedNegativeClaim) {
+  if ((isHighConfidence || qualifiesFastPath) && deps.config.isDraftMode === false && !hasUnsupportedNegativeClaim) {
     reviewData.status = 'published';
-    deps.log(
-      `[Auto-publish] High confidence review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
-    );
+    if (isHighConfidence) {
+      deps.log(
+        `[Auto-publish] High confidence review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+      );
+    } else {
+      deps.log(
+        `[Auto-publish] Fast path review (tier=${popularityTier}, quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, authoritative_sources=${authoritativeSources.length}, authoritative_domains=${authoritativeDomains.size}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+      );
+    }
   } else {
     reviewData.status = 'draft';
     if (!isHighConfidence) {
@@ -2754,21 +3140,65 @@ function buildClaimLedgerRows(
   extracted_at?: string;
 }> {
   const byUrl = new Map<string, (typeof sources)[number]>();
+  const byDomain = new Map<string, (typeof sources)[number]>();
+
+  const extractDomain = (url?: string | null): string | null => {
+    if (!url) return null;
+    try {
+      return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    } catch {
+      return null;
+    }
+  };
+
+  const deriveClaimConfidence = (
+    claim: ClaimWithSource,
+    source?: (typeof sources)[number]
+  ): number => {
+    if (source?.llm_ingestion_allowed === 'NO') {
+      if (source.acquisition_mode === 'BLOCKED' || source.acquisition_mode === 'API_ONLY') return 0.35;
+      return 0.45;
+    }
+
+    if (source?.acquisition_mode === 'SCRAPE_ALLOWED') {
+      if (claim.claim_type === 'fact' && claim.source_type === 'official') return 0.9;
+      if (claim.claim_type === 'fact') return 0.82;
+      return 0.75;
+    }
+
+    if (claim.source_type === 'official' && claim.claim_type === 'fact') return 0.8;
+    if (claim.source_type === 'editorial' && claim.claim_type === 'fact') return 0.72;
+    if (claim.source_type === 'community') return 0.6;
+    return 0.65;
+  };
+
   for (const source of sources) {
-    if (source.url) byUrl.set(source.url, source);
+    if (!source.url) continue;
+    byUrl.set(source.url, source);
+    const normalized = normalizeEvidenceUrl(source.url);
+    if (normalized) byUrl.set(normalized, source);
+    const domain = source.domain?.toLowerCase();
+    if (domain && !byDomain.has(domain)) {
+      byDomain.set(domain, source);
+    }
   }
 
   const toRow = (claim: ClaimWithSource, type: string) => {
-    const source = claim.source_url ? byUrl.get(claim.source_url) : undefined;
-    const policySnapshot = source
-      ? {
-          acquisition_mode: source.acquisition_mode,
-          llm_ingestion_allowed: source.llm_ingestion_allowed,
-          is_deep_scrape_allowed: source.is_deep_scrape_allowed,
-          block_reason: source.block_reason,
-          retrieved_at: source.retrieved_at,
-        }
-      : null;
+    const claimSourceUrl = claim.source_url || null;
+    const normalizedClaimSourceUrl = normalizeEvidenceUrl(claimSourceUrl);
+    const claimDomain = extractDomain(normalizedClaimSourceUrl || claimSourceUrl);
+    const source =
+      (normalizedClaimSourceUrl ? byUrl.get(normalizedClaimSourceUrl) : undefined) ||
+      (claimSourceUrl ? byUrl.get(claimSourceUrl) : undefined) ||
+      (claimDomain ? byDomain.get(claimDomain) : undefined);
+
+    const policySnapshot = {
+      acquisition_mode: source?.acquisition_mode || 'UNCLASSIFIED',
+      llm_ingestion_allowed: source?.llm_ingestion_allowed || 'UNCLASSIFIED',
+      is_deep_scrape_allowed: source?.is_deep_scrape_allowed ?? null,
+      block_reason: source?.block_reason || null,
+      retrieved_at: source?.retrieved_at || claim.retrieved_at || null,
+    };
 
     return {
       item_id: itemId,
@@ -2776,14 +3206,17 @@ function buildClaimLedgerRows(
       claim_type: type,
       value_json: {
         text: claim.text,
+        source_type: claim.source_type || null,
+        claim_type: claim.claim_type || null,
         vendor_phrase: claim.vendor_phrase || claim.text,
         kind: claim.claim_kind || detectClaimKind(claim.text, claim.claim_type || 'opinion'),
         comparison_basis_source_url: claim.comparison_basis_source_url || null,
+        retrieved_at: claim.retrieved_at || null,
       },
-      source_url: claim.source_url || null,
-      source_domain: source?.domain || null,
-      policy_snapshot: policySnapshot,
-      confidence: null,
+      source_url: claimSourceUrl,
+      source_domain: source?.domain || claimDomain || null,
+      policy_snapshot: claimSourceUrl ? policySnapshot : null,
+      confidence: deriveClaimConfidence(claim, source),
       intent: 'editorial_intelligence',
       extracted_at: claim.retrieved_at || undefined,
     };

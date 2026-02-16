@@ -52,6 +52,8 @@ const VOLATILE_FAQ_TERMS =
   /\b(model|version|pricing|price|plan|quota|limit|token|tokens|rate limit|context window|deprecated|deprecation|gpt|claude|opus|sonnet|haiku|o[1-9])\b/i;
 const RISKY_ABSOLUTE_CLAIMS =
   /\b(always|never|broken|scam|unreliable|guaranteed|everyone|nobody)\b/i;
+type PopularityTier = 'popular' | 'standard' | 'below_standard';
+const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
 
 function getSectionStatus(
   canShow: boolean,
@@ -69,8 +71,22 @@ function isFresh(dateValue: string | null | undefined, maxAgeDays = FRESHNESS_WI
   return ageMs <= maxAgeDays * 24 * 60 * 60 * 1000;
 }
 
+function resolvePopularityTier(metadata?: Record<string, unknown> | null): PopularityTier {
+  const explicit =
+    metadata?.popularity_tier ||
+    (metadata?.meta && typeof metadata.meta === 'object'
+      ? (metadata.meta as Record<string, unknown>).popularity_tier
+      : null);
+  const normalized = typeof explicit === 'string' ? explicit.trim().toLowerCase() : '';
+  if (normalized === 'popular') return 'popular';
+  if (normalized === 'below_standard') return 'below_standard';
+  return 'standard';
+}
+
 export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null): IndexReadinessResult {
   const metadata = (tool.metadata as Record<string, any>) || {};
+  const popularityTier = resolvePopularityTier(metadata);
+  const isDiscoveryReview = (firstReview as any)?.context_id == null;
   const specs = (tool.specs as Record<string, any>) || {};
   const knowledgeCard = metadata || {};
   const canonical = (specs.canonical as Record<string, any>) || {};
@@ -145,6 +161,30 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
           .filter((domain): domain is string => Boolean(domain))
       : []
   );
+  const sourceEntries = Array.isArray(firstReview?.sources)
+    ? (firstReview!.sources as Array<{ domain?: string; url?: string; source_type?: string; type?: string }>)
+    : [];
+  let authoritativeSourceCount = 0;
+  const authoritativeDomains = new Set<string>();
+  for (const source of sourceEntries) {
+    const sourceType = ((source.source_type || source.type || '') as string).toLowerCase();
+    if (!AUTHORITATIVE_SOURCE_TYPES.has(sourceType)) continue;
+    authoritativeSourceCount += 1;
+    const domain = source.domain?.replace(/^www\./, '').toLowerCase() || null;
+    if (domain) authoritativeDomains.add(domain);
+    else if (source.url && typeof source.url === 'string') {
+      try {
+        authoritativeDomains.add(new URL(source.url).hostname.replace(/^www\./, '').toLowerCase());
+      } catch {
+        // Ignore malformed source URLs in gate scoring.
+      }
+    }
+  }
+  const strongDiscoveryEvidence =
+    isDiscoveryReview &&
+    hasSummary &&
+    authoritativeSourceCount >= 3 &&
+    authoritativeDomains.size >= 1;
   const eligibleCommunityDomains = Array.from(sourceDomains).filter(
     (domain) =>
       !Array.from(BLOCKED_EVIDENCE_DOMAINS).some(
@@ -169,13 +209,49 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
     (Array.isArray(firstReview?.cons) && firstReview!.cons.length > 0) ||
     hasPricing;
   const hasImplementationSurface = hasSetup || Boolean(tool.learning_curve);
-  const mvupComplete =
-    hasWhatItIs &&
-    hasBestFit &&
-    hasDecisionTriggers &&
-    hasImplementationSurface;
+  const mvupComplete = (() => {
+    if (strongDiscoveryEvidence) {
+      // Discovery reviews have no context-specific "best fit"; allow procedural fit if evidence is strong.
+      return hasWhatItIs && (hasDecisionTriggers || hasSpecs) && hasImplementationSurface;
+    }
+    if (popularityTier === 'popular') {
+      return hasWhatItIs && hasBestFit && (hasDecisionTriggers || hasSpecs) && hasImplementationSurface;
+    }
+    if (popularityTier === 'below_standard') {
+      return (
+        hasWhatItIs &&
+        hasBestFit &&
+        hasDecisionTriggers &&
+        hasImplementationSurface &&
+        hasFaq
+      );
+    }
+    return hasWhatItIs && hasBestFit && hasDecisionTriggers && hasImplementationSurface;
+  })();
 
   const requiredSectionsComplete = (() => {
+    if (strongDiscoveryEvidence) {
+      // Discovery pages can publish with procedural sections when backed by strong authoritative evidence.
+      return hasSummary && hasSetup && (hasPricing || hasSpecs || hasFaq || hasModels);
+    }
+    if (popularityTier === 'popular') {
+      if (isModelCategory) {
+        return hasSummary && hasSetup && (hasPricing || hasSpecs || hasModels);
+      }
+      if (isPaymentsOrFinanceCategory) {
+        return hasSummary && hasSetup && (hasSpecs || hasPricing);
+      }
+      return hasSummary && hasSetup && (hasPricing || hasSpecs);
+    }
+    if (popularityTier === 'below_standard') {
+      if (isModelCategory) {
+        return hasSummary && hasPricing && hasSetup && hasSpecs && hasModels && hasFaq;
+      }
+      if (isPaymentsOrFinanceCategory) {
+        return hasSummary && hasPricing && hasSetup && hasSpecs && hasFaq;
+      }
+      return hasSummary && hasPricing && hasSetup && hasFaq && hasSpecs;
+    }
     if (isModelCategory) {
       return hasSummary && hasPricing && hasSetup && hasSpecs && (hasModels || hasFaq);
     }

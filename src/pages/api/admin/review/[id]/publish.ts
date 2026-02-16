@@ -6,6 +6,7 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { ApiResponse } from '@/lib/api-response';
+import { refreshQualityGateSnapshotForItem } from '@/lib/quality-gate-snapshot';
 
 export const prerender = false;
 
@@ -27,13 +28,15 @@ export const POST: APIRoute = async ({ params }) => {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .select('id, status')
+      .select('id, status, item_id')
       .single();
 
     if (error) {
       console.error('Publish error:', error);
       return ApiResponse.internalError('Failed to publish review');
     }
+
+    await refreshQualityGateSnapshotForItem(admin as any, data.item_id, data.id);
 
     return ApiResponse.ok({
       id: data.id,

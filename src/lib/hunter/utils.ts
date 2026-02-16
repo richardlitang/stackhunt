@@ -188,6 +188,11 @@ const DOMAIN_CLASSIFICATIONS: Record<string, 'official' | 'editorial' | 'communi
   'slashdot.org': 'community',
 };
 
+function isLikelyCommunityHost(hostname: string): boolean {
+  const communityPrefixes = ['community.', 'forum.', 'forums.', 'discuss.', 'discourse.', 'talk.'];
+  return communityPrefixes.some((prefix) => hostname.startsWith(prefix));
+}
+
 /**
  * Classify a source URL into official, editorial, or community
  *
@@ -205,7 +210,14 @@ export function classifySourceType(
   toolWebsite?: string
 ): 'official' | 'editorial' | 'community' {
   try {
-    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    const pathname = parsed.pathname.toLowerCase();
+
+    // Forum/community subdomains and paths are always community, even on first-party domains.
+    if (isLikelyCommunityHost(hostname) || /^\/(community|forum|forums|discuss)(\/|$)/.test(pathname)) {
+      return 'community';
+    }
 
     // Check if this is the tool's official website
     if (toolWebsite) {

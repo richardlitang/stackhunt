@@ -16,6 +16,60 @@ Notes:
 - Keep entries short.
 - Use concrete dates.
 
+2026-02-16 - Community Host Source-Type Normalization
+Context: Forced Baserow re-hunt showed `community.baserow.io` claims persisted as `source_type='official'`, which weakens legal attribution and hedging behavior.
+Decision: Classify forum/community host patterns (`community.`, `forum.`, `discuss.` etc.) as `community` before first-party official matching, and backfill persisted rows via `normalize_community_source_types`.
+Why: Community content must remain explicitly community-typed for defensible claims and correct guardrail behavior.
+Impact: New and historical claim/review/spec rows on community hosts now normalize to `source_type='community'`.
+
+2026-02-16 - Claim Text Hygiene + Source-Language Guardrails
+Context: A live Baserow draft showed malformed/truncated con text and a `Users report...` claim tied to first-party official sources, creating trust/legal risk.
+Decision: Strengthen claim normalization/validation to strip Unicode control chars, reject incomplete trailing clauses, and drop community-hedging language when source type is `official`; include `source_type`/`claim_type` in claim ledger `value_json`.
+Why: Prevent publication and downstream SaaS use of syntactically broken or legally weak claim language.
+Impact: New ETL runs now block these patterns at persistence time and carry richer provenance for audits.
+
+2026-02-16 - One-Time Persisted Claim Hygiene Cleanup
+Context: Existing rows already contained malformed/truncated claims and source-language mismatches, so code-only fixes would not repair currently visible content.
+Decision: Apply `prune_malformed_claim_text` + `remove_community_hedging_first_party_claims` to clean `claims`, `reviews.pros/cons`, and `items.specs.pros/cons`.
+Why: Immediately improve reader-facing quality and reduce legal exposure without waiting for full re-hunt cycles.
+Impact: Affected rows were pruned in production; Baserow now retains only defensible cons and no truncated lines.
+
+2026-02-16 - Legacy Claim Metadata Backfill
+Context: Historical claim ledger rows (before February 16, 2026) had non-null `source_url` but gaps in `source_domain`, `policy_snapshot`, and `confidence`, reducing audit usefulness.
+Decision: Apply `backfill_legacy_claim_metadata` to reconstruct domain + policy snapshot from source URL (with parent-domain policy matching) and assign conservative confidence defaults.
+Why: Existing content needed legal/audit metadata quality uplift without waiting for re-hunts.
+Impact: Pre-hardening claims now have complete provenance metadata (`95 -> 0` missing `source_domain`, `95 -> 0` missing `policy_snapshot`, `409 -> 0` missing `confidence`).
+
+2026-02-16 - Canonical Queue Completion RPC Restored
+Context: Live queue runs revealed `complete_hunt` still writing deprecated `tool_id`, forcing fallback direct updates during completion.
+Decision: Replace `complete_hunt(uuid,uuid,uuid,uuid,integer)` with `p_item_id` semantics and `item_id` writes (`fix_complete_hunt_item_id_signature`).
+Why: Completion should succeed through canonical RPC, not compatibility fallback, to reduce operational drift and hidden failures.
+Impact: Queue completion now supports named `p_item_id` and updates `hunt_queue.item_id` directly.
+
+2026-02-16 - View + Function Security Lints Cleared
+Context: Security advisor still flagged `security_definer_view` and `function_search_path_mutable` after claim/policy table RLS lockdown.
+Decision: Set `security_invoker=on` for `tools_needing_affiliates` and `freelancer_friendly_tools`, and set explicit `search_path = public, pg_catalog` on `claim_hunt_queue_item(text)` and `set_updated_at_timestamp()`.
+Why: These are low-risk, behavior-preserving changes that remove broad privilege ambiguity and reduce accidental policy bypass surfaces.
+Impact: Security advisor now only reports extension-placement warnings (`extension_in_public` for `vector` and `pg_trgm`).
+
+2026-02-16 - Source Policy + Claims RLS Lockdown
+Context: `claims`, `source_policy_registry`, and `source_policy_review_queue` were externally exposed tables with RLS disabled and broad anon/authenticated grants.
+Decision: Enable RLS on all three tables, add explicit deny-all public policies, and revoke `anon`/`authenticated` table privileges; keep service-role access for ETL/admin flows.
+Why: These tables contain legal/compliance metadata and claim ledger evidence that should not be public-write/read surfaces.
+Impact: Security advisor no longer reports `rls_disabled_in_public` for these tables, and ETL policy/claim writes remain service-role only.
+
+2026-02-16 - Atomic Checkpoint Locking Rolled Out
+Context: ETL checkpoint locking was implemented in code, but database rollout status needed an explicit record for incident debugging and auditability.
+Decision: Apply migration `atomic_checkpoint_locking` to Supabase project `vhelpqzbtzwiddoebnyy` and verify live signature `save_hunt_checkpoint(uuid, integer, jsonb, integer) -> boolean`.
+Why: Queue correctness depends on DB-level atomicity; code-only rollout would leave race conditions unresolved.
+Impact: Checkpoint writes now enforce expected-version matching atomically in the database, returning explicit conflict outcomes.
+
+2026-02-16 - ETL Hardening Parity + Provenance Enforcement
+Context: Batch/stale synthesis paths were bypassing canonical persistence guardrails, and claim provenance/policy fallback/checkpoint locking still had avoidable legal and data-quality risk.
+Decision: Make canonical persistence mandatory for batch/stale completion, enforce source-url provenance in persistence normalization, restrict official fallback matching to exact/subdomain without overriding explicit policy, and move checkpoint version checks into SQL atomically.
+Why: This removes path divergence, improves reader/SaaS data quality, and materially reduces publication/legal exposure from unsupported claims or policy bypass.
+Impact: Queue worker now creates real reviews via persistence for batch/stale items, invalid claim sources are dropped, checkpoint races return explicit conflicts, and ongoing monitoring lives in `docs/ETL_QUALITY_LEGAL_TRACKER.md`.
+
 2026-02-08 - Phase 1 vNext Implementation Snapshot
 Context: The Intelligence Platform vNext Phase 1 work introduced broad quality/legal gate changes across hunter, rendering, and indexing paths.
 Decision: Treat commit `093421f` as the canonical implementation snapshot for Phase 1 stop-harm quality/legal gates and hunt reliability hardening.

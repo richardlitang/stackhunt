@@ -288,6 +288,13 @@ interface StaleItem {
   category: string | null;
 }
 
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
 /**
  * Check for categories ready for batch synthesis (≥5 tools)
  */
@@ -356,6 +363,7 @@ async function processBatchSynthesis(
         status: 'processing',
         batch_id: batchId,
         claimed_at: new Date().toISOString(),
+        started_at: new Date().toISOString(),
       })
       .in('id', batch.toolIds);
 
@@ -364,38 +372,38 @@ async function processBatchSynthesis(
 
     interface BatchInput {
       itemId: string;
+      queueId: string;
       toolName: string;
       contextTitle?: string;
-      researchData: {
-        scoutResult: {
-          reviewsSnippets: string[];
-          pricingSnippets: string[];
-          alternativesSnippets: string[];
-          budgetAnalystSnippets: string[];
-          tribalKnowledgeSnippets: string[];
-          tribalDeepContent?: string;
-          sources: Array<{
-            url: string;
-            title: string;
-            snippet: string;
-            domain: string;
-          }>;
-        };
-        knowledgeCard: unknown;
-      };
+      categorySlug?: string;
+      huntType?: string;
+      forceUpdate?: boolean;
+      researchData: Record<string, unknown>;
     }
 
     const inputs: BatchInput[] = [];
 
     for (let i = 0; i < batch.toolIds.length; i++) {
-      const itemId = batch.toolIds[i];
+      const queueId = batch.toolIds[i];
       const toolName = batch.toolNames[i];
 
+      const { data: queueItem } = await supabase
+        .from('hunt_queue')
+        .select('id, tool_name, context_title, category_slug, hunt_type, force_regenerate')
+        .eq('id', queueId)
+        .maybeSingle();
+
+      if (!queueItem) {
+        console.warn(`[Batch] Missing queue item for ${toolName} (${queueId}), skipping`);
+        continue;
+      }
+
       // Get stored research data from tool specs
+      const toolSlug = toSlug(queueItem.tool_name || toolName);
       const { data: tool } = await supabase
         .from('items')
         .select('id, name, specs')
-        .eq('name', toolName)
+        .eq('slug', toolSlug)
         .maybeSingle();
 
       if (!tool?.specs?.research_data) {
@@ -404,8 +412,13 @@ async function processBatchSynthesis(
       }
 
       inputs.push({
-        itemId,
+        itemId: queueItem.id,
+        queueId: queueItem.id,
         toolName: tool.name,
+        contextTitle: queueItem.context_title || undefined,
+        categorySlug: queueItem.category_slug || undefined,
+        huntType: queueItem.hunt_type || undefined,
+        forceUpdate: Boolean(queueItem.force_regenerate) || queueItem.hunt_type === 'price_only',
         researchData: tool.specs.research_data,
       });
     }
@@ -438,42 +451,90 @@ async function processBatchSynthesis(
       existingCategories
     );
 
-    // Save analyses and update queue
-    for (const [toolName, { itemId, analysis }] of result.analyses.entries()) {
-      // Update tool with analysis
-      const { data: tool } = await supabase
-        .from('items')
-        .select('id, specs')
-        .eq('name', toolName)
-        .maybeSingle();
+    const { executePersistencePhase } = await import('../src/lib/hunter/phases/persistence.js');
+    const { QueueService } = await import('../src/lib/hunter/services/queue.js');
+    const queueService = new QueueService({ supabase });
 
-      if (tool) {
-        const updatedSpecs = {
-          ...tool.specs,
-          analysis,
-          batch_synthesis: {
-            batch_id: batchId,
-            category: batch.category,
-            synthesized_at: new Date().toISOString(),
-          },
-        };
-        // Remove research_data after synthesis (no longer needed)
-        delete updatedSpecs.research_data;
+    const persistenceConfig = {
+      supabaseUrl: process.env.SUPABASE_URL!,
+      supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      geminiApiKey: process.env.GEMINI_API_KEY!,
+      serperApiKey: process.env.SERPER_API_KEY!,
+      isDraftMode: true,
+    };
 
-        await supabase
-          .from('items')
-          .update({ specs: updatedSpecs, updated_at: new Date().toISOString() })
-          .eq('id', tool.id);
+    // Save analyses through canonical persistence + queue completion
+    for (const [toolName, { itemId: queueId, analysis }] of result.analyses.entries()) {
+      const input = inputs.find((entry) => entry.queueId === queueId);
+      if (!input) {
+        console.error(`[Batch] Missing input metadata for ${toolName} (${queueId})`);
+        continue;
       }
 
-      // Mark queue item as completed
-      await supabase
-        .from('hunt_queue')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', itemId);
+      try {
+        const ctx = {
+          toolName: input.toolName,
+          contextTitle: input.contextTitle,
+          categorySlug: input.categorySlug,
+          queueItemId: input.queueId,
+          forceUpdate: input.forceUpdate || input.huntType === 'price_only',
+          huntType: input.huntType || 'full',
+          skipAnalysis: false,
+          skipPersistence: false,
+          skipSynthesis: false,
+          detectedCategory: batch.category,
+          startTime: Date.now(),
+          tokensUsed: 0,
+          logs: [],
+          research: {
+            ...input.researchData,
+            tokensUsed: 0,
+          },
+          analysis: {
+            analysis,
+            embedding: [],
+            logo: null,
+            tokensUsed: 0,
+          },
+        } as any;
+
+        const deps = {
+          supabase,
+          serper: null,
+          gemini: null,
+          inventory: null,
+          logo: null,
+          config: persistenceConfig,
+          withRetry: async <T>(fn: () => Promise<T>) => fn(),
+          log: (message: string) => console.log(`[Batch Persist] [${input.toolName}] ${message}`),
+        } as any;
+
+        const persisted = await executePersistencePhase(ctx, deps);
+        await queueService.markCompleted(
+          input.queueId,
+          {
+            toolId: persisted.toolId,
+            contextId: persisted.contextId || undefined,
+            reviewId: persisted.reviewId || undefined,
+          },
+          (message) => console.log(`[Batch Persist] ${message}`)
+        );
+        await queueService.clearCheckpoint(
+          input.queueId,
+          (message) => console.log(`[Batch Persist] ${message}`)
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`[Batch] Persistence failed for ${input.toolName}: ${message}`);
+        await supabase
+          .from('hunt_queue')
+          .update({
+            status: 'failed',
+            error_message: message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', input.queueId);
+      }
     }
 
     // Mark failed items
@@ -487,7 +548,7 @@ async function processBatchSynthesis(
             error_message: err.error,
             completed_at: new Date().toISOString(),
           })
-          .eq('id', input.itemId);
+          .eq('id', input.queueId);
       }
     }
 
@@ -523,11 +584,23 @@ async function processStaleItem(
   console.log(`   Queue ID: ${item.id}`);
 
   try {
+    // Get queue metadata
+    const { data: queueItem } = await supabase
+      .from('hunt_queue')
+      .select('id, tool_name, context_title, category_slug, hunt_type, force_regenerate')
+      .eq('id', item.id)
+      .maybeSingle();
+
+    if (!queueItem) {
+      throw new Error(`Missing queue item for stale job ${item.id}`);
+    }
+
     // Get research data from item
+    const toolSlug = toSlug(queueItem.tool_name || item.toolName);
     const { data: tool } = await supabase
       .from('items')
       .select('id, name, specs')
-      .eq('name', item.toolName)
+      .eq('slug', toolSlug)
       .maybeSingle();
 
     if (!tool?.specs?.research_data) {
@@ -549,6 +622,7 @@ async function processStaleItem(
       .update({
         status: 'processing',
         claimed_at: new Date().toISOString(),
+        started_at: new Date().toISOString(),
       })
       .eq('id', item.id);
 
@@ -573,30 +647,70 @@ async function processStaleItem(
       existingCategories
     );
 
-    // Update tool with analysis
-    const updatedSpecs = {
-      ...tool.specs,
-      analysis,
-      individual_synthesis: {
-        synthesized_at: new Date().toISOString(),
-        reason: 'stale_fallthrough',
-      },
+    const { executePersistencePhase } = await import('../src/lib/hunter/phases/persistence.js');
+    const { QueueService } = await import('../src/lib/hunter/services/queue.js');
+    const queueService = new QueueService({ supabase });
+
+    const persistenceConfig = {
+      supabaseUrl: process.env.SUPABASE_URL!,
+      supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      geminiApiKey: process.env.GEMINI_API_KEY!,
+      serperApiKey: process.env.SERPER_API_KEY!,
+      isDraftMode: true,
     };
-    delete updatedSpecs.research_data;
 
-    await supabase
-      .from('items')
-      .update({ specs: updatedSpecs, updated_at: new Date().toISOString() })
-      .eq('id', tool.id);
+    const ctx = {
+      toolName: tool.name,
+      contextTitle: queueItem.context_title || undefined,
+      categorySlug: queueItem.category_slug || undefined,
+      queueItemId: queueItem.id,
+      forceUpdate: Boolean(queueItem.force_regenerate) || queueItem.hunt_type === 'price_only',
+      huntType: queueItem.hunt_type || 'full',
+      skipAnalysis: false,
+      skipPersistence: false,
+      skipSynthesis: false,
+      detectedCategory: item.category || undefined,
+      startTime: Date.now(),
+      tokensUsed: 0,
+      logs: [],
+      research: {
+        ...tool.specs.research_data,
+        tokensUsed: 0,
+      },
+      analysis: {
+        analysis,
+        embedding: [],
+        logo: null,
+        tokensUsed: 0,
+      },
+    } as any;
 
-    // Mark completed
-    await supabase
-      .from('hunt_queue')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', item.id);
+    const deps = {
+      supabase,
+      serper: null,
+      gemini: null,
+      inventory: null,
+      logo: null,
+      config: persistenceConfig,
+      withRetry: async <T>(fn: () => Promise<T>) => fn(),
+      log: (message: string) => console.log(`[Stale Persist] [${tool.name}] ${message}`),
+    } as any;
+
+    const persisted = await executePersistencePhase(ctx, deps);
+
+    await queueService.markCompleted(
+      item.id,
+      {
+        toolId: persisted.toolId,
+        contextId: persisted.contextId || undefined,
+        reviewId: persisted.reviewId || undefined,
+      },
+      (message) => console.log(`[Stale Persist] ${message}`)
+    );
+    await queueService.clearCheckpoint(
+      item.id,
+      (message) => console.log(`[Stale Persist] ${message}`)
+    );
 
     console.log(`✅ Stale item processed: ${item.toolName}`);
 

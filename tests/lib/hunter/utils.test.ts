@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { slugify, interpolateTemplate, buildFactSummary } from '@/lib/hunter/utils';
+import { slugify, interpolateTemplate, buildFactSummary, classifySourceType } from '@/lib/hunter/utils';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 
 describe('slugify', () => {
@@ -376,5 +376,25 @@ describe('buildFactSummary', () => {
     const summary = buildFactSummary(card);
 
     expect(summary).toContain('Free Trial: 14 days');
+  });
+});
+
+describe('classifySourceType', () => {
+  it('classifies first-party community subdomains as community', () => {
+    expect(
+      classifySourceType(
+        'https://community.baserow.io/t/example-thread',
+        'https://baserow.io'
+      )
+    ).toBe('community');
+  });
+
+  it('classifies tool root domain as official', () => {
+    expect(classifySourceType('https://baserow.io/pricing', 'https://baserow.io')).toBe('official');
+  });
+
+  it('classifies known editorial and community domains', () => {
+    expect(classifySourceType('https://techradar.com/reviews/tool')).toBe('editorial');
+    expect(classifySourceType('https://reddit.com/r/tool/comments/abc')).toBe('community');
   });
 });

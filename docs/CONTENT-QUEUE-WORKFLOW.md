@@ -29,16 +29,12 @@ npm run queue-ideas -- --min-priority 70 --limit 10
 npm run queue-ideas -- --all --limit 100
 ```
 
-## Current Status (as of 2026-01-23)
+## Live Status
 
-### Content Ideas
-- **200 total ideas** imported
-- **60 queued** (status='queued', avg priority 84.9)
-- **140 pending** (status='pending', avg priority 82.4)
-
-### Hunt Queue
-- **50 pending** - Ready for Hunter to process
-- **10 completed** - Already processed
+Use live data from the app instead of static counts in this document:
+- `/admin` for queue snapshot
+- `/admin/strategy` for content ideas and auto-queue outcomes
+- `/admin/queue` or `/admin/hunt-queue` for detailed queue state
 
 ## Admin Dashboard
 
@@ -79,9 +75,9 @@ Located at `/admin/strategy`:
 - Shows recent content ideas
 - Priority ≥90 items auto-queue to hunt_queue
 
-## Next Steps
+## Operating Loop
 
-1. Check admin dashboard - should show "50 In Queue"
-2. Run worker: `npm run queue:worker`
-3. Monitor results in admin review queue
-4. Queue more ideas as needed with `npm run queue-ideas`
+1. Import ideas into `content_ideas`
+2. Analyze and approve high-ROI ideas to `hunt_queue`
+3. Run worker with `npm run queue:worker`
+4. Review generated drafts in `/admin/review`

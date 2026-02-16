@@ -106,7 +106,18 @@ export function getCanonicalUrl(path: string): string {
  * For complex markdown, use a proper library
  */
 export function simpleMarkdown(text: string): string {
-  return text
+  const sanitizeStructuredClaimMarkdown = (value: string): string =>
+    value.replace(/\{[^{}\n]*"text"[^{}\n]*\}/g, (snippet) => {
+      try {
+        const parsed = JSON.parse(snippet) as Record<string, unknown>;
+        if (typeof parsed.text !== 'string') return snippet;
+        return parsed.text.trim();
+      } catch {
+        return snippet;
+      }
+    });
+
+  return sanitizeStructuredClaimMarkdown(text)
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/\n\n/g, '</p><p>')

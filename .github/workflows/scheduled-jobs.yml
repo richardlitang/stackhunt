@@ -4,6 +4,8 @@ on:
   schedule:
     # Daily hunt queue processing - 6am UTC
     - cron: '0 6 * * *'
+    # QA autopilot cron-safe run - every 6 hours at :30
+    - cron: '30 */6 * * *'
 
   # Allow manual triggers with job selection
   workflow_dispatch:
@@ -14,6 +16,7 @@ on:
         type: choice
         options:
           - hunt-queue
+          - qa-autopilot
 
 env:
   NODE_VERSION: '20'
@@ -94,6 +97,65 @@ jobs:
           if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
             curl -X POST -H 'Content-type: application/json' \
               --data '{"text":"❌ Hunt queue processing failed. Check GitHub Actions logs."}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }}
+          fi
+
+  # ============================================================
+  # EVERY 6 HOURS: QA Autopilot (cron-safe profile)
+  # Recompute quality snapshots, publish safe drafts, queue re-hunts, process queue
+  # ============================================================
+  qa-autopilot:
+    name: QA Autopilot
+    if: github.event.schedule == '30 */6 * * *' || github.event.inputs.job == 'qa-autopilot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run QA autopilot (cron profile)
+        run: npm run qa:autopilot:cron
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{
+                "content": "@here Automation failure!",
+                "embeds": [{
+                  "title": "QA Autopilot Failed",
+                  "description": "Scheduled qa:autopilot:cron failed. Check GitHub Actions logs.",
+                  "color": 16711680,
+                  "fields": [
+                    {"name": "Workflow", "value": "scheduled-jobs.yml", "inline": true},
+                    {"name": "Job", "value": "qa-autopilot", "inline": true}
+                  ],
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }]
+              }' \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
+          fi
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"❌ QA autopilot cron failed. Check GitHub Actions logs."}' \
               ${{ secrets.SLACK_WEBHOOK_URL }}
           fi
 

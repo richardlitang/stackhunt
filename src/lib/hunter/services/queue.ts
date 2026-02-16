@@ -298,13 +298,22 @@ export class QueueService {
       ...data,
     };
 
-    const { error } = await this.supabase.rpc('save_hunt_checkpoint', {
+    const { data: saved, error } = await this.supabase.rpc('save_hunt_checkpoint', {
       p_queue_id: queueId,
       p_phase: phase,
       p_checkpoint: checkpointWithVersion as any,
+      p_expected_version: expectedVersion ?? null,
     });
     if (error) {
       log(`⚠️ Failed to save checkpoint: ${error.message}`);
+      return false;
+    }
+    if (saved === false) {
+      log(
+        `⚠️  Checkpoint conflict detected while saving phase ${phase} (expected version: ${
+          expectedVersion ?? 'any'
+        })`
+      );
       return false;
     }
     log(`Checkpoint saved: phase ${phase}, version ${newVersion}`);

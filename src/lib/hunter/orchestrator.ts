@@ -649,7 +649,8 @@ export class Hunter {
             : undefined,
         queueItemId: queueItem.id,
         huntType: (queueItem.hunt_type as any) || 'full',
-        forceUpdate: queueItem.force_regenerate, // Pass force_regenerate flag to override duplicate detection
+        forceUpdate:
+          Boolean(queueItem.force_regenerate) || queueItem.hunt_type === 'price_only', // Ensure price_only refreshes bypass duplicate short-circuit
         researchDossier: queueItem.research_dossier || undefined, // V5: Pass dossier from Classifier
       });
 

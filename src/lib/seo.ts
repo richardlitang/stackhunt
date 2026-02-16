@@ -202,7 +202,7 @@ export function generateListSchema(
       '@type': 'ListItem',
       position: index + 1,
       name: item.tool.name,
-      url: getCanonicalUrl(`/tools/${item.tool.slug}`),
+      url: getCanonicalUrl(`/tool/${item.tool.slug}`),
       item: {
         '@type': 'SoftwareApplication',
         name: item.tool.name,

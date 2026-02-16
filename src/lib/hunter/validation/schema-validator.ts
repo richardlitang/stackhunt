@@ -10,6 +10,28 @@
 import { z } from 'zod';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 
+const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
+const INCOMPLETE_CLAUSE_ENDING =
+  /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/i;
+const COMMUNITY_HEDGING_PREFIX =
+  /^(users report(?: that)?|community (?:reports|mentions|consensus (?:is|suggests)|feedback)|according to (?:reddit|hn|community)|based on user discussions)/i;
+
+function normalizeClaimText(text: string): string {
+  return text
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(TERMINAL_PUNCTUATION, '')
+    .trim();
+}
+
+function isLikelyIncompleteClaim(text: string): boolean {
+  const normalized = normalizeClaimText(text);
+  if (!normalized) return true;
+  if (normalized.length < 12) return false;
+  return INCOMPLETE_CLAUSE_ENDING.test(normalized);
+}
+
 /**
  * Validation severity levels
  */
@@ -251,8 +273,8 @@ export function validateKnowledgeCard(
  */
 export function validateAnalysis(analysis: {
   score: number;
-  pros: Array<{ text: string; source?: string }>;
-  cons: Array<{ text: string; source?: string }>;
+  pros: Array<{ text: string; source?: string; source_type?: string; claim_type?: string }>;
+  cons: Array<{ text: string; source?: string; source_type?: string; claim_type?: string }>;
   summary: string;
   graphTags: {
     functions: string[];
@@ -311,6 +333,31 @@ export function validateAnalysis(analysis: {
     });
   }
 
+  const allClaims = [...analysis.pros, ...analysis.cons];
+  const malformedClaimCount = allClaims.filter(
+    (claim) => !claim?.text || isLikelyIncompleteClaim(claim.text)
+  ).length;
+  if (malformedClaimCount > 0) {
+    validations.push({
+      field: 'pros_cons',
+      severity: 'warning',
+      message: `${malformedClaimCount}/${allClaims.length} claims look malformed or truncated`,
+    });
+  }
+
+  const officialCommunityHedgingCount = allClaims.filter((claim) => {
+    const sourceType = (claim.source_type || '').toLowerCase();
+    if (sourceType !== 'official') return false;
+    return COMMUNITY_HEDGING_PREFIX.test(normalizeClaimText(claim.text || ''));
+  }).length;
+  if (officialCommunityHedgingCount > 0) {
+    validations.push({
+      field: 'pros_cons',
+      severity: 'warning',
+      message: `${officialCommunityHedgingCount} claims use community-style hedging but cite official sources`,
+    });
+  }
+
   // 4. Summary length check
   if (analysis.summary.length < 50) {
     validations.push({
@@ -350,6 +397,8 @@ export function validateAnalysis(analysis: {
     { check: analysis.graphTags.audiences.length > 0, weight: 10 },
     { check: prosWithoutSources === 0, weight: 5 },
     { check: consWithoutSources === 0, weight: 5 },
+    { check: malformedClaimCount === 0, weight: 10 },
+    { check: officialCommunityHedgingCount === 0, weight: 5 },
   ];
 
   const maxScore = qualityChecks.reduce((sum, { weight }) => sum + weight, 0);
@@ -357,13 +406,14 @@ export function validateAnalysis(analysis: {
     .filter(({ check }) => check)
     .reduce((sum, { weight }) => sum + weight, 0);
   const score = Math.round((actualScore / maxScore) * 100);
+  const hasBlockingClaimIssues = malformedClaimCount > 0 || officialCommunityHedgingCount > 0;
 
   return {
     isValid: errorCount === 0,
     score,
     validations,
-    shouldPublish: errorCount === 0 && score >= 60,
-    humanReviewRequired: score < 80,
+    shouldPublish: errorCount === 0 && score >= 60 && !hasBlockingClaimIssues,
+    humanReviewRequired: score < 80 || hasBlockingClaimIssues,
   };
 }
 

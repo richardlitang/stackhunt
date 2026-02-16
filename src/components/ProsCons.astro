@@ -36,6 +36,23 @@ const { pros, cons, title, showSources = true, sourceDisplay } = Astro.props;
 const resolvedSourceDisplay =
   (sourceDisplay === 'toggle' ? 'block' : sourceDisplay) || (showSources ? 'block' : 'hidden');
 
+const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
+const stripControlChars = (value: string): string =>
+  value
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+const isLikelyIncompleteClause = (value: string): boolean => {
+  const text = stripControlChars(value).replace(TERMINAL_PUNCTUATION, '').trim();
+  if (!text) return true;
+  const lower = text.toLowerCase();
+  if (lower.length < 12) return false;
+  return /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/.test(
+    lower
+  );
+};
+
 // Hedging prefixes for different source types
 const HEDGING_PREFIXES: Record<SourceType, string[]> = {
   community: [
@@ -53,7 +70,18 @@ function normalizeClaim(
   index: number
 ): ClaimWithSource & { displayText: string; formattedDate: string | null } {
   if (typeof item === 'string') {
-    return { text: item, displayText: item, formattedDate: null };
+    let cleaned = stripControlChars(item);
+    if (cleaned.startsWith('{') && cleaned.includes('"text"')) {
+      try {
+        const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+        if (typeof parsed.text === 'string') {
+          cleaned = stripControlChars(parsed.text);
+        }
+      } catch {
+        // Keep raw string when JSON parsing fails.
+      }
+    }
+    return { text: cleaned, displayText: cleaned, formattedDate: null };
   }
 
   // Determine if we need hedging
@@ -61,7 +89,7 @@ function normalizeClaim(
     item.source_type === 'community' ||
     (item.claim_type === 'opinion' && item.source_type !== 'official');
 
-  let displayText = item.text;
+  let displayText = stripControlChars(item.text);
   if (needsHedging && item.source_type) {
     const prefixes = HEDGING_PREFIXES[item.source_type];
     if (prefixes.length > 0) {
@@ -71,11 +99,20 @@ function normalizeClaim(
     }
   }
 
-  return { ...item, displayText, formattedDate: formatTimestamp(item.retrieved_at) };
+  return {
+    ...item,
+    text: stripControlChars(item.text),
+    displayText: stripControlChars(displayText),
+    formattedDate: formatTimestamp(item.retrieved_at),
+  };
 }
 
-const normalizedPros = pros.map((item, i) => normalizeClaim(item, i));
-const normalizedCons = cons.map((item, i) => normalizeClaim(item, i));
+const normalizedPros = pros
+  .map((item, i) => normalizeClaim(item, i))
+  .filter((item) => item.displayText && !isLikelyIncompleteClause(item.displayText));
+const normalizedCons = cons
+  .map((item, i) => normalizeClaim(item, i))
+  .filter((item) => item.displayText && !isLikelyIncompleteClause(item.displayText));
 const evidenceBackedPros = normalizedPros.filter((item) => Boolean(item.source_url));
 const evidenceBackedCons = normalizedCons.filter((item) => Boolean(item.source_url));
 const hasEvidenceBackedClaims = evidenceBackedPros.length > 0 || evidenceBackedCons.length > 0;

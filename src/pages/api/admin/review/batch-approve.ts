@@ -8,6 +8,7 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { ApiResponse } from '@/lib/api-response';
+import { refreshQualityGateSnapshotForItem } from '@/lib/quality-gate-snapshot';
 
 export const prerender = false;
 
@@ -31,11 +32,16 @@ export const POST: APIRoute = async ({ request }) => {
         })
         .in('id', body.ids)
         .in('status', ['draft', 'review'])
-        .select('id');
+        .select('id, item_id');
 
       if (error) {
         console.error('Batch approve error:', error);
         return ApiResponse.internalError('Failed to approve reviews');
+      }
+
+      for (const review of data || []) {
+        if (!review.item_id) continue;
+        await refreshQualityGateSnapshotForItem(admin as any, review.item_id, review.id);
       }
 
       return ApiResponse.ok({
@@ -91,11 +97,16 @@ export const POST: APIRoute = async ({ request }) => {
         published_at: new Date().toISOString(),
       })
       .in('id', eligibleIds)
-      .select('id');
+      .select('id, item_id');
 
     if (updateError) {
       console.error('Update error:', updateError);
       return ApiResponse.internalError('Failed to approve reviews');
+    }
+
+    for (const review of approved || []) {
+      if (!review.item_id) continue;
+      await refreshQualityGateSnapshotForItem(admin as any, review.item_id, review.id);
     }
 
     return ApiResponse.ok({

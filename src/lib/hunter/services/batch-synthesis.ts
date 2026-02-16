@@ -65,6 +65,16 @@ export interface BatchSynthesisResult {
   errors: Array<{ toolName: string; error: string }>;
 }
 
+function getPolicyEligibleSources(
+  sources: BatchSynthesisInput['researchData']['scoutResult']['raw_sources']
+) {
+  return sources.filter(
+    (source) =>
+      source.policy?.acquisition_mode === 'SCRAPE_ALLOWED' &&
+      source.policy?.llm_ingestion_allowed !== 'NO'
+  );
+}
+
 export class BatchSynthesisService {
   private client: GoogleGenAI;
   private apiKey: string;
@@ -246,7 +256,9 @@ export class BatchSynthesisService {
   private buildToolPrompt(input: BatchSynthesisInput): string {
     const factSummary = buildFactSummary(input.researchData.knowledgeCard);
     const scout = input.researchData.scoutResult;
-    const snippetBuckets = buildSnippetBucketsFromScout(scout.raw_sources);
+    const eligibleSources = getPolicyEligibleSources(scout.raw_sources);
+    const promptSources = eligibleSources.length > 0 ? eligibleSources : scout.raw_sources;
+    const snippetBuckets = buildSnippetBucketsFromScout(promptSources);
 
     return `
 TOOL: ${input.toolName}
@@ -271,7 +283,7 @@ ${snippetBuckets.budgetAnalystSnippets.join('\n')}
 ${snippetBuckets.tribalKnowledgeSnippets.join('\n')}
 
 === SOURCES (Use these URLs for source_url) ===
-${scout.raw_sources
+${promptSources
   .slice(0, 20)
   .map((s) => `- ${s.url} (${s.domain}): ${s.title}`)
   .join('\n')}
@@ -378,7 +390,9 @@ Follow these rules:
 
   const factSummary = buildFactSummary(input.researchData.knowledgeCard);
   const scout = input.researchData.scoutResult;
-  const snippetBuckets = buildSnippetBucketsFromScout(scout.raw_sources);
+  const eligibleSources = getPolicyEligibleSources(scout.raw_sources);
+  const promptSources = eligibleSources.length > 0 ? eligibleSources : scout.raw_sources;
+  const snippetBuckets = buildSnippetBucketsFromScout(promptSources);
 
   const prompt = `${systemPrompt}
 
