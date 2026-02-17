@@ -6,13 +6,47 @@
 
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { getAdminClient } from '@/lib/supabase';
+import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 
 type ReviewClaim = string | { text?: string | null } | null;
+type StructuredClaim = {
+  text: string;
+  source_url?: string;
+  source_type?: string;
+  claim_type?: string;
+  claim_kind?: string;
+};
 
 function claimText(claim: ReviewClaim): string {
   if (typeof claim === 'string') return claim.trim();
   if (claim && typeof claim === 'object' && typeof claim.text === 'string') return claim.text.trim();
   return '';
+}
+
+function normalizeClaim(claim: unknown): StructuredClaim | null {
+  if (typeof claim === 'string') {
+    const text = claim.trim();
+    return text ? { text } : null;
+  }
+  if (!claim || typeof claim !== 'object') return null;
+  const value = claim as Record<string, unknown>;
+  const text = typeof value.text === 'string' ? value.text.trim() : '';
+  if (!text) return null;
+  return {
+    text,
+    ...(typeof value.source_url === 'string' && value.source_url.trim()
+      ? { source_url: value.source_url.trim() }
+      : {}),
+    ...(typeof value.source_type === 'string' && value.source_type.trim()
+      ? { source_type: value.source_type.trim() }
+      : {}),
+    ...(typeof value.claim_type === 'string' && value.claim_type.trim()
+      ? { claim_type: value.claim_type.trim() }
+      : {}),
+    ...(typeof value.claim_kind === 'string' && value.claim_kind.trim()
+      ? { claim_kind: value.claim_kind.trim() }
+      : {}),
+  };
 }
 
 const { id } = Astro.params;
@@ -42,6 +76,26 @@ const existingFaqs = Array.isArray(toolMetadata?.faqs) ? toolMetadata.faqs : [];
 const faqJsonValue = JSON.stringify(existingFaqs, null, 2);
 const prosLines = ((review.pros as ReviewClaim[]) || []).map(claimText).filter(Boolean);
 const consLines = ((review.cons as ReviewClaim[]) || []).map(claimText).filter(Boolean);
+const prosClaims = ((review.pros as unknown[]) || []).map(normalizeClaim).filter(Boolean) as StructuredClaim[];
+const consClaims = ((review.cons as unknown[]) || []).map(normalizeClaim).filter(Boolean) as StructuredClaim[];
+const claimsJson = JSON.stringify({ pros: prosClaims, cons: consClaims });
+
+const itemForGate = {
+  id: review.item_id,
+  metadata: tool?.metadata,
+  specs: tool?.specs,
+  pricing_confidence: tool?.pricing_confidence,
+  pricing_verified_at: tool?.pricing_verified_at,
+  short_description: tool?.short_description,
+  verdict: tool?.verdict,
+  updated_at: tool?.updated_at,
+};
+
+const publishGate = evaluateStrictPublishGate(itemForGate as any, {
+  summary_markdown: review.summary_markdown,
+  cons: review.cons,
+  sources: review.sources,
+} as any);
 ---
 
 <AdminLayout title={`Review: ${tool?.name || 'Unknown'}`}>
@@ -192,6 +246,85 @@ const consLines = ((review.cons as ReviewClaim[]) || []).map(claimText).filter(B
               class="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
               >{consLines.join('\n')}</textarea
             >
+          </div>
+        </div>
+        <input type="hidden" name="claims_payload" id="claims-payload" value="" />
+
+        <!-- Claim Evidence -->
+        <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-800">Claim Evidence</h3>
+              <p class="mt-1 text-xs text-slate-500">
+                Edit source URLs and source types for pros/cons claims. Claim text comes from the
+                Pros/Cons fields above.
+              </p>
+            </div>
+            <button
+              type="button"
+              id="sync-evidence-btn"
+              class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Sync with Pros/Cons
+            </button>
+          </div>
+          <div class="grid gap-6 lg:grid-cols-2">
+            <div>
+              <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pros Evidence</h4>
+              <div id="pros-evidence-rows" class="mt-2 space-y-2"></div>
+            </div>
+            <div>
+              <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Cons Evidence</h4>
+              <div id="cons-evidence-rows" class="mt-2 space-y-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Patch Assistant -->
+        <div class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-6 space-y-4">
+          <div>
+            <h3 class="text-sm font-semibold text-indigo-900">AI Patch Assistant</h3>
+            <p class="mt-1 text-xs text-indigo-700">
+              Generate an editable patch for specific sections. Nothing is saved until you click save.
+            </p>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <select
+              id="ai-section"
+              class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            >
+              <option value="all">All sections</option>
+              <option value="summary">Summary only</option>
+              <option value="pros">Pros only</option>
+              <option value="cons">Cons only</option>
+              <option value="faq">FAQ only</option>
+            </select>
+            <textarea
+              id="ai-instruction"
+              rows="2"
+              placeholder="e.g. tighten summary, remove generic claims, verify pricing wording"
+              class="sm:col-span-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            ></textarea>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              id="ai-generate-btn"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Generate Patch
+            </button>
+            <button
+              type="button"
+              id="ai-apply-btn"
+              class="rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+            >
+              Apply Patch
+            </button>
+            <span id="ai-status" class="text-xs text-indigo-700"></span>
+          </div>
+          <div id="ai-preview" class="hidden rounded-lg border border-indigo-200 bg-white p-3 text-xs text-slate-700">
+            <pre id="ai-preview-text" class="whitespace-pre-wrap"></pre>
           </div>
         </div>
 
@@ -429,6 +562,35 @@ const consLines = ((review.cons as ReviewClaim[]) || []).map(claimText).filter(B
         </ul>
       </div>
 
+      <!-- Publish Gate -->
+      <div class="rounded-xl border border-slate-200 bg-white p-6">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="font-semibold text-slate-900">Publish Checks</h3>
+          <button
+            type="button"
+            id="check-publish-btn"
+            class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Re-check
+          </button>
+        </div>
+        <div class="mt-3">
+          <div class={`text-sm font-medium ${publishGate.pass ? 'text-green-700' : 'text-red-700'}`}>
+            {publishGate.pass ? 'Ready to publish' : 'Blocked'}
+          </div>
+          <div class="mt-1 text-xs text-slate-500">
+            Evidence grade: {publishGate.evidenceGrade} · Pricing confidence: {publishGate.metrics.pricingConfidence}
+          </div>
+          <ul id="publish-blockers-list" class="mt-3 space-y-1 text-xs text-red-700">
+            {publishGate.blockers.length > 0 ? (
+              publishGate.blockers.map((blocker) => <li>• {blocker}</li>)
+            ) : (
+              <li class="text-green-700">• No blockers detected</li>
+            )}
+          </ul>
+        </div>
+      </div>
+
       <!-- Keyboard Shortcuts -->
       <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
         <div class="flex items-center gap-2 text-xs text-slate-500">
@@ -439,12 +601,258 @@ const consLines = ((review.cons as ReviewClaim[]) || []).map(claimText).filter(B
     </div>
   </div>
 
-  <script is:inline>
-    // Intercept form submission for better UX
+  <script is:inline define:vars={{ claimsJson, id }}>
+    const reviewId = id;
     const form = document.getElementById('review-form');
+    const prosTextarea = form?.querySelector('textarea[name="pros"]');
+    const consTextarea = form?.querySelector('textarea[name="cons"]');
+    const faqTextarea = form?.querySelector('textarea[name="faq_json"]');
+    const summaryTextarea = form?.querySelector('textarea[name="summary_markdown"]');
+    const claimsPayloadInput = document.getElementById('claims-payload');
+    const prosEvidenceRows = document.getElementById('pros-evidence-rows');
+    const consEvidenceRows = document.getElementById('cons-evidence-rows');
+    const syncEvidenceBtn = document.getElementById('sync-evidence-btn');
+    const aiSectionEl = document.getElementById('ai-section');
+    const aiInstructionEl = document.getElementById('ai-instruction');
+    const aiGenerateBtn = document.getElementById('ai-generate-btn');
+    const aiApplyBtn = document.getElementById('ai-apply-btn');
+    const aiStatusEl = document.getElementById('ai-status');
+    const aiPreviewEl = document.getElementById('ai-preview');
+    const aiPreviewTextEl = document.getElementById('ai-preview-text');
+    const checkPublishBtn = document.getElementById('check-publish-btn');
+    const publishBlockersList = document.getElementById('publish-blockers-list');
+
+    let aiProposal = null;
+
+    function setAiStatus(message) {
+      if (aiStatusEl) aiStatusEl.textContent = message;
+    }
+
+    function normalize(text) {
+      return String(text || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    function getLines(textarea) {
+      if (!textarea) return [];
+      return textarea.value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    }
+
+    function parseInitialClaims() {
+      try {
+        const parsed = JSON.parse(claimsJson);
+        return {
+          pros: Array.isArray(parsed?.pros) ? parsed.pros : [],
+          cons: Array.isArray(parsed?.cons) ? parsed.cons : [],
+        };
+      } catch {
+        return { pros: [], cons: [] };
+      }
+    }
+
+    const initialClaims = parseInitialClaims();
+
+    function renderEvidenceRows(kind) {
+      const target = kind === 'pros' ? prosEvidenceRows : consEvidenceRows;
+      const sourceTextarea = kind === 'pros' ? prosTextarea : consTextarea;
+      if (!target || !sourceTextarea) return;
+
+      const lines = getLines(sourceTextarea);
+      const byText = new Map();
+      const existingClaims = kind === 'pros' ? initialClaims.pros : initialClaims.cons;
+
+      for (const claim of existingClaims) {
+        if (!claim || typeof claim !== 'object') continue;
+        const key = normalize(claim.text);
+        if (!key || byText.has(key)) continue;
+        byText.set(key, claim);
+      }
+
+      target.innerHTML = '';
+      if (lines.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'text-xs text-slate-400';
+        empty.textContent = 'No claims yet.';
+        target.appendChild(empty);
+        return;
+      }
+
+      for (const line of lines) {
+        const existing = byText.get(normalize(line)) || {};
+        const row = document.createElement('div');
+        row.className = 'rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-2';
+        row.dataset.claimKind = kind;
+        row.dataset.claimText = line;
+
+        const label = document.createElement('div');
+        label.className = 'text-xs font-medium text-slate-700';
+        label.textContent = line;
+
+        const sourceUrlInput = document.createElement('input');
+        sourceUrlInput.type = 'url';
+        sourceUrlInput.className =
+          'claim-source-url w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs';
+        sourceUrlInput.placeholder = 'Source URL (optional)';
+        sourceUrlInput.value = existing?.source_url || '';
+
+        const sourceTypeInput = document.createElement('input');
+        sourceTypeInput.type = 'text';
+        sourceTypeInput.className =
+          'claim-source-type w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs';
+        sourceTypeInput.placeholder = 'Source type (official/docs/support)';
+        sourceTypeInput.value = existing?.source_type || '';
+
+        row.appendChild(label);
+        row.appendChild(sourceUrlInput);
+        row.appendChild(sourceTypeInput);
+        target.appendChild(row);
+      }
+    }
+
+    function buildClaimsPayload(kind) {
+      const target = kind === 'pros' ? prosEvidenceRows : consEvidenceRows;
+      if (!target) return [];
+      const rows = target.querySelectorAll('[data-claim-kind]');
+      const claims = [];
+      for (const row of rows) {
+        const text = (row.dataset.claimText || '').trim();
+        if (!text) continue;
+        const sourceUrl = row.querySelector('.claim-source-url')?.value?.trim() || '';
+        const sourceType = row.querySelector('.claim-source-type')?.value?.trim() || '';
+        claims.push({
+          text,
+          ...(sourceUrl ? { source_url: sourceUrl } : {}),
+          ...(sourceType ? { source_type: sourceType } : {}),
+        });
+      }
+      return claims;
+    }
+
+    function refreshClaimsPayload() {
+      if (!claimsPayloadInput) return;
+      const payload = {
+        pros: buildClaimsPayload('pros'),
+        cons: buildClaimsPayload('cons'),
+      };
+      claimsPayloadInput.value = JSON.stringify(payload);
+    }
+
+    function wireEvidenceListeners() {
+      [prosEvidenceRows, consEvidenceRows].forEach((container) => {
+        if (!container) return;
+        container.querySelectorAll('input').forEach((input) => {
+          input.addEventListener('input', refreshClaimsPayload);
+        });
+      });
+    }
+
+    function syncEvidence() {
+      renderEvidenceRows('pros');
+      renderEvidenceRows('cons');
+      wireEvidenceListeners();
+      refreshClaimsPayload();
+    }
+
+    async function checkPublishGate() {
+      if (!publishBlockersList) return;
+      publishBlockersList.innerHTML = '<li class="text-slate-500">• Checking...</li>';
+      try {
+        const res = await fetch(`/api/admin/review/${reviewId}/publish-check`);
+        const json = await res.json();
+        const data = json?.data;
+        if (!res.ok || !data) throw new Error('Publish check failed');
+        const blockers = Array.isArray(data.blockers) ? data.blockers : [];
+        publishBlockersList.innerHTML = '';
+        if (blockers.length === 0) {
+          publishBlockersList.innerHTML = '<li class="text-green-700">• No blockers detected</li>';
+          return;
+        }
+        blockers.forEach((blocker) => {
+          const li = document.createElement('li');
+          li.textContent = `• ${blocker}`;
+          publishBlockersList.appendChild(li);
+        });
+      } catch {
+        publishBlockersList.innerHTML =
+          '<li class="text-red-700">• Failed to load publish blockers</li>';
+      }
+    }
+
+    function applyProposal(proposal) {
+      if (!proposal) return;
+      if (typeof proposal.summary_markdown === 'string' && summaryTextarea) {
+        summaryTextarea.value = proposal.summary_markdown;
+      }
+      if (Array.isArray(proposal.pros) && prosTextarea) {
+        prosTextarea.value = proposal.pros.map((claim) => claim?.text || '').filter(Boolean).join('\n');
+        initialClaims.pros = proposal.pros;
+      }
+      if (Array.isArray(proposal.cons) && consTextarea) {
+        consTextarea.value = proposal.cons.map((claim) => claim?.text || '').filter(Boolean).join('\n');
+        initialClaims.cons = proposal.cons;
+      }
+      if (Array.isArray(proposal.faq_json) && faqTextarea) {
+        faqTextarea.value = JSON.stringify(proposal.faq_json, null, 2);
+      }
+      syncEvidence();
+      setAiStatus('Patch applied to form. Save to persist changes.');
+    }
+
+    async function generateAiPatch() {
+      const section = aiSectionEl?.value || 'all';
+      const instruction = aiInstructionEl?.value?.trim() || '';
+      if (!instruction) {
+        setAiStatus('Enter instructions first.');
+        return;
+      }
+
+      setAiStatus('Generating patch...');
+      if (aiGenerateBtn) aiGenerateBtn.disabled = true;
+
+      try {
+        const res = await fetch(`/api/admin/review/${reviewId}/ai-fix`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            section,
+            instruction,
+            current: {
+              summary_markdown: summaryTextarea?.value || '',
+              pros: getLines(prosTextarea),
+              cons: getLines(consTextarea),
+              faq_json: faqTextarea?.value || '[]',
+            },
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json?.data?.proposal) {
+          throw new Error(json?.error?.message || 'Generation failed');
+        }
+
+        aiProposal = json.data.proposal;
+        if (aiPreviewEl) aiPreviewEl.classList.remove('hidden');
+        if (aiPreviewTextEl) aiPreviewTextEl.textContent = JSON.stringify(aiProposal, null, 2);
+        setAiStatus('Patch ready. Review and apply when ready.');
+      } catch {
+        setAiStatus('Failed to generate patch.');
+      } finally {
+        if (aiGenerateBtn) aiGenerateBtn.disabled = false;
+      }
+    }
+
+    syncEvidence();
+
+    prosTextarea?.addEventListener('blur', syncEvidence);
+    consTextarea?.addEventListener('blur', syncEvidence);
+    syncEvidenceBtn?.addEventListener('click', syncEvidence);
+    checkPublishBtn?.addEventListener('click', checkPublishGate);
+    aiGenerateBtn?.addEventListener('click', generateAiPatch);
+    aiApplyBtn?.addEventListener('click', () => applyProposal(aiProposal));
 
     form?.addEventListener('submit', async (e) => {
-      // Only intercept save action for instant feedback
+      refreshClaimsPayload();
       const submitter = e.submitter;
       if (submitter?.value === 'reject') {
         e.preventDefault();

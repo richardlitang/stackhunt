@@ -23,6 +23,11 @@ interface StructuredClaim {
   comparison_basis_source_url?: string;
 }
 
+interface ClaimsPayload {
+  pros?: StructuredClaim[];
+  cons?: StructuredClaim[];
+}
+
 function normalizeClaimText(text: string): string {
   return text.trim().replace(/\s+/g, ' ').toLowerCase();
 }
@@ -70,6 +75,57 @@ function preserveClaimAttribution(
   });
 }
 
+function parseClaimsPayload(raw: string | null): ClaimsPayload | null {
+  if (!raw || !raw.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as ClaimsPayload;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeClaimEvidence(raw: unknown): StructuredClaim[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((value) => {
+      if (!value || typeof value !== 'object') return null;
+      const claim = value as Record<string, unknown>;
+      const text = typeof claim.text === 'string' ? claim.text.trim() : '';
+      if (!text) return null;
+      const source_url = typeof claim.source_url === 'string' ? claim.source_url.trim() : undefined;
+      const source_type = typeof claim.source_type === 'string' ? claim.source_type.trim() : undefined;
+      return {
+        text,
+        ...(source_url ? { source_url } : {}),
+        ...(source_type ? { source_type } : {}),
+      };
+    })
+    .filter((claim): claim is StructuredClaim => Boolean(claim));
+}
+
+function applyEvidenceOverrides(
+  claims: Array<string | StructuredClaim>,
+  evidenceClaims: StructuredClaim[]
+): Array<string | StructuredClaim> {
+  if (evidenceClaims.length === 0) return claims;
+  const byText = new Map<string, StructuredClaim>();
+  for (const claim of evidenceClaims) {
+    byText.set(normalizeClaimText(claim.text), claim);
+  }
+  return claims.map((claim) => {
+    const text = claimText(claim);
+    if (!text) return claim;
+    const evidence = byText.get(normalizeClaimText(text));
+    if (!evidence) return claim;
+    const next = typeof claim === 'string' ? { text } : { ...(claim as StructuredClaim), text };
+    if (evidence.source_url) next.source_url = evidence.source_url;
+    if (evidence.source_type) next.source_type = evidence.source_type;
+    return next;
+  });
+}
+
 export const POST: APIRoute = async ({ params, request }) => {
   const { id } = params;
 
@@ -91,6 +147,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     const tagsRaw = formData.get('sentiment_tags') as string;
     const reviewerNotes = formData.get('reviewer_notes') as string;
     const faqJsonRaw = (formData.get('faq_json') as string) || '[]';
+    const claimsPayloadRaw = (formData.get('claims_payload') as string | null) || null;
 
     // Parse arrays
     const prosLines = prosRaw
@@ -128,6 +185,15 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     const pros = preserveClaimAttribution(prosLines, existingReview.pros);
     const cons = preserveClaimAttribution(consLines, existingReview.cons);
+    const claimsPayload = parseClaimsPayload(claimsPayloadRaw);
+    const prosWithEvidence = applyEvidenceOverrides(
+      pros,
+      sanitizeClaimEvidence(claimsPayload?.pros)
+    );
+    const consWithEvidence = applyEvidenceOverrides(
+      cons,
+      sanitizeClaimEvidence(claimsPayload?.cons)
+    );
 
     const { data: itemRow, error: itemFetchError } = await admin
       .from('items')
@@ -142,8 +208,8 @@ export const POST: APIRoute = async ({ params, request }) => {
     const updateData: Record<string, unknown> = {
       score,
       summary_markdown: summaryMarkdown,
-      pros,
-      cons,
+      pros: prosWithEvidence,
+      cons: consWithEvidence,
       sentiment_tags: sentimentTags,
       reviewer_notes: reviewerNotes,
       updated_at: new Date().toISOString(),
@@ -153,7 +219,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     if (action === 'publish') {
       const gate = evaluateStrictPublishGate(itemRow as any, {
         summary_markdown: summaryMarkdown,
-        cons,
+        cons: consWithEvidence,
         sources: existingReview.sources,
       } as any);
       if (!gate.pass) {
