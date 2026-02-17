@@ -7,6 +7,14 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { getAdminClient } from '@/lib/supabase';
 
+type ReviewClaim = string | { text?: string | null } | null;
+
+function claimText(claim: ReviewClaim): string {
+  if (typeof claim === 'string') return claim.trim();
+  if (claim && typeof claim === 'object' && typeof claim.text === 'string') return claim.text.trim();
+  return '';
+}
+
 const { id } = Astro.params;
 const admin = getAdminClient();
 
@@ -32,6 +40,8 @@ const context = review.context as Record<string, unknown> | null;
 const toolMetadata = (tool?.metadata as Record<string, unknown> | null) || null;
 const existingFaqs = Array.isArray(toolMetadata?.faqs) ? toolMetadata.faqs : [];
 const faqJsonValue = JSON.stringify(existingFaqs, null, 2);
+const prosLines = ((review.pros as ReviewClaim[]) || []).map(claimText).filter(Boolean);
+const consLines = ((review.cons as ReviewClaim[]) || []).map(claimText).filter(Boolean);
 ---
 
 <AdminLayout title={`Review: ${tool?.name || 'Unknown'}`}>
@@ -168,7 +178,7 @@ const faqJsonValue = JSON.stringify(existingFaqs, null, 2);
               name="pros"
               rows="5"
               class="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
-              >{((review.pros as string[]) || []).join('\n')}</textarea
+              >{prosLines.join('\n')}</textarea
             >
           </div>
 
@@ -180,7 +190,7 @@ const faqJsonValue = JSON.stringify(existingFaqs, null, 2);
               name="cons"
               rows="5"
               class="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
-              >{((review.cons as string[]) || []).join('\n')}</textarea
+              >{consLines.join('\n')}</textarea
             >
           </div>
         </div>

@@ -174,6 +174,40 @@ const draftsJson = JSON.stringify(drafts || []);
     let currentIndex = 0;
     let isSubmitting = false;
 
+    const claimToText = (claim) => {
+      if (typeof claim === 'string') return claim.trim();
+      if (claim && typeof claim === 'object' && typeof claim.text === 'string') return claim.text.trim();
+      return '';
+    };
+
+    const normalizeClaims = (claims) =>
+      Array.isArray(claims) ? claims.map(claimToText).filter(Boolean) : [];
+
+    const updateClaimAt = (claims, index, newValue) => {
+      const nextClaims = Array.isArray(claims) ? [...claims] : [];
+      const currentClaim = nextClaims[index];
+      if (
+        currentClaim &&
+        typeof currentClaim === 'object' &&
+        !Array.isArray(currentClaim)
+      ) {
+        nextClaims[index] = { ...currentClaim, text: newValue };
+      } else {
+        nextClaims[index] = newValue;
+      }
+      return nextClaims;
+    };
+
+    const escapeHtml = (value) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const escapeAttr = (value) => escapeHtml(value).replace(/`/g, '&#96;');
+
     // DOM elements
     const root = document.getElementById('speed-review-root');
     const prevBtn = document.getElementById('prev-btn');
@@ -193,6 +227,8 @@ const draftsJson = JSON.stringify(drafts || []);
       const dataQuality = meta.data_quality || 'low';
       const context = draft.context;
       const sources = draft.sources || [];
+      const pros = normalizeClaims(draft.pros);
+      const cons = normalizeClaims(draft.cons);
 
       // Update navigation
       currentIndexEl.textContent = currentIndex + 1;
@@ -302,10 +338,10 @@ const draftsJson = JSON.stringify(drafts || []);
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Pros</h3>
                 <ul class="space-y-2" id="pros-list">
-                  ${(draft.pros || []).map((pro, i) => `
+                  ${pros.map((pro, i) => `
                     <li class="flex items-start gap-2 text-sm">
                       <span class="text-green-500 mt-0.5">✓</span>
-                      <span contenteditable="true" data-field="pro-${i}" data-original="${pro}" class="text-slate-600 outline-none focus:bg-slate-50 px-1 -mx-1 rounded">${pro}</span>
+                      <span contenteditable="true" data-field="pro-${i}" data-original="${escapeAttr(pro)}" class="text-slate-600 outline-none focus:bg-slate-50 px-1 -mx-1 rounded">${escapeHtml(pro)}</span>
                     </li>
                   `).join('')}
                 </ul>
@@ -313,10 +349,10 @@ const draftsJson = JSON.stringify(drafts || []);
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Cons</h3>
                 <ul class="space-y-2" id="cons-list">
-                  ${(draft.cons || []).map((con, i) => `
+                  ${cons.map((con, i) => `
                     <li class="flex items-start gap-2 text-sm">
                       <span class="text-red-500 mt-0.5">✗</span>
-                      <span contenteditable="true" data-field="con-${i}" data-original="${con}" class="text-slate-600 outline-none focus:bg-slate-50 px-1 -mx-1 rounded">${con}</span>
+                      <span contenteditable="true" data-field="con-${i}" data-original="${escapeAttr(con)}" class="text-slate-600 outline-none focus:bg-slate-50 px-1 -mx-1 rounded">${escapeHtml(con)}</span>
                     </li>
                   `).join('')}
                 </ul>
@@ -413,14 +449,12 @@ const draftsJson = JSON.stringify(drafts || []);
         }
       } else if (field.startsWith('pro-')) {
         const index = parseInt(field.split('-')[1], 10);
-        const newPros = [...(draft.pros || [])];
-        newPros[index] = newValue;
+        const newPros = updateClaimAt(draft.pros, index, newValue);
         apiField = 'pros';
         apiValue = newPros;
       } else if (field.startsWith('con-')) {
         const index = parseInt(field.split('-')[1], 10);
-        const newCons = [...(draft.cons || [])];
-        newCons[index] = newValue;
+        const newCons = updateClaimAt(draft.cons, index, newValue);
         apiField = 'cons';
         apiValue = newCons;
       }

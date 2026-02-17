@@ -7,6 +7,14 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { getAdminClient } from '@/lib/supabase';
 
+type ReviewClaim = string | { text?: string | null } | null;
+
+function claimText(claim: ReviewClaim): string {
+  if (typeof claim === 'string') return claim.trim();
+  if (claim && typeof claim === 'object' && typeof claim.text === 'string') return claim.text.trim();
+  return '';
+}
+
 const admin = getAdminClient();
 
 // Get filter from URL
@@ -271,6 +279,14 @@ for (let i = 0; i < Math.min(5, totalPages); i++) {
             const pricingType = (tool as any)?.pricing_type as string | null;
             const summaryPreview = ((draft.summary_markdown as string) || '').slice(0, 150);
             const sourceCount = Array.isArray(draft.sources) ? draft.sources.length : 0;
+            const prosPreview = ((draft.pros as ReviewClaim[]) || [])
+              .map(claimText)
+              .filter(Boolean)
+              .slice(0, 2);
+            const consPreview = ((draft.cons as ReviewClaim[]) || [])
+              .map(claimText)
+              .filter(Boolean)
+              .slice(0, 2);
 
             return (
               <div
@@ -371,7 +387,7 @@ for (let i = 0; i < Math.min(5, totalPages); i++) {
                       <div>
                         <h4 class="text-xs font-medium uppercase text-slate-400">Pros</h4>
                         <ul class="mt-1 space-y-0.5">
-                          {((draft.pros as string[]) || []).slice(0, 2).map((pro) => (
+                          {prosPreview.map((pro) => (
                             <li class="flex items-start gap-1 text-sm text-slate-600">
                               <span class="text-green-500 shrink-0">+</span>
                               <span class="line-clamp-1">{pro}</span>
@@ -382,7 +398,7 @@ for (let i = 0; i < Math.min(5, totalPages); i++) {
                       <div>
                         <h4 class="text-xs font-medium uppercase text-slate-400">Cons</h4>
                         <ul class="mt-1 space-y-0.5">
-                          {((draft.cons as string[]) || []).slice(0, 2).map((con) => (
+                          {consPreview.map((con) => (
                             <li class="flex items-start gap-1 text-sm text-slate-600">
                               <span class="text-red-500 shrink-0">-</span>
                               <span class="line-clamp-1">{con}</span>

@@ -111,6 +111,23 @@ const draftsJson = JSON.stringify(drafts || []);
     let currentIndex = 0;
     let isSubmitting = false;
 
+    const claimToText = (claim) => {
+      if (typeof claim === 'string') return claim.trim();
+      if (claim && typeof claim === 'object' && typeof claim.text === 'string') return claim.text.trim();
+      return '';
+    };
+
+    const normalizeClaims = (claims) =>
+      Array.isArray(claims) ? claims.map(claimToText).filter(Boolean) : [];
+
+    const escapeHtml = (value) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     const reviewCard = document.getElementById('review-card');
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
@@ -123,6 +140,8 @@ const draftsJson = JSON.stringify(drafts || []);
       const draft = drafts[currentIndex];
       const tool = draft.tool || {};
       const context = draft.context;
+      const pros = normalizeClaims(draft.pros);
+      const cons = normalizeClaims(draft.cons);
 
       currentIndexEl.textContent = currentIndex + 1;
       totalCountEl.textContent = drafts.length;
@@ -180,14 +199,14 @@ const draftsJson = JSON.stringify(drafts || []);
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Pros</h3>
                 <ul class="space-y-2">
-                  ${(draft.pros || []).map(pro => `
+                  ${pros.map(pro => `
                     <li class="flex items-start gap-2 text-sm">
                       <span class="text-green-500 mt-0.5">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </span>
-                      <span class="text-slate-600">${pro}</span>
+                      <span class="text-slate-600">${escapeHtml(pro)}</span>
                     </li>
                   `).join('')}
                 </ul>
@@ -195,14 +214,14 @@ const draftsJson = JSON.stringify(drafts || []);
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Cons</h3>
                 <ul class="space-y-2">
-                  ${(draft.cons || []).map(con => `
+                  ${cons.map(con => `
                     <li class="flex items-start gap-2 text-sm">
                       <span class="text-red-500 mt-0.5">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </span>
-                      <span class="text-slate-600">${con}</span>
+                      <span class="text-slate-600">${escapeHtml(con)}</span>
                     </li>
                   `).join('')}
                 </ul>
