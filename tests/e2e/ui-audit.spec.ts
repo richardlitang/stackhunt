@@ -1,13 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, type Page } from '@playwright/test';
+
+async function gotoAuditPage(page: Page, url: string) {
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+}
 
 test.describe('UI Audit Screenshots', () => {
   test('capture homepage', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await gotoAuditPage(page, '/');
     await page.screenshot({ path: 'tests/e2e/screenshots/audit-homepage.png', fullPage: true });
   });
 
   test('capture a tool page', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await gotoAuditPage(page, '/');
     const toolLink = page.locator('a[href^="/tool/"]').first();
     if (await toolLink.count() > 0) {
       await toolLink.click();
@@ -17,7 +21,7 @@ test.describe('UI Audit Screenshots', () => {
   });
 
   test('capture a context/best page', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await gotoAuditPage(page, '/');
     const contextLink = page.locator('a[href^="/best/"]').first();
     if (await contextLink.count() > 0) {
       await contextLink.click();
@@ -27,35 +31,46 @@ test.describe('UI Audit Screenshots', () => {
   });
 
   test('capture compare page', async ({ page }) => {
-    // Go directly to a compare page that should exist
-    await page.goto('/compare/klaviyo-vs-omnisend', { waitUntil: 'networkidle' });
+    const discoveryPages = ['/', '/tools', '/best'];
+    let compareHref: string | null = null;
+
+    for (const path of discoveryPages) {
+      await gotoAuditPage(page, path);
+      const compareLink = page.locator('a[href^="/compare/"]').first();
+      if ((await compareLink.count()) > 0) {
+        compareHref = await compareLink.getAttribute('href');
+        if (compareHref) break;
+      }
+    }
+
+    await gotoAuditPage(page, compareHref || '/compare');
     await page.screenshot({ path: 'tests/e2e/screenshots/audit-compare-page.png', fullPage: true });
   });
 
   test('capture categories page', async ({ page }) => {
-    await page.goto('/categories', { waitUntil: 'networkidle' });
+    await gotoAuditPage(page, '/categories');
     await page.screenshot({ path: 'tests/e2e/screenshots/audit-categories.png', fullPage: true });
   });
 
   test('capture lists page', async ({ page }) => {
-    await page.goto('/lists', { waitUntil: 'networkidle' });
+    await gotoAuditPage(page, '/lists');
     await page.screenshot({ path: 'tests/e2e/screenshots/audit-lists.png', fullPage: true });
   });
 
   test('capture tools index page', async ({ page }) => {
-    await page.goto('/tools', { waitUntil: 'networkidle' });
+    await gotoAuditPage(page, '/tools');
     await page.screenshot({ path: 'tests/e2e/screenshots/audit-tools-index.png', fullPage: true });
   });
 
   test('mobile homepage', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await gotoAuditPage(page, '/');
     await page.screenshot({ path: 'tests/e2e/screenshots/audit-mobile-homepage.png', fullPage: true });
   });
 
   test('mobile tool page', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await gotoAuditPage(page, '/');
     const toolLink = page.locator('a[href^="/tool/"]').first();
     if (await toolLink.count() > 0) {
       await toolLink.click();

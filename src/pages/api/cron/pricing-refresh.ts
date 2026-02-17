@@ -8,21 +8,20 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { ApiResponse } from '@/lib/api-response';
+import { verifyCronSecret } from '@/lib/auth';
 
 export const prerender = false;
 
-function verifyCronSecret(request: Request): boolean {
-  const secret = import.meta.env.CRON_SECRET;
-  if (!secret && import.meta.env.DEV) return true;
-
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return false;
-
-  return authHeader.slice(7) === secret;
-}
-
 export const POST: APIRoute = async ({ request }) => {
-  if (!verifyCronSecret(request)) {
+  const authResult = verifyCronSecret(request, {
+    secret: import.meta.env.CRON_SECRET,
+    isDev: import.meta.env.DEV,
+    isProd: import.meta.env.PROD,
+  });
+  if (!authResult.valid) {
+    if (authResult.error === 'Server misconfiguration') {
+      return ApiResponse.internalError('Server misconfiguration');
+    }
     return ApiResponse.unauthorized('Invalid cron secret');
   }
 

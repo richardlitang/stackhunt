@@ -93,6 +93,36 @@ export function truncate(text: string, length: number): string {
   return text.slice(0, length).trim() + '...';
 }
 
+export function getBrowserFingerprint(): string {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return '';
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('fingerprint', 2, 2);
+  }
+
+  const data = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width,
+    screen.height,
+    new Date().getTimezoneOffset(),
+    canvas.toDataURL(),
+  ].join('|');
+
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+
+  return hash.toString(36);
+}
+
 /**
  * Generate canonical URL
  */

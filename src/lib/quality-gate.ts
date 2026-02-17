@@ -52,7 +52,7 @@ const VOLATILE_FAQ_TERMS =
   /\b(model|version|pricing|price|plan|quota|limit|token|tokens|rate limit|context window|deprecated|deprecation|gpt|claude|opus|sonnet|haiku|o[1-9])\b/i;
 const RISKY_ABSOLUTE_CLAIMS =
   /\b(always|never|broken|scam|unreliable|guaranteed|everyone|nobody)\b/i;
-type PopularityTier = 'popular' | 'standard' | 'below_standard';
+export type PopularityTier = 'popular' | 'standard' | 'below_standard';
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
 
 function getSectionStatus(
@@ -74,7 +74,7 @@ function isFresh(
   return ageMs <= maxAgeDays * 24 * 60 * 60 * 1000;
 }
 
-function resolvePopularityTier(metadata?: Record<string, unknown> | null): PopularityTier {
+export function resolvePopularityTier(metadata?: Record<string, unknown> | null): PopularityTier {
   const explicit =
     metadata?.popularity_tier ||
     (metadata?.meta && typeof metadata.meta === 'object'

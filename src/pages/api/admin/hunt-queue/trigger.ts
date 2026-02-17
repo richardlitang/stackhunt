@@ -25,27 +25,9 @@ import type { APIRoute } from 'astro';
 import { Hunter } from '@/lib/hunter';
 import { ApiError } from '@/lib/hunter/errors';
 import { alertCritical, alertQueueSummary } from '@/lib/notifications/discord';
-import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken } from '@/lib/auth';
-import { timingSafeEqual } from 'crypto';
+import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken, safeCompare } from '@/lib/auth';
 
 export const prerender = false;
-
-// Helper to do timing-safe comparison
-function safeCompareSecrets(a: string | undefined, b: string | undefined): boolean {
-  if (!a || !b) return false;
-  try {
-    const bufA = Buffer.from(a);
-    const bufB = Buffer.from(b);
-    if (bufA.length !== bufB.length) {
-      // Still do comparison to prevent timing leak
-      timingSafeEqual(bufA, bufA);
-      return false;
-    }
-    return timingSafeEqual(bufA, bufB);
-  } catch {
-    return false;
-  }
-}
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -61,7 +43,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (webhookSecret) {
       // Webhook auth with timing-safe comparison
-      isAuthenticated = safeCompareSecrets(webhookSecret, envWebhookSecret);
+      isAuthenticated = Boolean(
+        webhookSecret && envWebhookSecret && safeCompare(webhookSecret, envWebhookSecret)
+      );
     } else {
       // Session auth - validate admin session properly
       const sessionToken = cookies.get(COOKIE_NAME)?.value;

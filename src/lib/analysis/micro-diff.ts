@@ -8,6 +8,7 @@
  */
 
 import type { ToolSpecs } from '../../types/database';
+import { parsePriceToCents } from '../pricing/cost';
 
 interface ItemForDiff {
   slug: string;
@@ -174,25 +175,6 @@ function computeFeatureDiff(main: ItemForDiff, alt: ItemForDiff): string | undef
   }
 
   return undefined;
-}
-
-function parsePriceToCents(price: string | null | undefined): number | null {
-  if (!price) return null;
-
-  const lower = price.toLowerCase();
-  if (lower === 'free' || lower.includes('free')) return 0;
-
-  const match = price.match(/\$?([\d,]+(?:\.\d{2})?)/);
-  if (!match) return null;
-
-  const amount = parseFloat(match[1].replace(',', ''));
-  if (isNaN(amount)) return null;
-
-  // Normalize to monthly
-  if (lower.includes('/year') || lower.includes('/yr')) {
-    return Math.round((amount / 12) * 100);
-  }
-  return Math.round(amount * 100);
 }
 
 /**

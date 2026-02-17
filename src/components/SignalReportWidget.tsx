@@ -8,7 +8,7 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, X, AlertTriangle, TrendingUp, Zap } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getBrowserFingerprint } from '@/lib/utils';
 
 interface SignalReportWidgetProps {
   itemId: string;
@@ -29,40 +29,11 @@ interface SignalDefinition {
   options?: SignalOption[];
 }
 
-// Simple browser fingerprint (same as VoteWidget)
-function getFingerprint(): string {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.textBaseline = 'top';
-    ctx.font = '14px Arial';
-    ctx.fillText('fingerprint', 2, 2);
-  }
-
-  const data = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width,
-    screen.height,
-    new Date().getTimezoneOffset(),
-    canvas.toDataURL(),
-  ].join('|');
-
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-
-  return hash.toString(36);
-}
-
 // IP hash (server-side in API, client sends fingerprint)
 async function getIpHash(): Promise<string> {
   // For now, use fingerprint as fallback
   // In production, API should hash the IP server-side
-  return getFingerprint();
+  return getBrowserFingerprint();
 }
 
 const PHASE_1_SIGNALS: SignalDefinition[] = [
@@ -138,7 +109,7 @@ export default function SignalReportWidget({
       setError(null);
 
       try {
-        const fingerprint = getFingerprint();
+        const fingerprint = getBrowserFingerprint();
         const ipHash = await getIpHash();
 
         // Determine value based on signal type

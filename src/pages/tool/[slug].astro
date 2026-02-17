@@ -1105,213 +1105,230 @@ const schemas = [
 
     <section
       class:list={[
-        'mb-6 rounded-xl border p-4',
-        isVerificationMode ? 'border-amber-500/30 bg-amber-500/10' : 'border-zinc-700 bg-zinc-900',
+        'relative mb-8 overflow-hidden rounded-2xl border p-5 sm:p-6',
+        isVerificationMode
+          ? 'border-amber-500/40 bg-gradient-to-br from-amber-500/15 via-zinc-900 to-zinc-950'
+          : 'border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950',
       ]}
     >
-      <h2
-        class:list={[
-          'text-sm font-semibold',
-          isVerificationMode ? 'text-amber-300' : 'text-zinc-100',
-        ]}
-      >
-        {isVerificationMode ? 'Verification Mode' : 'Evidence & Confidence'}
-      </h2>
-      <p class:list={['mt-1 text-sm', isVerificationMode ? 'text-amber-100/90' : 'text-zinc-300']}>
-        Evidence grade: {evidenceGradeDisplay} • {evidenceGradeDescription}
-      </p>
-      <p class="mt-2 text-xs text-zinc-500">
-        Verified sources: {evidenceLinks.length} (official: {officialEvidenceLinks.length},
-        independent:{' '}
-        {independentEvidenceLinks.length}, community: {communityEvidenceLinks.length}) • Collected:{
-          ' '
-        }
-        {evidenceLinksAll.length} • Weighted confidence score: {weightedSourceScore.toFixed(1)} • Last
-        verified{' '}
-        {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
-      </p>
-      {
-        pendingVerificationCount > 0 && (
-          <p class="mt-1 text-xs text-amber-300">
-            Pending verification: {pendingVerificationCount} procurement-significant claim
-            {pendingVerificationCount === 1 ? '' : 's'}.
-          </p>
-        )
-      }
-    </section>
-
-    <!-- Verification Badge -->
-    <div class="mb-6 flex flex-wrap items-start gap-4">
-      <VerifiedBadge
-        isVerified={tool.is_verified}
-        lastVerifiedAt={tool.last_verified_at}
-        size="md"
-      />
-
-      {/* Trust signals */}
-      <div class="mb-4">
-        <TrustSignals
-          lastVerifiedAt={tool.pricing_verified_at}
-          sourceCount={0}
-          pricingConfidence={tool.pricing_confidence}
-          contentConfidence={contentConfidenceLevel}
-          size="sm"
-        />
+      <div class="pointer-events-none absolute -right-20 -top-24 h-60 w-60 rounded-full bg-hunt-500/10 blur-3xl">
+      </div>
+      <div class="pointer-events-none absolute -bottom-28 left-0 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl">
       </div>
 
-      {
-        shouldNoindex && (
-          <div class="group relative inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300">
-            <span>Draft • In review</span>
-            <svg
-              class="h-4 w-4 text-amber-300/80"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div class="pointer-events-none absolute left-0 top-full z-10 mt-2 hidden w-72 rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs font-normal text-zinc-300 shadow-xl group-hover:block">
-              We&apos;re still validating pricing and integration claims. Some sections may change
-              before final publication.
-            </div>
+      <div class="relative grid gap-5 lg:grid-cols-[1.4fr_1fr] lg:items-start">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">
+            Research Confidence
+          </p>
+          <h2
+            class:list={[
+              'mt-1 text-base font-semibold',
+              isVerificationMode ? 'text-amber-200' : 'text-zinc-100',
+            ]}
+          >
+            {isVerificationMode ? 'Verification Mode' : 'Evidence & Confidence'}
+          </h2>
+          <p class:list={['mt-2 text-sm', isVerificationMode ? 'text-amber-100/90' : 'text-zinc-300']}>
+            Evidence grade: {evidenceGradeDisplay} • {evidenceGradeDescription}
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2 text-xs">
+            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
+              Verified: {evidenceLinks.length}
+            </span>
+            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
+              Official: {officialEvidenceLinks.length}
+            </span>
+            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
+              Independent: {independentEvidenceLinks.length}
+            </span>
+            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
+              Community: {communityEvidenceLinks.length}
+            </span>
+            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
+              Weighted score: {weightedSourceScore.toFixed(1)}
+            </span>
           </div>
-        )
-      }
-    </div>
+          <p class="mt-3 text-xs text-zinc-500">
+            Collected: {evidenceLinksAll.length} total sources • Last verified{' '}
+            {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
+          </p>
+          {
+            pendingVerificationCount > 0 && (
+              <p class="mt-2 text-xs text-amber-300">
+                Pending verification: {pendingVerificationCount} procurement-significant claim
+                {pendingVerificationCount === 1 ? '' : 's'}.
+              </p>
+            )
+          }
+        </div>
+
+        <div class="grid gap-3">
+          <div class="rounded-xl border border-zinc-700 bg-zinc-900/70 p-3">
+            <VerifiedBadge
+              isVerified={tool.is_verified}
+              lastVerifiedAt={tool.last_verified_at}
+              size="md"
+            />
+          </div>
+          <div class="rounded-xl border border-zinc-700 bg-zinc-900/70 p-3">
+            <TrustSignals
+              lastVerifiedAt={tool.pricing_verified_at}
+              sourceCount={0}
+              pricingConfidence={tool.pricing_confidence}
+              contentConfidence={contentConfidenceLevel}
+              size="sm"
+            />
+          </div>
+          {
+            shouldNoindex && (
+              <div class="group relative inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300">
+                <span>Draft • In review</span>
+                <svg
+                  class="h-4 w-4 text-amber-300/80"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div class="pointer-events-none absolute left-0 top-full z-10 mt-2 hidden w-72 rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs font-normal text-zinc-300 shadow-xl group-hover:block">
+                  We&apos;re still validating pricing and integration claims. Some sections may
+                  change before final publication.
+                </div>
+              </div>
+            )
+          }
+        </div>
+      </div>
+    </section>
 
     <!-- Hero Section -->
-    <header
-      class="mb-12 rounded-2xl border-2 border-zinc-600 bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 sm:p-8 shadow-lg"
-    >
-      <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-        <div class="flex items-start gap-5">
+    <header class="relative mb-12 overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg sm:p-8">
+      <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-hunt-500/20 blur-3xl">
+      </div>
+      <div class="pointer-events-none absolute -bottom-20 left-4 h-52 w-52 rounded-full bg-cyan-500/15 blur-3xl">
+      </div>
+
+      <div class="relative grid gap-8 xl:grid-cols-[1.6fr_1fr]">
+        <div class="space-y-5">
+          <div class="flex items-start gap-5">
           <Logo
             domain={tool.logo_url}
             name={tool.name}
             size="xl"
             priority={true}
-            class="shrink-0 rounded-2xl border border-zinc-700 shadow-sm"
+            class="shrink-0 rounded-2xl border border-zinc-700/80 shadow-md"
           />
-          <div>
-            <div class="flex items-center gap-3">
-              <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{tool.name}</h1>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">
+                Tool Briefing
+              </p>
+              <div class="mt-1 flex items-center gap-3">
+                <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{tool.name}</h1>
+                {
+                  tool.is_verified && (
+                    <span class="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-xs font-medium text-blue-200 ring-1 ring-blue-400/30">
+                      <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fill-rule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      Verified
+                    </span>
+                  )
+                }
+              </div>
               {
-                tool.is_verified && (
-                  <span class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fill-rule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    Verified
-                  </span>
+                (tool.short_description || knowledgeCard?.tagline) && (
+                  <div class="mt-2 space-y-1">
+                    {tool.short_description && <p class="text-zinc-200">{tool.short_description}</p>}
+                    {knowledgeCard?.tagline && knowledgeCard.tagline !== tool.short_description && (
+                      <p class="text-sm italic text-zinc-400">{knowledgeCard.tagline}</p>
+                    )}
+                  </div>
                 )
               }
             </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <PricingBadge type={tool.pricing_type} />
             {
-              (tool.short_description || knowledgeCard?.tagline) && (
-                <div class="mt-2 space-y-1">
-                  {tool.short_description && <p class="text-zinc-300">{tool.short_description}</p>}
-                  {knowledgeCard?.tagline && knowledgeCard.tagline !== tool.short_description && (
-                    <p class="text-sm text-zinc-400 italic">{knowledgeCard.tagline}</p>
-                  )}
-                </div>
-              )
-            }
-            <div class="mt-3 flex flex-wrap items-center gap-3">
-              <PricingBadge type={tool.pricing_type} />
-              {
-                tool.category && (
-                  <a
-                    href={`/categories/${tool.category.slug}`}
-                    class="text-sm text-zinc-400 hover:text-hunt-500"
-                  >
-                    {tool.category.name}
-                  </a>
-                )
-              }
-              {
-                tool.website && (
-                  <a
-                    href={tool.website}
-                    target="_blank"
-                    rel="noopener"
-                    class="flex items-center gap-1 text-sm text-zinc-400 hover:text-hunt-500"
-                  >
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                      />
-                    </svg>
-                    Website
-                  </a>
-                )
-              }
-            </div>
-            {
-              evidenceLinks.length > 0 && (
-                <div class="mt-2 text-xs text-zinc-500">
-                  Verified sources: {evidenceLinks.length}
-                  {evidenceLinksAll.length > evidenceLinks.length
-                    ? ` • Collected: ${evidenceLinksAll.length}`
-                    : ''}
-                  {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
-                </div>
+              tool.category && (
+                <a
+                  href={`/categories/${tool.category.slug}`}
+                  class="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-800/80 px-3 py-1 text-xs font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+                >
+                  {tool.category.name}
+                </a>
               )
             }
             {
-              (tags.functions.length > 0 ||
-                tags.audiences.length > 0 ||
-                tags.platforms.length > 0) && (
-                <div class="mt-4 flex flex-wrap gap-2">
-                  {tags.functions.map((tag) => (
-                    <a
-                      href={`/categories/${tag.slug}`}
-                      class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-200 transition"
-                    >
-                      {tag.name}
-                    </a>
-                  ))}
-                  {tags.audiences.map((tag) => (
-                    <a
-                      href={`/categories/${tag.slug}`}
-                      class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 hover:bg-green-200 transition"
-                    >
-                      {tag.name}
-                    </a>
-                  ))}
-                  {tags.platforms.map((tag) => (
-                    <a
-                      href={`/categories/${tag.slug}`}
-                      class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 hover:bg-purple-200 transition"
-                    >
-                      {tag.name}
-                    </a>
-                  ))}
-                </div>
+              tool.website && (
+                <a
+                  href={tool.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-outbound="vendor"
+                  data-location="hero-meta"
+                  data-tool={tool.slug}
+                  class="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/80 px-3 py-1 text-xs font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                    />
+                  </svg>
+                  Website
+                </a>
               )
             }
           </div>
-        </div>
-        <div class="flex flex-col items-center gap-4 sm:items-end">
+
           {
-            tool.avg_score > 0 && (
-              <ScoreBadge score={Math.round(tool.avg_score)} size="lg" showLabel />
+            (tags.functions.length > 0 || tags.audiences.length > 0 || tags.platforms.length > 0) && (
+              <div class="flex flex-wrap gap-2">
+                {tags.functions.map((tag) => (
+                  <a
+                    href={`/categories/${tag.slug}`}
+                    class="inline-flex items-center rounded-full border border-sky-500/35 bg-sky-500/10 px-2.5 py-1 text-xs font-medium text-sky-100 hover:border-sky-400/50 transition"
+                  >
+                    {tag.name}
+                  </a>
+                ))}
+                {tags.audiences.map((tag) => (
+                  <a
+                    href={`/categories/${tag.slug}`}
+                    class="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-100 hover:border-emerald-400/50 transition"
+                  >
+                    {tag.name}
+                  </a>
+                ))}
+                {tags.platforms.map((tag) => (
+                  <a
+                    href={`/categories/${tag.slug}`}
+                    class="inline-flex items-center rounded-full border border-fuchsia-500/35 bg-fuchsia-500/10 px-2.5 py-1 text-xs font-medium text-fuchsia-100 hover:border-fuchsia-400/50 transition"
+                  >
+                    {tag.name}
+                  </a>
+                ))}
+              </div>
             )
           }
-          {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />}
-          <div class="flex flex-wrap gap-3 justify-center sm:justify-end">
+
+          <div class="flex flex-wrap gap-3">
+            {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />}
             <CompareButton
               client:load
               toolSlug={tool.slug}
@@ -1332,7 +1349,63 @@ const schemas = [
               plans={knowledgeCard?.smp_pricing?.plans}
             />
           </div>
+
+          {
+            evidenceLinks.length > 0 && (
+              <p class="text-xs text-zinc-500">
+                Verified sources: {evidenceLinks.length}
+                {evidenceLinksAll.length > evidenceLinks.length
+                  ? ` • Collected: ${evidenceLinksAll.length}`
+                  : ''}
+                {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
+              </p>
+            )
+          }
         </div>
+
+        <aside class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+            Decision Snapshot
+          </p>
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            {
+              tool.avg_score > 0 ? (
+                <ScoreBadge score={Math.round(tool.avg_score)} size="lg" showLabel />
+              ) : (
+                <span class="inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-200">
+                  Score tracking
+                </span>
+              )
+            }
+            <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+              {verdictLabel}
+            </span>
+          </div>
+
+          <p class="mt-4 text-sm text-zinc-300">{verdictLabelRationale}</p>
+          <p class="mt-4 text-xs text-zinc-500">
+            Last verified {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
+          </p>
+
+          <div class="mt-4 space-y-2">
+            <a
+              href="#verification-checklist"
+              class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Open verification checklist
+            </a>
+            {
+              evidenceBasis.length > 0 && (
+                <a
+                  href="#sources"
+                  class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
+                >
+                  Review source set
+                </a>
+              )
+            }
+          </div>
+        </aside>
       </div>
     </header>
 

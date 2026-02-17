@@ -11,6 +11,7 @@
 
 import type { Item, ToolSpecs, GearSpecs } from '../../types/database';
 import { computeBestPlanPricingV2, mapSmpPricingToV2 } from '../pricing';
+import { parsePriceToCents } from '../pricing/cost';
 
 // ============================================================================
 // TYPES
@@ -159,30 +160,6 @@ function compareFeatures(a: string[] | undefined, b: string[] | undefined): Feat
     only_a: difference(a, b),
     only_b: difference(b, a),
   };
-}
-
-/**
- * Parse price string to cents for comparison
- * Returns null if unparseable
- */
-function parsePriceToCents(price: string | null | undefined): number | null {
-  if (!price) return null;
-
-  // Handle common formats: "$12/mo", "$99/year", "Free", "$299"
-  const lower = price.toLowerCase();
-  if (lower === 'free' || lower.includes('free')) return 0;
-
-  const match = price.match(/\$?([\d,]+(?:\.\d{2})?)/);
-  if (!match) return null;
-
-  const amount = parseFloat(match[1].replace(',', ''));
-  if (isNaN(amount)) return null;
-
-  // Normalize to monthly (rough estimate)
-  if (lower.includes('/year') || lower.includes('/yr')) {
-    return Math.round((amount / 12) * 100);
-  }
-  return Math.round(amount * 100);
 }
 
 /**

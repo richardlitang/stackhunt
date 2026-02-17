@@ -9,6 +9,7 @@ import { getAdminClient } from '@/lib/supabase';
 import { ApiResponse } from '@/lib/api-response';
 import { getGeminiModelForStage } from '@/lib/hunter/services/model-router';
 import { generateContentWithThinkingFallback } from '@/lib/hunter/services/gemini-compat';
+import { normalizeTextContent as normalizeText } from '@/lib/utils/content-sanitizer';
 
 export const prerender = false;
 
@@ -29,12 +30,6 @@ interface AiFixRequest {
     cons?: string[];
     faq_json?: string;
   };
-}
-
-const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
-
-function normalizeText(value: string): string {
-  return value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
 }
 
 function claimText(value: unknown): string {

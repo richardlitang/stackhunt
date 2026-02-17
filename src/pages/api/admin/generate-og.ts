@@ -10,7 +10,7 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { generateToolOGImage, generateComparisonOGImage, updateToolOGImage } from '@/lib/replicate';
-import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken } from '@/lib/auth';
+import { validateAdminAuth } from '@/lib/auth';
 
 export const prerender = false;
 
@@ -22,19 +22,6 @@ interface GenerateRequest {
   toolA?: string;
   toolB?: string;
   style?: 'futuristic' | 'minimal' | 'gradient';
-}
-
-// Helper to validate admin auth
-async function validateAdminAuth(cookies: any): Promise<boolean> {
-  const sessionToken = cookies.get(COOKIE_NAME)?.value;
-  if (!sessionToken) return false;
-
-  if (isLegacyToken(sessionToken)) {
-    return validateLegacyToken(sessionToken);
-  }
-
-  const session = await validateSession(sessionToken);
-  return session.valid;
 }
 
 export const POST: APIRoute = async ({ request, cookies }) => {

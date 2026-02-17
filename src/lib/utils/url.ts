@@ -56,6 +56,23 @@ export function extractDomain(url: string | null | undefined): string | null {
 }
 
 /**
+ * Remove common tracking params from URL for dedupe and comparison.
+ */
+export function canonicalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.forEach((_, key) => {
+      if (key.startsWith('utm_') || key === 'ref' || key === 'source') {
+        parsed.searchParams.delete(key);
+      }
+    });
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Check if a URL is from a specific domain.
  *
  * @param url - URL to check

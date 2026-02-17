@@ -25,7 +25,11 @@ import { mapSmpPricingToV2 } from '../../pricing';
 import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
-import { evaluateIndexReadiness } from '@/lib/quality-gate';
+import {
+  evaluateIndexReadiness,
+  resolvePopularityTier,
+  type PopularityTier,
+} from '@/lib/quality-gate';
 import { sanitizeUrl } from '@/lib/utils/url';
 
 export interface DatabaseTypes {
@@ -100,7 +104,6 @@ const INCOMPLETE_CLAUSE_ENDING =
 const COMMUNITY_HEDGING_PREFIX =
   /^(users report(?: that)?|community (?:reports|mentions|consensus (?:is|suggests)|feedback)|according to (?:reddit|hn|community)|based on user discussions)/i;
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
-type PopularityTier = 'popular' | 'standard' | 'below_standard';
 
 const POPULARITY_PROFILES: Record<
   PopularityTier,
@@ -203,18 +206,6 @@ function isRenderableClaimText(text: string): boolean {
   if (!cleaned) return false;
   if (cleaned.length < 12) return true;
   return !INCOMPLETE_CLAUSE_ENDING.test(cleaned);
-}
-
-function resolvePopularityTier(metadata?: Record<string, unknown> | null): PopularityTier {
-  const explicit =
-    metadata?.popularity_tier ||
-    (metadata?.meta && typeof metadata.meta === 'object'
-      ? (metadata.meta as Record<string, unknown>).popularity_tier
-      : null);
-  const normalized = typeof explicit === 'string' ? explicit.trim().toLowerCase() : '';
-  if (normalized === 'popular') return 'popular';
-  if (normalized === 'below_standard') return 'below_standard';
-  return 'standard';
 }
 
 function sourceTierForClaim(url?: string | null): 'A' | 'B' | 'C' {

@@ -9,51 +9,17 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { ApiResponse } from '@/lib/api-response';
+import { verifyCronSecret } from '@/lib/auth';
 
 export const prerender = false;
 
-// Verify cron secret for security
-// SECURITY: Fail CLOSED - require secret in production
-function verifyCronSecret(request: Request): { valid: boolean; error?: string } {
-  const secret = import.meta.env.CRON_SECRET;
-
-  // Require secret in production
-  if (!secret && import.meta.env.PROD) {
-    console.error('CRITICAL: CRON_SECRET not configured in production');
-    return { valid: false, error: 'Server misconfiguration' };
-  }
-
-  // In development without secret, allow for local testing
-  if (!secret && import.meta.env.DEV) {
-    return { valid: true };
-  }
-
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return { valid: false, error: 'Invalid cron secret' };
-  }
-
-  // Use timing-safe comparison
-  const providedSecret = authHeader.slice(7);
-  try {
-    const secretBuffer = Buffer.from(secret);
-    const providedBuffer = Buffer.from(providedSecret);
-    if (secretBuffer.length !== providedBuffer.length) {
-      return { valid: false, error: 'Invalid cron secret' };
-    }
-    const { timingSafeEqual } = require('crypto');
-    if (!timingSafeEqual(secretBuffer, providedBuffer)) {
-      return { valid: false, error: 'Invalid cron secret' };
-    }
-    return { valid: true };
-  } catch {
-    return { valid: false, error: 'Invalid cron secret' };
-  }
-}
-
 export const POST: APIRoute = async ({ request }) => {
   // Verify authorization
-  const authResult = verifyCronSecret(request);
+  const authResult = verifyCronSecret(request, {
+    secret: import.meta.env.CRON_SECRET,
+    isDev: import.meta.env.DEV,
+    isProd: import.meta.env.PROD,
+  });
   if (!authResult.valid) {
     if (authResult.error === 'Server misconfiguration') {
       return ApiResponse.internalError('Server misconfiguration');

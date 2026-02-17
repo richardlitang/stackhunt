@@ -8,6 +8,12 @@
  * @module utils/content-sanitizer
  */
 
+const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
+
+export function normalizeTextContent(value: string): string {
+  return value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
+}
+
 /**
  * Generic phrases that indicate AI fluff (case-insensitive matching)
  */

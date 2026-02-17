@@ -22,6 +22,7 @@ import type { SourcePolicyGate } from './source-policy';
 import { serperRateLimiter } from './rate-limiter';
 import { rankSources } from './source-ranking';
 import { serperCircuit } from './circuit-breaker';
+import { canonicalizeUrl } from '@/lib/utils/url';
 
 const RESTRICTED_FALLBACK_DOMAINS = [
   'reddit.com',
@@ -1059,20 +1060,6 @@ export class SerperService {
       reviewsSnippets,
       pricingSnippets,
     };
-  }
-}
-
-function canonicalizeUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    parsed.searchParams.forEach((_, key) => {
-      if (key.startsWith('utm_') || key === 'ref' || key === 'source') {
-        parsed.searchParams.delete(key);
-      }
-    });
-    return parsed.toString();
-  } catch {
-    return url;
   }
 }
 

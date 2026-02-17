@@ -73,7 +73,7 @@ export const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 /**
  * Constant-time string comparison to prevent timing attacks
  */
-function safeCompare(a: string, b: string): boolean {
+export function safeCompare(a: string, b: string): boolean {
   try {
     const bufA = Buffer.from(a);
     const bufB = Buffer.from(b);
@@ -93,6 +93,54 @@ function safeCompare(a: string, b: string): boolean {
  */
 export function validatePassword(password: string): boolean {
   return safeCompare(password, getAdminPassword());
+}
+
+type CookieStore = {
+  get: (name: string) => { value?: string } | undefined;
+};
+
+export async function validateAdminAuth(cookies: CookieStore): Promise<boolean> {
+  const sessionToken = cookies.get(COOKIE_NAME)?.value;
+  if (!sessionToken) return false;
+
+  if (isLegacyToken(sessionToken)) {
+    return validateLegacyToken(sessionToken);
+  }
+
+  const session = await validateSession(sessionToken);
+  return session.valid;
+}
+
+export function verifyCronSecret(
+  request: Request,
+  options: { secret?: string; isDev: boolean; isProd: boolean }
+): { valid: boolean; error?: string } {
+  const { secret, isDev, isProd } = options;
+
+  if (!secret && isProd) {
+    console.error('CRITICAL: CRON_SECRET not configured in production');
+    return { valid: false, error: 'Server misconfiguration' };
+  }
+
+  if (!secret && isDev) {
+    return { valid: true };
+  }
+
+  if (!secret) {
+    return { valid: false, error: 'Invalid cron secret' };
+  }
+
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { valid: false, error: 'Invalid cron secret' };
+  }
+
+  const providedSecret = authHeader.slice(7);
+  if (!safeCompare(providedSecret, secret)) {
+    return { valid: false, error: 'Invalid cron secret' };
+  }
+
+  return { valid: true };
 }
 
 /**

@@ -1,4 +1,5 @@
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
+import { normalizeTextContent as normalizeText } from '@/lib/utils/content-sanitizer';
 import type { Review, Tool } from '@/types/database';
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
@@ -29,7 +30,6 @@ type ParsedClaim = {
   sourceUrl: string | null;
 };
 
-const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
 
 type PublishableItemFields = Pick<
   Tool,
@@ -78,10 +78,6 @@ function extractDomainFromUrl(url?: string): string | null {
 function toSources(raw: unknown): SourceRow[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter((entry): entry is SourceRow => Boolean(entry && typeof entry === 'object'));
-}
-
-function normalizeText(value: string): string {
-  return value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
 }
 
 function parseClaim(raw: unknown): ParsedClaim | null {

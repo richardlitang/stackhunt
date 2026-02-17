@@ -7,7 +7,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, getBrowserFingerprint } from '@/lib/utils';
 
 interface VoteWidgetProps {
   reviewId: string;
@@ -17,36 +17,6 @@ interface VoteWidgetProps {
 }
 
 type VoteType = 'up' | 'down' | null;
-
-// Simple browser fingerprint (not cryptographically secure, just anti-spam)
-function getFingerprint(): string {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.textBaseline = 'top';
-    ctx.font = '14px Arial';
-    ctx.fillText('fingerprint', 2, 2);
-  }
-
-  const data = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width,
-    screen.height,
-    new Date().getTimezoneOffset(),
-    canvas.toDataURL(),
-  ].join('|');
-
-  // Simple hash
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-
-  return hash.toString(36);
-}
 
 export default function VoteWidget({
   reviewId,
@@ -163,7 +133,7 @@ export default function VoteWidget({
           body: JSON.stringify({
             reviewId,
             voteType: voteType === userVote ? 0 : voteType === 'up' ? 1 : -1,
-            fingerprintHash: getFingerprint(),
+            fingerprintHash: getBrowserFingerprint(),
             turnstileToken: token,
           }),
         });

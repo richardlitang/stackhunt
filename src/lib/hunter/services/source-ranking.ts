@@ -1,4 +1,5 @@
 import type { SourcePolicyGate } from './source-policy';
+import { canonicalizeUrl } from '@/lib/utils/url';
 
 export type SourceIntent =
   | 'pricing'
@@ -127,20 +128,6 @@ function dedupeSources(sources: SerperSource[]): SerperSource[] {
     if (!map.has(key)) map.set(key, source);
   }
   return Array.from(map.values());
-}
-
-function canonicalizeUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    parsed.searchParams.forEach((_, key) => {
-      if (key.startsWith('utm_') || key === 'ref' || key === 'source') {
-        parsed.searchParams.delete(key);
-      }
-    });
-    return parsed.toString();
-  } catch {
-    return url;
-  }
 }
 
 function extractDomain(url: string): string | null {

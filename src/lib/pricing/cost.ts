@@ -14,6 +14,24 @@ function toMonthly(amount: number, billingCycle: 'monthly' | 'annual'): number {
   return billingCycle === 'monthly' ? amount : amount / 12;
 }
 
+export function parsePriceToCents(price: string | null | undefined): number | null {
+  if (!price) return null;
+
+  const lower = price.toLowerCase();
+  if (lower === 'free' || lower.includes('free')) return 0;
+
+  const match = price.match(/\$?([\d,]+(?:\.\d{2})?)/);
+  if (!match) return null;
+
+  const amount = parseFloat(match[1].replace(',', ''));
+  if (isNaN(amount)) return null;
+
+  if (lower.includes('/year') || lower.includes('/yr')) {
+    return Math.round((amount / 12) * 100);
+  }
+  return Math.round(amount * 100);
+}
+
 /**
  * Compute monthly cost for a given quantity (users, contacts, etc.)
  *

@@ -17,22 +17,9 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { parse } from 'csv-parse/sync';
-import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken } from '@/lib/auth';
+import { validateAdminAuth } from '@/lib/auth';
 
 export const prerender = false;
-
-// Helper to validate admin auth
-async function validateAdminAuth(cookies: any): Promise<boolean> {
-  const sessionToken = cookies.get(COOKIE_NAME)?.value;
-  if (!sessionToken) return false;
-
-  if (isLegacyToken(sessionToken)) {
-    return validateLegacyToken(sessionToken);
-  }
-
-  const session = await validateSession(sessionToken);
-  return session.valid;
-}
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const MAX_ROWS = 1000;
