@@ -10,18 +10,24 @@ import { supabase, getAdminClient } from '@/lib/supabase';
 const admin = getAdminClient();
 
 // Fetch data in parallel
-const [
-  { data: recentTools },
-  { data: _categories },
-  { data: queueItems },
-] = await Promise.all([
-  supabase.from('tools').select('id, name, slug').order('created_at', { ascending: false }).limit(10),
+const [{ data: recentTools }, { data: _categories }, { data: queueItems }] = await Promise.all([
+  supabase
+    .from('tools')
+    .select('id, name, slug')
+    .order('created_at', { ascending: false })
+    .limit(10),
   supabase.from('categories').select('slug, name, type').eq('type', 'function').order('name'),
-  admin.from('hunt_queue').select(`
+  admin
+    .from('hunt_queue')
+    .select(
+      `
     *,
     tool:tools(id, name, slug, logo_url),
     review:reviews(id, score, summary_markdown, pros, cons, status)
-  `).order('created_at', { ascending: false }).limit(20),
+  `
+    )
+    .order('created_at', { ascending: false })
+    .limit(20),
 ]);
 
 const processing = queueItems?.filter((i) => i.status === 'processing') || [];
@@ -33,37 +39,43 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
 
 <AdminLayout title="Create">
   <div class="max-w-3xl mx-auto space-y-6">
-    <!-- Page Header with Stats -->
+    {/* Page Header with Stats */}
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">Create Content</h1>
         <p class="mt-0.5 text-sm text-slate-500">Hunt tools and manage your content queue</p>
       </div>
       <div class="flex items-center gap-3 text-sm">
-        {processing.length > 0 && (
-          <span class="flex items-center gap-1.5 text-amber-600">
-            <span class="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
-            {processing.length} processing
-          </span>
-        )}
-        {pending.length > 0 && (
-          <span class="flex items-center gap-1.5 text-blue-600">
-            <span class="h-2 w-2 rounded-full bg-blue-500"></span>
-            {pending.length} queued
-          </span>
-        )}
-        {failed.length > 0 && (
-          <span class="flex items-center gap-1.5 text-red-600">
-            <span class="h-2 w-2 rounded-full bg-red-500"></span>
-            {failed.length} failed
-          </span>
-        )}
+        {
+          processing.length > 0 && (
+            <span class="flex items-center gap-1.5 text-amber-600">
+              <span class="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              {processing.length} processing
+            </span>
+          )
+        }
+        {
+          pending.length > 0 && (
+            <span class="flex items-center gap-1.5 text-blue-600">
+              <span class="h-2 w-2 rounded-full bg-blue-500" />
+              {pending.length} queued
+            </span>
+          )
+        }
+        {
+          failed.length > 0 && (
+            <span class="flex items-center gap-1.5 text-red-600">
+              <span class="h-2 w-2 rounded-full bg-red-500" />
+              {failed.length} failed
+            </span>
+          )
+        }
       </div>
     </div>
 
-    <!-- Quick Hunt Section (Compact) -->
+    {/* Quick Hunt Section (Compact) */}
     <div class="rounded-xl border border-slate-200 bg-white p-4">
-      <!-- Mode Tabs -->
+      {/* Mode Tabs */}
       <div class="flex gap-1 rounded-lg bg-slate-100 p-1 mb-3">
         <button
           type="button"
@@ -83,7 +95,7 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
         </button>
       </div>
 
-      <!-- Tool Hunt Form -->
+      {/* Tool Hunt Form */}
       <form id="hunt-form-tool" class="hunt-panel hidden">
         <div class="flex gap-3">
           <div class="flex-1">
@@ -107,8 +119,15 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
             type="submit"
             class="hunt-btn rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"
+              ></path>
             </svg>
             Hunt
           </button>
@@ -116,7 +135,7 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
         <input type="hidden" name="mode" value="draft" />
       </form>
 
-      <!-- Context Hunt Form (New Article) -->
+      {/* Context Hunt Form (New Article) */}
       <form id="hunt-form-context" class="hunt-panel">
         <div class="space-y-3">
           <div class="flex gap-3">
@@ -141,42 +160,58 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
               type="submit"
               class="hunt-btn rounded-lg bg-hunt-500 px-4 py-2 text-sm font-medium text-white hover:bg-hunt-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"
+                ></path>
               </svg>
               Create
             </button>
           </div>
 
-          <!-- Guidance Toggle (inline) -->
+          {/* Guidance Toggle (inline) */}
           <div class="flex items-center gap-2">
             <button
               type="button"
               id="guidance-toggle"
               class="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
             >
-              <svg id="guidance-chevron" class="h-3 w-3 transition-transform -rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              <svg
+                id="guidance-chevron"
+                class="h-3 w-3 transition-transform -rotate-90"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
               </svg>
               Research guidance
             </button>
-            {recentTools && recentTools.length > 0 && (
-              <div class="flex-1 flex items-center gap-1 overflow-x-auto">
-                <span class="text-xs text-slate-400 shrink-0 ml-3">Recent:</span>
-                {recentTools.slice(0, 5).map((tool) => (
-                  <button
-                    type="button"
-                    class="quick-tool-btn shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 hover:bg-hunt-100 hover:text-hunt-700 transition"
-                    data-tool={tool.name}
-                  >
-                    {tool.name}
-                  </button>
-                ))}
-              </div>
-            )}
+            {
+              recentTools && recentTools.length > 0 && (
+                <div class="flex-1 flex items-center gap-1 overflow-x-auto">
+                  <span class="text-xs text-slate-400 shrink-0 ml-3">Recent:</span>
+                  {recentTools.slice(0, 5).map((tool) => (
+                    <button
+                      type="button"
+                      class="quick-tool-btn shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 hover:bg-hunt-100 hover:text-hunt-700 transition"
+                      data-tool={tool.name}
+                    >
+                      {tool.name}
+                    </button>
+                  ))}
+                </div>
+              )
+            }
           </div>
 
-          <!-- Guidance Fields (hidden by default) -->
+          {/* Guidance Fields (hidden by default) */}
           <div id="guidance-content" class="hidden space-y-2 pt-2 border-t border-slate-100">
             <div class="grid gap-2 sm:grid-cols-2">
               <input
@@ -203,10 +238,13 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
         <input type="hidden" name="contextMode" value="draft" />
       </form>
 
-      <!-- Hunt Status -->
+      {/* Hunt Status */}
       <div id="hunt-status" class="hidden mt-3">
         <div class="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
-          <div class="h-4 w-4 animate-spin rounded-full border-2 border-hunt-500 border-t-transparent"></div>
+          <div
+            class="h-4 w-4 animate-spin rounded-full border-2 border-hunt-500 border-t-transparent"
+          >
+          </div>
           <div class="flex-1">
             <span class="text-sm font-medium text-slate-700 hunt-status-text">Processing...</span>
             <span class="text-xs text-slate-500 ml-2 hunt-status-time"></span>
@@ -215,156 +253,201 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
       </div>
     </div>
 
-    <!-- Queue Section -->
+    {/* Queue Section */}
     <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-      <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3 bg-slate-50">
+      <div
+        class="flex items-center justify-between border-b border-slate-200 px-4 py-3 bg-slate-50"
+      >
         <h2 class="font-semibold text-slate-900">Queue</h2>
         <span class="text-xs text-slate-500">{allQueue.length} items</span>
       </div>
 
-      {allQueue.length > 0 ? (
-        <div class="divide-y divide-slate-100" id="queue-list">
-          {allQueue.map((item) => {
-            const statusColor = item.status === 'processing' ? 'amber' :
-                               item.status === 'failed' ? 'red' :
-                               item.status === 'completed' ? 'green' : 'blue';
-            const review = item.review as { id: string; score: number; summary_markdown: string; pros: string[]; cons: string[]; status: string } | null;
-            const tool = item.tool as { id: string; name: string; slug: string; logo_url: string | null } | null;
+      {
+        allQueue.length > 0 ? (
+          <div class="divide-y divide-slate-100" id="queue-list">
+            {allQueue.map((item) => {
+              const statusColor =
+                item.status === 'processing'
+                  ? 'amber'
+                  : item.status === 'failed'
+                    ? 'red'
+                    : item.status === 'completed'
+                      ? 'green'
+                      : 'blue';
+              const review = item.review as {
+                id: string;
+                score: number;
+                summary_markdown: string;
+                pros: string[];
+                cons: string[];
+                status: string;
+              } | null;
+              const tool = item.tool as {
+                id: string;
+                name: string;
+                slug: string;
+                logo_url: string | null;
+              } | null;
 
-            return (
-              <div class="queue-item" data-id={item.id}>
-                <div class="flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer queue-item-header">
-                  <div class="flex items-center gap-3">
-                    <div class={`h-2 w-2 rounded-full bg-${statusColor}-500 ${item.status === 'processing' ? 'animate-pulse' : ''}`}></div>
-                    {tool?.logo_url ? (
-                      <img src={tool.logo_url} alt="" class="h-6 w-6 rounded object-contain" />
-                    ) : (
-                      <div class="h-6 w-6 rounded bg-slate-100 flex items-center justify-center text-xs font-medium text-slate-400">
-                        {(item.tool_name || '?').charAt(0)}
-                      </div>
-                    )}
-                    <div>
-                      <div class="text-sm font-medium text-slate-900">{item.tool_name}</div>
-                      {item.context_title && (
-                        <div class="text-xs text-slate-500">{item.context_title}</div>
+              return (
+                <div class="queue-item" data-id={item.id}>
+                  <div class="flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer queue-item-header">
+                    <div class="flex items-center gap-3">
+                      <div
+                        class={`h-2 w-2 rounded-full bg-${statusColor}-500 ${item.status === 'processing' ? 'animate-pulse' : ''}`}
+                      />
+                      {tool?.logo_url ? (
+                        <img src={tool.logo_url} alt="" class="h-6 w-6 rounded object-contain" />
+                      ) : (
+                        <div class="h-6 w-6 rounded bg-slate-100 flex items-center justify-center text-xs font-medium text-slate-400">
+                          {(item.tool_name || '?').charAt(0)}
+                        </div>
                       )}
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    {review && (
-                      <span class={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        review.score >= 70 ? 'bg-green-100 text-green-700' :
-                        review.score >= 50 ? 'bg-amber-100 text-amber-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {review.score}
-                      </span>
-                    )}
-                    <span class={`rounded-full px-2 py-0.5 text-xs font-medium bg-${statusColor}-100 text-${statusColor}-700`}>
-                      {item.status}
-                    </span>
-                    <svg class="h-4 w-4 text-slate-400 queue-chevron transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-
-                <!-- Expanded Content -->
-                <div class="queue-item-content hidden border-t border-slate-100 bg-slate-50 px-4 py-3">
-                  {item.status === 'failed' && item.last_error && (
-                    <div class="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-                      <p class="text-xs text-red-700">{item.last_error}</p>
-                    </div>
-                  )}
-
-                  {review && (
-                    <div class="space-y-3">
-                      <p class="text-sm text-slate-600 line-clamp-3">
-                        {(review.summary_markdown || '').slice(0, 200)}...
-                      </p>
-                      <div class="grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <h4 class="text-xs font-medium text-slate-500 mb-1">Pros</h4>
-                          <ul class="space-y-0.5">
-                            {(review.pros || []).slice(0, 2).map((pro: string) => (
-                              <li class="text-xs text-slate-600 flex items-start gap-1">
-                                <span class="text-green-500">+</span>
-                                <span class="line-clamp-1">{pro}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 class="text-xs font-medium text-slate-500 mb-1">Cons</h4>
-                          <ul class="space-y-0.5">
-                            {(review.cons || []).slice(0, 2).map((con: string) => (
-                              <li class="text-xs text-slate-600 flex items-start gap-1">
-                                <span class="text-red-500">-</span>
-                                <span class="line-clamp-1">{con}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                      <div>
+                        <div class="text-sm font-medium text-slate-900">{item.tool_name}</div>
+                        {item.context_title && (
+                          <div class="text-xs text-slate-500">{item.context_title}</div>
+                        )}
                       </div>
                     </div>
-                  )}
-
-                  <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200">
-                    {item.status === 'completed' && review && (
-                      <>
-                        <a
-                          href={`/admin/review/${review.id}`}
-                          class="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                    <div class="flex items-center gap-3">
+                      {review && (
+                        <span
+                          class={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            review.score >= 70
+                              ? 'bg-green-100 text-green-700'
+                              : review.score >= 50
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-red-100 text-red-700'
+                          }`}
                         >
-                          Edit Review
-                        </a>
-                        {tool && (
+                          {review.score}
+                        </span>
+                      )}
+                      <span
+                        class={`rounded-full px-2 py-0.5 text-xs font-medium bg-${statusColor}-100 text-${statusColor}-700`}
+                      >
+                        {item.status}
+                      </span>
+                      <svg
+                        class="h-4 w-4 text-slate-400 queue-chevron transition-transform"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Expanded Content */}
+                  <div class="queue-item-content hidden border-t border-slate-100 bg-slate-50 px-4 py-3">
+                    {item.status === 'failed' && item.last_error && (
+                      <div class="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+                        <p class="text-xs text-red-700">{item.last_error}</p>
+                      </div>
+                    )}
+
+                    {review && (
+                      <div class="space-y-3">
+                        <p class="text-sm text-slate-600 line-clamp-3">
+                          {(review.summary_markdown || '').slice(0, 200)}...
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <h4 class="text-xs font-medium text-slate-500 mb-1">Pros</h4>
+                            <ul class="space-y-0.5">
+                              {(review.pros || []).slice(0, 2).map((pro: string) => (
+                                <li class="text-xs text-slate-600 flex items-start gap-1">
+                                  <span class="text-green-500">+</span>
+                                  <span class="line-clamp-1">{pro}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 class="text-xs font-medium text-slate-500 mb-1">Cons</h4>
+                            <ul class="space-y-0.5">
+                              {(review.cons || []).slice(0, 2).map((con: string) => (
+                                <li class="text-xs text-slate-600 flex items-start gap-1">
+                                  <span class="text-red-500">-</span>
+                                  <span class="line-clamp-1">{con}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200">
+                      {item.status === 'completed' && review && (
+                        <>
                           <a
-                            href={`/tools/${tool.slug}`}
-                            target="_blank"
-                            class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                            href={`/admin/review/${review.id}`}
+                            class="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
                           >
-                            Preview
+                            Edit Review
                           </a>
-                        )}
-                      </>
-                    )}
-                    {item.status === 'failed' && (
-                      <button
-                        type="button"
-                        class="queue-retry-btn rounded-lg bg-hunt-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-hunt-600"
-                        data-id={item.id}
-                      >
-                        Retry
-                      </button>
-                    )}
-                    {(item.status === 'pending' || item.status === 'failed') && (
-                      <button
-                        type="button"
-                        class="queue-delete-btn rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
-                        data-id={item.id}
-                      >
-                        Remove
-                      </button>
-                    )}
-                    <span class="ml-auto text-xs text-slate-400">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </span>
+                          {tool && (
+                            <a
+                              href={`/tools/${tool.slug}`}
+                              target="_blank"
+                              class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                            >
+                              Preview
+                            </a>
+                          )}
+                        </>
+                      )}
+                      {item.status === 'failed' && (
+                        <button
+                          type="button"
+                          class="queue-retry-btn rounded-lg bg-hunt-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-hunt-600"
+                          data-id={item.id}
+                        >
+                          Retry
+                        </button>
+                      )}
+                      {(item.status === 'pending' || item.status === 'failed') && (
+                        <button
+                          type="button"
+                          class="queue-delete-btn rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                          data-id={item.id}
+                        >
+                          Remove
+                        </button>
+                      )}
+                      <span class="ml-auto text-xs text-slate-400">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div class="px-6 py-12 text-center">
-          <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-          </svg>
-          <p class="mt-3 text-sm text-slate-500">Queue is empty</p>
-          <p class="text-xs text-slate-400">Create an article to get started</p>
-        </div>
-      )}
+              );
+            })}
+          </div>
+        ) : (
+          <div class="px-6 py-12 text-center">
+            <svg
+              class="mx-auto h-10 w-10 text-slate-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+              />
+            </svg>
+            <p class="mt-3 text-sm text-slate-500">Queue is empty</p>
+            <p class="text-xs text-slate-400">Create an article to get started</p>
+          </div>
+        )
+      }
     </div>
   </div>
 
@@ -373,18 +456,18 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
     const tabBtns = document.querySelectorAll('.tab-btn');
     const huntPanels = document.querySelectorAll('.hunt-panel');
 
-    tabBtns.forEach(btn => {
+    tabBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         const tab = btn.dataset.tab;
 
-        tabBtns.forEach(t => {
+        tabBtns.forEach((t) => {
           t.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
           t.classList.add('text-slate-600');
         });
         btn.classList.remove('text-slate-600');
         btn.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
 
-        huntPanels.forEach(p => p.classList.add('hidden'));
+        huntPanels.forEach((p) => p.classList.add('hidden'));
         document.getElementById(`hunt-form-${tab}`)?.classList.remove('hidden');
       });
     });
@@ -401,7 +484,7 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
     });
 
     // Quick tool buttons - insert into article topic
-    document.querySelectorAll('.quick-tool-btn').forEach(btn => {
+    document.querySelectorAll('.quick-tool-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const toolName = btn.dataset.tool;
         const input = document.querySelector('#hunt-form-context [name="contextQuery"]');
@@ -416,7 +499,7 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
     });
 
     // Queue item expand/collapse
-    document.querySelectorAll('.queue-item-header').forEach(header => {
+    document.querySelectorAll('.queue-item-header').forEach((header) => {
       header.addEventListener('click', () => {
         const item = header.closest('.queue-item');
         const content = item?.querySelector('.queue-item-content');
@@ -492,8 +575,16 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
       const specialInstructions = formData.get('specialInstructions')?.trim();
 
       const guidance = {};
-      if (mustIncludeTools) guidance.mustIncludeTools = mustIncludeTools.split(',').map(t => t.trim()).filter(Boolean);
-      if (sourcesToCheck) guidance.sourcesToCheck = sourcesToCheck.split(',').map(s => s.trim()).filter(Boolean);
+      if (mustIncludeTools)
+        guidance.mustIncludeTools = mustIncludeTools
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean);
+      if (sourcesToCheck)
+        guidance.sourcesToCheck = sourcesToCheck
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
       if (specialInstructions) guidance.specialInstructions = specialInstructions;
 
       try {
@@ -526,7 +617,7 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
     });
 
     // Queue delete buttons
-    document.querySelectorAll('.queue-delete-btn').forEach(btn => {
+    document.querySelectorAll('.queue-delete-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
@@ -547,7 +638,7 @@ const allQueue = [...processing, ...failed, ...pending, ...completed];
     });
 
     // Queue retry buttons
-    document.querySelectorAll('.queue-retry-btn').forEach(btn => {
+    document.querySelectorAll('.queue-retry-btn').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;

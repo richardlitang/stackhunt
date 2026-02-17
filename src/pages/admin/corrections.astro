@@ -17,10 +17,12 @@ const aiFilter = url.searchParams.get('ai') || 'all'; // 'all', 'confirmed', 're
 // Build query with filters
 let query = admin
   .from('corrections')
-  .select(`
+  .select(
+    `
     *,
     tool:tools(id, name, slug, logo_url)
-  `)
+  `
+  )
   .eq('status', statusFilter);
 
 // Apply AI filter
@@ -38,15 +40,12 @@ if (aiFilter === 'confirmed') {
 const { data: corrections } = await query.order('created_at', { ascending: false });
 
 // Get counts for tabs
-const [
-  { count: pendingCount },
-  { count: acceptedCount },
-  { count: rejectedCount },
-] = await Promise.all([
-  admin.from('corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-  admin.from('corrections').select('*', { count: 'exact', head: true }).eq('status', 'accepted'),
-  admin.from('corrections').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-]);
+const [{ count: pendingCount }, { count: acceptedCount }, { count: rejectedCount }] =
+  await Promise.all([
+    admin.from('corrections').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    admin.from('corrections').select('*', { count: 'exact', head: true }).eq('status', 'accepted'),
+    admin.from('corrections').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+  ]);
 
 const fieldLabels: Record<string, string> = {
   pricing: 'Pricing',
@@ -65,11 +64,11 @@ const aiResultLabels: Record<string, { label: string; color: string }> = {
 ---
 
 <AdminLayout title="User Corrections">
-  <!-- Breadcrumb -->
+  {/* Breadcrumb */}
   <nav class="mb-6 flex items-center gap-2 text-sm">
     <a href="/admin" class="text-slate-500 hover:text-slate-700">Dashboard</a>
     <svg class="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
     </svg>
     <span class="text-slate-900 font-medium">Corrections</span>
   </nav>
@@ -78,13 +77,11 @@ const aiResultLabels: Record<string, { label: string; color: string }> = {
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">User Corrections</h1>
-        <p class="mt-1 text-sm text-slate-500">
-          Review suggestions submitted by users
-        </p>
+        <p class="mt-1 text-sm text-slate-500">Review suggestions submitted by users</p>
       </div>
     </div>
 
-    <!-- Status Tabs -->
+    {/* Status Tabs */}
     <div class="border-b border-slate-200">
       <nav class="flex gap-6">
         <a
@@ -96,11 +93,13 @@ const aiResultLabels: Record<string, { label: string; color: string }> = {
           }`}
         >
           Pending
-          {(pendingCount || 0) > 0 && (
-            <span class="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-600">
-              {pendingCount}
-            </span>
-          )}
+          {
+            (pendingCount || 0) > 0 && (
+              <span class="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-600">
+                {pendingCount}
+              </span>
+            )
+          }
         </a>
         <a
           href="/admin/corrections?status=accepted"
@@ -111,11 +110,13 @@ const aiResultLabels: Record<string, { label: string; color: string }> = {
           }`}
         >
           Accepted
-          {(acceptedCount || 0) > 0 && (
-            <span class="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-600">
-              {acceptedCount}
-            </span>
-          )}
+          {
+            (acceptedCount || 0) > 0 && (
+              <span class="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-600">
+                {acceptedCount}
+              </span>
+            )
+          }
         </a>
         <a
           href="/admin/corrections?status=rejected"
@@ -126,212 +127,236 @@ const aiResultLabels: Record<string, { label: string; color: string }> = {
           }`}
         >
           Rejected
-          {(rejectedCount || 0) > 0 && (
-            <span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              {rejectedCount}
-            </span>
-          )}
+          {
+            (rejectedCount || 0) > 0 && (
+              <span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                {rejectedCount}
+              </span>
+            )
+          }
         </a>
       </nav>
     </div>
 
-    <!-- AI Verification Filter -->
-    {statusFilter === 'pending' && (
-      <div class="flex items-center gap-2 text-sm">
-        <span class="text-slate-500">AI Status:</span>
-        <div class="flex gap-1">
-          <a
-            href={`/admin/corrections?status=pending&ai=all`}
-            class={`rounded-full px-3 py-1 transition ${
-              aiFilter === 'all'
-                ? 'bg-slate-800 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All
-          </a>
-          <a
-            href={`/admin/corrections?status=pending&ai=confirmed`}
-            class={`rounded-full px-3 py-1 transition ${
-              aiFilter === 'confirmed'
-                ? 'bg-green-600 text-white'
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            }`}
-          >
-            ✓ Confirmed
-          </a>
-          <a
-            href={`/admin/corrections?status=pending&ai=rejected`}
-            class={`rounded-full px-3 py-1 transition ${
-              aiFilter === 'rejected'
-                ? 'bg-red-600 text-white'
-                : 'bg-red-100 text-red-700 hover:bg-red-200'
-            }`}
-          >
-            ✗ Rejected
-          </a>
-          <a
-            href={`/admin/corrections?status=pending&ai=inconclusive`}
-            class={`rounded-full px-3 py-1 transition ${
-              aiFilter === 'inconclusive'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-            }`}
-          >
-            ? Inconclusive
-          </a>
-          <a
-            href={`/admin/corrections?status=pending&ai=unverified`}
-            class={`rounded-full px-3 py-1 transition ${
-              aiFilter === 'unverified'
-                ? 'bg-slate-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Unverified
-          </a>
+    {/* AI Verification Filter */}
+    {
+      statusFilter === 'pending' && (
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-slate-500">AI Status:</span>
+          <div class="flex gap-1">
+            <a
+              href={`/admin/corrections?status=pending&ai=all`}
+              class={`rounded-full px-3 py-1 transition ${
+                aiFilter === 'all'
+                  ? 'bg-slate-800 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              All
+            </a>
+            <a
+              href={`/admin/corrections?status=pending&ai=confirmed`}
+              class={`rounded-full px-3 py-1 transition ${
+                aiFilter === 'confirmed'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+              }`}
+            >
+              ✓ Confirmed
+            </a>
+            <a
+              href={`/admin/corrections?status=pending&ai=rejected`}
+              class={`rounded-full px-3 py-1 transition ${
+                aiFilter === 'rejected'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+              }`}
+            >
+              ✗ Rejected
+            </a>
+            <a
+              href={`/admin/corrections?status=pending&ai=inconclusive`}
+              class={`rounded-full px-3 py-1 transition ${
+                aiFilter === 'inconclusive'
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+              }`}
+            >
+              ? Inconclusive
+            </a>
+            <a
+              href={`/admin/corrections?status=pending&ai=unverified`}
+              class={`rounded-full px-3 py-1 transition ${
+                aiFilter === 'unverified'
+                  ? 'bg-slate-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Unverified
+            </a>
+          </div>
         </div>
-      </div>
-    )}
+      )
+    }
 
-    <!-- Corrections List -->
-    {corrections && corrections.length > 0 ? (
-      <div class="space-y-4">
-        {corrections.map((correction) => {
-          const tool = correction.tool as { id: string; name: string; slug: string; logo_url: string | null } | null;
-          return (
-            <div class="rounded-xl border border-slate-200 bg-white p-6">
-              <div class="flex items-start gap-4">
-                <!-- Tool Logo -->
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                  {tool?.logo_url ? (
-                    <img src={tool.logo_url} alt="" class="h-full w-full object-contain p-1.5" />
-                  ) : (
-                    <span class="text-lg font-bold text-slate-300">
-                      {tool?.name?.charAt(0) || '?'}
-                    </span>
-                  )}
-                </div>
-
-                <!-- Content -->
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-3">
-                    <h3 class="font-semibold text-slate-900">{tool?.name || 'Unknown Tool'}</h3>
-                    <span class="rounded bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
-                      {fieldLabels[correction.field_name] || correction.field_name}
-                    </span>
-                    {correction.reporter_type === 'vendor' && (
-                      <span class="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                        Vendor
-                      </span>
-                    )}
-                    {correction.ai_verified && correction.ai_verification_result && (
-                      <span class={`rounded px-2 py-0.5 text-xs font-medium ${aiResultLabels[correction.ai_verification_result]?.color || 'bg-slate-100 text-slate-600'}`}>
-                        {aiResultLabels[correction.ai_verification_result]?.label || 'AI Verified'}
+    {/* Corrections List */}
+    {
+      corrections && corrections.length > 0 ? (
+        <div class="space-y-4">
+          {corrections.map((correction) => {
+            const tool = correction.tool as {
+              id: string;
+              name: string;
+              slug: string;
+              logo_url: string | null;
+            } | null;
+            return (
+              <div class="rounded-xl border border-slate-200 bg-white p-6">
+                <div class="flex items-start gap-4">
+                  {/* Tool Logo */}
+                  <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                    {tool?.logo_url ? (
+                      <img src={tool.logo_url} alt="" class="h-full w-full object-contain p-1.5" />
+                    ) : (
+                      <span class="text-lg font-bold text-slate-300">
+                        {tool?.name?.charAt(0) || '?'}
                       </span>
                     )}
                   </div>
 
-                  <p class="mt-2 text-sm text-slate-600 whitespace-pre-wrap">
-                    {correction.correction_text}
-                  </p>
+                  {/* Content */}
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3">
+                      <h3 class="font-semibold text-slate-900">{tool?.name || 'Unknown Tool'}</h3>
+                      <span class="rounded bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+                        {fieldLabels[correction.field_name] || correction.field_name}
+                      </span>
+                      {correction.reporter_type === 'vendor' && (
+                        <span class="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                          Vendor
+                        </span>
+                      )}
+                      {correction.ai_verified && correction.ai_verification_result && (
+                        <span
+                          class={`rounded px-2 py-0.5 text-xs font-medium ${aiResultLabels[correction.ai_verification_result]?.color || 'bg-slate-100 text-slate-600'}`}
+                        >
+                          {aiResultLabels[correction.ai_verification_result]?.label ||
+                            'AI Verified'}
+                        </span>
+                      )}
+                    </div>
 
-                  {correction.ai_verification_notes && (
-                    <div class="mt-2 rounded-lg bg-blue-50 p-2.5 text-xs text-blue-700">
-                      <span class="font-medium">AI Analysis:</span> {correction.ai_verification_notes}
+                    <p class="mt-2 text-sm text-slate-600 whitespace-pre-wrap">
+                      {correction.correction_text}
+                    </p>
+
+                    {correction.ai_verification_notes && (
+                      <div class="mt-2 rounded-lg bg-blue-50 p-2.5 text-xs text-blue-700">
+                        <span class="font-medium">AI Analysis:</span>{' '}
+                        {correction.ai_verification_notes}
+                      </div>
+                    )}
+
+                    <div class="mt-3 flex items-center gap-4 text-xs text-slate-400">
+                      <span>
+                        {new Date(correction.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                      {correction.reporter_email && <span>From: {correction.reporter_email}</span>}
+                      {tool && (
+                        <a
+                          href={`/tools/${tool.slug}`}
+                          target="_blank"
+                          class="text-hunt-600 hover:text-hunt-700"
+                        >
+                          View tool →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  {statusFilter === 'pending' && (
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        data-action="accept"
+                        data-id={correction.id}
+                        class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        data-action="reject"
+                        data-id={correction.id}
+                        class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+                      >
+                        Reject
+                      </button>
                     </div>
                   )}
 
-                  <div class="mt-3 flex items-center gap-4 text-xs text-slate-400">
-                    <span>
-                      {new Date(correction.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                    {correction.reporter_email && (
-                      <span>From: {correction.reporter_email}</span>
-                    )}
-                    {tool && (
-                      <a
-                        href={`/tools/${tool.slug}`}
-                        target="_blank"
-                        class="text-hunt-600 hover:text-hunt-700"
+                  {statusFilter !== 'pending' && (
+                    <div class="flex items-center gap-2">
+                      <span
+                        class={`rounded-full px-3 py-1 text-xs font-medium ${
+                          correction.status === 'accepted'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
                       >
-                        View tool →
-                      </a>
-                    )}
-                  </div>
+                        {correction.status}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <!-- Actions -->
-                {statusFilter === 'pending' && (
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      data-action="accept"
-                      data-id={correction.id}
-                      class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      type="button"
-                      data-action="reject"
-                      data-id={correction.id}
-                      class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
-
-                {statusFilter !== 'pending' && (
-                  <div class="flex items-center gap-2">
-                    <span class={`rounded-full px-3 py-1 text-xs font-medium ${
-                      correction.status === 'accepted'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {correction.status}
-                    </span>
+                {correction.admin_notes && (
+                  <div class="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                    <span class="font-medium">Admin notes:</span> {correction.admin_notes}
                   </div>
                 )}
               </div>
-
-              {correction.admin_notes && (
-                <div class="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                  <span class="font-medium">Admin notes:</span> {correction.admin_notes}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    ) : (
-      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <h3 class="mt-4 text-sm font-medium text-slate-900">No {statusFilter} corrections</h3>
-        <p class="mt-1 text-sm text-slate-500">
-          {statusFilter === 'pending'
-            ? 'All caught up! No user suggestions waiting for review.'
-            : `No corrections have been ${statusFilter} yet.`
-          }
-        </p>
-        <a href="/admin" class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700">
-          ← Back to Dashboard
-        </a>
-      </div>
-    )}
+            );
+          })}
+        </div>
+      ) : (
+        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-12 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <h3 class="mt-4 text-sm font-medium text-slate-900">No {statusFilter} corrections</h3>
+          <p class="mt-1 text-sm text-slate-500">
+            {statusFilter === 'pending'
+              ? 'All caught up! No user suggestions waiting for review.'
+              : `No corrections have been ${statusFilter} yet.`}
+          </p>
+          <a href="/admin" class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700">
+            ← Back to Dashboard
+          </a>
+        </div>
+      )
+    }
   </div>
 
   <script is:inline>
     // Handle accept/reject actions
-    document.querySelectorAll('[data-action]').forEach(btn => {
+    document.querySelectorAll('[data-action]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const action = btn.getAttribute('data-action');
         const id = btn.getAttribute('data-id');
@@ -348,7 +373,9 @@ const aiResultLabels: Record<string, { label: string; color: string }> = {
           });
 
           if (res.ok) {
-            window.toast?.success(action === 'accept' ? 'Correction accepted' : 'Correction rejected');
+            window.toast?.success(
+              action === 'accept' ? 'Correction accepted' : 'Correction rejected'
+            );
             // Remove the card from view
             btn.closest('.rounded-xl')?.remove();
           } else {

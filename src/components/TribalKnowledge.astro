@@ -60,214 +60,245 @@ if (
 ---
 
 <div class="space-y-6">
-  <!-- Our Take (was "Human Verdict" / "The Bottom Line") -->
-  {humanVerdict && (
-    <div class="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-6">
-      <div class="mb-3 flex items-center gap-2">
-        <svg class="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          />
-        </svg>
-        <h3 class="text-lg font-semibold text-indigo-400">TL;DR</h3>
+  {/* Our Take (was "Human Verdict" / "The Bottom Line") */}
+  {
+    humanVerdict && (
+      <div class="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-6">
+        <div class="mb-3 flex items-center gap-2">
+          <svg
+            class="h-5 w-5 text-indigo-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+          </svg>
+          <h3 class="text-lg font-semibold text-indigo-400">TL;DR</h3>
+        </div>
+        <div class="space-y-3 text-base leading-relaxed text-zinc-300">
+          {humanVerdict
+            .split('\n\n')
+            .slice(0, 2)
+            .map((paragraph: string) => (
+              <p>{paragraph.trim()}</p>
+            ))}
+        </div>
       </div>
-      <div class="space-y-3 text-base leading-relaxed text-zinc-300">
-        {humanVerdict.split('\n\n').slice(0, 2).map((paragraph: string) => (
-          <p>{paragraph.trim()}</p>
-        ))}
-      </div>
-    </div>
-  )}
+    )
+  }
 
-  <!-- Community Insights Section (was "Tribal Knowledge") -->
+  {/* Community Insights Section (was "Tribal Knowledge") */}
   <div class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
     <div class="mb-4 flex items-start gap-3">
-      <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-500/10">
+      <div
+        class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-500/10"
+      >
         <svg class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-          />
+          ></path>
         </svg>
       </div>
       <div class="flex-1">
         <h3 class="text-lg font-semibold text-zinc-100">Community Insights</h3>
-        <p class="mt-1 text-sm text-zinc-400">
-          What the community actually thinks
-        </p>
+        <p class="mt-1 text-sm text-zinc-400">What the community actually thinks</p>
       </div>
     </div>
 
     <div class="space-y-5">
-      <!-- Vibe + Origin Story -->
-      {(vibe || originStory) && (
-        <div class="space-y-2">
-          {vibe && (
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-medium uppercase tracking-wide text-zinc-500">Vibe</span>
-              <span class="text-sm font-medium text-purple-400">{vibe}</span>
-            </div>
-          )}
-          {originStory && (
-            <p class="text-sm italic text-zinc-400">{originStory}</p>
-          )}
-        </div>
-      )}
+      {/* Vibe + Origin Story */}
+      {
+        (vibe || originStory) && (
+          <div class="space-y-2">
+            {vibe && (
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-medium uppercase tracking-wide text-zinc-500">Vibe</span>
+                <span class="text-sm font-medium text-purple-400">{vibe}</span>
+              </div>
+            )}
+            {originStory && <p class="text-sm italic text-zinc-400">{originStory}</p>}
+          </div>
+        )
+      }
 
-      <!-- Fit Guidance -->
-      {(idealFor.length > 0 || avoidIf.length > 0) && (
-        <div class="grid gap-4 md:grid-cols-2">
-          <!-- Best For -->
-          {idealFor.length > 0 && (
-            <div class="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
-              <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-green-400">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Best For
-              </h4>
-              <ul class="space-y-2">
-                {idealFor.map((persona) => (
-                  <li class="flex items-start gap-2 text-sm text-green-400/90">
-                    <svg
-                      class="h-4 w-4 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span>{persona}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {/* Fit Guidance */}
+      {
+        (idealFor.length > 0 || avoidIf.length > 0) && (
+          <div class="grid gap-4 md:grid-cols-2">
+            {/* Best For */}
+            {idealFor.length > 0 && (
+              <div class="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
+                <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-green-400">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Best For
+                </h4>
+                <ul class="space-y-2">
+                  {idealFor.map((persona) => (
+                    <li class="flex items-start gap-2 text-sm text-green-400/90">
+                      <svg
+                        class="h-4 w-4 flex-shrink-0 mt-0.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span>{persona}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          <!-- Skip If -->
-          {avoidIf.length > 0 && (
-            <div class="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
-              <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-red-400">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-                Skip If
-              </h4>
-              <ul class="space-y-2">
-                {avoidIf.map((dealbreaker) => (
-                  <li class="flex items-start gap-2 text-sm text-red-400/90">
-                    <svg
-                      class="h-4 w-4 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                    <span>{dealbreaker}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
+            {/* Skip If */}
+            {avoidIf.length > 0 && (
+              <div class="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+                <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-red-400">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  Skip If
+                </h4>
+                <ul class="space-y-2">
+                  {avoidIf.map((dealbreaker) => (
+                    <li class="flex items-start gap-2 text-sm text-red-400/90">
+                      <svg
+                        class="h-4 w-4 flex-shrink-0 mt-0.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                      <span>{dealbreaker}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )
+      }
 
-      <!-- Power Tip -->
-      {powerTip && (
-        <div class="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-4">
-          <div class="flex items-start gap-3">
-            <svg class="h-5 w-5 flex-shrink-0 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
-            <div>
-              <h4 class="mb-1 text-sm font-semibold text-yellow-400">Pro Tip</h4>
-              <p class="text-sm text-yellow-400/90">{powerTip}</p>
+      {/* Power Tip */}
+      {
+        powerTip && (
+          <div class="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-4">
+            <div class="flex items-start gap-3">
+              <svg
+                class="h-5 w-5 flex-shrink-0 text-yellow-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+              <div>
+                <h4 class="mb-1 text-sm font-semibold text-yellow-400">Pro Tip</h4>
+                <p class="text-sm text-yellow-400/90">{powerTip}</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      <!-- Notable Strengths & Reality Checks (was "Delighters & Frustrations") -->
-      {(delighters.length > 0 || frustrations.length > 0) && (
-        <div class="grid gap-4 md:grid-cols-2">
-          <!-- Notable Strengths (was "Unexpected Wins") -->
-          {delighters.length > 0 && (
-            <div>
-              <h4 class="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
-                <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
-                  />
-                </svg>
-                Notable Strengths
-              </h4>
-              <p class="mb-2 text-xs text-zinc-500">Features the community raves about</p>
-              <ul class="space-y-1.5">
-                {delighters.map((item) => (
-                  <li class="text-sm text-zinc-400">{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {/* Notable Strengths & Reality Checks (was "Delighters & Frustrations") */}
+      {
+        (delighters.length > 0 || frustrations.length > 0) && (
+          <div class="grid gap-4 md:grid-cols-2">
+            {/* Notable Strengths (was "Unexpected Wins") */}
+            {delighters.length > 0 && (
+              <div>
+                <h4 class="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
+                  <svg
+                    class="h-4 w-4 text-green-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
+                    />
+                  </svg>
+                  Notable Strengths
+                </h4>
+                <p class="mb-2 text-xs text-zinc-500">Features the community raves about</p>
+                <ul class="space-y-1.5">
+                  {delighters.map((item) => (
+                    <li class="text-sm text-zinc-400">{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          <!-- Reality Checks -->
-          {frustrations.length > 0 && (
-            <div>
-              <h4 class="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
-                <svg class="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
-                  />
-                </svg>
-                Reality Checks
-              </h4>
-              <p class="mb-2 text-xs text-zinc-500">Gotchas users wish they knew earlier</p>
-              <ul class="space-y-1.5">
-                {frustrations.map((item) => (
-                  <li class="text-sm text-zinc-400">{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
+            {/* Reality Checks */}
+            {frustrations.length > 0 && (
+              <div>
+                <h4 class="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
+                  <svg
+                    class="h-4 w-4 text-red-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
+                    />
+                  </svg>
+                  Reality Checks
+                </h4>
+                <p class="mb-2 text-xs text-zinc-500">Gotchas users wish they knew earlier</p>
+                <ul class="space-y-1.5">
+                  {frustrations.map((item) => (
+                    <li class="text-sm text-zinc-400">{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )
+      }
     </div>
   </div>
 </div>
