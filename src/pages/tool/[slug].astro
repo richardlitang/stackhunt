@@ -216,29 +216,7 @@ if (altSlugs.length > 0) {
 const getPrimaryCategoryId = (item: any) =>
   item?.category?.id || item?.item_category_links?.[0]?.category?.id || null;
 
-const sourceDomains = firstReview?.sources
-  ? [
-      ...new Set(
-        (firstReview.sources as Array<{ domain?: string; url?: string }>)
-          .map((s) => {
-            const rawDomain =
-              s.domain ||
-              (() => {
-                if (!s.url) return '';
-                try {
-                  return new URL(s.url).hostname.replace(/^www\./, '');
-                } catch {
-                  return '';
-                }
-              })();
-            if (!rawDomain) return '';
-            const domain = rawDomain.replace(/\.(com|org|net|io|co)$/, '');
-            return domain.charAt(0).toUpperCase() + domain.slice(1);
-          })
-          .filter(Boolean)
-      ),
-    ].slice(0, 5)
-  : [];
+const totalSourceCount = firstReview?.sources?.length || 0;
 const sourceEvidenceDomains = new Set(
   firstReview?.sources
     ? (firstReview.sources as Array<{ domain?: string; url?: string }>)
@@ -816,7 +794,7 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
       <div class="mb-4">
         <TrustSignals
           lastVerifiedAt={tool.pricing_verified_at}
-          sourceCount={sourceDomains.length}
+          sourceCount={evidenceLinks.length}
           pricingConfidence={tool.pricing_confidence}
           contentConfidence={contentConfidenceLevel}
           size="sm"
@@ -940,7 +918,8 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
             </div>
             {evidenceLinks.length > 0 && (
               <div class="mt-2 text-xs text-zinc-500">
-                Sources: {evidenceLinks.length}
+                Verified sources: {evidenceLinks.length}
+                {totalSourceCount > evidenceLinks.length ? ` • Collected: ${totalSourceCount}` : ''}
                 {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
               </div>
             )}
@@ -1088,6 +1067,16 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
         {
+          (hasSpecs || showProceduralSpecs) && (
+            <a
+              href="#specs"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Specs
+            </a>
+          )
+        }
+        {
           hasGettingStarted && (
             <a
               href="#getting-started"
@@ -1183,43 +1172,6 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-8 lg:col-span-2">
-        {
-          hasVerificationChecklist && (
-            <section id="verification-checklist" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
-              <h2 class="text-lg font-semibold text-zinc-100">Verification Checklist</h2>
-              <p class="mt-2 text-sm text-zinc-400">
-                Canonical pre-procurement checklist. Use this once and reference it across pricing, setup, and rollout.
-              </p>
-              <div class="mt-5 grid gap-4 md:grid-cols-3">
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Pricing verification</h3>
-                  <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                    {checklistPricing.map((item) => (
-                      <li>- {item}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Technical verification</h3>
-                  <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                    {checklistTechnical.map((item) => (
-                      <li>- {item}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Security & migration</h3>
-                  <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                    {checklistSecurity.map((item) => (
-                      <li>- {item}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </section>
-          )
-        }
-
         {/* About - What is it? (FIRST for users learning about the tool) */}
         {
           hasAbout && (
@@ -1424,16 +1376,16 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
         {
           (knowledgeCard?.features?.core?.length > 0 ||
             knowledgeCard?.features?.unique?.length > 0) && (
-            <section id="features">
+            <div id="features">
               <FeaturesShowcase features={knowledgeCard.features} toolName={tool.name} />
-            </section>
+            </div>
           )
         }
 
         {/* Getting Started - Setup guide with friction score and actual steps */}
         {
           hasGettingStarted && (
-            <section id="getting-started">
+            <div id="getting-started">
               <GettingStarted
                 setupComplexity={knowledgeCard?.setup_complexity}
                 toolName={tool.name}
@@ -1441,7 +1393,7 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 websiteUrl={knowledgeCard?.website_url || tool.website}
                 setupTracks={setupTracks}
               />
-            </section>
+            </div>
           )
         }
 
@@ -1550,37 +1502,47 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                   </>
                 ) : (
                   <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-                    Pricing table unavailable from verified extraction. Use the checklist below and vendor docs
-                    before procurement.
+                    Structured pricing table is unavailable from verified extraction. Review source-backed
+                    hard limits below and verify final plan details in vendor docs before procurement.
                   </div>
                 )}
-
-                <section id="hard-limits" class="mt-5 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Hard limits / dealbreakers</h3>
-                  {canonicalHardLimits.length > 0 ? (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {canonicalHardLimits.map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
-                          >
-                            Source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p class="mt-2 text-sm text-zinc-300">
-                      No source-backed hard limits extracted yet. Use the verification checklist before commitment.
-                    </p>
-                  )}
-                </section>
+                <p class="mt-4 text-sm text-zinc-400">
+                  Canonical constraints live in{' '}
+                  <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+                    Hard limits / dealbreakers
+                  </a>
+                  .
+                </p>
               </div>
             </details>
+          )
+        }
+        {
+          (hasPricing || showProceduralPricing) && (
+            <section id="hard-limits" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+              <h2 class="text-lg font-semibold text-zinc-100">Hard limits / dealbreakers</h2>
+              {canonicalHardLimits.length > 0 ? (
+                <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                  {canonicalHardLimits.map((item) => (
+                    <li>
+                      - {item.text}{' '}
+                      <a
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noopener"
+                        class="text-xs text-zinc-500 hover:text-hunt-500"
+                      >
+                        Source
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="mt-2 text-sm text-zinc-300">
+                  No source-backed hard limits extracted yet. Use the verification checklist before commitment.
+                </p>
+              )}
+            </section>
           )
         }
         {
@@ -1678,31 +1640,13 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
         {/* Platform Support & Integrations */}
         {
           (knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
-            <details id="platform-integrations" class="group" open>
-              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none mb-4">
-                <h2 class="text-lg font-semibold text-zinc-100">Platform & Integrations</h2>
-                <svg
-                  class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </summary>
-              <div>
-                <PlatformIntegrations
-                  platforms={knowledgeCard.platforms || []}
-                  integrations={knowledgeCard.integrations}
-                  toolName={tool.name}
-                />
-              </div>
-            </details>
+            <section id="platform-integrations">
+              <PlatformIntegrations
+                platforms={knowledgeCard.platforms || []}
+                integrations={knowledgeCard.integrations}
+                toolName={tool.name}
+              />
+            </section>
           )
         }
 
@@ -2001,6 +1945,42 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 </div>
               </details>
             ))}
+          </div>
+        </section>
+      )
+    }
+    {
+      hasVerificationChecklist && (
+        <section id="verification-checklist" class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+          <h2 class="text-lg font-semibold text-zinc-100">Verification Checklist</h2>
+          <p class="mt-2 text-sm text-zinc-400">
+            Canonical pre-procurement checklist. Use this once and reference it across pricing, setup, and rollout.
+          </p>
+          <div class="mt-5 grid gap-4 md:grid-cols-3">
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+              <h3 class="text-sm font-semibold text-zinc-200">Pricing verification</h3>
+              <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                {checklistPricing.map((item) => (
+                  <li>- {item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+              <h3 class="text-sm font-semibold text-zinc-200">Technical verification</h3>
+              <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                {checklistTechnical.map((item) => (
+                  <li>- {item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+              <h3 class="text-sm font-semibold text-zinc-200">Security & migration</h3>
+              <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                {checklistSecurity.map((item) => (
+                  <li>- {item}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
       )

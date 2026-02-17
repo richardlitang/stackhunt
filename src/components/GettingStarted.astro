@@ -292,10 +292,10 @@ const requiresRoles =
             <div>
               <h3 class="text-sm font-semibold text-zinc-100 mb-4">Non-Developer Path</h3>
               <ol class="space-y-4">
-                {nonDevTrack.map((step) => (
+                {nonDevTrack.map((step, index) => (
                   <li class="flex gap-4">
                     <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-sm border border-blue-500/30">
-                      {step.step}
+                      {index + 1}
                     </div>
                     <div class="flex-1 pt-1">
                       <div class="text-sm text-zinc-100 font-medium">{step.action}</div>
@@ -311,10 +311,10 @@ const requiresRoles =
             <div>
               <h3 class="text-sm font-semibold text-zinc-100 mb-4">Developer Path (API / CLI)</h3>
               <ol class="space-y-4">
-                {devTrack.map((step) => (
+                {devTrack.map((step, index) => (
                   <li class="flex gap-4">
                     <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-300 font-semibold text-sm border border-cyan-500/30">
-                      {step.step}
+                      {index + 1}
                     </div>
                     <div class="flex-1 pt-1">
                       <div class="text-sm text-zinc-100 font-medium">{step.action}</div>
