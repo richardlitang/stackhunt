@@ -465,18 +465,32 @@ const hasAbout = (() => {
   return normalize(longDescription) !== normalize(shortDescription);
 })();
 const hasVerdict = Boolean(renderVerdict && sectionStatus.verdict === 'show');
-const hasStrengths = Boolean(
-  globalPros.length > 0 ||
-  globalCons.length > 0 ||
-  (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0))
-);
 const hasFeatures = Boolean(
   knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0
 );
+const hasMeaningfulStepAction = (step: unknown): boolean => {
+  if (!step || typeof step !== 'object') return false;
+  const action = (step as Record<string, unknown>).action;
+  return typeof action === 'string' && action.trim().length >= 6;
+};
+const hasSetupComplexityContent = Boolean(
+  knowledgeCard?.setup_complexity &&
+    (
+      (Array.isArray(knowledgeCard.setup_complexity.steps) &&
+        knowledgeCard.setup_complexity.steps.some((step) => hasMeaningfulStepAction(step))) ||
+      (typeof knowledgeCard.setup_complexity.estimated_setup_time === 'string' &&
+        knowledgeCard.setup_complexity.estimated_setup_time.trim().length > 0) ||
+      Boolean(knowledgeCard.setup_complexity.setup_url)
+    )
+);
+const hasNonDevTrackContent = Array.isArray(setupTracks?.non_dev)
+  ? setupTracks.non_dev.some((step) => hasMeaningfulStepAction(step))
+  : false;
+const hasDevTrackContent = Array.isArray(setupTracks?.dev)
+  ? setupTracks.dev.some((step) => hasMeaningfulStepAction(step))
+  : false;
 const hasGettingStarted = Boolean(
-  knowledgeCard?.setup_complexity ||
-    (Array.isArray(setupTracks?.non_dev) && setupTracks.non_dev.length > 0) ||
-    (Array.isArray(setupTracks?.dev) && setupTracks.dev.length > 0)
+  hasSetupComplexityContent || hasNonDevTrackContent || hasDevTrackContent
 );
 const hasSpecs = Boolean((categorySpecificData || vipSpecifics) && sectionStatus.specs === 'show');
 const hasMeaningfulPricingPlanName = (name?: string): boolean => {
@@ -580,10 +594,6 @@ const decisionSnapshotWatchOuts = uniqueDecisionText(
         ? fallbackConsText.slice(0, 2)
         : (firstReview?.cons || []).slice(0, 2)
 ).slice(0, 3);
-const implementationSurface =
-  knowledgeCard?.setup_complexity?.estimated_setup_time ||
-  (tool.learning_curve ? `${tool.learning_curve} learning curve` : null) ||
-  'Varies by workflow depth';
 const checklistPricing = [
   'Validate pricing drivers with expected monthly usage at p50 and p95.',
   'Check overage behavior, annual commitments, and seat minimums.',
@@ -749,9 +759,20 @@ const communityVerifiedLabel = formatVerifiedDate(
 const contextualEvidenceCons = (Array.isArray(firstReview?.cons) ? firstReview.cons : [])
   .map(toEvidenceBullet)
   .filter((item): item is EvidenceBullet => Boolean(item));
+const contextualEvidencePros = (Array.isArray(firstReview?.pros) ? firstReview.pros : [])
+  .map(toEvidenceBullet)
+  .filter((item): item is EvidenceBullet => Boolean(item));
+const globalEvidencePros = (Array.isArray(globalPros) ? globalPros : [])
+  .map(toEvidenceBullet)
+  .filter((item): item is EvidenceBullet => Boolean(item));
 const globalEvidenceCons = (Array.isArray(globalCons) ? globalCons : [])
   .map(toEvidenceBullet)
   .filter((item): item is EvidenceBullet => Boolean(item));
+const effectiveEvidencePros =
+  contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros;
+const hasStrengths =
+  effectiveEvidencePros.length + (contextualEvidenceCons.length > 0 ? contextualEvidenceCons.length : globalEvidenceCons.length) >=
+  2;
 const effectiveEvidenceCons =
   contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
 const hiddenCostBullets = Array.isArray(constraints?.hidden_costs)
@@ -877,29 +898,6 @@ const decisionSnapshotDifferentiators = uniqueDecisionText([
   ...(Array.isArray(knowledgeCard?.features?.unique) ? knowledgeCard.features.unique : []),
   ...(Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core : []),
 ]).slice(0, 2);
-const firstWinStep = (() => {
-  const devTermRegex = /\b(api key|sdk|cli|token|endpoint|curl|npm|pip)\b/i;
-  const nonDevAction =
-    Array.isArray(setupTracks?.non_dev) && setupTracks.non_dev[0]?.action
-      ? String(
-          setupTracks.non_dev.find((step) => !devTermRegex.test(String(step?.action || '')))?.action || ''
-        )
-      : null;
-  const devAction =
-    Array.isArray(setupTracks?.dev) && setupTracks.dev[0]?.action
-      ? String(setupTracks.dev[0].action)
-      : null;
-  const setupAction =
-    Array.isArray(knowledgeCard?.setup_complexity?.steps) &&
-    knowledgeCard.setup_complexity.steps[0]?.action
-      ? String(
-          knowledgeCard.setup_complexity.steps.find(
-            (step) => !devTermRegex.test(String(step?.action || ''))
-          )?.action || ''
-        )
-      : null;
-  return nonDevAction || setupAction || devAction || null;
-})();
 const notIncludedBullets = withUniqueText(
   [...effectiveEvidenceCons, ...hiddenCostBullets]
     .filter((item) =>
@@ -1079,7 +1077,7 @@ const schemas = [
       <div class="mb-4">
         <TrustSignals
           lastVerifiedAt={tool.pricing_verified_at}
-          sourceCount={evidenceLinks.length}
+          sourceCount={0}
           pricingConfidence={tool.pricing_confidence}
           contentConfidence={contentConfidenceLevel}
           size="sm"
@@ -1261,7 +1259,7 @@ const schemas = [
           {decisionSnapshotSummary}
         </span>
       </div>
-      <div class="mt-4 grid gap-3 lg:grid-cols-3">
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
         <div class="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Best for</h3>
           <p class="mt-2 text-sm text-zinc-200">
@@ -1275,15 +1273,6 @@ const schemas = [
               ? avoidIfBullet?.text
               : `No source-backed hard avoid condition found as of ${communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'latest verification'}.`}
           </p>
-        </div>
-        <div class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-cyan-300">Fastest win</h3>
-          <p class="mt-2 text-sm text-zinc-200">
-            {firstWinStep || 'Run one real query and verify source quality before broader rollout.'}
-          </p>
-          {implementationSurface && (
-            <p class="mt-2 text-xs text-zinc-400">Setup time (observed): {implementationSurface}</p>
-          )}
         </div>
       </div>
       {decisionProofPoints.length > 0 && (
@@ -1387,6 +1376,30 @@ const schemas = [
       aria-label="On this page"
     >
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">On this page</h2>
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        {tool.website && (
+          <a
+            href={tool.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-outbound="vendor"
+            data-location="toc"
+            data-tool={tool.slug}
+            class="inline-flex items-center rounded-lg bg-hunt-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-hunt-700 transition"
+          >
+            Visit {tool.name}
+          </a>
+        )}
+        {hasAlternatives &&
+          orderedAlternatives.slice(0, 3).map((alt) => (
+            <a
+              href={`/compare/${tool.slug}-vs-${alt.slug}`}
+              class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Compare {alt.name}
+            </a>
+          ))}
+      </div>
       <div class="flex flex-wrap gap-2 text-sm">
         {
           (hasVerdict || showProceduralVerdict) && (
@@ -1654,9 +1667,7 @@ const schemas = [
 
         {/* Strengths & Weaknesses - Prefer contextual over global */}
         {
-          (globalPros.length > 0 ||
-            globalCons.length > 0 ||
-            (firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0))) && (
+          hasStrengths && (
             <details
               id="strengths"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -1664,11 +1675,7 @@ const schemas = [
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
-                  <p class="mt-1 text-sm text-zinc-400">
-                    {firstReview?.context?.title
-                      ? `How ${tool.name} performs for ${firstReview.context.title.replace(/^(Best|Top\s+\d+)\s+/i, '').toLowerCase()}`
-                      : `What ${tool.name} does well and where it falls short`}
-                  </p>
+                  <p class="mt-1 text-sm text-zinc-400">Evidence-backed pros and cons only.</p>
                 </div>
                 <svg
                   class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden shrink-0"
@@ -2054,53 +2061,6 @@ const schemas = [
 
       <!-- Sidebar -->
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
-        <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
-          <h3 class="mb-3 font-semibold text-zinc-100">Decision Sidebar</h3>
-          {tool.website && (
-            <a
-              href={tool.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-outbound="vendor"
-              data-location="decision-sidebar"
-              data-tool={tool.slug}
-              class="mb-3 inline-flex w-full items-center justify-center rounded-lg bg-hunt-600 px-4 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
-            >
-              Visit {tool.name}
-            </a>
-          )}
-          {hasAlternatives && (
-            <div class="mb-3">
-              <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Compare vs</p>
-              <div class="mt-2 flex flex-wrap gap-2">
-                {orderedAlternatives.slice(0, 3).map((alt) => (
-                  <a
-                    href={`/compare/${tool.slug}-vs-${alt.slug}`}
-                    class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-                  >
-                    {alt.name}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          <div class="mb-3">
-            <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Jump to</p>
-            <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <a href="#verdict" class="text-zinc-300 hover:text-hunt-400">Verdict</a>
-              <a href="#getting-started" class="text-zinc-300 hover:text-hunt-400">Setup</a>
-              <a href="#pricing-plans" class="text-zinc-300 hover:text-hunt-400">Pricing</a>
-              <a href="#hard-limits" class="text-zinc-300 hover:text-hunt-400">Hard limits</a>
-            </div>
-          </div>
-          <p class="text-xs text-zinc-500">
-            Top limit:{' '}
-            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-              {topHardLimit ? 'Review canonical constraints' : 'Pending verification'}
-            </a>
-          </p>
-        </div>
-
         {/* Quick Stats - Moved to top for quick scanning */}
         <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
           <h3 class="mb-4 font-semibold text-zinc-100">Quick Stats</h3>
