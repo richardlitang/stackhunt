@@ -697,7 +697,7 @@ function isAuthoritativeClaim(claim: ClaimWithSource): boolean {
   return AUTHORITATIVE_SOURCE_TYPES.has((claim.source_type || '').toLowerCase());
 }
 
-function selectSummaryClaims(claims: ClaimWithSource[], limit = 2): ClaimWithSource[] {
+function selectSummaryClaims(claims: ClaimWithSource[], limit = 1): ClaimWithSource[] {
   const valid = claims.filter((claim) => Boolean(claim.source_url) && isRenderableClaimText(claim.text));
   if (valid.length === 0) return [];
 

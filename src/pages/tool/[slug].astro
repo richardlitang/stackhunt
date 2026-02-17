@@ -583,32 +583,30 @@ const decisionSnapshotWatchOuts = uniqueDecisionText(
         ? fallbackConsText.slice(0, 2)
         : (firstReview?.cons || []).slice(0, 2)
 ).slice(0, 3);
-const decisionSnapshotQuickChecks = hasProceduralGuidance
-  ? uniqueDecisionText([
-      'Use the full verification checklist below before procurement.',
-      'Run one production-like workflow and record failure points.',
-      'Confirm required integrations, export paths, and API limits.',
-    ]).slice(0, 3)
-  : uniqueDecisionText([
-      'Validate pricing drivers with your expected monthly usage.',
-      'Run one production-like workflow and record failure points.',
-      'Confirm required integrations, export paths, and API limits.',
-    ]).slice(0, 3);
+const decisionSnapshotQuickChecks = uniqueDecisionText([
+  'Read the verdict before procurement.',
+  'Review hard limits and plan gates before rollout.',
+  'Run the full verification checklist.',
+]).slice(0, 3);
 const implementationSurface =
   knowledgeCard?.setup_complexity?.estimated_setup_time ||
   (tool.learning_curve ? `${tool.learning_curve} learning curve` : null) ||
   'Varies by workflow depth';
-const decisionSnapshotSignals = uniqueDecisionText([
-  implementationSurface ? `Implementation: ${implementationSurface}` : null,
-  hasProceduralGuidance ? 'Verification checklist available' : null,
-  gateShouldIndex ? 'Quality gate: pass' : 'Quality gate: hold',
-]).slice(0, 3);
-const verificationChecklist = [
-  'Validate pricing drivers with your expected monthly usage.',
-  'Run one production-like workflow and record failure points.',
-  'Confirm required integrations, export paths, and API limits.',
-  'Check security and compliance docs against your procurement checklist.',
+const checklistPricing = [
+  'Validate pricing drivers with expected monthly usage at p50 and p95.',
+  'Check overage behavior, annual commitments, and seat minimums.',
+  'Confirm plan-gated features required for your rollout.',
 ];
+const checklistTechnical = [
+  'Run one production-like workflow and record failure points.',
+  'Confirm required integrations, API limits, and auth flow.',
+  'Verify export formats and migration path before lock-in.',
+];
+const checklistSecurity = [
+  'Check security/compliance docs against procurement requirements.',
+  'Confirm admin controls, SSO, and access/audit expectations.',
+];
+const hasVerificationChecklist = Boolean(hasPricing || showProceduralPricing || firstReview || constraints || hasPlatform);
 const evidenceLinks = (firstReview?.sources || [])
   .map((source) => {
     const url = typeof source?.url === 'string' ? source.url : null;
@@ -746,6 +744,7 @@ const hardLimitBullets = withUniqueText(
     ...hiddenCostBullets.filter((item) => /\b(setup fee|one-time|activation)\b/i.test(item.text)),
   ].slice(0, 6)
 );
+const canonicalHardLimits = withUniqueText([...hardLimitBullets, ...hiddenCostBullets]).slice(0, 6);
 const notIncludedBullets = withUniqueText(
   [...effectiveEvidenceCons, ...hiddenCostBullets]
     .filter((item) =>
@@ -766,7 +765,7 @@ const trialNotesBullets = withUniqueText(
 );
 const hasOperationalFit = Boolean(firstReview || constraints);
 const hasOperationalEvidence =
-  hardLimitBullets.length > 0 || notIncludedBullets.length > 0 || trialNotesBullets.length > 0;
+  notIncludedBullets.length > 0 || trialNotesBullets.length > 0;
 const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasPricing);
 ---
 
@@ -1015,7 +1014,7 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-zinc-100">Should You Choose {tool.name}?</h2>
-          <p class="mt-1 text-sm text-zinc-300">Fast go/no-go summary based on verified fit and risk signals.</p>
+          <p class="mt-1 text-sm text-zinc-300">Fast go/no-go summary with links to the canonical decision sections.</p>
         </div>
         <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
           {decisionSnapshotSummary}
@@ -1023,24 +1022,24 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
       </div>
       <div class="mt-4 grid gap-3 lg:grid-cols-3">
         <div class="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Best when</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-200">
-            {(decisionSnapshotBestWhen.length > 0
-              ? decisionSnapshotBestWhen
-              : ['Your team needs a general-purpose option with low switching risk.']).map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Decision</h3>
+          <p class="mt-2 text-sm text-zinc-200">
+            Read the full recommendation in{' '}
+            <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
+              Verdict
+            </a>
+            .
+          </p>
         </div>
         <div class="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Watch-outs</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-200">
-            {(decisionSnapshotWatchOuts.length > 0
-              ? decisionSnapshotWatchOuts
-              : ['Validate this tool against your highest-risk workflow before rollout.']).map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Hard limits</h3>
+          <p class="mt-2 text-sm text-zinc-200">
+            Review canonical constraints in{' '}
+            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+              Hard limits
+            </a>
+            .
+          </p>
         </div>
         <div class="rounded-xl border border-sky-700/40 bg-sky-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-sky-300">Verify first</h3>
@@ -1051,13 +1050,14 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
               <li>- {item}</li>
             ))}
           </ul>
+          <p class="mt-2 text-xs text-zinc-400">
+            <a href="#verification-checklist" class="text-hunt-500 hover:text-hunt-400">
+              Go to checklist →
+            </a>
+          </p>
         </div>
       </div>
-      <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
-        {decisionSnapshotSignals.map((signal) => (
-          <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-zinc-300">{signal}</span>
-        ))}
-      </div>
+      {implementationSurface && <p class="mt-4 text-xs text-zinc-500">Setup time (observed): {implementationSurface}</p>}
     </section>
 
     {/* Table of Contents */}
@@ -1104,6 +1104,16 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
               Pricing
+            </a>
+          )
+        }
+        {
+          (hasPricing || showProceduralPricing) && (
+            <a
+              href="#hard-limits"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Hard limits
             </a>
           )
         }
@@ -1158,12 +1168,12 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
         {
-          hasProceduralGuidance && (
+          hasVerificationChecklist && (
             <a
               href="#verification-checklist"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
-              Verify first
+              Checklist
             </a>
           )
         }
@@ -1174,17 +1184,38 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-8 lg:col-span-2">
         {
-          hasProceduralGuidance && (
+          hasVerificationChecklist && (
             <section id="verification-checklist" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
               <h2 class="text-lg font-semibold text-zinc-100">Verification Checklist</h2>
               <p class="mt-2 text-sm text-zinc-400">
-                Use this quick pass before committing budget or migration effort.
+                Canonical pre-procurement checklist. Use this once and reference it across pricing, setup, and rollout.
               </p>
-              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
-                {verificationChecklist.map((item) => (
-                  <li>- {item}</li>
-                ))}
-              </ul>
+              <div class="mt-5 grid gap-4 md:grid-cols-3">
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Pricing verification</h3>
+                  <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                    {checklistPricing.map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Technical verification</h3>
+                  <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                    {checklistTechnical.map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Security & migration</h3>
+                  <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                    {checklistSecurity.map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </section>
           )
         }
@@ -1238,25 +1269,30 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                   <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">
                     Choose {tool.name} if
                   </h3>
-                  <ul class="mt-2 space-y-1 text-sm text-zinc-200">
-                    {(decisionSnapshotBestWhen.length > 0
-                      ? decisionSnapshotBestWhen
-                      : ['You need proven fit for your primary workflow.']
-                    ).map((item) => (
-                      <li>- {item}</li>
-                    ))}
-                  </ul>
+                  <p class="mt-2 text-sm text-zinc-200">
+                    {decisionSnapshotBestWhen[0] || 'You need proven fit for your primary workflow.'}
+                  </p>
+                  <p class="mt-2 text-xs text-zinc-400">
+                    Full evidence in{' '}
+                    <a href="#strengths" class="text-hunt-500 hover:text-hunt-400">
+                      Strengths & weaknesses
+                    </a>
+                    .
+                  </p>
                 </div>
                 <div class="rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
                   <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Avoid if</h3>
-                  <ul class="mt-2 space-y-1 text-sm text-zinc-200">
-                    {(decisionSnapshotWatchOuts.length > 0
-                      ? decisionSnapshotWatchOuts
-                      : ['You cannot accept unresolved risks in critical workflows.']
-                    ).map((item) => (
-                      <li>- {item}</li>
-                    ))}
-                  </ul>
+                  <p class="mt-2 text-sm text-zinc-200">
+                    {decisionSnapshotWatchOuts[0] ||
+                      'You cannot accept unresolved risks in critical workflows.'}
+                  </p>
+                  <p class="mt-2 text-xs text-zinc-400">
+                    Review canonical{' '}
+                    <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+                      hard limits
+                    </a>
+                    .
+                  </p>
                 </div>
               </div>
               {hasAlternatives && (
@@ -1441,7 +1477,7 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
 
         {/* Pricing Plans */}
         {
-          hasPricing && (
+          (hasPricing || showProceduralPricing) && (
             <details
               id="pricing-plans"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -1469,62 +1505,82 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 </svg>
               </summary>
               <div class="mt-4">
-                <PricingPlansGrid
-                  smp_pricing={knowledgeCard?.smp_pricing}
-                  legacy_pricing={knowledgeCard?.pricing}
-                  toolName={tool.name}
-                >
-                  <PriceVerification
-                    slot="verification"
-                    client:visible
-                    toolId={tool.id}
-                    toolName={tool.name}
-                    currentPrice={knowledgeCard?.pricing?.starting_price}
-                    pricingType={tool.pricing_type}
-                    verificationCount={tool.user_verifications_this_week || 0}
-                    variant="inline"
-                  />
-                </PricingPlansGrid>
+                {hasPricing ? (
+                  <>
+                    <PricingPlansGrid
+                      smp_pricing={knowledgeCard?.smp_pricing}
+                      legacy_pricing={knowledgeCard?.pricing}
+                      toolName={tool.name}
+                    >
+                      <PriceVerification
+                        slot="verification"
+                        client:visible
+                        toolId={tool.id}
+                        toolName={tool.name}
+                        currentPrice={knowledgeCard?.pricing?.starting_price}
+                        pricingType={tool.pricing_type}
+                        verificationCount={tool.user_verifications_this_week || 0}
+                        variant="inline"
+                      />
+                    </PricingPlansGrid>
 
-                {/* Price Mechanics - Helpful tip integrated with pricing */}
-                <PricingInsights
-                  variant="compact"
-                  budgetAnalyst={
-                    budgetAnalyst
-                      ? {
-                          costDrivers: Array.isArray(
-                            budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
-                          )
-                            ? budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
-                            : [],
-                          oneTimeFees: Array.isArray(
-                            budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
-                          )
-                            ? budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
-                            : [],
-                          commitmentTerms: (budgetAnalyst.commitmentTerms ||
-                            budgetAnalyst.commitment_terms) as string | null | undefined,
-                          roiThreshold: (budgetAnalyst.roiThreshold ||
-                            budgetAnalyst.roi_threshold) as string | null | undefined,
-                        }
-                      : undefined
-                  }
-                />
+                    <PricingInsights
+                      variant="compact"
+                      budgetAnalyst={
+                        budgetAnalyst
+                          ? {
+                              costDrivers: Array.isArray(
+                                budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
+                              )
+                                ? budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
+                                : [],
+                              oneTimeFees: Array.isArray(
+                                budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
+                              )
+                                ? budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
+                                : [],
+                              commitmentTerms: (budgetAnalyst.commitmentTerms ||
+                                budgetAnalyst.commitment_terms) as string | null | undefined,
+                              roiThreshold: (budgetAnalyst.roiThreshold ||
+                                budgetAnalyst.roi_threshold) as string | null | undefined,
+                            }
+                          : undefined
+                      }
+                    />
+                  </>
+                ) : (
+                  <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
+                    Pricing table unavailable from verified extraction. Use the checklist below and vendor docs
+                    before procurement.
+                  </div>
+                )}
+
+                <section id="hard-limits" class="mt-5 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Hard limits / dealbreakers</h3>
+                  {canonicalHardLimits.length > 0 ? (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {canonicalHardLimits.map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p class="mt-2 text-sm text-zinc-300">
+                      No source-backed hard limits extracted yet. Use the verification checklist before commitment.
+                    </p>
+                  )}
+                </section>
               </div>
             </details>
-          )
-        }
-        {
-          showProceduralPricing && (
-            <section id="pricing-plans" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
-              <h2 class="text-lg font-semibold text-zinc-100">Pricing Verification Steps</h2>
-              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
-                <li>- Identify the billing unit and estimate monthly usage at p50 and p95.</li>
-                <li>- Check overage behavior, annual commitments, and seat minimums.</li>
-                <li>- Validate whether critical features are gated to higher plans.</li>
-                <li>- Confirm cancellation/export terms before committing procurement.</li>
-              </ul>
-            </section>
           )
         }
         {
@@ -1538,63 +1594,9 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 Evidence-backed constraints and rollout considerations before you scale usage.
               </p>
 
-              <div class="mt-5 grid gap-4 md:grid-cols-3">
+              <div class="mt-5 grid gap-4 md:grid-cols-2">
                 <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Hard Limits</h3>
-                  {hardLimitBullets.length > 0 ? (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {hardLimitBullets.map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
-                          >
-                            Source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      <li>- Verify quota units and reset windows before rollout.</li>
-                      <li>- Test p95 usage against hard caps in a staging workflow.</li>
-                      <li>- Confirm overage behavior for failed and retried actions.</li>
-                    </ul>
-                  )}
-                </div>
-
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Not Included</h3>
-                  {notIncludedBullets.length > 0 ? (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {notIncludedBullets.map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
-                          >
-                            Source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      <li>- Verify which required features are plan-gated.</li>
-                      <li>- Confirm missing workflows and required integrations.</li>
-                      <li>- Validate export/migration paths before commitment.</li>
-                    </ul>
-                  )}
-                </div>
-
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Trial Notes</h3>
+                  <h3 class="text-sm font-semibold text-zinc-200">Rollout risks</h3>
                   {trialNotesBullets.length > 0 ? (
                     <ul class="mt-3 space-y-2 text-sm text-zinc-300">
                       {trialNotesBullets.map((item) => (
@@ -1616,6 +1618,33 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                       <li>- Run a week-long pilot with real contributors.</li>
                       <li>- Track failure reasons and manual workarounds daily.</li>
                       <li>- Re-check fit after migration and permissions setup.</li>
+                    </ul>
+                  )}
+                </div>
+
+                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                  <h3 class="text-sm font-semibold text-zinc-200">Adoption blockers</h3>
+                  {notIncludedBullets.length > 0 ? (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {notIncludedBullets.map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      <li>- Verify which required features are plan-gated.</li>
+                      <li>- Confirm missing workflows and required integrations.</li>
+                      <li>- Validate export/migration paths before commitment.</li>
                     </ul>
                   )}
                 </div>
