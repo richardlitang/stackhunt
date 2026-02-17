@@ -9,6 +9,7 @@ import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { ApiResponse } from '@/lib/api-response';
 import { refreshQualityGateSnapshotForItem } from '@/lib/quality-gate-snapshot';
+import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 
 export const prerender = false;
 
@@ -22,20 +23,68 @@ export const POST: APIRoute = async ({ request }) => {
     const body: BatchApproveRequest = await request.json().catch(() => ({}));
     const admin = getAdminClient();
 
+    const selectFields = `
+      id,
+      item_id,
+      status,
+      score,
+      quality,
+      summary_markdown,
+      cons,
+      sources,
+      item:items(
+        id,
+        metadata,
+        specs,
+        pricing_confidence,
+        pricing_verified_at,
+        short_description,
+        verdict,
+        updated_at
+      )
+    `;
+
     // If specific IDs provided, approve those
     if (body.ids && body.ids.length > 0) {
+      const { data: candidates, error: fetchError } = await admin
+        .from('reviews')
+        .select(selectFields)
+        .in('id', body.ids)
+        .in('status', ['draft', 'review']);
+
+      if (fetchError) {
+        console.error('Batch approve fetch error:', fetchError);
+        return ApiResponse.internalError('Failed to load reviews for strict gate');
+      }
+
+      const eligibleIds: string[] = [];
+      const blocked: Array<{ id: string; blockers: string[] }> = [];
+      for (const row of candidates || []) {
+        if (!(row as any).item) {
+          blocked.push({ id: row.id, blockers: ['strict:missing_item_metadata'] });
+          continue;
+        }
+        const gate = evaluateStrictPublishGate((row as any).item, row as any);
+        if (gate.pass) eligibleIds.push(row.id);
+        else blocked.push({ id: row.id, blockers: gate.blockers });
+      }
+
+      if (eligibleIds.length === 0) {
+        return ApiResponse.badRequest('No selected reviews passed the strict safety gate', { blocked });
+      }
+
       const { data, error } = await admin
         .from('reviews')
         .update({
           status: 'published',
           published_at: new Date().toISOString(),
         })
-        .in('id', body.ids)
+        .in('id', eligibleIds)
         .in('status', ['draft', 'review'])
         .select('id, item_id');
 
       if (error) {
-        console.error('Batch approve error:', error);
+        console.error('Batch approve update error:', error);
         return ApiResponse.internalError('Failed to approve reviews');
       }
 
@@ -46,6 +95,8 @@ export const POST: APIRoute = async ({ request }) => {
 
       return ApiResponse.ok({
         approved: data?.length || 0,
+        blocked: blocked.length,
+        blockedDetails: blocked,
         message: `Approved ${data?.length || 0} reviews`,
       });
     }
@@ -56,12 +107,7 @@ export const POST: APIRoute = async ({ request }) => {
     // First, get all pending reviews with their tool's knowledge_card
     const { data: reviews, error: fetchError } = await admin
       .from('reviews')
-      .select(
-        `
-        id,
-        tool:tools(knowledge_card)
-      `
-      )
+      .select(selectFields)
       .in('status', ['draft', 'review']);
 
     if (fetchError) {
@@ -69,11 +115,24 @@ export const POST: APIRoute = async ({ request }) => {
       return ApiResponse.internalError('Failed to fetch reviews');
     }
 
-    // Filter by confidence
+    // Filter by confidence + strict publish gate
     const eligibleIds: string[] = [];
+    const blocked: Array<{ id: string; blockers: string[] }> = [];
     for (const review of reviews || []) {
-      const tool = review.tool as { knowledge_card?: { meta?: { data_quality?: string } } } | null;
-      const quality = tool?.knowledge_card?.meta?.data_quality;
+      const item = (review as any).item as
+        | { metadata?: { meta?: { data_quality?: string } } }
+        | null;
+      if (!item) {
+        blocked.push({ id: (review as any).id, blockers: ['strict:missing_item_metadata'] });
+        continue;
+      }
+      const quality = item?.metadata?.meta?.data_quality;
+      const gate = evaluateStrictPublishGate((review as any).item, review as any);
+
+      if (!gate.pass) {
+        blocked.push({ id: (review as any).id, blockers: gate.blockers });
+        continue;
+      }
 
       if (minConfidence === 'high' && quality === 'high') {
         eligibleIds.push(review.id);
@@ -85,6 +144,8 @@ export const POST: APIRoute = async ({ request }) => {
     if (eligibleIds.length === 0) {
       return ApiResponse.ok({
         approved: 0,
+        blocked: blocked.length,
+        blockedDetails: blocked,
         message: 'No reviews meet the confidence threshold',
       });
     }
@@ -111,6 +172,8 @@ export const POST: APIRoute = async ({ request }) => {
 
     return ApiResponse.ok({
       approved: approved?.length || 0,
+      blocked: blocked.length,
+      blockedDetails: blocked,
       message: `Approved ${approved?.length || 0} high-confidence reviews`,
     });
   } catch (error) {

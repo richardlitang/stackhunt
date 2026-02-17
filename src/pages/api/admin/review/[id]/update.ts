@@ -8,6 +8,7 @@
 import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { refreshQualityGateSnapshotForItem } from '@/lib/quality-gate-snapshot';
+import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 
 export const prerender = false;
 
@@ -118,7 +119,7 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     const { data: existingReview, error: existingReviewError } = await admin
       .from('reviews')
-      .select('item_id, pros, cons')
+      .select('item_id, pros, cons, sources')
       .eq('id', id)
       .maybeSingle();
     if (existingReviewError || !existingReview?.item_id) {
@@ -127,6 +128,15 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     const pros = preserveClaimAttribution(prosLines, existingReview.pros);
     const cons = preserveClaimAttribution(consLines, existingReview.cons);
+
+    const { data: itemRow, error: itemFetchError } = await admin
+      .from('items')
+      .select('id, metadata, specs, pricing_confidence, pricing_verified_at, short_description, verdict, updated_at')
+      .eq('id', existingReview.item_id)
+      .maybeSingle();
+    if (itemFetchError || !itemRow) {
+      return new Response('Failed to load item metadata for publish safety checks', { status: 500 });
+    }
 
     // Base update
     const updateData: Record<string, unknown> = {
@@ -141,6 +151,26 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     // Handle action
     if (action === 'publish') {
+      const gate = evaluateStrictPublishGate(itemRow as any, {
+        summary_markdown: summaryMarkdown,
+        cons,
+        sources: existingReview.sources,
+      } as any);
+      if (!gate.pass) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Publish blocked by strict safety gate',
+            blockers: gate.blockers,
+            evidenceGrade: gate.evidenceGrade,
+            metrics: gate.metrics,
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
       updateData.status = 'published';
       updateData.published_at = new Date().toISOString();
     } else if (action === 'reject') {
