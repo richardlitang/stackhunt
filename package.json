@@ -10,7 +10,7 @@
     "codex:format": "npm run format",
     "codex:format:check": "npm run format:check",
     "codex:build": "npm run build",
-    "codex:e2e": "node scripts/run-e2e.mjs tests/e2e/homepage.spec.ts tests/e2e/pricing.spec.ts tests/e2e/seo.spec.ts",
+    "codex:e2e": "node scripts/run-e2e.mjs tests/e2e/homepage.spec.ts tests/e2e/pricing.spec.ts tests/e2e/seo.spec.ts tests/e2e/visual.spec.ts",
     "codex:verify:content": "npm run qa:gates",
     "codex:verify:links": "npm run verify-affiliates && npm run verify-corrections",
     "codex:preview:serve": "npm run preview -- --port 4321 --host 127.0.0.1",
