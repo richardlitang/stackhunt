@@ -148,19 +148,23 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <ul class="space-y-2">
               <li>
                 <a href="/categories" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Browse Categories</a>
+                  >Browse Categories</a
+                >
               </li>
               <li>
                 <a href="/compare" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Compare Tools</a>
+                  >Compare Tools</a
+                >
               </li>
               <li>
                 <a href="/tools" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >All Tools</a>
+                  >All Tools</a
+                >
               </li>
               <li>
                 <a href="/best" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Best Lists</a>
+                  >Best Lists</a
+                >
               </li>
             </ul>
           </div>
@@ -171,16 +175,19 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <ul class="space-y-2">
               <li>
                 <a href="/about" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >About StackHunt</a>
+                  >About StackHunt</a
+                >
               </li>
               <li>
                 <a
                   href="/methodology"
-                  class="text-sm text-zinc-500 hover:text-indigo-400 transition">Methodology</a>
+                  class="text-sm text-zinc-500 hover:text-indigo-400 transition">Methodology</a
+                >
               </li>
               <li>
                 <a href="/contact" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Contact</a>
+                  >Contact</a
+                >
               </li>
             </ul>
           </div>
@@ -191,15 +198,18 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <ul class="space-y-2">
               <li>
                 <a href="/privacy" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Privacy Policy</a>
+                  >Privacy Policy</a
+                >
               </li>
               <li>
                 <a href="/terms" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Terms of Service</a>
+                  >Terms of Service</a
+                >
               </li>
               <li>
                 <a href="/disclosure" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Affiliate Disclosure</a>
+                  >Affiliate Disclosure</a
+                >
               </li>
             </ul>
           </div>
@@ -209,22 +219,19 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <h3 class="text-sm font-semibold text-zinc-100 mb-3">Popular</h3>
             <ul class="space-y-2">
               <li>
-                <a
-                  href="/best"
-                  class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Best Tool Lists</a>
+                <a href="/best" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                  >Best Tool Lists</a
+                >
               </li>
               <li>
-                <a
-                  href="/compare"
-                  class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Compare Tools</a>
+                <a href="/compare" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                  >Compare Tools</a
+                >
               </li>
               <li>
-                <a
-                  href="/categories"
-                  class="text-sm text-zinc-500 hover:text-indigo-400 transition"
-                  >Browse Categories</a>
+                <a href="/categories" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                  >Browse Categories</a
+                >
               </li>
             </ul>
           </div>
@@ -241,7 +248,8 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
               <a href="/disclosure" class="underline hover:text-indigo-400"> Full disclosure → </a>
             </p>
             <p class="text-xs text-zinc-500 leading-relaxed mb-4">
-              Community insights reflect aggregated, subjective reports and may not represent all user experiences.
+              Community insights reflect aggregated, subjective reports and may not represent all
+              user experiences.
             </p>
             <div
               class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-zinc-800"
@@ -259,6 +267,21 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
 </html>
 
 <style is:global>
+  /* Keep body-content links distinguishable without relying on color alone */
+  main :is(p, li) a {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.16em;
+  }
+  main :is(p, li) a:hover {
+    text-decoration-thickness: 2px;
+  }
+  main a:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;

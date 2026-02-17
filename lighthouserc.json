@@ -2,7 +2,7 @@
   "ci": {
     "collect": {
       "numberOfRuns": 3,
-      "url": ["http://localhost:4321/", "http://localhost:4321/tool/perplexity"],
+      "url": ["http://localhost:4321/", "http://localhost:4321/tools"],
       "settings": {
         "preset": "desktop"
       }

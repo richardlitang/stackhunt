@@ -89,7 +89,9 @@ const setupTracks = canonicalFacts?.setup_tracks as
 // V4: Smart Schema - Category-specific and VIP tool-specific data
 const categorySpecificData = toolSpecs?.categorySpecificData as Record<string, unknown> | undefined;
 const canonicalLatestModels = Array.isArray(canonicalFacts?.latest_models_comparison)
-  ? canonicalFacts.latest_models_comparison.filter((entry): entry is string => typeof entry === 'string')
+  ? canonicalFacts.latest_models_comparison.filter(
+      (entry): entry is string => typeof entry === 'string'
+    )
   : [];
 const displayCategorySpecificData =
   categorySpecificData && canonicalLatestModels.length > 0
@@ -239,11 +241,7 @@ const getEvidenceDomain = (url: string): string => {
 const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
 const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
 const stripControlChars = (value: string): string =>
-  value
-    .normalize('NFKC')
-    .replace(CONTROL_CHARS_REGEX, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
 const extractJsonClaimText = (snippet: string): string | null => {
   try {
     const parsed = JSON.parse(snippet) as Record<string, unknown>;
@@ -395,21 +393,26 @@ const isDraftPage = publishedReviews.length === 0 && hasDraftReview;
 
 const VOLATILE_FAQ_TERMS =
   /\b(model|version|pricing|price|plan|quota|limit|token|tokens|rate limit|context window|deprecated|deprecation|gpt|claude|opus|sonnet|haiku|o[1-9])\b/i;
-const filteredFaqItems = (Array.isArray(knowledgeCard?.faqs) ? knowledgeCard.faqs : []).filter((item) => {
-  if (!item?.question || !item?.answer) return false;
-  if (!item.answer_source_url) return false;
-  if (VOLATILE_FAQ_TERMS.test(`${item.question} ${item.answer}`) && item.answer_source_type !== 'official') {
-    return false;
+const filteredFaqItems = (Array.isArray(knowledgeCard?.faqs) ? knowledgeCard.faqs : []).filter(
+  (item) => {
+    if (!item?.question || !item?.answer) return false;
+    if (!item.answer_source_url) return false;
+    if (
+      VOLATILE_FAQ_TERMS.test(`${item.question} ${item.answer}`) &&
+      item.answer_source_type !== 'official'
+    ) {
+      return false;
+    }
+    if (
+      /\b(price|pricing|plan|tier|monthly|annual|enterprise|max plan|models? available|what models?)\b/i.test(
+        `${item.question} ${item.answer}`
+      )
+    ) {
+      return false;
+    }
+    return true;
   }
-  if (
-    /\b(price|pricing|plan|tier|monthly|annual|enterprise|max plan|models? available|what models?)\b/i.test(
-      `${item.question} ${item.answer}`
-    )
-  ) {
-    return false;
-  }
-  return true;
-});
+);
 const knowledgeCardForSeo =
   knowledgeCard && filteredFaqItems.length !== (knowledgeCard.faqs?.length || 0)
     ? { ...knowledgeCard, faqs: filteredFaqItems }
@@ -462,7 +465,11 @@ const hasAbout = (() => {
   if (!longDescription) return false;
   const shortDescription =
     typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
-  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
   return normalize(longDescription) !== normalize(shortDescription);
 })();
 const hasVerdict = Boolean(renderVerdict && sectionStatus.verdict === 'show');
@@ -476,13 +483,11 @@ const hasMeaningfulStepAction = (step: unknown): boolean => {
 };
 const hasSetupComplexityContent = Boolean(
   knowledgeCard?.setup_complexity &&
-    (
-      (Array.isArray(knowledgeCard.setup_complexity.steps) &&
-        knowledgeCard.setup_complexity.steps.some((step) => hasMeaningfulStepAction(step))) ||
-      (typeof knowledgeCard.setup_complexity.estimated_setup_time === 'string' &&
-        knowledgeCard.setup_complexity.estimated_setup_time.trim().length > 0) ||
-      Boolean(knowledgeCard.setup_complexity.setup_url)
-    )
+  ((Array.isArray(knowledgeCard.setup_complexity.steps) &&
+    knowledgeCard.setup_complexity.steps.some((step) => hasMeaningfulStepAction(step))) ||
+    (typeof knowledgeCard.setup_complexity.estimated_setup_time === 'string' &&
+      knowledgeCard.setup_complexity.estimated_setup_time.trim().length > 0) ||
+    Boolean(knowledgeCard.setup_complexity.setup_url))
 );
 const hasNonDevTrackContent = Array.isArray(setupTracks?.non_dev)
   ? setupTracks.non_dev.some((step) => hasMeaningfulStepAction(step))
@@ -502,18 +507,26 @@ const hasMeaningfulPricingPlanName = (name?: string): boolean => {
   return true;
 };
 const hasRenderableSmpPlans = Boolean(
-  knowledgeCard?.smp_pricing?.plans?.some((plan) => hasMeaningfulPricingPlanName((plan as any)?.name))
+  knowledgeCard?.smp_pricing?.plans?.some((plan) =>
+    hasMeaningfulPricingPlanName((plan as any)?.name)
+  )
 );
 const hasPricing = Boolean(
-  ((hasRenderableSmpPlans || knowledgeCard?.pricing?.tiers?.length > 0) && sectionStatus.pricing === 'show')
+  (hasRenderableSmpPlans || knowledgeCard?.pricing?.tiers?.length > 0) &&
+  sectionStatus.pricing === 'show'
 );
 const hasPlatform = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
 const hasVideo = Boolean(tool.video_id);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
-const hasCommunity = Boolean(eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show');
-const showProceduralVerdict = hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
-const showProceduralPricing = hasProceduralGuidance && sectionStatus.pricing === 'procedural' && !hasPricing;
-const showProceduralSpecs = hasProceduralGuidance && sectionStatus.specs === 'procedural' && !hasSpecs;
+const hasCommunity = Boolean(
+  eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show'
+);
+const showProceduralVerdict =
+  hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
+const showProceduralPricing =
+  hasProceduralGuidance && sectionStatus.pricing === 'procedural' && !hasPricing;
+const showProceduralSpecs =
+  hasProceduralGuidance && sectionStatus.specs === 'procedural' && !hasSpecs;
 const showProceduralCommunity =
   hasProceduralGuidance && sectionStatus.community === 'procedural' && !hasCommunity;
 const taxonomyPrimary =
@@ -528,7 +541,11 @@ const extractClaimText = (claim: unknown): string => {
     const cleaned = stripControlChars(claim);
     return isLikelyIncompleteClause(cleaned) ? '' : cleaned;
   }
-  if (claim && typeof claim === 'object' && typeof (claim as Record<string, unknown>).text === 'string') {
+  if (
+    claim &&
+    typeof claim === 'object' &&
+    typeof (claim as Record<string, unknown>).text === 'string'
+  ) {
     const cleaned = stripControlChars((claim as Record<string, unknown>).text as string);
     return isLikelyIncompleteClause(cleaned) ? '' : cleaned;
   }
@@ -547,12 +564,12 @@ const cleanDecisionText = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
   const cleaned = stripControlChars(
     value
-    .trim()
-    .replace(/^[-\u2022]\s*/, '')
-    .replace(/^avoid if\s*/i, '')
-    .replace(/^best fit:\s*/i, '')
-    .replace(/^best when\s*/i, '')
-    .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^[-\u2022]\s*/, '')
+      .replace(/^avoid if\s*/i, '')
+      .replace(/^best fit:\s*/i, '')
+      .replace(/^best when\s*/i, '')
+      .replace(/\s+/g, ' ')
   );
   if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
@@ -578,13 +595,15 @@ const hasToolNameSignal = (value: string): boolean => {
   return toolNameTokens.length > 0 && toolNameTokens.some((token) => lower.includes(token));
 };
 const decisionSnapshotSummary =
-  tool.short_description || knowledgeCard?.tagline || `${tool.name} across pricing, fit, and rollout risk.`;
+  tool.short_description ||
+  knowledgeCard?.tagline ||
+  `${tool.name} across pricing, fit, and rollout risk.`;
 const decisionSnapshotBestWhen = uniqueDecisionText(
   idealFor.length > 0
     ? idealFor
     : tags.audiences.length > 0
       ? tags.audiences.map((tag) => tag.name)
-      : (firstReview?.pros || [])
+      : firstReview?.pros || []
 ).slice(0, 3);
 const decisionSnapshotWatchOuts = uniqueDecisionText(
   guardedAvoidIf.length > 0
@@ -609,7 +628,9 @@ const checklistSecurity = [
   'Check security/compliance docs against procurement requirements.',
   'Confirm admin controls, SSO, and access/audit expectations.',
 ];
-const hasVerificationChecklist = Boolean(hasPricing || showProceduralPricing || firstReview || constraints || hasPlatform);
+const hasVerificationChecklist = Boolean(
+  hasPricing || showProceduralPricing || firstReview || constraints || hasPlatform
+);
 type EvidenceLinkEntry = {
   url: string;
   title: string;
@@ -657,7 +678,9 @@ const evidenceLinksAll = (firstReview?.sources || [])
       hostname.includes('stackexchange.com') ||
       hostname.includes('stackoverflow.com');
     if (blocked) return null;
-    const sourceType = String((source as Record<string, unknown>)?.source_type || source?.type || '').toLowerCase();
+    const sourceType = String(
+      (source as Record<string, unknown>)?.source_type || source?.type || ''
+    ).toLowerCase();
     const basis =
       sourceType === 'official'
         ? hostname.startsWith('status.') || path.includes('/status')
@@ -670,21 +693,29 @@ const evidenceLinksAll = (firstReview?.sources || [])
         : sourceType === 'community'
           ? 'Community discussions'
           : hostname.includes('github.com') && path.includes('/issues')
-          ? 'GitHub issues'
-          : 'Independent reviews';
+            ? 'GitHub issues'
+            : 'Independent reviews';
     const title =
       typeof source?.title === 'string' && source.title.trim().length > 0
         ? source.title.trim()
         : hostname;
     const hasToolSignal = hasToolNameSignal(`${title} ${hostname} ${path}`);
-    const isLikelyOffTopicOfficial = sourceType === 'official' && path.includes('/blog/') && !hasToolSignal;
+    const isLikelyOffTopicOfficial =
+      sourceType === 'official' && path.includes('/blog/') && !hasToolSignal;
     let quality: EvidenceLinkEntry['quality'] = 'medium';
     let inclusionReason = 'Secondary source';
     if (sourceType === 'official') {
       if (isLikelyOffTopicOfficial) {
         quality = 'low';
         inclusionReason = 'Official domain but page appears unrelated to this tool';
-      } else if (path.includes('/pricing') || path.includes('/plans') || path.includes('/docs') || path.includes('/help') || path.includes('/developers') || path.includes('/api')) {
+      } else if (
+        path.includes('/pricing') ||
+        path.includes('/plans') ||
+        path.includes('/docs') ||
+        path.includes('/help') ||
+        path.includes('/developers') ||
+        path.includes('/api')
+      ) {
         quality = 'high';
         inclusionReason = 'Official product documentation or pricing page';
       } else {
@@ -696,7 +727,10 @@ const evidenceLinksAll = (firstReview?.sources || [])
     } else if (basis === 'Community discussions' || hostname.includes('youtube.com')) {
       quality = 'low';
       inclusionReason = 'Community or user-generated source (anecdotal)';
-    } else if (TRUSTED_INDEPENDENT_DOMAINS.has(hostname) || Array.from(TRUSTED_INDEPENDENT_DOMAINS).some((domain) => hostname.endsWith(`.${domain}`))) {
+    } else if (
+      TRUSTED_INDEPENDENT_DOMAINS.has(hostname) ||
+      Array.from(TRUSTED_INDEPENDENT_DOMAINS).some((domain) => hostname.endsWith(`.${domain}`))
+    ) {
       quality = 'medium';
       inclusionReason = 'Independent source from a higher-trust publication';
     } else {
@@ -733,7 +767,9 @@ const evidenceBasis = [
   })
   .filter((entry) => entry.count > 0);
 const officialEvidenceLinks = evidenceLinks.filter((entry) => entry.basis.startsWith('Official'));
-const independentEvidenceLinks = evidenceLinks.filter((entry) => entry.basis === 'Independent reviews');
+const independentEvidenceLinks = evidenceLinks.filter(
+  (entry) => entry.basis === 'Independent reviews'
+);
 const communityEvidenceLinks = evidenceLinks.filter(
   (entry) => entry.basis === 'Community discussions' || entry.basis === 'GitHub issues'
 );
@@ -748,6 +784,13 @@ const formatVerifiedDate = (value?: string | null): string | null => {
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
+const clampSourceContext = (value: string): string => {
+  const normalized = stripControlChars(value).replace(/\s+/g, ' ').trim();
+  if (!normalized) return 'this claim';
+  return normalized.length > 90 ? `${normalized.slice(0, 87)}...` : normalized;
+};
+const sourceAriaLabel = (context: string): string =>
+  `Open source evidence for ${clampSourceContext(context)}`;
 const pricingVerifiedLabel = formatVerifiedDate(tool.pricing_verified_at || tool.last_verified_at);
 const specsVerifiedLabel = formatVerifiedDate(
   (knowledgeCard?.meta?.extraction_date as string | undefined) || tool.last_verified_at
@@ -772,7 +815,10 @@ const globalEvidenceCons = (Array.isArray(globalCons) ? globalCons : [])
 const effectiveEvidencePros =
   contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros;
 const hasStrengths =
-  effectiveEvidencePros.length + (contextualEvidenceCons.length > 0 ? contextualEvidenceCons.length : globalEvidenceCons.length) >=
+  effectiveEvidencePros.length +
+    (contextualEvidenceCons.length > 0
+      ? contextualEvidenceCons.length
+      : globalEvidenceCons.length) >=
   2;
 const effectiveEvidenceCons =
   contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
@@ -793,11 +839,15 @@ const hardLimitFromConstraints = Array.isArray(constraints?.hard_limits)
       .map((limit: any) => {
         const sourceUrl = typeof limit?.source_url === 'string' ? limit.source_url : '';
         if (!isEligibleEvidenceUrl(sourceUrl)) return null;
-        const metric = typeof limit?.metric === 'string' ? limit.metric.replace(/_/g, ' ') : 'Limit';
+        const metric =
+          typeof limit?.metric === 'string' ? limit.metric.replace(/_/g, ' ') : 'Limit';
         const value =
-          typeof limit?.value === 'number' || typeof limit?.value === 'string' ? String(limit.value) : '';
+          typeof limit?.value === 'number' || typeof limit?.value === 'string'
+            ? String(limit.value)
+            : '';
         const unit = typeof limit?.unit === 'string' ? ` ${limit.unit}` : '';
-        const plan = typeof limit?.plan_name_match === 'string' ? ` (${limit.plan_name_match})` : '';
+        const plan =
+          typeof limit?.plan_name_match === 'string' ? ` (${limit.plan_name_match})` : '';
         const text = `${metric}: ${value}${unit}${plan}`.trim();
         if (!text || text === 'Limit:') return null;
         return { text, sourceUrl } as EvidenceBullet;
@@ -825,16 +875,23 @@ const hardLimitBullets = withUniqueText(
 const canonicalHardLimits = withUniqueText([...hardLimitBullets, ...hiddenCostBullets]).slice(0, 6);
 const topHardLimit = canonicalHardLimits[0] || null;
 const officialDomains = new Set(officialEvidenceLinks.map((entry) => entry.domain));
-const hasOfficialPricingSource = officialEvidenceLinks.some((entry) => entry.basis === 'Official pricing pages');
+const hasOfficialPricingSource = officialEvidenceLinks.some(
+  (entry) => entry.basis === 'Official pricing pages'
+);
 const hasOfficialDocOrHelpSource = officialEvidenceLinks.some((entry) =>
-  ['Official docs/help center', 'Official changelogs', 'Official status pages'].includes(entry.basis)
+  ['Official docs/help center', 'Official changelogs', 'Official status pages'].includes(
+    entry.basis
+  )
 );
 const hasSourcedCoreClaims = canonicalHardLimits.length > 0 || evidenceLinks.length >= 3;
 type EvidenceGrade = 'A' | 'B' | 'C';
 const baseEvidenceGrade: EvidenceGrade =
-  officialDomains.size >= 2 && hasOfficialPricingSource && hasOfficialDocOrHelpSource && hasSourcedCoreClaims
+  officialDomains.size >= 2 &&
+  hasOfficialPricingSource &&
+  hasOfficialDocOrHelpSource &&
+  hasSourcedCoreClaims
     ? 'A'
-    : (officialDomains.size >= 1 && (canonicalHardLimits.length > 0 || hasOfficialDocOrHelpSource))
+    : officialDomains.size >= 1 && (canonicalHardLimits.length > 0 || hasOfficialDocOrHelpSource)
       ? 'B'
       : 'C';
 let evidenceGrade: EvidenceGrade = baseEvidenceGrade;
@@ -847,7 +904,9 @@ let evidenceGradeDescription =
       : 'Evidence is insufficient for a high-confidence recommendation.';
 let pendingVerificationCount = 0;
 isVerificationMode = baseEvidenceGrade === 'C';
-const officialPricingSource = officialEvidenceLinks.find((entry) => entry.basis === 'Official pricing pages');
+const officialPricingSource = officialEvidenceLinks.find(
+  (entry) => entry.basis === 'Official pricing pages'
+);
 const officialDocsSource = officialEvidenceLinks.find(
   (entry) =>
     entry.basis === 'Official docs/help center' ||
@@ -882,7 +941,8 @@ const decisionProofPoints = [
   buildEvidenceBulletV2({
     text: `Procurement constraints were extracted from source-linked evidence for this page (checked ${communityVerifiedLabel || 'latest available date'}).`,
     kind: 'limit',
-    sourceUrl: topHardLimit?.sourceUrl || officialPricingSource?.url || officialDocsSource?.url || null,
+    sourceUrl:
+      topHardLimit?.sourceUrl || officialPricingSource?.url || officialDocsSource?.url || null,
     sourceLabel: 'Constraint evidence',
     retrievedAt: communityVerifiedLabel || undefined,
     requiredSourcing: true,
@@ -919,8 +979,7 @@ const trialNotesBullets = withUniqueText(
     .slice(0, 6)
 );
 const hasOperationalFit = Boolean(firstReview || constraints);
-const hasOperationalEvidence =
-  notIncludedBullets.length > 0 || trialNotesBullets.length > 0;
+const hasOperationalEvidence = notIncludedBullets.length > 0 || trialNotesBullets.length > 0;
 const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasPricing);
 const verdictLabel =
   decisionSnapshotWatchOuts.length === 0 && canonicalHardLimits.length <= 1
@@ -962,10 +1021,13 @@ const scoreDrivers = uniqueDecisionText([
 ]).slice(0, 5);
 const tradeoffPros = uniqueDecisionText([
   ...(Array.isArray(firstReview?.pros) ? firstReview.pros.map(extractClaimText) : []),
-  ...((Array.isArray(globalPros) ? globalPros : []).map(extractClaimText)),
+  ...(Array.isArray(globalPros) ? globalPros : []).map(extractClaimText),
   ...decisionSnapshotDifferentiators,
 ]).slice(0, 2);
-const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canonicalHardLimits.map((item) => item.text)])
+const tradeoffCons = uniqueDecisionText([
+  ...decisionSnapshotWatchOuts,
+  ...canonicalHardLimits.map((item) => item.text),
+])
   .slice(0, 2)
   .map((text) =>
     buildEvidenceBulletV2({
@@ -974,14 +1036,16 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
       requiredSourcing: true,
       sourceUrl: canonicalHardLimits.find((item) => item.text === text)?.sourceUrl || null,
       sourceLabel: canonicalHardLimits.find((item) => item.text === text) ? 'Source' : undefined,
-      retrievedAt: communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || undefined,
+      retrievedAt:
+        communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || undefined,
     })
   )
   .filter((item): item is EvidenceBulletV2 => Boolean(item));
 const resolvedTradeoffCons = tradeoffCons.filter((item) => !item.unverified);
 const hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
-pendingVerificationCount =
-  [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter((item) => item?.unverified).length;
+pendingVerificationCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter(
+  (item) => item?.unverified
+).length;
 if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
   evidenceGrade = 'B';
   evidenceGradeDisplay = 'A-';
@@ -1042,29 +1106,38 @@ const schemas = [
     <section
       class:list={[
         'mb-6 rounded-xl border p-4',
-        isVerificationMode
-          ? 'border-amber-500/30 bg-amber-500/10'
-          : 'border-zinc-700 bg-zinc-900',
+        isVerificationMode ? 'border-amber-500/30 bg-amber-500/10' : 'border-zinc-700 bg-zinc-900',
       ]}
     >
-      <h2 class:list={['text-sm font-semibold', isVerificationMode ? 'text-amber-300' : 'text-zinc-100']}>
+      <h2
+        class:list={[
+          'text-sm font-semibold',
+          isVerificationMode ? 'text-amber-300' : 'text-zinc-100',
+        ]}
+      >
         {isVerificationMode ? 'Verification Mode' : 'Evidence & Confidence'}
       </h2>
       <p class:list={['mt-1 text-sm', isVerificationMode ? 'text-amber-100/90' : 'text-zinc-300']}>
         Evidence grade: {evidenceGradeDisplay} • {evidenceGradeDescription}
       </p>
       <p class="mt-2 text-xs text-zinc-500">
-        Verified sources: {evidenceLinks.length} (official: {officialEvidenceLinks.length}, independent:{' '}
-        {independentEvidenceLinks.length}, community: {communityEvidenceLinks.length}) • Collected:{' '}
-        {evidenceLinksAll.length} • Weighted confidence score: {weightedSourceScore.toFixed(1)} • Last verified{' '}
+        Verified sources: {evidenceLinks.length} (official: {officialEvidenceLinks.length},
+        independent:{' '}
+        {independentEvidenceLinks.length}, community: {communityEvidenceLinks.length}) • Collected:{
+          ' '
+        }
+        {evidenceLinksAll.length} • Weighted confidence score: {weightedSourceScore.toFixed(1)} • Last
+        verified{' '}
         {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
       </p>
-      {pendingVerificationCount > 0 && (
-        <p class="mt-1 text-xs text-amber-300">
-          Pending verification: {pendingVerificationCount} procurement-significant claim
-          {pendingVerificationCount === 1 ? '' : 's'}.
-        </p>
-      )}
+      {
+        pendingVerificationCount > 0 && (
+          <p class="mt-1 text-xs text-amber-300">
+            Pending verification: {pendingVerificationCount} procurement-significant claim
+            {pendingVerificationCount === 1 ? '' : 's'}.
+          </p>
+        )
+      }
     </section>
 
     <!-- Verification Badge -->
@@ -1086,22 +1159,30 @@ const schemas = [
         />
       </div>
 
-      {shouldNoindex && (
-        <div class="group relative inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300">
-          <span>Draft • In review</span>
-          <svg class="h-4 w-4 text-amber-300/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div class="pointer-events-none absolute left-0 top-full z-10 mt-2 hidden w-72 rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs font-normal text-zinc-300 shadow-xl group-hover:block">
-            We&apos;re still validating pricing and integration claims. Some sections may change before final publication.
+      {
+        shouldNoindex && (
+          <div class="group relative inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300">
+            <span>Draft • In review</span>
+            <svg
+              class="h-4 w-4 text-amber-300/80"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div class="pointer-events-none absolute left-0 top-full z-10 mt-2 hidden w-72 rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs font-normal text-zinc-300 shadow-xl group-hover:block">
+              We&apos;re still validating pricing and integration claims. Some sections may change
+              before final publication.
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
 
     <!-- Hero Section -->
@@ -1178,13 +1259,17 @@ const schemas = [
                 )
               }
             </div>
-            {evidenceLinks.length > 0 && (
-            <div class="mt-2 text-xs text-zinc-500">
-              Verified sources: {evidenceLinks.length}
-                {evidenceLinksAll.length > evidenceLinks.length ? ` • Collected: ${evidenceLinksAll.length}` : ''}
-                {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
-            </div>
-            )}
+            {
+              evidenceLinks.length > 0 && (
+                <div class="mt-2 text-xs text-zinc-500">
+                  Verified sources: {evidenceLinks.length}
+                  {evidenceLinksAll.length > evidenceLinks.length
+                    ? ` • Collected: ${evidenceLinksAll.length}`
+                    : ''}
+                  {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
+                </div>
+              )
+            }
             {
               (tags.functions.length > 0 ||
                 tags.audiences.length > 0 ||
@@ -1251,13 +1336,17 @@ const schemas = [
       </div>
     </header>
 
-    <section class="mb-8 rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-5 shadow-sm">
+    <section
+      class="mb-8 rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-5 shadow-sm"
+    >
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-zinc-100">Decision: {verdictLabel}</h2>
           <p class="mt-1 text-sm text-zinc-300">{verdictLabelRationale}</p>
         </div>
-        <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+        <span
+          class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300"
+        >
           {decisionSnapshotSummary}
         </span>
       </div>
@@ -1265,110 +1354,138 @@ const schemas = [
         <div class="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Best for</h3>
           <p class="mt-2 text-sm text-zinc-200">
-            {decisionSnapshotBestWhen[0] || 'Teams that need source-backed research output quickly.'}
+            {
+              decisionSnapshotBestWhen[0] ||
+                'Teams that need source-backed research output quickly.'
+            }
           </p>
         </div>
         <div class="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Avoid if</h3>
           <p class="mt-2 text-sm text-zinc-200">
-            {hasVerifiedAvoidIf
-              ? avoidIfBullet?.text
-              : `No source-backed hard avoid condition found as of ${communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'latest verification'}.`}
+            {
+              hasVerifiedAvoidIf
+                ? avoidIfBullet?.text
+                : `No source-backed hard avoid condition found as of ${communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'latest verification'}.`
+            }
           </p>
         </div>
       </div>
-      {decisionProofPoints.length > 0 && (
-        <div class="mt-4 rounded-xl border border-zinc-700 bg-zinc-900/70 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Proof points</h3>
-          <ul class="mt-2 space-y-2 text-sm text-zinc-200">
-            {decisionProofPoints.map((item) => (
-              <li>
-                - {item.text}{' '}
-                {item.sources[0] && (
-                  <a
-                    href={item.sources[0].url}
-                    target="_blank"
-                    rel="noopener"
-                    data-outbound="source"
-                    data-location="decision-proof"
-                    data-tool={tool.slug}
-                    class="text-xs text-zinc-500 hover:text-hunt-500"
-                  >
-                    Source
-                  </a>
+      {
+        decisionProofPoints.length > 0 && (
+          <div class="mt-4 rounded-xl border border-zinc-700 bg-zinc-900/70 p-4">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Proof points
+            </h3>
+            <ul class="mt-2 space-y-2 text-sm text-zinc-200">
+              {decisionProofPoints.map((item) => (
+                <li>
+                  - {item.text}{' '}
+                  {item.sources[0] && (
+                    <a
+                      href={item.sources[0].url}
+                      target="_blank"
+                      rel="noopener"
+                      aria-label={sourceAriaLabel(item.text)}
+                      data-outbound="source"
+                      data-location="decision-proof"
+                      data-tool={tool.slug}
+                      class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
+                    >
+                      Claim source
+                    </a>
+                  )}
+                  {item.unverified && <span class="ml-2 text-xs text-amber-300">Unverified</span>}
+                </li>
+              ))}
+            </ul>
+            {decisionProofPoints.filter((item) => item.sources[0]).length >= 2 && (
+              <button
+                type="button"
+                class="mt-3 inline-flex items-center rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+                data-open-key-sources={JSON.stringify(
+                  decisionProofPoints
+                    .map((item) => item.sources[0]?.url)
+                    .filter((url): url is string => Boolean(url))
+                    .slice(0, 2)
                 )}
-                {item.unverified && <span class="ml-2 text-xs text-amber-300">Unverified</span>}
-              </li>
-            ))}
-          </ul>
-          {decisionProofPoints.filter((item) => item.sources[0]).length >= 2 && (
-            <button
-              type="button"
-              class="mt-3 inline-flex items-center rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-              data-open-key-sources={JSON.stringify(
-                decisionProofPoints
-                  .map((item) => item.sources[0]?.url)
-                  .filter((url): url is string => Boolean(url))
-                  .slice(0, 2)
-              )}
-            >
-              Open 2 key sources
-            </button>
-          )}
-        </div>
-      )}
+              >
+                Open 2 key sources
+              </button>
+            )}
+          </div>
+        )
+      }
       <div class="mt-4 flex flex-wrap items-center gap-3">
-        {tool.website && (
-          <a
-            href={tool.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-outbound="vendor"
-            data-location="decision-hero"
-            data-tool={tool.slug}
-            class="inline-flex items-center rounded-lg bg-hunt-600 px-4 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
-          >
-            Visit {tool.name}
-          </a>
-        )}
-        {hasAlternatives && (
-          <a
-            href="#alternatives"
-            class="inline-flex items-center rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-          >
-            See alternatives
-          </a>
-        )}
+        {
+          tool.website && (
+            <a
+              href={tool.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-outbound="vendor"
+              data-location="decision-hero"
+              data-tool={tool.slug}
+              class="inline-flex items-center rounded-lg bg-hunt-600 px-4 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
+            >
+              Visit {tool.name}
+            </a>
+          )
+        }
+        {
+          hasAlternatives && (
+            <a
+              href="#alternatives"
+              class="inline-flex items-center rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              See alternatives
+            </a>
+          )
+        }
         <span class="text-xs text-zinc-500">
-          Last verified {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'} •{' '}
+          Last verified {
+            communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'
+          } •{' '}
           {evidenceLinksAll.length} collected sources
         </span>
       </div>
-      {topHardLimit && (
-        <p class="mt-3 text-xs text-zinc-500">
-          Top limit: <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">See hard limits</a>
-        </p>
-      )}
+      {
+        topHardLimit && (
+          <p class="mt-3 text-xs text-zinc-500">
+            Top limit:{' '}
+            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+              See hard limits
+            </a>
+          </p>
+        )
+      }
     </section>
 
-    <section id="use-cases" class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+    <section
+      id="use-cases"
+      class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+    >
       <h2 class="text-lg font-semibold text-zinc-100">What It&apos;s For</h2>
-      <p class="mt-1 text-sm text-zinc-400">Non-technical ways people get value from {tool.name}.</p>
+      <p class="mt-1 text-sm text-zinc-400">
+        Non-technical ways people get value from {tool.name}.
+      </p>
       <p id="prompt-copy-status" class="sr-only" aria-live="polite"></p>
       <div class="mt-4 grid gap-3 md:grid-cols-2">
-        {useCasesStrip.map((item) => (
-          <article class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-            <h3 class="text-sm font-semibold text-zinc-100">{item.title}</h3>
-            <p class="mt-1 text-sm text-zinc-300">{item.text}</p>
-            <button
-              type="button"
-              class="mt-3 inline-flex items-center rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-              data-copy-prompt={item.prompt}
-            >
-              Try this prompt
-            </button>
-          </article>
-        ))}
+        {
+          useCasesStrip.map((item) => (
+            <article class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+              <h3 class="text-sm font-semibold text-zinc-100">{item.title}</h3>
+              <p class="mt-1 text-sm text-zinc-300">{item.text}</p>
+              <button
+                type="button"
+                class="mt-3 inline-flex items-center rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+                data-copy-prompt={item.prompt}
+              >
+                Try this prompt
+              </button>
+            </article>
+          ))
+        }
       </div>
     </section>
 
@@ -1379,28 +1496,32 @@ const schemas = [
     >
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">On this page</h2>
       <div class="mb-3 flex flex-wrap items-center gap-2">
-        {tool.website && (
-          <a
-            href={tool.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-outbound="vendor"
-            data-location="toc"
-            data-tool={tool.slug}
-            class="inline-flex items-center rounded-lg bg-hunt-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-hunt-700 transition"
-          >
-            Visit {tool.name}
-          </a>
-        )}
-        {hasAlternatives &&
-          orderedAlternatives.slice(0, 3).map((alt) => (
+        {
+          tool.website && (
             <a
-              href={`/compare/${tool.slug}-vs-${alt.slug}`}
-              class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+              href={tool.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-outbound="vendor"
+              data-location="toc"
+              data-tool={tool.slug}
+              class="inline-flex items-center rounded-lg bg-hunt-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-hunt-700 transition"
             >
-              Compare {alt.name}
+              Visit {tool.name}
             </a>
-          ))}
+          )
+        }
+        {
+          hasAlternatives &&
+            orderedAlternatives.slice(0, 3).map((alt) => (
+              <a
+                href={`/compare/${tool.slug}-vs-${alt.slug}`}
+                class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+              >
+                Compare {alt.name}
+              </a>
+            ))
+        }
       </div>
       <div class="flex flex-wrap gap-2 text-sm">
         {
@@ -1575,10 +1696,18 @@ const schemas = [
             >
               <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
               <p class="text-sm text-zinc-300">
-                As of {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'the latest review'},
-                vendor documentation and verified sources indicate this recommendation level for {tool.name}.
+                As of{' '}
+                {communityVerifiedLabel ||
+                  specsVerifiedLabel ||
+                  pricingVerifiedLabel ||
+                  'the latest review'}
+                , vendor documentation and verified sources indicate this recommendation level for{' '}
+                {tool.name}.
               </p>
-              <div class="mt-4 prose prose-slate prose-sm max-w-none" set:html={simpleMarkdown(renderVerdict)} />
+              <div
+                class="mt-4 prose prose-slate prose-sm max-w-none"
+                set:html={simpleMarkdown(renderVerdict)}
+              />
               {scoreDrivers.length > 0 && (
                 <div class="mt-5">
                   <h3 class="text-sm font-semibold text-zinc-200">Score drivers</h3>
@@ -1591,15 +1720,22 @@ const schemas = [
               )}
               <div class="mt-5 grid gap-3 md:grid-cols-2">
                 <div class="rounded-lg border border-emerald-700/30 bg-emerald-950/20 p-3">
-                  <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Pros</h3>
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">
+                    Pros
+                  </h3>
                   <ul class="mt-2 space-y-1 text-sm text-zinc-200">
-                    {(tradeoffPros.length > 0 ? tradeoffPros : ['Clear strengths were found, but require fit validation.']).map((item) => (
+                    {(tradeoffPros.length > 0
+                      ? tradeoffPros
+                      : ['Clear strengths were found, but require fit validation.']
+                    ).map((item) => (
                       <li>- {item}</li>
                     ))}
                   </ul>
                 </div>
                 <div class="rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
-                  <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Tradeoffs</h3>
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">
+                    Tradeoffs
+                  </h3>
                   <ul class="mt-2 space-y-1 text-sm text-zinc-200">
                     {(resolvedTradeoffCons.length > 0
                       ? resolvedTradeoffCons
@@ -1612,7 +1748,8 @@ const schemas = [
                             requiredSourcing: false,
                             unverified: false,
                           } satisfies EvidenceBulletV2,
-                        ]).map((item) => (
+                        ]
+                    ).map((item) => (
                       <li>
                         - {item.text}{' '}
                         {item.sources[0] && (
@@ -1620,12 +1757,13 @@ const schemas = [
                             href={item.sources[0].url}
                             target="_blank"
                             rel="noopener"
+                            aria-label={sourceAriaLabel(item.text)}
                             data-outbound="source"
                             data-location="verdict-tradeoffs"
                             data-tool={tool.slug}
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                            class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
                           >
-                            Source
+                            Claim source
                           </a>
                         )}
                       </li>
@@ -1652,7 +1790,10 @@ const schemas = [
         }
         {
           showProceduralVerdict && (
-            <section id="verdict" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+            <section
+              id="verdict"
+              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+            >
               <h2 class="text-lg font-semibold text-zinc-100">Decision Conditions</h2>
               <p class="mt-2 text-sm text-zinc-400">
                 Evidence is not strong enough for a publishable verdict yet. Use these checks:
@@ -1739,7 +1880,9 @@ const schemas = [
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
                   {pricingVerifiedLabel && (
-                    <p class="mt-1 text-xs text-zinc-500">Pricing verified {pricingVerifiedLabel}</p>
+                    <p class="mt-1 text-xs text-zinc-500">
+                      Pricing verified {pricingVerifiedLabel}
+                    </p>
                   )}
                 </div>
                 <svg
@@ -1802,9 +1945,7 @@ const schemas = [
                   </>
                 ) : (
                   <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-                    <p>
-                      Structured pricing table is unavailable from verified extraction.
-                    </p>
+                    <p>Structured pricing table is unavailable from verified extraction.</p>
                     <h3 class="text-sm font-semibold text-zinc-100">Verified pricing snapshot</h3>
                     {pricingSnapshotBullets.length > 0 ? (
                       <ul class="space-y-2 text-sm text-zinc-300">
@@ -1815,20 +1956,21 @@ const schemas = [
                               href={item.sourceUrl}
                               target="_blank"
                               rel="noopener"
+                              aria-label={sourceAriaLabel(item.text)}
                               data-outbound="source"
                               data-location="pricing-snapshot"
                               data-tool={tool.slug}
-                              class="text-xs text-zinc-500 hover:text-hunt-500"
+                              class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
                             >
-                              Source
+                              Claim source
                             </a>
                           </li>
                         ))}
                       </ul>
                     ) : (
                       <p class="text-sm text-zinc-400">
-                        Varies by plan and contract terms. Use vendor pricing pages and sales confirmation
-                        before procurement.
+                        Varies by plan and contract terms. Use vendor pricing pages and sales
+                        confirmation before procurement.
                         {officialPricingSource && (
                           <>
                             {' '}
@@ -1836,12 +1978,13 @@ const schemas = [
                               href={officialPricingSource.url}
                               target="_blank"
                               rel="noopener"
+                              aria-label={sourceAriaLabel('official pricing details')}
                               data-outbound="source"
                               data-location="pricing-snapshot"
                               data-tool={tool.slug}
-                              class="text-xs text-zinc-500 hover:text-hunt-500"
+                              class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
                             >
-                              Source
+                              Claim source
                             </a>
                           </>
                         )}
@@ -1850,37 +1993,37 @@ const schemas = [
                     <p class="text-xs text-zinc-500">
                       Last checked {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}.
                     </p>
-                    {
-                      canonicalHardLimits.length > 0 && (
-                        <p class="text-xs text-zinc-500">
-                          Canonical constraints and pricing-related limits are maintained in one place:{' '}
-                          <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-                            Hard limits / dealbreakers
-                          </a>
-                          .
-                        </p>
-                      )
-                    }
+                    {canonicalHardLimits.length > 0 && (
+                      <p class="text-xs text-zinc-500">
+                        Canonical constraints and pricing-related limits are maintained in one
+                        place:{' '}
+                        <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+                          Hard limits / dealbreakers
+                        </a>
+                        .
+                      </p>
+                    )}
                   </div>
                 )}
-                {
-                  canonicalHardLimits.length > 0 && (
-                    <p class="mt-4 text-sm text-zinc-400">
-                      Canonical constraints live in{' '}
-                      <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-                        Hard limits / dealbreakers
-                      </a>
-                      .
-                    </p>
-                  )
-                }
+                {canonicalHardLimits.length > 0 && (
+                  <p class="mt-4 text-sm text-zinc-400">
+                    Canonical constraints live in{' '}
+                    <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+                      Hard limits / dealbreakers
+                    </a>
+                    .
+                  </p>
+                )}
               </div>
             </details>
           )
         }
         {
           showPricingSection && canonicalHardLimits.length > 0 && (
-            <section id="hard-limits" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+            <section
+              id="hard-limits"
+              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+            >
               <h2 class="text-lg font-semibold text-zinc-100">Hard limits / dealbreakers</h2>
               {canonicalHardLimits.length > 0 ? (
                 <ul class="mt-3 space-y-2 text-sm text-zinc-300">
@@ -1891,19 +2034,21 @@ const schemas = [
                         href={item.sourceUrl}
                         target="_blank"
                         rel="noopener"
+                        aria-label={sourceAriaLabel(item.text)}
                         data-outbound="source"
                         data-location="hard-limits"
                         data-tool={tool.slug}
-                        class="text-xs text-zinc-500 hover:text-hunt-500"
+                        class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
                       >
-                        Source
+                        Claim source
                       </a>
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p class="mt-2 text-sm text-zinc-300">
-                  No source-backed hard limits extracted yet. Use the verification checklist before commitment.
+                  No source-backed hard limits extracted yet. Use the verification checklist before
+                  commitment.
                 </p>
               )}
             </section>
@@ -1914,7 +2059,11 @@ const schemas = [
         {
           (knowledgeCard?.features?.core?.length > 0 ||
             knowledgeCard?.features?.unique?.length > 0) && (
-            <FeaturesShowcase features={knowledgeCard.features} toolName={tool.name} sectionId="features" />
+            <FeaturesShowcase
+              features={knowledgeCard.features}
+              toolName={tool.name}
+              sectionId="features"
+            />
           )
         }
 
@@ -1940,8 +2089,12 @@ const schemas = [
               <h2 class="text-lg font-semibold text-zinc-100">Technical Validation Steps</h2>
               <ul class="mt-4 space-y-2 text-sm text-zinc-300">
                 <li>- Confirm API limits and throttling behavior using your expected peak load.</li>
-                <li>- Verify export formats and data portability before onboarding large datasets.</li>
-                <li>- Check release cadence and changelog quality for operational predictability.</li>
+                <li>
+                  - Verify export formats and data portability before onboarding large datasets.
+                </li>
+                <li>
+                  - Check release cadence and changelog quality for operational predictability.
+                </li>
                 <li>- Validate admin controls needed by your security/compliance process.</li>
               </ul>
             </section>
@@ -1970,9 +2123,13 @@ const schemas = [
                             href={item.sourceUrl}
                             target="_blank"
                             rel="noopener"
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                            aria-label={sourceAriaLabel(item.text)}
+                            data-outbound="source"
+                            data-location="operational-fit-risks"
+                            data-tool={tool.slug}
+                            class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
                           >
-                            Source
+                            Claim source
                           </a>
                         </li>
                       ))}
@@ -1997,9 +2154,13 @@ const schemas = [
                             href={item.sourceUrl}
                             target="_blank"
                             rel="noopener"
-                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                            aria-label={sourceAriaLabel(item.text)}
+                            data-outbound="source"
+                            data-location="operational-fit-blockers"
+                            data-tool={tool.slug}
+                            class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
                           >
-                            Source
+                            Claim source
                           </a>
                         </li>
                       ))}
@@ -2182,7 +2343,11 @@ const schemas = [
                   <a
                     href={offer.url}
                     target="_blank"
-                    rel={offer.is_affiliate ? 'nofollow sponsored noopener noreferrer' : 'noopener noreferrer'}
+                    rel={
+                      offer.is_affiliate
+                        ? 'nofollow sponsored noopener noreferrer'
+                        : 'noopener noreferrer'
+                    }
                     data-outbound="vendor"
                     data-location="sidebar-offers"
                     data-tool={tool.slug}
@@ -2242,9 +2407,13 @@ const schemas = [
                       href={item.answer_source_url}
                       target="_blank"
                       rel="noopener"
-                      class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-hunt-500"
+                      aria-label={sourceAriaLabel(item.question)}
+                      data-outbound="source"
+                      data-location="faq"
+                      data-tool={tool.slug}
+                      class="inline-flex items-center gap-1 text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
                     >
-                      Source
+                      Answer source
                       <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
                           stroke-linecap="round"
@@ -2293,8 +2462,16 @@ const schemas = [
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {orderedAlternatives.map((alt) => {
               const canCompare = areToolsComparable(
-                { slug: tool.slug, category_id: getPrimaryCategoryId(tool), metadata: tool.metadata as any },
-                { slug: alt.slug, category_id: getPrimaryCategoryId(alt), metadata: alt.metadata as any }
+                {
+                  slug: tool.slug,
+                  category_id: getPrimaryCategoryId(tool),
+                  metadata: tool.metadata as any,
+                },
+                {
+                  slug: alt.slug,
+                  category_id: getPrimaryCategoryId(alt),
+                  metadata: alt.metadata as any,
+                }
               );
               return (
                 <AlternativeCard
@@ -2319,7 +2496,10 @@ const schemas = [
 
     {
       evidenceBasis.length > 0 && (
-        <section id="sources" class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+        <section
+          id="sources"
+          class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+        >
           <h2 class="text-lg font-semibold text-zinc-100">Methodology & Sources</h2>
           <div class="mt-3 flex flex-wrap gap-2">
             {evidenceBasis.map((chip) => (
@@ -2345,7 +2525,8 @@ const schemas = [
                     {source.title}
                   </a>
                   <span class="ml-2 text-xs text-zinc-500">
-                    {source.domain} · {source.basis} · {source.quality} confidence · {source.inclusionReason}
+                    {source.domain} · {source.basis} · {source.quality} confidence ·{' '}
+                    {source.inclusionReason}
                   </span>
                 </li>
               ))}
@@ -2371,10 +2552,14 @@ const schemas = [
 
     {
       hasVerificationChecklist && (
-        <section id="verification-checklist" class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+        <section
+          id="verification-checklist"
+          class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+        >
           <h2 class="text-lg font-semibold text-zinc-100">Verification Checklist</h2>
           <p class="mt-2 text-sm text-zinc-400">
-            Canonical pre-procurement checklist. Use this once and reference it across pricing, setup, and rollout.
+            Canonical pre-procurement checklist. Use this once and reference it across pricing,
+            setup, and rollout.
           </p>
           <div class="mt-5 grid gap-4 md:grid-cols-3">
             <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
@@ -2412,7 +2597,9 @@ const schemas = [
     hasCommunity && (
       <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
         {communityVerifiedLabel && (
-          <p class="mb-3 text-xs text-zinc-500">Community signals verified {communityVerifiedLabel}</p>
+          <p class="mb-3 text-xs text-zinc-500">
+            Community signals verified {communityVerifiedLabel}
+          </p>
         )}
         <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
         <div class="sm:text-right shrink-0">
@@ -2434,7 +2621,7 @@ const schemas = [
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              ></path>
+              />
             </svg>
             Report correction
           </button>
@@ -2468,10 +2655,19 @@ const schemas = [
     aria-labelledby="suggest-edit-title"
     aria-hidden="true"
   >
-    <div class="w-full max-w-md rounded-xl bg-zinc-900 p-6 shadow-xl" tabindex="-1" data-modal-panel>
+    <div
+      class="w-full max-w-md rounded-xl bg-zinc-900 p-6 shadow-xl"
+      tabindex="-1"
+      data-modal-panel
+    >
       <div class="flex items-center justify-between mb-4">
         <h3 id="suggest-edit-title" class="text-lg font-semibold text-zinc-100">Suggest an Edit</h3>
-        <button type="button" data-close-modal aria-label="Close suggest edit dialog" class="text-zinc-500 hover:text-zinc-300">
+        <button
+          type="button"
+          data-close-modal
+          aria-label="Close suggest edit dialog"
+          class="text-zinc-500 hover:text-zinc-300"
+        >
           <svg
             class="h-5 w-5"
             fill="none"
@@ -2570,7 +2766,9 @@ const schemas = [
       if (!isExternal) return;
 
       const location = link.dataset.location || 'unknown';
-      const type = link.dataset.outbound || (link.textContent?.trim().toLowerCase() === 'source' ? 'source' : 'vendor');
+      const type =
+        link.dataset.outbound ||
+        (link.textContent?.trim().toLowerCase() === 'source' ? 'source' : 'vendor');
       const tool = link.dataset.tool || '';
       const sanitizedHref = (() => {
         try {
@@ -2650,7 +2848,9 @@ const schemas = [
     const trapFocus = (event: KeyboardEvent) => {
       if (event.key !== 'Tab' || !modal || modal.classList.contains('hidden')) return;
       const focusable = Array.from(
-        modal.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+        modal.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
       ).filter((el) => !el.hasAttribute('disabled'));
       if (focusable.length === 0) return;
       const first = focusable[0];
