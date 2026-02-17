@@ -29,6 +29,11 @@ const TOOL_COMMANDS = {
     command: ['npm', 'run', 'codex:lhci'],
     description: 'Run Lighthouse CI assertions for performance, SEO, and accessibility.',
   },
+  gate_design_pass: {
+    command: ['npm', 'run', 'design:pass'],
+    description:
+      'Run frontend design pass (Playwright UI screenshot audit + Lighthouse CI assertions).',
+  },
   format_fix: {
     command: ['npm', 'run', 'codex:format'],
     description: 'Apply repository formatting fixes.',

@@ -15,6 +15,7 @@
     "codex:verify:links": "npm run verify-affiliates && npm run verify-corrections",
     "codex:preview:serve": "npm run preview -- --port 4321 --host 127.0.0.1",
     "codex:lhci": "node scripts/codex-lhci.mjs",
+    "design:pass": "node scripts/design-pass.mjs",
     "mcp:stackhunt": "node tools/mcp-stackhunt/server.mjs",
     "hunt": "npx tsx scripts/hunter.ts",
     "hunt:batch": "npx tsx scripts/hunter.ts --queue batch --priority 5",
