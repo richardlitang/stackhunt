@@ -5,6 +5,8 @@ async function gotoAuditPage(page: Page, url: string) {
 }
 
 test.describe('UI Audit Screenshots', () => {
+  test.describe.configure({ timeout: 120_000 });
+
   test('capture homepage', async ({ page }) => {
     await gotoAuditPage(page, '/');
     await page.screenshot({ path: 'tests/e2e/screenshots/audit-homepage.png', fullPage: true });

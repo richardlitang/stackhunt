@@ -119,7 +119,23 @@ const requiresRoles =
 >
   <summary class="flex items-center justify-between cursor-pointer">
     <h2 class="text-lg font-semibold text-zinc-100">Getting Started</h2>
-    <span class="text-xs text-zinc-500 group-open:hidden md:hidden">Click to expand</span>
+    <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+      <span class="group-open:hidden">Expand</span>
+      <span class="hidden group-open:inline">Collapse</span>
+      <svg
+        class="h-4 w-4 transition-transform group-open:rotate-90"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 5l7 7-7 7"
+        />
+      </svg>
+    </span>
   </summary>
 
   <div class="mt-5 space-y-6">
