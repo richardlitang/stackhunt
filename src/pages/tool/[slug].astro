@@ -11,7 +11,6 @@ import PricingBadge from '@/components/PricingBadge.astro';
 import ProsCons from '@/components/ProsCons.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
-import SentimentTags from '@/components/SentimentTags.astro';
 import CompareButton from '@/components/CompareButton';
 import AddToStackButton from '@/components/AddToStackButton';
 import VideoEmbed from '@/components/VideoEmbed';
@@ -32,7 +31,6 @@ import PriceVerification from '@/components/PriceVerification';
 import SuiteNavigation from '@/components/SuiteNavigation.astro';
 import DynamicSpecs from '@/components/DynamicSpecs.astro';
 import IncludedTools from '@/components/IncludedTools.astro';
-import RelatedLinks from '@/components/RelatedLinks.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import type { KnowledgeCard, ToolConstraints } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
@@ -74,23 +72,6 @@ if (tool.parent_id) {
 const _contextLinks = await getToolContexts(tool.id);
 const tags = await getToolTags(tool.id);
 
-// Build related links for internal linking (SEO)
-const relatedLinks: Array<{
-  href: string;
-  title: string;
-  description?: string;
-  icon: 'category' | 'list' | 'tool' | 'compare';
-}> = [];
-
-// Add category link
-if (tool.category) {
-  relatedLinks.push({
-    href: `/categories/${tool.category.slug}`,
-    title: tool.category.name,
-    description: `Browse all ${tool.category.name.toLowerCase()} tools`,
-    icon: 'category',
-  });
-}
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
 const publishedReviews = (tool.reviews || []).filter((review) => review.status === 'published');
 const firstReview = publishedReviews[0] || null;
@@ -400,7 +381,7 @@ const gateBlocksFoundations =
 const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
 const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
 const shouldNoindex = !gateShouldIndex || isDraftPage;
-const isVerificationMode = shouldNoindex;
+let isVerificationMode = shouldNoindex;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
 const NEGATIVE_CLAIM_GUARD =
   /\b(no|not|lacks|lack|cannot|can't|won't|avoid|veto|problem|risk|limit|limited|slow|expensive|broken|fails|failure)\b/i;
@@ -655,6 +636,11 @@ const evidenceBasis = [
     return { label, count: domains.size };
   })
   .filter((entry) => entry.count > 0);
+const officialEvidenceLinks = evidenceLinks.filter((entry) => entry.basis.startsWith('Official'));
+const independentEvidenceLinks = evidenceLinks.filter((entry) => entry.basis === 'Independent reviews');
+const communityEvidenceLinks = evidenceLinks.filter(
+  (entry) => entry.basis === 'Community discussions' || entry.basis === 'GitHub issues'
+);
 const formatVerifiedDate = (value?: string | null): string | null => {
   if (!value) return null;
   const date = new Date(value);
@@ -725,13 +711,41 @@ const hardLimitBullets = withUniqueText(
   ].slice(0, 6)
 );
 const canonicalHardLimits = withUniqueText([...hardLimitBullets, ...hiddenCostBullets]).slice(0, 6);
-const knownPricingBullets = canonicalHardLimits
-  .filter((item) =>
-    /\$|\/\s*(mo|month|yr|year)|\b(price|pricing|plan|tier|seat|monthly|annual|enterprise|max)\b/i.test(
-      item.text
-    )
-  )
-  .slice(0, 4);
+const topHardLimit = canonicalHardLimits[0] || null;
+const officialDomains = new Set(officialEvidenceLinks.map((entry) => entry.domain));
+const hasOfficialPricingSource = officialEvidenceLinks.some((entry) => entry.basis === 'Official pricing pages');
+const hasOfficialDocOrHelpSource = officialEvidenceLinks.some((entry) =>
+  ['Official docs/help center', 'Official changelogs', 'Official status pages'].includes(entry.basis)
+);
+const hasSourcedCoreClaims = canonicalHardLimits.length > 0 || evidenceLinks.length >= 3;
+type EvidenceGrade = 'A' | 'B' | 'C';
+const evidenceGrade: EvidenceGrade =
+  officialDomains.size >= 2 && hasOfficialPricingSource && hasOfficialDocOrHelpSource && hasSourcedCoreClaims
+    ? 'A'
+    : (officialDomains.size >= 1 && (canonicalHardLimits.length > 0 || hasOfficialDocOrHelpSource))
+      ? 'B'
+      : 'C';
+const evidenceGradeDescription =
+  evidenceGrade === 'A'
+    ? 'Evidence-backed and publish-ready.'
+    : evidenceGrade === 'B'
+      ? 'Usable with some unresolved verification gaps.'
+      : 'Evidence is insufficient for a high-confidence recommendation.';
+isVerificationMode = evidenceGrade === 'C';
+const decisionProofPoints = [
+  officialEvidenceLinks[0]
+    ? {
+        text: `Official documentation coverage confirmed across ${officialDomains.size} source domains.`,
+        sourceUrl: officialEvidenceLinks[0].url,
+      }
+    : null,
+  evidenceLinks[0]
+    ? {
+        text: `${evidenceLinks.length} non-forum sources were reviewed for this page.`,
+        sourceUrl: evidenceLinks[0].url,
+      }
+    : null,
+].filter((item): item is EvidenceBullet => Boolean(item));
 const decisionSnapshotDifferentiators = uniqueDecisionText([
   ...(Array.isArray(knowledgeCard?.features?.unique) ? knowledgeCard.features.unique : []),
   ...(Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core : []),
@@ -774,6 +788,53 @@ const hasOperationalFit = Boolean(firstReview || constraints);
 const hasOperationalEvidence =
   notIncludedBullets.length > 0 || trialNotesBullets.length > 0;
 const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasPricing);
+const verdictLabel =
+  decisionSnapshotWatchOuts.length === 0 && canonicalHardLimits.length <= 1
+    ? 'Choose'
+    : decisionSnapshotBestWhen.length > 0
+      ? 'Consider'
+      : 'Avoid';
+const verdictLabelRationale =
+  verdictLabel === 'Choose'
+    ? `${tool.name} shows enough evidence for most research-heavy teams.`
+    : verdictLabel === 'Consider'
+      ? `${tool.name} can fit, but only after confirming your key constraints.`
+      : `${tool.name} is currently a risky fit for most teams without additional verification.`;
+const useCasesStrip = [
+  {
+    title: 'Get a sourced answer fast',
+    text: 'Use it when you need quick answers with references you can validate.',
+    prompt: `What are the latest best practices for evaluating ${tool.name} for a small team? Include sources.`,
+  },
+  {
+    title: 'Compare options before buying',
+    text: 'Use it to shortlist tools and spot tradeoffs before procurement.',
+    prompt: `Compare ${tool.name} with two alternatives for a 10-person team, including pricing tradeoffs and source links.`,
+  },
+  {
+    title: 'Summarize topics with citations',
+    text: 'Use it to condense long topics into a source-backed brief.',
+    prompt: `Summarize the core features, pricing model, and rollout risks of ${tool.name} with citations.`,
+  },
+  {
+    title: 'Research with follow-up questions',
+    text: 'Use iterative follow-ups to close confidence gaps quickly.',
+    prompt: `Create a 5-question diligence checklist before adopting ${tool.name}, and cite official docs where possible.`,
+  },
+];
+const scoreDrivers = uniqueDecisionText([
+  ...decisionSnapshotDifferentiators,
+  ...decisionSnapshotBestWhen,
+]).slice(0, 5);
+const tradeoffPros = uniqueDecisionText([
+  ...(Array.isArray(firstReview?.pros) ? firstReview.pros.map(extractClaimText) : []),
+  ...((Array.isArray(globalPros) ? globalPros : []).map(extractClaimText)),
+  ...decisionSnapshotDifferentiators,
+]).slice(0, 2);
+const tradeoffCons = uniqueDecisionText([
+  ...decisionSnapshotWatchOuts,
+  ...canonicalHardLimits.map((item) => item.text),
+]).slice(0, 2);
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -799,17 +860,26 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
       <span class="text-zinc-300">{tool.name}</span>
     </nav>
 
-    {
-      isVerificationMode && (
-        <section class="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-          <h2 class="text-sm font-semibold text-amber-300">Verification Mode</h2>
-          <p class="mt-1 text-sm text-amber-100/90">
-            This page is in evidence-building mode. Goal: gather enough verified sources to publish a
-            final verdict and become index-ready.
-          </p>
-        </section>
-      )
-    }
+    <section
+      class:list={[
+        'mb-6 rounded-xl border p-4',
+        isVerificationMode
+          ? 'border-amber-500/30 bg-amber-500/10'
+          : 'border-zinc-700 bg-zinc-900',
+      ]}
+    >
+      <h2 class:list={['text-sm font-semibold', isVerificationMode ? 'text-amber-300' : 'text-zinc-100']}>
+        {isVerificationMode ? 'Verification Mode' : 'Evidence & Confidence'}
+      </h2>
+      <p class:list={['mt-1 text-sm', isVerificationMode ? 'text-amber-100/90' : 'text-zinc-300']}>
+        Evidence grade: {evidenceGrade} • {evidenceGradeDescription}
+      </p>
+      <p class="mt-2 text-xs text-zinc-500">
+        Sources: {evidenceLinks.length} (official: {officialEvidenceLinks.length}, independent:{' '}
+        {independentEvidenceLinks.length}, community: {communityEvidenceLinks.length}) • Last verified{' '}
+        {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
+      </p>
+    </section>
 
     <!-- Verification Badge -->
     <div class="mb-6 flex flex-wrap items-start gap-4">
@@ -1021,34 +1091,28 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
     <section class="mb-8 rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-5 shadow-sm">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold text-zinc-100">Should You Choose {tool.name}?</h2>
-          <p class="mt-1 text-sm text-zinc-300">Fast go/no-go snapshot for fit, risk, and time-to-value.</p>
+          <h2 class="text-lg font-semibold text-zinc-100">Decision: {verdictLabel}</h2>
+          <p class="mt-1 text-sm text-zinc-300">{verdictLabelRationale}</p>
         </div>
         <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
           {decisionSnapshotSummary}
         </span>
       </div>
-      <div class="mt-4 grid gap-3 lg:grid-cols-2">
+      <div class="mt-4 grid gap-3 lg:grid-cols-3">
         <div class="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Best for</h3>
           <p class="mt-2 text-sm text-zinc-200">
             {decisionSnapshotBestWhen[0] || 'Teams that need source-backed research output quickly.'}
           </p>
-          <p class="mt-2 text-xs text-zinc-400">
-            <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">Full verdict →</a>
-          </p>
         </div>
         <div class="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Not for</h3>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Avoid if</h3>
           <p class="mt-2 text-sm text-zinc-200">
-            {decisionSnapshotWatchOuts[0] || 'Teams that cannot tolerate unresolved plan gates or workflow constraints.'}
-          </p>
-          <p class="mt-2 text-xs text-zinc-400">
-            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">Dealbreakers →</a>
+            {decisionSnapshotWatchOuts[0] || 'Your workflow cannot tolerate unresolved constraints.'}
           </p>
         </div>
         <div class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-cyan-300">First win</h3>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-cyan-300">Fastest win</h3>
           <p class="mt-2 text-sm text-zinc-200">
             {firstWinStep || 'Run one real query and verify source quality before broader rollout.'}
           </p>
@@ -1056,29 +1120,76 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
             <p class="mt-2 text-xs text-zinc-400">Setup time (observed): {implementationSurface}</p>
           )}
         </div>
-        <div class="rounded-xl border border-rose-700/40 bg-rose-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-rose-300">Top dealbreakers</h3>
-          {canonicalHardLimits.length > 0 ? (
-            <ul class="mt-2 space-y-1 text-sm text-zinc-200">
-              {canonicalHardLimits.slice(0, 2).map((item) => (
-                <li>- {item.text}</li>
-              ))}
-            </ul>
-          ) : (
-          <p class="mt-2 text-sm text-zinc-200">
-            No source-backed dealbreakers extracted yet; run the checklist before rollout.
-          </p>
-          )}
-          <p class="mt-2 text-xs text-zinc-400">
-            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">All limits →</a>
-          </p>
-        </div>
       </div>
-      {decisionSnapshotDifferentiators.length > 0 && (
-        <p class="mt-4 text-xs text-zinc-500">
-          Differentiators: {decisionSnapshotDifferentiators.join(' • ')}
+      {decisionProofPoints.length > 0 && (
+        <div class="mt-4 rounded-xl border border-zinc-700 bg-zinc-900/70 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Proof points</h3>
+          <ul class="mt-2 space-y-2 text-sm text-zinc-200">
+            {decisionProofPoints.map((item) => (
+              <li>
+                - {item.text}{' '}
+                <a
+                  href={item.sourceUrl}
+                  target="_blank"
+                  rel="noopener"
+                  class="text-xs text-zinc-500 hover:text-hunt-500"
+                >
+                  Source
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        {tool.website && (
+          <a
+            href={tool.website}
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center rounded-lg bg-hunt-600 px-4 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
+          >
+            Visit {tool.name}
+          </a>
+        )}
+        {hasAlternatives && (
+          <a
+            href="#alternatives"
+            class="inline-flex items-center rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+          >
+            See alternatives
+          </a>
+        )}
+        <span class="text-xs text-zinc-500">
+          Last verified {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'} •{' '}
+          {totalSourceCount} sources
+        </span>
+      </div>
+      {topHardLimit && (
+        <p class="mt-3 text-xs text-zinc-500">
+          Top limit: <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">See hard limits</a>
         </p>
       )}
+    </section>
+
+    <section id="use-cases" class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+      <h2 class="text-lg font-semibold text-zinc-100">What It&apos;s For</h2>
+      <p class="mt-1 text-sm text-zinc-400">Non-technical ways people get value from {tool.name}.</p>
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
+        {useCasesStrip.map((item) => (
+          <article class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+            <h3 class="text-sm font-semibold text-zinc-100">{item.title}</h3>
+            <p class="mt-1 text-sm text-zinc-300">{item.text}</p>
+            <button
+              type="button"
+              class="mt-3 inline-flex items-center rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+              data-copy-prompt={item.prompt}
+            >
+              Try this prompt
+            </button>
+          </article>
+        ))}
+      </div>
     </section>
 
     {/* Table of Contents */}
@@ -1098,26 +1209,12 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
             </a>
           )
         }
-        {
-          hasFeatures && (
-            <a
-              href="#features"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Features
-            </a>
-          )
-        }
-        {
-          (hasSpecs || showProceduralSpecs) && (
-            <a
-              href="#specs"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Specs
-            </a>
-          )
-        }
+        <a
+          href="#use-cases"
+          class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+        >
+          Use cases
+        </a>
         {
           hasGettingStarted && (
             <a
@@ -1149,6 +1246,26 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
         {
+          hasFeatures && (
+            <a
+              href="#features"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Features
+            </a>
+          )
+        }
+        {
+          (hasSpecs || showProceduralSpecs) && (
+            <a
+              href="#specs"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Specs
+            </a>
+          )
+        }
+        {
           showOperationalFit && (
             <a
               href="#operational-fit"
@@ -1169,22 +1286,22 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
         {
-          hasAlternatives && (
-            <a
-              href="#alternatives"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Alternatives
-            </a>
-          )
-        }
-        {
           hasFAQ && (
             <a
               href="#faq"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
               FAQ
+            </a>
+          )
+        }
+        {
+          hasAlternatives && (
+            <a
+              href="#alternatives"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Alternatives
             </a>
           )
         }
@@ -1220,9 +1337,8 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
             <details
               id="about"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-              open
             >
-              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+              <summary class="flex items-center justify-between cursor-pointer">
                 <h2 class="text-lg font-semibold text-zinc-100">About {tool.name}</h2>
                 <svg
                   class="h-5 w-5 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
@@ -1253,94 +1369,55 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
               id="verdict"
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
             >
-              <h2 class="mb-4 text-lg font-semibold text-zinc-100">Our Verdict</h2>
-              <div
-                class="prose prose-slate prose-sm max-w-none"
-                set:html={simpleMarkdown(renderVerdict)}
-              />
+              <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
+              <p class="text-sm text-zinc-300">
+                As of {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'the latest review'},
+                vendor documentation and verified sources indicate this recommendation level for {tool.name}.
+              </p>
+              <div class="mt-4 prose prose-slate prose-sm max-w-none" set:html={simpleMarkdown(renderVerdict)} />
+              {scoreDrivers.length > 0 && (
+                <div class="mt-5">
+                  <h3 class="text-sm font-semibold text-zinc-200">Score drivers</h3>
+                  <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+                    {scoreDrivers.map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div class="mt-5 grid gap-3 md:grid-cols-2">
                 <div class="rounded-lg border border-emerald-700/30 bg-emerald-950/20 p-3">
-                  <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">
-                    Choose {tool.name} if
-                  </h3>
-                  <p class="mt-2 text-sm text-zinc-200">
-                    {decisionSnapshotBestWhen[0] || 'You need proven fit for your primary workflow.'}
-                  </p>
-                  <p class="mt-2 text-xs text-zinc-400">
-                    Full evidence in{' '}
-                    <a href="#strengths" class="text-hunt-500 hover:text-hunt-400">
-                      Strengths & weaknesses
-                    </a>
-                    .
-                  </p>
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Pros</h3>
+                  <ul class="mt-2 space-y-1 text-sm text-zinc-200">
+                    {(tradeoffPros.length > 0 ? tradeoffPros : ['Clear strengths were found, but require fit validation.']).map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
                 </div>
                 <div class="rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
-                  <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Avoid if</h3>
-                  <p class="mt-2 text-sm text-zinc-200">
-                    {decisionSnapshotWatchOuts[0] ||
-                      'You cannot accept unresolved risks in critical workflows.'}
-                  </p>
-                  <p class="mt-2 text-xs text-zinc-400">
-                    Review canonical{' '}
-                    <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-                      hard limits
-                    </a>
-                    .
-                  </p>
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Tradeoffs</h3>
+                  <ul class="mt-2 space-y-1 text-sm text-zinc-200">
+                    {(tradeoffCons.length > 0
+                      ? tradeoffCons
+                      : ['We did not find enough official evidence to clear all constraints.']).map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
               {hasAlternatives && (
-                <p class="mt-3 text-xs text-zinc-400">
-                  Need a different tradeoff? Check{' '}
-                  <a href="#alternatives" class="text-hunt-500 hover:text-hunt-400">
-                    alternatives
-                  </a>
-                  .
+                <p class="mt-4 text-xs text-zinc-400">
+                  If these tradeoffs do not match your needs, compare{' '}
+                  {orderedAlternatives.slice(0, 2).map((alt, index) => (
+                    <>
+                      <a href={`/tool/${alt.slug}`} class="text-hunt-500 hover:text-hunt-400">
+                        {alt.name}
+                      </a>
+                      {index === 0 && orderedAlternatives.length > 1 ? ' and ' : ''}
+                    </>
+                  ))}{' '}
+                  before committing.
                 </p>
-              )}
-
-              {/* Value Rating and Fit Score */}
-              {(firstReview?.value_rating || firstReview?.fit_score) && (
-                <div class="mt-4 border-t border-zinc-800 pt-4 flex flex-wrap gap-4">
-                  {firstReview?.value_rating && (
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-zinc-400">Value:</span>
-                      <div class="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <svg
-                            class={`h-4 w-4 ${star <= (firstReview?.value_rating ?? 0) ? 'text-amber-400' : 'text-slate-200'}`}
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {firstReview?.fit_score && (
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-zinc-400">Context Fit:</span>
-                      <span class="text-sm font-medium text-zinc-300">
-                        {firstReview.fit_score}%
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Switching From */}
-              {firstReview?.switching_from?.length > 0 && (
-                <div class="mt-4 border-t border-zinc-800 pt-4">
-                  <span class="text-xs text-zinc-400">Users often switch from: </span>
-                  <span class="text-xs text-zinc-300">{firstReview.switching_from.join(', ')}</span>
-                </div>
-              )}
-
-              {firstReview?.sentiment_tags?.length > 0 && (
-                <div class="mt-6 border-t border-zinc-800 pt-4">
-                  <SentimentTags tags={firstReview.sentiment_tags} />
-                </div>
               )}
             </section>
           )
@@ -1370,9 +1447,8 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
             <details
               id="strengths"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-              open
             >
-              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+              <summary class="flex items-center justify-between cursor-pointer">
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
                   <p class="mt-1 text-sm text-zinc-400">
@@ -1414,14 +1490,6 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
 
-        {/* Features Showcase */}
-        {
-          (knowledgeCard?.features?.core?.length > 0 ||
-            knowledgeCard?.features?.unique?.length > 0) && (
-            <FeaturesShowcase features={knowledgeCard.features} toolName={tool.name} sectionId="features" />
-          )
-        }
-
         {/* Getting Started - Setup guide with friction score and actual steps */}
         {
           hasGettingStarted && (
@@ -1437,36 +1505,6 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
 
-        {/* Technical Specs - Category-specific and VIP tool details */}
-        {
-          hasSpecs && (
-            <section id="specs">
-              {specsVerifiedLabel && (
-                <p class="mb-3 text-xs text-zinc-500">Specs verified {specsVerifiedLabel}</p>
-              )}
-              <DynamicSpecs
-                categorySpecificData={displayCategorySpecificData}
-                specifics={vipSpecifics}
-                toolName={tool.name}
-                categoryName={tool.category?.name}
-              />
-            </section>
-          )
-        }
-        {
-          showProceduralSpecs && (
-            <section id="specs" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
-              <h2 class="text-lg font-semibold text-zinc-100">Technical Validation Steps</h2>
-              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
-                <li>- Confirm API limits and throttling behavior using your expected peak load.</li>
-                <li>- Verify export formats and data portability before onboarding large datasets.</li>
-                <li>- Check release cadence and changelog quality for operational predictability.</li>
-                <li>- Validate admin controls needed by your security/compliance process.</li>
-              </ul>
-            </section>
-          )
-        }
-
         {/* Pricing Plans */}
         {
           (hasPricing || showProceduralPricing) && (
@@ -1475,7 +1513,7 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
               open
             >
-              <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
+              <summary class="flex items-center justify-between cursor-pointer">
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
                   {pricingVerifiedLabel && (
@@ -1543,29 +1581,16 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                 ) : (
                   <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
                     <p>
-                      Structured pricing table is unavailable from verified extraction. Known pricing facts are
-                      shown below; verify final plan details in vendor docs before procurement.
+                      Structured pricing table is unavailable from verified extraction. Verify final plan
+                      details in vendor docs before procurement.
                     </p>
-                    {knownPricingBullets.length > 0 && (
-                      <div>
-                        <h3 class="text-sm font-semibold text-zinc-200">Known pricing (verified)</h3>
-                        <ul class="mt-2 space-y-2 text-sm text-zinc-300">
-                          {knownPricingBullets.map((item) => (
-                            <li>
-                              - {item.text}{' '}
-                              <a
-                                href={item.sourceUrl}
-                                target="_blank"
-                                rel="noopener"
-                                class="text-xs text-zinc-500 hover:text-hunt-500"
-                              >
-                                Source
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <p class="text-xs text-zinc-500">
+                      Canonical constraints and pricing-related limits are maintained in one place:{' '}
+                      <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+                        Hard limits / dealbreakers
+                      </a>
+                      .
+                    </p>
                   </div>
                 )}
                 <p class="mt-4 text-sm text-zinc-400">
@@ -1604,6 +1629,44 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                   No source-backed hard limits extracted yet. Use the verification checklist before commitment.
                 </p>
               )}
+            </section>
+          )
+        }
+
+        {/* Features Showcase */}
+        {
+          (knowledgeCard?.features?.core?.length > 0 ||
+            knowledgeCard?.features?.unique?.length > 0) && (
+            <FeaturesShowcase features={knowledgeCard.features} toolName={tool.name} sectionId="features" />
+          )
+        }
+
+        {/* Technical Specs - Category-specific and VIP tool details */}
+        {
+          hasSpecs && (
+            <section id="specs">
+              {specsVerifiedLabel && (
+                <p class="mb-3 text-xs text-zinc-500">Specs verified {specsVerifiedLabel}</p>
+              )}
+              <DynamicSpecs
+                categorySpecificData={displayCategorySpecificData}
+                specifics={vipSpecifics}
+                toolName={tool.name}
+                categoryName={tool.category?.name}
+              />
+            </section>
+          )
+        }
+        {
+          showProceduralSpecs && (
+            <section id="specs" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+              <h2 class="text-lg font-semibold text-zinc-100">Technical Validation Steps</h2>
+              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
+                <li>- Confirm API limits and throttling behavior using your expected peak load.</li>
+                <li>- Verify export formats and data portability before onboarding large datasets.</li>
+                <li>- Check release cadence and changelog quality for operational predictability.</li>
+                <li>- Validate admin controls needed by your security/compliance process.</li>
+              </ul>
             </section>
           )
         }
@@ -1731,6 +1794,50 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
 
       <!-- Sidebar -->
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
+        <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+          <h3 class="mb-3 font-semibold text-zinc-100">Decision Sidebar</h3>
+          {tool.website && (
+            <a
+              href={tool.website}
+              target="_blank"
+              rel="noopener"
+              class="mb-3 inline-flex w-full items-center justify-center rounded-lg bg-hunt-600 px-4 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
+            >
+              Visit {tool.name}
+            </a>
+          )}
+          {hasAlternatives && (
+            <div class="mb-3">
+              <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Compare vs</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                {orderedAlternatives.slice(0, 3).map((alt) => (
+                  <a
+                    href={`/compare/${tool.slug}-vs-${alt.slug}`}
+                    class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+                  >
+                    {alt.name}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          <div class="mb-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Jump to</p>
+            <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <a href="#verdict" class="text-zinc-300 hover:text-hunt-400">Verdict</a>
+              <a href="#getting-started" class="text-zinc-300 hover:text-hunt-400">Setup</a>
+              <a href="#pricing-plans" class="text-zinc-300 hover:text-hunt-400">Pricing</a>
+              <a href="#hard-limits" class="text-zinc-300 hover:text-hunt-400">Hard limits</a>
+            </div>
+          </div>
+          <p class="text-xs text-zinc-500">
+            Top limit:{' '}
+            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+              {topHardLimit ? 'Review canonical constraints' : 'Pending verification'}
+            </a>
+          </p>
+        </div>
+
         {/* Quick Stats - Moved to top for quick scanning */}
         <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
           <h3 class="mb-4 font-semibold text-zinc-100">Quick Stats</h3>
@@ -1820,13 +1927,6 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
           )
         }
 
-        {/* Related Links (SEO internal linking) */}
-        {
-          relatedLinks.length > 0 && (
-            <RelatedLinks title="Related Pages" links={relatedLinks} variant="compact" />
-          )
-        }
-
         {/* Security & Compliance */}
         {knowledgeCard?.security && <SecurityCompliance security={knowledgeCard.security} />}
 
@@ -1874,6 +1974,58 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
         }
       </div>
     </div>
+
+    {/* FAQ - Visible content to match FAQ schema */}
+    {
+      hasFAQ && (
+        <section id="faq" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+          <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
+          <div class="space-y-4">
+            {faqItems.map((item) => (
+              <details class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+                <summary class="flex items-center justify-between cursor-pointer">
+                  <h3 class="text-sm font-semibold text-zinc-100">{item.question}</h3>
+                  <svg
+                    class="h-4 w-4 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </summary>
+                <div class="mt-2 space-y-2">
+                  <p class="text-sm text-zinc-300">{item.answer}</p>
+                  {item.answer_source_url && (
+                    <a
+                      href={item.answer_source_url}
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-hunt-500"
+                    >
+                      Source
+                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      )
+    }
 
     {/* Alternatives Section - Hybrid Search Strategy */}
     {
@@ -1959,57 +2111,6 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
       )
     }
 
-    {/* FAQ - Visible content to match FAQ schema */}
-    {
-      hasFAQ && (
-        <section id="faq" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
-          <div class="space-y-4">
-            {faqItems.map((item) => (
-              <details class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4" open>
-                <summary class="flex items-center justify-between cursor-pointer md:pointer-events-none">
-                  <h3 class="text-sm font-semibold text-zinc-100">{item.question}</h3>
-                  <svg
-                    class="h-4 w-4 text-zinc-400 transition-transform group-open:rotate-90 md:hidden"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </summary>
-                <div class="mt-2 space-y-2">
-                  <p class="text-sm text-zinc-300">{item.answer}</p>
-                  {item.answer_source_url && (
-                    <a
-                      href={item.answer_source_url}
-                      target="_blank"
-                      rel="noopener"
-                      class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-hunt-500"
-                    >
-                      Source
-                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
-                  )}
-                </div>
-              </details>
-            ))}
-          </div>
-        </section>
-      )
-    }
     {
       hasVerificationChecklist && (
         <section id="verification-checklist" class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
@@ -2196,10 +2297,22 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
   </div>
 
   <script is:inline>
-    // Auto-expand details on desktop
-    if (window.matchMedia('(min-width: 768px)').matches) {
-      document.querySelectorAll('details').forEach((d) => (d.open = true));
-    }
+    // Copy use-case prompts
+    document.querySelectorAll('[data-copy-prompt]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const prompt = button.getAttribute('data-copy-prompt');
+        if (!prompt) return;
+        try {
+          await navigator.clipboard.writeText(prompt);
+          button.textContent = 'Copied';
+          setTimeout(() => {
+            button.textContent = 'Try this prompt';
+          }, 1200);
+        } catch {
+          // no-op
+        }
+      });
+    });
 
     // Suggest Edit Modal
     const modal = document.getElementById('suggest-edit-modal');
