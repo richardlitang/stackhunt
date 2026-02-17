@@ -1,0 +1,3 @@
+[mcp_servers.stackhuntGates]
+command = "npm"
+args = ["run", "mcp:stackhunt"]

@@ -95,9 +95,9 @@ export class ModelInventoryService {
     if (!html) return { models: [], sources: [source] };
 
     const candidates = extractModelCandidates(html, [
-      /\b(gpt-[a-z0-9.\-]+)\b/gi,
-      /\b(o[0-9][a-z0-9.\-]*)\b/gi,
-      /\b(codex(?:-[a-z0-9.\-]+)?)\b/gi,
+      /\b(gpt-[a-z0-9.-]+)\b/gi,
+      /\b(o[0-9][a-z0-9.-]*)\b/gi,
+      /\b(codex(?:-[a-z0-9.-]+)?)\b/gi,
     ]).filter((id) => !/(embedding|tts|transcribe|moderation|whisper|omni|realtime|image)/i.test(id));
 
     return { models: normalizeAndRank(candidates), sources: [source] };
@@ -117,7 +117,7 @@ export class ModelInventoryService {
     if (!combined) return { models: [], sources };
 
     const candidates = extractModelCandidates(combined, [
-      /\b(claude-[a-z0-9.\-]+)\b/gi,
+      /\b(claude-[a-z0-9.-]+)\b/gi,
       /\b(Claude\s+(?:Opus|Sonnet|Haiku)\s*[0-9.]+)\b/gi,
     ]);
 

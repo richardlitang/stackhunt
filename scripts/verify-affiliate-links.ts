@@ -22,13 +22,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
+import 'dotenv/config';
 
 // Environment validation
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('❌ Missing required environment variables: SUPABASE_URL, SUPABASE_SERVICE_KEY');
+  console.error(
+    '❌ Missing required environment variables: SUPABASE_URL, and SUPABASE_SERVICE_KEY or SUPABASE_SERVICE_ROLE_KEY'
+  );
   process.exit(1);
 }
 

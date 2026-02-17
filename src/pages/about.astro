@@ -1,0 +1,37 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCanonicalUrl } from '@/lib/utils';
+
+const meta = {
+  title: 'About StackHunt | AI-Assisted Software Research',
+  description:
+    'StackHunt helps teams choose software with source-backed analysis, transparent methodology, and draft-first editorial quality gates.',
+  canonical: getCanonicalUrl('/about'),
+  ogType: 'website' as const,
+};
+---
+
+<BaseLayout meta={meta}>
+  <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-semibold text-zinc-100">About StackHunt</h1>
+    <p class="mt-4 text-zinc-400">
+      StackHunt is an AI-assisted software research platform built to help buyers make faster,
+      better tool decisions.
+    </p>
+
+    <div class="mt-8 space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-zinc-300">
+      <p>
+        We combine structured source collection, policy-controlled AI synthesis, and human
+        editorial review. Every report starts as a draft and only ships when quality thresholds are
+        met.
+      </p>
+      <p>
+        Our objective is practical decision support: what the tool does, how pricing behaves, and
+        what risks or tradeoffs to verify before rollout.
+      </p>
+      <p>
+        For full process details, see the <a href="/methodology" class="text-indigo-400 hover:text-indigo-300">Methodology</a>.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

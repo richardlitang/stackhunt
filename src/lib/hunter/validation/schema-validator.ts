@@ -11,6 +11,7 @@ import { z } from 'zod';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 
 const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
+const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
 const INCOMPLETE_CLAUSE_ENDING =
   /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/i;
 const COMMUNITY_HEDGING_PREFIX =
@@ -19,7 +20,7 @@ const COMMUNITY_HEDGING_PREFIX =
 function normalizeClaimText(text: string): string {
   return text
     .normalize('NFKC')
-    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(CONTROL_CHARS_REGEX, '')
     .replace(/\s+/g, ' ')
     .replace(TERMINAL_PUNCTUATION, '')
     .trim();

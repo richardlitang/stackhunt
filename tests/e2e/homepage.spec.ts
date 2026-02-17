@@ -32,12 +32,16 @@ test.describe('Tool Pages', () => {
     await page.goto('/');
 
     // Look for any tool link
-    const toolLink = page.locator('a[href^="/tool/"]').first();
+    let href = await page.locator('a[href^="/tool/"]').first().getAttribute('href');
 
-    if (await toolLink.count() > 0) {
-      await toolLink.click();
-      await expect(page).toHaveURL(/\/tool\//);
+    if (!href) {
+      await page.goto('/tools');
+      href = await page.locator('main a[href^="/tool/"]').first().getAttribute('href');
     }
+
+    expect(href, 'Expected at least one tool link from home or tools index').toBeTruthy();
+    await page.goto(href as string, { waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/\/tool\//);
   });
 });
 

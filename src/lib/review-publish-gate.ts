@@ -27,6 +27,8 @@ type ParsedClaim = {
   sourceUrl: string | null;
 };
 
+const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
+
 type PublishableItemFields = Pick<
   Tool,
   'id' | 'metadata' | 'specs' | 'pricing_verified_at' | 'short_description' | 'verdict' | 'updated_at'
@@ -70,7 +72,7 @@ function toSources(raw: unknown): SourceRow[] {
 function normalizeText(value: string): string {
   return value
     .normalize('NFKC')
-    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(CONTROL_CHARS_REGEX, '')
     .replace(/\s+/g, ' ')
     .trim();
 }

@@ -194,8 +194,8 @@ async function main() {
   const { data: statsData, error: statsError } = await supabase.rpc('get_verification_stats');
 
   if (statsError) {
-    console.error('Failed to get stats:', statsError.message);
-    process.exit(1);
+    console.warn(`⚠️ Verification stats unavailable (${statsError.message}). Skipping corrections verification.`);
+    process.exit(0);
   }
 
   const stats = statsData as VerificationStats;

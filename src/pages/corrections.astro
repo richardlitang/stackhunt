@@ -1,0 +1,33 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCanonicalUrl } from '@/lib/utils';
+
+const meta = {
+  title: 'Corrections Policy | StackHunt',
+  description:
+    'Report factual errors and outdated information in StackHunt reviews. We investigate and update verified corrections.',
+  canonical: getCanonicalUrl('/corrections'),
+  ogType: 'website' as const,
+};
+---
+
+<BaseLayout meta={meta}>
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-semibold text-zinc-100">Report a Correction</h1>
+    <p class="mt-4 text-zinc-400">
+      If you spot outdated or inaccurate information, send us the details and the source.
+    </p>
+
+    <div class="mt-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+      <h2 class="text-lg font-semibold text-zinc-100">Fastest path</h2>
+      <ol class="mt-3 space-y-2 text-zinc-300">
+        <li>1. Open the relevant tool page.</li>
+        <li>2. Click <span class="font-medium text-zinc-100">Report correction</span>.</li>
+        <li>3. Include the exact claim and a supporting source URL.</li>
+      </ol>
+      <p class="mt-5 text-sm text-zinc-400">
+        Start here: <a href="/tools" class="text-indigo-400 hover:text-indigo-300">Browse tools</a>
+      </p>
+    </div>
+  </div>
+</BaseLayout>

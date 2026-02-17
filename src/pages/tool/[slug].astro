@@ -237,10 +237,11 @@ const getEvidenceDomain = (url: string): string => {
   }
 };
 const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
+const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
 const stripControlChars = (value: string): string =>
   value
     .normalize('NFKC')
-    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(CONTROL_CHARS_REGEX, '')
     .replace(/\s+/g, ' ')
     .trim();
 const extractJsonClaimText = (snippet: string): string | null => {
@@ -547,7 +548,7 @@ const cleanDecisionText = (value: unknown): string | null => {
   const cleaned = stripControlChars(
     value
     .trim()
-    .replace(/^[\-\u2022]\s*/, '')
+    .replace(/^[-\u2022]\s*/, '')
     .replace(/^avoid if\s*/i, '')
     .replace(/^best fit:\s*/i, '')
     .replace(/^best when\s*/i, '')
@@ -860,6 +861,7 @@ const pricingSnapshotBullets = withUniqueText(
     )
   )
 ).slice(0, 5);
+const showPricingSection = true;
 const decisionProofPoints = [
   buildEvidenceBulletV2({
     text: `Pricing references reviewed from official pages (checked ${pricingVerifiedLabel || 'latest available date'}).`,
@@ -1428,7 +1430,7 @@ const schemas = [
           )
         }
         {
-          (hasPricing || showProceduralPricing) && (
+          showPricingSection && (
             <a
               href="#pricing-plans"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -1438,7 +1440,7 @@ const schemas = [
           )
         }
         {
-          (hasPricing || showProceduralPricing) && (
+          showPricingSection && canonicalHardLimits.length > 0 && (
             <a
               href="#hard-limits"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -1727,7 +1729,7 @@ const schemas = [
 
         {/* Pricing Plans */}
         {
-          (hasPricing || showProceduralPricing) && (
+          showPricingSection && (
             <details
               id="pricing-plans"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -1848,28 +1850,36 @@ const schemas = [
                     <p class="text-xs text-zinc-500">
                       Last checked {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}.
                     </p>
-                    <p class="text-xs text-zinc-500">
-                      Canonical constraints and pricing-related limits are maintained in one place:{' '}
+                    {
+                      canonicalHardLimits.length > 0 && (
+                        <p class="text-xs text-zinc-500">
+                          Canonical constraints and pricing-related limits are maintained in one place:{' '}
+                          <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
+                            Hard limits / dealbreakers
+                          </a>
+                          .
+                        </p>
+                      )
+                    }
+                  </div>
+                )}
+                {
+                  canonicalHardLimits.length > 0 && (
+                    <p class="mt-4 text-sm text-zinc-400">
+                      Canonical constraints live in{' '}
                       <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
                         Hard limits / dealbreakers
                       </a>
                       .
                     </p>
-                  </div>
-                )}
-                <p class="mt-4 text-sm text-zinc-400">
-                  Canonical constraints live in{' '}
-                  <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-                    Hard limits / dealbreakers
-                  </a>
-                  .
-                </p>
+                  )
+                }
               </div>
             </details>
           )
         }
         {
-          (hasPricing || showProceduralPricing) && (
+          showPricingSection && canonicalHardLimits.length > 0 && (
             <section id="hard-limits" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
               <h2 class="text-lg font-semibold text-zinc-100">Hard limits / dealbreakers</h2>
               {canonicalHardLimits.length > 0 ? (

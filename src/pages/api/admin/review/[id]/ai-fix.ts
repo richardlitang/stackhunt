@@ -31,10 +31,12 @@ interface AiFixRequest {
   };
 }
 
+const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
+
 function normalizeText(value: string): string {
   return value
     .normalize('NFKC')
-    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(CONTROL_CHARS_REGEX, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -234,4 +236,3 @@ Output JSON shape:
     return ApiResponse.internalError('Failed to generate AI patch');
   }
 };
-

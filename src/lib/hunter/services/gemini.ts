@@ -421,7 +421,7 @@ export class GeminiService {
             ? cost.cost
             : typeof cost?.cost === 'string'
               ? (() => {
-                  const cleaned = cost.cost.replace(/[^0-9.\-]/g, '');
+                  const cleaned = cost.cost.replace(/[^0-9.-]/g, '');
                   const parsedValue = Number.parseFloat(cleaned);
                   return Number.isFinite(parsedValue) ? parsedValue : null;
                 })()

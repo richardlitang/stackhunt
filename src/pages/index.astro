@@ -25,6 +25,7 @@ const [featuredTools, featuredContexts, categories] = await Promise.all([
   getFeaturedContexts(8),
   getCategories(),
 ]);
+const quickContextLinks = featuredContexts.slice(0, 3);
 
 const meta = {
   title: 'StackHunt - Find the Right Tools for Your Stack',
@@ -98,18 +99,27 @@ const meta = {
           <!-- Quick Links -->
           <div class="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1">
             <span class="text-sm text-zinc-500">Popular:</span>
-            <a
-              href="/best/note-taking-apps-for-students"
-              class="text-sm text-zinc-400 hover:text-zinc-100 transition">Note-taking</a
-            >
-            <a
-              href="/best/project-management-tools-for-remote-teams"
-              class="text-sm text-zinc-400 hover:text-zinc-100 transition">Project management</a
-            >
-            <a
-              href="/best/accounting-software"
-              class="text-sm text-zinc-400 hover:text-zinc-100 transition">Accounting</a
-            >
+            {
+              quickContextLinks.length > 0 ? (
+                quickContextLinks.map((ctx) => (
+                  <a href={`/best/${ctx.slug}`} class="text-sm text-zinc-400 hover:text-zinc-100 transition">
+                    {ctx.title}
+                  </a>
+                ))
+              ) : (
+                <>
+                  <a href="/best" class="text-sm text-zinc-400 hover:text-zinc-100 transition"
+                    >Best Lists</a
+                  >
+                  <a href="/compare" class="text-sm text-zinc-400 hover:text-zinc-100 transition"
+                    >Compare Tools</a
+                  >
+                  <a href="/tools" class="text-sm text-zinc-400 hover:text-zinc-100 transition"
+                    >Tool Directory</a
+                  >
+                </>
+              )
+            }
           </div>
         </div>
       </div>

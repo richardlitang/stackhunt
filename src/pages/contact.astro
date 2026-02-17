@@ -1,0 +1,32 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCanonicalUrl } from '@/lib/utils';
+
+const meta = {
+  title: 'Contact StackHunt',
+  description:
+    'Contact StackHunt for editorial feedback, partnership questions, or corrections guidance.',
+  canonical: getCanonicalUrl('/contact'),
+  ogType: 'website' as const,
+};
+---
+
+<BaseLayout meta={meta}>
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-semibold text-zinc-100">Contact</h1>
+    <p class="mt-4 text-zinc-400">
+      Questions about a review, feedback on our methodology, or editorial requests?
+    </p>
+
+    <div class="mt-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+      <h2 class="text-lg font-semibold text-zinc-100">How to reach us</h2>
+      <p class="mt-3 text-zinc-300">
+        Email: <a href="mailto:hello@stackhunt.co" class="text-indigo-400 hover:text-indigo-300">hello@stackhunt.co</a>
+      </p>
+      <p class="mt-4 text-sm text-zinc-400">
+        For factual corrections, use the dedicated correction workflow from tool pages or visit{' '}
+        <a href="/corrections" class="text-indigo-400 hover:text-indigo-300">Corrections</a>.
+      </p>
+    </div>
+  </div>
+</BaseLayout>
