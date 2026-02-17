@@ -81,9 +81,16 @@ const CSRF_EXEMPT_ROUTES = [
 ];
 
 export const onRequest = defineMiddleware(
-  async ({ request, cookies, redirect, url, locals }, next) => {
+  async ({ request, cookies, redirect, url, locals, isPrerendered }, next) => {
     const pathname = url.pathname;
     const method = request.method;
+
+    // Prerendered routes have no request header context.
+    // Skip header-dependent middleware checks during static generation.
+    if (isPrerendered) {
+      const response = await next();
+      return addSecurityHeaders(response, pathname);
+    }
 
     // Bot blocking - return 403 immediately to save CPU cycles
     const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
