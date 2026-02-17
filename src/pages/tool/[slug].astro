@@ -7,7 +7,6 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
 import ScoreBadge from '@/components/ScoreBadge.astro';
-import PricingBadge from '@/components/PricingBadge.astro';
 import ProsCons from '@/components/ProsCons.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
@@ -43,7 +42,7 @@ import {
   generateVideoSchema,
   generateToolFAQSchema,
 } from '@/lib/seo';
-import { getCanonicalUrl, simpleMarkdown } from '@/lib/utils';
+import { formatPricingType, getCanonicalUrl, getScoreColor, simpleMarkdown } from '@/lib/utils';
 import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
@@ -95,8 +94,21 @@ const canonicalLatestModels = Array.isArray(canonicalFacts?.latest_models_compar
   : [];
 const displayCategorySpecificData =
   categorySpecificData && canonicalLatestModels.length > 0
-    ? { ...categorySpecificData, model_options: canonicalLatestModels }
+    ? {
+        ...categorySpecificData,
+        latest_model: canonicalLatestModels[0],
+        model_options: canonicalLatestModels,
+      }
     : categorySpecificData;
+const pricingTypeLabel = formatPricingType(tool.pricing_type || 'paid');
+const websiteHostLabel = (() => {
+  if (!tool.website) return null;
+  try {
+    return new URL(tool.website).hostname.replace(/^www\./, '');
+  } catch {
+    return tool.website.replace(/^https?:\/\//i, '').split('/')[0] || tool.website;
+  }
+})();
 const vipSpecifics = toolSpecs?.specifics as Record<string, unknown> | undefined;
 const reviewContext = tool.review_context as Record<string, unknown> | null;
 const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<
@@ -920,6 +932,35 @@ const pricingSnapshotBullets = withUniqueText(
     )
   )
 ).slice(0, 5);
+const extractPricingClaimPlan = (text: string, index: number): string => {
+  const match = text.match(/\b(free|starter|pro|team|business|enterprise|max|plus)\b/i);
+  if (match) {
+    return `${match[1].charAt(0).toUpperCase()}${match[1].slice(1).toLowerCase()} plan`;
+  }
+  return `Pricing detail ${index + 1}`;
+};
+const extractPricingClaimPrice = (text: string): string => {
+  const match = text.match(/\$\s?\d[\d,.]*(?:\s*\/\s*(?:mo|month|yr|year|seat|user))?/i);
+  return match ? match[0] : '—';
+};
+const pricingFallbackRows =
+  pricingSnapshotBullets.length > 0
+    ? pricingSnapshotBullets.map((item, index) => ({
+        planName: extractPricingClaimPlan(item.text, index),
+        price: extractPricingClaimPrice(item.text),
+        detail: item.text,
+        verification: item.sourceUrl ? 'Verified claim' : 'Unverified claim',
+        sourceUrl: item.sourceUrl || officialPricingSource?.url || null,
+      }))
+    : [
+        {
+          planName: 'Pricing not fully extracted',
+          price: '—',
+          detail: 'Pricing varies by plan and contract terms. Confirm with official pricing pages.',
+          verification: 'Needs vendor confirmation',
+          sourceUrl: officialPricingSource?.url || null,
+        },
+      ];
 const showPricingSection = true;
 const decisionProofPoints = [
   buildEvidenceBulletV2({
@@ -987,7 +1028,7 @@ const verdictLabel =
     : decisionSnapshotBestWhen.length > 0
       ? 'Consider'
       : 'Avoid';
-const verdictLabelRationale =
+let verdictLabelRationale =
   verdictLabel === 'Choose'
     ? `${tool.name} shows enough evidence for most research-heavy teams.`
     : verdictLabel === 'Consider'
@@ -1040,12 +1081,28 @@ const hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
 pendingVerificationCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter(
   (item) => item?.unverified
 ).length;
+const verifiedClaimCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter(
+  (item) => item && !item.unverified
+).length;
 if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
   evidenceGrade = 'B';
   evidenceGradeDisplay = 'A-';
   evidenceGradeDescription = `Strong verified coverage with ${pendingVerificationCount} pending verification item${pendingVerificationCount === 1 ? '' : 's'}.`;
 }
+if (verdictLabel === 'Consider' && pendingVerificationCount > 0) {
+  verdictLabelRationale = `${tool.name} can fit, but procurement-significant constraints are still pending verification.`;
+}
 isVerificationMode = evidenceGrade === 'C' || pendingVerificationCount > 0;
+const fitStatusLabel =
+  verdictLabel === 'Consider' && pendingVerificationCount > 0
+    ? 'Consider (Procurement pending)'
+    : verdictLabel;
+const productStrengthLabel =
+  tool.avg_score > 0
+    ? `${Math.round(tool.avg_score)} / 100 (${getScoreColor(Math.round(tool.avg_score)).label})`
+    : 'Tracking';
+const weightedSourceScoreMax = evidenceLinksAll.length;
+const pendingVerificationLabel = `Pending verification: ${pendingVerificationCount} procurement-significant ${pendingVerificationCount === 1 ? 'claim' : 'claims'}.`;
 const publishedAnalysesLabel =
   tool.review_count > 0 ? String(tool.review_count) : isVerificationMode ? 'In review' : '0';
 shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
@@ -1096,7 +1153,9 @@ const schemas = [
         )
       }
       <span>/</span>
-      <span class="text-zinc-300">{tool.name}</span>
+      <span aria-current="page" class="text-zinc-300">
+        {tool.name}
+      </span>
     </nav>
 
     <section
@@ -1128,6 +1187,20 @@ const schemas = [
           <p class:list={['mt-2 text-sm', isVerificationMode ? 'text-amber-100/90' : 'text-zinc-300']}>
             Evidence grade: {evidenceGradeDisplay} • {evidenceGradeDescription}
           </p>
+          <details class="mt-2 inline-block rounded-md border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-300">
+            <summary class="cursor-pointer list-none font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
+              How we score
+            </summary>
+            <p class="mt-2 max-w-xl leading-relaxed text-zinc-400">
+              Verified means a claim is directly supported by a cited source and still matches the
+              current page. Official, independent, and community are source-quality buckets; weighted
+              score is out of {weightedSourceScoreMax || 0}.{' '}
+              <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">
+                Methodology
+              </a>
+              .
+            </p>
+          </details>
           <div class="mt-3 flex flex-wrap gap-2 text-xs">
             <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
               Verified: {evidenceLinks.length}
@@ -1142,18 +1215,18 @@ const schemas = [
               Community: {communityEvidenceLinks.length}
             </span>
             <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
-              Weighted score: {weightedSourceScore.toFixed(1)}
+              Weighted score: {weightedSourceScore.toFixed(1)} / {weightedSourceScoreMax}
             </span>
           </div>
           <p class="mt-3 text-xs text-zinc-500">
-            Collected: {evidenceLinksAll.length} total sources • Last verified{' '}
+            {evidenceLinksAll.length} sources reviewed • {verifiedClaimCount} claims verified • Last
+            verified{' '}
             {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
           </p>
           {
             pendingVerificationCount > 0 && (
               <p class="mt-2 text-xs text-amber-300">
-                Pending verification: {pendingVerificationCount} procurement-significant claim
-                {pendingVerificationCount === 1 ? '' : 's'}.
+                {pendingVerificationLabel}
               </p>
             )
           }
@@ -1178,26 +1251,28 @@ const schemas = [
           </div>
           {
             shouldNoindex && (
-              <div class="group relative inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300">
-                <span>Draft • In review</span>
-                <svg
-                  class="h-4 w-4 text-amber-300/80"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div class="pointer-events-none absolute left-0 top-full z-10 mt-2 hidden w-72 rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs font-normal text-zinc-300 shadow-xl group-hover:block">
+              <details class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300">
+                <summary class="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+                  <span>Draft • In review</span>
+                  <svg
+                    class="h-4 w-4 text-amber-300/80"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </summary>
+                <p class="mt-2 text-xs font-normal text-zinc-300">
                   We&apos;re still validating pricing and integration claims. Some sections may
                   change before final publication.
-                </div>
-              </div>
+                </p>
+              </details>
             )
           }
         </div>
@@ -1255,16 +1330,22 @@ const schemas = [
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2">
-            <PricingBadge type={tool.pricing_type} />
+          <div class="grid gap-2 rounded-xl border border-zinc-700/80 bg-zinc-800/40 p-3 text-sm text-zinc-300 sm:grid-cols-3">
+            <div>
+              <span class="text-xs uppercase tracking-wide text-zinc-500">Pricing</span>
+              <p class="mt-1 font-medium text-zinc-100">{pricingTypeLabel}</p>
+            </div>
             {
               tool.category && (
-                <a
-                  href={`/categories/${tool.category.slug}`}
-                  class="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-800/80 px-3 py-1 text-xs font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-                >
-                  {tool.category.name}
-                </a>
+                <div>
+                  <span class="text-xs uppercase tracking-wide text-zinc-500">Category</span>
+                  <a
+                    href={`/categories/${tool.category.slug}`}
+                    class="mt-1 block font-medium text-zinc-100 hover:text-hunt-400 transition"
+                  >
+                    {tool.category.name}
+                  </a>
+                </div>
               )
             }
             {
@@ -1276,52 +1357,24 @@ const schemas = [
                   data-outbound="vendor"
                   data-location="hero-meta"
                   data-tool={tool.slug}
-                  class="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800/80 px-3 py-1 text-xs font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+                  class="inline-flex items-end justify-between gap-2 rounded-lg border border-zinc-700/80 bg-zinc-900/40 px-3 py-2 text-zinc-100 hover:border-hunt-500 hover:text-hunt-400 transition"
                 >
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <span>
+                    <span class="text-xs uppercase tracking-wide text-zinc-500">Website</span>
+                    <span class="mt-1 block font-medium">{websiteHostLabel || 'Official site'}</span>
+                  </span>
+                  <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
-                      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                      d="M7 17L17 7M17 7H8M17 7v9"
                     />
                   </svg>
-                  Website
                 </a>
               )
             }
           </div>
-
-          {
-            (tags.functions.length > 0 || tags.audiences.length > 0 || tags.platforms.length > 0) && (
-              <div class="flex flex-wrap gap-2">
-                {tags.functions.map((tag) => (
-                  <a
-                    href={`/categories/${tag.slug}`}
-                    class="inline-flex items-center rounded-full border border-sky-500/35 bg-sky-500/10 px-2.5 py-1 text-xs font-medium text-sky-100 hover:border-sky-400/50 transition"
-                  >
-                    {tag.name}
-                  </a>
-                ))}
-                {tags.audiences.map((tag) => (
-                  <a
-                    href={`/categories/${tag.slug}`}
-                    class="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-100 hover:border-emerald-400/50 transition"
-                  >
-                    {tag.name}
-                  </a>
-                ))}
-                {tags.platforms.map((tag) => (
-                  <a
-                    href={`/categories/${tag.slug}`}
-                    class="inline-flex items-center rounded-full border border-fuchsia-500/35 bg-fuchsia-500/10 px-2.5 py-1 text-xs font-medium text-fuchsia-100 hover:border-fuchsia-400/50 transition"
-                  >
-                    {tag.name}
-                  </a>
-                ))}
-              </div>
-            )
-          }
 
           <div class="flex flex-wrap gap-3">
             {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />}
@@ -1359,8 +1412,14 @@ const schemas = [
           }
         </div>
 
-        <aside class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+        <aside
+          aria-labelledby="decision-snapshot-heading"
+          class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner"
+        >
+          <p
+            id="decision-snapshot-heading"
+            class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400"
+          >
             Decision Snapshot
           </p>
           <div class="mt-3 flex flex-wrap items-center gap-3">
@@ -1374,8 +1433,16 @@ const schemas = [
               )
             }
             <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-              {verdictLabel}
+              {fitStatusLabel}
             </span>
+          </div>
+          <div class="mt-3 grid gap-1 text-xs text-zinc-500">
+            <p>
+              Product strength: <span class="text-zinc-300">{productStrengthLabel}</span>
+            </p>
+            <p>
+              Fit status: <span class="text-zinc-300">{fitStatusLabel}</span>
+            </p>
           </div>
 
           <p class="mt-4 text-sm text-zinc-300">{verdictLabelRationale}</p>
@@ -1414,7 +1481,7 @@ const schemas = [
     >
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold text-zinc-100">Decision: {verdictLabel}</h2>
+          <h2 class="text-lg font-semibold text-zinc-100">Decision: {fitStatusLabel}</h2>
           <p class="mt-1 text-sm text-zinc-300">{verdictLabelRationale}</p>
         </div>
         <span
@@ -1988,51 +2055,64 @@ const schemas = [
                   </>
                 ) : (
                   <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-                    <p>Structured pricing table is unavailable from verified extraction.</p>
+                    <p>
+                      Pricing extraction is incomplete. This normalized table keeps layout stable
+                      while showing the best available source-linked claims.
+                    </p>
                     <h3 class="text-sm font-semibold text-zinc-100">Verified pricing snapshot</h3>
-                    {pricingSnapshotBullets.length > 0 ? (
-                      <ul class="space-y-2 text-sm text-zinc-300">
-                        {pricingSnapshotBullets.map((item) => (
-                          <li>
-                            - {item.text}{' '}
-                            <a
-                              href={item.sourceUrl}
-                              target="_blank"
-                              rel="noopener"
-                              aria-label={sourceAriaLabel(item.text)}
-                              data-outbound="source"
-                              data-location="pricing-snapshot"
-                              data-tool={tool.slug}
-                              class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                            >
-                              Claim source
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p class="text-sm text-zinc-400">
-                        Varies by plan and contract terms. Use vendor pricing pages and sales
-                        confirmation before procurement.
-                        {officialPricingSource && (
-                          <>
-                            {' '}
-                            <a
-                              href={officialPricingSource.url}
-                              target="_blank"
-                              rel="noopener"
-                              aria-label={sourceAriaLabel('official pricing details')}
-                              data-outbound="source"
-                              data-location="pricing-snapshot"
-                              data-tool={tool.slug}
-                              class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                            >
-                              Claim source
-                            </a>
-                          </>
-                        )}
-                      </p>
-                    )}
+                    <div class="overflow-x-auto rounded-lg border border-zinc-800">
+                      <table class="min-w-full divide-y divide-zinc-800 text-left text-xs">
+                        <thead class="bg-zinc-900/90 text-zinc-400">
+                          <tr>
+                            <th class="px-3 py-2 font-medium">Plan</th>
+                            <th class="px-3 py-2 font-medium">Price</th>
+                            <th class="px-3 py-2 font-medium">Verification</th>
+                            <th class="px-3 py-2 font-medium">Source</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-800 text-zinc-200">
+                          {pricingFallbackRows.map((row) => (
+                            <tr>
+                              <td class="px-3 py-2 align-top">
+                                <p class="font-medium text-zinc-100">{row.planName}</p>
+                                <p class="mt-1 text-[11px] text-zinc-400">{row.detail}</p>
+                              </td>
+                              <td class="px-3 py-2 align-top">{row.price}</td>
+                              <td class="px-3 py-2 align-top">
+                                <span
+                                  class:list={[
+                                    'rounded-full border px-2 py-0.5',
+                                    row.verification === 'Verified claim'
+                                      ? 'border-emerald-700/50 bg-emerald-900/30 text-emerald-300'
+                                      : 'border-amber-700/50 bg-amber-900/30 text-amber-300',
+                                  ]}
+                                >
+                                  {row.verification}
+                                </span>
+                              </td>
+                              <td class="px-3 py-2 align-top">
+                                {row.sourceUrl ? (
+                                  <a
+                                    href={row.sourceUrl}
+                                    target="_blank"
+                                    rel="noopener"
+                                    aria-label={sourceAriaLabel(row.detail)}
+                                    data-outbound="source"
+                                    data-location="pricing-snapshot"
+                                    data-tool={tool.slug}
+                                    class="text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
+                                  >
+                                    Official source
+                                  </a>
+                                ) : (
+                                  <span class="text-zinc-500">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                     <p class="text-xs text-zinc-500">
                       Last checked {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}.
                     </p>
@@ -2801,11 +2881,10 @@ const schemas = [
   </div>
 
   <script is:inline>
-    // Outbound click tracking (vendor CTA + source links)
-    document.addEventListener('click', (event) => {
-      const target = event.target as HTMLElement | null;
-      const link = target?.closest('a') as HTMLAnchorElement | null;
-      if (!link) return;
+    const pageRoot = (document.querySelector('main') as HTMLElement | null) || document.body;
+    const copyStatus = document.getElementById('prompt-copy-status');
+
+    const trackOutboundClick = (link: HTMLAnchorElement) => {
       const href = link.getAttribute('href') || '';
       const isExternal = /^https?:\/\//i.test(href);
       if (!isExternal) return;
@@ -2829,134 +2908,168 @@ const schemas = [
           props: { type, location, tool, href: sanitizedHref },
         });
       }
-    });
-
-    // Open key sources from decision panel
-    document.querySelectorAll('[data-open-key-sources]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const raw = button.getAttribute('data-open-key-sources');
-        if (!raw) return;
-        try {
-          const urls = JSON.parse(raw) as string[];
-          urls.slice(0, 2).forEach((url) => {
-            if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener,noreferrer');
-          });
-        } catch {
-          // no-op
-        }
-      });
-    });
-
-    // Copy use-case prompts
-    const copyStatus = document.getElementById('prompt-copy-status');
-    document.querySelectorAll('[data-copy-prompt]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        const prompt = button.getAttribute('data-copy-prompt');
-        if (!prompt) return;
-        try {
-          await navigator.clipboard.writeText(prompt);
-          button.textContent = 'Copied';
-          button.setAttribute('aria-label', 'Prompt copied to clipboard');
-          if (copyStatus) copyStatus.textContent = 'Prompt copied to clipboard';
-          setTimeout(() => {
-            button.textContent = 'Try this prompt';
-            button.setAttribute('aria-label', 'Try this prompt');
-          }, 1200);
-        } catch {
-          // no-op
-        }
-      });
-    });
-
-    // Suggest Edit Modal
-    const modal = document.getElementById('suggest-edit-modal');
-    const modalPanel = modal?.querySelector('[data-modal-panel]') as HTMLElement | null;
-    const form = document.getElementById('suggest-edit-form');
-    const success = document.getElementById('suggest-edit-success');
-    let lastFocusedElement: HTMLElement | null = null;
-
-    const closeModal = () => {
-      modal?.classList.add('hidden');
-      modal?.classList.remove('flex');
-      modal?.setAttribute('aria-hidden', 'true');
-      lastFocusedElement?.focus();
     };
 
-    const focusFirstFocusable = () => {
-      if (!modal) return;
-      const firstFocusable = modal.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      firstFocusable?.focus();
-    };
-
-    const trapFocus = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab' || !modal || modal.classList.contains('hidden')) return;
-      const focusable = Array.from(
-        modal.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((el) => !el.hasAttribute('disabled'));
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
-        closeModal();
-      }
-      trapFocus(event);
-    });
-
-    document.querySelectorAll('[data-suggest-edit]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        lastFocusedElement = document.activeElement as HTMLElement | null;
-        modal?.classList.remove('hidden');
-        modal?.classList.add('flex');
-        modal?.setAttribute('aria-hidden', 'false');
-        form?.classList.remove('hidden');
-        success?.classList.add('hidden');
-        setTimeout(() => focusFirstFocusable(), 0);
-      });
-    });
-    document.querySelectorAll('[data-close-modal]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        closeModal();
-      });
-    });
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
-      }
-    });
-    modalPanel?.addEventListener('click', (e) => e.stopPropagation());
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData);
+    const openKeySources = (button: HTMLElement) => {
+      const raw = button.getAttribute('data-open-key-sources');
+      if (!raw) return;
       try {
-        const res = await fetch('/api/corrections', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+        const urls = JSON.parse(raw) as string[];
+        urls.slice(0, 2).forEach((url) => {
+          if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener,noreferrer');
         });
-        if (res.ok) {
-          form.classList.add('hidden');
-          success?.classList.remove('hidden');
-          form.reset();
-        } else {
-          alert('Failed to submit. Please try again.');
-        }
       } catch {
-        alert('Network error. Please try again.');
+        // no-op
+      }
+    };
+
+    const copyUseCasePrompt = async (button: HTMLButtonElement) => {
+      const prompt = button.getAttribute('data-copy-prompt');
+      if (!prompt) return;
+      try {
+        await navigator.clipboard.writeText(prompt);
+        button.textContent = 'Copied';
+        button.setAttribute('aria-label', 'Prompt copied to clipboard');
+        if (copyStatus) copyStatus.textContent = 'Prompt copied to clipboard';
+      } catch {
+        window.prompt('Copy this prompt:', prompt);
+        if (copyStatus) copyStatus.textContent = 'Clipboard unavailable. Prompt shown for manual copy.';
+      } finally {
+        setTimeout(() => {
+          button.textContent = 'Try this prompt';
+          button.setAttribute('aria-label', 'Try this prompt');
+        }, 1200);
+      }
+    };
+
+    let isSuggestEditReady = false;
+    let openSuggestEdit: (() => void) | null = null;
+    let closeSuggestEdit: (() => void) | null = null;
+
+    const initSuggestEditModal = () => {
+      if (isSuggestEditReady) return;
+      const modal = document.getElementById('suggest-edit-modal');
+      const modalPanel = modal?.querySelector('[data-modal-panel]') as HTMLElement | null;
+      const form = document.getElementById('suggest-edit-form') as HTMLFormElement | null;
+      const success = document.getElementById('suggest-edit-success');
+      if (!modal || !modalPanel || !form || !success) return;
+
+      let lastFocusedElement: HTMLElement | null = null;
+
+      const focusFirstFocusable = () => {
+        const firstFocusable = modal.querySelector<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        firstFocusable?.focus();
+      };
+
+      const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+        lastFocusedElement?.focus();
+      };
+
+      const openModal = () => {
+        lastFocusedElement = document.activeElement as HTMLElement | null;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.setAttribute('aria-hidden', 'false');
+        form.classList.remove('hidden');
+        success.classList.add('hidden');
+        setTimeout(() => focusFirstFocusable(), 0);
+      };
+
+      const trapFocus = (event: KeyboardEvent) => {
+        if (event.key !== 'Tab' || modal.classList.contains('hidden')) return;
+        const focusable = Array.from(
+          modal.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => !el.hasAttribute('disabled'));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      };
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+          closeModal();
+        }
+        trapFocus(event);
+      });
+
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeModal();
+      });
+      modalPanel.addEventListener('click', (event) => event.stopPropagation());
+      modal.querySelectorAll('[data-close-modal]').forEach((button) => {
+        button.addEventListener('click', () => closeModal());
+      });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        try {
+          const res = await fetch('/api/corrections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          if (res.ok) {
+            form.classList.add('hidden');
+            success.classList.remove('hidden');
+            form.reset();
+          } else {
+            alert('Failed to submit. Please try again.');
+          }
+        } catch {
+          alert('Network error. Please try again.');
+        }
+      });
+
+      openSuggestEdit = openModal;
+      closeSuggestEdit = closeModal;
+      isSuggestEditReady = true;
+    };
+
+    pageRoot.addEventListener('click', async (event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      const link = target.closest('a') as HTMLAnchorElement | null;
+      if (link) trackOutboundClick(link);
+
+      const openSourcesButton = target.closest('[data-open-key-sources]') as HTMLElement | null;
+      if (openSourcesButton) {
+        openKeySources(openSourcesButton);
+        return;
+      }
+
+      const copyPromptButton = target.closest('[data-copy-prompt]') as HTMLButtonElement | null;
+      if (copyPromptButton) {
+        await copyUseCasePrompt(copyPromptButton);
+        return;
+      }
+
+      const openSuggestEditButton = target.closest('[data-suggest-edit]') as HTMLElement | null;
+      if (openSuggestEditButton) {
+        initSuggestEditModal();
+        openSuggestEdit?.();
+        return;
+      }
+
+      const closeSuggestEditButton = target.closest('[data-close-modal]') as HTMLElement | null;
+      if (closeSuggestEditButton) {
+        closeSuggestEdit?.();
       }
     });
   </script>
