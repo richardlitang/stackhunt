@@ -197,7 +197,6 @@ if (altSlugs.length > 0) {
 const getPrimaryCategoryId = (item: any) =>
   item?.category?.id || item?.item_category_links?.[0]?.category?.id || null;
 
-const totalSourceCount = firstReview?.sources?.length || 0;
 const sourceEvidenceDomains = new Set(
   firstReview?.sources
     ? (firstReview.sources as Array<{ domain?: string; url?: string }>)
@@ -430,7 +429,7 @@ const gateBlocksFoundations =
   gateReasons.includes('missing_required_sections') || gateReasons.includes('mvup_incomplete');
 const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
 const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
-const shouldNoindex = !gateShouldIndex || isDraftPage;
+let shouldNoindex = !gateShouldIndex || isDraftPage;
 let isVerificationMode = shouldNoindex;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
 const NEGATIVE_CLAIM_GUARD =
@@ -453,32 +452,6 @@ const renderVerdict = sanitizeStructuredClaimMarkdown(
   guardedVerdict || guardedToolVerdict || guardedHumanVerdict
 );
 const guardedAvoidIf = hasEligibleNegativeEvidence ? avoidIf : [];
-
-const toolMeta = generateToolMeta(tool, tool.review_count);
-const meta = {
-  ...toolMeta,
-  description: shouldNoindex ? safeDraftDescription : toolMeta.description,
-  canonical: shouldNoindex ? getCanonicalUrl('/tools') : toolMeta.canonical,
-  noindex: shouldNoindex,
-};
-Astro.response.headers.set('X-Robots-Tag', meta.noindex ? 'noindex,follow' : 'index,follow');
-const schemas = [
-  generateToolSchema(tool, primaryOffer, tool.review_count),
-  generateBreadcrumbSchema([
-    { name: 'Home', url: '/' },
-    { name: 'Tools', url: '/tools' },
-    ...(tool.category
-      ? [{ name: tool.category.name, url: `/categories/${tool.category.slug}` }]
-      : []),
-    { name: tool.name, url: `/tool/${tool.slug}` },
-  ]),
-  // Include VideoObject schema if video exists
-  ...(tool.video_id
-    ? [generateVideoSchema(tool, tool.video_id, tool.video_title || `${tool.name} Overview`)]
-    : []),
-  // Include FAQ schema for common questions
-  ...(faqSchema ? [faqSchema] : []),
-];
 
 const _turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
@@ -581,6 +554,14 @@ const uniqueDecisionText = (items: Array<unknown>): string[] => {
       return true;
     });
 };
+const toolNameTokens = tool.name
+  .toLowerCase()
+  .split(/[^a-z0-9]+/g)
+  .filter((token) => token.length >= 3);
+const hasToolNameSignal = (value: string): boolean => {
+  const lower = value.toLowerCase();
+  return toolNameTokens.length > 0 && toolNameTokens.some((token) => lower.includes(token));
+};
 const decisionSnapshotSummary =
   tool.short_description || knowledgeCard?.tagline || `${tool.name} across pricing, fit, and rollout risk.`;
 const decisionSnapshotBestWhen = uniqueDecisionText(
@@ -618,7 +599,28 @@ const checklistSecurity = [
   'Confirm admin controls, SSO, and access/audit expectations.',
 ];
 const hasVerificationChecklist = Boolean(hasPricing || showProceduralPricing || firstReview || constraints || hasPlatform);
-const evidenceLinks = (firstReview?.sources || [])
+type EvidenceLinkEntry = {
+  url: string;
+  title: string;
+  domain: string;
+  basis: string;
+  quality: 'high' | 'medium' | 'low';
+  inclusionReason: string;
+  sourceType: string;
+};
+const TRUSTED_INDEPENDENT_DOMAINS = new Set([
+  'techcrunch.com',
+  'theverge.com',
+  'wired.com',
+  'bloomberg.com',
+  'wsj.com',
+  'ft.com',
+  'reuters.com',
+  'forbes.com',
+  'crunchbase.com',
+  'github.com',
+]);
+const evidenceLinksAll = (firstReview?.sources || [])
   .map((source) => {
     const url = typeof source?.url === 'string' ? source.url : null;
     if (!url) return null;
@@ -657,19 +659,52 @@ const evidenceLinks = (firstReview?.sources || [])
         : sourceType === 'community'
           ? 'Community discussions'
           : hostname.includes('github.com') && path.includes('/issues')
-            ? 'GitHub issues'
-            : 'Independent reviews';
+          ? 'GitHub issues'
+          : 'Independent reviews';
+    const title =
+      typeof source?.title === 'string' && source.title.trim().length > 0
+        ? source.title.trim()
+        : hostname;
+    const hasToolSignal = hasToolNameSignal(`${title} ${hostname} ${path}`);
+    const isLikelyOffTopicOfficial = sourceType === 'official' && path.includes('/blog/') && !hasToolSignal;
+    let quality: EvidenceLinkEntry['quality'] = 'medium';
+    let inclusionReason = 'Secondary source';
+    if (sourceType === 'official') {
+      if (isLikelyOffTopicOfficial) {
+        quality = 'low';
+        inclusionReason = 'Official domain but page appears unrelated to this tool';
+      } else if (path.includes('/pricing') || path.includes('/plans') || path.includes('/docs') || path.includes('/help') || path.includes('/developers') || path.includes('/api')) {
+        quality = 'high';
+        inclusionReason = 'Official product documentation or pricing page';
+      } else {
+        quality = hasToolSignal ? 'high' : 'medium';
+        inclusionReason = hasToolSignal
+          ? 'Official source with tool-specific signal'
+          : 'Official source with weak tool-specific signal';
+      }
+    } else if (basis === 'Community discussions' || hostname.includes('youtube.com')) {
+      quality = 'low';
+      inclusionReason = 'Community or user-generated source (anecdotal)';
+    } else if (TRUSTED_INDEPENDENT_DOMAINS.has(hostname) || Array.from(TRUSTED_INDEPENDENT_DOMAINS).some((domain) => hostname.endsWith(`.${domain}`))) {
+      quality = 'medium';
+      inclusionReason = 'Independent source from a higher-trust publication';
+    } else {
+      quality = 'low';
+      inclusionReason = 'Low-confidence independent source';
+    }
     return {
       url,
-      title:
-        typeof source?.title === 'string' && source.title.trim().length > 0
-          ? source.title
-          : hostname,
+      title,
       domain: hostname,
       basis,
+      quality,
+      inclusionReason,
+      sourceType,
     };
   })
-  .filter((entry): entry is { url: string; title: string; domain: string; basis: string } => Boolean(entry));
+  .filter((entry): entry is EvidenceLinkEntry => Boolean(entry));
+const evidenceLinks = evidenceLinksAll.filter((entry) => entry.quality !== 'low');
+const lowConfidenceEvidenceLinks = evidenceLinksAll.filter((entry) => entry.quality === 'low');
 const evidenceBasis = [
   'Official docs/help center',
   'Official pricing pages',
@@ -691,6 +726,11 @@ const independentEvidenceLinks = evidenceLinks.filter((entry) => entry.basis ===
 const communityEvidenceLinks = evidenceLinks.filter(
   (entry) => entry.basis === 'Community discussions' || entry.basis === 'GitHub issues'
 );
+const weightedSourceScore = evidenceLinksAll.reduce((acc, entry) => {
+  if (entry.quality === 'high') return acc + 1;
+  if (entry.quality === 'medium') return acc + 0.5;
+  return acc + 0.1;
+}, 0);
 const formatVerifiedDate = (value?: string | null): string | null => {
   if (!value) return null;
   const date = new Date(value);
@@ -769,19 +809,22 @@ const hasOfficialDocOrHelpSource = officialEvidenceLinks.some((entry) =>
 );
 const hasSourcedCoreClaims = canonicalHardLimits.length > 0 || evidenceLinks.length >= 3;
 type EvidenceGrade = 'A' | 'B' | 'C';
-const evidenceGrade: EvidenceGrade =
+const baseEvidenceGrade: EvidenceGrade =
   officialDomains.size >= 2 && hasOfficialPricingSource && hasOfficialDocOrHelpSource && hasSourcedCoreClaims
     ? 'A'
     : (officialDomains.size >= 1 && (canonicalHardLimits.length > 0 || hasOfficialDocOrHelpSource))
       ? 'B'
       : 'C';
-const evidenceGradeDescription =
-  evidenceGrade === 'A'
+let evidenceGrade: EvidenceGrade = baseEvidenceGrade;
+let evidenceGradeDisplay: 'A' | 'A-' | 'B' | 'C' = baseEvidenceGrade;
+let evidenceGradeDescription =
+  baseEvidenceGrade === 'A'
     ? 'Evidence-backed and publish-ready.'
-    : evidenceGrade === 'B'
+    : baseEvidenceGrade === 'B'
       ? 'Usable with some unresolved verification gaps.'
       : 'Evidence is insufficient for a high-confidence recommendation.';
-isVerificationMode = evidenceGrade === 'C';
+let pendingVerificationCount = 0;
+isVerificationMode = baseEvidenceGrade === 'C';
 const officialPricingSource = officialEvidenceLinks.find((entry) => entry.basis === 'Official pricing pages');
 const officialDocsSource = officialEvidenceLinks.find(
   (entry) =>
@@ -935,6 +978,42 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
     })
   )
   .filter((item): item is EvidenceBulletV2 => Boolean(item));
+const resolvedTradeoffCons = tradeoffCons.filter((item) => !item.unverified);
+const hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
+pendingVerificationCount =
+  [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter((item) => item?.unverified).length;
+if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
+  evidenceGrade = 'B';
+  evidenceGradeDisplay = 'A-';
+  evidenceGradeDescription = `Strong verified coverage with ${pendingVerificationCount} pending verification item${pendingVerificationCount === 1 ? '' : 's'}.`;
+}
+isVerificationMode = evidenceGrade === 'C' || pendingVerificationCount > 0;
+const publishedAnalysesLabel =
+  tool.review_count > 0 ? String(tool.review_count) : isVerificationMode ? 'In review' : '0';
+shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
+const toolMeta = generateToolMeta(tool, tool.review_count);
+const meta = {
+  ...toolMeta,
+  description: shouldNoindex ? safeDraftDescription : toolMeta.description,
+  canonical: shouldNoindex ? getCanonicalUrl('/tools') : toolMeta.canonical,
+  noindex: shouldNoindex,
+};
+Astro.response.headers.set('X-Robots-Tag', meta.noindex ? 'noindex,follow' : 'index,follow');
+const schemas = [
+  generateToolSchema(tool, primaryOffer, tool.review_count),
+  generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Tools', url: '/tools' },
+    ...(tool.category
+      ? [{ name: tool.category.name, url: `/categories/${tool.category.slug}` }]
+      : []),
+    { name: tool.name, url: `/tool/${tool.slug}` },
+  ]),
+  ...(tool.video_id
+    ? [generateVideoSchema(tool, tool.video_id, tool.video_title || `${tool.name} Overview`)]
+    : []),
+  ...(faqSchema ? [faqSchema] : []),
+];
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -972,13 +1051,20 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
         {isVerificationMode ? 'Verification Mode' : 'Evidence & Confidence'}
       </h2>
       <p class:list={['mt-1 text-sm', isVerificationMode ? 'text-amber-100/90' : 'text-zinc-300']}>
-        Evidence grade: {evidenceGrade} • {evidenceGradeDescription}
+        Evidence grade: {evidenceGradeDisplay} • {evidenceGradeDescription}
       </p>
       <p class="mt-2 text-xs text-zinc-500">
-        Sources: {evidenceLinks.length} (official: {officialEvidenceLinks.length}, independent:{' '}
-        {independentEvidenceLinks.length}, community: {communityEvidenceLinks.length}) • Last verified{' '}
+        Verified sources: {evidenceLinks.length} (official: {officialEvidenceLinks.length}, independent:{' '}
+        {independentEvidenceLinks.length}, community: {communityEvidenceLinks.length}) • Collected:{' '}
+        {evidenceLinksAll.length} • Weighted confidence score: {weightedSourceScore.toFixed(1)} • Last verified{' '}
         {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
       </p>
+      {pendingVerificationCount > 0 && (
+        <p class="mt-1 text-xs text-amber-300">
+          Pending verification: {pendingVerificationCount} procurement-significant claim
+          {pendingVerificationCount === 1 ? '' : 's'}.
+        </p>
+      )}
     </section>
 
     <!-- Verification Badge -->
@@ -1093,11 +1179,11 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
               }
             </div>
             {evidenceLinks.length > 0 && (
-              <div class="mt-2 text-xs text-zinc-500">
-                Verified sources: {evidenceLinks.length}
-                {totalSourceCount > evidenceLinks.length ? ` • Collected: ${totalSourceCount}` : ''}
+            <div class="mt-2 text-xs text-zinc-500">
+              Verified sources: {evidenceLinks.length}
+                {evidenceLinksAll.length > evidenceLinks.length ? ` • Collected: ${evidenceLinksAll.length}` : ''}
                 {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
-              </div>
+            </div>
             )}
             {
               (tags.functions.length > 0 ||
@@ -1185,11 +1271,10 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
         <div class="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Avoid if</h3>
           <p class="mt-2 text-sm text-zinc-200">
-            {avoidIfBullet?.text || 'Your workflow cannot tolerate unresolved constraints.'}
+            {hasVerifiedAvoidIf
+              ? avoidIfBullet?.text
+              : `No source-backed hard avoid condition found as of ${communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'latest verification'}.`}
           </p>
-          {avoidIfBullet?.unverified && (
-            <p class="mt-2 text-xs text-amber-300">Unverified</p>
-          )}
         </div>
         <div class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-cyan-300">Fastest win</h3>
@@ -1265,7 +1350,7 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
         )}
         <span class="text-xs text-zinc-500">
           Last verified {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'} •{' '}
-          {totalSourceCount} sources
+          {evidenceLinksAll.length} collected sources
         </span>
       </div>
       {topHardLimit && (
@@ -1278,6 +1363,7 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
     <section id="use-cases" class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
       <h2 class="text-lg font-semibold text-zinc-100">What It&apos;s For</h2>
       <p class="mt-1 text-sm text-zinc-400">Non-technical ways people get value from {tool.name}.</p>
+      <p id="prompt-copy-status" class="sr-only" aria-live="polite"></p>
       <div class="mt-4 grid gap-3 md:grid-cols-2">
         {useCasesStrip.map((item) => (
           <article class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
@@ -1500,16 +1586,16 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
                 <div class="rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
                   <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Tradeoffs</h3>
                   <ul class="mt-2 space-y-1 text-sm text-zinc-200">
-                    {(tradeoffCons.length > 0
-                      ? tradeoffCons
+                    {(resolvedTradeoffCons.length > 0
+                      ? resolvedTradeoffCons
                       : [
                           {
-                            text: 'We did not find enough official evidence to clear all constraints.',
+                            text: `No source-backed tradeoff was extracted for this section as of ${communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'latest verification'}. Review hard limits before commitment.`,
                             sources: [],
-                            confidence: 'low',
+                            confidence: 'medium',
                             kind: 'tradeoff',
-                            requiredSourcing: true,
-                            unverified: true,
+                            requiredSourcing: false,
+                            unverified: false,
                           } satisfies EvidenceBulletV2,
                         ]).map((item) => (
                       <li>
@@ -1527,7 +1613,6 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
                             Source
                           </a>
                         )}
-                        {item.unverified && <span class="ml-2 text-xs text-amber-300">Unverified</span>}
                       </li>
                     ))}
                   </ul>
@@ -2055,7 +2140,7 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
             <div class="flex justify-between">
               <dt class="text-sm text-zinc-400">Published Analyses</dt>
               <dd class="text-sm font-medium text-zinc-100">
-                {tool.review_count < 3 ? 'Not enough evidence yet' : tool.review_count}
+                {publishedAnalysesLabel}
               </dd>
             </div>
             {
@@ -2278,15 +2363,37 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
             <ul class="mt-3 space-y-2 text-sm">
               {evidenceLinks.slice(0, 12).map((source) => (
                 <li>
-                  <a href={source.url} target="_blank" rel="noopener" class="text-zinc-300 hover:text-hunt-500">
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener"
+                    data-outbound="source"
+                    data-location="methodology-sources"
+                    data-tool={tool.slug}
+                    class="text-zinc-300 hover:text-hunt-500"
+                  >
                     {source.title}
                   </a>
                   <span class="ml-2 text-xs text-zinc-500">
-                    {source.domain} · {source.basis}
+                    {source.domain} · {source.basis} · {source.quality} confidence · {source.inclusionReason}
                   </span>
                 </li>
               ))}
             </ul>
+            {lowConfidenceEvidenceLinks.length > 0 && (
+              <div class="mt-4 rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-amber-300">
+                  Low-confidence secondary sources ({lowConfidenceEvidenceLinks.length})
+                </p>
+                <ul class="mt-2 space-y-1 text-xs text-zinc-400">
+                  {lowConfidenceEvidenceLinks.slice(0, 6).map((source) => (
+                    <li>
+                      {source.domain} · {source.inclusionReason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </details>
         </section>
       )
@@ -2386,11 +2493,15 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
   <div
     id="suggest-edit-modal"
     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="suggest-edit-title"
+    aria-hidden="true"
   >
-    <div class="w-full max-w-md rounded-xl bg-zinc-900 p-6 shadow-xl">
+    <div class="w-full max-w-md rounded-xl bg-zinc-900 p-6 shadow-xl" tabindex="-1" data-modal-panel>
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-zinc-100">Suggest an Edit</h3>
-        <button type="button" data-close-modal class="text-zinc-500 hover:text-zinc-300">
+        <h3 id="suggest-edit-title" class="text-lg font-semibold text-zinc-100">Suggest an Edit</h3>
+        <button type="button" data-close-modal aria-label="Close suggest edit dialog" class="text-zinc-500 hover:text-zinc-300">
           <svg
             class="h-5 w-5"
             fill="none"
@@ -2404,6 +2515,7 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
       </div>
       <form id="suggest-edit-form" class="space-y-4">
         <input type="hidden" name="tool_id" value={tool.id} />
+        <input type="text" name="company_name" tabindex="-1" autocomplete="off" class="hidden" />
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">What needs correcting?</label>
           <select
@@ -2490,10 +2602,18 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
       const location = link.dataset.location || 'unknown';
       const type = link.dataset.outbound || (link.textContent?.trim().toLowerCase() === 'source' ? 'source' : 'vendor');
       const tool = link.dataset.tool || '';
+      const sanitizedHref = (() => {
+        try {
+          const parsed = new URL(href);
+          return `${parsed.origin}${parsed.pathname}`;
+        } catch {
+          return href.split('?')[0];
+        }
+      })();
 
       if (typeof (window as any).plausible === 'function') {
         (window as any).plausible('outbound_click', {
-          props: { type, location, tool, href },
+          props: { type, location, tool, href: sanitizedHref },
         });
       }
     });
@@ -2506,7 +2626,7 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
         try {
           const urls = JSON.parse(raw) as string[];
           urls.slice(0, 2).forEach((url) => {
-            if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener');
+            if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener,noreferrer');
           });
         } catch {
           // no-op
@@ -2515,6 +2635,7 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
     });
 
     // Copy use-case prompts
+    const copyStatus = document.getElementById('prompt-copy-status');
     document.querySelectorAll('[data-copy-prompt]').forEach((button) => {
       button.addEventListener('click', async () => {
         const prompt = button.getAttribute('data-copy-prompt');
@@ -2522,8 +2643,11 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
         try {
           await navigator.clipboard.writeText(prompt);
           button.textContent = 'Copied';
+          button.setAttribute('aria-label', 'Prompt copied to clipboard');
+          if (copyStatus) copyStatus.textContent = 'Prompt copied to clipboard';
           setTimeout(() => {
             button.textContent = 'Try this prompt';
+            button.setAttribute('aria-label', 'Try this prompt');
           }, 1200);
         } catch {
           // no-op
@@ -2533,28 +2657,72 @@ const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canoni
 
     // Suggest Edit Modal
     const modal = document.getElementById('suggest-edit-modal');
+    const modalPanel = modal?.querySelector('[data-modal-panel]') as HTMLElement | null;
     const form = document.getElementById('suggest-edit-form');
     const success = document.getElementById('suggest-edit-success');
+    let lastFocusedElement: HTMLElement | null = null;
+
+    const closeModal = () => {
+      modal?.classList.add('hidden');
+      modal?.classList.remove('flex');
+      modal?.setAttribute('aria-hidden', 'true');
+      lastFocusedElement?.focus();
+    };
+
+    const focusFirstFocusable = () => {
+      if (!modal) return;
+      const firstFocusable = modal.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+    };
+
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !modal || modal.classList.contains('hidden')) return;
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter((el) => !el.hasAttribute('disabled'));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+        closeModal();
+      }
+      trapFocus(event);
+    });
+
     document.querySelectorAll('[data-suggest-edit]').forEach((btn) => {
       btn.addEventListener('click', () => {
+        lastFocusedElement = document.activeElement as HTMLElement | null;
         modal?.classList.remove('hidden');
         modal?.classList.add('flex');
+        modal?.setAttribute('aria-hidden', 'false');
         form?.classList.remove('hidden');
         success?.classList.add('hidden');
+        setTimeout(() => focusFirstFocusable(), 0);
       });
     });
     document.querySelectorAll('[data-close-modal]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        modal?.classList.add('hidden');
-        modal?.classList.remove('flex');
+        closeModal();
       });
     });
     modal?.addEventListener('click', (e) => {
       if (e.target === modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        closeModal();
       }
     });
+    modalPanel?.addEventListener('click', (e) => e.stopPropagation());
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);

@@ -12,7 +12,15 @@ export const prerender = false;
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   try {
     const body = await request.json();
-    const { tool_id, field_name, correction_text, reporter_email } = body;
+    const { tool_id, field_name, correction_text, reporter_email, company_name } = body;
+    const allowedFields = new Set(['pricing', 'pros', 'cons', 'summary', 'score', 'other']);
+
+    if (typeof company_name === 'string' && company_name.trim().length > 0) {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     // Validation
     if (!tool_id || !correction_text) {
@@ -31,6 +39,12 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     if (correction_text.length > 2000) {
       return new Response(JSON.stringify({ error: 'Correction too long (max 2000 characters)' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (field_name && !allowedFields.has(String(field_name))) {
+      return new Response(JSON.stringify({ error: 'Invalid field selection' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -58,7 +72,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     // Insert correction
     const { error } = await admin.from('corrections').insert({
       tool_id,
-      field_name: field_name || 'other',
+      field_name: allowedFields.has(String(field_name)) ? String(field_name) : 'other',
       correction_text: correction_text.trim(),
       reporter_email: reporter_email?.trim() || null,
       ip_hash: ipHash,
