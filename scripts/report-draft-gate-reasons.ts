@@ -8,6 +8,16 @@ dotenv.config();
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
 const RISKY_ABSOLUTE_TERMS =
   /\b(always|never|broken|scam|unreliable|guaranteed|everyone|nobody)\b/i;
+const NEGATIVE_CLAIM_TERMS =
+  /\b(no|not|lacks|lack|cannot|can't|does not|doesn't|won't|avoid|risk|limit|limited|missing|unavailable)\b/i;
+const PRICING_CLAIM_TERMS =
+  /\b(price|pricing|cost|costs|fee|fees|billing|billed|monthly|annual|yearly|enterprise|pro\b|max\b|plan|seat)\b/i;
+const PRICING_NUMERIC_TERMS = /\$|\/\s*(mo|month|yr|year)|\b\d+(?:\.\d+)?\s*(?:usd|dollars?)\b/i;
+const COMPARATOR_TERMS =
+  /\b(vs\.?|versus|compared to|more than|less than|faster than|slower than|better than|worse than|double|doubles|doubling|half|halve)\b/i;
+const OFFICIAL_PRICING_PATH = /\/(pricing|plans?|subscription)/i;
+const OFFICIAL_DOC_PATH = /\/(docs?|help|support|developers?|api|changelog|release|updates|status)/i;
+const CLAIM_SOURCE_FALLBACK_PATH = /\/(pricing|plans?|docs?|help|support|developers?|api|security|trust|legal)/i;
 type PopularityTier = 'popular' | 'standard' | 'below_standard';
 
 const POPULARITY_PROFILES: Record<
@@ -65,11 +75,17 @@ type ReviewRow = {
     name: string;
     slug: string;
     review_count: number | null;
+    pricing_confidence: string | number | null;
     pricing_verified_at: string | null;
     updated_at: string;
     metadata: Record<string, unknown> | null;
     specs: Record<string, unknown> | null;
   } | null;
+};
+
+type ParsedClaim = {
+  text: string;
+  sourceUrl: string | null;
 };
 
 function hasFlag(name: string): boolean {
@@ -106,6 +122,33 @@ function toSources(raw: unknown): SourceRow[] {
 function toStringArray(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter((entry): entry is string => typeof entry === 'string');
+}
+
+function normalizeText(value: string): string {
+  return value
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseClaim(raw: unknown): ParsedClaim | null {
+  if (typeof raw === 'string') {
+    const text = normalizeText(raw);
+    if (!text) return null;
+    return { text, sourceUrl: null };
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  const value = raw as Record<string, unknown>;
+  const text = typeof value.text === 'string' ? normalizeText(value.text) : '';
+  const sourceUrl = typeof value.source_url === 'string' ? value.source_url.trim() : '';
+  if (!text) return null;
+  return { text, sourceUrl: sourceUrl || null };
+}
+
+function toClaimArray(raw: unknown): ParsedClaim[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(parseClaim).filter((entry): entry is ParsedClaim => Boolean(entry));
 }
 
 function getNoindexReasons(specs: Record<string, unknown> | null): string[] {
@@ -147,6 +190,12 @@ function resolvePopularityTier(metadata?: Record<string, unknown> | null): Popul
 function analyzeReview(review: ReviewRow): {
   knownBlockers: string[];
   popularityTier: PopularityTier;
+  evidenceGrade: 'A' | 'B' | 'C';
+  strictMetrics: {
+    requiredSourcingMissingCount: number;
+    riskFlagsCount: number;
+    pricingConfidence: 'high' | 'medium' | 'low' | 'unknown';
+  };
   sourceStats: {
     total: number;
     authoritativeSources: number;
@@ -179,15 +228,38 @@ function analyzeReview(review: ReviewRow): {
   }
 
   const sources = toSources(review.sources);
+  const sourceDomains = new Set<string>();
   const authoritativeDomains = new Set<string>();
   let authoritativeSources = 0;
+  let officialSources = 0;
+  let hasOfficialPricingSource = false;
+  let hasOfficialDocOrHelpSource = false;
   for (const source of sources) {
-    const sourceType = (source.source_type || source.type || '').toLowerCase();
-    if (!AUTHORITATIVE_SOURCE_TYPES.has(sourceType)) continue;
-    authoritativeSources += 1;
     const domain = normalizeDomain(source.domain) || extractDomainFromUrl(source.url);
-    if (domain) authoritativeDomains.add(domain);
+    if (domain) sourceDomains.add(domain);
+    const sourceType = (source.source_type || source.type || '').toLowerCase();
+    const lowerUrl = (source.url || '').toLowerCase();
+    if (AUTHORITATIVE_SOURCE_TYPES.has(sourceType)) {
+      authoritativeSources += 1;
+      officialSources += 1;
+      if (domain) authoritativeDomains.add(domain);
+      if (OFFICIAL_PRICING_PATH.test(lowerUrl)) hasOfficialPricingSource = true;
+      if (OFFICIAL_DOC_PATH.test(lowerUrl)) hasOfficialDocOrHelpSource = true;
+    } else if (CLAIM_SOURCE_FALLBACK_PATH.test(lowerUrl)) {
+      if (OFFICIAL_PRICING_PATH.test(lowerUrl)) hasOfficialPricingSource = true;
+      if (OFFICIAL_DOC_PATH.test(lowerUrl)) hasOfficialDocOrHelpSource = true;
+    }
   }
+  const hasSourcedCoreClaims = sources.length >= 3;
+  const evidenceGrade: 'A' | 'B' | 'C' =
+    authoritativeDomains.size >= 2 &&
+    hasOfficialPricingSource &&
+    hasOfficialDocOrHelpSource &&
+    hasSourcedCoreClaims
+      ? 'A'
+      : authoritativeDomains.size >= 1 && (hasOfficialPricingSource || hasOfficialDocOrHelpSource)
+        ? 'B'
+        : 'C';
 
   const meetsAuthoritativeSourceRule =
     authoritativeSources >= profile.minAuthoritativeSources ||
@@ -222,9 +294,59 @@ function analyzeReview(review: ReviewRow): {
     knownBlockers.push('risky_absolute_claim_low_evidence');
   }
 
+  const consClaims = toClaimArray(review.cons);
+  const requiredSourcingMissingCount = consClaims.filter((claim) => {
+    const required = NEGATIVE_CLAIM_TERMS.test(claim.text) || PRICING_CLAIM_TERMS.test(claim.text);
+    if (!required) return false;
+    return !claim.sourceUrl;
+  }).length;
+
+  let riskFlagsCount = 0;
+  if (RISKY_ABSOLUTE_TERMS.test(summaryText)) riskFlagsCount += 1;
+  if (COMPARATOR_TERMS.test(summaryText) && authoritativeSources < 2) riskFlagsCount += 1;
+  for (const claim of consClaims) {
+    if (RISKY_ABSOLUTE_TERMS.test(claim.text)) riskFlagsCount += 1;
+    if (COMPARATOR_TERMS.test(claim.text) && !claim.sourceUrl) riskFlagsCount += 1;
+  }
+
+  const rawPricingConfidence = review.item?.pricing_confidence;
+  const pricingConfidence: 'high' | 'medium' | 'low' | 'unknown' =
+    typeof rawPricingConfidence === 'string'
+      ? (['high', 'medium', 'low'].includes(rawPricingConfidence.toLowerCase())
+          ? (rawPricingConfidence.toLowerCase() as 'high' | 'medium' | 'low')
+          : 'unknown')
+      : typeof rawPricingConfidence === 'number'
+        ? rawPricingConfidence >= 0.75
+          ? 'high'
+          : rawPricingConfidence >= 0.5
+            ? 'medium'
+            : 'low'
+        : 'unknown';
+  const hasNumericPricingClaims =
+    PRICING_NUMERIC_TERMS.test(summaryText) ||
+    consClaims.some((claim) => PRICING_NUMERIC_TERMS.test(claim.text));
+
+  if (evidenceGrade !== 'A') knownBlockers.push(`strict:evidence_grade_${evidenceGrade.toLowerCase()}`);
+  if (requiredSourcingMissingCount > 0) {
+    knownBlockers.push(`strict:required_sourcing_missing:${requiredSourcingMissingCount}`);
+  }
+  if (riskFlagsCount > 0) knownBlockers.push(`strict:risk_flags:${riskFlagsCount}`);
+  if (
+    !['high', 'medium'].includes(pricingConfidence) &&
+    hasNumericPricingClaims
+  ) {
+    knownBlockers.push('strict:pricing_confidence_low_or_unknown_with_numeric_claims');
+  }
+
   return {
     knownBlockers: Array.from(new Set(knownBlockers)),
     popularityTier,
+    evidenceGrade,
+    strictMetrics: {
+      requiredSourcingMissingCount,
+      riskFlagsCount,
+      pricingConfidence,
+    },
     sourceStats: {
       total: sources.length,
       authoritativeSources,
@@ -271,6 +393,7 @@ async function main() {
         name,
         slug,
         review_count,
+        pricing_confidence,
         pricing_verified_at,
         updated_at,
         metadata,
@@ -319,7 +442,10 @@ async function main() {
       `- ${row.item?.name || row.item_id} (${row.status}) tier=${analysis.popularityTier} score=${row.score ?? 'n/a'} quality=${row.quality || 'n/a'} review_count=${reviewCount}`
     );
     console.log(
-      `  sources=${analysis.sourceStats.total} authoritative_sources=${analysis.sourceStats.authoritativeSources} authoritative_domains=${analysis.sourceStats.authoritativeDomains}`
+      `  sources=${analysis.sourceStats.total} authoritative_sources=${analysis.sourceStats.authoritativeSources} authoritative_domains=${analysis.sourceStats.authoritativeDomains} evidence_grade=${analysis.evidenceGrade}`
+    );
+    console.log(
+      `  strict_metrics: required_sourcing_missing=${analysis.strictMetrics.requiredSourcingMissingCount} risk_flags=${analysis.strictMetrics.riskFlagsCount} pricing_confidence=${analysis.strictMetrics.pricingConfidence}`
     );
     console.log(
       `  blockers=${analysis.knownBlockers.length > 0 ? analysis.knownBlockers.join(', ') : 'none_detected'}`
