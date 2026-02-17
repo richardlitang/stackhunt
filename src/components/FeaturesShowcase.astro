@@ -11,9 +11,10 @@ import CheckIcon from '@/components/icons/Check.astro';
 interface Props {
   features: KnowledgeCard['features'];
   toolName: string;
+  sectionId?: string;
 }
 
-const { features, toolName } = Astro.props;
+const { features, toolName, sectionId } = Astro.props;
 
 // Check if we have any data to display
 const hasData =
@@ -43,6 +44,7 @@ const statusLabels = {
 ---
 
 <section
+  id={sectionId}
   class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
 >
   <h2 class="mb-2 text-lg font-semibold text-zinc-100">Capabilities & Differentiators</h2>

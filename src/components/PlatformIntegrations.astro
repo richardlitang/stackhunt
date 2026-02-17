@@ -12,9 +12,10 @@ interface Props {
   platforms: PlatformAvailability[];
   integrations: KnowledgeCard['integrations'];
   toolName: string;
+  sectionId?: string;
 }
 
-const { platforms, integrations, toolName: _toolName } = Astro.props;
+const { platforms, integrations, toolName: _toolName, sectionId } = Astro.props;
 
 // Check if we have any data to display
 const hasData =
@@ -54,6 +55,7 @@ const directionIcons = {
 ---
 
 <section
+  id={sectionId}
   class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
 >
   <h2 class="mb-4 text-lg font-semibold text-zinc-100">Platform Support & Integrations</h2>

@@ -370,6 +370,13 @@ const filteredFaqItems = (Array.isArray(knowledgeCard?.faqs) ? knowledgeCard.faq
   if (VOLATILE_FAQ_TERMS.test(`${item.question} ${item.answer}`) && item.answer_source_type !== 'official') {
     return false;
   }
+  if (
+    /\b(price|pricing|plan|tier|monthly|annual|enterprise|max plan|models? available|what models?)\b/i.test(
+      `${item.question} ${item.answer}`
+    )
+  ) {
+    return false;
+  }
   return true;
 });
 const knowledgeCardForSeo =
@@ -423,7 +430,7 @@ const meta = {
   canonical: shouldNoindex ? getCanonicalUrl('/tools') : toolMeta.canonical,
   noindex: shouldNoindex,
 };
-Astro.response.headers.set('X-Robots-Tag', meta.noindex ? 'noindex,nofollow' : 'index,follow');
+Astro.response.headers.set('X-Robots-Tag', meta.noindex ? 'noindex,follow' : 'index,follow');
 const schemas = [
   generateToolSchema(tool, primaryOffer, tool.review_count),
   generateBreadcrumbSchema([
@@ -561,11 +568,6 @@ const decisionSnapshotWatchOuts = uniqueDecisionText(
         ? fallbackConsText.slice(0, 2)
         : (firstReview?.cons || []).slice(0, 2)
 ).slice(0, 3);
-const decisionSnapshotQuickChecks = uniqueDecisionText([
-  'Read the verdict before procurement.',
-  'Review hard limits and plan gates before rollout.',
-  'Run the full verification checklist.',
-]).slice(0, 3);
 const implementationSurface =
   knowledgeCard?.setup_complexity?.estimated_setup_time ||
   (tool.learning_curve ? `${tool.learning_curve} learning curve` : null) ||
@@ -723,6 +725,33 @@ const hardLimitBullets = withUniqueText(
   ].slice(0, 6)
 );
 const canonicalHardLimits = withUniqueText([...hardLimitBullets, ...hiddenCostBullets]).slice(0, 6);
+const knownPricingBullets = canonicalHardLimits
+  .filter((item) =>
+    /\$|\/\s*(mo|month|yr|year)|\b(price|pricing|plan|tier|seat|monthly|annual|enterprise|max)\b/i.test(
+      item.text
+    )
+  )
+  .slice(0, 4);
+const decisionSnapshotDifferentiators = uniqueDecisionText([
+  ...(Array.isArray(knowledgeCard?.features?.unique) ? knowledgeCard.features.unique : []),
+  ...(Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core : []),
+]).slice(0, 2);
+const firstWinStep = (() => {
+  const nonDevAction =
+    Array.isArray(setupTracks?.non_dev) && setupTracks.non_dev[0]?.action
+      ? String(setupTracks.non_dev[0].action)
+      : null;
+  const devAction =
+    Array.isArray(setupTracks?.dev) && setupTracks.dev[0]?.action
+      ? String(setupTracks.dev[0].action)
+      : null;
+  const setupAction =
+    Array.isArray(knowledgeCard?.setup_complexity?.steps) &&
+    knowledgeCard.setup_complexity.steps[0]?.action
+      ? String(knowledgeCard.setup_complexity.steps[0].action)
+      : null;
+  return nonDevAction || devAction || setupAction || null;
+})();
 const notIncludedBullets = withUniqueText(
   [...effectiveEvidenceCons, ...hiddenCostBullets]
     .filter((item) =>
@@ -993,50 +1022,63 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold text-zinc-100">Should You Choose {tool.name}?</h2>
-          <p class="mt-1 text-sm text-zinc-300">Fast go/no-go summary with links to the canonical decision sections.</p>
+          <p class="mt-1 text-sm text-zinc-300">Fast go/no-go snapshot for fit, risk, and time-to-value.</p>
         </div>
         <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
           {decisionSnapshotSummary}
         </span>
       </div>
-      <div class="mt-4 grid gap-3 lg:grid-cols-3">
+      <div class="mt-4 grid gap-3 lg:grid-cols-2">
         <div class="rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Decision</h3>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-300">Best for</h3>
           <p class="mt-2 text-sm text-zinc-200">
-            Read the full recommendation in{' '}
-            <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
-              Verdict
-            </a>
-            .
+            {decisionSnapshotBestWhen[0] || 'Teams that need source-backed research output quickly.'}
+          </p>
+          <p class="mt-2 text-xs text-zinc-400">
+            <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">Full verdict →</a>
           </p>
         </div>
         <div class="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Hard limits</h3>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Not for</h3>
           <p class="mt-2 text-sm text-zinc-200">
-            Review canonical constraints in{' '}
-            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-              Hard limits
-            </a>
-            .
+            {decisionSnapshotWatchOuts[0] || 'Teams that cannot tolerate unresolved plan gates or workflow constraints.'}
+          </p>
+          <p class="mt-2 text-xs text-zinc-400">
+            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">Dealbreakers →</a>
           </p>
         </div>
-        <div class="rounded-xl border border-sky-700/40 bg-sky-950/20 p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-sky-300">Verify first</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-200">
-            {(decisionSnapshotQuickChecks.length > 0
-              ? decisionSnapshotQuickChecks
-              : ['Run one production-like workflow and document friction points.']).map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
+        <div class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-cyan-300">First win</h3>
+          <p class="mt-2 text-sm text-zinc-200">
+            {firstWinStep || 'Run one real query and verify source quality before broader rollout.'}
+          </p>
+          {implementationSurface && (
+            <p class="mt-2 text-xs text-zinc-400">Setup time (observed): {implementationSurface}</p>
+          )}
+        </div>
+        <div class="rounded-xl border border-rose-700/40 bg-rose-950/20 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-rose-300">Top dealbreakers</h3>
+          {canonicalHardLimits.length > 0 ? (
+            <ul class="mt-2 space-y-1 text-sm text-zinc-200">
+              {canonicalHardLimits.slice(0, 2).map((item) => (
+                <li>- {item.text}</li>
+              ))}
+            </ul>
+          ) : (
+          <p class="mt-2 text-sm text-zinc-200">
+            No source-backed dealbreakers extracted yet; run the checklist before rollout.
+          </p>
+          )}
           <p class="mt-2 text-xs text-zinc-400">
-            <a href="#verification-checklist" class="text-hunt-500 hover:text-hunt-400">
-              Go to checklist →
-            </a>
+            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">All limits →</a>
           </p>
         </div>
       </div>
-      {implementationSurface && <p class="mt-4 text-xs text-zinc-500">Setup time (observed): {implementationSurface}</p>}
+      {decisionSnapshotDifferentiators.length > 0 && (
+        <p class="mt-4 text-xs text-zinc-500">
+          Differentiators: {decisionSnapshotDifferentiators.join(' • ')}
+        </p>
+      )}
     </section>
 
     {/* Table of Contents */}
@@ -1376,9 +1418,7 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
         {
           (knowledgeCard?.features?.core?.length > 0 ||
             knowledgeCard?.features?.unique?.length > 0) && (
-            <div id="features">
-              <FeaturesShowcase features={knowledgeCard.features} toolName={tool.name} />
-            </div>
+            <FeaturesShowcase features={knowledgeCard.features} toolName={tool.name} sectionId="features" />
           )
         }
 
@@ -1501,9 +1541,31 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
                     />
                   </>
                 ) : (
-                  <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-                    Structured pricing table is unavailable from verified extraction. Review source-backed
-                    hard limits below and verify final plan details in vendor docs before procurement.
+                  <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
+                    <p>
+                      Structured pricing table is unavailable from verified extraction. Known pricing facts are
+                      shown below; verify final plan details in vendor docs before procurement.
+                    </p>
+                    {knownPricingBullets.length > 0 && (
+                      <div>
+                        <h3 class="text-sm font-semibold text-zinc-200">Known pricing (verified)</h3>
+                        <ul class="mt-2 space-y-2 text-sm text-zinc-300">
+                          {knownPricingBullets.map((item) => (
+                            <li>
+                              - {item.text}{' '}
+                              <a
+                                href={item.sourceUrl}
+                                target="_blank"
+                                rel="noopener"
+                                class="text-xs text-zinc-500 hover:text-hunt-500"
+                              >
+                                Source
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
                 <p class="mt-4 text-sm text-zinc-400">
@@ -1640,13 +1702,12 @@ const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasP
         {/* Platform Support & Integrations */}
         {
           (knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
-            <section id="platform-integrations">
-              <PlatformIntegrations
-                platforms={knowledgeCard.platforms || []}
-                integrations={knowledgeCard.integrations}
-                toolName={tool.name}
-              />
-            </section>
+            <PlatformIntegrations
+              platforms={knowledgeCard.platforms || []}
+              integrations={knowledgeCard.integrations}
+              toolName={tool.name}
+              sectionId="platform-integrations"
+            />
           )
         }
 
