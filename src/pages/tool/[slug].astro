@@ -271,6 +271,15 @@ const isLikelyIncompleteClause = (value: string): boolean => {
   );
 };
 type EvidenceBullet = { text: string; sourceUrl: string };
+type EvidenceSource = { url: string; label?: string; retrievedAt?: string };
+type EvidenceBulletV2 = {
+  text: string;
+  sources: EvidenceSource[];
+  confidence?: 'high' | 'medium' | 'low';
+  kind: 'pro' | 'con' | 'tradeoff' | 'limit' | 'claim';
+  requiredSourcing: boolean;
+  unverified?: boolean;
+};
 const toEvidenceBullet = (claim: unknown): EvidenceBullet | null => {
   if (!claim || typeof claim !== 'object') return null;
   const value = claim as Record<string, unknown>;
@@ -293,6 +302,47 @@ const toEvidenceBullet = (claim: unknown): EvidenceBullet | null => {
   if (!text || isLikelyIncompleteClause(text) || !sourceUrl || !isEligibleEvidenceUrl(sourceUrl))
     return null;
   return { text, sourceUrl };
+};
+const buildEvidenceBulletV2 = ({
+  text,
+  kind,
+  sourceUrl,
+  sourceLabel,
+  retrievedAt,
+  requiredSourcing,
+}: {
+  text: string;
+  kind: EvidenceBulletV2['kind'];
+  sourceUrl?: string | null;
+  sourceLabel?: string;
+  retrievedAt?: string;
+  requiredSourcing: boolean;
+}): EvidenceBulletV2 | null => {
+  const cleaned = stripControlChars(text);
+  if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
+  const sources: EvidenceSource[] =
+    sourceUrl && isEligibleEvidenceUrl(sourceUrl)
+      ? [{ url: sourceUrl, label: sourceLabel, retrievedAt }]
+      : [];
+  if (requiredSourcing && sources.length === 0) {
+    const checkedAt = retrievedAt || 'the latest verification date';
+    return {
+      text: `We couldn't confirm this claim in official docs as of ${checkedAt}. Verify with the vendor before procurement.`,
+      sources: [],
+      confidence: 'low',
+      kind,
+      requiredSourcing,
+      unverified: true,
+    };
+  }
+  return {
+    text: cleaned,
+    sources,
+    confidence: sources.length > 0 ? 'high' : 'medium',
+    kind,
+    requiredSourcing,
+    unverified: false,
+  };
 };
 const BLOCKED_EVIDENCE_DOMAINS = new Set([
   'g2.com',
@@ -732,28 +782,65 @@ const evidenceGradeDescription =
       ? 'Usable with some unresolved verification gaps.'
       : 'Evidence is insufficient for a high-confidence recommendation.';
 isVerificationMode = evidenceGrade === 'C';
+const officialPricingSource = officialEvidenceLinks.find((entry) => entry.basis === 'Official pricing pages');
+const officialDocsSource = officialEvidenceLinks.find(
+  (entry) =>
+    entry.basis === 'Official docs/help center' ||
+    entry.basis === 'Official changelogs' ||
+    entry.basis === 'Official status pages'
+);
+const pricingSnapshotBullets = withUniqueText(
+  [...hardLimitFromConstraints, ...effectiveEvidenceCons, ...hiddenCostBullets].filter((item) =>
+    /\$|\/\s*(mo|month|yr|year)|\b(price|pricing|plan|tier|seat|monthly|annual|enterprise|max)\b/i.test(
+      item.text
+    )
+  )
+).slice(0, 5);
 const decisionProofPoints = [
-  officialEvidenceLinks[0]
-    ? {
-        text: `Official documentation coverage confirmed across ${officialDomains.size} source domains.`,
-        sourceUrl: officialEvidenceLinks[0].url,
-      }
-    : null,
-  evidenceLinks[0]
-    ? {
-        text: `${evidenceLinks.length} non-forum sources were reviewed for this page.`,
-        sourceUrl: evidenceLinks[0].url,
-      }
-    : null,
-].filter((item): item is EvidenceBullet => Boolean(item));
+  buildEvidenceBulletV2({
+    text: `Pricing references reviewed from official pages (checked ${pricingVerifiedLabel || 'latest available date'}).`,
+    kind: 'claim',
+    sourceUrl: officialPricingSource?.url,
+    sourceLabel: 'Official pricing',
+    retrievedAt: pricingVerifiedLabel || undefined,
+    requiredSourcing: true,
+  }),
+  buildEvidenceBulletV2({
+    text: `Documentation and product references verified from official docs/help sources (checked ${specsVerifiedLabel || 'latest available date'}).`,
+    kind: 'claim',
+    sourceUrl: officialDocsSource?.url,
+    sourceLabel: 'Official docs',
+    retrievedAt: specsVerifiedLabel || undefined,
+    requiredSourcing: true,
+  }),
+  buildEvidenceBulletV2({
+    text: `Procurement constraints were extracted from source-linked evidence for this page (checked ${communityVerifiedLabel || 'latest available date'}).`,
+    kind: 'limit',
+    sourceUrl: topHardLimit?.sourceUrl || officialPricingSource?.url || officialDocsSource?.url || null,
+    sourceLabel: 'Constraint evidence',
+    retrievedAt: communityVerifiedLabel || undefined,
+    requiredSourcing: true,
+  }),
+].filter((item): item is EvidenceBulletV2 => Boolean(item));
+const avoidIfBullet = buildEvidenceBulletV2({
+  text: decisionSnapshotWatchOuts[0] || 'Your workflow cannot tolerate unresolved constraints.',
+  kind: 'tradeoff',
+  requiredSourcing: true,
+  sourceUrl: topHardLimit?.sourceUrl || null,
+  sourceLabel: topHardLimit ? 'Hard limit source' : undefined,
+  retrievedAt: communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || undefined,
+});
 const decisionSnapshotDifferentiators = uniqueDecisionText([
   ...(Array.isArray(knowledgeCard?.features?.unique) ? knowledgeCard.features.unique : []),
   ...(Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core : []),
 ]).slice(0, 2);
 const firstWinStep = (() => {
+  const devTermRegex = /\b(api key|sdk|cli|token|endpoint|curl|npm|pip)\b/i;
   const nonDevAction =
     Array.isArray(setupTracks?.non_dev) && setupTracks.non_dev[0]?.action
-      ? String(setupTracks.non_dev[0].action)
+      ? String(
+          setupTracks.non_dev.find((step) => !devTermRegex.test(String(step?.action || '')))?.action || ''
+        )
       : null;
   const devAction =
     Array.isArray(setupTracks?.dev) && setupTracks.dev[0]?.action
@@ -762,9 +849,13 @@ const firstWinStep = (() => {
   const setupAction =
     Array.isArray(knowledgeCard?.setup_complexity?.steps) &&
     knowledgeCard.setup_complexity.steps[0]?.action
-      ? String(knowledgeCard.setup_complexity.steps[0].action)
+      ? String(
+          knowledgeCard.setup_complexity.steps.find(
+            (step) => !devTermRegex.test(String(step?.action || ''))
+          )?.action || ''
+        )
       : null;
-  return nonDevAction || devAction || setupAction || null;
+  return nonDevAction || setupAction || devAction || null;
 })();
 const notIncludedBullets = withUniqueText(
   [...effectiveEvidenceCons, ...hiddenCostBullets]
@@ -831,10 +922,19 @@ const tradeoffPros = uniqueDecisionText([
   ...((Array.isArray(globalPros) ? globalPros : []).map(extractClaimText)),
   ...decisionSnapshotDifferentiators,
 ]).slice(0, 2);
-const tradeoffCons = uniqueDecisionText([
-  ...decisionSnapshotWatchOuts,
-  ...canonicalHardLimits.map((item) => item.text),
-]).slice(0, 2);
+const tradeoffCons = uniqueDecisionText([...decisionSnapshotWatchOuts, ...canonicalHardLimits.map((item) => item.text)])
+  .slice(0, 2)
+  .map((text) =>
+    buildEvidenceBulletV2({
+      text,
+      kind: 'tradeoff',
+      requiredSourcing: true,
+      sourceUrl: canonicalHardLimits.find((item) => item.text === text)?.sourceUrl || null,
+      sourceLabel: canonicalHardLimits.find((item) => item.text === text) ? 'Source' : undefined,
+      retrievedAt: communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || undefined,
+    })
+  )
+  .filter((item): item is EvidenceBulletV2 => Boolean(item));
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -900,45 +1000,22 @@ const tradeoffCons = uniqueDecisionText([
         />
       </div>
 
-      {/* Index Readiness Indicator */}
-      {
-        (!gateShouldIndex || indexReadiness.signals.score < 90) && (
-          <div
-            class:list={[
-              'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium',
-              !gateShouldIndex
-                ? 'border-red-500/30 bg-red-500/10 text-red-400'
-                : 'border-amber-500/30 bg-amber-500/10 text-amber-400',
-            ]}
-          >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {!gateShouldIndex ? (
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                />
-              ) : (
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              )}
-            </svg>
-            <span>
-              {!gateShouldIndex ? 'Not indexed' : 'Index readiness'}
-            </span>
-            {!gateShouldIndex && (
-              <span class="text-xs opacity-75">
-                ({gateReasons[0] || 'Quality gate not met'})
-              </span>
-            )}
+      {shouldNoindex && (
+        <div class="group relative inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300">
+          <span>Draft • In review</span>
+          <svg class="h-4 w-4 text-amber-300/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <div class="pointer-events-none absolute left-0 top-full z-10 mt-2 hidden w-72 rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-xs font-normal text-zinc-300 shadow-xl group-hover:block">
+            We&apos;re still validating pricing and integration claims. Some sections may change before final publication.
           </div>
-        )
-      }
+        </div>
+      )}
     </div>
 
     <!-- Hero Section -->
@@ -1108,8 +1185,11 @@ const tradeoffCons = uniqueDecisionText([
         <div class="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Avoid if</h3>
           <p class="mt-2 text-sm text-zinc-200">
-            {decisionSnapshotWatchOuts[0] || 'Your workflow cannot tolerate unresolved constraints.'}
+            {avoidIfBullet?.text || 'Your workflow cannot tolerate unresolved constraints.'}
           </p>
+          {avoidIfBullet?.unverified && (
+            <p class="mt-2 text-xs text-amber-300">Unverified</p>
+          )}
         </div>
         <div class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wide text-cyan-300">Fastest win</h3>
@@ -1128,17 +1208,37 @@ const tradeoffCons = uniqueDecisionText([
             {decisionProofPoints.map((item) => (
               <li>
                 - {item.text}{' '}
-                <a
-                  href={item.sourceUrl}
-                  target="_blank"
-                  rel="noopener"
-                  class="text-xs text-zinc-500 hover:text-hunt-500"
-                >
-                  Source
-                </a>
+                {item.sources[0] && (
+                  <a
+                    href={item.sources[0].url}
+                    target="_blank"
+                    rel="noopener"
+                    data-outbound="source"
+                    data-location="decision-proof"
+                    data-tool={tool.slug}
+                    class="text-xs text-zinc-500 hover:text-hunt-500"
+                  >
+                    Source
+                  </a>
+                )}
+                {item.unverified && <span class="ml-2 text-xs text-amber-300">Unverified</span>}
               </li>
             ))}
           </ul>
+          {decisionProofPoints.filter((item) => item.sources[0]).length >= 2 && (
+            <button
+              type="button"
+              class="mt-3 inline-flex items-center rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+              data-open-key-sources={JSON.stringify(
+                decisionProofPoints
+                  .map((item) => item.sources[0]?.url)
+                  .filter((url): url is string => Boolean(url))
+                  .slice(0, 2)
+              )}
+            >
+              Open 2 key sources
+            </button>
+          )}
         </div>
       )}
       <div class="mt-4 flex flex-wrap items-center gap-3">
@@ -1146,7 +1246,10 @@ const tradeoffCons = uniqueDecisionText([
           <a
             href={tool.website}
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
+            data-outbound="vendor"
+            data-location="decision-hero"
+            data-tool={tool.slug}
             class="inline-flex items-center rounded-lg bg-hunt-600 px-4 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
           >
             Visit {tool.name}
@@ -1399,8 +1502,33 @@ const tradeoffCons = uniqueDecisionText([
                   <ul class="mt-2 space-y-1 text-sm text-zinc-200">
                     {(tradeoffCons.length > 0
                       ? tradeoffCons
-                      : ['We did not find enough official evidence to clear all constraints.']).map((item) => (
-                      <li>- {item}</li>
+                      : [
+                          {
+                            text: 'We did not find enough official evidence to clear all constraints.',
+                            sources: [],
+                            confidence: 'low',
+                            kind: 'tradeoff',
+                            requiredSourcing: true,
+                            unverified: true,
+                          } satisfies EvidenceBulletV2,
+                        ]).map((item) => (
+                      <li>
+                        - {item.text}{' '}
+                        {item.sources[0] && (
+                          <a
+                            href={item.sources[0].url}
+                            target="_blank"
+                            rel="noopener"
+                            data-outbound="source"
+                            data-location="verdict-tradeoffs"
+                            data-tool={tool.slug}
+                            class="text-xs text-zinc-500 hover:text-hunt-500"
+                          >
+                            Source
+                          </a>
+                        )}
+                        {item.unverified && <span class="ml-2 text-xs text-amber-300">Unverified</span>}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -1581,8 +1709,52 @@ const tradeoffCons = uniqueDecisionText([
                 ) : (
                   <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
                     <p>
-                      Structured pricing table is unavailable from verified extraction. Verify final plan
-                      details in vendor docs before procurement.
+                      Structured pricing table is unavailable from verified extraction.
+                    </p>
+                    <h3 class="text-sm font-semibold text-zinc-100">Verified pricing snapshot</h3>
+                    {pricingSnapshotBullets.length > 0 ? (
+                      <ul class="space-y-2 text-sm text-zinc-300">
+                        {pricingSnapshotBullets.map((item) => (
+                          <li>
+                            - {item.text}{' '}
+                            <a
+                              href={item.sourceUrl}
+                              target="_blank"
+                              rel="noopener"
+                              data-outbound="source"
+                              data-location="pricing-snapshot"
+                              data-tool={tool.slug}
+                              class="text-xs text-zinc-500 hover:text-hunt-500"
+                            >
+                              Source
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p class="text-sm text-zinc-400">
+                        Varies by plan and contract terms. Use vendor pricing pages and sales confirmation
+                        before procurement.
+                        {officialPricingSource && (
+                          <>
+                            {' '}
+                            <a
+                              href={officialPricingSource.url}
+                              target="_blank"
+                              rel="noopener"
+                              data-outbound="source"
+                              data-location="pricing-snapshot"
+                              data-tool={tool.slug}
+                              class="text-xs text-zinc-500 hover:text-hunt-500"
+                            >
+                              Source
+                            </a>
+                          </>
+                        )}
+                      </p>
+                    )}
+                    <p class="text-xs text-zinc-500">
+                      Last checked {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}.
                     </p>
                     <p class="text-xs text-zinc-500">
                       Canonical constraints and pricing-related limits are maintained in one place:{' '}
@@ -1617,6 +1789,9 @@ const tradeoffCons = uniqueDecisionText([
                         href={item.sourceUrl}
                         target="_blank"
                         rel="noopener"
+                        data-outbound="source"
+                        data-location="hard-limits"
+                        data-tool={tool.slug}
                         class="text-xs text-zinc-500 hover:text-hunt-500"
                       >
                         Source
@@ -1800,7 +1975,10 @@ const tradeoffCons = uniqueDecisionText([
             <a
               href={tool.website}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
+              data-outbound="vendor"
+              data-location="decision-sidebar"
+              data-tool={tool.slug}
               class="mb-3 inline-flex w-full items-center justify-center rounded-lg bg-hunt-600 px-4 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
             >
               Visit {tool.name}
@@ -1949,7 +2127,10 @@ const tradeoffCons = uniqueDecisionText([
                   <a
                     href={offer.url}
                     target="_blank"
-                    rel={offer.is_affiliate ? 'nofollow sponsored noopener' : 'noopener'}
+                    rel={offer.is_affiliate ? 'nofollow sponsored noopener noreferrer' : 'noopener noreferrer'}
+                    data-outbound="vendor"
+                    data-location="sidebar-offers"
+                    data-tool={tool.slug}
                     class="flex items-center justify-between rounded-lg border border-zinc-800 p-3 transition hover:border-hunt-200 hover:bg-hunt-50"
                   >
                     <span class="text-sm font-medium text-zinc-300">{offer.cta_text}</span>
@@ -2297,6 +2478,42 @@ const tradeoffCons = uniqueDecisionText([
   </div>
 
   <script is:inline>
+    // Outbound click tracking (vendor CTA + source links)
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement | null;
+      const link = target?.closest('a') as HTMLAnchorElement | null;
+      if (!link) return;
+      const href = link.getAttribute('href') || '';
+      const isExternal = /^https?:\/\//i.test(href);
+      if (!isExternal) return;
+
+      const location = link.dataset.location || 'unknown';
+      const type = link.dataset.outbound || (link.textContent?.trim().toLowerCase() === 'source' ? 'source' : 'vendor');
+      const tool = link.dataset.tool || '';
+
+      if (typeof (window as any).plausible === 'function') {
+        (window as any).plausible('outbound_click', {
+          props: { type, location, tool, href },
+        });
+      }
+    });
+
+    // Open key sources from decision panel
+    document.querySelectorAll('[data-open-key-sources]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const raw = button.getAttribute('data-open-key-sources');
+        if (!raw) return;
+        try {
+          const urls = JSON.parse(raw) as string[];
+          urls.slice(0, 2).forEach((url) => {
+            if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener');
+          });
+        } catch {
+          // no-op
+        }
+      });
+    });
+
     // Copy use-case prompts
     document.querySelectorAll('[data-copy-prompt]').forEach((button) => {
       button.addEventListener('click', async () => {

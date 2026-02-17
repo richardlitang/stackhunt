@@ -84,6 +84,21 @@ const displaySetupTypeLabel =
 const showDeveloperPath = hasApi && !hasCliStep;
 const nonDevTrack = Array.isArray(setupTracks?.non_dev) ? setupTracks.non_dev : [];
 const devTrack = Array.isArray(setupTracks?.dev) ? setupTracks.dev : [];
+const devTermRegex = /\b(api key|sdk|cli|token|endpoint|curl|npm|pip|install package)\b/i;
+const filteredNonDevTrack = nonDevTrack.filter((step) => {
+  const surface = `${step.action || ''} ${step.description || ''} ${step.command || ''}`;
+  return !devTermRegex.test(surface);
+});
+const fallbackNonDevTrack =
+  filteredNonDevTrack.length === 0
+    ? [
+        { step: 1, action: 'Open the web app and create an account.' },
+        { step: 2, action: 'Run three real questions and ask one follow-up for each.' },
+        { step: 3, action: 'Open citations and verify at least two sources before sharing.' },
+        { step: 4, action: 'Export or share your result with your team.' },
+      ]
+    : [];
+const effectiveNonDevTrack = filteredNonDevTrack.length > 0 ? filteredNonDevTrack : fallbackNonDevTrack;
 const hasCanonicalTracks = nonDevTrack.length > 0 || devTrack.length > 0;
 const genericAhaPattern =
   /^completing the first successful task in-app\.?$/i;
@@ -287,11 +302,12 @@ const requiresRoles =
     {
       hasCanonicalTracks && (
         <div class="space-y-6">
-          {nonDevTrack.length > 0 && (
+          {effectiveNonDevTrack.length > 0 && (
             <div>
               <h3 class="text-sm font-semibold text-zinc-100 mb-4">Non-Developer Path</h3>
+              <p class="mb-3 text-xs text-zinc-500">No API key or SDK required.</p>
               <ol class="space-y-4">
-                {nonDevTrack.map((step, index) => (
+                {effectiveNonDevTrack.map((step, index) => (
                   <li class="flex gap-4">
                     <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-sm border border-blue-500/30">
                       {index + 1}
