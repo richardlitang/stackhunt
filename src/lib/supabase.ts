@@ -278,6 +278,8 @@ export async function getFeaturedContexts(limit = 8) {
     `
     )
     .eq('is_featured', true)
+    .gt('tool_count', 0)
+    .not('slug', 'is', null)
     .order('tool_count', { ascending: false })
     .limit(limit);
 
@@ -298,6 +300,7 @@ export async function getFeaturedContexts(limit = 8) {
     `
     )
     .gt('tool_count', 0)
+    .not('slug', 'is', null)
     .order('tool_count', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);

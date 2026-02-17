@@ -305,6 +305,9 @@ interface SuggestedComparison {
   reason: 'category' | 'switching';
 }
 
+const isValidCompareSlug = (candidate: string | null | undefined) =>
+  Boolean(candidate) && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(candidate as string);
+
 const suggestions: SuggestedComparison[] = [];
 
 // Prep main tools for comparability check
@@ -322,6 +325,7 @@ const mainToolBInfo = {
 // Add category-based suggestions - only if comparable with one of the main tools
 for (const tool of suggestedComparisons || []) {
   const suggestedItem = (tool as any).item || tool;
+  if (!isValidCompareSlug(suggestedItem?.slug)) continue;
   const suggestedCategory = (suggestedItem as any).item_category_links?.[0]?.category || null;
   const toolInfo = {
     slug: suggestedItem.slug,
@@ -359,7 +363,7 @@ for (const tool of suggestedComparisons || []) {
 
 // Add switching-based suggestions (if we have switching data and need more suggestions)
 if (switchingTools.size > 0 && suggestions.length < 4) {
-  const switchingSlugs = Array.from(switchingTools).slice(0, 4);
+  const switchingSlugs = Array.from(switchingTools).filter(isValidCompareSlug).slice(0, 4);
   const { data: switchingToolsData } = await supabase
     .from('tools')
     .select(
@@ -374,6 +378,7 @@ if (switchingTools.size > 0 && suggestions.length < 4) {
     .in('slug', switchingSlugs);
 
   for (const tool of switchingToolsData || []) {
+    if (!isValidCompareSlug(tool.slug)) continue;
     const switchingCategory = tool.item_category_links?.[0]?.category || null;
     const toolInfo = {
       slug: tool.slug,
@@ -402,6 +407,7 @@ if (switchingTools.size > 0 && suggestions.length < 4) {
 
 // Deduplicate and limit
 const uniqueSuggestions = suggestions
+  .filter((s) => isValidCompareSlug(s.toolA.slug) && isValidCompareSlug(s.toolB.slug))
   .filter(
     (s, i, arr) =>
       // Deduplicate
@@ -487,20 +493,20 @@ const schemas = [
     <!-- Curated Verdict (if available) -->
     {
       curatedVerdict && (
-        <div class="mb-6 rounded-xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-5 text-center shadow-md">
+        <div class="mb-6 rounded-xl border border-hunt-500/40 bg-hunt-500/10 p-5 text-center shadow-sm">
           <div class="flex items-center justify-center gap-2 mb-2">
-            <svg class="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-hunt-400" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fill-rule="evenodd"
                 d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
                 clip-rule="evenodd"
               />
             </svg>
-            <span class="text-sm font-medium text-purple-700">
+            <span class="text-sm font-medium text-hunt-300">
               {isCurated ? 'Expert Verdict' : 'Quick Take'}
             </span>
           </div>
-          <p class="text-lg font-semibold text-slate-800">{curatedVerdict}</p>
+          <p class="text-lg font-semibold text-zinc-100">{curatedVerdict}</p>
         </div>
       )
     }
@@ -776,14 +782,14 @@ const schemas = [
           <h2 class="mb-6 text-xl font-semibold text-zinc-100">When to Choose</h2>
           <div class="grid gap-6 lg:grid-cols-2">
             {chooseAIf.length > 0 && (
-              <div class="rounded-xl border-2 border-green-200 bg-green-50/50 p-5">
-                <h3 class="flex items-center gap-2 font-semibold text-green-800 mb-3">
+              <div class="rounded-xl border border-emerald-500/40 bg-emerald-900/20 p-5">
+                <h3 class="mb-3 flex items-center gap-2 font-semibold text-emerald-300">
                   <Logo domain={toolA.logo_url} name={toolA.name} size="sm" class="rounded-lg" />
                   Choose {toolA.name} if...
                 </h3>
                 <ul class="space-y-2">
                   {chooseAIf.map((reason: string) => (
-                    <li class="flex items-start gap-2 text-sm text-zinc-300">
+                    <li class="flex items-start gap-2 text-sm text-zinc-200">
                       <svg
                         class="h-4 w-4 mt-0.5 text-green-500 shrink-0"
                         fill="currentColor"
@@ -802,14 +808,14 @@ const schemas = [
               </div>
             )}
             {chooseBIf.length > 0 && (
-              <div class="rounded-xl border-2 border-blue-200 bg-blue-50/50 p-5">
-                <h3 class="flex items-center gap-2 font-semibold text-blue-800 mb-3">
+              <div class="rounded-xl border border-sky-500/40 bg-sky-900/20 p-5">
+                <h3 class="mb-3 flex items-center gap-2 font-semibold text-sky-300">
                   <Logo domain={toolB.logo_url} name={toolB.name} size="sm" class="rounded-lg" />
                   Choose {toolB.name} if...
                 </h3>
                 <ul class="space-y-2">
                   {chooseBIf.map((reason: string) => (
-                    <li class="flex items-start gap-2 text-sm text-zinc-300">
+                    <li class="flex items-start gap-2 text-sm text-zinc-200">
                       <svg
                         class="h-4 w-4 mt-0.5 text-blue-500 shrink-0"
                         fill="currentColor"

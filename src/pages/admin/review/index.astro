@@ -50,7 +50,8 @@ let query = admin
     created_at,
     status,
     sources,
-    tool:tools(id, name, slug, logo_url, short_description, pricing_type, category:categories(name, slug)),
+    reviewer_notes,
+    tool:tools(id, name, slug, logo_url, short_description, pricing_type, quality_review_needed, quality_review_reason, category:categories(name, slug)),
     context:contexts(id, title, slug)
   `,
     { count: 'exact' }
@@ -273,11 +274,19 @@ for (let i = 0; i < Math.min(5, totalPages); i++) {
               slug: string;
               logo_url: string | null;
               short_description: string | null;
+              quality_review_needed?: boolean | null;
+              quality_review_reason?: string | null;
             };
             const context = draft.context as { id: string; title: string; slug: string } | null;
 
             const category = (tool as any)?.category as { name: string; slug: string } | null;
             const pricingType = (tool as any)?.pricing_type as string | null;
+            const reviewerNotes = ((draft.reviewer_notes as string) || '').trim();
+            const toolReviewReason = ((tool?.quality_review_reason as string) || '').trim();
+            const humanRequired =
+              reviewerNotes.toUpperCase().includes('HUMAN_REQUIRED') ||
+              Boolean(tool?.quality_review_needed);
+            const humanRequiredReason = reviewerNotes || toolReviewReason;
             const summaryPreview = ((draft.summary_markdown as string) || '').slice(0, 150);
             const sourceCount = Array.isArray(draft.sources) ? draft.sources.length : 0;
             const prosPreview = ((draft.pros as ReviewClaim[]) || [])
@@ -347,6 +356,11 @@ for (let i = 0; i < Math.min(5, totalPages); i++) {
                               {category.name}
                             </span>
                           )}
+                          {humanRequired && (
+                            <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                              Human Required
+                            </span>
+                          )}
                         </div>
                         {context && (
                           <a
@@ -380,6 +394,11 @@ for (let i = 0; i < Math.min(5, totalPages); i++) {
                       <p class="mt-2 text-sm text-slate-600 line-clamp-2">
                         {summaryPreview}
                         {summaryPreview.length >= 150 ? '...' : ''}
+                      </p>
+                    )}
+                    {humanRequiredReason && (
+                      <p class="mt-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 line-clamp-2">
+                        {humanRequiredReason}
                       </p>
                     )}
 

@@ -33,6 +33,25 @@ interface ComparisonRow {
   isDifferent: boolean;
 }
 
+const BRANDFETCH_CLIENT_ID = '1idk7evwtIGYuqraybx';
+
+function resolveLogoSrc(rawLogoUrl?: string | null): string | null {
+  if (!rawLogoUrl) return null;
+
+  const value = rawLogoUrl.trim();
+  if (!value) return null;
+
+  if (/^https?:\/\//i.test(value) || value.startsWith('/')) return value;
+
+  const domain = value
+    .replace(/^www\./i, '')
+    .replace(/^https?:\/\//i, '')
+    .split('/')[0];
+
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) return null;
+  return `https://cdn.brandfetch.io/${domain}?c=${BRANDFETCH_CLIENT_ID}`;
+}
+
 function formatValue(value: string | boolean | null | undefined): string {
   if (value === true) return 'Yes';
   if (value === false) return 'No';
@@ -230,6 +249,8 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
 
   const metaA = toolA.metadata;
   const metaB = toolB.metadata;
+  const toolALogoSrc = resolveLogoSrc(toolA.logo_url);
+  const toolBLogoSrc = resolveLogoSrc(toolB.logo_url);
 
   // Check if we have any metadata to display
   const hasMetadata = metaA || metaB;
@@ -310,10 +331,10 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
               </th>
               <th className="px-6 py-3 text-center text-sm font-semibold text-zinc-300 w-1/3">
                 <div className="flex items-center justify-center gap-2">
-                  {toolA.logo_url && (
+                  {toolALogoSrc && (
                     <div className="h-6 w-6 rounded bg-white flex items-center justify-center overflow-hidden border border-zinc-700/50">
                       <img
-                        src={toolA.logo_url}
+                        src={toolALogoSrc}
                         alt={toolA.name}
                         className="h-full w-full object-contain p-0.5"
                       />
@@ -324,10 +345,10 @@ export default function SmartComparisonTable({ toolA, toolB }: Props) {
               </th>
               <th className="px-6 py-3 text-center text-sm font-semibold text-zinc-300 w-1/3">
                 <div className="flex items-center justify-center gap-2">
-                  {toolB.logo_url && (
+                  {toolBLogoSrc && (
                     <div className="h-6 w-6 rounded bg-white flex items-center justify-center overflow-hidden border border-zinc-700/50">
                       <img
-                        src={toolB.logo_url}
+                        src={toolBLogoSrc}
                         alt={toolB.name}
                         className="h-full w-full object-contain p-0.5"
                       />

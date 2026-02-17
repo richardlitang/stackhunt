@@ -55,6 +55,13 @@ Configured in `vercel.json`.
 
 ---
 
+## Manual Synthesis (Policy-Restricted Tools)
+
+- Use `docs/HUMAN_SYNTHESIS_PLAYBOOK.md` when a tool is marked `HUMAN_REQUIRED`.
+- Primary workspace: `/admin/review` and `/admin/review/[id]`.
+
+---
+
 ## Migrations
 
 - Apply migrations locally:
@@ -82,4 +89,3 @@ If not linked:
 - Queue worker: `scripts/queue-worker.ts`
 - Hunter CLI: `scripts/hunter.ts`
 - Pricing refresh RPC: `enqueue_pricing_refresh` (migration 032)
-
