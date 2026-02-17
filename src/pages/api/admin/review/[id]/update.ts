@@ -95,7 +95,8 @@ function sanitizeClaimEvidence(raw: unknown): StructuredClaim[] {
       const text = typeof claim.text === 'string' ? claim.text.trim() : '';
       if (!text) return null;
       const source_url = typeof claim.source_url === 'string' ? claim.source_url.trim() : undefined;
-      const source_type = typeof claim.source_type === 'string' ? claim.source_type.trim() : undefined;
+      const source_type =
+        typeof claim.source_type === 'string' ? claim.source_type.trim() : undefined;
       return {
         text,
         ...(source_url ? { source_url } : {}),
@@ -197,11 +198,15 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     const { data: itemRow, error: itemFetchError } = await admin
       .from('items')
-      .select('id, metadata, specs, pricing_confidence, pricing_verified_at, short_description, verdict, updated_at')
+      .select(
+        'id, metadata, specs, pricing_confidence, pricing_verified_at, short_description, verdict, updated_at'
+      )
       .eq('id', existingReview.item_id)
       .maybeSingle();
     if (itemFetchError || !itemRow) {
-      return new Response('Failed to load item metadata for publish safety checks', { status: 500 });
+      return new Response('Failed to load item metadata for publish safety checks', {
+        status: 500,
+      });
     }
 
     // Base update
@@ -217,11 +222,14 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     // Handle action
     if (action === 'publish') {
-      const gate = evaluateStrictPublishGate(itemRow as any, {
-        summary_markdown: summaryMarkdown,
-        cons: consWithEvidence,
-        sources: existingReview.sources,
-      } as any);
+      const gate = evaluateStrictPublishGate(
+        itemRow as any,
+        {
+          summary_markdown: summaryMarkdown,
+          cons: consWithEvidence,
+          sources: existingReview.sources,
+        } as any
+      );
       if (!gate.pass) {
         return new Response(
           JSON.stringify({

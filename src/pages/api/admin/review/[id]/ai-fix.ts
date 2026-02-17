@@ -34,16 +34,16 @@ interface AiFixRequest {
 const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
 
 function normalizeText(value: string): string {
-  return value
-    .normalize('NFKC')
-    .replace(CONTROL_CHARS_REGEX, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
 }
 
 function claimText(value: unknown): string {
   if (typeof value === 'string') return normalizeText(value);
-  if (value && typeof value === 'object' && typeof (value as { text?: unknown }).text === 'string') {
+  if (
+    value &&
+    typeof value === 'object' &&
+    typeof (value as { text?: unknown }).text === 'string'
+  ) {
     return normalizeText((value as { text: string }).text);
   }
   return '';
@@ -136,11 +136,15 @@ export const POST: APIRoute = async ({ params, request }) => {
     const currentPros =
       Array.isArray(body.current?.pros) && body.current?.pros.length > 0
         ? body.current?.pros.map(normalizeText).filter(Boolean)
-        : (Array.isArray(reviewRow.pros) ? reviewRow.pros.map(claimText).filter(Boolean) : []);
+        : Array.isArray(reviewRow.pros)
+          ? reviewRow.pros.map(claimText).filter(Boolean)
+          : [];
     const currentCons =
       Array.isArray(body.current?.cons) && body.current?.cons.length > 0
         ? body.current?.cons.map(normalizeText).filter(Boolean)
-        : (Array.isArray(reviewRow.cons) ? reviewRow.cons.map(claimText).filter(Boolean) : []);
+        : Array.isArray(reviewRow.cons)
+          ? reviewRow.cons.map(claimText).filter(Boolean)
+          : [];
 
     let currentFaqs: unknown[] = existingFaqs;
     if (typeof body.current?.faq_json === 'string' && body.current.faq_json.trim()) {
@@ -218,7 +222,9 @@ Output JSON shape:
           : currentSummary,
       pros: toClaimPatches(parsed.pros),
       cons: toClaimPatches(parsed.cons),
-      faq_json: Array.isArray(parsed.faq_json) ? parsed.faq_json.slice(0, 8) : currentFaqs.slice(0, 8),
+      faq_json: Array.isArray(parsed.faq_json)
+        ? parsed.faq_json.slice(0, 8)
+        : currentFaqs.slice(0, 8),
       rationale:
         typeof parsed.rationale === 'string' && parsed.rationale.trim()
           ? parsed.rationale.trim()

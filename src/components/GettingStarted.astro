@@ -98,10 +98,10 @@ const fallbackNonDevTrack =
         { step: 4, action: 'Export or share your result with your team.' },
       ]
     : [];
-const effectiveNonDevTrack = filteredNonDevTrack.length > 0 ? filteredNonDevTrack : fallbackNonDevTrack;
+const effectiveNonDevTrack =
+  filteredNonDevTrack.length > 0 ? filteredNonDevTrack : fallbackNonDevTrack;
 const hasCanonicalTracks = nonDevTrack.length > 0 || devTrack.length > 0;
-const genericAhaPattern =
-  /^completing the first successful task in-app\.?$/i;
+const genericAhaPattern = /^completing the first successful task in-app\.?$/i;
 const hasMeaningfulAhaMoment = Boolean(
   setupComplexity?.aha_moment && !genericAhaPattern.test(setupComplexity.aha_moment.trim())
 );
@@ -131,43 +131,37 @@ const requiresRoles =
           <div class="rounded-lg bg-zinc-800/50 p-4">
             <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Time</div>
             <div class="text-lg font-semibold text-zinc-100">
-              {
-                setupTimeLabels[setupComplexity.estimated_setup_time] ||
-                  setupComplexity.estimated_setup_time
-              }
+              {setupTimeLabels[setupComplexity.estimated_setup_time] ||
+                setupComplexity.estimated_setup_time}
             </div>
           </div>
 
           {/* Setup Type */}
-          {
-            displaySetupTypeLabel && (
-              <div class="rounded-lg bg-zinc-800/50 p-4">
-                <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Type</div>
-                <div class="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-                  <span>{displaySetupTypeLabel.icon}</span>
-                  <span>{displaySetupTypeLabel.label}</span>
-                </div>
+          {displaySetupTypeLabel && (
+            <div class="rounded-lg bg-zinc-800/50 p-4">
+              <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Type</div>
+              <div class="text-lg font-semibold text-zinc-100 flex items-center gap-2">
+                <span>{displaySetupTypeLabel.icon}</span>
+                <span>{displaySetupTypeLabel.label}</span>
               </div>
-            )
-          }
+            </div>
+          )}
 
           {/* Friction Score */}
-          {
-            frictionScore > 0 && (
-              <div class="rounded-lg bg-zinc-800/50 p-4">
-                <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Friction Score</div>
-                <div class="text-lg font-semibold text-zinc-100 mb-2">
-                  {frictionScore}/10 · {frictionLabel}
-                </div>
-                <div class="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
-                  <div
-                    class={`h-full ${frictionColor} transition-all`}
-                    style={`width: ${frictionPercent}%`}
-                  />
-                </div>
+          {frictionScore > 0 && (
+            <div class="rounded-lg bg-zinc-800/50 p-4">
+              <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Friction Score</div>
+              <div class="text-lg font-semibold text-zinc-100 mb-2">
+                {frictionScore}/10 · {frictionLabel}
               </div>
-            )
-          }
+              <div class="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+                <div
+                  class={`h-full ${frictionColor} transition-all`}
+                  style={`width: ${frictionPercent}%`}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )
     }
@@ -314,7 +308,9 @@ const requiresRoles =
                     </div>
                     <div class="flex-1 pt-1">
                       <div class="text-sm text-zinc-100 font-medium">{step.action}</div>
-                      {step.description && <p class="mt-1 text-xs text-zinc-500">{step.description}</p>}
+                      {step.description && (
+                        <p class="mt-1 text-xs text-zinc-500">{step.description}</p>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -340,7 +336,9 @@ const requiresRoles =
                           </code>
                         </div>
                       )}
-                      {step.description && <p class="mt-1 text-xs text-zinc-500">{step.description}</p>}
+                      {step.description && (
+                        <p class="mt-1 text-xs text-zinc-500">{step.description}</p>
+                      )}
                     </div>
                   </li>
                 ))}

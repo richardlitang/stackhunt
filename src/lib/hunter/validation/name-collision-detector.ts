@@ -23,10 +23,14 @@ function normalizeDomain(value?: string): string {
   const raw = value.trim().toLowerCase();
   if (!raw) return '';
   try {
-    const withProtocol = raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
+    const withProtocol =
+      raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
     return new URL(withProtocol).hostname.replace(/^www\./, '');
   } catch {
-    return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+    return raw
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .split('/')[0];
   }
 }
 
@@ -81,8 +85,9 @@ export function detectNameCollision(
     .sort((a, b) => b[1] - a[1]); // Sort by source count
 
   const normalizedExpectedDomain = normalizeDomain(expectedDomain);
-  const expectedLooksLikeToolDomain =
-    normalizedExpectedDomain.replace(/[^a-z0-9]/g, '').includes(compactToolToken);
+  const expectedLooksLikeToolDomain = normalizedExpectedDomain
+    .replace(/[^a-z0-9]/g, '')
+    .includes(compactToolToken);
 
   if (
     normalizedExpectedDomain &&
@@ -133,7 +138,8 @@ export function detectNameCollision(
     const sortedDomains = Array.from(domainCounts.entries())
       .filter(([d]) => !d.includes('reddit') && !d.includes('ycombinator'))
       .sort((a, b) => b[1] - a[1]);
-    primaryDomain = sortedDomains[0]?.[0] || toolDomains[0]?.[0] || normalizedExpectedDomain || 'unknown';
+    primaryDomain =
+      sortedDomains[0]?.[0] || toolDomains[0]?.[0] || normalizedExpectedDomain || 'unknown';
   }
 
   // Final guardrail: if a tool-matching domain exists, don't allow a review site to become primary.
@@ -198,7 +204,9 @@ export function filterConflictingSources(
   conflictingDomains: string[]
 ): Array<{ url: string; title: string; snippet: string; domain: string }> {
   const normalizedPrimary = normalizeDomain(primaryDomain);
-  const normalizedConflicts = conflictingDomains.map((domain) => normalizeDomain(domain)).filter(Boolean);
+  const normalizedConflicts = conflictingDomains
+    .map((domain) => normalizeDomain(domain))
+    .filter(Boolean);
   return sources.filter((source) => {
     const sourceDomain = normalizeDomain(source.domain || source.url);
     if (!sourceDomain) return false;

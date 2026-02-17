@@ -12,8 +12,10 @@ const PRICING_NUMERIC_TERMS = /\$|\/\s*(mo|month|yr|year)|\b\d+(?:\.\d+)?\s*(?:u
 const COMPARATOR_TERMS =
   /\b(vs\.?|versus|compared to|more than|less than|faster than|slower than|better than|worse than|double|doubles|doubling|half|halve)\b/i;
 const OFFICIAL_PRICING_PATH = /\/(pricing|plans?|subscription)/i;
-const OFFICIAL_DOC_PATH = /\/(docs?|help|support|developers?|api|changelog|release|updates|status)/i;
-const CLAIM_SOURCE_FALLBACK_PATH = /\/(pricing|plans?|docs?|help|support|developers?|api|security|trust|legal)/i;
+const OFFICIAL_DOC_PATH =
+  /\/(docs?|help|support|developers?|api|changelog|release|updates|status)/i;
+const CLAIM_SOURCE_FALLBACK_PATH =
+  /\/(pricing|plans?|docs?|help|support|developers?|api|security|trust|legal)/i;
 
 type SourceRow = {
   url?: string;
@@ -31,7 +33,13 @@ const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
 
 type PublishableItemFields = Pick<
   Tool,
-  'id' | 'metadata' | 'specs' | 'pricing_verified_at' | 'short_description' | 'verdict' | 'updated_at'
+  | 'id'
+  | 'metadata'
+  | 'specs'
+  | 'pricing_verified_at'
+  | 'short_description'
+  | 'verdict'
+  | 'updated_at'
 > & {
   pricing_confidence?: string | number | null;
 };
@@ -51,7 +59,10 @@ export interface StrictPublishGateResult {
 
 function normalizeDomain(input?: string): string | null {
   if (!input) return null;
-  const trimmed = input.trim().toLowerCase().replace(/^www\./, '');
+  const trimmed = input
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, '');
   return trimmed || null;
 }
 
@@ -70,11 +81,7 @@ function toSources(raw: unknown): SourceRow[] {
 }
 
 function normalizeText(value: string): string {
-  return value
-    .normalize('NFKC')
-    .replace(CONTROL_CHARS_REGEX, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
 }
 
 function parseClaim(raw: unknown): ParsedClaim | null {
@@ -96,7 +103,9 @@ function toClaimArray(raw: unknown): ParsedClaim[] {
   return raw.map(parseClaim).filter((entry): entry is ParsedClaim => Boolean(entry));
 }
 
-function toPricingConfidence(raw: string | number | null | undefined): 'high' | 'medium' | 'low' | 'unknown' {
+function toPricingConfidence(
+  raw: string | number | null | undefined
+): 'high' | 'medium' | 'low' | 'unknown' {
   if (typeof raw === 'string') {
     const normalized = raw.toLowerCase();
     if (normalized === 'high' || normalized === 'medium' || normalized === 'low') return normalized;

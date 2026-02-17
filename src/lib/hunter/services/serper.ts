@@ -55,7 +55,11 @@ export interface SerperConfig {
   apiKey: string;
   policyProvider?: {
     getPolicyGate: (url: string) => Promise<SourcePolicyGate | null>;
-    recordUnknownDomain: (domain: string, sampleUrl?: string, sampleTitle?: string) => Promise<void>;
+    recordUnknownDomain: (
+      domain: string,
+      sampleUrl?: string,
+      sampleTitle?: string
+    ) => Promise<void>;
   };
 }
 
@@ -735,7 +739,10 @@ export class SerperService {
           acquisition_mode: overrideGate.acquisition_mode,
           llm_ingestion_allowed: overrideGate.llm_ingestion_allowed,
           display_mode: overrideGate.display_mode,
-          reason: source.policy.reason === 'policy_missing' ? 'inferred_official_fallback' : 'target_vendor_override',
+          reason:
+            source.policy.reason === 'policy_missing'
+              ? 'inferred_official_fallback'
+              : 'target_vendor_override',
           policy_version: overrideGate.policy_version || undefined,
         };
       } else if (
@@ -813,7 +820,10 @@ export class SerperService {
     };
   }
 
-  private async getPolicyDecision(url: string, title?: string): Promise<{
+  private async getPolicyDecision(
+    url: string,
+    title?: string
+  ): Promise<{
     gate: SourcePolicyGate | null;
     isDeepScrapeAllowed: boolean;
     blockReason?: string;
@@ -865,11 +875,7 @@ export class SerperService {
       { type: 'pricing_compare', query: `${toolName} pricing annual vs monthly cost` },
     ];
 
-    const pricingExecution = await this.executePlanResilient(
-      queryPlan,
-      withRetry,
-      () => 'qdr:y'
-    );
+    const pricingExecution = await this.executePlanResilient(queryPlan, withRetry, () => 'qdr:y');
     const results = pricingExecution.results;
     if (pricingExecution.failed.length > 0) {
       console.warn(
@@ -937,7 +943,10 @@ export class SerperService {
           acquisition_mode: overrideGate.acquisition_mode,
           llm_ingestion_allowed: overrideGate.llm_ingestion_allowed,
           display_mode: overrideGate.display_mode,
-          reason: source.policy.reason === 'policy_missing' ? 'inferred_official_fallback' : 'target_vendor_override',
+          reason:
+            source.policy.reason === 'policy_missing'
+              ? 'inferred_official_fallback'
+              : 'target_vendor_override',
           policy_version: overrideGate.policy_version || undefined,
         };
       } else if (
@@ -1072,10 +1081,11 @@ function detectToolHostHint(sources: RawSource[], toolName: string): string | nu
   const toolTokens = toolNameLower.split(/\s+/).filter((token) => token.length > 2);
   const candidates = sources
     .map((source) => source.domain.toLowerCase())
-    .filter((domain) =>
-      (domain.includes(toolNameLower) || toolTokens.some((token) => domain.includes(token))) &&
-      !domain.includes('reddit') &&
-      !domain.includes('ycombinator')
+    .filter(
+      (domain) =>
+        (domain.includes(toolNameLower) || toolTokens.some((token) => domain.includes(token))) &&
+        !domain.includes('reddit') &&
+        !domain.includes('ycombinator')
     );
   if (candidates.length === 0) return null;
   const counts = new Map<string, number>();
@@ -1100,7 +1110,9 @@ function inferOfficialFallbackGate(url: string, toolWebsite?: string): SourcePol
 
     const toolHostname = new URL(
       toolWebsite.startsWith('http') ? toolWebsite : `https://${toolWebsite}`
-    ).hostname.replace(/^www\./, '').toLowerCase();
+    ).hostname
+      .replace(/^www\./, '')
+      .toLowerCase();
     if (hostname !== toolHostname && !hostname.endsWith(`.${toolHostname}`)) {
       return null;
     }
@@ -1139,7 +1151,9 @@ function classifyScoutSourceType(url: string, toolWebsite?: string): RawSource['
     if (toolWebsite) {
       const toolHostname = new URL(
         toolWebsite.startsWith('http') ? toolWebsite : `https://${toolWebsite}`
-      ).hostname.replace(/^www\./, '').toLowerCase();
+      ).hostname
+        .replace(/^www\./, '')
+        .toLowerCase();
       if (hostname === toolHostname || hostname.endsWith(`.${toolHostname}`)) {
         return 'official';
       }
@@ -1208,7 +1222,8 @@ function inferIntentTags(url: string, title: string): SourceIntent[] {
   if (/(export|import|csv|migration|portability)/.test(haystack)) intents.push('portability');
   if (/(integrations|api|webhook|zapier|connect)/.test(haystack)) intents.push('integrations');
   if (/(limits|rate|quota|cap|constraint)/.test(haystack)) intents.push('limits');
-  if (/(review|ratings|testimonial|forum|community|reddit|hn)/.test(haystack)) intents.push('reviews');
+  if (/(review|ratings|testimonial|forum|community|reddit|hn)/.test(haystack))
+    intents.push('reviews');
   if (/(alternatives|competitor|vs|compare)/.test(haystack)) intents.push('alternatives');
   return intents.length > 0 ? intents : [];
 }
@@ -1270,11 +1285,8 @@ async function buildCuratedSources(
       canonical_url: canonicalizeUrl(source.url),
       domain: source.domain,
       score: source.score,
-      authority: toolHost && source.domain === toolHost
-        ? 'A'
-        : source.deep_scrape_allowed
-          ? 'B'
-          : 'C',
+      authority:
+        toolHost && source.domain === toolHost ? 'A' : source.deep_scrape_allowed ? 'B' : 'C',
       deep_scrape_allowed: source.deep_scrape_allowed,
       notes: source.reasons.join(', '),
     }));

@@ -215,7 +215,10 @@ export function classifySourceType(
     const pathname = parsed.pathname.toLowerCase();
 
     // Forum/community subdomains and paths are always community, even on first-party domains.
-    if (isLikelyCommunityHost(hostname) || /^\/(community|forum|forums|discuss)(\/|$)/.test(pathname)) {
+    if (
+      isLikelyCommunityHost(hostname) ||
+      /^\/(community|forum|forums|discuss)(\/|$)/.test(pathname)
+    ) {
       return 'community';
     }
 
@@ -355,7 +358,8 @@ export function buildSnippetBucketsFromScout(rawSources: RawSource[]): ScoutSnip
   const tribal: string[] = [];
 
   const companyRegex = /(about|company|press|newsroom|funding|headquarters|careers|team|investor)/i;
-  const budgetRegex = /(hidden cost|billing|overage|implementation|setup fee|min seat|commitment|annual)/i;
+  const budgetRegex =
+    /(hidden cost|billing|overage|implementation|setup fee|min seat|commitment|annual)/i;
 
   for (const source of rawSources) {
     // Hard guardrail: only sources explicitly allowed for ingestion should influence synthesis.

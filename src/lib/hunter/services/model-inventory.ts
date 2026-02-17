@@ -64,7 +64,10 @@ export class ModelInventoryService {
       .map((model) => model.id || '')
       .filter(Boolean)
       .filter((id) => /^(gpt|o\d|codex|chatgpt)/i.test(id))
-      .filter((id) => !/(embedding|tts|transcribe|realtime|moderation|whisper|image|omni-moderation)/i.test(id));
+      .filter(
+        (id) =>
+          !/(embedding|tts|transcribe|realtime|moderation|whisper|image|omni-moderation)/i.test(id)
+      );
 
     return normalizeAndRank(ids);
   }
@@ -98,7 +101,9 @@ export class ModelInventoryService {
       /\b(gpt-[a-z0-9.-]+)\b/gi,
       /\b(o[0-9][a-z0-9.-]*)\b/gi,
       /\b(codex(?:-[a-z0-9.-]+)?)\b/gi,
-    ]).filter((id) => !/(embedding|tts|transcribe|moderation|whisper|omni|realtime|image)/i.test(id));
+    ]).filter(
+      (id) => !/(embedding|tts|transcribe|moderation|whisper|omni|realtime|image)/i.test(id)
+    );
 
     return { models: normalizeAndRank(candidates), sources: [source] };
   }
@@ -135,11 +140,15 @@ export class ModelInventoryService {
   }
 }
 
-function detectProvider(toolName: string, websiteUrl: string | undefined, rawSources: RawSource[]): Provider | null {
-  const tokens = [toolName, websiteUrl || '', ...rawSources.slice(0, 25).map((s) => s.domain)].join(' ').toLowerCase();
-  if (
-    /(openai|chatgpt|platform\.openai\.com|openai\.com|chatgpt\.com)/.test(tokens)
-  ) {
+function detectProvider(
+  toolName: string,
+  websiteUrl: string | undefined,
+  rawSources: RawSource[]
+): Provider | null {
+  const tokens = [toolName, websiteUrl || '', ...rawSources.slice(0, 25).map((s) => s.domain)]
+    .join(' ')
+    .toLowerCase();
+  if (/(openai|chatgpt|platform\.openai\.com|openai\.com|chatgpt\.com)/.test(tokens)) {
     return 'openai';
   }
   if (/(anthropic|claude|claude\.ai|anthropic\.com)/.test(tokens)) {
@@ -203,8 +212,9 @@ function prettifyModelId(id: string): string {
     .trim();
 
   label = label
-    .replace(/\b(haiku|sonnet|opus|max|mini|nano|instant|thinking|pro|codex)\b/gi, (m) =>
-      m.charAt(0).toUpperCase() + m.slice(1).toLowerCase()
+    .replace(
+      /\b(haiku|sonnet|opus|max|mini|nano|instant|thinking|pro|codex)\b/gi,
+      (m) => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase()
     )
     .replace(/\bclaude\b/i, 'Claude')
     .replace(/\bgpt\b/i, 'GPT');

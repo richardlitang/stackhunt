@@ -72,7 +72,10 @@ export function guardFaqVolatileFacts<T extends FaqEntry>(
       mentionedModels.length > 0 &&
       normalizedCanonical.length > 0 &&
       mentionedModels.some(
-        (token) => !normalizedCanonical.some((canonical) => canonical.includes(token) || token.includes(canonical))
+        (token) =>
+          !normalizedCanonical.some(
+            (canonical) => canonical.includes(token) || token.includes(canonical)
+          )
       );
 
     if (hasModelConflict) {

@@ -80,7 +80,9 @@ export class GeminiService {
     const firstBrace = cleaned.indexOf('{');
     const lastBrace = cleaned.lastIndexOf('}');
     const extractedObject =
-      firstBrace >= 0 && lastBrace > firstBrace ? cleaned.slice(firstBrace, lastBrace + 1) : cleaned;
+      firstBrace >= 0 && lastBrace > firstBrace
+        ? cleaned.slice(firstBrace, lastBrace + 1)
+        : cleaned;
 
     const firstBracket = cleaned.indexOf('[');
     const lastBracket = cleaned.lastIndexOf(']');
@@ -178,64 +180,79 @@ export class GeminiService {
 
     // Compatibility normalization when SDK-side schema enforcement is unavailable.
     // Keeps extraction resilient while preserving strict validation below.
-    parsed.official_name = typeof parsed.official_name === 'string' ? parsed.official_name : input.toolName;
-    parsed.pricing = typeof parsed.pricing === 'object' && parsed.pricing !== null ? parsed.pricing : {};
+    parsed.official_name =
+      typeof parsed.official_name === 'string' ? parsed.official_name : input.toolName;
+    parsed.pricing =
+      typeof parsed.pricing === 'object' && parsed.pricing !== null ? parsed.pricing : {};
     const allowedPricingModels = new Set(['free', 'freemium', 'paid', 'enterprise', 'open_source']);
-    parsed.pricing.model = allowedPricingModels.has(parsed.pricing.model) ? parsed.pricing.model : 'paid';
-    parsed.pricing.has_free_tier = typeof parsed.pricing.has_free_tier === 'boolean'
-      ? parsed.pricing.has_free_tier
-      : false;
-    parsed.pricing.has_free_trial = typeof parsed.pricing.has_free_trial === 'boolean'
-      ? parsed.pricing.has_free_trial
-      : false;
-    parsed.features = typeof parsed.features === 'object' && parsed.features !== null ? parsed.features : {};
+    parsed.pricing.model = allowedPricingModels.has(parsed.pricing.model)
+      ? parsed.pricing.model
+      : 'paid';
+    parsed.pricing.has_free_tier =
+      typeof parsed.pricing.has_free_tier === 'boolean' ? parsed.pricing.has_free_tier : false;
+    parsed.pricing.has_free_trial =
+      typeof parsed.pricing.has_free_trial === 'boolean' ? parsed.pricing.has_free_trial : false;
+    parsed.features =
+      typeof parsed.features === 'object' && parsed.features !== null ? parsed.features : {};
     parsed.features.core = Array.isArray(parsed.features.core) ? parsed.features.core : [];
     parsed.features.unique = Array.isArray(parsed.features.unique) ? parsed.features.unique : [];
     parsed.platforms = Array.isArray(parsed.platforms) ? parsed.platforms : [];
-    parsed.audience = typeof parsed.audience === 'object' && parsed.audience !== null ? parsed.audience : {};
+    parsed.audience =
+      typeof parsed.audience === 'object' && parsed.audience !== null ? parsed.audience : {};
     parsed.audience.primary = Array.isArray(parsed.audience.primary) ? parsed.audience.primary : [];
-    parsed.audience.secondary = Array.isArray(parsed.audience.secondary) ? parsed.audience.secondary : [];
+    parsed.audience.secondary = Array.isArray(parsed.audience.secondary)
+      ? parsed.audience.secondary
+      : [];
     parsed.audience.use_cases = Array.isArray(parsed.audience.use_cases)
       ? parsed.audience.use_cases
       : [];
     parsed.integrations =
-      typeof parsed.integrations === 'object' && parsed.integrations !== null ? parsed.integrations : {};
+      typeof parsed.integrations === 'object' && parsed.integrations !== null
+        ? parsed.integrations
+        : {};
     parsed.integrations.notable = Array.isArray(parsed.integrations.notable)
-      ? parsed.integrations.notable.map((item: any) => {
-          if (typeof item === 'string') {
-            return { name: item, type: 'native', direction: null };
-          }
-          if (!item || typeof item !== 'object') {
-            return null;
-          }
-          const rawType = typeof item.type === 'string' ? item.type.toLowerCase() : 'native';
-          const normalizedType =
-            rawType === 'native' ||
-            rawType === 'api' ||
-            rawType === 'zapier' ||
-            rawType === 'webhook' ||
-            rawType === 'plugin'
-              ? rawType
-              : rawType === 'certified_partner'
-                ? 'plugin'
-                : 'native';
-          const rawDirection =
-            typeof item.direction === 'string' ? item.direction.toLowerCase() : null;
-          const normalizedDirection =
-            rawDirection === 'import' ||
-            rawDirection === 'export' ||
-            rawDirection === 'bidirectional'
-              ? rawDirection
-              : null;
-          return {
-            name: typeof item.name === 'string' && item.name.trim() ? item.name.trim() : 'Integration',
-            type: normalizedType,
-            direction: normalizedDirection,
-          };
-        }).filter(Boolean)
+      ? parsed.integrations.notable
+          .map((item: any) => {
+            if (typeof item === 'string') {
+              return { name: item, type: 'native', direction: null };
+            }
+            if (!item || typeof item !== 'object') {
+              return null;
+            }
+            const rawType = typeof item.type === 'string' ? item.type.toLowerCase() : 'native';
+            const normalizedType =
+              rawType === 'native' ||
+              rawType === 'api' ||
+              rawType === 'zapier' ||
+              rawType === 'webhook' ||
+              rawType === 'plugin'
+                ? rawType
+                : rawType === 'certified_partner'
+                  ? 'plugin'
+                  : 'native';
+            const rawDirection =
+              typeof item.direction === 'string' ? item.direction.toLowerCase() : null;
+            const normalizedDirection =
+              rawDirection === 'import' ||
+              rawDirection === 'export' ||
+              rawDirection === 'bidirectional'
+                ? rawDirection
+                : null;
+            return {
+              name:
+                typeof item.name === 'string' && item.name.trim()
+                  ? item.name.trim()
+                  : 'Integration',
+              type: normalizedType,
+              direction: normalizedDirection,
+            };
+          })
+          .filter(Boolean)
       : [];
     parsed.competitive =
-      typeof parsed.competitive === 'object' && parsed.competitive !== null ? parsed.competitive : {};
+      typeof parsed.competitive === 'object' && parsed.competitive !== null
+        ? parsed.competitive
+        : {};
     parsed.competitive.main_alternatives = Array.isArray(parsed.competitive.main_alternatives)
       ? parsed.competitive.main_alternatives
       : [];
@@ -255,7 +272,11 @@ export class GeminiService {
       ? parsed.smp_taxonomy.likely_departments
       : [];
 
-    if (parsed.platforms && !Array.isArray(parsed.platforms) && typeof parsed.platforms === 'object') {
+    if (
+      parsed.platforms &&
+      !Array.isArray(parsed.platforms) &&
+      typeof parsed.platforms === 'object'
+    ) {
       const platformMap: Record<string, string> = {
         web: 'web',
         website: 'web',
@@ -284,7 +305,10 @@ export class GeminiService {
         })
         .filter(Boolean);
     }
-    if (Array.isArray(parsed.platforms) && parsed.platforms.some((p: unknown) => typeof p === 'string')) {
+    if (
+      Array.isArray(parsed.platforms) &&
+      parsed.platforms.some((p: unknown) => typeof p === 'string')
+    ) {
       const platformMap: Record<string, string> = {
         web: 'web',
         website: 'web',
@@ -339,17 +363,18 @@ export class GeminiService {
         typeof parsed.setup_complexity.implementation_partner_needed === 'boolean'
           ? parsed.setup_complexity.implementation_partner_needed
           : false;
-      parsed.setup_complexity.estimated_setup_time = [
-        'minutes',
-        'hours',
-        'days',
-        'weeks',
-      ].includes(parsed.setup_complexity.estimated_setup_time)
+      parsed.setup_complexity.estimated_setup_time = ['minutes', 'hours', 'days', 'weeks'].includes(
+        parsed.setup_complexity.estimated_setup_time
+      )
         ? parsed.setup_complexity.estimated_setup_time
         : 'hours';
-      parsed.setup_complexity.setup_type = ['cli', 'web', 'installer', 'hybrid', 'api_only'].includes(
-        parsed.setup_complexity.setup_type
-      )
+      parsed.setup_complexity.setup_type = [
+        'cli',
+        'web',
+        'installer',
+        'hybrid',
+        'api_only',
+      ].includes(parsed.setup_complexity.setup_type)
         ? parsed.setup_complexity.setup_type
         : 'web';
       parsed.setup_complexity.friction_score =
@@ -438,8 +463,11 @@ export class GeminiService {
               ? cost.description
               : 'Additional cost may apply',
           trigger:
-            typeof cost?.trigger === 'string' && cost.trigger.trim() ? cost.trigger : 'Usage over limit',
-          currency: typeof cost?.currency === 'string' && cost.currency.trim() ? cost.currency : 'USD',
+            typeof cost?.trigger === 'string' && cost.trigger.trim()
+              ? cost.trigger
+              : 'Usage over limit',
+          currency:
+            typeof cost?.currency === 'string' && cost.currency.trim() ? cost.currency : 'USD',
           source_url: normalizedUrl || undefined,
         };
       });
@@ -600,7 +628,9 @@ export class GeminiService {
 
     const toStringArray = (value: unknown): string[] => {
       if (Array.isArray(value)) {
-        return value.filter((entry): entry is string => typeof entry === 'string' && !!entry.trim());
+        return value.filter(
+          (entry): entry is string => typeof entry === 'string' && !!entry.trim()
+        );
       }
       if (typeof value === 'string' && value.trim()) {
         return [value.trim()];
@@ -615,7 +645,7 @@ export class GeminiService {
       const user = rc.user_advocate && typeof rc.user_advocate === 'object' ? rc.user_advocate : {};
 
       rc.human_verdict =
-        typeof rc.human_verdict === 'string' ? rc.human_verdict : rc.human_verdict ?? null;
+        typeof rc.human_verdict === 'string' ? rc.human_verdict : (rc.human_verdict ?? null);
       rc.budget_analyst = {
         ...budget,
         cost_drivers: toStringArray(budget.cost_drivers),
@@ -774,7 +804,9 @@ export class GeminiService {
     // Normalize legacy/snake_case review context payloads to AnalysisSchema shape
     const toStringArray = (value: unknown): string[] => {
       if (Array.isArray(value)) {
-        return value.filter((entry): entry is string => typeof entry === 'string' && !!entry.trim());
+        return value.filter(
+          (entry): entry is string => typeof entry === 'string' && !!entry.trim()
+        );
       }
       if (typeof value === 'string' && value.trim()) {
         return [value.trim()];
@@ -782,16 +814,16 @@ export class GeminiService {
       return [];
     };
 
-    const rawReviewContext = (parsed.reviewContext || parsed.review_context) as Record<string, any> | undefined;
+    const rawReviewContext = (parsed.reviewContext || parsed.review_context) as
+      | Record<string, any>
+      | undefined;
     if (rawReviewContext && typeof rawReviewContext === 'object') {
-      const rawBudget = (rawReviewContext.budgetAnalyst || rawReviewContext.budget_analyst || {}) as Record<
-        string,
-        unknown
-      >;
-      const rawUser = (rawReviewContext.userAdvocate || rawReviewContext.user_advocate || {}) as Record<
-        string,
-        unknown
-      >;
+      const rawBudget = (rawReviewContext.budgetAnalyst ||
+        rawReviewContext.budget_analyst ||
+        {}) as Record<string, unknown>;
+      const rawUser = (rawReviewContext.userAdvocate ||
+        rawReviewContext.user_advocate ||
+        {}) as Record<string, unknown>;
 
       parsed.reviewContext = {
         humanVerdict:

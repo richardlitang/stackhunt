@@ -63,7 +63,10 @@ function getSectionStatus(
   return fallback;
 }
 
-function isFresh(dateValue: string | null | undefined, maxAgeDays = FRESHNESS_WINDOW_DAYS): boolean {
+function isFresh(
+  dateValue: string | null | undefined,
+  maxAgeDays = FRESHNESS_WINDOW_DAYS
+): boolean {
   if (!dateValue) return false;
   const parsed = new Date(dateValue);
   if (Number.isNaN(parsed.getTime())) return false;
@@ -83,7 +86,10 @@ function resolvePopularityTier(metadata?: Record<string, unknown> | null): Popul
   return 'standard';
 }
 
-export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null): IndexReadinessResult {
+export function evaluateIndexReadiness(
+  tool: Tool,
+  firstReview?: Review | null
+): IndexReadinessResult {
   const metadata = (tool.metadata as Record<string, any>) || {};
   const popularityTier = resolvePopularityTier(metadata);
   const isDiscoveryReview = (firstReview as any)?.context_id == null;
@@ -96,8 +102,9 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
       ? knowledgeCard.smp_taxonomy.primary_function.toLowerCase()
       : '';
   const categoryHint = `${tool.category?.slug || ''} ${taxonomyPrimary}`.toLowerCase();
-  const isModelCategory =
-    /\b(ai|automation|model|llm|assistant|developer-tools)\b/.test(categoryHint);
+  const isModelCategory = /\b(ai|automation|model|llm|assistant|developer-tools)\b/.test(
+    categoryHint
+  );
   const isPaymentsOrFinanceCategory =
     /\b(payment|payments|bank|banking|finance|financial|accounting|treasury|billing)\b/.test(
       categoryHint
@@ -105,32 +112,40 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
 
   const hasSummary = Boolean(
     (firstReview?.summary_markdown && firstReview.summary_markdown.trim().length >= 40) ||
-      (typeof tool.verdict === 'string' && tool.verdict.trim().length >= 40) ||
-      (typeof tool.short_description === 'string' && tool.short_description.trim().length >= 80)
+    (typeof tool.verdict === 'string' && tool.verdict.trim().length >= 40) ||
+    (typeof tool.short_description === 'string' && tool.short_description.trim().length >= 80)
   );
   const pricingConflictsCount =
-    Number((canonical?.quality as Record<string, unknown> | undefined)?.pricing_conflicts_count || 0) || 0;
+    Number(
+      (canonical?.quality as Record<string, unknown> | undefined)?.pricing_conflicts_count || 0
+    ) || 0;
   const hasPricingSignalsInCategoryData = Object.keys(categorySpecificData).some((key) =>
     /\b(price|pricing|cost|fee|rate|monthly|overage|transaction)\b/i.test(key)
   );
-  const hasHiddenCosts = Array.isArray((specs.constraints as Record<string, unknown> | undefined)?.hidden_costs)
+  const hasHiddenCosts = Array.isArray(
+    (specs.constraints as Record<string, unknown> | undefined)?.hidden_costs
+  )
     ? ((specs.constraints as Record<string, unknown>).hidden_costs as unknown[]).length > 0
     : false;
   const hasPricing =
     Boolean(
       knowledgeCard?.smp_pricing ||
-        knowledgeCard?.pricing?.tiers?.length > 0 ||
-        hasPricingSignalsInCategoryData ||
-        hasHiddenCosts
+      knowledgeCard?.pricing?.tiers?.length > 0 ||
+      hasPricingSignalsInCategoryData ||
+      hasHiddenCosts
     ) && pricingConflictsCount === 0;
   const hasModels = Boolean(
-    (Array.isArray(canonical.latest_models_comparison) && canonical.latest_models_comparison.length > 0) ||
-      (Array.isArray(categorySpecificData.model_options) && categorySpecificData.model_options.length > 0)
+    (Array.isArray(canonical.latest_models_comparison) &&
+      canonical.latest_models_comparison.length > 0) ||
+    (Array.isArray(categorySpecificData.model_options) &&
+      categorySpecificData.model_options.length > 0)
   );
   const hasSetup = Boolean(
-    (Array.isArray(canonical?.setup_tracks?.non_dev) && canonical.setup_tracks.non_dev.length > 0) ||
-      (Array.isArray(canonical?.setup_tracks?.dev) && canonical.setup_tracks.dev.length > 0) ||
-      (Array.isArray(knowledgeCard?.setup_complexity?.steps) && knowledgeCard.setup_complexity.steps.length > 0)
+    (Array.isArray(canonical?.setup_tracks?.non_dev) &&
+      canonical.setup_tracks.non_dev.length > 0) ||
+    (Array.isArray(canonical?.setup_tracks?.dev) && canonical.setup_tracks.dev.length > 0) ||
+    (Array.isArray(knowledgeCard?.setup_complexity?.steps) &&
+      knowledgeCard.setup_complexity.steps.length > 0)
   );
   const validFaqs = Array.isArray(knowledgeCard?.faqs)
     ? knowledgeCard.faqs.filter((faq: any) => {
@@ -162,7 +177,12 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
       : []
   );
   const sourceEntries = Array.isArray(firstReview?.sources)
-    ? (firstReview!.sources as Array<{ domain?: string; url?: string; source_type?: string; type?: string }>)
+    ? (firstReview!.sources as Array<{
+        domain?: string;
+        url?: string;
+        source_type?: string;
+        type?: string;
+      }>)
     : [];
   let authoritativeSourceCount = 0;
   const authoritativeDomains = new Set<string>();
@@ -195,19 +215,20 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
   const hasSpecs = hasModels || Boolean(categorySpecificData);
   const hasVerdict = Boolean(
     hasSummary ||
-      (typeof tool.verdict === 'string' && tool.verdict.trim().length >= 20) ||
-      (typeof (metadata as Record<string, any>)?.humanVerdict === 'string' &&
-        (metadata as Record<string, any>).humanVerdict.trim().length >= 20)
+    (typeof tool.verdict === 'string' && tool.verdict.trim().length >= 20) ||
+    (typeof (metadata as Record<string, any>)?.humanVerdict === 'string' &&
+      (metadata as Record<string, any>).humanVerdict.trim().length >= 20)
   );
   const hasWhatItIs =
-    hasSummary || Boolean(typeof tool.short_description === 'string' && tool.short_description.trim().length >= 40);
+    hasSummary ||
+    Boolean(
+      typeof tool.short_description === 'string' && tool.short_description.trim().length >= 40
+    );
   const hasBestFit =
     (Array.isArray(firstReview?.pros) && firstReview!.pros.length >= 2) ||
     Boolean((metadata as Record<string, any>)?.audience?.primary_persona);
   const hasDecisionTriggers =
-    hasVerdict ||
-    (Array.isArray(firstReview?.cons) && firstReview!.cons.length > 0) ||
-    hasPricing;
+    hasVerdict || (Array.isArray(firstReview?.cons) && firstReview!.cons.length > 0) || hasPricing;
   const hasImplementationSurface = hasSetup || Boolean(tool.learning_curve);
   const mvupComplete = (() => {
     if (strongDiscoveryEvidence) {
@@ -215,16 +236,12 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
       return hasWhatItIs && (hasDecisionTriggers || hasSpecs) && hasImplementationSurface;
     }
     if (popularityTier === 'popular') {
-      return hasWhatItIs && hasBestFit && (hasDecisionTriggers || hasSpecs) && hasImplementationSurface;
+      return (
+        hasWhatItIs && hasBestFit && (hasDecisionTriggers || hasSpecs) && hasImplementationSurface
+      );
     }
     if (popularityTier === 'below_standard') {
-      return (
-        hasWhatItIs &&
-        hasBestFit &&
-        hasDecisionTriggers &&
-        hasImplementationSurface &&
-        hasFaq
-      );
+      return hasWhatItIs && hasBestFit && hasDecisionTriggers && hasImplementationSurface && hasFaq;
     }
     return hasWhatItIs && hasBestFit && hasDecisionTriggers && hasImplementationSurface;
   })();
@@ -276,7 +293,8 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
   const conflictsCount =
     Number(canonical?.quality?.conflicts_count) > 0 ? Number(canonical.quality.conflicts_count) : 0;
   const riskyClaimText = `${firstReview?.summary_markdown || ''} ${(metadata as Record<string, any>)?.humanVerdict || ''}`;
-  const hasRiskyClaims = RISKY_ABSOLUTE_CLAIMS.test(riskyClaimText) && eligibleCommunityDomains.length < 2;
+  const hasRiskyClaims =
+    RISKY_ABSOLUTE_CLAIMS.test(riskyClaimText) && eligibleCommunityDomains.length < 2;
 
   let score = 0;
   if (requiredSectionsComplete) score += 55;
@@ -290,7 +308,8 @@ export function evaluateIndexReadiness(tool: Tool, firstReview?: Review | null):
   if (!mvupComplete) reasons.push('mvup_incomplete');
   if (!volatilesFresh) reasons.push('volatile_facts_not_fresh');
   if (conflictsCount > 0) reasons.push(`conflicts_detected:${conflictsCount}`);
-  if (pricingConflictsCount > 0) reasons.push(`pricing_conflicts_detected:${pricingConflictsCount}`);
+  if (pricingConflictsCount > 0)
+    reasons.push(`pricing_conflicts_detected:${pricingConflictsCount}`);
   if (hasRiskyClaims) reasons.push('UNSUPPORTED_NEGATIVE_CLAIM');
 
   return {

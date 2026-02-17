@@ -70,7 +70,9 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       if (eligibleIds.length === 0) {
-        return ApiResponse.badRequest('No selected reviews passed the strict safety gate', { blocked });
+        return ApiResponse.badRequest('No selected reviews passed the strict safety gate', {
+          blocked,
+        });
       }
 
       const { data, error } = await admin
@@ -119,9 +121,9 @@ export const POST: APIRoute = async ({ request }) => {
     const eligibleIds: string[] = [];
     const blocked: Array<{ id: string; blockers: string[] }> = [];
     for (const review of reviews || []) {
-      const item = (review as any).item as
-        | { metadata?: { meta?: { data_quality?: string } } }
-        | null;
+      const item = (review as any).item as {
+        metadata?: { meta?: { data_quality?: string } };
+      } | null;
       if (!item) {
         blocked.push({ id: (review as any).id, blockers: ['strict:missing_item_metadata'] });
         continue;

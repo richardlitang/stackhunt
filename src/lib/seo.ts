@@ -122,7 +122,9 @@ export function generateToolSchema(tool: Tool, offer?: AffiliateOffer, reviewCou
   }
 
   // Add software version if available in metadata
-  const companyInfo = (metadata as any)?.company_info as { latest_version?: string; name?: string } | undefined;
+  const companyInfo = (metadata as any)?.company_info as
+    | { latest_version?: string; name?: string }
+    | undefined;
   const version = companyInfo?.latest_version || (metadata as any)?.version;
   if (version && typeof version === 'string') {
     schema.softwareVersion = version;

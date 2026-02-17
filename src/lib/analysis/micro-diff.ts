@@ -135,9 +135,7 @@ function computeFeatureDiff(main: ItemForDiff, alt: ItemForDiff): string | undef
   const mainIntegrations = Array.isArray(mainSpecs?.integrations)
     ? mainSpecs?.integrations.length
     : 0;
-  const altIntegrations = Array.isArray(altSpecs?.integrations)
-    ? altSpecs?.integrations.length
-    : 0;
+  const altIntegrations = Array.isArray(altSpecs?.integrations) ? altSpecs?.integrations.length : 0;
 
   if (altIntegrations > mainIntegrations + 5) {
     return `${alt.name} has ${altIntegrations - mainIntegrations}+ more integrations`;

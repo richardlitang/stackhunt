@@ -34,7 +34,14 @@ export interface BatchSynthesisInput {
         domain: string;
         retrieved_at: string;
         canonical_url: string;
-        source_type: 'official' | 'docs' | 'support' | 'legal' | 'editorial' | 'community' | 'directory';
+        source_type:
+          | 'official'
+          | 'docs'
+          | 'support'
+          | 'legal'
+          | 'editorial'
+          | 'community'
+          | 'directory';
         intent_tags: Array<
           | 'pricing'
           | 'security'
@@ -225,7 +232,7 @@ export class BatchSynthesisService {
     // Cleanup cache
     if (cachedContentName) {
       try {
-      await (this.client as any).cacheManager.delete(cachedContentName);
+        await (this.client as any).cacheManager.delete(cachedContentName);
         console.log(`[Batch] Cache deleted: ${cachedContentName}`);
       } catch (error) {
         console.warn('[Batch] Failed to delete cache (will expire via TTL):', error);

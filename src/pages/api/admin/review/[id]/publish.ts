@@ -49,11 +49,14 @@ export const POST: APIRoute = async ({ params }) => {
       return ApiResponse.internalError('Failed to load review for publish checks');
     }
 
-    const gate = evaluateStrictPublishGate(reviewRow.item as any, {
-      summary_markdown: reviewRow.summary_markdown,
-      cons: reviewRow.cons,
-      sources: reviewRow.sources,
-    } as any);
+    const gate = evaluateStrictPublishGate(
+      reviewRow.item as any,
+      {
+        summary_markdown: reviewRow.summary_markdown,
+        cons: reviewRow.cons,
+        sources: reviewRow.sources,
+      } as any
+    );
 
     if (!gate.pass) {
       return ApiResponse.badRequest('Publish blocked by strict safety gate', {

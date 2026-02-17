@@ -12,7 +12,8 @@ const admin = getAdminClient();
 // Fetch all pending drafts
 const { data: drafts } = await admin
   .from('reviews')
-  .select(`
+  .select(
+    `
     id,
     score,
     summary_markdown,
@@ -24,7 +25,8 @@ const { data: drafts } = await admin
     reviewer_notes,
     tool:tools(id, name, slug, logo_url, short_description, website, pricing_type),
     context:contexts(id, title, slug)
-  `)
+  `
+  )
   .in('status', ['draft', 'review'])
   .order('created_at', { ascending: false });
 
@@ -35,15 +37,23 @@ const draftsJson = JSON.stringify(drafts || []);
 <AdminLayout title="Review Mode">
   <div class="relative">
     <!-- Header Bar -->
-    <div class="sticky top-14 z-30 -mx-4 sm:-mx-6 lg:-mx-8 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
+    <div
+      class="sticky top-14 z-30 -mx-4 sm:-mx-6 lg:-mx-8 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3"
+    >
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
           <a
             href="/admin/review"
             class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
             </svg>
             Exit
           </a>
@@ -55,12 +65,20 @@ const draftsJson = JSON.stringify(drafts || []);
               class="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Previous (k)"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
               </svg>
             </button>
             <span class="text-sm text-slate-600">
-              <span id="current-index">1</span> of <span id="total-count">{drafts?.length || 0}</span>
+              <span id="current-index">1</span> of <span id="total-count"
+                >{drafts?.length || 0}</span
+              >
             </span>
             <button
               type="button"
@@ -68,8 +86,14 @@ const draftsJson = JSON.stringify(drafts || []);
               class="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Next (j)"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
               </svg>
             </button>
           </div>
@@ -86,24 +110,39 @@ const draftsJson = JSON.stringify(drafts || []);
     </div>
 
     <!-- Main Review Area -->
-    {drafts && drafts.length > 0 ? (
-      <div id="review-container" class="py-6">
-        <div id="review-card" class="max-w-4xl mx-auto">
-          {/* Content loaded dynamically */}
+    {
+      drafts && drafts.length > 0 ? (
+        <div id="review-container" class="py-6">
+          <div id="review-card" class="max-w-4xl mx-auto">
+            {/* Content loaded dynamically */}
+          </div>
         </div>
-      </div>
-    ) : (
-      <div class="py-16 text-center">
-        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-slate-900">All caught up!</h3>
-        <p class="mt-2 text-sm text-slate-500">No drafts awaiting review.</p>
-        <a href="/admin/create" class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700">
-          Create new content →
-        </a>
-      </div>
-    )}
+      ) : (
+        <div class="py-16 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-slate-900">All caught up!</h3>
+          <p class="mt-2 text-sm text-slate-500">No drafts awaiting review.</p>
+          <a
+            href="/admin/create"
+            class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700"
+          >
+            Create new content →
+          </a>
+        </div>
+      )
+    }
   </div>
 
   <script is:inline define:vars={{ draftsJson }}>
@@ -113,7 +152,8 @@ const draftsJson = JSON.stringify(drafts || []);
 
     const claimToText = (claim) => {
       if (typeof claim === 'string') return claim.trim();
-      if (claim && typeof claim === 'object' && typeof claim.text === 'string') return claim.text.trim();
+      if (claim && typeof claim === 'object' && typeof claim.text === 'string')
+        return claim.text.trim();
       return '';
     };
 
@@ -155,29 +195,36 @@ const draftsJson = JSON.stringify(drafts || []);
           <div class="border-b border-slate-100 p-6">
             <div class="flex items-start gap-4">
               <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                ${tool.logo_url
-                  ? `<img src="${tool.logo_url}" alt="" class="h-full w-full object-contain p-2" />`
-                  : `<span class="text-2xl font-bold text-slate-300">${tool.name?.charAt(0) || '?'}</span>`
+                ${
+                  tool.logo_url
+                    ? `<img src="${tool.logo_url}" alt="" class="h-full w-full object-contain p-2" />`
+                    : `<span class="text-2xl font-bold text-slate-300">${tool.name?.charAt(0) || '?'}</span>`
                 }
               </div>
               <div class="flex-1">
                 <div class="flex items-center gap-3">
                   <h2 class="text-xl font-bold text-slate-900">${tool.name || 'Unknown Tool'}</h2>
                   <span class="rounded-full px-3 py-1 text-sm font-semibold ${
-                    draft.score >= 70 ? 'bg-green-100 text-green-700' :
-                    draft.score >= 50 ? 'bg-amber-100 text-amber-700' :
-                    'bg-red-100 text-red-700'
+                    draft.score >= 70
+                      ? 'bg-green-100 text-green-700'
+                      : draft.score >= 50
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-red-100 text-red-700'
                   }">
                     ${draft.score}/100
                   </span>
                 </div>
                 ${context ? `<p class="mt-1 text-slate-500">${context.title}</p>` : ''}
                 <div class="mt-2 flex items-center gap-4 text-sm">
-                  ${tool.website ? `
+                  ${
+                    tool.website
+                      ? `
                     <a href="${tool.website}" target="_blank" class="text-hunt-600 hover:text-hunt-700">
                       Visit website →
                     </a>
-                  ` : ''}
+                  `
+                      : ''
+                  }
                   <span class="text-slate-400 capitalize">${tool.pricing_type?.replace('_', ' ') || 'Unknown pricing'}</span>
                 </div>
               </div>
@@ -199,7 +246,9 @@ const draftsJson = JSON.stringify(drafts || []);
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Pros</h3>
                 <ul class="space-y-2">
-                  ${pros.map(pro => `
+                  ${pros
+                    .map(
+                      (pro) => `
                     <li class="flex items-start gap-2 text-sm">
                       <span class="text-green-500 mt-0.5">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -208,13 +257,17 @@ const draftsJson = JSON.stringify(drafts || []);
                       </span>
                       <span class="text-slate-600">${escapeHtml(pro)}</span>
                     </li>
-                  `).join('')}
+                  `
+                    )
+                    .join('')}
                 </ul>
               </div>
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Cons</h3>
                 <ul class="space-y-2">
-                  ${cons.map(con => `
+                  ${cons
+                    .map(
+                      (con) => `
                     <li class="flex items-start gap-2 text-sm">
                       <span class="text-red-500 mt-0.5">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -223,22 +276,32 @@ const draftsJson = JSON.stringify(drafts || []);
                       </span>
                       <span class="text-slate-600">${escapeHtml(con)}</span>
                     </li>
-                  `).join('')}
+                  `
+                    )
+                    .join('')}
                 </ul>
               </div>
             </div>
 
             <!-- Tags -->
-            ${(draft.sentiment_tags || []).length > 0 ? `
+            ${
+              (draft.sentiment_tags || []).length > 0
+                ? `
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Tags</h3>
                 <div class="flex flex-wrap gap-2">
-                  ${draft.sentiment_tags.map(tag => `
+                  ${draft.sentiment_tags
+                    .map(
+                      (tag) => `
                     <span class="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">${tag}</span>
-                  `).join('')}
+                  `
+                    )
+                    .join('')}
                 </div>
               </div>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
 
           <!-- Actions -->
@@ -300,28 +363,24 @@ const draftsJson = JSON.stringify(drafts || []);
     async function handleReject() {
       if (isSubmitting) return;
 
-      window.confirm2(
-        'Reject Review',
-        'Are you sure you want to reject this review?',
-        async () => {
-          isSubmitting = true;
-          const draft = drafts[currentIndex];
+      window.confirm2('Reject Review', 'Are you sure you want to reject this review?', async () => {
+        isSubmitting = true;
+        const draft = drafts[currentIndex];
 
-          try {
-            const res = await fetch(`/api/admin/review/${draft.id}/reject`, { method: 'POST' });
-            if (res.ok) {
-              window.toast?.info('Rejected');
-              removeCurrentAndAdvance();
-            } else {
-              window.toast?.error('Failed to reject');
-            }
-          } catch {
-            window.toast?.error('Network error');
-          } finally {
-            isSubmitting = false;
+        try {
+          const res = await fetch(`/api/admin/review/${draft.id}/reject`, { method: 'POST' });
+          if (res.ok) {
+            window.toast?.info('Rejected');
+            removeCurrentAndAdvance();
+          } else {
+            window.toast?.error('Failed to reject');
           }
+        } catch {
+          window.toast?.error('Network error');
+        } finally {
+          isSubmitting = false;
         }
-      );
+      });
     }
 
     function removeCurrentAndAdvance() {

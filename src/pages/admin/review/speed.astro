@@ -19,7 +19,8 @@ const admin = getAdminClient();
 // Fetch all pending drafts with knowledge_card data
 const { data: drafts } = await admin
   .from('reviews')
-  .select(`
+  .select(
+    `
     id,
     score,
     summary_markdown,
@@ -41,7 +42,8 @@ const { data: drafts } = await admin
       knowledge_card
     ),
     context:contexts(id, title, slug)
-  `)
+  `
+  )
   .in('status', ['draft', 'review'])
   .order('created_at', { ascending: false });
 
@@ -58,15 +60,23 @@ const draftsJson = JSON.stringify(drafts || []);
 <AdminLayout title="Speed Review">
   <div class="relative">
     <!-- Header Bar -->
-    <div class="sticky top-14 z-30 -mx-4 sm:-mx-6 lg:-mx-8 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
+    <div
+      class="sticky top-14 z-30 -mx-4 sm:-mx-6 lg:-mx-8 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3"
+    >
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
           <a
             href="/admin/review"
             class="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
             </svg>
             Exit
           </a>
@@ -80,12 +90,20 @@ const draftsJson = JSON.stringify(drafts || []);
               class="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Previous (K)"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
               </svg>
             </button>
             <span class="text-sm text-slate-600">
-              <span id="current-index">1</span> of <span id="total-count">{drafts?.length || 0}</span>
+              <span id="current-index">1</span> of <span id="total-count"
+                >{drafts?.length || 0}</span
+              >
             </span>
             <button
               type="button"
@@ -93,8 +111,14 @@ const draftsJson = JSON.stringify(drafts || []);
               class="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Next (J)"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
               </svg>
             </button>
           </div>
@@ -102,18 +126,30 @@ const draftsJson = JSON.stringify(drafts || []);
 
         <div class="flex items-center gap-4">
           <!-- Batch Approve Button -->
-          {highConfidenceCount > 0 && (
-            <button
-              type="button"
-              id="batch-approve-btn"
-              class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition"
-            >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Approve All High ({highConfidenceCount})
-            </button>
-          )}
+          {
+            highConfidenceCount > 0 && (
+              <button
+                type="button"
+                id="batch-approve-btn"
+                class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition"
+              >
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Approve All High ({highConfidenceCount})
+              </button>
+            )
+          }
 
           <!-- Keyboard hints -->
           <div class="hidden lg:flex items-center gap-3 text-xs text-slate-400">
@@ -124,7 +160,9 @@ const draftsJson = JSON.stringify(drafts || []);
               <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">D</kbd> reject
             </span>
             <span>
-              <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">J</kbd>/<kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">K</kbd> navigate
+              <kbd class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">J</kbd>/<kbd
+                class="rounded bg-slate-100 px-1.5 py-0.5 font-mono">K</kbd
+              > navigate
             </span>
           </div>
         </div>
@@ -148,23 +186,38 @@ const draftsJson = JSON.stringify(drafts || []);
     </div>
 
     <!-- Main Review Area -->
-    {drafts && drafts.length > 0 ? (
-      <div id="review-container" class="max-w-4xl mx-auto">
-        {/* React component will be mounted here */}
-        <div id="speed-review-root"></div>
-      </div>
-    ) : (
-      <div class="py-16 text-center">
-        <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-slate-900">All caught up!</h3>
-        <p class="mt-2 text-sm text-slate-500">No drafts awaiting review.</p>
-        <a href="/admin/create" class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700">
-          Create new content →
-        </a>
-      </div>
-    )}
+    {
+      drafts && drafts.length > 0 ? (
+        <div id="review-container" class="max-w-4xl mx-auto">
+          {/* React component will be mounted here */}
+          <div id="speed-review-root" />
+        </div>
+      ) : (
+        <div class="py-16 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-green-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-slate-900">All caught up!</h3>
+          <p class="mt-2 text-sm text-slate-500">No drafts awaiting review.</p>
+          <a
+            href="/admin/create"
+            class="mt-4 inline-block text-sm text-hunt-600 hover:text-hunt-700"
+          >
+            Create new content →
+          </a>
+        </div>
+      )
+    }
   </div>
 
   <!-- Speed Review React App -->
@@ -176,7 +229,8 @@ const draftsJson = JSON.stringify(drafts || []);
 
     const claimToText = (claim) => {
       if (typeof claim === 'string') return claim.trim();
-      if (claim && typeof claim === 'object' && typeof claim.text === 'string') return claim.text.trim();
+      if (claim && typeof claim === 'object' && typeof claim.text === 'string')
+        return claim.text.trim();
       return '';
     };
 
@@ -186,11 +240,7 @@ const draftsJson = JSON.stringify(drafts || []);
     const updateClaimAt = (claims, index, newValue) => {
       const nextClaims = Array.isArray(claims) ? [...claims] : [];
       const currentClaim = nextClaims[index];
-      if (
-        currentClaim &&
-        typeof currentClaim === 'object' &&
-        !Array.isArray(currentClaim)
-      ) {
+      if (currentClaim && typeof currentClaim === 'object' && !Array.isArray(currentClaim)) {
         nextClaims[index] = { ...currentClaim, text: newValue };
       } else {
         nextClaims[index] = newValue;
@@ -238,8 +288,18 @@ const draftsJson = JSON.stringify(drafts || []);
 
       // Confidence colors
       const qualityColors = {
-        high: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
-        medium: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500' },
+        high: {
+          bg: 'bg-green-50',
+          border: 'border-green-200',
+          text: 'text-green-700',
+          dot: 'bg-green-500',
+        },
+        medium: {
+          bg: 'bg-amber-50',
+          border: 'border-amber-200',
+          text: 'text-amber-700',
+          dot: 'bg-amber-500',
+        },
         low: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', dot: 'bg-red-500' },
       };
       const colors = qualityColors[dataQuality] || qualityColors.low;
@@ -247,10 +307,12 @@ const draftsJson = JSON.stringify(drafts || []);
       // Build fact rows
       function factRow(label, value, confidence, sourceHint) {
         const c = qualityColors[confidence] || qualityColors.low;
-        const source = sources.find(s =>
-          s.type?.toLowerCase().includes(sourceHint?.toLowerCase() || '') ||
-          s.title?.toLowerCase().includes(label.toLowerCase())
-        ) || sources[0];
+        const source =
+          sources.find(
+            (s) =>
+              s.type?.toLowerCase().includes(sourceHint?.toLowerCase() || '') ||
+              s.title?.toLowerCase().includes(label.toLowerCase())
+          ) || sources[0];
         const sourceLink = source
           ? `<a href="${source.url}" target="_blank" class="ml-1 text-xs text-hunt-500 hover:underline">[Source]</a>`
           : '';
@@ -292,9 +354,10 @@ const draftsJson = JSON.stringify(drafts || []);
           <div class="border-b border-slate-100 p-6">
             <div class="flex items-start gap-4">
               <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                ${tool.logo_url
-                  ? `<img src="${tool.logo_url}" alt="" class="h-full w-full object-contain p-2" />`
-                  : `<span class="text-2xl font-bold text-slate-300">${tool.name?.charAt(0) || '?'}</span>`
+                ${
+                  tool.logo_url
+                    ? `<img src="${tool.logo_url}" alt="" class="h-full w-full object-contain p-2" />`
+                    : `<span class="text-2xl font-bold text-slate-300">${tool.name?.charAt(0) || '?'}</span>`
                 }
               </div>
               <div class="flex-1">
@@ -302,9 +365,11 @@ const draftsJson = JSON.stringify(drafts || []);
                   <h2 class="text-xl font-bold text-slate-900">${tool.name || 'Unknown'}</h2>
                   <span
                     class="rounded-full px-3 py-1 text-sm font-semibold cursor-pointer hover:ring-2 hover:ring-offset-1 ${
-                      draft.score >= 70 ? 'bg-green-100 text-green-700 hover:ring-green-300' :
-                      draft.score >= 50 ? 'bg-amber-100 text-amber-700 hover:ring-amber-300' :
-                      'bg-red-100 text-red-700 hover:ring-red-300'
+                      draft.score >= 70
+                        ? 'bg-green-100 text-green-700 hover:ring-green-300'
+                        : draft.score >= 50
+                          ? 'bg-amber-100 text-amber-700 hover:ring-amber-300'
+                          : 'bg-red-100 text-red-700 hover:ring-red-300'
                     }"
                     contenteditable="true"
                     data-field="score"
@@ -338,46 +403,62 @@ const draftsJson = JSON.stringify(drafts || []);
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Pros</h3>
                 <ul class="space-y-2" id="pros-list">
-                  ${pros.map((pro, i) => `
+                  ${pros
+                    .map(
+                      (pro, i) => `
                     <li class="flex items-start gap-2 text-sm">
                       <span class="text-green-500 mt-0.5">✓</span>
                       <span contenteditable="true" data-field="pro-${i}" data-original="${escapeAttr(pro)}" class="text-slate-600 outline-none focus:bg-slate-50 px-1 -mx-1 rounded">${escapeHtml(pro)}</span>
                     </li>
-                  `).join('')}
+                  `
+                    )
+                    .join('')}
                 </ul>
               </div>
               <div>
                 <h3 class="text-sm font-medium text-slate-700 mb-2">Cons</h3>
                 <ul class="space-y-2" id="cons-list">
-                  ${cons.map((con, i) => `
+                  ${cons
+                    .map(
+                      (con, i) => `
                     <li class="flex items-start gap-2 text-sm">
                       <span class="text-red-500 mt-0.5">✗</span>
                       <span contenteditable="true" data-field="con-${i}" data-original="${escapeAttr(con)}" class="text-slate-600 outline-none focus:bg-slate-50 px-1 -mx-1 rounded">${escapeHtml(con)}</span>
                     </li>
-                  `).join('')}
+                  `
+                    )
+                    .join('')}
                 </ul>
               </div>
             </div>
           </div>
 
           <!-- Sources -->
-          ${sources.length > 0 ? `
+          ${
+            sources.length > 0
+              ? `
             <div class="px-6 pb-4">
               <details class="group">
                 <summary class="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
                   View ${sources.length} source${sources.length > 1 ? 's' : ''}
                 </summary>
                 <ul class="mt-2 space-y-1 text-xs">
-                  ${sources.map(s => `
+                  ${sources
+                    .map(
+                      (s) => `
                     <li>
                       <a href="${s.url}" target="_blank" class="text-hunt-600 hover:underline">${s.title || s.url}</a>
                       ${s.type ? `<span class="ml-2 text-slate-400">(${s.type})</span>` : ''}
                     </li>
-                  `).join('')}
+                  `
+                    )
+                    .join('')}
                 </ul>
               </details>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
 
           <!-- Actions -->
           <div class="border-t border-slate-100 p-6 bg-slate-50">
@@ -411,7 +492,7 @@ const draftsJson = JSON.stringify(drafts || []);
       document.getElementById('reject-btn')?.addEventListener('click', handleReject);
 
       // Handle inline edits on blur
-      root.querySelectorAll('[contenteditable="true"]').forEach(el => {
+      root.querySelectorAll('[contenteditable="true"]').forEach((el) => {
         el.addEventListener('blur', handleInlineEdit);
         el.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
@@ -597,8 +678,8 @@ const draftsJson = JSON.stringify(drafts || []);
       if (isSubmitting) return;
 
       const highConfIds = drafts
-        .filter(d => d.tool?.knowledge_card?.meta?.data_quality === 'high')
-        .map(d => d.id);
+        .filter((d) => d.tool?.knowledge_card?.meta?.data_quality === 'high')
+        .map((d) => d.id);
 
       if (highConfIds.length === 0) {
         window.toast?.info('No high-confidence reviews');
@@ -622,7 +703,7 @@ const draftsJson = JSON.stringify(drafts || []);
               window.toast?.success(`Approved ${data.data?.approved || 0} reviews`);
               // Remove approved from local list
               for (const id of highConfIds) {
-                const idx = drafts.findIndex(d => d.id === id);
+                const idx = drafts.findIndex((d) => d.id === id);
                 if (idx !== -1) drafts.splice(idx, 1);
               }
               if (currentIndex >= drafts.length) currentIndex = Math.max(0, drafts.length - 1);
@@ -651,7 +732,11 @@ const draftsJson = JSON.stringify(drafts || []);
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       // Ignore if typing in an editable field
-      if (e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      if (
+        e.target.isContentEditable ||
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA'
+      ) {
         return;
       }
 

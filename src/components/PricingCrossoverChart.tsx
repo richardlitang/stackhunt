@@ -30,11 +30,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { computeMonthlyCost } from '@/lib/pricing/cost';
-import {
-  formatScalingUnit,
-  getScalingCategory,
-  type ScalingCategory,
-} from '@/lib/pricing/display';
+import { formatScalingUnit, getScalingCategory, type ScalingCategory } from '@/lib/pricing/display';
 
 // Color palette for up to 5 tools (first is main tool, others are alternatives)
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];

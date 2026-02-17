@@ -87,4 +87,3 @@ export function getDefaultPricingMeters(): PricingV2Meter[] {
     category: entry.category,
   }));
 }
-

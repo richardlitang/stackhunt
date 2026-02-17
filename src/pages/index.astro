@@ -102,21 +102,24 @@ const meta = {
             {
               quickContextLinks.length > 0 ? (
                 quickContextLinks.map((ctx) => (
-                  <a href={`/best/${ctx.slug}`} class="text-sm text-zinc-400 hover:text-zinc-100 transition">
+                  <a
+                    href={`/best/${ctx.slug}`}
+                    class="text-sm text-zinc-400 hover:text-zinc-100 transition"
+                  >
                     {ctx.title}
                   </a>
                 ))
               ) : (
                 <>
-                  <a href="/best" class="text-sm text-zinc-400 hover:text-zinc-100 transition"
-                    >Best Lists</a
-                  >
-                  <a href="/compare" class="text-sm text-zinc-400 hover:text-zinc-100 transition"
-                    >Compare Tools</a
-                  >
-                  <a href="/tools" class="text-sm text-zinc-400 hover:text-zinc-100 transition"
-                    >Tool Directory</a
-                  >
+                  <a href="/best" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
+                    Best Lists
+                  </a>
+                  <a href="/compare" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
+                    Compare Tools
+                  </a>
+                  <a href="/tools" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
+                    Tool Directory
+                  </a>
                 </>
               )
             }

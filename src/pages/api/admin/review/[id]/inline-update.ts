@@ -46,9 +46,9 @@ export const PATCH: APIRoute = async ({ params, request }) => {
         return ApiResponse.notFound('Review not found');
       }
 
-      const tool = (Array.isArray((review as any).tool)
-        ? (review as any).tool[0]
-        : (review as any).tool) as { id: string; knowledge_card?: Record<string, unknown> };
+      const tool = (
+        Array.isArray((review as any).tool) ? (review as any).tool[0] : (review as any).tool
+      ) as { id: string; knowledge_card?: Record<string, unknown> };
       const knowledgeCard = tool.knowledge_card || {};
 
       // Parse the nested path (e.g., 'knowledge_card.pricing.starting_price')

@@ -40,7 +40,7 @@ export function computeMonthlyCost(
   const validPlans = pricingData.plans.filter((plan) => {
     if (plan.is_enterprise) return false;
     const basePrice =
-      billingCycle === 'monthly' ? plan.price_monthly ?? null : plan.price_annual ?? null;
+      billingCycle === 'monthly' ? (plan.price_monthly ?? null) : (plan.price_annual ?? null);
     if (basePrice === null || basePrice <= 0) return false;
 
     // For team-based pricing, check max_users

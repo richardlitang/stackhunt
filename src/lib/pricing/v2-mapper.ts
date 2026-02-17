@@ -33,10 +33,12 @@ function mapPlanPricingComponents(
   evidence: PricingV2EvidenceRef[]
 ): PricingV2PriceComponent[] {
   const components: PricingV2PriceComponent[] = [];
-  const hasCadencePrice = cadence === 'monthly' ? plan.price_monthly != null : plan.price_annual != null;
+  const hasCadencePrice =
+    cadence === 'monthly' ? plan.price_monthly != null : plan.price_annual != null;
   if (!hasCadencePrice) return components;
 
-  const planPrice = cadence === 'monthly' ? plan.price_monthly ?? null : plan.price_annual ?? null;
+  const planPrice =
+    cadence === 'monthly' ? (plan.price_monthly ?? null) : (plan.price_annual ?? null);
   const resolvedMeter = resolvePricingMeter(plan.scaling_unit ?? null);
   const meterId =
     pricingData.model === 'ad_spend'
@@ -94,7 +96,11 @@ function mapPlanPricingComponents(
     return components;
   }
 
-  if (pricingData.model === 'tiered' && pricingData.volume_tiers && pricingData.volume_tiers.length > 0) {
+  if (
+    pricingData.model === 'tiered' &&
+    pricingData.volume_tiers &&
+    pricingData.volume_tiers.length > 0
+  ) {
     const tiers: PricingV2Tier[] = pricingData.volume_tiers.map((tier) => ({
       up_to: tier.max_units ?? null,
       unit_price: tier.price_per_unit,

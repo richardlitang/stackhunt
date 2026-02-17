@@ -16,7 +16,9 @@ export async function refreshQualityGateSnapshotForItem(
     .single();
 
   if (itemError || !itemRow) {
-    throw new Error(`Failed to load item for quality snapshot (${itemError?.message || 'missing'})`);
+    throw new Error(
+      `Failed to load item for quality snapshot (${itemError?.message || 'missing'})`
+    );
   }
 
   const reviewQuery = deps
@@ -65,7 +67,10 @@ export async function refreshQualityGateSnapshotForItem(
     },
   };
 
-  const { error: updateError } = await deps.from('items').update({ specs: mergedSpecs }).eq('id', itemId);
+  const { error: updateError } = await deps
+    .from('items')
+    .update({ specs: mergedSpecs })
+    .eq('id', itemId);
   if (updateError) {
     throw new Error(`Failed to persist quality snapshot (${updateError.message})`);
   }

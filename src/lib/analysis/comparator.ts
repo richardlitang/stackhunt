@@ -208,21 +208,29 @@ function comparePrices(
 
   const breakdownA =
     pricingV2A != null
-      ? computeBestPlanPricingV2(pricingV2A, {
-          currency: pricingV2A.currency_default,
-          cadence: 'monthly',
-          seats: 1,
-          meters: { seat: 1 },
-        }, { baseline_mode: 'paid_entry' })
+      ? computeBestPlanPricingV2(
+          pricingV2A,
+          {
+            currency: pricingV2A.currency_default,
+            cadence: 'monthly',
+            seats: 1,
+            meters: { seat: 1 },
+          },
+          { baseline_mode: 'paid_entry' }
+        )
       : null;
   const breakdownB =
     pricingV2B != null
-      ? computeBestPlanPricingV2(pricingV2B, {
-          currency: pricingV2B.currency_default,
-          cadence: 'monthly',
-          seats: 1,
-          meters: { seat: 1 },
-        }, { baseline_mode: 'paid_entry' })
+      ? computeBestPlanPricingV2(
+          pricingV2B,
+          {
+            currency: pricingV2B.currency_default,
+            cadence: 'monthly',
+            seats: 1,
+            meters: { seat: 1 },
+          },
+          { baseline_mode: 'paid_entry' }
+        )
       : null;
 
   const currencyMismatch =
@@ -241,8 +249,10 @@ function comparePrices(
   const freeA = (specsA as ToolSpecs)?.free_tier_limits || null;
   const freeB = (specsB as ToolSpecs)?.free_tier_limits || null;
 
-  const centsA = breakdownA?.total != null ? Math.round(breakdownA.total * 100) : parsePriceToCents(priceA);
-  const centsB = breakdownB?.total != null ? Math.round(breakdownB.total * 100) : parsePriceToCents(priceB);
+  const centsA =
+    breakdownA?.total != null ? Math.round(breakdownA.total * 100) : parsePriceToCents(priceA);
+  const centsB =
+    breakdownB?.total != null ? Math.round(breakdownB.total * 100) : parsePriceToCents(priceB);
 
   let winner: 'a' | 'b' | 'tie' | 'unknown' = 'unknown';
   if (!currencyMismatch && centsA !== null && centsB !== null) {

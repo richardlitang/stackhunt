@@ -16,9 +16,7 @@ export type PricingV2FxPolicy =
       rates: Record<string, number>;
     };
 
-export type PricingV2OneTimePolicy =
-  | { mode: 'exclude' }
-  | { mode: 'amortize'; months: number };
+export type PricingV2OneTimePolicy = { mode: 'exclude' } | { mode: 'amortize'; months: number };
 
 export interface PricingV2Scenario {
   currency: string;
@@ -92,11 +90,20 @@ function getPackageCost(component: PricingV2PriceComponent, quantity: number): n
   const packages = quantity / tier.package_size;
   const mode = component.rounding_mode ?? 'ceil';
   const rounded =
-    mode === 'floor' ? Math.floor(packages) : mode === 'nearest' ? Math.round(packages) : Math.ceil(packages);
+    mode === 'floor'
+      ? Math.floor(packages)
+      : mode === 'nearest'
+        ? Math.round(packages)
+        : Math.ceil(packages);
   return rounded * tier.package_price;
 }
 
-function convertCurrency(amount: number, from: string, to: string, fxPolicy: PricingV2FxPolicy): number {
+function convertCurrency(
+  amount: number,
+  from: string,
+  to: string,
+  fxPolicy: PricingV2FxPolicy
+): number {
   if (from === to) return amount;
   if (fxPolicy.mode === 'same_currency_only') {
     throw new Error(`Currency mismatch: ${from} vs ${to}`);
@@ -161,7 +168,9 @@ export function computePricingV2ForPlan(
 
   const fxPolicy = scenario.fx_policy ?? { mode: 'same_currency_only' as const };
   const oneTimePolicy = scenario.one_time_policy ?? { mode: 'exclude' as const };
-  const selectedBilling = plan.billing_options.find((option) => option.cadence === scenario.cadence);
+  const selectedBilling = plan.billing_options.find(
+    (option) => option.cadence === scenario.cadence
+  );
   if (!selectedBilling) {
     return {
       plan_id: plan.id,
@@ -209,7 +218,12 @@ export function computePricingV2ForPlan(
     }
 
     if (component.currency !== scenario.currency) {
-      componentCost = convertCurrency(componentCost, component.currency, scenario.currency, fxPolicy);
+      componentCost = convertCurrency(
+        componentCost,
+        component.currency,
+        scenario.currency,
+        fxPolicy
+      );
     }
 
     total += componentCost;

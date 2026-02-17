@@ -21,11 +21,7 @@ import VoteWidget from '@/components/VoteWidget';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import RelatedContent from '@/components/RelatedContent.astro';
 import { getContextBySlug, supabase } from '@/lib/supabase';
-import {
-  generateContextMeta,
-  generateListSchema,
-  generateBreadcrumbSchema,
-} from '@/lib/seo';
+import { generateContextMeta, generateListSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
 import { areToolsComparable } from '@/lib/analysis/comparator';
 
@@ -33,7 +29,10 @@ import { areToolsComparable } from '@/lib/analysis/comparator';
 export const prerender = false;
 
 // Cache for 5 minutes
-Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=300, s-maxage=300, stale-while-revalidate=600'
+);
 
 const { slug } = Astro.params;
 
@@ -134,7 +133,9 @@ const schemas = [
   generateBreadcrumbSchema([
     { name: 'Home', url: '/' },
     { name: 'Best Lists', url: '/best' },
-    ...(context.category ? [{ name: context.category.name, url: `/categories/${context.category.slug}` }] : []),
+    ...(context.category
+      ? [{ name: context.category.name, url: `/categories/${context.category.slug}` }]
+      : []),
     { name: context.title, url: `/best/${context.slug}` },
   ]),
 ];
@@ -142,8 +143,8 @@ const schemas = [
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
 // Check if any tools have affiliate links
-const hasAffiliateLinks = sortedReviews.some(
-  (review) => review.item.affiliate_offers?.some((offer) => offer.is_affiliate)
+const hasAffiliateLinks = sortedReviews.some((review) =>
+  review.item.affiliate_offers?.some((offer) => offer.is_affiliate)
 );
 
 function _extractHighlights(specs: Record<string, unknown> | null | undefined, limit = 2) {
@@ -168,14 +169,16 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
       <a href="/" class="hover:text-hunt-500">Home</a>
       <span>/</span>
       <a href="/best" class="hover:text-hunt-500">Best Lists</a>
-      {context.category && (
-        <>
-          <span>/</span>
-          <a href={`/categories/${context.category.slug}`} class="hover:text-hunt-500">
-            {context.category.name}
-          </a>
-        </>
-      )}
+      {
+        context.category && (
+          <>
+            <span>/</span>
+            <a href={`/categories/${context.category.slug}`} class="hover:text-hunt-500">
+              {context.category.name}
+            </a>
+          </>
+        )
+      }
       <span>/</span>
       <span class="text-zinc-300 truncate">{context.title}</span>
     </nav>
@@ -188,17 +191,19 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
             {context.title}
           </h1>
 
-          {context.category && (
-            <div class="mt-2">
-              <a
-                href={`/categories/${context.category.slug}`}
-                class="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-hunt-500"
-              >
-                <span>{context.category.icon || '📁'}</span>
-                {context.category.name}
-              </a>
-            </div>
-          )}
+          {
+            context.category && (
+              <div class="mt-2">
+                <a
+                  href={`/categories/${context.category.slug}`}
+                  class="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-hunt-500"
+                >
+                  <span>{context.category.icon || '📁'}</span>
+                  {context.category.name}
+                </a>
+              </div>
+            )
+          }
         </div>
 
         <div class="shrink-0 text-right">
@@ -207,273 +212,316 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
         </div>
       </div>
 
-      {context.intro_text && (
-        <div
-          class="mt-6 prose prose-slate prose-sm max-w-none rounded-xl border border-zinc-700 bg-zinc-900 p-5"
-          set:html={simpleMarkdown(context.intro_text)}
-        />
-      )}
+      {
+        context.intro_text && (
+          <div
+            class="mt-6 prose prose-slate prose-sm max-w-none rounded-xl border border-zinc-700 bg-zinc-900 p-5"
+            set:html={simpleMarkdown(context.intro_text)}
+          />
+        )
+      }
 
       <!-- If this is an "alternatives to" page, show primary item -->
-      {context.primary_item && (
-        <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <div class="flex items-center gap-3">
-            <span class="text-sm text-amber-700">Looking for alternatives to</span>
-            <a
-              href={`/tool/${context.primary_item.slug}`}
-              class="inline-flex items-center gap-2 font-medium text-amber-800 hover:text-amber-900"
-            >
-              {context.primary_item.logo_url && (
-                <img
-                  src={context.primary_item.logo_url}
-                  alt=""
-                  class="h-5 w-5 rounded"
-                />
-              )}
-              {context.primary_item.name}
-              <span class="text-amber-600">→</span>
-            </a>
+      {
+        context.primary_item && (
+          <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-amber-700">Looking for alternatives to</span>
+              <a
+                href={`/tool/${context.primary_item.slug}`}
+                class="inline-flex items-center gap-2 font-medium text-amber-800 hover:text-amber-900"
+              >
+                {context.primary_item.logo_url && (
+                  <img src={context.primary_item.logo_url} alt="" class="h-5 w-5 rounded" />
+                )}
+                {context.primary_item.name}
+                <span class="text-amber-600">→</span>
+              </a>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </header>
 
     <!-- Ranked Tool List -->
     <section>
       <div class="mb-6 flex items-center justify-between">
         <h2 class="text-xl font-semibold text-zinc-100">
-          {sortedReviews.length === 1 ? 'Our Top Pick' :
-           sortedReviews.length === 2 ? 'Our Top 2 Picks' :
-           `Top ${Math.min(sortedReviews.length, 10)} Picks`}
+          {
+            sortedReviews.length === 1
+              ? 'Our Top Pick'
+              : sortedReviews.length === 2
+                ? 'Our Top 2 Picks'
+                : `Top ${Math.min(sortedReviews.length, 10)} Picks`
+          }
         </h2>
-        <span class="text-sm text-zinc-400">
-          Sorted by contextual score
-        </span>
+        <span class="text-sm text-zinc-400"> Sorted by contextual score </span>
       </div>
 
-      <div class:list={[
-        "space-y-8",
-        sortedReviews.length === 1 && "max-w-2xl mx-auto"
-      ]}>
-        {sortedReviews.map((review, index) => {
-          const rank = index + 1;
-          const scoreColors = getScoreColor(review.score || 0);
+      <div class:list={['space-y-8', sortedReviews.length === 1 && 'max-w-2xl mx-auto']}>
+        {
+          sortedReviews.map((review, index) => {
+            const rank = index + 1;
+            const scoreColors = getScoreColor(review.score || 0);
 
-          return (
-            <article
-              class="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-zinc-600"
-              id={`tool-${rank}`}
-            >
-              {/* Rank Header */}
-              <div class={`flex items-center justify-between px-6 py-3 ${rank === 1 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100' : 'bg-zinc-900 border-b border-zinc-800'}`}>
-                <div class="flex items-center gap-3">
-                  {sortedReviews.length > 1 && (
-                    <span class={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${rank === 1 ? 'bg-amber-500 text-white' : rank === 2 ? 'bg-zinc-600 text-white' : rank === 3 ? 'bg-amber-700 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
-                      #{rank}
+            return (
+              <article
+                class="rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-zinc-600"
+                id={`tool-${rank}`}
+              >
+                {/* Rank Header */}
+                <div
+                  class={`flex items-center justify-between px-6 py-3 ${rank === 1 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100' : 'bg-zinc-900 border-b border-zinc-800'}`}
+                >
+                  <div class="flex items-center gap-3">
+                    {sortedReviews.length > 1 && (
+                      <span
+                        class={`flex h-8 w-8 items-center justify-center rounded-full font-bold text-sm ${rank === 1 ? 'bg-amber-500 text-white' : rank === 2 ? 'bg-zinc-600 text-white' : rank === 3 ? 'bg-amber-700 text-white' : 'bg-zinc-700 text-zinc-300'}`}
+                      >
+                        #{rank}
+                      </span>
+                    )}
+                    {rank === 1 && <span class="text-xs font-medium text-amber-700">Top Pick</span>}
+                  </div>
+
+                  <div class="flex items-center gap-3">
+                    <span class={`text-sm font-medium ${scoreColors.text}`}>
+                      Score: {review.score}/100
                     </span>
-                  )}
-                  {rank === 1 && (
-                    <span class="text-xs font-medium text-amber-700">Top Pick</span>
-                  )}
-                </div>
-
-                <div class="flex items-center gap-3">
-                  <span class={`text-sm font-medium ${scoreColors.text}`}>
-                    Score: {review.score}/100
-                  </span>
-                  <div class={`h-2 w-16 rounded-full ${scoreColors.bg}`}>
-                    <div
-                      class={`h-2 rounded-full ${review.score >= 70 ? 'bg-green-500' : review.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                      style={`width: ${review.score}%`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tool Content */}
-              <div class="p-6">
-                <div class="flex items-start gap-5">
-                  {/* Logo */}
-                  <a href={`/tool/${review.item.slug}`} class="shrink-0">
-                    <Logo
-                      domain={review.item.logo_url}
-                      name={review.item.name}
-                      size="lg"
-                    />
-                  </a>
-
-                  {/* Info */}
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-start justify-between gap-4">
-                      <div>
-                        <a
-                          href={`/tool/${review.item.slug}`}
-                          class="text-xl font-semibold text-zinc-100 hover:text-hunt-600"
-                        >
-                          {review.item.name}
-                        </a>
-                        {review.item.short_description && (
-                          <p class="mt-1 text-sm text-zinc-300 line-clamp-2">
-                            {review.item.short_description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* CTA Button */}
-                      {review.item.affiliate_offers?.[0] && (
-                        <a
-                          href={review.item.affiliate_offers[0].url}
-                          target="_blank"
-                          rel={review.item.affiliate_offers[0].is_affiliate ? 'nofollow sponsored noopener' : 'noopener'}
-                          class="shrink-0 rounded-lg bg-hunt-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-hunt-600 hover:shadow-md"
-                        >
-                          {review.item.affiliate_offers[0].cta_text}
-                        </a>
-                      )}
-                    </div>
-
-                    {/* Highlights - Contextual pros/cons for this use case */}
-                    {(review.pros?.length > 0 || review.cons?.length > 0) && (
-                      <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                        {review.pros?.length > 0 && (
-                          <div class="space-y-2">
-                            {review.pros.slice(0, 2).map((pro: any) => {
-                              const text = typeof pro === 'string' ? pro : pro?.text;
-                              const source = typeof pro === 'object' ? pro?.source_url : null;
-                              if (!text) return null;
-                              return (
-                                <div class="flex items-start gap-2 text-sm">
-                                  <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400"></span>
-                                  <div>
-                                    <span class="text-zinc-300">{text}</span>
-                                    {source && (
-                                      <a href={source} target="_blank" rel="nofollow noopener" class="ml-1.5 text-xs text-zinc-500 hover:text-zinc-400">
-                                        [source]
-                                      </a>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                        {review.cons?.length > 0 && (
-                          <div class="space-y-2">
-                            {review.cons.slice(0, 2).map((con: any) => {
-                              const text = typeof con === 'string' ? con : con?.text;
-                              const source = typeof con === 'object' ? con?.source_url : null;
-                              if (!text) return null;
-                              return (
-                                <div class="flex items-start gap-2 text-sm">
-                                  <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"></span>
-                                  <div>
-                                    <span class="text-zinc-300">{text}</span>
-                                    {source && (
-                                      <a href={source} target="_blank" rel="nofollow noopener" class="ml-1.5 text-xs text-zinc-500 hover:text-zinc-400">
-                                        [source]
-                                      </a>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Tags */}
-                    {review.sentiment_tags?.length > 0 && (
-                      <div class="mt-3">
-                        <SentimentTags tags={review.sentiment_tags} limit={4} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Full Pros/Cons - expandable */}
-                {(review.pros?.length > 2 || review.cons?.length > 2) && (
-                  <details class="mt-4 group">
-                    <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100">
-                      <svg class="h-4 w-4 transition group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                      View all pros & cons
-                    </summary>
-
-                    <div class="mt-4">
-                      <ProsCons
-                        pros={review.pros || []}
-                        cons={review.cons || []}
-                        sourceDisplay="inline"
+                    <div class={`h-2 w-16 rounded-full ${scoreColors.bg}`}>
+                      <div
+                        class={`h-2 rounded-full ${review.score >= 70 ? 'bg-green-500' : review.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                        style={`width: ${review.score}%`}
                       />
                     </div>
-                  </details>
-                )}
-
-                {/* Summary */}
-                {review.summary_markdown && (
-                  <details class="mt-3 group">
-                    <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100">
-                      <svg class="h-4 w-4 transition group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                      Read full analysis
-                    </summary>
-
-                    <div
-                      class="mt-3 prose prose-slate prose-sm max-w-none rounded-lg bg-zinc-900 p-4"
-                      set:html={simpleMarkdown(review.summary_markdown)}
-                    />
-                  </details>
-                )}
-
-                {/* Vote & Link */}
-                <div class="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
-                  <VoteWidget
-                    client:visible
-                    reviewId={review.id}
-                    initialUpvotes={review.upvotes}
-                    initialDownvotes={review.downvotes}
-                    turnstileSiteKey={turnstileSiteKey}
-                  />
-
-                  <a
-                    href={`/tool/${review.item.slug}`}
-                    class="text-sm font-medium text-hunt-600 hover:text-hunt-700"
-                  >
-                    Full profile →
-                  </a>
+                  </div>
                 </div>
-              </div>
-            </article>
-          );
-        })}
+
+                {/* Tool Content */}
+                <div class="p-6">
+                  <div class="flex items-start gap-5">
+                    {/* Logo */}
+                    <a href={`/tool/${review.item.slug}`} class="shrink-0">
+                      <Logo domain={review.item.logo_url} name={review.item.name} size="lg" />
+                    </a>
+
+                    {/* Info */}
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-start justify-between gap-4">
+                        <div>
+                          <a
+                            href={`/tool/${review.item.slug}`}
+                            class="text-xl font-semibold text-zinc-100 hover:text-hunt-600"
+                          >
+                            {review.item.name}
+                          </a>
+                          {review.item.short_description && (
+                            <p class="mt-1 text-sm text-zinc-300 line-clamp-2">
+                              {review.item.short_description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* CTA Button */}
+                        {review.item.affiliate_offers?.[0] && (
+                          <a
+                            href={review.item.affiliate_offers[0].url}
+                            target="_blank"
+                            rel={
+                              review.item.affiliate_offers[0].is_affiliate
+                                ? 'nofollow sponsored noopener'
+                                : 'noopener'
+                            }
+                            class="shrink-0 rounded-lg bg-hunt-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-hunt-600 hover:shadow-md"
+                          >
+                            {review.item.affiliate_offers[0].cta_text}
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Highlights - Contextual pros/cons for this use case */}
+                      {(review.pros?.length > 0 || review.cons?.length > 0) && (
+                        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                          {review.pros?.length > 0 && (
+                            <div class="space-y-2">
+                              {review.pros.slice(0, 2).map((pro: any) => {
+                                const text = typeof pro === 'string' ? pro : pro?.text;
+                                const source = typeof pro === 'object' ? pro?.source_url : null;
+                                if (!text) return null;
+                                return (
+                                  <div class="flex items-start gap-2 text-sm">
+                                    <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                                    <div>
+                                      <span class="text-zinc-300">{text}</span>
+                                      {source && (
+                                        <a
+                                          href={source}
+                                          target="_blank"
+                                          rel="nofollow noopener"
+                                          class="ml-1.5 text-xs text-zinc-500 hover:text-zinc-400"
+                                        >
+                                          [source]
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {review.cons?.length > 0 && (
+                            <div class="space-y-2">
+                              {review.cons.slice(0, 2).map((con: any) => {
+                                const text = typeof con === 'string' ? con : con?.text;
+                                const source = typeof con === 'object' ? con?.source_url : null;
+                                if (!text) return null;
+                                return (
+                                  <div class="flex items-start gap-2 text-sm">
+                                    <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
+                                    <div>
+                                      <span class="text-zinc-300">{text}</span>
+                                      {source && (
+                                        <a
+                                          href={source}
+                                          target="_blank"
+                                          rel="nofollow noopener"
+                                          class="ml-1.5 text-xs text-zinc-500 hover:text-zinc-400"
+                                        >
+                                          [source]
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Tags */}
+                      {review.sentiment_tags?.length > 0 && (
+                        <div class="mt-3">
+                          <SentimentTags tags={review.sentiment_tags} limit={4} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Full Pros/Cons - expandable */}
+                  {(review.pros?.length > 2 || review.cons?.length > 2) && (
+                    <details class="mt-4 group">
+                      <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100">
+                        <svg
+                          class="h-4 w-4 transition group-open:rotate-90"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                        View all pros & cons
+                      </summary>
+
+                      <div class="mt-4">
+                        <ProsCons
+                          pros={review.pros || []}
+                          cons={review.cons || []}
+                          sourceDisplay="inline"
+                        />
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Summary */}
+                  {review.summary_markdown && (
+                    <details class="mt-3 group">
+                      <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100">
+                        <svg
+                          class="h-4 w-4 transition group-open:rotate-90"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                        Read full analysis
+                      </summary>
+
+                      <div
+                        class="mt-3 prose prose-slate prose-sm max-w-none rounded-lg bg-zinc-900 p-4"
+                        set:html={simpleMarkdown(review.summary_markdown)}
+                      />
+                    </details>
+                  )}
+
+                  {/* Vote & Link */}
+                  <div class="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
+                    <VoteWidget
+                      client:visible
+                      reviewId={review.id}
+                      initialUpvotes={review.upvotes}
+                      initialDownvotes={review.downvotes}
+                      turnstileSiteKey={turnstileSiteKey}
+                    />
+
+                    <a
+                      href={`/tool/${review.item.slug}`}
+                      class="text-sm font-medium text-hunt-600 hover:text-hunt-700"
+                    >
+                      Full profile →
+                    </a>
+                  </div>
+                </div>
+              </article>
+            );
+          })
+        }
       </div>
     </section>
 
     <!-- Empty State -->
-    {sortedReviews.length === 0 && (
-      <div class="rounded-xl border border-dashed border-zinc-600 bg-zinc-900 p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-zinc-100">No tools yet</h3>
-        <p class="mt-2 text-sm text-zinc-400">
-          We're still researching tools for this category. Check back soon!
-        </p>
-      </div>
-    )}
+    {
+      sortedReviews.length === 0 && (
+        <div class="rounded-xl border border-dashed border-zinc-600 bg-zinc-900 p-12 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-zinc-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-zinc-100">No tools yet</h3>
+          <p class="mt-2 text-sm text-zinc-400">
+            We're still researching tools for this category. Check back soon!
+          </p>
+        </div>
+      )
+    }
 
     <!-- Explore More - Merged related content for better UX and SEO -->
-    {exploreMoreItems.length > 0 && (
-      <aside class="mt-12">
-        <RelatedContent
-          items={exploreMoreItems}
-          title="Explore More"
-          className=""
-        />
-      </aside>
-    )}
+    {
+      exploreMoreItems.length > 0 && (
+        <aside class="mt-12">
+          <RelatedContent items={exploreMoreItems} title="Explore More" className="" />
+        </aside>
+      )
+    }
   </div>
 </BaseLayout>

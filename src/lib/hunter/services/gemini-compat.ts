@@ -10,10 +10,7 @@ function isSchemaTooComplexError(error: unknown): boolean {
   return /schema produces a constraint that has too many states/i.test(message);
 }
 
-export async function generateContentWithThinkingFallback(
-  client: any,
-  request: any
-): Promise<any> {
+export async function generateContentWithThinkingFallback(client: any, request: any): Promise<any> {
   let currentRequest = request;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {

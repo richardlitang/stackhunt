@@ -46,11 +46,14 @@ export const GET: APIRoute = async ({ params }) => {
       return ApiResponse.notFound('Review not found for publish checks');
     }
 
-    const gate = evaluateStrictPublishGate(reviewRow.item as any, {
-      summary_markdown: reviewRow.summary_markdown,
-      cons: reviewRow.cons,
-      sources: reviewRow.sources,
-    } as any);
+    const gate = evaluateStrictPublishGate(
+      reviewRow.item as any,
+      {
+        summary_markdown: reviewRow.summary_markdown,
+        cons: reviewRow.cons,
+        sources: reviewRow.sources,
+      } as any
+    );
 
     return ApiResponse.ok({
       pass: gate.pass,
@@ -63,4 +66,3 @@ export const GET: APIRoute = async ({ params }) => {
     return ApiResponse.internalError('Failed to run publish checks');
   }
 };
-

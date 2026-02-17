@@ -892,7 +892,10 @@ export interface Claim {
   extracted_at: string;
 }
 
-export type ClaimInsert = Omit<Claim, 'id' | 'extracted_at'> & { id?: string; extracted_at?: string };
+export type ClaimInsert = Omit<Claim, 'id' | 'extracted_at'> & {
+  id?: string;
+  extracted_at?: string;
+};
 export type ClaimUpdate = Partial<Claim>;
 
 // V2.2: Item-Audience Fit (links items to audience categories)

@@ -7,4 +7,3 @@ export function mergeDefined<T extends Record<string, unknown>>(base: T, patch: 
   }
   return merged;
 }
-

@@ -10,7 +10,12 @@
  */
 
 import type { HunterContext, HunterDependencies, AnalysisOutput } from '../types';
-import { buildFactSummary, interpolateTemplate, classifySourceType, buildSnippetBucketsFromScout } from '../utils';
+import {
+  buildFactSummary,
+  interpolateTemplate,
+  classifySourceType,
+  buildSnippetBucketsFromScout,
+} from '../utils';
 import {
   SYNTHESIS_PROMPT,
   buildCategoryExtractionFields,
@@ -119,7 +124,9 @@ export async function executeAnalysisPhase(
     ['official', 'docs', 'support', 'legal'].includes(source.source_type)
   );
   const synthesisInputSources = Array.from(
-    new Map([...baselineSources, ...officialSupplement].map((source) => [source.url, source])).values()
+    new Map(
+      [...baselineSources, ...officialSupplement].map((source) => [source.url, source])
+    ).values()
   );
   const inventoryApiResult = await deps.inventory.fetchModelInventory({
     toolName: ctx.toolName,
@@ -184,11 +191,14 @@ export async function executeAnalysisPhase(
 
   sanitizeModelOptions(
     analysis,
-    [...inventorySources, ...inventoryApiResult.snippets.map((snippet: string, i: number) => ({
-      url: inventoryApiResult.sourceUrls[i] || inventoryApiResult.sourceUrls[0] || '',
-      title: `Official ${inventoryApiResult.provider || 'inventory'} API models`,
-      snippet,
-    }))],
+    [
+      ...inventorySources,
+      ...inventoryApiResult.snippets.map((snippet: string, i: number) => ({
+        url: inventoryApiResult.sourceUrls[i] || inventoryApiResult.sourceUrls[0] || '',
+        title: `Official ${inventoryApiResult.provider || 'inventory'} API models`,
+        snippet,
+      })),
+    ],
     deps.log
   );
   applyAuthoritativeModelInventory(analysis, inventoryApiResult.modelOptions, deps.log);
@@ -205,8 +215,9 @@ export async function executeAnalysisPhase(
         question_source: faq.question_source || inferFaqSource(faq.question_source_url),
         question_source_url: faq.question_source_url,
         answer_source_url: faq.answer_source_url,
-        answer_source_type: faq.answer_source_type
-          || classifySourceType(
+        answer_source_type:
+          faq.answer_source_type ||
+          classifySourceType(
             faq.answer_source_url,
             ctx.research?.knowledgeCard?.website_url ?? undefined
           ),
@@ -230,10 +241,7 @@ export async function executeAnalysisPhase(
         question_source_url?: string;
         answer_source_url: string;
         answer_source_type: 'official' | 'editorial' | 'community';
-      } =>
-        !!faq.question_source &&
-        !!faq.answer_source_url &&
-        !!faq.answer_source_type
+      } => !!faq.question_source && !!faq.answer_source_url && !!faq.answer_source_type
     );
     analysis.canonicalFacts = {
       ...analysis.canonicalFacts,
@@ -367,7 +375,9 @@ function sanitizeModelOptions(
   }
 
   if (deduped.length !== rawOptions.length) {
-    log(`[Recency] model_options pruned: kept ${deduped.length}/${rawOptions.length} source-backed entries`);
+    log(
+      `[Recency] model_options pruned: kept ${deduped.length}/${rawOptions.length} source-backed entries`
+    );
   }
   categoryData.model_options = deduped;
 }
@@ -425,9 +435,7 @@ function applyCanonicalSetupTracks(
     description: typeof step?.description === 'string' ? step.description.trim() : undefined,
   });
 
-  const normalized = steps
-    .map(normalizeStep)
-    .filter((step: any) => step.action.length > 0);
+  const normalized = steps.map(normalizeStep).filter((step: any) => step.action.length > 0);
   if (normalized.length === 0) return;
 
   const dev = normalized.filter((step: any) => step.command);
@@ -466,9 +474,7 @@ function normalizeComparisonModelName(rawModel: string): string | null {
     .trim();
   if (!cleaned) return null;
 
-  const byFamilyFirst = cleaned.match(
-    /^claude\s+(opus|sonnet|haiku)\s+(\d+)(?:[.\s]+(\d+))?$/i
-  );
+  const byFamilyFirst = cleaned.match(/^claude\s+(opus|sonnet|haiku)\s+(\d+)(?:[.\s]+(\d+))?$/i);
   if (byFamilyFirst) {
     const family = capitalizeToken(byFamilyFirst[1]);
     const major = byFamilyFirst[2];
@@ -476,9 +482,7 @@ function normalizeComparisonModelName(rawModel: string): string | null {
     return minor ? `Claude ${family} ${major}.${minor}` : `Claude ${family} ${major}`;
   }
 
-  const byVersionFirst = cleaned.match(
-    /^claude\s+(\d+)(?:[.\s]+(\d+))?\s+(opus|sonnet|haiku)$/i
-  );
+  const byVersionFirst = cleaned.match(/^claude\s+(\d+)(?:[.\s]+(\d+))?\s+(opus|sonnet|haiku)$/i);
   if (byVersionFirst) {
     const major = byVersionFirst[1];
     const minor = byVersionFirst[2];
@@ -606,8 +610,7 @@ async function buildExistingContentBaseline(
     lines.push(`sentiment_tags: ${formatList(review.sentiment_tags, 8)}`);
   if (review?.standout_features?.length)
     lines.push(`standout_features: ${formatList(review.standout_features)}`);
-  if (review?.dealbreakers?.length)
-    lines.push(`dealbreakers: ${formatList(review.dealbreakers)}`);
+  if (review?.dealbreakers?.length) lines.push(`dealbreakers: ${formatList(review.dealbreakers)}`);
   if (review?.switching_from?.length)
     lines.push(`switching_from: ${formatList(review.switching_from)}`);
 

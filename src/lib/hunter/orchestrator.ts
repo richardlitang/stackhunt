@@ -172,7 +172,10 @@ export class Hunter {
         return await Promise.race([
           fn(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`${operation} timed out after ${attemptTimeoutMs}ms`)), attemptTimeoutMs)
+            setTimeout(
+              () => reject(new Error(`${operation} timed out after ${attemptTimeoutMs}ms`)),
+              attemptTimeoutMs
+            )
           ),
         ]);
       } catch (error) {
@@ -361,7 +364,8 @@ export class Hunter {
           // Adaptive threshold: allow 2 eligible sources when we have at least 2 official sources.
           // This prevents over-blocking well-documented tools while preserving strictness for weak evidence.
           const baseMinEligible = ctx.contextTitle ? 3 : 4;
-          const adaptiveMinEligible = officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
+          const adaptiveMinEligible =
+            officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
           const minOfficialSources = 1;
           return eligibleCount >= adaptiveMinEligible && officialCount >= minOfficialSources;
         };
@@ -373,16 +377,14 @@ export class Hunter {
             source.source_type === 'community' &&
             source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
             source.policy.llm_ingestion_allowed !== 'NO'
-        )
-          .length;
-        const officialCount = scout.raw_sources.filter((source) =>
-          ['official', 'docs', 'support', 'legal'].includes(source.source_type)
-        ).filter(
-          (source) =>
-            source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-            source.policy.llm_ingestion_allowed !== 'NO'
-        )
-          .length;
+        ).length;
+        const officialCount = scout.raw_sources
+          .filter((source) => ['official', 'docs', 'support', 'legal'].includes(source.source_type))
+          .filter(
+            (source) =>
+              source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+              source.policy.llm_ingestion_allowed !== 'NO'
+          ).length;
         const pricingCount = scout.curated_sources.pricing.length;
         const eligibleCount = scout.raw_sources.filter(
           (source) =>
@@ -393,7 +395,8 @@ export class Hunter {
 
         if (!passesPreflight(eligibleCount, officialCount)) {
           const baseMinEligible = ctx.contextTitle ? 3 : 4;
-          const adaptiveMinEligible = officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
+          const adaptiveMinEligible =
+            officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
           const minOfficialSources = 1;
           if (resumedResearchFromCheckpoint) {
             this.log(
@@ -418,13 +421,15 @@ export class Hunter {
                 source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
                 source.policy.llm_ingestion_allowed !== 'NO'
             ).length;
-            const freshOfficialCount = freshScout.raw_sources.filter((source) =>
-              ['official', 'docs', 'support', 'legal'].includes(source.source_type)
-            ).filter(
-              (source) =>
-                source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-                source.policy.llm_ingestion_allowed !== 'NO'
-            ).length;
+            const freshOfficialCount = freshScout.raw_sources
+              .filter((source) =>
+                ['official', 'docs', 'support', 'legal'].includes(source.source_type)
+              )
+              .filter(
+                (source) =>
+                  source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
+                  source.policy.llm_ingestion_allowed !== 'NO'
+              ).length;
             const freshPricingCount = freshScout.curated_sources.pricing.length;
             const freshEligibleCount = freshScout.raw_sources.filter(
               (source) =>
@@ -443,9 +448,7 @@ export class Hunter {
               this.log(
                 `   Found: ${freshEligibleCount} eligible sources (${freshReviewCount} reviews, ${freshTribalCount} tribal, ${freshPricingCount} pricing, ${freshOfficialCount} official)`
               );
-              this.log(
-                `   Required: ${freshAdaptiveMinEligible}+ eligible, 1+ official`
-              );
+              this.log(`   Required: ${freshAdaptiveMinEligible}+ eligible, 1+ official`);
               this.log(`   Saving research data but skipping analysis to save API credits`);
               this.log(`   Re-run later to check if more sources available`);
               ctx.skipAnalysis = true;
@@ -454,21 +457,21 @@ export class Hunter {
             }
             // Continue to next phase decision without applying the old insufficient result
           } else if (!ctx.skipAnalysis) {
-          const huntType = ctx.contextTitle ? 'contextual' : 'discovery';
-          this.log(`⚠️  Pre-flight: Insufficient source material for ${huntType} hunt`);
-          this.log(
-            `   Found: ${eligibleCount} eligible sources (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing, ${officialCount} official)`
-          );
-          this.log(
-            `   Required: ${adaptiveMinEligible}+ eligible, ${minOfficialSources}+ official`
-          );
-          this.log(`   Saving research data but skipping analysis to save API credits`);
-          this.log(`   Re-run later to check if more sources available`);
+            const huntType = ctx.contextTitle ? 'contextual' : 'discovery';
+            this.log(`⚠️  Pre-flight: Insufficient source material for ${huntType} hunt`);
+            this.log(
+              `   Found: ${eligibleCount} eligible sources (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing, ${officialCount} official)`
+            );
+            this.log(
+              `   Required: ${adaptiveMinEligible}+ eligible, ${minOfficialSources}+ official`
+            );
+            this.log(`   Saving research data but skipping analysis to save API credits`);
+            this.log(`   Re-run later to check if more sources available`);
 
-          // Skip analysis and persist via the research-only path.
-          ctx.skipAnalysis = true;
-          ctx.skipSynthesis = true;
-          ctx.insufficientSources = true; // Flag for persistence phase
+            // Skip analysis and persist via the research-only path.
+            ctx.skipAnalysis = true;
+            ctx.skipSynthesis = true;
+            ctx.insufficientSources = true; // Flag for persistence phase
           }
         } else {
           this.log(
@@ -649,8 +652,7 @@ export class Hunter {
             : undefined,
         queueItemId: queueItem.id,
         huntType: (queueItem.hunt_type as any) || 'full',
-        forceUpdate:
-          Boolean(queueItem.force_regenerate) || queueItem.hunt_type === 'price_only', // Ensure price_only refreshes bypass duplicate short-circuit
+        forceUpdate: Boolean(queueItem.force_regenerate) || queueItem.hunt_type === 'price_only', // Ensure price_only refreshes bypass duplicate short-circuit
         researchDossier: queueItem.research_dossier || undefined, // V5: Pass dossier from Classifier
       });
 

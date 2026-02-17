@@ -137,4 +137,3 @@ export const PricingV2ProductPricingSchema = z.object({
     })
   ),
 });
-

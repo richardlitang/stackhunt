@@ -250,7 +250,7 @@ if (!sessionToken) {
         try {
           const text = await file.text();
           csvContent.value = text;
-    } catch {
+        } catch {
           alert('Failed to read file');
           console.error(error);
         }

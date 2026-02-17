@@ -477,7 +477,12 @@ export async function getItemTags(itemId: string) {
   };
 
   for (const link of data || []) {
-    const cat = (link as any)?.category as { id: string; name: string; slug: string; type: string } | null;
+    const cat = (link as any)?.category as {
+      id: string;
+      name: string;
+      slug: string;
+      type: string;
+    } | null;
     if (!cat) continue;
 
     const tag = { id: cat.id, name: cat.name, slug: cat.slug };

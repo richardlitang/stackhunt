@@ -11,7 +11,8 @@ type ReviewClaim = string | { text?: string | null } | null;
 
 function claimText(claim: ReviewClaim): string {
   if (typeof claim === 'string') return claim.trim();
-  if (claim && typeof claim === 'object' && typeof claim.text === 'string') return claim.text.trim();
+  if (claim && typeof claim === 'object' && typeof claim.text === 'string')
+    return claim.text.trim();
   return '';
 }
 

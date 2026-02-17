@@ -56,18 +56,16 @@ export class SourcePolicyService {
     const nextUrls = mergeSamples(data?.sample_urls, sampleUrl);
     const nextTitles = mergeSamples(data?.sample_titles, sampleTitle);
 
-    await this.supabase
-      .from('source_policy_review_queue')
-      .upsert(
-        {
-          domain: cleanedDomain,
-          count_seen: nextCount,
-          last_seen_at: new Date().toISOString(),
-          sample_urls: nextUrls,
-          sample_titles: nextTitles,
-        },
-        { onConflict: 'domain' }
-      );
+    await this.supabase.from('source_policy_review_queue').upsert(
+      {
+        domain: cleanedDomain,
+        count_seen: nextCount,
+        last_seen_at: new Date().toISOString(),
+        sample_urls: nextUrls,
+        sample_titles: nextTitles,
+      },
+      { onConflict: 'domain' }
+    );
   }
 
   async getPolicyGate(url: string): Promise<SourcePolicyGate | null> {
@@ -88,9 +86,7 @@ export class SourcePolicyService {
       return this.cache;
     }
 
-    const { data, error } = await this.supabase
-      .from('source_policy_registry')
-      .select('*');
+    const { data, error } = await this.supabase.from('source_policy_registry').select('*');
 
     if (error) {
       return null;
@@ -114,10 +110,7 @@ function extractDomain(url: string): string | null {
   }
 }
 
-function applyPathOverrides(
-  policy: SourcePolicyRegistry,
-  url: string
-): SourcePolicyRegistry {
+function applyPathOverrides(policy: SourcePolicyRegistry, url: string): SourcePolicyRegistry {
   if (!policy.path_overrides || policy.path_overrides.length === 0) {
     return policy;
   }
@@ -129,9 +122,7 @@ function applyPathOverrides(
     return policy;
   }
 
-  const override = policy.path_overrides.find((entry) =>
-    pathname.startsWith(entry.path_prefix)
-  );
+  const override = policy.path_overrides.find((entry) => pathname.startsWith(entry.path_prefix));
   if (!override) return policy;
 
   return {

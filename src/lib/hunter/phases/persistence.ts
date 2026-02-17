@@ -187,11 +187,7 @@ function hasComparatorToken(text: string): boolean {
 }
 
 function sanitizeNarrativeClaimText(text: string): string {
-  return text
-    .normalize('NFKC')
-    .replace(CONTROL_CHARS_REGEX, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return text.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
 }
 
 function stripTerminalPunctuation(text: string): string {
@@ -260,16 +256,7 @@ function extractNamedFeatures(text: string): string[] {
     text.matchAll(/\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){1,4})\b/g)
   ).map((m) => m[1].trim());
   const candidates = [...quoted, ...titleCase];
-  const deny = new Set([
-    'OpenAI',
-    'Anthropic',
-    'Google',
-    'xAI',
-    'API',
-    'Enterprise',
-    'Pro',
-    'Max',
-  ]);
+  const deny = new Set(['OpenAI', 'Anthropic', 'Google', 'xAI', 'API', 'Enterprise', 'Pro', 'Max']);
   return Array.from(
     new Set(
       candidates.filter((item) => {
@@ -374,7 +361,8 @@ function suppressSalesGatedClaim(
   })();
 
   const hasSelfServe = SELF_SERVE_TOKENS.test(corpus) || SELF_SERVE_TOKENS.test(sourceText);
-  const hasContactSales = CONTACT_SALES_TOKENS.test(corpus) || CONTACT_SALES_TOKENS.test(sourceText);
+  const hasContactSales =
+    CONTACT_SALES_TOKENS.test(corpus) || CONTACT_SALES_TOKENS.test(sourceText);
   const scopedToEnterprise = ENTERPRISE_SCOPE_TOKENS.test(text);
 
   if (!hasContactSales) return true;
@@ -383,7 +371,10 @@ function suppressSalesGatedClaim(
 }
 
 function rewriteVendorRankingClaim(text: string, sourceDate?: string): string {
-  const normalized = text.replace(/\s{2,}/g, ' ').trim().replace(/\.$/, '');
+  const normalized = text
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .replace(/\.$/, '');
   const dated = sourceDate ? ` (${sourceDate.slice(0, 10)})` : '';
   return `Vendor materials describe this claim as: ${normalized}${dated}.`;
 }
@@ -391,7 +382,10 @@ function rewriteVendorRankingClaim(text: string, sourceDate?: string): string {
 function stripUnsupportedQuantitativePhrases(text: string): string {
   let next = text;
   next = next.replace(TIME_QUANT_TOKENS, '').replace(/\b\d+(?:\.\d+)?\s*x\b/gi, '');
-  next = next.replace(/\s{2,}/g, ' ').replace(/\s+([.,;!?])/g, '$1').trim();
+  next = next
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,;!?])/g, '$1')
+    .trim();
   return next;
 }
 
@@ -416,7 +410,8 @@ function enforceOfferingScope(
     .map((source) => `${source.title || ''} ${source.snippet || ''}`)
     .join(' ')
     .toLowerCase();
-  const hasLeChatEvidence = LE_CHAT_NAME_TOKENS.test(sourceText) || LE_CHAT_NAME_TOKENS.test(corpus);
+  const hasLeChatEvidence =
+    LE_CHAT_NAME_TOKENS.test(sourceText) || LE_CHAT_NAME_TOKENS.test(corpus);
   if (!hasLeChatEvidence) return null;
   return `In Le Chat, ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
 }
@@ -442,7 +437,10 @@ function downgradeComparativeClause(text: string): string | null {
   next = next.replace(/\b(?:double|doubles|doubling|half|halve|premium)\b[^.?!;]*/gi, '');
   next = next.replace(COMPARATOR_QUANT_TOKENS, '').trim();
   next = next.replace(/\b\d+(?:\.\d+)?%/g, '').trim();
-  next = next.replace(/\s{2,}/g, ' ').replace(/\s+([.,;!?])/g, '$1').trim();
+  next = next
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,;!?])/g, '$1')
+    .trim();
   if (next.length < 10) return null;
   return next;
 }
@@ -463,7 +461,8 @@ function buildCanonicalPricingPlans(pricingData: any): {
   const plans = Array.isArray(pricingData?.plans) ? pricingData.plans : [];
   const sourceUrl: string | null =
     typeof pricingData?.pricing_page_url === 'string' ? pricingData.pricing_page_url : null;
-  const currency: string | null = typeof pricingData?.currency === 'string' ? pricingData.currency : null;
+  const currency: string | null =
+    typeof pricingData?.currency === 'string' ? pricingData.currency : null;
 
   const entities = plans.map((plan: any) => ({
     plan_id: String(plan?.id || slugify(String(plan?.name || 'plan'))),
@@ -476,7 +475,10 @@ function buildCanonicalPricingPlans(pricingData: any): {
     currency,
   }));
 
-  const byCanonicalPlan = new Map<string, { monthly: Set<number>; annual: Set<number>; urls: Set<string> }>();
+  const byCanonicalPlan = new Map<
+    string,
+    { monthly: Set<number>; annual: Set<number>; urls: Set<string> }
+  >();
   for (const entity of entities) {
     const key = `${entity.plan_id}|${(entity.audience || 'unknown').toLowerCase()}`;
     if (!byCanonicalPlan.has(key)) {
@@ -539,7 +541,9 @@ function sanitizeOperationalFields(
   }
 
   if (dropped > 0) {
-    deps.log(`[Guardrail] Dropped ${dropped} ${label} field(s) with pricing/quantitative narrative risk`);
+    deps.log(
+      `[Guardrail] Dropped ${dropped} ${label} field(s) with pricing/quantitative narrative risk`
+    );
   }
 
   return result;
@@ -575,7 +579,10 @@ function isIntegrationCriticalContext(contextTitle?: string): boolean {
   );
 }
 
-function sanitizeShortDescription(shortDescription: string | undefined, contextTitle?: string): string | null {
+function sanitizeShortDescription(
+  shortDescription: string | undefined,
+  contextTitle?: string
+): string | null {
   if (!shortDescription || typeof shortDescription !== 'string') return null;
 
   const criticalIntegration = isIntegrationCriticalContext(contextTitle);
@@ -585,13 +592,16 @@ function sanitizeShortDescription(shortDescription: string | undefined, contextT
       /(?:,?\s*(?:but|while)?\s*)?lacking\s+(?:(?:a\s+)?free tier\s+(?:or|and)\s+)?(?:a\s+)?(?:native\s+)?zapier integration\.?/i,
       ''
     );
-    sanitized = sanitized.replace(/\s{2,}/g, ' ').replace(/\s+\./g, '.').trim();
+    sanitized = sanitized
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+\./g, '.')
+      .trim();
   }
-  sanitized = sanitized.replace(
-    /\s*this action is redundant with the description above\.?/i,
-    ''
-  );
-  sanitized = sanitized.replace(/\s{2,}/g, ' ').replace(/\s+\./g, '.').trim();
+  sanitized = sanitized.replace(/\s*this action is redundant with the description above\.?/i, '');
+  sanitized = sanitized
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+\./g, '.')
+    .trim();
 
   return sanitized || null;
 }
@@ -610,12 +620,15 @@ function sanitizeSetupComplexityWithEvidence(
   if (!setup || typeof setup !== 'object') return;
 
   const hasCliCommandEvidence = Array.isArray(setup.steps)
-    ? setup.steps.some((step: any) => typeof step?.command === 'string' && step.command.trim().length > 0)
+    ? setup.steps.some(
+        (step: any) => typeof step?.command === 'string' && step.command.trim().length > 0
+      )
     : false;
   const firstPartyCorpus = collectFirstPartyCorpus(sources, toolWebsite);
-  const hasCliTextEvidence = /\b(cli|command line|terminal|npm\s+install|pip\s+install|brew\s+install)\b/i.test(
-    firstPartyCorpus
-  );
+  const hasCliTextEvidence =
+    /\b(cli|command line|terminal|npm\s+install|pip\s+install|brew\s+install)\b/i.test(
+      firstPartyCorpus
+    );
 
   if (setup.setup_type === 'hybrid' && !hasCliCommandEvidence && !hasCliTextEvidence) {
     setup.setup_type = 'web';
@@ -631,7 +644,10 @@ function sanitizeSetupComplexityWithEvidence(
       deps.log('[Setup Guard] Removed sales_gated red-tape flag (self-serve flow detected)');
     }
 
-    if (setup.red_tape.cc_required === true && /\bno credit card required\b/i.test(firstPartyCorpus)) {
+    if (
+      setup.red_tape.cc_required === true &&
+      /\bno credit card required\b/i.test(firstPartyCorpus)
+    ) {
       setup.red_tape.cc_required = false;
       deps.log('[Setup Guard] Removed cc_required red-tape flag (free signup evidence found)');
     }
@@ -699,7 +715,9 @@ function isAuthoritativeClaim(claim: ClaimWithSource): boolean {
 }
 
 function selectSummaryClaims(claims: ClaimWithSource[], limit = 1): ClaimWithSource[] {
-  const valid = claims.filter((claim) => Boolean(claim.source_url) && isRenderableClaimText(claim.text));
+  const valid = claims.filter(
+    (claim) => Boolean(claim.source_url) && isRenderableClaimText(claim.text)
+  );
   if (valid.length === 0) return [];
 
   const authoritative = valid.filter((claim) => isAuthoritativeClaim(claim));
@@ -724,7 +742,8 @@ function buildDerivedSummary(
 ): string | null {
   const summaryCons = selectSummaryClaims(cons);
   const summaryPros = selectSummaryClaims(pros);
-  if (summaryCons.length === 0 && summaryPros.length === 0 && (!vetos || vetos.length === 0)) return null;
+  if (summaryCons.length === 0 && summaryPros.length === 0 && (!vetos || vetos.length === 0))
+    return null;
 
   const lines: string[] = [];
   if (summaryPros.length > 0) {
@@ -1010,7 +1029,7 @@ export async function executePersistencePhase(
 
     if (validatedVetos.length > 0) {
       vettedVetos = validatedVetos;
-    specs.vetoLogic = validatedVetos;
+      specs.vetoLogic = validatedVetos;
       deps.log(
         `[Persisted] Veto Logic: ${validatedVetos.length}/${analysis.vetoLogic.length} conditions (${analysis.vetoLogic.length - validatedVetos.length} filtered)`
       );
@@ -1090,10 +1109,13 @@ export async function executePersistencePhase(
     const canonical = {
       ...existingCanonical,
       latest_models_comparison:
-        analysis.canonicalFacts.latest_models_comparison || existingCanonical.latest_models_comparison || [],
+        analysis.canonicalFacts.latest_models_comparison ||
+        existingCanonical.latest_models_comparison ||
+        [],
       model_inventory_raw:
         analysis.canonicalFacts.model_inventory_raw || existingCanonical.model_inventory_raw || [],
-      setup_tracks: analysis.canonicalFacts.setup_tracks || existingCanonical.setup_tracks || undefined,
+      setup_tracks:
+        analysis.canonicalFacts.setup_tracks || existingCanonical.setup_tracks || undefined,
       quality: {
         ...existingQuality,
         ...((analysis.canonicalFacts.quality as Record<string, unknown>) || {}),
@@ -1184,22 +1206,24 @@ export async function executePersistencePhase(
     filteredForMissingSource += normalizedProsRaw.length - normalizedProsFiltered.length;
     normalizedPros = normalizedProsFiltered;
 
-    const normalizedConsCandidates = (rawNormalizedCons.filter(Boolean) as ClaimWithSource[]).filter(
-      (claim) => {
-        const keep = isRenderableClaimText(claim.text);
-        if (!keep) {
-          filteredForMalformedText += 1;
-          deps.log(`[Guardrail] Filtered malformed con claim: "${claim.text.substring(0, 60)}..."`);
-        }
-        return keep;
+    const normalizedConsCandidates = (
+      rawNormalizedCons.filter(Boolean) as ClaimWithSource[]
+    ).filter((claim) => {
+      const keep = isRenderableClaimText(claim.text);
+      if (!keep) {
+        filteredForMalformedText += 1;
+        deps.log(`[Guardrail] Filtered malformed con claim: "${claim.text.substring(0, 60)}..."`);
       }
-    );
+      return keep;
+    });
     filteredForMissingSource += rawNormalizedCons.length - normalizedConsCandidates.length;
 
     // Apply negative sentiment guardrail to cons
     for (const con of normalizedConsCandidates) {
       if (isIntegrationGapClaim(con.text) && !isIntegrationCriticalContext(ctx.contextTitle)) {
-        deps.log(`[Item Guardrail] Filtered: "${con.text.substring(0, 40)}..." - not material for context`);
+        deps.log(
+          `[Item Guardrail] Filtered: "${con.text.substring(0, 40)}..." - not material for context`
+        );
         continue;
       }
       const validation = validateNegativeClaim(con, sourcesList);
@@ -1270,7 +1294,8 @@ export async function executePersistencePhase(
         question_source: faq.question_source || inferFaqSource(faq.question_source_url),
         question_source_url: faq.question_source_url,
         answer_source_url: faq.answer_source_url,
-        answer_source_type: faq.answer_source_type || classifySourceType(faq.answer_source_url, analysis.websiteUrl),
+        answer_source_type:
+          faq.answer_source_type || classifySourceType(faq.answer_source_url, analysis.websiteUrl),
       }))
       .filter((faq) => faq.question_source && faq.answer_source_url);
     const canonicalModels = analysis.canonicalFacts?.latest_models_comparison || [];
@@ -1675,7 +1700,9 @@ async function persistQualityGateSnapshot(
     .single();
 
   if (itemError || !itemRow) {
-    deps.log(`[Quality Gate] Warning: Unable to load item for snapshot (${itemError?.message || 'missing'})`);
+    deps.log(
+      `[Quality Gate] Warning: Unable to load item for snapshot (${itemError?.message || 'missing'})`
+    );
     return;
   }
 
@@ -2447,7 +2474,9 @@ function normalizeClaim(
     }
 
     const claimType = claim.claim_type || 'opinion';
-    const vendorPhrase = sanitizeNarrativeClaimText((claim.vendor_phrase || claim.text || '').trim());
+    const vendorPhrase = sanitizeNarrativeClaimText(
+      (claim.vendor_phrase || claim.text || '').trim()
+    );
     const normalizedComparisonBasisSourceUrl = normalizeEvidenceUrl(
       claim.comparison_basis_source_url?.trim()
     );
@@ -2463,7 +2492,9 @@ function normalizeClaim(
         ? strictKind
         : claim.claim_kind || strictKind;
     const needsComparatorBasis =
-      strictKind === 'comparison' || strictKind === 'derived_metric' || hasComparatorToken(claim.text);
+      strictKind === 'comparison' ||
+      strictKind === 'derived_metric' ||
+      hasComparatorToken(claim.text);
     let normalizedText =
       needsComparatorBasis && !comparisonBasisSourceUrl
         ? downgradeComparativeClause(claim.text)
@@ -2473,7 +2504,11 @@ function normalizeClaim(
     if (!normalizedText) return null;
 
     // Salvage truncated model output when original vendor phrase is complete.
-    if (vendorPhrase && !isRenderableClaimText(normalizedText) && isRenderableClaimText(vendorPhrase)) {
+    if (
+      vendorPhrase &&
+      !isRenderableClaimText(normalizedText) &&
+      isRenderableClaimText(vendorPhrase)
+    ) {
       normalizedText = vendorPhrase;
     }
     if (!isRenderableClaimText(normalizedText)) return null;
@@ -2501,7 +2536,8 @@ function normalizeClaim(
       const sourceTier = sourceTierForClaim(matchedSourceUrl);
       const hasSupport = sourceTier !== 'C' && hasTierABCorroboration(normalizedText);
       if (!hasSupport) return null;
-      const sourceDate = findSource(matchedSourceUrl)?.published_at || findSource(matchedSourceUrl)?.retrieved_at;
+      const sourceDate =
+        findSource(matchedSourceUrl)?.published_at || findSource(matchedSourceUrl)?.retrieved_at;
       normalizedText = rewriteVendorRankingClaim(normalizedText, sourceDate);
     }
     if (UNVERIFIED_QUANT_VALUE.test(normalizedText) && !hasTierABCorroboration(normalizedText)) {
@@ -2518,8 +2554,7 @@ function normalizeClaim(
       source_type: sourceType,
       claim_type: claimType, // Default to opinion for safety
       retrieved_at: claim.retrieved_at || retrievedAt,
-      claim_kind:
-        needsComparatorBasis && !comparisonBasisSourceUrl ? 'inference' : detectedKind,
+      claim_kind: needsComparatorBasis && !comparisonBasisSourceUrl ? 'inference' : detectedKind,
       vendor_phrase: vendorPhrase || normalizedText,
       comparison_basis_source_url: comparisonBasisSourceUrl,
     };
@@ -2723,7 +2758,14 @@ function validateNegativeClaim(
     title: string;
     snippet: string;
     domain: string;
-    source_type?: 'official' | 'docs' | 'support' | 'legal' | 'editorial' | 'community' | 'directory';
+    source_type?:
+      | 'official'
+      | 'docs'
+      | 'support'
+      | 'legal'
+      | 'editorial'
+      | 'community'
+      | 'directory';
     acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
     llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
     retrieved_at?: string;
@@ -2749,7 +2791,13 @@ function validateNegativeClaim(
     return { isValid: true, corroboratingSourceCount: 1 };
   }
 
-  const LOW_TRUST_DIRECTORY_DOMAINS = ['g2.com', 'capterra.com', 'trustpilot.com', 'getapp.com', 'softwareadvice.com'];
+  const LOW_TRUST_DIRECTORY_DOMAINS = [
+    'g2.com',
+    'capterra.com',
+    'trustpilot.com',
+    'getapp.com',
+    'softwareadvice.com',
+  ];
   const corroborationPool = allSources.filter((source) => {
     if (source.acquisition_mode && source.acquisition_mode !== 'SCRAPE_ALLOWED') return false;
     if (source.llm_ingestion_allowed === 'NO') return false;
@@ -2892,7 +2940,14 @@ async function createReview(
     title: string;
     snippet: string;
     domain: string;
-    source_type?: 'official' | 'docs' | 'support' | 'legal' | 'editorial' | 'community' | 'directory';
+    source_type?:
+      | 'official'
+      | 'docs'
+      | 'support'
+      | 'legal'
+      | 'editorial'
+      | 'community'
+      | 'directory';
     acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
     llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
     is_deep_scrape_allowed?: boolean;
@@ -3027,7 +3082,9 @@ async function createReview(
     riskyNarrativeFields.some((value) => containsRiskyAbsolute(value)) && normalizedCons.length < 2;
   if (hasUnsupportedNegativeClaim) {
     legalIssues.push('UNSUPPORTED_NEGATIVE_CLAIM');
-    deps.log('[Guardrail] Forced draft: unsupported risky narrative claim without sufficient evidence');
+    deps.log(
+      '[Guardrail] Forced draft: unsupported risky narrative claim without sufficient evidence'
+    );
   }
 
   const authoritativeSources = sources.filter((source) =>
@@ -3074,7 +3131,9 @@ async function createReview(
     legalIssues.length === 0 &&
     canonicalConflictsCount === 0;
   const qualifiesFastPath =
-    profile.allowedDataQualities.includes(knowledgeCard.meta.data_quality as 'high' | 'medium' | 'low') &&
+    profile.allowedDataQualities.includes(
+      knowledgeCard.meta.data_quality as 'high' | 'medium' | 'low'
+    ) &&
     analysis.score >= profile.minScore &&
     filteredCons.length <= profile.maxFilteredCons &&
     normalizedCons.length >= profile.minValidCons &&
@@ -3094,7 +3153,11 @@ async function createReview(
     legalIssues.length === 0 &&
     canonicalConflictsCount === 0;
 
-  if ((isHighConfidence || qualifiesFastPath) && deps.config.isDraftMode === false && !hasUnsupportedNegativeClaim) {
+  if (
+    (isHighConfidence || qualifiesFastPath) &&
+    deps.config.isDraftMode === false &&
+    !hasUnsupportedNegativeClaim
+  ) {
     reviewData.status = 'published';
     if (isHighConfidence) {
       deps.log(
@@ -3194,7 +3257,8 @@ function buildClaimLedgerRows(
     source?: (typeof sources)[number]
   ): number => {
     if (source?.llm_ingestion_allowed === 'NO') {
-      if (source.acquisition_mode === 'BLOCKED' || source.acquisition_mode === 'API_ONLY') return 0.35;
+      if (source.acquisition_mode === 'BLOCKED' || source.acquisition_mode === 'API_ONLY')
+        return 0.35;
       return 0.45;
     }
 
@@ -3260,8 +3324,5 @@ function buildClaimLedgerRows(
     };
   };
 
-  return [
-    ...pros.map((claim) => toRow(claim, 'pro')),
-    ...cons.map((claim) => toRow(claim, 'con')),
-  ];
+  return [...pros.map((claim) => toRow(claim, 'pro')), ...cons.map((claim) => toRow(claim, 'con'))];
 }

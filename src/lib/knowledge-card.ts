@@ -995,7 +995,7 @@ export const GeminiKnowledgeCardSchema = {
           type: 'string',
           nullable: true,
           description:
-        'Opinionated 2-3 sentence verdict with reviewer\'s voice. Include: (1) who it\'s perfect for, (2) who should avoid it, (3) one specific limitation. Example: "Airtable works for teams moving past spreadsheets, but record ceilings can block high-volume use cases." AVOID neutral/Wikipedia style. NO jargon like "powerful", "versatile", "seamless".',
+            'Opinionated 2-3 sentence verdict with reviewer\'s voice. Include: (1) who it\'s perfect for, (2) who should avoid it, (3) one specific limitation. Example: "Airtable works for teams moving past spreadsheets, but record ceilings can block high-volume use cases." AVOID neutral/Wikipedia style. NO jargon like "powerful", "versatile", "seamless".',
         },
         budget_analyst: {
           type: 'object',
