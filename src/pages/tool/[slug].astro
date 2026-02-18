@@ -627,22 +627,37 @@ const decisionSnapshotWatchOuts = uniqueDecisionText(
         ? fallbackConsText.slice(0, 2)
         : (firstReview?.cons || []).slice(0, 2)
 ).slice(0, 3);
-const quickChecks = [
-  'Validate pricing drivers with expected monthly usage at p50 and p95.',
-  'Check overage behavior, annual commitments, seat minimums, and cancellation terms.',
-  'Confirm plan-gated features required for your rollout.',
-  'Verify export formats and migration path before lock-in.',
-  'Run one production-like workflow and record failure points.',
-];
-const teamItChecks = [
-  'Confirm required integrations, API limits, and auth flow.',
-  'Check security/compliance docs against your team requirements.',
-  'Confirm admin controls, SSO, SCIM, DPA, audit logs, and retention controls.',
-];
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
     : [];
+const quickChecks =
+  toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.quick_checks).slice(0, 5)
+    .length > 0
+    ? toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.quick_checks).slice(
+        0,
+        5
+      )
+    : [
+        'Confirm pricing cadence and seat model for your expected usage.',
+        'Verify plan-gated features required for your first month.',
+        'Run one real workflow before committing.',
+        'Check export and cancellation paths before lock-in.',
+      ];
+const teamItChecks =
+  toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.team_it_checks).slice(
+    0,
+    5
+  ).length > 0
+    ? toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.team_it_checks).slice(
+        0,
+        5
+      )
+    : [
+        'Confirm SSO, SCIM, and admin controls for your team setup.',
+        'Verify DPA, retention policy, and audit log availability.',
+        'Validate API limits, integration constraints, and access controls.',
+      ];
 const handsOnChecks = toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.hands_on_checks).slice(0, 6);
 const handsOnTestNotesRaw =
   canonicalFacts?.hands_on_test_notes && typeof canonicalFacts.hands_on_test_notes === 'object'
@@ -1930,7 +1945,7 @@ const schemas = [
         {
           showProceduralVerdict && (
             <section
-              id="verdict"
+              id="verdict-conditions"
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
             >
               <h2 class="text-lg font-semibold text-zinc-100">Decision Conditions</h2>

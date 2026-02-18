@@ -20,6 +20,7 @@ import SentimentTags from '@/components/SentimentTags.astro';
 import VoteWidget from '@/components/VoteWidget';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import RelatedContent from '@/components/RelatedContent.astro';
+import TrustBar from '@/components/TrustBar.astro';
 import { getContextBySlug, supabase } from '@/lib/supabase';
 import { generateContextMeta, generateListSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
@@ -167,6 +168,22 @@ const latestReviewUpdate =
         .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null
     : null;
 const contextCheckedLabel = formatDate(latestReviewUpdate || context.updated_at || null);
+const listSourceCount = new Set(
+  sortedReviews
+    .flatMap((review) =>
+      Array.isArray((review as any).sources)
+        ? ((review as any).sources as Array<{ url?: string }>)
+            .map((entry) => entry.url)
+            .filter((url): url is string => Boolean(url))
+        : []
+    )
+    .slice(0, 200)
+).size;
+const listTrustStatus: 'Source-backed' | 'Needs confirmation' = contextCheckedLabel
+  ? 'Source-backed'
+  : 'Needs confirmation';
+const listConfidence: 'High' | 'Medium' | 'Low' =
+  sortedReviews.length >= 5 ? 'High' : sortedReviews.length >= 2 ? 'Medium' : 'Low';
 
 // Check if any tools have affiliate links
 const hasAffiliateLinks = sortedReviews.some((review) =>
@@ -268,29 +285,43 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
         )
       }
 
-      <div class="mt-6 rounded-xl border border-zinc-700 bg-zinc-900 p-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-300">
-            How We Evaluate This List
-          </h2>
-          <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-            Evaluation depth: Docs-only
-          </span>
-        </div>
-        <p class="mt-2 text-sm text-zinc-400">
-          Rankings are editorial and source-backed. Claims are tied to linked sources on the date
-          checked, and vendors can change details later.
-        </p>
-        <p class="mt-2 text-xs text-zinc-500">
-          Last checked {contextCheckedLabel || 'unknown'} •{' '}
-          <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">Methodology</a> •{' '}
-          <a href="/disclosure" class="text-hunt-500 hover:text-hunt-400">Disclosures</a>
-        </p>
+      <div class="mt-6">
+        <TrustBar
+          status={listTrustStatus}
+          pendingCount={0}
+          evaluationDepth="Docs-only"
+          lastChecked={contextCheckedLabel || 'Unknown'}
+          confidence={listConfidence}
+          sourcesCount={listSourceCount}
+          sourcesHref="#tool-list"
+        />
       </div>
     </header>
 
+    <section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+      <h2 class="text-lg font-semibold text-zinc-100">Quick checks before you buy</h2>
+      <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+        <li>- Confirm plan-gated features for your top 2 picks.</li>
+        <li>- Verify pricing cadence, seat model, and cancellation terms.</li>
+        <li>- Run one real workflow trial before committing.</li>
+      </ul>
+      <details class="group mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+        <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-200">
+          Team / IT checks
+          <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+            <span class="group-open:hidden">Expand</span>
+            <span class="hidden group-open:inline">Collapse</span>
+          </span>
+        </summary>
+        <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+          <li>- Confirm SSO, SCIM, DPA, and audit log requirements.</li>
+          <li>- Validate API limits and integration constraints for rollout.</li>
+        </ul>
+      </details>
+    </section>
+
     <!-- Ranked Tool List -->
-    <section>
+    <section id="tool-list">
       <div class="mb-6 flex items-center justify-between">
         <h2 class="text-xl font-semibold text-zinc-100">
           {

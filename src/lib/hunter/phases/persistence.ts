@@ -264,6 +264,48 @@ function sanitizeRiskyClaimLanguage(text: string): string {
   return next;
 }
 
+function normalizeChecklistItems(value: unknown, max = 5): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const items: string[] = [];
+  for (const raw of value) {
+    if (typeof raw !== 'string') continue;
+    const cleaned = raw.trim().replace(/\s+/g, ' ');
+    if (!cleaned) continue;
+    const key = cleaned.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push(cleaned);
+    if (items.length >= max) break;
+  }
+  return items;
+}
+
+function deriveBuyerChecklists(analysis: any): { quickChecks: string[]; teamItChecks: string[] } {
+  const quickChecks = normalizeChecklistItems(analysis?.canonicalFacts?.quick_checks, 5);
+  const teamItChecks = normalizeChecklistItems(analysis?.canonicalFacts?.team_it_checks, 5);
+
+  if (quickChecks.length > 0 || teamItChecks.length > 0) {
+    return { quickChecks, teamItChecks };
+  }
+
+  const fallbackQuickChecks = [
+    'Confirm pricing cadence and seat model for your expected usage.',
+    'Verify plan-gated features required for your first 30 days.',
+    'Run one real workflow before committing.',
+    'Check export and cancellation paths before lock-in.',
+  ];
+  const fallbackTeamItChecks = [
+    'Confirm SSO, SCIM, and admin controls for your team setup.',
+    'Verify DPA, retention policy, and audit log availability.',
+    'Validate API limits, integration constraints, and access controls.',
+  ];
+  return {
+    quickChecks: fallbackQuickChecks,
+    teamItChecks: fallbackTeamItChecks,
+  };
+}
+
 function extractNamedFeatures(text: string): string[] {
   const quoted = Array.from(text.matchAll(/["'“”]([^"'“”]{3,80})["'“”]/g)).map((m) => m[1].trim());
   const titleCase = Array.from(
@@ -1120,6 +1162,7 @@ export async function executePersistencePhase(
   if (analysis.canonicalFacts) {
     const existingCanonical = (specs.canonical as Record<string, any>) || {};
     const existingQuality = (existingCanonical.quality as Record<string, any>) || {};
+    const derivedChecks = deriveBuyerChecklists(analysis);
     const canonical = {
       ...existingCanonical,
       latest_models_comparison:
@@ -1128,6 +1171,18 @@ export async function executePersistencePhase(
         [],
       model_inventory_raw:
         analysis.canonicalFacts.model_inventory_raw || existingCanonical.model_inventory_raw || [],
+      quick_checks:
+        normalizeChecklistItems(analysis.canonicalFacts.quick_checks, 5).length > 0
+          ? normalizeChecklistItems(analysis.canonicalFacts.quick_checks, 5)
+          : normalizeChecklistItems(existingCanonical.quick_checks, 5).length > 0
+            ? normalizeChecklistItems(existingCanonical.quick_checks, 5)
+            : derivedChecks.quickChecks,
+      team_it_checks:
+        normalizeChecklistItems(analysis.canonicalFacts.team_it_checks, 5).length > 0
+          ? normalizeChecklistItems(analysis.canonicalFacts.team_it_checks, 5)
+          : normalizeChecklistItems(existingCanonical.team_it_checks, 5).length > 0
+            ? normalizeChecklistItems(existingCanonical.team_it_checks, 5)
+            : derivedChecks.teamItChecks,
       setup_tracks:
         analysis.canonicalFacts.setup_tracks || existingCanonical.setup_tracks || undefined,
       quality: {
@@ -1138,6 +1193,8 @@ export async function executePersistencePhase(
     if (
       canonical.latest_models_comparison.length > 0 ||
       canonical.model_inventory_raw.length > 0 ||
+      (canonical.quick_checks && canonical.quick_checks.length > 0) ||
+      (canonical.team_it_checks && canonical.team_it_checks.length > 0) ||
       (canonical.setup_tracks?.dev && canonical.setup_tracks.dev.length > 0) ||
       (canonical.setup_tracks?.non_dev && canonical.setup_tracks.non_dev.length > 0) ||
       (canonical.quality && Object.keys(canonical.quality).length > 0)

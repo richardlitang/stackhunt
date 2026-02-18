@@ -235,6 +235,8 @@ export interface HunterAnalysis {
   canonicalFacts?: {
     latest_models_comparison?: string[];
     model_inventory_raw?: string[];
+    quick_checks?: string[];
+    team_it_checks?: string[];
     setup_tracks?: {
       dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
       non_dev?: Array<{ step: number; action: string; command?: string; description?: string }>;

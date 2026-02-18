@@ -90,18 +90,61 @@ function checkRequiredToolPageMarkers() {
     .map((item) => `src/pages/tool/[slug].astro: ${item.reason}`);
 }
 
+function checkSingleTrustAndVerdict() {
+  const toolPagePath = 'src/pages/tool/[slug].astro';
+  const text = fs.readFileSync(path.join(root, toolPagePath), 'utf8');
+  const trustBarCount = (text.match(/<TrustBar\b/g) || []).length;
+  const verdictBlockCount = (text.match(/id="verdict"/g) || []).length;
+  const errors = [];
+  if (trustBarCount !== 1) {
+    errors.push(`${toolPagePath}: expected exactly 1 TrustBar, found ${trustBarCount}`);
+  }
+  if (verdictBlockCount !== 1) {
+    errors.push(`${toolPagePath}: expected exactly 1 verdict block, found ${verdictBlockCount}`);
+  }
+  return errors;
+}
+
+function checkPatternPropagation() {
+  const checks = [
+    { file: 'src/pages/best/[slug].astro', marker: '<TrustBar', reason: 'missing TrustBar' },
+    { file: 'src/pages/compare/[...slugs].astro', marker: '<TrustBar', reason: 'missing TrustBar' },
+  ];
+  const errors = [];
+  for (const check of checks) {
+    const text = fs.readFileSync(path.join(root, check.file), 'utf8');
+    if (!text.includes(check.marker)) {
+      errors.push(`${check.file}: ${check.reason}`);
+    }
+  }
+  return errors;
+}
+
 function main() {
   const files = targetDirs.flatMap((dir) => walk(path.join(root, dir)));
   const violations = files.flatMap((file) => evaluateFile(file));
   const requiredMarkerErrors = checkRequiredToolPageMarkers();
+  const structureErrors = checkSingleTrustAndVerdict();
+  const propagationErrors = checkPatternPropagation();
 
-  if (violations.length === 0 && requiredMarkerErrors.length === 0) {
+  if (
+    violations.length === 0 &&
+    requiredMarkerErrors.length === 0 &&
+    structureErrors.length === 0 &&
+    propagationErrors.length === 0
+  ) {
     console.log('content-policy-gates: PASS');
     return;
   }
 
   console.error('content-policy-gates: FAIL\n');
   for (const error of requiredMarkerErrors) {
+    console.error(`- ${error}`);
+  }
+  for (const error of structureErrors) {
+    console.error(`- ${error}`);
+  }
+  for (const error of propagationErrors) {
     console.error(`- ${error}`);
   }
   for (const violation of violations) {

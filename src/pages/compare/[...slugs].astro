@@ -17,6 +17,7 @@ import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import SmartComparisonTable from '@/components/SmartComparisonTable';
 import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import ProsCons from '@/components/ProsCons.astro';
+import TrustBar from '@/components/TrustBar.astro';
 import { supabase } from '@/lib/supabase';
 import { getCanonicalUrl, formatPricingType } from '@/lib/utils';
 import {
@@ -433,6 +434,37 @@ const latestCompareUpdate = [toolA.updated_at, toolB.updated_at]
   .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
 const compareCheckedLabel = formatDate(latestCompareUpdate);
 const hasAffiliateLinks = Boolean(offerA?.is_affiliate || offerB?.is_affiliate);
+const compareTrustStatus: 'Source-backed' | 'Needs confirmation' = compareCheckedLabel
+  ? 'Source-backed'
+  : 'Needs confirmation';
+const compareConfidence: 'High' | 'Medium' | 'Low' =
+  toolA.reviews?.length && toolB.reviews?.length ? 'High' : 'Medium';
+const compareSourcesCount = new Set(
+  [...(toolA.reviews || []), ...(toolB.reviews || [])]
+    .flatMap((review: any) =>
+      Array.isArray(review.sources)
+        ? review.sources.map((source: { url?: string }) => source.url).filter(Boolean)
+        : []
+    )
+    .slice(0, 200)
+).size;
+const comparisonDecisionText = curatedVerdict
+  ? curatedVerdict
+  : winner === 'A'
+    ? `${toolA.name} is the stronger default choice for most buyers in this matchup.`
+    : winner === 'B'
+      ? `${toolB.name} is the stronger default choice for most buyers in this matchup.`
+      : `Both tools can work; choose based on workflow fit and constraints.`;
+const comparisonBestFor =
+  winner === 'A'
+    ? `${toolA.name} if you value its stronger overall fit in this comparison.`
+    : winner === 'B'
+      ? `${toolB.name} if you value its stronger overall fit in this comparison.`
+      : `Teams that need flexibility and can pilot both tools before choosing.`;
+const comparisonTradeoff =
+  winner === 'tie'
+    ? 'Tradeoffs are close, so migration friction and plan gating should decide.'
+    : 'The higher-ranked option may still miss requirements important to your team.';
 
 const meta = {
   title,
@@ -459,10 +491,10 @@ const schemas = [
           '@type': 'Answer',
           text:
             winner === 'A'
-              ? `Based on our analysis, ${toolA.name} scores higher (${scoreA}/100) compared to ${toolB.name} (${scoreB}/100). The right choice depends on your specific needs.`
+              ? `Based on our analysis, ${toolA.name} is generally the stronger fit, but the right choice depends on your workflow.`
               : winner === 'B'
-                ? `Based on our analysis, ${toolB.name} scores higher (${scoreB}/100) compared to ${toolA.name} (${scoreA}/100). The right choice depends on your specific needs.`
-                : `Both tools score similarly. ${toolA.name} scores ${scoreA}/100 and ${toolB.name} scores ${scoreB}/100. The right choice depends on your specific needs.`,
+                ? `Based on our analysis, ${toolB.name} is generally the stronger fit, but the right choice depends on your workflow.`
+                : `Both tools are close; choose based on your workflow and constraints.`,
         },
       },
       {
@@ -501,68 +533,40 @@ const schemas = [
       <p class="mx-auto mt-4 max-w-2xl text-lg text-zinc-300">
         A detailed comparison to help you choose the right tool for your needs.
       </p>
-      <div class="mx-auto mt-5 max-w-3xl rounded-xl border border-zinc-700 bg-zinc-900 p-4 text-left">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-300">
-            How We Evaluate This Comparison
-          </h2>
-          <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-            Evaluation depth: Docs-only
-          </span>
-        </div>
-        <p class="mt-2 text-sm text-zinc-400">
-          This page combines source-backed facts and editorial analysis from both tool profiles.
-          Claims are tied to linked sources on the date checked.
-        </p>
-        <p class="mt-2 text-xs text-zinc-500">
-          Last checked {compareCheckedLabel || 'unknown'} •{' '}
-          <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">Methodology</a> •{' '}
-          <a href="/disclosure" class="text-hunt-500 hover:text-hunt-400">Disclosures</a>
-        </p>
+      <div class="mx-auto mt-5 max-w-3xl text-left">
+        <TrustBar
+          status={compareTrustStatus}
+          pendingCount={0}
+          evaluationDepth="Docs-only"
+          lastChecked={compareCheckedLabel || 'Unknown'}
+          confidence={compareConfidence}
+          sourcesCount={compareSourcesCount}
+          sourcesHref="#detailed-comparison"
+        />
       </div>
     </header>
 
-    <!-- Curated Verdict (if available) -->
-    {
-      curatedVerdict && (
-        <div class="mb-6 rounded-xl border border-hunt-500/40 bg-hunt-500/10 p-5 text-center shadow-sm">
-          <div class="flex items-center justify-center gap-2 mb-2">
-            <svg class="h-5 w-5 text-hunt-400" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fill-rule="evenodd"
-                d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <span class="text-sm font-medium text-hunt-300">
-              {isCurated ? 'Expert Verdict' : 'Quick Take'}
-            </span>
-          </div>
-          <p class="text-lg font-semibold text-zinc-100">{curatedVerdict}</p>
+    <section id="verdict" class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Decision</p>
+      <h2 class="mt-2 text-lg font-semibold text-zinc-100">{comparisonDecisionText}</h2>
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Best for</h3>
+          <p class="mt-2 text-sm text-zinc-200">{comparisonBestFor}</p>
         </div>
-      )
-    }
-
-    <!-- Quick Verdict Banner -->
-    {
-      winner !== 'tie' && !curatedVerdict && (
-        <div
-          class={`mb-10 rounded-xl p-5 text-center ${winner === 'A' ? 'bg-green-900/20 border border-green-700/50' : 'bg-blue-900/20 border border-blue-700/50'}`}
-        >
-          <span class="text-sm font-medium text-zinc-400">Higher Overall Score:</span>
-          <span class={`ml-2 font-bold ${winner === 'A' ? 'text-green-400' : 'text-blue-400'}`}>
-            {winner === 'A' ? toolA.name : toolB.name}
-          </span>
-          <span class="text-sm text-zinc-500 ml-1">({winner === 'A' ? scoreA : scoreB}/100)</span>
-          <p class="mt-2 text-xs text-zinc-500">
-            Choice depends on your specific needs — see detailed comparison below
-          </p>
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Tradeoff</h3>
+          <p class="mt-2 text-sm text-zinc-200">{comparisonTradeoff}</p>
         </div>
-      )
-    }
+      </div>
+      <p class="mt-3 text-xs text-zinc-500">
+        {isCurated ? 'Curated editorial comparison' : 'Editorial comparison'} • Last checked{' '}
+        {compareCheckedLabel || 'unknown'}
+      </p>
+    </section>
 
     <!-- Side-by-Side Comparison -->
-    <div class="grid gap-8 lg:grid-cols-2">
+    <div id="detailed-comparison" class="grid gap-8 lg:grid-cols-2">
       <!-- Tool A -->
       <div
         class={`rounded-xl border-2 ${winner === 'A' ? 'border-green-500/50 bg-green-900/10 shadow-lg' : 'border-zinc-800 bg-zinc-900/50 shadow-sm'} p-6 transition-shadow`}
