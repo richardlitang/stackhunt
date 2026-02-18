@@ -73,6 +73,24 @@ if (error || !review) {
 const tool = review.tool as Record<string, unknown>;
 const context = review.context as Record<string, unknown> | null;
 const toolMetadata = (tool?.metadata as Record<string, unknown> | null) || null;
+const toolSpecs = (tool?.specs as Record<string, unknown> | null) || null;
+const canonicalFacts = (toolSpecs?.canonical as Record<string, unknown> | null) || null;
+const toStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    : [];
+const handsOnChecksValue = toStringArray(canonicalFacts?.hands_on_checks).join('\n');
+const handsOnNotes =
+  canonicalFacts?.hands_on_test_notes && typeof canonicalFacts.hands_on_test_notes === 'object'
+    ? (canonicalFacts.hands_on_test_notes as Record<string, unknown>)
+    : null;
+const handsOnEnvironment =
+  typeof handsOnNotes?.environment === 'string' ? handsOnNotes.environment : '';
+const handsOnStepsValue = toStringArray(handsOnNotes?.steps).join('\n');
+const handsOnFindingsValue = toStringArray(handsOnNotes?.findings).join('\n');
+const handsOnTestedAtRaw =
+  typeof handsOnNotes?.tested_at === 'string' ? handsOnNotes.tested_at : '';
+const handsOnTestedAtValue = handsOnTestedAtRaw ? handsOnTestedAtRaw.slice(0, 10) : '';
 const existingFaqs = Array.isArray(toolMetadata?.faqs) ? toolMetadata.faqs : [];
 const faqJsonValue = JSON.stringify(existingFaqs, null, 2);
 const prosLines = ((review.pros as ReviewClaim[]) || []).map(claimText).filter(Boolean);
@@ -372,6 +390,78 @@ const publishGate = evaluateStrictPublishGate(
           >
         </div>
 
+        <!-- Optional Hands-on Test Notes -->
+        <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-4">
+          <div>
+            <h3 class="text-sm font-semibold text-slate-800">Optional: We tested it</h3>
+            <p class="mt-1 text-xs text-slate-500">
+              Fill this only when you performed manual checks. These values populate the public
+              "We tested it" section and evaluation depth.
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">
+              Hands-on checks <span class="text-slate-400 font-normal">(one per line)</span>
+            </label>
+            <textarea
+              name="hands_on_checks"
+              rows="4"
+              placeholder="e.g., Created a new workspace and invited collaborator"
+              class="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+              >{handsOnChecksValue}</textarea
+            >
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                Test environment
+              </label>
+              <input
+                type="text"
+                name="hands_on_environment"
+                value={handsOnEnvironment}
+                placeholder="e.g., macOS 14, Chrome 121, Starter plan"
+                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">Test date</label>
+              <input
+                type="date"
+                name="hands_on_tested_at"
+                value={handsOnTestedAtValue}
+                class="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+              />
+            </div>
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                Steps run <span class="text-slate-400 font-normal">(one per line)</span>
+              </label>
+              <textarea
+                name="hands_on_steps"
+                rows="4"
+                placeholder="e.g., Signed up -> imported CSV -> exported report"
+                class="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+                >{handsOnStepsValue}</textarea
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                Findings <span class="text-slate-400 font-normal">(one per line)</span>
+              </label>
+              <textarea
+                name="hands_on_findings"
+                rows="4"
+                placeholder="e.g., Invite flow took ~2 min; export omitted custom fields"
+                class="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+                >{handsOnFindingsValue}</textarea
+              >
+            </div>
+          </div>
+        </div>
+
         <!-- FAQ Editor -->
         <div class="rounded-xl border border-slate-200 bg-white p-6">
           <label class="block text-sm font-medium text-slate-700 mb-2">
@@ -598,7 +688,7 @@ const publishGate = evaluateStrictPublishGate(
             {publishGate.pass ? 'Ready to publish' : 'Blocked'}
           </div>
           <div class="mt-1 text-xs text-slate-500">
-            Evidence grade: {publishGate.evidenceGrade} · Pricing confidence: {
+            Sourcing confidence: {publishGate.evidenceGrade} · Pricing confidence: {
               publishGate.metrics.pricingConfidence
             }
           </div>

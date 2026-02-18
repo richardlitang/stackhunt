@@ -13,6 +13,7 @@ import Logo from '@/components/Logo.astro';
 import ScoreBadge from '@/components/ScoreBadge.astro';
 import PricingBadge from '@/components/PricingBadge.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
+import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import SmartComparisonTable from '@/components/SmartComparisonTable';
 import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import ProsCons from '@/components/ProsCons.astro';
@@ -421,11 +422,21 @@ const uniqueSuggestions = suggestions
 
 // SEO
 const title = `${toolA.name} vs ${toolB.name}: Which is Better? (${new Date().getFullYear()}) | StackHunt`;
-const description = `Compare ${toolA.name} and ${toolB.name} side by side. See pricing, features, pros & cons to find the best choice for your needs.`;
+const formatDate = (value?: string | null): string | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+const latestCompareUpdate = [toolA.updated_at, toolB.updated_at]
+  .filter((value): value is string => Boolean(value))
+  .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
+const compareCheckedLabel = formatDate(latestCompareUpdate);
+const hasAffiliateLinks = Boolean(offerA?.is_affiliate || offerB?.is_affiliate);
 
 const meta = {
   title,
-  description,
+  description: `Compare ${toolA.name} and ${toolB.name} side by side. See pricing, features, pros & cons to find a strong fit for your needs.`,
   canonical: getCanonicalUrl(`/compare/${slugA}-vs-${slugB}`),
   ogType: 'website' as const,
 };
@@ -448,10 +459,10 @@ const schemas = [
           '@type': 'Answer',
           text:
             winner === 'A'
-              ? `Based on our analysis, ${toolA.name} scores higher (${scoreA}/100) compared to ${toolB.name} (${scoreB}/100). However, the best choice depends on your specific needs.`
+              ? `Based on our analysis, ${toolA.name} scores higher (${scoreA}/100) compared to ${toolB.name} (${scoreB}/100). The right choice depends on your specific needs.`
               : winner === 'B'
-                ? `Based on our analysis, ${toolB.name} scores higher (${scoreB}/100) compared to ${toolA.name} (${scoreA}/100). However, the best choice depends on your specific needs.`
-                : `Both tools score similarly. ${toolA.name} scores ${scoreA}/100 and ${toolB.name} scores ${scoreB}/100. The best choice depends on your specific needs.`,
+                ? `Based on our analysis, ${toolB.name} scores higher (${scoreB}/100) compared to ${toolA.name} (${scoreA}/100). The right choice depends on your specific needs.`
+                : `Both tools score similarly. ${toolA.name} scores ${scoreA}/100 and ${toolB.name} scores ${scoreB}/100. The right choice depends on your specific needs.`,
         },
       },
       {
@@ -468,6 +479,8 @@ const schemas = [
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
+  <AffiliateDisclosure variant="banner" hasAffiliateLinks={hasAffiliateLinks} />
+
   <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-zinc-400">
@@ -488,6 +501,25 @@ const schemas = [
       <p class="mx-auto mt-4 max-w-2xl text-lg text-zinc-300">
         A detailed comparison to help you choose the right tool for your needs.
       </p>
+      <div class="mx-auto mt-5 max-w-3xl rounded-xl border border-zinc-700 bg-zinc-900 p-4 text-left">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-300">
+            How We Evaluate This Comparison
+          </h2>
+          <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+            Evaluation depth: Docs-only
+          </span>
+        </div>
+        <p class="mt-2 text-sm text-zinc-400">
+          This page combines source-backed facts and editorial analysis from both tool profiles.
+          Claims are tied to linked sources on the date checked.
+        </p>
+        <p class="mt-2 text-xs text-zinc-500">
+          Last checked {compareCheckedLabel || 'unknown'} •{' '}
+          <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">Methodology</a> •{' '}
+          <a href="/disclosure" class="text-hunt-500 hover:text-hunt-400">Disclosures</a>
+        </p>
+      </div>
     </header>
 
     <!-- Curated Verdict (if available) -->
@@ -523,7 +555,7 @@ const schemas = [
           </span>
           <span class="text-sm text-zinc-500 ml-1">({winner === 'A' ? scoreA : scoreB}/100)</span>
           <p class="mt-2 text-xs text-zinc-500">
-            Best choice depends on your specific needs — see detailed comparison below
+            Choice depends on your specific needs — see detailed comparison below
           </p>
         </div>
       )
@@ -1060,6 +1092,9 @@ const schemas = [
 
     <!-- Pricing Crossover Chart - THE KILLER FEATURE -->
     <section class="mt-12">
+      <p class="mb-3 text-xs text-zinc-500">
+        Pricing can change frequently; confirm current plans on vendor pricing pages.
+      </p>
       <PricingCrossoverChart
         client:load
         tools={[

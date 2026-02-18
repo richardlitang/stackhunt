@@ -157,7 +157,7 @@ export default function PriceVerification({
             <p className="text-sm text-zinc-300">Is this pricing still accurate?</p>
             {localCount > 0 && (
               <span className="text-xs text-zinc-500">
-                Verified by {localCount} {localCount === 1 ? 'user' : 'users'} this week
+                Source-confirmed by {localCount} {localCount === 1 ? 'user' : 'users'} this week
               </span>
             )}
           </div>

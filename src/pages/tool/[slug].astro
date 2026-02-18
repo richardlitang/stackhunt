@@ -6,7 +6,6 @@
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
-import ScoreBadge from '@/components/ScoreBadge.astro';
 import ProsCons from '@/components/ProsCons.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
@@ -243,13 +242,6 @@ const isEligibleEvidenceUrl = (url?: string | null): boolean => {
     return false;
   }
 };
-const getEvidenceDomain = (url: string): string => {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
-  } catch {
-    return '';
-  }
-};
 const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
 const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
 const stripControlChars = (value: string): string =>
@@ -337,7 +329,7 @@ const buildEvidenceBulletV2 = ({
   if (requiredSourcing && sources.length === 0) {
     const checkedAt = retrievedAt || 'the latest verification date';
     return {
-      text: `We couldn't confirm this claim in official docs as of ${checkedAt}. Verify with the vendor before procurement.`,
+      text: `We couldn't confirm this claim in official docs as of ${checkedAt}. Verify with the vendor before purchase.`,
       sources: [],
       confidence: 'low',
       kind,
@@ -396,10 +388,6 @@ const hasProceduralSignals =
   sectionStatus.pricing === 'procedural' ||
   sectionStatus.community === 'procedural' ||
   sectionStatus.specs === 'procedural';
-const evidenceCounts = {
-  ...indexReadiness.signals.evidence_counts,
-  ...(persistedQuality?.evidence_counts || {}),
-};
 const hasDraftReview = (tool.reviews || []).some((review) => review.status === 'draft');
 const isDraftPage = publishedReviews.length === 0 && hasDraftReview;
 
@@ -528,8 +516,22 @@ const hasPricing = Boolean(
   sectionStatus.pricing === 'show'
 );
 const hasPlatform = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
-const hasVideo = Boolean(tool.video_id);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
+const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
+  areToolsComparable(
+    {
+      slug: tool.slug,
+      category_id: getPrimaryCategoryId(tool),
+      metadata: tool.metadata as any,
+    },
+    {
+      slug: alt.slug,
+      category_id: getPrimaryCategoryId(alt),
+      metadata: alt.metadata as any,
+    }
+  )
+);
+const hasComparableAlternatives = comparableAlternatives.length > 0;
 const hasCommunity = Boolean(
   eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show'
 );
@@ -637,9 +639,42 @@ const checklistTechnical = [
   'Verify export formats and migration path before lock-in.',
 ];
 const checklistSecurity = [
-  'Check security/compliance docs against procurement requirements.',
+  'Check security/compliance docs against your team requirements.',
   'Confirm admin controls, SSO, and access/audit expectations.',
 ];
+const toStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    : [];
+const handsOnChecks = toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.hands_on_checks).slice(0, 6);
+const handsOnTestNotesRaw =
+  canonicalFacts?.hands_on_test_notes && typeof canonicalFacts.hands_on_test_notes === 'object'
+    ? (canonicalFacts.hands_on_test_notes as Record<string, unknown>)
+    : null;
+const handsOnTestEnvironment =
+  typeof handsOnTestNotesRaw?.environment === 'string' ? handsOnTestNotesRaw.environment : null;
+const handsOnTestSteps = toStringArray(handsOnTestNotesRaw?.steps).slice(0, 8);
+const handsOnTestFindings = toStringArray(handsOnTestNotesRaw?.findings).slice(0, 8);
+const handsOnTestedAtLabel = (() => {
+  if (typeof handsOnTestNotesRaw?.tested_at !== 'string') return null;
+  const parsed = new Date(handsOnTestNotesRaw.tested_at);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+})();
+const hasHandsOnTestNotes = Boolean(
+  handsOnTestEnvironment || handsOnTestSteps.length > 0 || handsOnTestFindings.length > 0 || handsOnTestedAtLabel
+);
+const evaluationDepth: 'Docs-only' | 'Light hands-on' | 'Deep hands-on' =
+  handsOnChecks.length >= 3 ? 'Deep hands-on' : handsOnChecks.length > 0 ? 'Light hands-on' : 'Docs-only';
+const testedItems =
+  evaluationDepth === 'Docs-only'
+    ? ['Official docs/help pages reviewed', 'Official pricing pages reviewed', 'Source dates checked']
+    : handsOnChecks;
+const notTestedItems =
+  evaluationDepth === 'Docs-only'
+    ? ['Live product workflow execution', 'Account-level setup in production environments', 'Contract-specific terms (SSO, SCIM, DPA, audit-log gating)']
+    : ['Enterprise contract and legal terms unless explicitly stated in cited vendor docs'];
+const showWeTestedIt = evaluationDepth !== 'Docs-only' || hasHandsOnTestNotes;
 const hasVerificationChecklist = Boolean(
   hasPricing || showProceduralPricing || firstReview || constraints || hasPlatform
 );
@@ -937,7 +972,7 @@ const extractPricingClaimPlan = (text: string, index: number): string => {
   if (match) {
     return `${match[1].charAt(0).toUpperCase()}${match[1].slice(1).toLowerCase()} plan`;
   }
-  return `Pricing detail ${index + 1}`;
+  return `Plan not specified in source #${index + 1}`;
 };
 const extractPricingClaimPrice = (text: string): string => {
   const match = text.match(/\$\s?\d[\d,.]*(?:\s*\/\s*(?:mo|month|yr|year|seat|user))?/i);
@@ -949,15 +984,16 @@ const pricingFallbackRows =
         planName: extractPricingClaimPlan(item.text, index),
         price: extractPricingClaimPrice(item.text),
         detail: item.text,
-        verification: item.sourceUrl ? 'Verified claim' : 'Unverified claim',
+        verification: item.sourceUrl ? 'Source-backed claim' : 'Not source-confirmed',
         sourceUrl: item.sourceUrl || officialPricingSource?.url || null,
       }))
     : [
         {
-          planName: 'Pricing not fully extracted',
+          planName: 'Pricing not confirmed',
           price: '—',
-          detail: 'Pricing varies by plan and contract terms. Confirm with official pricing pages.',
-          verification: 'Needs vendor confirmation',
+          detail:
+            'Pricing changes frequently. Confirm current plan details on the vendor pricing page.',
+          verification: 'Not source-confirmed',
           sourceUrl: officialPricingSource?.url || null,
         },
       ];
@@ -972,7 +1008,7 @@ const decisionProofPoints = [
     requiredSourcing: true,
   }),
   buildEvidenceBulletV2({
-    text: `Documentation and product references verified from official docs/help sources (checked ${specsVerifiedLabel || 'latest available date'}).`,
+    text: `Documentation and product references reviewed from official docs/help sources (checked ${specsVerifiedLabel || 'latest available date'}).`,
     kind: 'claim',
     sourceUrl: officialDocsSource?.url,
     sourceLabel: 'Official docs',
@@ -980,7 +1016,7 @@ const decisionProofPoints = [
     requiredSourcing: true,
   }),
   buildEvidenceBulletV2({
-    text: `Procurement constraints were extracted from source-linked evidence for this page (checked ${communityVerifiedLabel || 'latest available date'}).`,
+    text: `Buyer diligence constraints were extracted from source-linked evidence for this page (checked ${communityVerifiedLabel || 'latest available date'}).`,
     kind: 'limit',
     sourceUrl:
       topHardLimit?.sourceUrl || officialPricingSource?.url || officialDocsSource?.url || null,
@@ -1042,7 +1078,7 @@ const useCasesStrip = [
   },
   {
     title: 'Compare options before buying',
-    text: 'Use it to shortlist tools and spot tradeoffs before procurement.',
+    text: 'Use it to shortlist tools and spot tradeoffs before buying.',
     prompt: `Compare ${tool.name} with two alternatives for a 10-person team, including pricing tradeoffs and source links.`,
   },
   {
@@ -1087,22 +1123,48 @@ const verifiedClaimCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoin
 if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
   evidenceGrade = 'B';
   evidenceGradeDisplay = 'A-';
-  evidenceGradeDescription = `Strong verified coverage with ${pendingVerificationCount} pending verification item${pendingVerificationCount === 1 ? '' : 's'}.`;
+  evidenceGradeDescription = `Strong source-backed coverage with ${pendingVerificationCount} pending verification item${pendingVerificationCount === 1 ? '' : 's'}.`;
 }
 if (verdictLabel === 'Consider' && pendingVerificationCount > 0) {
-  verdictLabelRationale = `${tool.name} can fit, but procurement-significant constraints are still pending verification.`;
+  verdictLabelRationale = `${tool.name} can fit, but buyer-significant constraints are still pending verification.`;
 }
 isVerificationMode = evidenceGrade === 'C' || pendingVerificationCount > 0;
 const fitStatusLabel =
   verdictLabel === 'Consider' && pendingVerificationCount > 0
-    ? 'Consider (Procurement pending)'
+    ? 'Consider (Buyer diligence incomplete)'
     : verdictLabel;
 const productStrengthLabel =
   tool.avg_score > 0
     ? `${Math.round(tool.avg_score)} / 100 (${getScoreColor(Math.round(tool.avg_score)).label})`
     : 'Tracking';
 const weightedSourceScoreMax = evidenceLinksAll.length;
-const pendingVerificationLabel = `Pending verification: ${pendingVerificationCount} procurement-significant ${pendingVerificationCount === 1 ? 'claim' : 'claims'}.`;
+const pendingVerificationLabel = `Pending verification: ${pendingVerificationCount} buyer-significant ${pendingVerificationCount === 1 ? 'claim' : 'claims'}.`;
+const updateHistoryEntries = [
+  pricingVerifiedLabel
+    ? {
+        date: pricingVerifiedLabel,
+        what: 'Pricing references rechecked',
+        why: 'Pricing is volatile and can change frequently',
+        source: officialPricingSource?.url || null,
+      }
+    : null,
+  specsVerifiedLabel
+    ? {
+        date: specsVerifiedLabel,
+        what: 'Product docs and specs refreshed',
+        why: 'Feature and setup claims require current docs',
+        source: officialDocsSource?.url || null,
+      }
+    : null,
+  communityVerifiedLabel
+    ? {
+        date: communityVerifiedLabel,
+        what: 'Editorial verdict and tradeoffs updated',
+        why: 'Recommendation language aligned to latest source-backed claims',
+        source: officialDocsSource?.url || officialPricingSource?.url || null,
+      }
+    : null,
+].filter((entry): entry is { date: string; what: string; why: string; source: string | null } => Boolean(entry));
 const publishedAnalysesLabel =
   tool.review_count > 0 ? String(tool.review_count) : isVerificationMode ? 'In review' : '0';
 shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
@@ -1174,7 +1236,7 @@ const schemas = [
       <div class="relative grid gap-5 lg:grid-cols-[1.4fr_1fr] lg:items-start">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">
-            Research Confidence
+            Sourcing Status
           </p>
           <h2
             class:list={[
@@ -1182,19 +1244,19 @@ const schemas = [
               isVerificationMode ? 'text-amber-200' : 'text-zinc-100',
             ]}
           >
-            {isVerificationMode ? 'Verification Mode' : 'Evidence & Confidence'}
+            {isVerificationMode ? 'Needs Confirmation' : 'Source-backed Status'}
           </h2>
           <p class:list={['mt-2 text-sm', isVerificationMode ? 'text-amber-100/90' : 'text-zinc-300']}>
-            Evidence grade: {evidenceGradeDisplay} • {evidenceGradeDescription}
+            Sourcing confidence: {evidenceGradeDisplay} • {evidenceGradeDescription}
           </p>
           <details class="mt-2 inline-block rounded-md border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-300">
             <summary class="cursor-pointer list-none font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
-              How we score
+              Badge definitions
             </summary>
             <p class="mt-2 max-w-xl leading-relaxed text-zinc-400">
-              Verified means a claim is directly supported by a cited source and still matches the
-              current page. Official, independent, and community are source-quality buckets; weighted
-              score is out of {weightedSourceScoreMax || 0}.{' '}
+              Source-backed means the claim appears in a linked source on the date checked. Vendors
+              can change details after that date. Official, independent, and community are source-quality
+              buckets; evidence index is out of {weightedSourceScoreMax || 0}.{' '}
               <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">
                 Methodology
               </a>
@@ -1203,7 +1265,7 @@ const schemas = [
           </details>
           <div class="mt-3 flex flex-wrap gap-2 text-xs">
             <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
-              Verified: {evidenceLinks.length}
+              Source-backed: {evidenceLinks.length}
             </span>
             <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
               Official: {officialEvidenceLinks.length}
@@ -1215,12 +1277,12 @@ const schemas = [
               Community: {communityEvidenceLinks.length}
             </span>
             <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
-              Weighted score: {weightedSourceScore.toFixed(1)} / {weightedSourceScoreMax}
+              Evidence index: {weightedSourceScore.toFixed(1)} / {weightedSourceScoreMax}
             </span>
           </div>
           <p class="mt-3 text-xs text-zinc-500">
-            {evidenceLinksAll.length} sources reviewed • {verifiedClaimCount} claims verified • Last
-            verified{' '}
+            {evidenceLinksAll.length} sources reviewed • {verifiedClaimCount} source-backed claims • Last
+            checked{' '}
             {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
           </p>
           {
@@ -1312,7 +1374,7 @@ const schemas = [
                           clip-rule="evenodd"
                         />
                       </svg>
-                      Verified
+                      Source-backed
                     </span>
                   )
                 }
@@ -1402,7 +1464,7 @@ const schemas = [
           {
             evidenceLinks.length > 0 && (
               <p class="text-xs text-zinc-500">
-                Verified sources: {evidenceLinks.length}
+                Source-backed sources: {evidenceLinks.length}
                 {evidenceLinksAll.length > evidenceLinks.length
                   ? ` • Collected: ${evidenceLinksAll.length}`
                   : ''}
@@ -1420,34 +1482,28 @@ const schemas = [
             id="decision-snapshot-heading"
             class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400"
           >
-            Decision Snapshot
+            Verdict Snapshot
           </p>
           <div class="mt-3 flex flex-wrap items-center gap-3">
-            {
-              tool.avg_score > 0 ? (
-                <ScoreBadge score={Math.round(tool.avg_score)} size="lg" showLabel />
-              ) : (
-                <span class="inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-200">
-                  Score tracking
-                </span>
-              )
-            }
             <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
               {fitStatusLabel}
             </span>
           </div>
           <div class="mt-3 grid gap-1 text-xs text-zinc-500">
             <p>
-              Product strength: <span class="text-zinc-300">{productStrengthLabel}</span>
+              Verdict: <span class="text-zinc-300">Best for {decisionSnapshotBestWhen[0] || 'teams that prioritize source-backed guidance'}</span>
             </p>
             <p>
-              Fit status: <span class="text-zinc-300">{fitStatusLabel}</span>
+              Tradeoff: <span class="text-zinc-300">{decisionSnapshotWatchOuts[0] || 'Some buying details are still being confirmed'}</span>
+            </p>
+            <p>
+              Product strength: <span class="text-zinc-300">{productStrengthLabel}</span>
             </p>
           </div>
 
           <p class="mt-4 text-sm text-zinc-300">{verdictLabelRationale}</p>
           <p class="mt-4 text-xs text-zinc-500">
-            Last verified {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
+            Last checked {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
           </p>
 
           <div class="mt-4 space-y-2">
@@ -1457,7 +1513,7 @@ const schemas = [
                   href="#verification-checklist"
                   class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
                 >
-                  Open verification checklist
+                  Open buyer diligence checklist
                 </a>
               )
             }
@@ -1506,7 +1562,7 @@ const schemas = [
             {
               hasVerifiedAvoidIf
                 ? avoidIfBullet?.text
-                : `No source-backed hard avoid condition found as of ${communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'latest verification'}.`
+                : `No source-backed hard avoid condition found as of ${communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'latest check'}.`
             }
           </p>
         </div>
@@ -1535,7 +1591,7 @@ const schemas = [
                       Claim source
                     </a>
                   )}
-                  {item.unverified && <span class="ml-2 text-xs text-amber-300">Unverified</span>}
+                  {item.unverified && <span class="ml-2 text-xs text-amber-300">Needs confirmation</span>}
                 </li>
               ))}
             </ul>
@@ -1583,7 +1639,7 @@ const schemas = [
           )
         }
         <span class="text-xs text-zinc-500">
-          Last verified {
+          Last checked {
             communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'
           } •{' '}
           {evidenceLinksAll.length} collected sources
@@ -1600,6 +1656,94 @@ const schemas = [
         )
       }
     </section>
+
+    <section
+      id="how-we-evaluate"
+      class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold text-zinc-100">How We Evaluate</h2>
+        <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+          Evaluation depth: {evaluationDepth}
+        </span>
+      </div>
+      <p class="mt-2 text-sm text-zinc-400">
+        Source-backed means a claim is present in the linked source on the date checked. Vendors can
+        update details after that date.
+      </p>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+          <h3 class="text-sm font-semibold text-zinc-200">What we tested for this review</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {testedItems.map((item) => (
+              <li>- {item}</li>
+            ))}
+          </ul>
+        </div>
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+          <h3 class="text-sm font-semibold text-zinc-200">Not tested</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {notTestedItems.map((item) => (
+              <li>- {item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <p class="mt-4 text-xs text-zinc-500">
+        See{' '}
+        <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">
+          methodology
+        </a>{' '}
+        and{' '}
+        <a href="/disclosure" class="text-hunt-500 hover:text-hunt-400">
+          disclosures
+        </a>
+        .
+      </p>
+    </section>
+
+    {
+      showWeTestedIt && (
+        <section
+          id="we-tested-it"
+          class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-zinc-100">We tested it</h2>
+            {handsOnTestedAtLabel && (
+              <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+                Tested on {handsOnTestedAtLabel}
+              </span>
+            )}
+          </div>
+          {handsOnTestEnvironment && (
+            <p class="mt-2 text-sm text-zinc-300">Environment: {handsOnTestEnvironment}</p>
+          )}
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            {handsOnTestSteps.length > 0 && (
+              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <h3 class="text-sm font-semibold text-zinc-200">Steps run</h3>
+                <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+                  {handsOnTestSteps.map((step) => (
+                    <li>- {step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {handsOnTestFindings.length > 0 && (
+              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <h3 class="text-sm font-semibold text-zinc-200">Findings</h3>
+                <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+                  {handsOnTestFindings.map((finding) => (
+                    <li>- {finding}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )
+    }
 
     <section
       id="use-cases"
@@ -1652,8 +1796,8 @@ const schemas = [
           )
         }
         {
-          hasAlternatives &&
-            orderedAlternatives.slice(0, 3).map((alt) => (
+          hasComparableAlternatives &&
+            comparableAlternatives.slice(0, 3).map((alt) => (
               <a
                 href={`/compare/${tool.slug}-vs-${alt.slug}`}
                 class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -1679,6 +1823,12 @@ const schemas = [
           class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
         >
           Use cases
+        </a>
+        <a
+          href="#how-we-evaluate"
+          class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+        >
+          How we evaluate
         </a>
         {
           hasGettingStarted && (
@@ -1781,12 +1931,28 @@ const schemas = [
           )
         }
         {
+          updateHistoryEntries.length > 0 && (
+            <a
+              href="#update-history"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Updates
+            </a>
+          )
+        }
+        <a
+          href="/disclosure"
+          class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+        >
+          Disclosures
+        </a>
+        {
           showVerificationChecklist && (
             <a
               href="#verification-checklist"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
-              Checklist
+              Buyer checks
             </a>
           )
         }
@@ -1845,7 +2011,7 @@ const schemas = [
                   specsVerifiedLabel ||
                   pricingVerifiedLabel ||
                   'the latest review'}
-                , vendor documentation and verified sources indicate this recommendation level for{' '}
+                , vendor documentation and source-backed references indicate this recommendation level for{' '}
                 {tool.name}.
               </p>
               <div
@@ -1904,7 +2070,7 @@ const schemas = [
                 <li>- Run one real workflow and capture where the tool fails first.</li>
                 <li>- Validate migration and rollback paths before replacing incumbents.</li>
                 <li>- Confirm your must-have integrations are supported in current plans.</li>
-                <li>- Re-check this page after new evidence is verified.</li>
+                <li>- Re-check this page after new evidence is source-backed.</li>
               </ul>
             </section>
           )
@@ -1987,7 +2153,7 @@ const schemas = [
                   <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
                   {pricingVerifiedLabel && (
                     <p class="mt-1 text-xs text-zinc-500">
-                      Pricing verified {pricingVerifiedLabel}
+                      Pricing checked {pricingVerifiedLabel}
                     </p>
                   )}
                 </div>
@@ -2010,6 +2176,10 @@ const schemas = [
                 </span>
               </summary>
               <div class="mt-4">
+                <p class="mb-4 text-xs text-zinc-500">
+                  Pricing changes frequently; confirm on the vendor site. Shown as of{' '}
+                  {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}.
+                </p>
                 {hasPricing ? (
                   <>
                     <PricingPlansGrid
@@ -2056,10 +2226,9 @@ const schemas = [
                 ) : (
                   <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
                     <p>
-                      Pricing extraction is incomplete. This normalized table keeps layout stable
-                      while showing the best available source-linked claims.
+                      Pricing not confirmed. Showing currently available source-linked claims only.
                     </p>
-                    <h3 class="text-sm font-semibold text-zinc-100">Verified pricing snapshot</h3>
+                    <h3 class="text-sm font-semibold text-zinc-100">Source-backed pricing snapshot</h3>
                     <div class="overflow-x-auto rounded-lg border border-zinc-800">
                       <table class="min-w-full divide-y divide-zinc-800 text-left text-xs">
                         <thead class="bg-zinc-900/90 text-zinc-400">
@@ -2082,7 +2251,7 @@ const schemas = [
                                 <span
                                   class:list={[
                                     'rounded-full border px-2 py-0.5',
-                                    row.verification === 'Verified claim'
+                                    row.verification === 'Source-backed claim'
                                       ? 'border-emerald-700/50 bg-emerald-900/30 text-emerald-300'
                                       : 'border-amber-700/50 bg-amber-900/30 text-amber-300',
                                   ]}
@@ -2195,7 +2364,7 @@ const schemas = [
           hasSpecs && (
             <section id="specs">
               {specsVerifiedLabel && (
-                <p class="mb-3 text-xs text-zinc-500">Specs verified {specsVerifiedLabel}</p>
+                <p class="mb-3 text-xs text-zinc-500">Specs checked {specsVerifiedLabel}</p>
               )}
               <DynamicSpecs
                 categorySpecificData={displayCategorySpecificData}
@@ -2674,14 +2843,47 @@ const schemas = [
     }
 
     {
+      updateHistoryEntries.length > 0 && (
+        <section
+          id="update-history"
+          class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+        >
+          <h2 class="text-lg font-semibold text-zinc-100">Update History</h2>
+          <p class="mt-2 text-sm text-zinc-400">
+            Last update {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'} • Last check {pricingVerifiedLabel || specsVerifiedLabel || communityVerifiedLabel || 'unknown'}
+          </p>
+          <ul class="mt-4 space-y-3 text-sm text-zinc-300">
+            {updateHistoryEntries.map((entry) => (
+              <li class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+                <p class="font-medium text-zinc-100">{entry.date}</p>
+                <p class="mt-1">{entry.what}</p>
+                <p class="mt-1 text-xs text-zinc-500">Why: {entry.why}</p>
+                {entry.source && (
+                  <a
+                    href={entry.source}
+                    target="_blank"
+                    rel="noopener"
+                    class="mt-1 inline-flex text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
+                  >
+                    Source
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
       showVerificationChecklist && (
         <section
           id="verification-checklist"
           class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
         >
-          <h2 class="text-lg font-semibold text-zinc-100">Verification Checklist</h2>
+          <h2 class="text-lg font-semibold text-zinc-100">Buyer Diligence Checklist</h2>
           <p class="mt-2 text-sm text-zinc-400">
-            Canonical pre-procurement checklist. Use this once and reference it across pricing,
+            Canonical buyer-diligence checklist. Use this once and reference it across pricing,
             setup, and rollout.
           </p>
           <div class="mt-5 grid gap-4 md:grid-cols-3">
@@ -2722,7 +2924,7 @@ const schemas = [
         <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
           {communityVerifiedLabel && (
             <p class="mb-3 text-xs text-zinc-500">
-              Community signals verified {communityVerifiedLabel}
+              Community signals checked {communityVerifiedLabel}
             </p>
           )}
           <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />

@@ -104,7 +104,7 @@ const confidenceColors = {
     border: 'border-green-200',
     text: 'text-green-700',
     dot: 'bg-green-500',
-    label: 'Verified',
+    label: 'Source-backed',
   },
   medium: {
     bg: 'bg-amber-50',

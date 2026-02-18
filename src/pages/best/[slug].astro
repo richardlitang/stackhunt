@@ -36,6 +36,17 @@ Astro.response.headers.set(
 
 const { slug } = Astro.params;
 
+// Preserve the traction winner and fold known duplicate startup CRM intents into it.
+const CANONICAL_CRM_STARTUP_SLUG = 'crm-for-startups';
+const CRM_STARTUP_ALIAS_SLUGS = new Set([
+  'lightweight-crm-for-startup-sales-teams',
+  'crm-platform-for-startup-revenue-teams',
+]);
+
+if (slug && CRM_STARTUP_ALIAS_SLUGS.has(slug)) {
+  return Astro.redirect(`/best/${CANONICAL_CRM_STARTUP_SLUG}`, 301);
+}
+
 // Fetch context with all tools
 const context = await getContextBySlug(slug);
 
@@ -142,6 +153,20 @@ const schemas = [
 ];
 
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
+const formatDate = (value?: string | null): string | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+const latestReviewUpdate =
+  sortedReviews.length > 0
+    ? sortedReviews
+        .map((review) => review.updated_at || null)
+        .filter((value): value is string => Boolean(value))
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null
+    : null;
+const contextCheckedLabel = formatDate(latestReviewUpdate || context.updated_at || null);
 
 // Check if any tools have affiliate links
 const hasAffiliateLinks = sortedReviews.some((review) =>
@@ -242,6 +267,26 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
           </div>
         )
       }
+
+      <div class="mt-6 rounded-xl border border-zinc-700 bg-zinc-900 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-300">
+            How We Evaluate This List
+          </h2>
+          <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+            Evaluation depth: Docs-only
+          </span>
+        </div>
+        <p class="mt-2 text-sm text-zinc-400">
+          Rankings are editorial and source-backed. Claims are tied to linked sources on the date
+          checked, and vendors can change details later.
+        </p>
+        <p class="mt-2 text-xs text-zinc-500">
+          Last checked {contextCheckedLabel || 'unknown'} •{' '}
+          <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">Methodology</a> •{' '}
+          <a href="/disclosure" class="text-hunt-500 hover:text-hunt-400">Disclosures</a>
+        </p>
+      </div>
     </header>
 
     <!-- Ranked Tool List -->

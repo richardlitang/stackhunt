@@ -1,5 +1,11 @@
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import { normalizeTextContent as normalizeText } from '@/lib/utils/content-sanitizer';
+import {
+  classifyClaimVolatility,
+  detectRiskyCopyTerms,
+  hasScopeQualifier,
+  isClaimStale,
+} from '@/lib/claim-policy';
 import type { Review, Tool } from '@/types/database';
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
@@ -28,6 +34,9 @@ type SourceRow = {
 type ParsedClaim = {
   text: string;
   sourceUrl: string | null;
+  checkedAt: string | null;
+  volatility: 'high' | 'medium' | 'low' | null;
+  scope: string | null;
 };
 
 
@@ -54,6 +63,9 @@ export interface StrictPublishGateResult {
     requiredSourcingMissingCount: number;
     riskFlagsCount: number;
     pricingConfidence: 'high' | 'medium' | 'low' | 'unknown';
+    pricingClaimsMissingGuards: number;
+    staleHighVolatilityClaims: number;
+    riskyCopyTermCount: number;
   };
 }
 
@@ -84,14 +96,37 @@ function parseClaim(raw: unknown): ParsedClaim | null {
   if (typeof raw === 'string') {
     const text = normalizeText(raw);
     if (!text) return null;
-    return { text, sourceUrl: null };
+    return { text, sourceUrl: null, checkedAt: null, volatility: null, scope: null };
   }
   if (!raw || typeof raw !== 'object') return null;
   const value = raw as Record<string, unknown>;
   const text = typeof value.text === 'string' ? normalizeText(value.text) : '';
-  const sourceUrl = typeof value.source_url === 'string' ? value.source_url.trim() : '';
+  const sourceUrl =
+    (typeof value.source_url === 'string' && value.source_url.trim()) ||
+    (Array.isArray(value.source_urls) &&
+    typeof value.source_urls[0] === 'string' &&
+    value.source_urls[0].trim()
+      ? value.source_urls[0].trim()
+      : '');
+  const checkedAtRaw =
+    (typeof value.checked_at === 'string' && value.checked_at.trim()) ||
+    (typeof value.retrieved_at === 'string' && value.retrieved_at.trim()) ||
+    null;
+  const volatilityRaw =
+    typeof value.volatility === 'string' ? value.volatility.trim().toLowerCase() : null;
+  const volatility =
+    volatilityRaw === 'high' || volatilityRaw === 'medium' || volatilityRaw === 'low'
+      ? (volatilityRaw as 'high' | 'medium' | 'low')
+      : null;
+  const scope = typeof value.scope === 'string' && value.scope.trim() ? value.scope.trim() : null;
   if (!text) return null;
-  return { text, sourceUrl: sourceUrl || null };
+  return {
+    text,
+    sourceUrl: sourceUrl || null,
+    checkedAt: checkedAtRaw,
+    volatility,
+    scope,
+  };
 }
 
 function toClaimArray(raw: unknown): ParsedClaim[] {
@@ -176,8 +211,34 @@ export function evaluateStrictPublishGate(
   const hasNumericPricingClaims =
     PRICING_NUMERIC_TERMS.test(summaryText) ||
     consClaims.some((claim) => PRICING_NUMERIC_TERMS.test(claim.text));
+  const pricingClaimsMissingGuards = consClaims.filter((claim) => {
+    if (!PRICING_NUMERIC_TERMS.test(claim.text)) return false;
+    const hasScopedContext = Boolean(claim.scope) || hasScopeQualifier(claim.text);
+    return !claim.sourceUrl || !claim.checkedAt || !hasScopedContext;
+  }).length;
+  const staleHighVolatilityClaims = consClaims.filter((claim) => {
+    const volatility = claim.volatility || classifyClaimVolatility(claim.text, 'fact');
+    if (volatility !== 'high') return false;
+    return isClaimStale(claim.checkedAt, volatility);
+  }).length;
+  const riskyCopyTerms = Array.from(
+    new Set(
+      [summaryText, ...consClaims.map((claim) => claim.text)]
+        .flatMap((text) => detectRiskyCopyTerms(text))
+        .filter(Boolean)
+    )
+  );
   if (!['high', 'medium'].includes(pricingConfidence) && hasNumericPricingClaims) {
     blockers.push('strict:pricing_confidence_low_or_unknown_with_numeric_claims');
+  }
+  if (pricingClaimsMissingGuards > 0) {
+    blockers.push(`strict:pricing_claims_missing_required_fields:${pricingClaimsMissingGuards}`);
+  }
+  if (staleHighVolatilityClaims > 0) {
+    blockers.push(`strict:high_volatility_claims_stale:${staleHighVolatilityClaims}`);
+  }
+  if (riskyCopyTerms.length > 0) {
+    blockers.push(`strict:risky_copy_terms:${riskyCopyTerms.join('|')}`);
   }
 
   return {
@@ -188,6 +249,9 @@ export function evaluateStrictPublishGate(
       requiredSourcingMissingCount,
       riskFlagsCount,
       pricingConfidence,
+      pricingClaimsMissingGuards,
+      staleHighVolatilityClaims,
+      riskyCopyTermCount: riskyCopyTerms.length,
     },
   };
 }

@@ -8,6 +8,7 @@
 
 import { z } from 'zod';
 import type { KnowledgeCard } from '../knowledge-card';
+import type { ClaimVolatility, ClaimVerificationMethod } from '@/lib/claim-policy';
 import type { PricingModel, HuntType } from '@/types/database';
 
 // ============================================================================
@@ -137,6 +138,12 @@ export interface ClaimWithSource {
   source_type: SourceType;
   claim_type: ClaimType;
   retrieved_at: string; // ISO 8601 timestamp - provides "staleness" defense
+  checked_at?: string;
+  source_urls?: string[];
+  verification_method?: ClaimVerificationMethod;
+  scope?: string;
+  volatility?: ClaimVolatility;
+  recheck_by?: string;
   claim_kind?: ClaimKind;
   vendor_phrase?: string;
   comparison_basis_source_url?: string;
@@ -514,6 +521,12 @@ export const ClaimKindSchema = z.enum([
   'comparison',
   'inference',
 ]);
+export const ClaimVolatilitySchema = z.enum(['high', 'medium', 'low']);
+export const ClaimVerificationMethodSchema = z.enum([
+  'source_presence',
+  'cross_source',
+  'manual_review',
+]);
 
 // Schema for pro/con with REQUIRED source attribution (new format)
 export const ClaimWithSourceSchema = z.object({
@@ -522,6 +535,12 @@ export const ClaimWithSourceSchema = z.object({
   source_type: SourceTypeSchema,
   claim_type: ClaimTypeSchema,
   retrieved_at: z.string().datetime().optional(), // Optional in schema since it's added during persistence
+  checked_at: z.string().datetime().optional(),
+  source_urls: z.array(z.string().url()).optional(),
+  verification_method: ClaimVerificationMethodSchema.optional(),
+  scope: z.string().min(2).max(120).optional(),
+  volatility: ClaimVolatilitySchema.optional(),
+  recheck_by: z.string().datetime().optional(),
   claim_kind: ClaimKindSchema.optional(),
   vendor_phrase: z.string().min(3).max(300).optional(),
   comparison_basis_source_url: z.string().url().optional(),

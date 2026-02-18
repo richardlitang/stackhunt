@@ -887,9 +887,6 @@ export class SerperService {
       throw new Error(`Serper pricing queries failed for ${toolName}`);
     }
 
-    const extractSnippets = (response: SerperResponse): string[] =>
-      response.organic?.slice(0, 5).map((r) => `[${r.link}] ${r.title}: ${r.snippet}`) || [];
-
     const retrievedAt = new Date().toISOString();
     const sourceMap = new Map<string, RawSource>();
     for (const response of results) {

@@ -32,6 +32,15 @@ function normalizeClaimText(text: string): string {
   return text.trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+function parseLineList(raw: string | null): string[] {
+  if (!raw) return [];
+  const values = raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return Array.from(new Set(values));
+}
+
 function claimText(value: unknown): string {
   if (typeof value === 'string') return value.trim();
   if (
@@ -149,6 +158,11 @@ export const POST: APIRoute = async ({ params, request }) => {
     const reviewerNotes = formData.get('reviewer_notes') as string;
     const faqJsonRaw = (formData.get('faq_json') as string) || '[]';
     const claimsPayloadRaw = (formData.get('claims_payload') as string | null) || null;
+    const handsOnChecksRaw = (formData.get('hands_on_checks') as string) || '';
+    const handsOnEnvironment = ((formData.get('hands_on_environment') as string) || '').trim();
+    const handsOnStepsRaw = (formData.get('hands_on_steps') as string) || '';
+    const handsOnFindingsRaw = (formData.get('hands_on_findings') as string) || '';
+    const handsOnTestedAtRaw = ((formData.get('hands_on_tested_at') as string) || '').trim();
 
     // Parse arrays
     const prosLines = prosRaw
@@ -163,6 +177,13 @@ export const POST: APIRoute = async ({ params, request }) => {
       .split(',')
       .map((s) => s.trim().toLowerCase().replace(/\s+/g, '-'))
       .filter(Boolean);
+    const handsOnChecks = parseLineList(handsOnChecksRaw);
+    const handsOnSteps = parseLineList(handsOnStepsRaw);
+    const handsOnFindings = parseLineList(handsOnFindingsRaw);
+    const handsOnTestedAtIso = handsOnTestedAtRaw ? new Date(`${handsOnTestedAtRaw}T00:00:00Z`) : null;
+    if (handsOnTestedAtRaw && (!handsOnTestedAtIso || Number.isNaN(handsOnTestedAtIso.getTime()))) {
+      return new Response('Invalid hands-on test date', { status: 400 });
+    }
 
     let parsedFaqs: unknown[] = [];
     try {
@@ -264,7 +285,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     // Persist FAQ edits to the associated tool metadata
     const { data: toolRow, error: toolFetchError } = await admin
       .from('tools')
-      .select('id, metadata')
+      .select('id, metadata, specs')
       .eq('id', existingReview.item_id)
       .single();
     if (toolFetchError || !toolRow) {
@@ -275,9 +296,40 @@ export const POST: APIRoute = async ({ params, request }) => {
       ...((toolRow.metadata as Record<string, unknown> | null) || {}),
       faqs: parsedFaqs,
     };
+    const currentSpecs = ((toolRow.specs as Record<string, unknown> | null) || {}) as Record<
+      string,
+      unknown
+    >;
+    const currentCanonical =
+      (currentSpecs.canonical as Record<string, unknown> | undefined) || {};
+    const nextCanonical: Record<string, unknown> = { ...currentCanonical };
+    if (handsOnChecks.length > 0) {
+      nextCanonical.hands_on_checks = handsOnChecks;
+    } else {
+      delete nextCanonical.hands_on_checks;
+    }
+    const hasHandsOnNotes =
+      Boolean(handsOnEnvironment) ||
+      handsOnSteps.length > 0 ||
+      handsOnFindings.length > 0 ||
+      Boolean(handsOnTestedAtIso);
+    if (hasHandsOnNotes) {
+      nextCanonical.hands_on_test_notes = {
+        ...(handsOnEnvironment ? { environment: handsOnEnvironment } : {}),
+        ...(handsOnSteps.length > 0 ? { steps: handsOnSteps } : {}),
+        ...(handsOnFindings.length > 0 ? { findings: handsOnFindings } : {}),
+        ...(handsOnTestedAtIso ? { tested_at: handsOnTestedAtIso.toISOString() } : {}),
+      };
+    } else {
+      delete nextCanonical.hands_on_test_notes;
+    }
+    const nextSpecs = {
+      ...currentSpecs,
+      canonical: nextCanonical,
+    };
     const { error: toolUpdateError } = await admin
       .from('tools')
-      .update({ metadata: nextMetadata, updated_at: new Date().toISOString() })
+      .update({ metadata: nextMetadata, specs: nextSpecs, updated_at: new Date().toISOString() })
       .eq('id', toolRow.id);
     if (toolUpdateError) {
       return new Response(`FAQ update failed: ${toolUpdateError.message}`, { status: 500 });

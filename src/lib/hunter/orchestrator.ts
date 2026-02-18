@@ -391,7 +391,7 @@ export class Hunter {
             source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
             source.policy.llm_ingestion_allowed !== 'NO'
         ).length;
-        const totalSnippets = reviewCount + tribalCount + pricingCount;
+        const _totalSnippets = reviewCount + tribalCount + pricingCount;
 
         if (!passesPreflight(eligibleCount, officialCount)) {
           const baseMinEligible = ctx.contextTitle ? 3 : 4;

@@ -26,6 +26,14 @@ import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import {
+  classifyClaimVolatility,
+  computeClaimRecheckBy,
+  detectRiskyCopyTerms,
+  hasScopeQualifier,
+  inferClaimScope,
+  isClaimStale,
+} from '@/lib/claim-policy';
+import {
   evaluateIndexReadiness,
   resolvePopularityTier,
   type PopularityTier,
@@ -239,6 +247,21 @@ function softenAbsoluteMarketingLanguage(text: string): string {
   next = next.replace(/\bnever\b/gi, 'rarely');
   next = next.replace(/\bguaranteed\b/gi, 'designed to');
   return next.replace(/\s{2,}/g, ' ').trim();
+}
+
+function sanitizeRiskyClaimLanguage(text: string): string {
+  let next = text;
+  next = next.replace(/\bverified\b/gi, 'source-backed');
+  next = next.replace(/\baccurate\b/gi, 'source-aligned');
+  next = next.replace(/\bguaranteed\b/gi, 'designed to');
+  if (/\bno free tier\b/i.test(next) && !hasScopeQualifier(next)) {
+    next = next.replace(/\bno free tier\b/gi, 'no self-serve free tier is listed');
+  }
+  const risky = detectRiskyCopyTerms(next).filter((term) => term !== 'best');
+  if (risky.length > 0) {
+    return next.replace(/\bbest\b/gi, 'strong');
+  }
+  return next;
 }
 
 function extractNamedFeatures(text: string): string[] {
@@ -2535,9 +2558,13 @@ function normalizeClaim(
       normalizedText = stripUnsupportedQuantitativePhrases(normalizedText);
       if (!normalizedText) return null;
     }
+    normalizedText = sanitizeRiskyClaimLanguage(normalizedText);
     const scopedText = enforceOfferingScope(normalizedText, matchedSourceUrl, sources);
     if (!scopedText) return null;
     normalizedText = scopedText;
+    const checkedAt = claim.checked_at || claim.retrieved_at || retrievedAt;
+    const volatility = classifyClaimVolatility(normalizedText, claimType);
+    const scope = claim.scope || inferClaimScope(normalizedText, matchedSourceUrl) || undefined;
 
     return {
       text: normalizedText,
@@ -2545,6 +2572,13 @@ function normalizeClaim(
       source_type: sourceType,
       claim_type: claimType, // Default to opinion for safety
       retrieved_at: claim.retrieved_at || retrievedAt,
+      checked_at: checkedAt,
+      source_urls: claim.source_urls || [matchedSourceUrl],
+      verification_method:
+        claim.verification_method || (hasTierABCorroboration(normalizedText) ? 'cross_source' : 'source_presence'),
+      scope,
+      volatility,
+      recheck_by: claim.recheck_by || computeClaimRecheckBy(checkedAt, volatility) || undefined,
       claim_kind: needsComparatorBasis && !comparisonBasisSourceUrl ? 'inference' : detectedKind,
       vendor_phrase: vendorPhrase || normalizedText,
       comparison_basis_source_url: comparisonBasisSourceUrl,
@@ -2604,6 +2638,7 @@ function normalizeClaim(
     legacyText = stripUnsupportedQuantitativePhrases(legacyText);
     if (!legacyText) return null;
   }
+  legacyText = sanitizeRiskyClaimLanguage(legacyText);
   const scopedLegacy = enforceOfferingScope(legacyText, bestSource.url, sources);
   if (!scopedLegacy) return null;
   legacyText = scopedLegacy;
@@ -2611,6 +2646,9 @@ function normalizeClaim(
   if (legacySourceType === 'official' && hasCommunityHedgingLanguage(legacyText)) {
     return null;
   }
+  const checkedAt = bestSource.retrieved_at || retrievedAt;
+  const volatility = classifyClaimVolatility(legacyText, 'opinion');
+  const scope = inferClaimScope(legacyText, bestSource.url) || undefined;
 
   return {
     text: legacyText,
@@ -2618,6 +2656,12 @@ function normalizeClaim(
     source_type: legacySourceType,
     claim_type: 'opinion', // Assume opinion for legacy claims (safer)
     retrieved_at: retrievedAt,
+    checked_at: checkedAt,
+    source_urls: [bestSource.url],
+    verification_method: hasTierABCorroboration(legacyText) ? 'cross_source' : 'source_presence',
+    scope,
+    volatility,
+    recheck_by: computeClaimRecheckBy(checkedAt, volatility) || undefined,
     claim_kind: detectClaimKind(legacyText, 'opinion'),
     vendor_phrase: claimText,
   };
@@ -2676,14 +2720,20 @@ function buildDerivedConsFromConstraints(
 
   const addDerivedCon = (text: string, sourceUrl?: string) => {
     if (!sourceUrl) return;
-    const retrieved_at =
-      sources.find((s) => s.url === sourceUrl)?.retrieved_at || new Date().toISOString();
+    const checkedAt = sources.find((s) => s.url === sourceUrl)?.retrieved_at || new Date().toISOString();
+    const volatility = classifyClaimVolatility(text, 'fact');
     derived.push({
       text,
       source_url: sourceUrl,
       source_type: classifySourceType(sourceUrl, toolWebsite),
       claim_type: 'fact',
-      retrieved_at,
+      retrieved_at: checkedAt,
+      checked_at: checkedAt,
+      source_urls: [sourceUrl],
+      verification_method: 'source_presence',
+      scope: inferClaimScope(text, sourceUrl) || undefined,
+      volatility,
+      recheck_by: computeClaimRecheckBy(checkedAt, volatility) || undefined,
     });
   };
 
@@ -2719,12 +2769,18 @@ function buildDerivedConsFromConstraints(
 
     const hasFreeTier = knowledgeCard?.pricing?.has_free_tier;
     if (hasFreeTier === false) {
-      addDerivedCon('No free tier', pricingSourceUrl);
+      addDerivedCon(
+        'No self-serve free tier is listed on the referenced pricing page.',
+        pricingSourceUrl
+      );
     }
 
     const hasFreeTrial = knowledgeCard?.pricing?.has_free_trial;
     if (hasFreeTrial === false) {
-      addDerivedCon('No free trial', pricingSourceUrl);
+      addDerivedCon(
+        'No self-serve free trial is listed on the referenced pricing page.',
+        pricingSourceUrl
+      );
     }
   }
 
@@ -3059,6 +3115,17 @@ async function createReview(
   const legalIssues: string[] = [];
   if (missingSourceCount > 0) legalIssues.push('claims_missing_sources');
   if (derivedSummary === null) legalIssues.push('summary_unavailable');
+  const staleHighVolatilityClaims = normalizedCons.filter((claim) => {
+    const volatility = claim.volatility || classifyClaimVolatility(claim.text, claim.claim_type);
+    if (volatility !== 'high') return false;
+    return isClaimStale(claim.checked_at || claim.retrieved_at, volatility);
+  }).length;
+  if (staleHighVolatilityClaims > 0) {
+    legalIssues.push('high_volatility_claims_stale');
+    deps.log(
+      `[Guardrail] Found ${staleHighVolatilityClaims} stale high-volatility claim(s); forcing draft`
+    );
+  }
   const riskyNarrativeFields = [
     analysis.verdict,
     analysis.reviewContext?.humanVerdict,
@@ -3291,6 +3358,9 @@ function buildClaimLedgerRows(
       is_deep_scrape_allowed: source?.is_deep_scrape_allowed ?? null,
       block_reason: source?.block_reason || null,
       retrieved_at: source?.retrieved_at || claim.retrieved_at || null,
+      checked_at: claim.checked_at || claim.retrieved_at || null,
+      volatility: claim.volatility || null,
+      recheck_by: claim.recheck_by || null,
     };
 
     return {
@@ -3305,6 +3375,12 @@ function buildClaimLedgerRows(
         kind: claim.claim_kind || detectClaimKind(claim.text, claim.claim_type || 'opinion'),
         comparison_basis_source_url: claim.comparison_basis_source_url || null,
         retrieved_at: claim.retrieved_at || null,
+        checked_at: claim.checked_at || claim.retrieved_at || null,
+        source_urls: claim.source_urls || (claim.source_url ? [claim.source_url] : []),
+        verification_method: claim.verification_method || null,
+        scope: claim.scope || null,
+        volatility: claim.volatility || null,
+        recheck_by: claim.recheck_by || null,
       },
       source_url: claimSourceUrl,
       source_domain: source?.domain || claimDomain || null,

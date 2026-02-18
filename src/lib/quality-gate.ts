@@ -40,6 +40,7 @@ export interface IndexReadinessResult {
 }
 
 const FRESHNESS_WINDOW_DAYS = 120;
+const HIGH_VOLATILITY_WINDOW_DAYS = 30;
 const BLOCKED_EVIDENCE_DOMAINS = new Set([
   'g2.com',
   'capterra.com',
@@ -285,7 +286,8 @@ export function evaluateIndexReadiness(
     (faq: any) => faq.answer_source_url && faq.answer_source_type === 'official'
   );
   const pricingFresh = isFresh(
-    tool.pricing_verified_at || knowledgeCard?.meta?.extraction_date || tool.updated_at
+    tool.pricing_verified_at || knowledgeCard?.meta?.extraction_date || tool.updated_at,
+    HIGH_VOLATILITY_WINDOW_DAYS
   );
   const modelFresh = isFresh(knowledgeCard?.meta?.extraction_date);
   const volatilesFresh = pricingFresh && faqVolatilesFresh && (isModelCategory ? modelFresh : true);

@@ -1,9 +1,9 @@
 ---
 /**
- * VerifiedBadge Component
+ * Source-backed Badge Component
  *
  * Displays verification status for tools with:
- * - StackHunt Verified badge
+ * - Source-backed status badge
  * - Last verification date
  * - Source count
  *
@@ -108,7 +108,7 @@ if (!isVerified) return null;
     </svg>
 
     <span class="font-semibold">
-      {isStale ? 'Verification Due' : 'StackHunt Verified'}
+      {isStale ? 'Needs Recheck' : 'Source-backed'}
     </span>
   </div>
 
@@ -138,7 +138,7 @@ if (!isVerified) return null;
               />
             </svg>
             <span>
-              Last verified{' '}
+              Last checked{' '}
               <span class={isStale ? 'text-amber-400' : 'text-zinc-400'}>
                 {formatDate(lastVerifiedAt)}
               </span>
@@ -176,7 +176,7 @@ if (!isVerified) return null;
     isStale && lastVerifiedAt && (
       <div class="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
         <p class:list={[classes.details, 'text-amber-400/90']}>
-          This information was last verified over 60 days ago. Pricing and features may have
+          This information was last checked over 60 days ago. Pricing and features may have
           changed.
           <a
             href="/corrections"
