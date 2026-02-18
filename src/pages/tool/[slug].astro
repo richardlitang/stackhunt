@@ -21,10 +21,9 @@ import PlatformIntegrations from '@/components/PlatformIntegrations.astro';
 import FeaturesShowcase from '@/components/FeaturesShowcase.astro';
 import GettingStarted from '@/components/GettingStarted.astro';
 import PricingPlansGrid from '@/components/PricingPlansGrid.astro';
-import VerifiedBadge from '@/components/VerifiedBadge.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
 import TribalKnowledge from '@/components/TribalKnowledge.astro';
-import TrustSignals from '@/components/TrustSignals.astro';
+import TrustBar from '@/components/TrustBar.astro';
 import PriceVerification from '@/components/PriceVerification';
 import SuiteNavigation from '@/components/SuiteNavigation.astro';
 import DynamicSpecs from '@/components/DynamicSpecs.astro';
@@ -41,7 +40,7 @@ import {
   generateVideoSchema,
   generateToolFAQSchema,
 } from '@/lib/seo';
-import { formatPricingType, getCanonicalUrl, getScoreColor, simpleMarkdown } from '@/lib/utils';
+import { formatPricingType, getCanonicalUrl, simpleMarkdown } from '@/lib/utils';
 import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
@@ -628,19 +627,17 @@ const decisionSnapshotWatchOuts = uniqueDecisionText(
         ? fallbackConsText.slice(0, 2)
         : (firstReview?.cons || []).slice(0, 2)
 ).slice(0, 3);
-const checklistPricing = [
+const quickChecks = [
   'Validate pricing drivers with expected monthly usage at p50 and p95.',
-  'Check overage behavior, annual commitments, and seat minimums.',
+  'Check overage behavior, annual commitments, seat minimums, and cancellation terms.',
   'Confirm plan-gated features required for your rollout.',
-];
-const checklistTechnical = [
-  'Run one production-like workflow and record failure points.',
-  'Confirm required integrations, API limits, and auth flow.',
   'Verify export formats and migration path before lock-in.',
+  'Run one production-like workflow and record failure points.',
 ];
-const checklistSecurity = [
+const teamItChecks = [
+  'Confirm required integrations, API limits, and auth flow.',
   'Check security/compliance docs against your team requirements.',
-  'Confirm admin controls, SSO, and access/audit expectations.',
+  'Confirm admin controls, SSO, SCIM, DPA, audit logs, and retention controls.',
 ];
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value)
@@ -814,17 +811,12 @@ const evidenceBasis = [
   })
   .filter((entry) => entry.count > 0);
 const officialEvidenceLinks = evidenceLinks.filter((entry) => entry.basis.startsWith('Official'));
-const independentEvidenceLinks = evidenceLinks.filter(
+const _independentEvidenceLinks = evidenceLinks.filter(
   (entry) => entry.basis === 'Independent reviews'
 );
-const communityEvidenceLinks = evidenceLinks.filter(
+const _communityEvidenceLinks = evidenceLinks.filter(
   (entry) => entry.basis === 'Community discussions' || entry.basis === 'GitHub issues'
 );
-const weightedSourceScore = evidenceLinksAll.reduce((acc, entry) => {
-  if (entry.quality === 'high') return acc + 1;
-  if (entry.quality === 'medium') return acc + 0.5;
-  return acc + 0.1;
-}, 0);
 const formatVerifiedDate = (value?: string | null): string | null => {
   if (!value) return null;
   const date = new Date(value);
@@ -942,13 +934,6 @@ const baseEvidenceGrade: EvidenceGrade =
       ? 'B'
       : 'C';
 let evidenceGrade: EvidenceGrade = baseEvidenceGrade;
-let evidenceGradeDisplay: 'A' | 'A-' | 'B' | 'C' = baseEvidenceGrade;
-let evidenceGradeDescription =
-  baseEvidenceGrade === 'A'
-    ? 'Evidence-backed and publish-ready.'
-    : baseEvidenceGrade === 'B'
-      ? 'Usable with some unresolved verification gaps.'
-      : 'Evidence is insufficient for a high-confidence recommendation.';
 let pendingVerificationCount = 0;
 isVerificationMode = baseEvidenceGrade === 'C';
 const officialPricingSource = officialEvidenceLinks.find(
@@ -1016,7 +1001,7 @@ const decisionProofPoints = [
     requiredSourcing: true,
   }),
   buildEvidenceBulletV2({
-    text: `Buyer diligence constraints were extracted from source-linked evidence for this page (checked ${communityVerifiedLabel || 'latest available date'}).`,
+    text: `Plan-gating and limitations were extracted from source-linked evidence for this page (checked ${communityVerifiedLabel || 'latest available date'}).`,
     kind: 'limit',
     sourceUrl:
       topHardLimit?.sourceUrl || officialPricingSource?.url || officialDocsSource?.url || null,
@@ -1117,28 +1102,25 @@ const hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
 pendingVerificationCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter(
   (item) => item?.unverified
 ).length;
-const verifiedClaimCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter(
-  (item) => item && !item.unverified
-).length;
 if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
   evidenceGrade = 'B';
-  evidenceGradeDisplay = 'A-';
-  evidenceGradeDescription = `Strong source-backed coverage with ${pendingVerificationCount} pending verification item${pendingVerificationCount === 1 ? '' : 's'}.`;
 }
 if (verdictLabel === 'Consider' && pendingVerificationCount > 0) {
-  verdictLabelRationale = `${tool.name} can fit, but buyer-significant constraints are still pending verification.`;
+  verdictLabelRationale = `${tool.name} can fit, but key plan-gating details are still being verified.`;
 }
 isVerificationMode = evidenceGrade === 'C' || pendingVerificationCount > 0;
 const fitStatusLabel =
   verdictLabel === 'Consider' && pendingVerificationCount > 0
-    ? 'Consider (Buyer diligence incomplete)'
+    ? 'Consider (details still being verified)'
     : verdictLabel;
-const productStrengthLabel =
-  tool.avg_score > 0
-    ? `${Math.round(tool.avg_score)} / 100 (${getScoreColor(Math.round(tool.avg_score)).label})`
-    : 'Tracking';
-const weightedSourceScoreMax = evidenceLinksAll.length;
-const pendingVerificationLabel = `Pending verification: ${pendingVerificationCount} buyer-significant ${pendingVerificationCount === 1 ? 'claim' : 'claims'}.`;
+const trustStatus: 'Source-backed' | 'Needs confirmation' =
+  isVerificationMode || pendingVerificationCount > 0 ? 'Needs confirmation' : 'Source-backed';
+const trustConfidenceLabel: 'High' | 'Medium' | 'Low' =
+  contentConfidenceLevel === 'high'
+    ? 'High'
+    : contentConfidenceLevel === 'medium'
+      ? 'Medium'
+      : 'Low';
 const updateHistoryEntries = [
   pricingVerifiedLabel
     ? {
@@ -1220,126 +1202,14 @@ const schemas = [
       </span>
     </nav>
 
-    <section
-      class:list={[
-        'relative mb-8 overflow-hidden rounded-2xl border p-5 sm:p-6',
-        isVerificationMode
-          ? 'border-amber-500/40 bg-gradient-to-br from-amber-500/15 via-zinc-900 to-zinc-950'
-          : 'border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950',
-      ]}
-    >
-      <div class="pointer-events-none absolute -right-20 -top-24 h-60 w-60 rounded-full bg-hunt-500/10 blur-3xl">
-      </div>
-      <div class="pointer-events-none absolute -bottom-28 left-0 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl">
-      </div>
-
-      <div class="relative grid gap-5 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">
-            Sourcing Status
-          </p>
-          <h2
-            class:list={[
-              'mt-1 text-base font-semibold',
-              isVerificationMode ? 'text-amber-200' : 'text-zinc-100',
-            ]}
-          >
-            {isVerificationMode ? 'Needs Confirmation' : 'Source-backed Status'}
-          </h2>
-          <p class:list={['mt-2 text-sm', isVerificationMode ? 'text-amber-100/90' : 'text-zinc-300']}>
-            Sourcing confidence: {evidenceGradeDisplay} • {evidenceGradeDescription}
-          </p>
-          <details class="mt-2 inline-block rounded-md border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-300">
-            <summary class="cursor-pointer list-none font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
-              Badge definitions
-            </summary>
-            <p class="mt-2 max-w-xl leading-relaxed text-zinc-400">
-              Source-backed means the claim appears in a linked source on the date checked. Vendors
-              can change details after that date. Official, independent, and community are source-quality
-              buckets; evidence index is out of {weightedSourceScoreMax || 0}.{' '}
-              <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">
-                Methodology
-              </a>
-              .
-            </p>
-          </details>
-          <div class="mt-3 flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
-              Source-backed: {evidenceLinks.length}
-            </span>
-            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
-              Official: {officialEvidenceLinks.length}
-            </span>
-            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
-              Independent: {independentEvidenceLinks.length}
-            </span>
-            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
-              Community: {communityEvidenceLinks.length}
-            </span>
-            <span class="rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1 text-zinc-300">
-              Evidence index: {weightedSourceScore.toFixed(1)} / {weightedSourceScoreMax}
-            </span>
-          </div>
-          <p class="mt-3 text-xs text-zinc-500">
-            {evidenceLinksAll.length} sources reviewed • {verifiedClaimCount} source-backed claims • Last
-            checked{' '}
-            {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
-          </p>
-          {
-            pendingVerificationCount > 0 && (
-              <p class="mt-2 text-xs text-amber-300">
-                {pendingVerificationLabel}
-              </p>
-            )
-          }
-        </div>
-
-        <div class="grid gap-3">
-          <div class="rounded-xl border border-zinc-700 bg-zinc-900/70 p-3">
-            <VerifiedBadge
-              isVerified={tool.is_verified}
-              lastVerifiedAt={tool.last_verified_at}
-              size="md"
-            />
-          </div>
-          <div class="rounded-xl border border-zinc-700 bg-zinc-900/70 p-3">
-            <TrustSignals
-              lastVerifiedAt={tool.pricing_verified_at}
-              sourceCount={0}
-              pricingConfidence={tool.pricing_confidence}
-              contentConfidence={contentConfidenceLevel}
-              size="sm"
-            />
-          </div>
-          {
-            shouldNoindex && (
-              <details class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-medium text-amber-300">
-                <summary class="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-                  <span>Draft • In review</span>
-                  <svg
-                    class="h-4 w-4 text-amber-300/80"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </summary>
-                <p class="mt-2 text-xs font-normal text-zinc-300">
-                  We&apos;re still validating pricing and integration claims. Some sections may
-                  change before final publication.
-                </p>
-              </details>
-            )
-          }
-        </div>
-      </div>
-    </section>
+    <TrustBar
+      status={trustStatus}
+      pendingCount={pendingVerificationCount}
+      evaluationDepth={evaluationDepth}
+      lastChecked={communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'Unknown'}
+      confidence={trustConfidenceLabel}
+      sourcesCount={evidenceLinks.length}
+    />
 
     <!-- Hero Section -->
     <header class="relative mb-12 overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg sm:p-8">
@@ -1474,56 +1344,57 @@ const schemas = [
           }
         </div>
 
-        <aside
-          aria-labelledby="decision-snapshot-heading"
-          class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner"
-        >
-          <p
-            id="decision-snapshot-heading"
-            class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400"
-          >
-            Verdict Snapshot
+        <aside class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+            In 10 Seconds
           </p>
-          <div class="mt-3 flex flex-wrap items-center gap-3">
-            <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-              {fitStatusLabel}
-            </span>
-          </div>
-          <div class="mt-3 grid gap-1 text-xs text-zinc-500">
+          <div class="mt-3 grid gap-1 text-xs text-zinc-400">
             <p>
-              Verdict: <span class="text-zinc-300">Best for {decisionSnapshotBestWhen[0] || 'teams that prioritize source-backed guidance'}</span>
+              Best for:{' '}
+              <span class="text-zinc-300">
+                {decisionSnapshotBestWhen[0] || 'teams that prioritize source-backed guidance'}
+              </span>
             </p>
             <p>
-              Tradeoff: <span class="text-zinc-300">{decisionSnapshotWatchOuts[0] || 'Some buying details are still being confirmed'}</span>
-            </p>
-            <p>
-              Product strength: <span class="text-zinc-300">{productStrengthLabel}</span>
+              Top limit:{' '}
+              <span class="text-zinc-300">
+                {decisionSnapshotWatchOuts[0] || 'Some buying details are still being confirmed'}
+              </span>
             </p>
           </div>
-
-          <p class="mt-4 text-sm text-zinc-300">{verdictLabelRationale}</p>
-          <p class="mt-4 text-xs text-zinc-500">
-            Last checked {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'}
-          </p>
-
           <div class="mt-4 space-y-2">
+            {
+              tool.website && (
+                <a
+                  href={tool.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-outbound="vendor"
+                  data-location="sidebar-cta"
+                  data-tool={tool.slug}
+                  class="inline-flex w-full items-center justify-center rounded-lg bg-hunt-600 px-3 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
+                >
+                  Visit {tool.name}
+                </a>
+              )
+            }
+            {
+              hasAlternatives && (
+                <a
+                  href="#alternatives"
+                  class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
+                >
+                  Compare alternatives
+                </a>
+              )
+            }
             {
               showVerificationChecklist && (
                 <a
                   href="#verification-checklist"
                   class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
                 >
-                  Open buyer diligence checklist
-                </a>
-              )
-            }
-            {
-              evidenceBasis.length > 0 && (
-                <a
-                  href="#sources"
-                  class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
-                >
-                  Review source set
+                  Open quick checks
                 </a>
               )
             }
@@ -1861,6 +1732,16 @@ const schemas = [
           )
         }
         {
+          showVerificationChecklist && (
+            <a
+              href="#verification-checklist"
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              Quick checks
+            </a>
+          )
+        }
+        {
           hasFeatures && (
             <a
               href="#features"
@@ -1886,7 +1767,7 @@ const schemas = [
               href="#operational-fit"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
-              Operational fit
+              Rollout notes
             </a>
           )
         }
@@ -1946,16 +1827,6 @@ const schemas = [
         >
           Disclosures
         </a>
-        {
-          showVerificationChecklist && (
-            <a
-              href="#verification-checklist"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Buyer checks
-            </a>
-          )
-        }
       </div>
     </nav>
 
@@ -2020,7 +1891,7 @@ const schemas = [
               />
               {scoreDrivers.length > 0 && (
                 <div class="mt-5">
-                  <h3 class="text-sm font-semibold text-zinc-200">Score drivers</h3>
+                  <h3 class="text-sm font-semibold text-zinc-200">Recommendation drivers</h3>
                   <ul class="mt-2 space-y-1 text-sm text-zinc-300">
                     {scoreDrivers.map((item) => (
                       <li>- {item}</li>
@@ -2394,79 +2265,63 @@ const schemas = [
         }
         {
           showOperationalFit && (
-            <section
+            <details
               id="operational-fit"
-              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
             >
-              <h2 class="text-lg font-semibold text-zinc-100">Operational Fit</h2>
-              <p class="mt-2 text-sm text-zinc-400">
-                Evidence-backed constraints and rollout considerations before you scale usage.
-              </p>
-
-              <div class="mt-5 grid gap-4 md:grid-cols-2">
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Rollout risks</h3>
-                  {trialNotesBullets.length > 0 ? (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {trialNotesBullets.map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            aria-label={sourceAriaLabel(item.text)}
-                            data-outbound="source"
-                            data-location="operational-fit-risks"
-                            data-tool={tool.slug}
-                            class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                          >
-                            Claim source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      <li>- Run a week-long pilot with real contributors.</li>
-                      <li>- Track failure reasons and manual workarounds daily.</li>
-                      <li>- Re-check fit after migration and permissions setup.</li>
-                    </ul>
-                  )}
+              <summary class="flex cursor-pointer list-none items-center justify-between">
+                <div>
+                  <h2 class="text-lg font-semibold text-zinc-100">Rollout notes</h2>
+                  <p class="mt-1 text-sm text-zinc-400">
+                    Editorial guidance only. These checks are not a substitute for legal or enterprise review.
+                  </p>
                 </div>
-
-                <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                  <h3 class="text-sm font-semibold text-zinc-200">Adoption blockers</h3>
-                  {notIncludedBullets.length > 0 ? (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {notIncludedBullets.map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            aria-label={sourceAriaLabel(item.text)}
-                            data-outbound="source"
-                            data-location="operational-fit-blockers"
-                            data-tool={tool.slug}
-                            class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                          >
-                            Claim source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      <li>- Verify which required features are plan-gated.</li>
-                      <li>- Confirm missing workflows and required integrations.</li>
-                      <li>- Validate export/migration paths before commitment.</li>
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </section>
+                <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+                  <span class="group-open:hidden">Expand</span>
+                  <span class="hidden group-open:inline">Collapse</span>
+                  <svg
+                    class="h-4 w-4 transition-transform group-open:rotate-90"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </span>
+              </summary>
+              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
+                {trialNotesBullets.length > 0 ? (
+                  trialNotesBullets.slice(0, 3).map((item) => (
+                    <li>
+                      - {item.text}{' '}
+                      <a
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noopener"
+                        aria-label={sourceAriaLabel(item.text)}
+                        data-outbound="source"
+                        data-location="rollout-notes"
+                        data-tool={tool.slug}
+                        class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
+                      >
+                        Claim source
+                      </a>
+                    </li>
+                  ))
+                ) : (
+                  <>
+                    <li>- Pilot with 5 real workflows before rollout.</li>
+                    <li>- Confirm plan-gated features used in daily work.</li>
+                    <li>- Verify export and cancellation paths before commitment.</li>
+                  </>
+                )}
+              </ul>
+            </details>
           )
         }
 
@@ -2530,9 +2385,7 @@ const schemas = [
           <dl class="space-y-3">
             <div class="flex justify-between">
               <dt class="group relative text-sm text-zinc-400">
-                <span class="cursor-help border-b border-dotted border-zinc-600">
-                  StackHunt Index
-                </span>
+                <span class="cursor-help border-b border-dotted border-zinc-600">Internal index</span>
                 <div
                   class="pointer-events-none absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-xs text-zinc-300 shadow-xl group-hover:block z-10"
                 >
@@ -2881,35 +2734,47 @@ const schemas = [
           id="verification-checklist"
           class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
         >
-          <h2 class="text-lg font-semibold text-zinc-100">Buyer Diligence Checklist</h2>
+          <h2 class="text-lg font-semibold text-zinc-100">Quick checks before you buy</h2>
           <p class="mt-2 text-sm text-zinc-400">
-            Canonical buyer-diligence checklist. Use this once and reference it across pricing,
-            setup, and rollout.
+            High-signal checks for most buyers. For enterprise requirements, expand Team / IT checks.
           </p>
-          <div class="mt-5 grid gap-4 md:grid-cols-3">
+          <div class="mt-5 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+            <ul class="space-y-2 text-sm text-zinc-300">
+              {quickChecks.slice(0, 5).map((item) => (
+                <li>- {item}</li>
+              ))}
+            </ul>
+          </div>
+          <details class="group mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-200">
+              Team / IT checks
+              <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+                <span class="group-open:hidden">Expand</span>
+                <span class="hidden group-open:inline">Collapse</span>
+              </span>
+            </summary>
+            <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+              {teamItChecks.map((item) => (
+                <li>- {item}</li>
+              ))}
+            </ul>
+          </details>
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-              <h3 class="text-sm font-semibold text-zinc-200">Pricing verification</h3>
-              <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                {checklistPricing.map((item) => (
-                  <li>- {item}</li>
-                ))}
-              </ul>
+              <h3 class="text-sm font-semibold text-zinc-200">Plan-gating still being confirmed</h3>
+              <p class="mt-2 text-sm text-zinc-300">
+                Some buying details can change by region, billing cadence, and seat model. Confirm
+                final terms in official vendor docs before purchase.
+              </p>
+              <p class="mt-2 text-xs text-zinc-500">
+                Last checked {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}
+              </p>
             </div>
             <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-              <h3 class="text-sm font-semibold text-zinc-200">Technical verification</h3>
-              <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                {checklistTechnical.map((item) => (
-                  <li>- {item}</li>
-                ))}
-              </ul>
-            </div>
-            <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-              <h3 class="text-sm font-semibold text-zinc-200">Security & migration</h3>
-              <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                {checklistSecurity.map((item) => (
-                  <li>- {item}</li>
-                ))}
-              </ul>
+              <h3 class="text-sm font-semibold text-zinc-200">Not tested in this checklist</h3>
+              <p class="mt-2 text-sm text-zinc-300">
+                Contract negotiation terms and legal interpretation are outside this page scope.
+              </p>
             </div>
           </div>
         </section>
