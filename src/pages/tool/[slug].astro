@@ -536,12 +536,8 @@ const hasCommunity = Boolean(
 );
 const showProceduralVerdict =
   hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
-const showProceduralPricing =
-  hasProceduralGuidance && sectionStatus.pricing === 'procedural' && !hasPricing;
 const showProceduralSpecs =
   hasProceduralGuidance && sectionStatus.specs === 'procedural' && !hasSpecs;
-const showProceduralCommunity =
-  hasProceduralGuidance && sectionStatus.community === 'procedural' && !hasCommunity;
 const taxonomyPrimary =
   typeof knowledgeCard?.smp_taxonomy?.primary_function === 'string'
     ? knowledgeCard.smp_taxonomy.primary_function.toLowerCase()
@@ -631,33 +627,6 @@ const toStringArray = (value: unknown): string[] =>
   Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
     : [];
-const quickChecks =
-  toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.quick_checks).slice(0, 5)
-    .length > 0
-    ? toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.quick_checks).slice(
-        0,
-        5
-      )
-    : [
-        'Confirm pricing cadence and seat model for your expected usage.',
-        'Verify plan-gated features required for your first month.',
-        'Run one real workflow before committing.',
-        'Check export and cancellation paths before lock-in.',
-      ];
-const teamItChecks =
-  toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.team_it_checks).slice(
-    0,
-    5
-  ).length > 0
-    ? toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.team_it_checks).slice(
-        0,
-        5
-      )
-    : [
-        'Confirm SSO, SCIM, and admin controls for your team setup.',
-        'Verify DPA, retention policy, and audit log availability.',
-        'Validate API limits, integration constraints, and access controls.',
-      ];
 const handsOnChecks = toStringArray((canonicalFacts as Record<string, unknown> | undefined)?.hands_on_checks).slice(0, 6);
 const handsOnTestNotesRaw =
   canonicalFacts?.hands_on_test_notes && typeof canonicalFacts.hands_on_test_notes === 'object'
@@ -687,9 +656,6 @@ const notTestedItems =
     ? ['Live product workflow execution', 'Account-level setup in production environments', 'Contract-specific terms (SSO, SCIM, DPA, audit-log gating)']
     : ['Enterprise contract and legal terms unless explicitly stated in cited vendor docs'];
 const showWeTestedIt = evaluationDepth !== 'Docs-only' || hasHandsOnTestNotes;
-const hasVerificationChecklist = Boolean(
-  hasPricing || showProceduralPricing || firstReview || constraints || hasPlatform
-);
 type EvidenceLinkEntry = {
   url: string;
   title: string;
@@ -967,36 +933,9 @@ const pricingSnapshotBullets = withUniqueText(
     )
   )
 ).slice(0, 5);
-const extractPricingClaimPlan = (text: string, index: number): string => {
-  const match = text.match(/\b(free|starter|pro|team|business|enterprise|max|plus)\b/i);
-  if (match) {
-    return `${match[1].charAt(0).toUpperCase()}${match[1].slice(1).toLowerCase()} plan`;
-  }
-  return `Plan not specified in source #${index + 1}`;
-};
-const extractPricingClaimPrice = (text: string): string => {
-  const match = text.match(/\$\s?\d[\d,.]*(?:\s*\/\s*(?:mo|month|yr|year|seat|user))?/i);
-  return match ? match[0] : '—';
-};
-const pricingFallbackRows =
-  pricingSnapshotBullets.length > 0
-    ? pricingSnapshotBullets.map((item, index) => ({
-        planName: extractPricingClaimPlan(item.text, index),
-        price: extractPricingClaimPrice(item.text),
-        detail: item.text,
-        verification: item.sourceUrl ? 'Source-backed claim' : 'Not source-confirmed',
-        sourceUrl: item.sourceUrl || officialPricingSource?.url || null,
-      }))
-    : [
-        {
-          planName: 'Pricing not confirmed',
-          price: '—',
-          detail:
-            'Pricing changes frequently. Confirm current plan details on the vendor pricing page.',
-          verification: 'Not source-confirmed',
-          sourceUrl: officialPricingSource?.url || null,
-        },
-      ];
+const pricingEvidenceLinks = withUniqueText(
+  pricingSnapshotBullets.filter((item) => Boolean(item.sourceUrl))
+).slice(0, 3);
 const showPricingSection = true;
 const decisionProofPoints = [
   buildEvidenceBulletV2({
@@ -1057,7 +996,7 @@ const trialNotesBullets = withUniqueText(
 );
 const hasOperationalFit = Boolean(firstReview || constraints);
 const hasOperationalEvidence = notIncludedBullets.length > 0 || trialNotesBullets.length > 0;
-const showOperationalFit = hasOperationalFit && (hasOperationalEvidence || !hasPricing);
+const showOperationalFit = hasOperationalFit && hasOperationalEvidence;
 const verdictLabel =
   decisionSnapshotWatchOuts.length === 0 && canonicalHardLimits.length <= 1
     ? 'Choose'
@@ -1165,8 +1104,6 @@ const updateHistoryEntries = [
 const publishedAnalysesLabel =
   tool.review_count > 0 ? String(tool.review_count) : isVerificationMode ? 'In review' : '0';
 shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
-const showVerificationChecklist = hasVerificationChecklist && isVerificationMode;
-const showProceduralCommunityInPage = showProceduralCommunity && isVerificationMode;
 const toolMeta = generateToolMeta(tool, tool.review_count);
 const meta = {
   ...toolMeta,
@@ -1403,16 +1340,6 @@ const schemas = [
                 </a>
               )
             }
-            {
-              showVerificationChecklist && (
-                <a
-                  href="#verification-checklist"
-                  class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
-                >
-                  Open quick checks
-                </a>
-              )
-            }
           </div>
         </aside>
       </div>
@@ -1548,7 +1475,7 @@ const schemas = [
       class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-lg font-semibold text-zinc-100">How We Evaluate</h2>
+        <h2 class="text-lg font-semibold text-zinc-100">How We Evaluated</h2>
         <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
           Evaluation depth: {evaluationDepth}
         </span>
@@ -1714,7 +1641,7 @@ const schemas = [
           href="#how-we-evaluate"
           class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
         >
-          How we evaluate
+          How we evaluated
         </a>
         {
           hasGettingStarted && (
@@ -1743,16 +1670,6 @@ const schemas = [
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
               Hard limits
-            </a>
-          )
-        }
-        {
-          showVerificationChecklist && (
-            <a
-              href="#verification-checklist"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Quick checks
             </a>
           )
         }
@@ -1891,19 +1808,20 @@ const schemas = [
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
             >
               <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
-              <p class="text-sm text-zinc-300">
+              <p class="text-sm text-zinc-400">
                 As of{' '}
                 {communityVerifiedLabel ||
                   specsVerifiedLabel ||
                   pricingVerifiedLabel ||
                   'the latest review'}
-                , vendor documentation and source-backed references indicate this recommendation level for{' '}
-                {tool.name}.
+                .
               </p>
-              <div
-                class="mt-4 prose prose-slate prose-sm max-w-none"
-                set:html={simpleMarkdown(renderVerdict)}
-              />
+              <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <div
+                  class="prose prose-slate prose-sm max-w-none text-zinc-200 leading-7"
+                  set:html={simpleMarkdown(renderVerdict)}
+                />
+              </div>
               {scoreDrivers.length > 0 && (
                 <div class="mt-5">
                   <h3 class="text-sm font-semibold text-zinc-200">Recommendation drivers</h3>
@@ -2111,63 +2029,56 @@ const schemas = [
                   </>
                 ) : (
                   <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
+                    <p class="font-medium text-zinc-100">Pricing not confirmed.</p>
                     <p>
-                      Pricing not confirmed. Showing currently available source-linked claims only.
+                      Structured plan pricing is missing or stale for this tool. We only publish
+                      numeric pricing when plan, billing cadence, region, check date, and source are present.
                     </p>
-                    <h3 class="text-sm font-semibold text-zinc-100">Source-backed pricing snapshot</h3>
-                    <div class="overflow-x-auto rounded-lg border border-zinc-800">
-                      <table class="min-w-full divide-y divide-zinc-800 text-left text-xs">
-                        <thead class="bg-zinc-900/90 text-zinc-400">
-                          <tr>
-                            <th class="px-3 py-2 font-medium">Plan</th>
-                            <th class="px-3 py-2 font-medium">Price</th>
-                            <th class="px-3 py-2 font-medium">Verification</th>
-                            <th class="px-3 py-2 font-medium">Source</th>
-                          </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-800 text-zinc-200">
-                          {pricingFallbackRows.map((row) => (
-                            <tr>
-                              <td class="px-3 py-2 align-top">
-                                <p class="font-medium text-zinc-100">{row.planName}</p>
-                                <p class="mt-1 text-[11px] text-zinc-400">{row.detail}</p>
-                              </td>
-                              <td class="px-3 py-2 align-top">{row.price}</td>
-                              <td class="px-3 py-2 align-top">
-                                <span
-                                  class:list={[
-                                    'rounded-full border px-2 py-0.5',
-                                    row.verification === 'Source-backed claim'
-                                      ? 'border-emerald-700/50 bg-emerald-900/30 text-emerald-300'
-                                      : 'border-amber-700/50 bg-amber-900/30 text-amber-300',
-                                  ]}
-                                >
-                                  {row.verification}
-                                </span>
-                              </td>
-                              <td class="px-3 py-2 align-top">
-                                {row.sourceUrl ? (
-                                  <a
-                                    href={row.sourceUrl}
-                                    target="_blank"
-                                    rel="noopener"
-                                    aria-label={sourceAriaLabel(row.detail)}
-                                    data-outbound="source"
-                                    data-location="pricing-snapshot"
-                                    data-tool={tool.slug}
-                                    class="text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                                  >
-                                    Official source
-                                  </a>
-                                ) : (
-                                  <span class="text-zinc-500">—</span>
-                                )}
-                              </td>
-                            </tr>
+                    {(officialPricingSource || pricingEvidenceLinks.length > 0) && (
+                      <div class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                          Relevant pricing sources
+                        </p>
+                        <ul class="mt-2 space-y-1 text-xs text-zinc-300">
+                          {officialPricingSource && (
+                            <li>
+                              -{' '}
+                              <a
+                                href={officialPricingSource.url}
+                                target="_blank"
+                                rel="noopener"
+                                aria-label="Open official pricing source"
+                                data-outbound="source"
+                                data-location="pricing-unconfirmed"
+                                data-tool={tool.slug}
+                                class="underline underline-offset-2 hover:text-hunt-500"
+                              >
+                                Official pricing page
+                              </a>
+                            </li>
+                          )}
+                          {pricingEvidenceLinks.map((entry) => (
+                            <li>
+                              -{' '}
+                              <a
+                                href={entry.sourceUrl}
+                                target="_blank"
+                                rel="noopener"
+                                aria-label={sourceAriaLabel(entry.text)}
+                                data-outbound="source"
+                                data-location="pricing-unconfirmed"
+                                data-tool={tool.slug}
+                                class="underline underline-offset-2 hover:text-hunt-500"
+                              >
+                                {entry.text.length > 120
+                                  ? `${entry.text.slice(0, 117)}...`
+                                  : entry.text}
+                              </a>
+                            </li>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        </ul>
+                      </div>
+                    )}
                     <p class="text-xs text-zinc-500">
                       Last checked {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}.
                     </p>
@@ -2310,31 +2221,23 @@ const schemas = [
                 </span>
               </summary>
               <ul class="mt-4 space-y-2 text-sm text-zinc-300">
-                {trialNotesBullets.length > 0 ? (
-                  trialNotesBullets.slice(0, 3).map((item) => (
-                    <li>
-                      - {item.text}{' '}
-                      <a
-                        href={item.sourceUrl}
-                        target="_blank"
-                        rel="noopener"
-                        aria-label={sourceAriaLabel(item.text)}
-                        data-outbound="source"
-                        data-location="rollout-notes"
-                        data-tool={tool.slug}
-                        class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                      >
-                        Claim source
-                      </a>
-                    </li>
-                  ))
-                ) : (
-                  <>
-                    <li>- Pilot with 5 real workflows before rollout.</li>
-                    <li>- Confirm plan-gated features used in daily work.</li>
-                    <li>- Verify export and cancellation paths before commitment.</li>
-                  </>
-                )}
+                {trialNotesBullets.slice(0, 3).map((item) => (
+                  <li>
+                    - {item.text}{' '}
+                    <a
+                      href={item.sourceUrl}
+                      target="_blank"
+                      rel="noopener"
+                      aria-label={sourceAriaLabel(item.text)}
+                      data-outbound="source"
+                      data-location="rollout-notes"
+                      data-tool={tool.slug}
+                      class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
+                    >
+                      Claim source
+                    </a>
+                  </li>
+                ))}
               </ul>
             </details>
           )
@@ -2712,14 +2615,22 @@ const schemas = [
 
     {
       updateHistoryEntries.length > 0 && (
-        <section
+        <details
           id="update-history"
-          class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+          class="group mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
         >
-          <h2 class="text-lg font-semibold text-zinc-100">Update History</h2>
-          <p class="mt-2 text-sm text-zinc-400">
-            Last update {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'} • Last check {pricingVerifiedLabel || specsVerifiedLabel || communityVerifiedLabel || 'unknown'}
-          </p>
+          <summary class="flex cursor-pointer list-none items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-zinc-100">Update History</h2>
+              <p class="mt-1 text-sm text-zinc-400">
+                Last update {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'} • Last check {pricingVerifiedLabel || specsVerifiedLabel || communityVerifiedLabel || 'unknown'}
+              </p>
+            </div>
+            <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+              <span class="group-open:hidden">Expand</span>
+              <span class="hidden group-open:inline">Collapse</span>
+            </span>
+          </summary>
           <ul class="mt-4 space-y-3 text-sm text-zinc-300">
             {updateHistoryEntries.map((entry) => (
               <li class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
@@ -2739,60 +2650,7 @@ const schemas = [
               </li>
             ))}
           </ul>
-        </section>
-      )
-    }
-
-    {
-      showVerificationChecklist && (
-        <section
-          id="verification-checklist"
-          class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
-        >
-          <h2 class="text-lg font-semibold text-zinc-100">Quick checks before you buy</h2>
-          <p class="mt-2 text-sm text-zinc-400">
-            High-signal checks for most buyers. For enterprise requirements, expand Team / IT checks.
-          </p>
-          <div class="mt-5 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-            <ul class="space-y-2 text-sm text-zinc-300">
-              {quickChecks.slice(0, 5).map((item) => (
-                <li>- {item}</li>
-              ))}
-            </ul>
-          </div>
-          <details class="group mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-            <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-200">
-              Team / IT checks
-              <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
-                <span class="group-open:hidden">Expand</span>
-                <span class="hidden group-open:inline">Collapse</span>
-              </span>
-            </summary>
-            <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-              {teamItChecks.map((item) => (
-                <li>- {item}</li>
-              ))}
-            </ul>
-          </details>
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-              <h3 class="text-sm font-semibold text-zinc-200">Plan-gating still being confirmed</h3>
-              <p class="mt-2 text-sm text-zinc-300">
-                Some buying details can change by region, billing cadence, and seat model. Confirm
-                final terms in official vendor docs before purchase.
-              </p>
-              <p class="mt-2 text-xs text-zinc-500">
-                Last checked {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}
-              </p>
-            </div>
-            <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-              <h3 class="text-sm font-semibold text-zinc-200">Not tested in this checklist</h3>
-              <p class="mt-2 text-sm text-zinc-300">
-                Contract negotiation terms and legal interpretation are outside this page scope.
-              </p>
-            </div>
-          </div>
-        </section>
+        </details>
       )
     }
   </div>
@@ -2832,22 +2690,6 @@ const schemas = [
               Report correction
             </button>
           </div>
-        </section>
-      )
-    }
-    {
-      showProceduralCommunityInPage && (
-        <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h2 class="text-lg font-semibold text-zinc-100">Observed Usage Patterns</h2>
-          <p class="mt-2 text-sm text-zinc-400">
-            Community evidence is currently below publication threshold. Use this lightweight audit:
-          </p>
-          <ul class="mt-4 space-y-2 text-sm text-zinc-300">
-            <li>- Ask references what failed first after rollout and how they mitigated it.</li>
-            <li>- Validate support responsiveness during your local business hours.</li>
-            <li>- Compare one critical workflow against two alternatives before locking in.</li>
-            <li>- Re-check after the next product release cycle for fresher field evidence.</li>
-          </ul>
         </section>
       )
     }
