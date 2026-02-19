@@ -44,6 +44,7 @@ import { formatPricingType, getCanonicalUrl, simpleMarkdown } from '@/lib/utils'
 import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
+import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -435,6 +436,51 @@ const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidence
 let shouldNoindex = !gateShouldIndex || isDraftPage;
 let isVerificationMode = shouldNoindex;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
+const provisionalIndexEligibility = (() => {
+  if (!firstReview) return { allowed: false, reasons: ['missing_review'] as string[] };
+  const status = String((firstReview as any).status || '').toLowerCase();
+  if (!['draft', 'review'].includes(status)) {
+    return { allowed: false, reasons: ['not_draft_or_review'] as string[] };
+  }
+  const score = Number((firstReview as any).score || 0);
+  const summaryLength =
+    typeof firstReview.summary_markdown === 'string' ? firstReview.summary_markdown.trim().length : 0;
+  const prosCount = countClaimBullets(firstReview.pros);
+  const consCount = countClaimBullets(firstReview.cons);
+  const sourceCount = Array.isArray(firstReview.sources) ? firstReview.sources.length : 0;
+  const strictGate = evaluateStrictPublishGate(tool as any, firstReview as any);
+  const strictBlockers = strictGate.blockers.filter(
+    (blocker) => !blocker.startsWith('quality_gate:')
+  );
+  const hardReasons = gateReasons.filter(
+    (reason) =>
+      reason === 'missing_required_sections' ||
+      reason === 'UNSUPPORTED_NEGATIVE_CLAIM' ||
+      reason.startsWith('conflicts_detected:') ||
+      reason.startsWith('pricing_conflicts_detected:')
+  );
+  const allowed =
+    score >= 72 &&
+    summaryLength >= 140 &&
+    prosCount >= 2 &&
+    consCount >= 1 &&
+    sourceCount >= 3 &&
+    hardReasons.length === 0 &&
+    strictBlockers.length === 0;
+  return {
+    allowed,
+    reasons: [
+      ...(score >= 72 ? [] : ['score_below_threshold']),
+      ...(summaryLength >= 140 ? [] : ['summary_too_short']),
+      ...(prosCount >= 2 ? [] : ['pros_below_threshold']),
+      ...(consCount >= 1 ? [] : ['cons_missing']),
+      ...(sourceCount >= 3 ? [] : ['sources_below_threshold']),
+      ...hardReasons,
+      ...strictBlockers,
+    ],
+  };
+})();
+const showReviewInProgressBanner = provisionalIndexEligibility.allowed;
 const NEGATIVE_CLAIM_GUARD =
   /\b(no|not|lacks|lack|cannot|can't|won't|avoid|veto|problem|risk|limit|limited|slow|expensive|broken|fails|failure)\b/i;
 const hasEligibleNegativeEvidence = eligibleSignalEvidenceCount >= 2;
@@ -588,6 +634,17 @@ const cleanDecisionText = (value: unknown): string | null => {
   );
   if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+};
+const countClaimBullets = (raw: unknown): number => {
+  if (!Array.isArray(raw)) return 0;
+  return raw.filter((entry) => {
+    if (typeof entry === 'string') return entry.trim().length > 0;
+    if (entry && typeof entry === 'object') {
+      const text = (entry as { text?: string }).text;
+      return typeof text === 'string' && text.trim().length > 0;
+    }
+    return false;
+  }).length;
 };
 const uniqueDecisionText = (items: Array<unknown>): string[] => {
   const seen = new Set<string>();
@@ -1067,10 +1124,14 @@ const updateHistoryEntries = [
 const publishedAnalysesLabel =
   tool.review_count > 0 ? String(tool.review_count) : isVerificationMode ? 'In review' : '0';
 shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
+if (showReviewInProgressBanner) {
+  shouldNoindex = false;
+}
 const toolMeta = generateToolMeta(tool, tool.review_count);
 const meta = {
   ...toolMeta,
-  description: shouldNoindex ? safeDraftDescription : toolMeta.description,
+  description:
+    shouldNoindex && !showReviewInProgressBanner ? safeDraftDescription : toolMeta.description,
   canonical: shouldNoindex ? getCanonicalUrl('/tools') : toolMeta.canonical,
   noindex: shouldNoindex,
 };
@@ -1119,6 +1180,14 @@ const schemas = [
 
     <!-- Hero Section -->
     <header class="relative mb-12 overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg sm:p-8">
+      {
+        showReviewInProgressBanner && (
+          <div class="mb-4 rounded-lg border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm text-sky-100">
+            This page is being reviewed. Claims are source-backed, but final editorial verification is
+            still in progress.
+          </div>
+        )
+      }
       <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-hunt-500/20 blur-3xl">
       </div>
       <div class="pointer-events-none absolute -bottom-20 left-4 h-52 w-52 rounded-full bg-cyan-500/15 blur-3xl">
