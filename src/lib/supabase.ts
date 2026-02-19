@@ -159,6 +159,39 @@ export async function getContextBySlug(slug: string) {
 }
 
 /**
+ * Fetch draft/review candidates for a context (server-side only via service role).
+ * Used to surface "early picks" when a list has too few published entries.
+ */
+export async function getProvisionalReviewsForContext(contextId: string, limit = 30) {
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('reviews')
+    .select(
+      `
+      *,
+      item:items(
+        *,
+        item_category_links(
+          relevance_score,
+          category:categories(*)
+        ),
+        affiliate_offers(*)
+      )
+    `
+    )
+    .eq('context_id', contextId)
+    .in('status', ['draft', 'review'])
+    .order('score', { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data || []).map((review: any) => ({
+    ...review,
+    item: review.item ? attachPrimaryCategory(review.item) : review.item,
+  }));
+}
+
+/**
  * Fetch all items for a category
  */
 export async function getItemsByCategory(categorySlug: string) {
