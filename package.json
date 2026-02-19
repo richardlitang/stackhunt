@@ -26,6 +26,7 @@
     "verify-affiliates": "npx tsx scripts/verify-affiliate-links.ts",
     "discover-topics": "npx tsx scripts/discover-topics.ts",
     "qa:gates": "npx tsx scripts/report-draft-gate-reasons.ts",
+    "qa:prepush": "npm run typecheck && npm run lint && npm run build",
     "qa:content-policy": "node scripts/ci-content-policy-gates.mjs",
     "qa:autopilot": "npx tsx scripts/qa-autopilot.ts",
     "qa:autopilot:cron": "npm run qa:autopilot -- --recompute-limit=400 --gates-limit=80 --max-publish=10 --refresh-limit=25 --refresh-priority=90 --worker-batch=3",
