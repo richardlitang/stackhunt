@@ -497,6 +497,12 @@ const hasDevTrackContent = Array.isArray(setupTracks?.dev)
 const hasGettingStarted = Boolean(
   hasSetupComplexityContent || hasNonDevTrackContent || hasDevTrackContent
 );
+const comparativeFeaturePeerCount =
+  typeof (knowledgeCard?.meta as Record<string, unknown> | undefined)?.comparative_feature_peer_count ===
+  'number'
+    ? ((knowledgeCard?.meta as Record<string, unknown>)
+        .comparative_feature_peer_count as number)
+    : 0;
 const hasSpecs = Boolean((categorySpecificData || vipSpecifics) && sectionStatus.specs === 'show');
 const hasMeaningfulPricingPlanName = (name?: string): boolean => {
   if (!name || !name.trim()) return false;
@@ -1985,6 +1991,7 @@ const schemas = [
               features={knowledgeCard.features}
               toolName={tool.name}
               sectionId="features"
+              peerCount={comparativeFeaturePeerCount}
             />
           )
         }

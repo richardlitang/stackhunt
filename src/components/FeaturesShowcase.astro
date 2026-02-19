@@ -12,9 +12,10 @@ interface Props {
   features: KnowledgeCard['features'];
   toolName: string;
   sectionId?: string;
+  peerCount?: number;
 }
 
-const { features, toolName: _toolName, sectionId } = Astro.props;
+const { features, toolName: _toolName, sectionId, peerCount = 0 } = Astro.props;
 
 // Check if we have any data to display
 const hasData =
@@ -49,7 +50,11 @@ const statusLabels = {
 >
   <h2 class="mb-2 text-lg font-semibold text-zinc-100">Capabilities & Differentiators</h2>
   <p class="mb-6 text-sm text-zinc-400">
-    Highlights from current source-backed product information
+    {
+      peerCount > 0
+        ? `Highlights from current source-backed product information, compared with ${peerCount} similar tools.`
+        : 'Highlights from current source-backed product information'
+    }
   </p>
 
   {/* Core Features */}

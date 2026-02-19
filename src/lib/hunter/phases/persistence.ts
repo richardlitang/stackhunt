@@ -281,6 +281,168 @@ function normalizeChecklistItems(value: unknown, max = 5): string[] {
   return items;
 }
 
+function normalizeFeatureLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[()]/g, ' ')
+    .replace(/[^a-z0-9+\-/\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isGenericDifferentiator(value: string): boolean {
+  const normalized = normalizeFeatureLabel(value);
+  if (!normalized || normalized.length < 6) return true;
+  const genericPatterns = [
+    /\bai (chat|assistant|automation|generation)\b/,
+    /\b(api|integrations?|webhooks?|automation)\b/,
+    /\b(data export|export)\b/,
+    /\b(collaboration|workflow|productivity)\b/,
+    /\b(conversation memory|memory)\b/,
+    /\b(code generation)\b/,
+  ];
+  return genericPatterns.some((pattern) => pattern.test(normalized));
+}
+
+function hasSpecificSignal(value: string): boolean {
+  return (
+    /\b\d/.test(value) ||
+    /\b(pro|max|enterprise|team|business|starter|free)\b/i.test(value) ||
+    /\b(scim|sso|dpa|soc 2|hipaa|gdpr|api)\b/i.test(value) ||
+    /\b[A-Z]{2,}\b/.test(value)
+  );
+}
+
+function featureOverlapRatio(a: string, b: string): number {
+  const tokenize = (value: string) =>
+    new Set(
+      normalizeFeatureLabel(value)
+        .split(' ')
+        .filter((token) => token.length >= 3)
+    );
+  const aa = tokenize(a);
+  const bb = tokenize(b);
+  if (aa.size === 0 || bb.size === 0) return 0;
+  let overlap = 0;
+  for (const token of aa) {
+    if (bb.has(token)) overlap += 1;
+  }
+  return overlap / aa.size;
+}
+
+async function enrichComparativeFeatureSignals(
+  knowledgeCard: any,
+  deps: HunterDependencies,
+  params: { categoryId?: string | null; toolSlug: string }
+): Promise<void> {
+  if (!knowledgeCard || typeof knowledgeCard !== 'object') return;
+  if (!knowledgeCard.features || typeof knowledgeCard.features !== 'object') return;
+
+  const rawCore = Array.isArray(knowledgeCard.features.core) ? knowledgeCard.features.core : [];
+  const rawUnique = Array.isArray(knowledgeCard.features.unique) ? knowledgeCard.features.unique : [];
+  const rawDifferentiators = Array.isArray(knowledgeCard?.competitive?.differentiators)
+    ? knowledgeCard.competitive.differentiators
+    : [];
+  const candidates = [...rawUnique, ...rawDifferentiators]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map((value) => value.trim());
+
+  if (candidates.length === 0) return;
+
+  const peerFeatureCorpus: string[] = [];
+  let peerCount = 0;
+
+  if (params.categoryId) {
+    const { data: links } = await deps.supabase
+      .from('item_category_links')
+      .select('item_id')
+      .eq('category_id', params.categoryId)
+      .limit(80);
+    const peerIds = (links || []).map((entry: any) => entry.item_id).filter(Boolean);
+    if (peerIds.length > 0) {
+      const { data: peers } = await deps.supabase
+        .from('items')
+        .select('slug, metadata')
+        .in('id', peerIds)
+        .neq('slug', params.toolSlug)
+        .limit(50);
+
+      for (const peer of peers || []) {
+        const metadata = peer?.metadata && typeof peer.metadata === 'object' ? peer.metadata : null;
+        const features =
+          metadata && typeof (metadata as any).features === 'object'
+            ? ((metadata as any).features as Record<string, unknown>)
+            : null;
+        if (!features) continue;
+        peerCount += 1;
+        const peerCore = Array.isArray(features.core) ? features.core : [];
+        const peerUnique = Array.isArray(features.unique) ? features.unique : [];
+        for (const entry of [...peerCore, ...peerUnique]) {
+          if (typeof entry === 'string' && entry.trim().length > 0) {
+            peerFeatureCorpus.push(entry.trim());
+          }
+        }
+      }
+    }
+  }
+
+  const seen = new Set<string>();
+  const scored = candidates
+    .map((candidate) => {
+      const key = normalizeFeatureLabel(candidate);
+      if (!key || seen.has(key)) return null;
+      seen.add(key);
+      const overlapHits = peerFeatureCorpus.reduce((hits, peerFeature) => {
+        return hits + (featureOverlapRatio(candidate, peerFeature) >= 0.6 ? 1 : 0);
+      }, 0);
+      const overlapRate =
+        peerFeatureCorpus.length > 0 ? overlapHits / Math.max(peerFeatureCorpus.length, 1) : 0;
+      return { candidate, overlapRate };
+    })
+    .filter((entry): entry is { candidate: string; overlapRate: number } => Boolean(entry));
+
+  const selected = scored
+    .filter(({ candidate, overlapRate }) => {
+      if (isGenericDifferentiator(candidate) && !hasSpecificSignal(candidate)) return false;
+      if (peerFeatureCorpus.length === 0) return true;
+      if (hasSpecificSignal(candidate)) return overlapRate <= 0.35;
+      return overlapRate <= 0.2;
+    })
+    .sort((a, b) => a.overlapRate - b.overlapRate)
+    .map((entry) => entry.candidate)
+    .slice(0, 4);
+
+  const fallbackSelected = candidates
+    .filter((candidate) => !isGenericDifferentiator(candidate))
+    .slice(0, 3);
+  const effectiveUnique = (selected.length > 0 ? selected : fallbackSelected).slice(0, 4);
+  if (effectiveUnique.length === 0) return;
+
+  const cleanedCore = rawCore
+    .filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map((value: string) => value.trim())
+    .filter((value: string, index: number, arr: string[]) => {
+      const key = normalizeFeatureLabel(value);
+      return arr.findIndex((entry) => normalizeFeatureLabel(entry) === key) === index;
+    })
+    .slice(0, 6);
+
+  knowledgeCard.features.core = cleanedCore;
+  knowledgeCard.features.unique = effectiveUnique;
+  if (knowledgeCard.competitive && typeof knowledgeCard.competitive === 'object') {
+    knowledgeCard.competitive.differentiators = effectiveUnique;
+  }
+  if (!knowledgeCard.meta || typeof knowledgeCard.meta !== 'object') {
+    knowledgeCard.meta = {};
+  }
+  knowledgeCard.meta.comparative_feature_refresh = new Date().toISOString();
+  knowledgeCard.meta.comparative_feature_peer_count = peerCount;
+
+  deps.log(
+    `[Comparative Features] ${params.toolSlug}: selected ${effectiveUnique.length}/${candidates.length} differentiators (peers=${peerCount})`
+  );
+}
+
 function deriveBuyerChecklists(analysis: any): { quickChecks: string[]; teamItChecks: string[] } {
   const quickChecks = normalizeChecklistItems(analysis?.canonicalFacts?.quick_checks, 5);
   const teamItChecks = normalizeChecklistItems(analysis?.canonicalFacts?.team_it_checks, 5);
@@ -970,6 +1132,11 @@ export async function executePersistencePhase(
       deps.log(`[Category] Warning: No mapping for "${primaryFunction}"`);
     }
   }
+
+  await enrichComparativeFeatureSignals(knowledgeCard, deps, {
+    categoryId,
+    toolSlug,
+  });
 
   // Step 2: Upsert Item (with Knowledge Card + V2 fields)
 
@@ -2136,6 +2303,21 @@ async function persistResearchOnly(
 
   const toolSlug = slugify(ctx.toolName);
   const knowledgeCard = ctx.research.knowledgeCard;
+  let categoryId: string | null = null;
+  if (ctx.detectedCategory) {
+    const { data: detectedCategory } = await deps.supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', ctx.detectedCategory)
+      .limit(1)
+      .maybeSingle();
+    categoryId = detectedCategory?.id || null;
+  }
+
+  await enrichComparativeFeatureSignals(knowledgeCard, deps, {
+    categoryId,
+    toolSlug,
+  });
 
   // Build minimal specs to store research data for later batch synthesis
   const specs: ToolSpecs = {
