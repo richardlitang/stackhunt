@@ -21,7 +21,7 @@ import VoteWidget from '@/components/VoteWidget';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import RelatedContent from '@/components/RelatedContent.astro';
 import TrustBar from '@/components/TrustBar.astro';
-import { getContextBySlug, supabase } from '@/lib/supabase';
+import { getContextBySlug, getProvisionalReviewsForContext, supabase } from '@/lib/supabase';
 import { generateContextMeta, generateListSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
 import { areToolsComparable } from '@/lib/analysis/comparator';
@@ -48,6 +48,141 @@ if (slug && CRM_STARTUP_ALIAS_SLUGS.has(slug)) {
   return Astro.redirect(`/best/${CANONICAL_CRM_STARTUP_SLUG}`, 301);
 }
 
+const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
+const PROVISIONAL_MIN_SCORE = 70;
+const PROVISIONAL_MIN_PROS = 2;
+const PROVISIONAL_MIN_CONS = 1;
+const PROVISIONAL_MIN_SOURCES = 3;
+const PROVISIONAL_MIN_AUTHORITATIVE_SOURCES = 1;
+const PROVISIONAL_TARGET_PICKS = 5;
+const MAX_PROVISIONAL_PICKS = 5;
+
+function countClaimBullets(raw: unknown): number {
+  if (!Array.isArray(raw)) return 0;
+  return raw.filter((entry) => {
+    if (typeof entry === 'string') return entry.trim().length > 0;
+    if (entry && typeof entry === 'object') {
+      const text = (entry as { text?: string }).text;
+      return typeof text === 'string' && text.trim().length > 0;
+    }
+    return false;
+  }).length;
+}
+
+function getSourceStats(rawSources: unknown) {
+  const sources = Array.isArray(rawSources) ? rawSources : [];
+  const authoritativeDomains = new Set<string>();
+  let authoritativeSources = 0;
+
+  for (const source of sources) {
+    if (!source || typeof source !== 'object') continue;
+    const sourceType = String((source as any).source_type || (source as any).type || '').toLowerCase();
+    if (!AUTHORITATIVE_SOURCE_TYPES.has(sourceType)) continue;
+    authoritativeSources += 1;
+
+    const rawDomain =
+      typeof (source as any).domain === 'string'
+        ? (source as any).domain
+        : typeof (source as any).url === 'string'
+          ? (() => {
+              try {
+                return new URL((source as any).url).hostname;
+              } catch {
+                return '';
+              }
+            })()
+          : '';
+    const normalizedDomain = rawDomain.replace(/^www\./i, '').toLowerCase().trim();
+    if (normalizedDomain) authoritativeDomains.add(normalizedDomain);
+  }
+
+  return {
+    sourceCount: sources.length,
+    authoritativeSources,
+    authoritativeDomains: authoritativeDomains.size,
+  };
+}
+
+function getReviewDataQuality(review: any): 'high' | 'medium' | 'low' | 'unknown' {
+  const reviewQuality = String(review?.quality || '').toLowerCase();
+  if (reviewQuality === 'high' || reviewQuality === 'medium' || reviewQuality === 'low') {
+    return reviewQuality;
+  }
+  const metadataQuality = String(review?.item?.metadata?.meta?.data_quality || '').toLowerCase();
+  if (metadataQuality === 'high' || metadataQuality === 'medium' || metadataQuality === 'low') {
+    return metadataQuality;
+  }
+  return 'unknown';
+}
+
+function getConfidenceScore(quality: 'high' | 'medium' | 'low' | 'unknown'): number {
+  if (quality === 'high') return 100;
+  if (quality === 'medium') return 75;
+  if (quality === 'low') return 50;
+  return 35;
+}
+
+function getEvidenceScore(sourceCount: number, authoritativeSources: number, authoritativeDomains: number) {
+  const sourceScore = Math.min(100, sourceCount * 14);
+  const authoritativeSourceScore = Math.min(100, authoritativeSources * 35);
+  const authoritativeDomainScore = Math.min(100, authoritativeDomains * 50);
+  return Math.round(sourceScore * 0.4 + authoritativeSourceScore * 0.4 + authoritativeDomainScore * 0.2);
+}
+
+function getFreshnessScore(review: any): number {
+  const referenceDate = review?.updated_at || review?.created_at;
+  if (!referenceDate) return 40;
+  const ageDays = (Date.now() - new Date(referenceDate).getTime()) / (1000 * 60 * 60 * 24);
+  if (ageDays <= 14) return 100;
+  if (ageDays <= 30) return 85;
+  if (ageDays <= 90) return 70;
+  if (ageDays <= 180) return 55;
+  return 35;
+}
+
+function scoreProvisionalReview(review: any) {
+  const score = Number(review?.score || 0);
+  if (score < PROVISIONAL_MIN_SCORE) return null;
+
+  const prosCount = countClaimBullets(review?.pros);
+  const consCount = countClaimBullets(review?.cons);
+  const summaryLength = typeof review?.summary_markdown === 'string' ? review.summary_markdown.trim().length : 0;
+  const { sourceCount, authoritativeSources, authoritativeDomains } = getSourceStats(review?.sources);
+
+  if (
+    summaryLength < 120 ||
+    prosCount < PROVISIONAL_MIN_PROS ||
+    consCount < PROVISIONAL_MIN_CONS ||
+    sourceCount < PROVISIONAL_MIN_SOURCES ||
+    authoritativeSources < PROVISIONAL_MIN_AUTHORITATIVE_SOURCES
+  ) {
+    return null;
+  }
+
+  const quality = getReviewDataQuality(review);
+  const confidence = getConfidenceScore(quality);
+  const evidence = getEvidenceScore(sourceCount, authoritativeSources, authoritativeDomains);
+  const freshness = getFreshnessScore(review);
+
+  let penalty = 0;
+  const pricingConfidence = String(review?.item?.pricing_confidence || '').toLowerCase();
+  if (!pricingConfidence || pricingConfidence === 'unknown') penalty += 10;
+  if (pricingConfidence === 'low') penalty += 14;
+  if (quality === 'unknown') penalty += 8;
+
+  const total = Math.max(
+    0,
+    Math.min(100, Math.round(0.55 * score + 0.2 * confidence + 0.15 * evidence + 0.1 * freshness - penalty))
+  );
+
+  return {
+    total,
+    sourceCount,
+    authoritativeSources,
+    quality,
+  };
+}
+
 // Fetch context with all tools
 const context = await getContextBySlug(slug);
 
@@ -55,8 +190,60 @@ if (!context) {
   return Astro.redirect('/404');
 }
 
-// Sort reviews by score
-const sortedReviews = [...(context.reviews || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+const publishedReviews = [...(context.reviews || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+let provisionalReviews: any[] = [];
+try {
+  provisionalReviews = await getProvisionalReviewsForContext(context.id, 30);
+} catch (error) {
+  console.warn('[best page] Provisional reviews unavailable:', error);
+}
+
+const publishedItemIds = new Set(
+  publishedReviews
+    .map((review: any) => review.item_id || review.item?.id)
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+);
+
+const provisionalCandidates = provisionalReviews
+  .filter((review) => {
+    const itemId = review.item_id || review.item?.id;
+    return typeof itemId === 'string' && !publishedItemIds.has(itemId);
+  })
+  .map((review) => {
+    const provisional = scoreProvisionalReview(review);
+    if (!provisional) return null;
+    return {
+      ...review,
+      _isProvisional: true,
+      _rankScore: provisional.total,
+      _provisional: provisional,
+    };
+  })
+  .filter((review): review is any => Boolean(review))
+  .sort((a, b) => (b._rankScore || 0) - (a._rankScore || 0));
+
+const provisionalSlots =
+  publishedReviews.length < PROVISIONAL_TARGET_PICKS ? PROVISIONAL_TARGET_PICKS - publishedReviews.length : 0;
+const selectedProvisionalReviews =
+  provisionalSlots > 0
+    ? provisionalCandidates.slice(0, Math.min(MAX_PROVISIONAL_PICKS, provisionalSlots))
+    : [];
+
+// Sort published + provisional picks by their active ranking score
+const sortedReviews = [
+  ...publishedReviews.map((review: any) => ({
+    ...review,
+    _isProvisional: false,
+    _rankScore: Number(review.score || 0),
+  })),
+  ...selectedProvisionalReviews,
+].sort((a, b) => (b._rankScore || 0) - (a._rankScore || 0));
+
+const displayToolCount = Math.max(context.tool_count || 0, sortedReviews.length);
+const contextForMeta = {
+  ...context,
+  tool_count: displayToolCount,
+};
 
 // Fetch related contexts (same category, different slug)
 const { data: relatedContexts } = context.category_id
@@ -133,13 +320,13 @@ for (const review of sortedReviews.slice(0, 2)) {
 }
 
 // Generate SEO
-const meta = generateContextMeta(context, context.category?.name);
+const meta = generateContextMeta(contextForMeta, context.category?.name);
 const schemas = [
   generateListSchema(
-    context,
+    contextForMeta,
     sortedReviews.map((r, i) => ({
       tool: r.item,
-      score: r.score || 0,
+      score: r._rankScore || 0,
       position: i + 1,
     }))
   ),
@@ -200,6 +387,33 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
       .slice(0, limit);
   return { pros: pickText(pros), cons: pickText(cons).slice(0, 1) };
 }
+
+function getClaimText(claim: unknown): string {
+  if (typeof claim === 'string') return claim.trim();
+  if (claim && typeof claim === 'object' && typeof (claim as any).text === 'string') {
+    return ((claim as any).text as string).trim();
+  }
+  return '';
+}
+
+function isSparseSummary(summary: unknown): boolean {
+  if (typeof summary !== 'string') return true;
+  const text = summary.trim();
+  if (!text) return true;
+  const normalized = text.toLowerCase();
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const bulletCount = lines.filter((line) => line.startsWith('-')).length;
+  const headingCount = lines.filter((line) => /^(\*\*|#{1,3}\s)/.test(line)).length;
+  const chooseAvoidOnly =
+    normalized.includes('choose if') &&
+    normalized.includes('avoid if') &&
+    bulletCount <= 2 &&
+    headingCount <= 3;
+  return chooseAvoidOnly || text.length < 180;
+}
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -250,8 +464,10 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
         </div>
 
         <div class="shrink-0 text-right">
-          <div class="text-3xl font-bold text-hunt-500">{context.tool_count}</div>
-          <div class="text-sm text-zinc-400">tools compared</div>
+          <div class="text-3xl font-bold text-hunt-500">{displayToolCount}</div>
+          <div class="text-sm text-zinc-400">
+            {selectedProvisionalReviews.length > 0 ? 'tools compared + early picks' : 'tools compared'}
+          </div>
         </div>
       </div>
 
@@ -288,7 +504,7 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
       <div class="mt-6">
         <TrustBar
           status={listTrustStatus}
-          pendingCount={0}
+          pendingCount={selectedProvisionalReviews.length}
           evaluationDepth="Docs-only"
           lastChecked={contextCheckedLabel || 'Unknown'}
           confidence={listConfidence}
@@ -332,14 +548,20 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
                 : `Top ${Math.min(sortedReviews.length, 10)} Picks`
           }
         </h2>
-        <span class="text-sm text-zinc-400"> Sorted by contextual score </span>
+        <span class="text-sm text-zinc-400">
+          {selectedProvisionalReviews.length > 0
+            ? 'Sorted by contextual + provisional rank'
+            : 'Sorted by contextual score'}
+        </span>
       </div>
 
       <div class:list={['space-y-8', sortedReviews.length === 1 && 'max-w-2xl mx-auto']}>
         {
           sortedReviews.map((review, index) => {
             const rank = index + 1;
-            const scoreColors = getScoreColor(review.score || 0);
+            const isProvisional = Boolean((review as any)._isProvisional);
+            const displayScore = Number((review as any)._rankScore || 0);
+            const scoreColors = getScoreColor(displayScore);
 
             return (
               <article
@@ -359,16 +581,21 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
                       </span>
                     )}
                     {rank === 1 && <span class="text-xs font-medium text-amber-700">Top Pick</span>}
+                    {isProvisional && (
+                      <span class="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-200">
+                        Early Pick
+                      </span>
+                    )}
                   </div>
 
                   <div class="flex items-center gap-3">
                     <span class={`text-sm font-medium ${scoreColors.text}`}>
-                      Score: {review.score}/100
+                      {isProvisional ? `Provisional: ${displayScore}/100` : `Score: ${displayScore}/100`}
                     </span>
                     <div class={`h-2 w-16 rounded-full ${scoreColors.bg}`}>
                       <div
-                        class={`h-2 rounded-full ${review.score >= 70 ? 'bg-green-500' : review.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        style={`width: ${review.score}%`}
+                        class={`h-2 rounded-full ${displayScore >= 70 ? 'bg-green-500' : displayScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                        style={`width: ${displayScore}%`}
                       />
                     </div>
                   </div>
@@ -422,24 +649,13 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
                           {review.pros?.length > 0 && (
                             <div class="space-y-2">
                               {review.pros.slice(0, 2).map((pro: any) => {
-                                const text = typeof pro === 'string' ? pro : pro?.text;
-                                const source = typeof pro === 'object' ? pro?.source_url : null;
+                                const text = getClaimText(pro);
                                 if (!text) return null;
                                 return (
                                   <div class="flex items-start gap-2 text-sm">
                                     <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
                                     <div>
                                       <span class="text-zinc-300">{text}</span>
-                                      {source && (
-                                        <a
-                                          href={source}
-                                          target="_blank"
-                                          rel="nofollow noopener"
-                                          class="ml-1.5 text-xs text-zinc-500 hover:text-zinc-400"
-                                        >
-                                          [source]
-                                        </a>
-                                      )}
                                     </div>
                                   </div>
                                 );
@@ -449,24 +665,13 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
                           {review.cons?.length > 0 && (
                             <div class="space-y-2">
                               {review.cons.slice(0, 2).map((con: any) => {
-                                const text = typeof con === 'string' ? con : con?.text;
-                                const source = typeof con === 'object' ? con?.source_url : null;
+                                const text = getClaimText(con);
                                 if (!text) return null;
                                 return (
                                   <div class="flex items-start gap-2 text-sm">
                                     <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
                                     <div>
                                       <span class="text-zinc-300">{text}</span>
-                                      {source && (
-                                        <a
-                                          href={source}
-                                          target="_blank"
-                                          rel="nofollow noopener"
-                                          class="ml-1.5 text-xs text-zinc-500 hover:text-zinc-400"
-                                        >
-                                          [source]
-                                        </a>
-                                      )}
                                     </div>
                                   </div>
                                 );
@@ -481,6 +686,13 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
                         <div class="mt-3">
                           <SentimentTags tags={review.sentiment_tags} limit={4} />
                         </div>
+                      )}
+
+                      {isProvisional && (
+                        <p class="mt-3 rounded-md border border-sky-500/20 bg-sky-500/5 px-3 py-2 text-xs text-sky-200">
+                          Early pick: this entry meets minimum evidence thresholds and is shown before full
+                          publication checks are complete.
+                        </p>
                       )}
                     </div>
                   </div>
@@ -515,14 +727,14 @@ function _extractHighlights(specs: Record<string, unknown> | null | undefined, l
                         <ProsCons
                           pros={review.pros || []}
                           cons={review.cons || []}
-                          sourceDisplay="inline"
+                          sourceDisplay="block"
                         />
                       </div>
                     </details>
                   )}
 
                   {/* Summary */}
-                  {review.summary_markdown && (
+                  {review.summary_markdown && !isSparseSummary(review.summary_markdown) && (
                     <details class="mt-3 group">
                       <summary class="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-zinc-300 hover:text-zinc-100">
                         <span class="inline-flex items-center gap-2">
