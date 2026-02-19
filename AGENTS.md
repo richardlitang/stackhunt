@@ -189,6 +189,10 @@ After code changes:
 2. `npm run build` - Build succeeds
 3. `npm run test` - Tests pass
 
+### Before Push
+- Run `npm run qa:prepush` before pushing.
+- `qa:prepush` runs `typecheck + lint + build` to catch import/export and build-time failures before CI/Vercel.
+
 ## Environment Variables
 
 Required: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `SERPER_API_KEY`, `ADMIN_SECRET`
