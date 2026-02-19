@@ -894,6 +894,7 @@ const hardLimitBullets = withUniqueText(
 );
 const canonicalHardLimits = withUniqueText([...hardLimitBullets, ...hiddenCostBullets]).slice(0, 6);
 const topHardLimit = canonicalHardLimits[0] || null;
+const gettingStartedCtaUrl = knowledgeCard?.setup_complexity?.setup_url || tool.website || null;
 const officialDomains = new Set(officialEvidenceLinks.map((entry) => entry.domain));
 const hasOfficialPricingSource = officialEvidenceLinks.some(
   (entry) => entry.basis === 'Official pricing pages'
@@ -976,27 +977,6 @@ const decisionSnapshotDifferentiators = uniqueDecisionText([
   ...(Array.isArray(knowledgeCard?.features?.unique) ? knowledgeCard.features.unique : []),
   ...(Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core : []),
 ]).slice(0, 2);
-const notIncludedBullets = withUniqueText(
-  [...effectiveEvidenceCons, ...hiddenCostBullets]
-    .filter((item) =>
-      /\b(no\b|not\b|without|lacks|lack|requires integration|not included|missing|merchant gateway|separate fee|one-time fee)\b/i.test(
-        item.text
-      )
-    )
-    .slice(0, 6)
-);
-const trialNotesBullets = withUniqueText(
-  [...effectiveEvidenceCons, ...hiddenCostBullets]
-    .filter((item) =>
-      /\b(users report|teams report|can become|workflow|operational|maintenance|manual|overhead|stale|governance|friction)\b/i.test(
-        item.text
-      )
-    )
-    .slice(0, 6)
-);
-const hasOperationalFit = Boolean(firstReview || constraints);
-const hasOperationalEvidence = notIncludedBullets.length > 0 || trialNotesBullets.length > 0;
-const showOperationalFit = hasOperationalFit && hasOperationalEvidence;
 const verdictLabel =
   decisionSnapshotWatchOuts.length === 0 && canonicalHardLimits.length <= 1
     ? 'Choose'
@@ -1009,28 +989,6 @@ let verdictLabelRationale =
     : verdictLabel === 'Consider'
       ? `${tool.name} can fit, but only after confirming your key constraints.`
       : `${tool.name} is currently a risky fit for most teams without additional verification.`;
-const useCasesStrip = [
-  {
-    title: 'Get a sourced answer fast',
-    text: 'Use it when you need quick answers with references you can validate.',
-    prompt: `What are the latest best practices for evaluating ${tool.name} for a small team? Include sources.`,
-  },
-  {
-    title: 'Compare options before buying',
-    text: 'Use it to shortlist tools and spot tradeoffs before buying.',
-    prompt: `Compare ${tool.name} with two alternatives for a 10-person team, including pricing tradeoffs and source links.`,
-  },
-  {
-    title: 'Summarize topics with citations',
-    text: 'Use it to condense long topics into a source-backed brief.',
-    prompt: `Summarize the core features, pricing model, and rollout risks of ${tool.name} with citations.`,
-  },
-  {
-    title: 'Research with follow-up questions',
-    text: 'Use iterative follow-ups to close confidence gaps quickly.',
-    prompt: `Create a 5-question diligence checklist before adopting ${tool.name}, and cite official docs where possible.`,
-  },
-];
 const scoreDrivers = uniqueDecisionText([
   ...decisionSnapshotDifferentiators,
   ...decisionSnapshotBestWhen,
@@ -1059,14 +1017,8 @@ pendingVerificationCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoin
 if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
   evidenceGrade = 'B';
 }
-if (verdictLabel === 'Consider' && pendingVerificationCount > 0) {
-  verdictLabelRationale = `${tool.name} can fit, but key plan-gating details are still being verified.`;
-}
 isVerificationMode = evidenceGrade === 'C' || pendingVerificationCount > 0;
-const fitStatusLabel =
-  verdictLabel === 'Consider' && pendingVerificationCount > 0
-    ? 'Consider (details still being verified)'
-    : verdictLabel;
+const fitStatusLabel = verdictLabel;
 const trustStatus: 'Source-backed' | 'Needs confirmation' =
   isVerificationMode || pendingVerificationCount > 0 ? 'Needs confirmation' : 'Source-backed';
 const trustConfidenceLabel: 'High' | 'Medium' | 'Low' =
@@ -1154,14 +1106,25 @@ const schemas = [
       </span>
     </nav>
 
-    <TrustBar
-      status={trustStatus}
-      pendingCount={pendingVerificationCount}
-      evaluationDepth={evaluationDepth}
-      lastChecked={communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'Unknown'}
-      confidence={trustConfidenceLabel}
-      sourcesCount={evidenceLinks.length}
-    />
+    <details class="group mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm">
+      <summary class="flex cursor-pointer list-none items-center justify-between">
+        <span class="text-sm font-medium text-zinc-300">Trust details</span>
+        <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+          <span class="group-open:hidden">Expand</span>
+          <span class="hidden group-open:inline">Collapse</span>
+        </span>
+      </summary>
+      <div class="mt-3">
+        <TrustBar
+          status={trustStatus}
+          pendingCount={pendingVerificationCount}
+          evaluationDepth={evaluationDepth}
+          lastChecked={communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'Unknown'}
+          confidence={trustConfidenceLabel}
+          sourcesCount={evidenceLinks.length}
+        />
+      </div>
+    </details>
 
     <!-- Hero Section -->
     <header class="relative mb-12 overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg sm:p-8">
@@ -1380,12 +1343,39 @@ const schemas = [
           </p>
         </div>
       </div>
+      {canonicalHardLimits.length > 0 && (
+        <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+          <h3 class="text-sm font-semibold text-zinc-200">Hard limits / dealbreakers</h3>
+          <ul class="mt-2 space-y-2 text-sm text-zinc-300">
+            {canonicalHardLimits.slice(0, 4).map((item) => (
+              <li>
+                - {item.text}{' '}
+                <a
+                  href={item.sourceUrl}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label={sourceAriaLabel(item.text)}
+                  data-outbound="source"
+                  data-location="verdict-hard-limits"
+                  data-tool={tool.slug}
+                  class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
+                >
+                  Claim source
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {
         decisionProofPoints.length > 0 && (
-          <div class="mt-4 rounded-xl border border-zinc-700 bg-zinc-900/70 p-4">
-            <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-              Proof points
-            </h3>
+          <details class="group mt-4 rounded-xl border border-zinc-700 bg-zinc-900/70 p-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Source notes
+              </span>
+              <span class="text-xs text-zinc-500">Expand</span>
+            </summary>
             <ul class="mt-2 space-y-2 text-sm text-zinc-200">
               {decisionProofPoints.map((item) => (
                 <li>
@@ -1404,25 +1394,10 @@ const schemas = [
                       Claim source
                     </a>
                   )}
-                  {item.unverified && <span class="ml-2 text-xs text-amber-300">Needs confirmation</span>}
                 </li>
               ))}
             </ul>
-            {decisionProofPoints.filter((item) => item.sources[0]).length >= 2 && (
-              <button
-                type="button"
-                class="mt-3 inline-flex items-center rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-                data-open-key-sources={JSON.stringify(
-                  decisionProofPoints
-                    .map((item) => item.sources[0]?.url)
-                    .filter((url): url is string => Boolean(url))
-                    .slice(0, 2)
-                )}
-              >
-                Open 2 key sources
-              </button>
-            )}
-          </div>
+          </details>
         )
       }
       <div class="mt-4 flex flex-wrap items-center gap-3">
@@ -1462,8 +1437,8 @@ const schemas = [
         topHardLimit && (
           <p class="mt-3 text-xs text-zinc-500">
             Top limit:{' '}
-            <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-              See hard limits
+            <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
+              See verdict limits
             </a>
           </p>
         )
@@ -1558,34 +1533,6 @@ const schemas = [
       )
     }
 
-    <section
-      id="use-cases"
-      class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
-    >
-      <h2 class="text-lg font-semibold text-zinc-100">What It&apos;s For</h2>
-      <p class="mt-1 text-sm text-zinc-400">
-        Non-technical ways people get value from {tool.name}.
-      </p>
-      <p id="prompt-copy-status" class="sr-only" aria-live="polite"></p>
-      <div class="mt-4 grid gap-3 md:grid-cols-2">
-        {
-          useCasesStrip.map((item) => (
-            <article class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-              <h3 class="text-sm font-semibold text-zinc-100">{item.title}</h3>
-              <p class="mt-1 text-sm text-zinc-300">{item.text}</p>
-              <button
-                type="button"
-                class="mt-3 inline-flex items-center rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-                data-copy-prompt={item.prompt}
-              >
-                Try this prompt
-              </button>
-            </article>
-          ))
-        }
-      </div>
-    </section>
-
     {/* Table of Contents */}
     <nav
       class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
@@ -1632,12 +1579,6 @@ const schemas = [
           )
         }
         <a
-          href="#use-cases"
-          class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-        >
-          Use cases
-        </a>
-        <a
           href="#how-we-evaluate"
           class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
         >
@@ -1666,7 +1607,7 @@ const schemas = [
         {
           showPricingSection && canonicalHardLimits.length > 0 && (
             <a
-              href="#hard-limits"
+              href="#verdict"
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
               Hard limits
@@ -1690,16 +1631,6 @@ const schemas = [
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
             >
               Specs
-            </a>
-          )
-        }
-        {
-          showOperationalFit && (
-            <a
-              href="#operational-fit"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Rollout notes
             </a>
           )
         }
@@ -1886,6 +1817,7 @@ const schemas = [
             <details
               id="strengths"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              open
             >
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
@@ -1933,6 +1865,21 @@ const schemas = [
         {
           hasGettingStarted && (
             <div id="getting-started">
+              {gettingStartedCtaUrl && (
+                <div class="mb-3">
+                  <a
+                    href={gettingStartedCtaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-outbound="vendor"
+                    data-location="getting-started-cta"
+                    data-tool={tool.slug}
+                    class="inline-flex items-center rounded-lg bg-hunt-600 px-3 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
+                  >
+                    Open {tool.name} setup
+                  </a>
+                </div>
+              )}
               <GettingStarted
                 setupComplexity={knowledgeCard?.setup_complexity}
                 toolName={tool.name}
@@ -2086,8 +2033,8 @@ const schemas = [
                       <p class="text-xs text-zinc-500">
                         Canonical constraints and pricing-related limits are maintained in one
                         place:{' '}
-                        <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-                          Hard limits / dealbreakers
+                        <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
+                          Why This Verdict
                         </a>
                         .
                       </p>
@@ -2097,50 +2044,14 @@ const schemas = [
                 {canonicalHardLimits.length > 0 && (
                   <p class="mt-4 text-sm text-zinc-400">
                     Canonical constraints live in{' '}
-                    <a href="#hard-limits" class="text-hunt-500 hover:text-hunt-400">
-                      Hard limits / dealbreakers
+                    <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
+                      Why This Verdict
                     </a>
                     .
                   </p>
                 )}
               </div>
             </details>
-          )
-        }
-        {
-          showPricingSection && canonicalHardLimits.length > 0 && (
-            <section
-              id="hard-limits"
-              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
-            >
-              <h2 class="text-lg font-semibold text-zinc-100">Hard limits / dealbreakers</h2>
-              {canonicalHardLimits.length > 0 ? (
-                <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                  {canonicalHardLimits.map((item) => (
-                    <li>
-                      - {item.text}{' '}
-                      <a
-                        href={item.sourceUrl}
-                        target="_blank"
-                        rel="noopener"
-                        aria-label={sourceAriaLabel(item.text)}
-                        data-outbound="source"
-                        data-location="hard-limits"
-                        data-tool={tool.slug}
-                        class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                      >
-                        Claim source
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p class="mt-2 text-sm text-zinc-300">
-                  No source-backed hard limits extracted yet. Use the verification checklist before
-                  commitment.
-                </p>
-              )}
-            </section>
           )
         }
 
@@ -2189,60 +2100,6 @@ const schemas = [
             </section>
           )
         }
-        {
-          showOperationalFit && (
-            <details
-              id="operational-fit"
-              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <summary class="flex cursor-pointer list-none items-center justify-between">
-                <div>
-                  <h2 class="text-lg font-semibold text-zinc-100">Rollout notes</h2>
-                  <p class="mt-1 text-sm text-zinc-400">
-                    Editorial guidance only. These checks are not a substitute for legal or enterprise review.
-                  </p>
-                </div>
-                <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
-                  <span class="group-open:hidden">Expand</span>
-                  <span class="hidden group-open:inline">Collapse</span>
-                  <svg
-                    class="h-4 w-4 transition-transform group-open:rotate-90"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </span>
-              </summary>
-              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
-                {trialNotesBullets.slice(0, 3).map((item) => (
-                  <li>
-                    - {item.text}{' '}
-                    <a
-                      href={item.sourceUrl}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={sourceAriaLabel(item.text)}
-                      data-outbound="source"
-                      data-location="rollout-notes"
-                      data-tool={tool.slug}
-                      class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                    >
-                      Claim source
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )
-        }
-
         {/* Community Insights (Real user insights) */}
         {
           hasCommunity && (userAdvocate || guardedHumanVerdict) && (
@@ -2806,7 +2663,6 @@ const schemas = [
 
   <script is:inline>
     const pageRoot = (document.querySelector('main') as HTMLElement | null) || document.body;
-    const copyStatus = document.getElementById('prompt-copy-status');
 
     const trackOutboundClick = (link: HTMLAnchorElement) => {
       const href = link.getAttribute('href') || '';
@@ -2831,38 +2687,6 @@ const schemas = [
         (window as any).plausible('outbound_click', {
           props: { type, location, tool, href: sanitizedHref },
         });
-      }
-    };
-
-    const openKeySources = (button: HTMLElement) => {
-      const raw = button.getAttribute('data-open-key-sources');
-      if (!raw) return;
-      try {
-        const urls = JSON.parse(raw) as string[];
-        urls.slice(0, 2).forEach((url) => {
-          if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener,noreferrer');
-        });
-      } catch {
-        // no-op
-      }
-    };
-
-    const copyUseCasePrompt = async (button: HTMLButtonElement) => {
-      const prompt = button.getAttribute('data-copy-prompt');
-      if (!prompt) return;
-      try {
-        await navigator.clipboard.writeText(prompt);
-        button.textContent = 'Copied';
-        button.setAttribute('aria-label', 'Prompt copied to clipboard');
-        if (copyStatus) copyStatus.textContent = 'Prompt copied to clipboard';
-      } catch {
-        window.prompt('Copy this prompt:', prompt);
-        if (copyStatus) copyStatus.textContent = 'Clipboard unavailable. Prompt shown for manual copy.';
-      } finally {
-        setTimeout(() => {
-          button.textContent = 'Try this prompt';
-          button.setAttribute('aria-label', 'Try this prompt');
-        }, 1200);
       }
     };
 
@@ -2971,18 +2795,6 @@ const schemas = [
 
       const link = target.closest('a') as HTMLAnchorElement | null;
       if (link) trackOutboundClick(link);
-
-      const openSourcesButton = target.closest('[data-open-key-sources]') as HTMLElement | null;
-      if (openSourcesButton) {
-        openKeySources(openSourcesButton);
-        return;
-      }
-
-      const copyPromptButton = target.closest('[data-copy-prompt]') as HTMLButtonElement | null;
-      if (copyPromptButton) {
-        await copyUseCasePrompt(copyPromptButton);
-        return;
-      }
 
       const openSuggestEditButton = target.closest('[data-suggest-edit]') as HTMLElement | null;
       if (openSuggestEditButton) {
