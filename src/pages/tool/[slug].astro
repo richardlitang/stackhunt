@@ -983,12 +983,18 @@ const verdictLabel =
     : decisionSnapshotBestWhen.length > 0
       ? 'Consider'
       : 'Avoid';
+const verdictDisplayLabel =
+  verdictLabel === 'Choose'
+    ? 'Good fit'
+    : verdictLabel === 'Consider'
+      ? 'Fit with caveats'
+      : 'Not recommended yet';
 let verdictLabelRationale =
   verdictLabel === 'Choose'
-    ? `${tool.name} shows enough evidence for most research-heavy teams.`
+    ? `${tool.name} is a strong option when you want fast, source-backed answers.`
     : verdictLabel === 'Consider'
-      ? `${tool.name} can fit, but only after confirming your key constraints.`
-      : `${tool.name} is currently a risky fit for most teams without additional verification.`;
+      ? `${tool.name} is worth shortlisting, but check pricing and plan limits before you commit.`
+      : `${tool.name} is not a confident pick yet based on currently source-backed evidence.`;
 const scoreDrivers = uniqueDecisionText([
   ...decisionSnapshotDifferentiators,
   ...decisionSnapshotBestWhen,
@@ -1018,7 +1024,6 @@ if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
   evidenceGrade = 'B';
 }
 isVerificationMode = evidenceGrade === 'C' || pendingVerificationCount > 0;
-const fitStatusLabel = verdictLabel;
 const trustStatus: 'Source-backed' | 'Needs confirmation' =
   isVerificationMode || pendingVerificationCount > 0 ? 'Needs confirmation' : 'Source-backed';
 const trustConfidenceLabel: 'High' | 'Medium' | 'Low' =
@@ -1105,26 +1110,6 @@ const schemas = [
         {tool.name}
       </span>
     </nav>
-
-    <details class="group mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm">
-      <summary class="flex cursor-pointer list-none items-center justify-between">
-        <span class="text-sm font-medium text-zinc-300">Trust details</span>
-        <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
-          <span class="group-open:hidden">Expand</span>
-          <span class="hidden group-open:inline">Collapse</span>
-        </span>
-      </summary>
-      <div class="mt-3">
-        <TrustBar
-          status={trustStatus}
-          pendingCount={pendingVerificationCount}
-          evaluationDepth={evaluationDepth}
-          lastChecked={communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'Unknown'}
-          confidence={trustConfidenceLabel}
-          sourcesCount={evidenceLinks.length}
-        />
-      </div>
-    </details>
 
     <!-- Hero Section -->
     <header class="relative mb-12 overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg sm:p-8">
@@ -1313,7 +1298,7 @@ const schemas = [
     >
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold text-zinc-100">Decision: {fitStatusLabel}</h2>
+          <h2 class="text-lg font-semibold text-zinc-100">Verdict: {verdictDisplayLabel}</h2>
           <p class="mt-1 text-sm text-zinc-300">{verdictLabelRationale}</p>
         </div>
         <span
@@ -1358,48 +1343,24 @@ const schemas = [
                   data-outbound="source"
                   data-location="verdict-hard-limits"
                   data-tool={tool.slug}
-                  class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
+                  class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 p-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
+                  title="Open source"
                 >
-                  Claim source
+                  <span class="sr-only">Claim source</span>
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
                 </a>
               </li>
             ))}
           </ul>
         </div>
       )}
-      {
-        decisionProofPoints.length > 0 && (
-          <details class="group mt-4 rounded-xl border border-zinc-700 bg-zinc-900/70 p-4">
-            <summary class="flex cursor-pointer list-none items-center justify-between">
-              <span class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                Source notes
-              </span>
-              <span class="text-xs text-zinc-500">Expand</span>
-            </summary>
-            <ul class="mt-2 space-y-2 text-sm text-zinc-200">
-              {decisionProofPoints.map((item) => (
-                <li>
-                  - {item.text}{' '}
-                  {item.sources[0] && (
-                    <a
-                      href={item.sources[0].url}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={sourceAriaLabel(item.text)}
-                      data-outbound="source"
-                      data-location="decision-proof"
-                      data-tool={tool.slug}
-                      class="text-xs text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-                    >
-                      Claim source
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )
-      }
       <div class="mt-4 flex flex-wrap items-center gap-3">
         {
           tool.website && (
@@ -1763,31 +1724,6 @@ const schemas = [
                   </ul>
                 </div>
               )}
-              {
-                hasStrengths && (
-                  <p class="mt-5 text-sm text-zinc-400">
-                    For one consolidated pros/cons view, see{' '}
-                    <a href="#strengths" class="text-hunt-500 hover:text-hunt-400">
-                      Strengths &amp; Weaknesses
-                    </a>
-                    .
-                  </p>
-                )
-              }
-              {hasAlternatives && (
-                <p class="mt-4 text-xs text-zinc-400">
-                  If this verdict does not match your needs, compare{' '}
-                  {orderedAlternatives.slice(0, 2).map((alt, index) => (
-                    <>
-                      <a href={`/tool/${alt.slug}`} class="text-hunt-500 hover:text-hunt-400">
-                        {alt.name}
-                      </a>
-                      {index === 0 && orderedAlternatives.length > 1 ? ' and ' : ''}
-                    </>
-                  ))}{' '}
-                  before committing.
-                </p>
-              )}
             </section>
           )
         }
@@ -1865,27 +1801,13 @@ const schemas = [
         {
           hasGettingStarted && (
             <div id="getting-started">
-              {gettingStartedCtaUrl && (
-                <div class="mb-3">
-                  <a
-                    href={gettingStartedCtaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-outbound="vendor"
-                    data-location="getting-started-cta"
-                    data-tool={tool.slug}
-                    class="inline-flex items-center rounded-lg bg-hunt-600 px-3 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
-                  >
-                    Open {tool.name} setup
-                  </a>
-                </div>
-              )}
               <GettingStarted
                 setupComplexity={knowledgeCard?.setup_complexity}
                 toolName={tool.name}
                 hasApi={Boolean(knowledgeCard?.integrations?.has_api)}
                 websiteUrl={knowledgeCard?.website_url || tool.website}
                 setupTracks={setupTracks}
+                setupUrl={gettingStartedCtaUrl}
               />
             </div>
           )
@@ -2420,6 +2342,25 @@ const schemas = [
           id="sources"
           class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
         >
+          <details class="group mb-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+            <summary class="flex cursor-pointer list-none items-center justify-between">
+              <span class="text-sm font-medium text-zinc-300">Trust details</span>
+              <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+                <span class="group-open:hidden">Expand</span>
+                <span class="hidden group-open:inline">Collapse</span>
+              </span>
+            </summary>
+            <div class="mt-3">
+              <TrustBar
+                status={trustStatus}
+                pendingCount={pendingVerificationCount}
+                evaluationDepth={evaluationDepth}
+                lastChecked={communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'Unknown'}
+                confidence={trustConfidenceLabel}
+                sourcesCount={evidenceLinks.length}
+              />
+            </div>
+          </details>
           <h2 class="text-lg font-semibold text-zinc-100">Methodology & Sources</h2>
           <div class="mt-3 flex flex-wrap gap-2">
             {evidenceBasis.map((chip) => (

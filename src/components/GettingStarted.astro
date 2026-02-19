@@ -12,6 +12,7 @@ interface Props {
   toolName: string;
   hasApi?: boolean;
   websiteUrl?: string | null;
+  setupUrl?: string | null;
   setupTracks?: {
     dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
     non_dev?: Array<{ step: number; action: string; command?: string; description?: string }>;
@@ -23,6 +24,7 @@ const {
   toolName: _toolName,
   hasApi = false,
   websiteUrl = null,
+  setupUrl = null,
   setupTracks,
 } = Astro.props;
 
@@ -140,6 +142,19 @@ const requiresRoles =
   </summary>
 
   <div class="mt-5 space-y-6">
+    {
+      (setupUrl || setupComplexity?.setup_url || websiteUrl) && (
+        <a
+          href={setupUrl || setupComplexity?.setup_url || websiteUrl || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center rounded-lg bg-hunt-600 px-3 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
+        >
+          Start setup
+        </a>
+      )
+    }
+
     {/* Setup Overview - Time, Type, Friction */}
     {
       setupComplexity && (
@@ -315,8 +330,8 @@ const requiresRoles =
         <div class="space-y-6">
           {effectiveNonDevTrack.length > 0 && (
             <div>
-              <h3 class="text-sm font-semibold text-zinc-100 mb-4">Non-Developer Path</h3>
-              <p class="mb-3 text-xs text-zinc-500">No API key or SDK required.</p>
+              <h3 class="text-sm font-semibold text-zinc-100 mb-4">Quick start path</h3>
+              <p class="mb-3 text-xs text-zinc-500">Fastest path for most teams.</p>
               <ol class="space-y-4">
                 {effectiveNonDevTrack.map((step, index) => (
                   <li class="flex gap-4">
@@ -388,7 +403,7 @@ const requiresRoles =
               rel="noopener noreferrer"
               class="inline-flex items-center gap-2 mt-3 text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
             >
-              <span>Open official API setup docs</span>
+              <span>Start API setup</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -428,7 +443,7 @@ const requiresRoles =
             rel="noopener noreferrer"
             class="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
           >
-            <span>📚 View Official Setup Guide</span>
+            <span>📚 View setup guide</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"

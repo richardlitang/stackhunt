@@ -14,7 +14,7 @@ interface Props {
   sectionId?: string;
 }
 
-const { features, toolName, sectionId } = Astro.props;
+const { features, toolName: _toolName, sectionId } = Astro.props;
 
 // Check if we have any data to display
 const hasData =
@@ -49,14 +49,14 @@ const statusLabels = {
 >
   <h2 class="mb-2 text-lg font-semibold text-zinc-100">Capabilities & Differentiators</h2>
   <p class="mb-6 text-sm text-zinc-400">
-    Key capabilities and functionality that {toolName} offers
+    Highlights from current source-backed product information
   </p>
 
   {/* Core Features */}
   {
     features.core && features.core.length > 0 && (
       <div class="mb-6">
-        <h3 class="mb-3 text-sm font-medium text-zinc-300">Capabilities</h3>
+        <h3 class="mb-3 text-sm font-medium text-zinc-300">Core capabilities</h3>
         <div class="grid gap-3 sm:grid-cols-2">
           {features.core.map((feature) => (
             <div class="flex items-start gap-2">
@@ -73,7 +73,7 @@ const statusLabels = {
   {
     features.unique && features.unique.length > 0 && (
       <div class="mb-6">
-        <h3 class="mb-3 text-sm font-medium text-zinc-300">Differentiators</h3>
+        <h3 class="mb-3 text-sm font-medium text-zinc-300">What stands out</h3>
         <div class="grid gap-3">
           {features.unique.map((feature) => (
             <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-3">
