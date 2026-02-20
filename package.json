@@ -42,6 +42,7 @@
     "qa:recompute-quality": "npx tsx scripts/recompute-quality-snapshots.ts",
     "qa:diff-runtime-snapshot": "npx tsx scripts/diff-runtime-vs-snapshot.ts",
     "qa:compile-shadow-snapshots": "npx tsx scripts/compile-shadow-snapshots.ts",
+    "qa:publish-shadow-snapshots": "npx tsx scripts/publish-shadow-snapshots.ts",
     "import-ideas": "npx tsx scripts/import-content-ideas.ts",
     "queue-ideas": "npx tsx scripts/queue-content-ideas.ts",
     "regenerate-embeddings": "npx tsx scripts/regenerate-embeddings.ts",
