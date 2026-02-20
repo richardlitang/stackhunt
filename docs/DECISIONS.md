@@ -16,6 +16,12 @@ Notes:
 - Keep entries short.
 - Use concrete dates.
 
+2026-02-20 - Snapshot Compiler Trust Contract (Policy V1)
+Context: `/best` and `/compare` are moving toward deterministic snapshot compilers, but confidence, staleness, evidence scope, and conflict behavior were not yet locked as one cross-cutting contract.
+Decision: Adopt `compiler_policy_version = 2026-02-20.v1` with four mandatory rules: (1) volatility-tier freshness windows, (2) evidence-tier requirements, (3) explicit conflict state (`disputed`) for critical fields, and (4) explicit count semantics (`all_reviews_count`, `published_reviews_count`, `snapshot_ranked_count`).
+Why: Snapshot ranking, publish gating, and UI trust messaging become unstable if these policies drift or are interpreted differently by route-specific logic.
+Impact: Future best/compare snapshot rows must carry `policy_version`; critical fields (pricing, plan gating, security/compliance, hard limits) cannot silently resolve conflicts and must either degrade confidence or surface as disputed.
+
 2026-02-19 - Vote Path Hardened with Actor-Key Atomic RPC + Reconciliation
 Context: Vote handling still had legacy behavior (`voteType=0` no-op), weaker dedupe semantics, and potential counter drift under concurrency.
 Decision: Add migration-backed vote hardening: `votes.actor_key`, unique `(review_id, actor_key)`, atomic `cast_vote` add/switch/remove semantics, and `reconcile_review_vote_counts()` for deterministic counter repair.

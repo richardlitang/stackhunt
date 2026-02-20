@@ -47,7 +47,7 @@ if (slugA > slugB) {
 
 // Fetch both tools with their reviews, offers, and metadata (Knowledge Cards)
 const { data: tools } = await supabase
-  .from('tools')
+  .from('items')
   .select(
     `
     *,
@@ -367,7 +367,7 @@ for (const tool of suggestedComparisons || []) {
 if (switchingTools.size > 0 && suggestions.length < 4) {
   const switchingSlugs = Array.from(switchingTools).filter(isValidCompareSlug).slice(0, 4);
   const { data: switchingToolsData } = await supabase
-    .from('tools')
+    .from('items')
     .select(
       `
       name, slug, logo_url, metadata,

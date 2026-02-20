@@ -319,6 +319,45 @@ private async withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 4. **Batch optimization**: Process similar tools together
 5. **Multi-model**: Use Claude for synthesis, Gemini for extraction
 
+## Snapshot Compiler Trust Contract (2026-02-20.v1)
+
+This contract governs deterministic `/best` and `/compare` compiler outputs.
+It is deliberately separate from prompt behavior and must be versioned.
+
+### 1) Freshness by Volatility Tier
+
+- **Tier 1 (high volatility):** pricing, plan gating, hard limits
+- **Tier 2 (medium volatility):** integrations, platform support, admin/security posture
+- **Tier 3 (lower volatility):** core workflow capabilities, positioning metadata
+
+Snapshot gating must evaluate freshness by tier, not a single timestamp.
+Stale Tier 1 fields block publish or require explicit downgraded confidence/disputed state.
+
+### 2) Evidence Tiers
+
+- **Tier A:** official/docs/support/legal
+- **Tier B:** editorial technical coverage
+- **Tier C:** community/opinion signals
+
+Critical fields must be backed by Tier A evidence. Tier C can inform subjective framing but cannot
+be the sole basis for critical claims.
+
+### 3) Conflict Semantics
+
+Critical field disagreement is represented explicitly as `disputed`.
+The compiler must not silently pick a winner for conflicts on pricing, plan gating, security/compliance,
+or hard limits.
+
+### 4) Count Semantics
+
+Context/list metrics must keep separate meanings:
+
+- `all_reviews_count`: all reviews linked to a context
+- `published_reviews_count`: public-safe published reviews
+- `snapshot_ranked_count`: entries present in the active published snapshot
+
+Do not overload a single `tool_count` for all three meanings.
+
 ### Metrics to Add
 
 - Average data quality by source domain
