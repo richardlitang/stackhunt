@@ -35,6 +35,11 @@ function parseLimit(): number {
   return Math.max(1, Math.min(raw, 500));
 }
 
+function parseSnapshotStatus(): 'draft' | 'published' {
+  const raw = (getArgValue('status') || 'draft').toLowerCase();
+  return raw === 'published' ? 'published' : 'draft';
+}
+
 function asSnapshotRanked(snapshotJson: unknown): SnapshotRankedEntry[] {
   if (!snapshotJson || typeof snapshotJson !== 'object') return [];
   const obj = snapshotJson as Record<string, unknown>;
@@ -52,6 +57,7 @@ async function main() {
   }
 
   const sample = parseLimit();
+  const snapshotStatus = parseSnapshotStatus();
   const supabase = createClient(supabaseUrl, serviceRole, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -107,8 +113,8 @@ async function main() {
       .from('best_snapshots')
       .select('snapshot_json')
       .eq('context_slug', context.slug)
-      .eq('status', 'published')
-      .order('published_at', { ascending: false })
+      .eq('status', snapshotStatus)
+      .order('computed_at', { ascending: false })
       .limit(1);
 
     if (snapshotError) {
@@ -143,6 +149,7 @@ async function main() {
 
   console.log('\nRuntime vs Snapshot Diff');
   console.log(`Contexts sampled: ${rows.length}`);
+  console.log(`Snapshot status: ${snapshotStatus}`);
 
   if (!snapshotTableAvailable) {
     console.log('Snapshot table unavailable (`best_snapshots` not deployed yet).');
@@ -173,4 +180,3 @@ main().catch((error) => {
   console.error('Unexpected diff failure:', error);
   process.exit(1);
 });
-

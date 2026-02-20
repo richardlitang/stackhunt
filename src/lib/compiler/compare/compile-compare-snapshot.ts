@@ -1,6 +1,7 @@
 import { areToolsComparable } from '@/lib/analysis/comparator';
 import { resolveCompilerPolicyVersion } from '@/lib/compiler/policy-version';
 import { normalizeComparePair, toClaimList, toEvidenceRefs } from '@/lib/compiler/snapshot-helpers';
+import { evaluateComparePublishGate } from '@/lib/compiler/compare/publish-gate';
 import { getAdminClient } from '@/lib/supabase';
 
 type CompileCompareOptions = {
@@ -172,6 +173,14 @@ export async function compileCompareSnapshotDraft(
     },
   };
 
+  const publishGate = evaluateComparePublishGate({
+    comparable,
+    toolAHasEvidence: (snapshotJson.citations[toolA.slug] || []).length > 0,
+    toolBHasEvidence: (snapshotJson.citations[toolB.slug] || []).length > 0,
+    criticalConflictCount: 0,
+  });
+  (snapshotJson as any).publish_gate = publishGate;
+
   const specKey = typeof options.specKey === 'string' && options.specKey.trim() ? options.specKey.trim() : null;
   const latestVersionQuery = admin
     .from('compare_snapshots')
@@ -224,5 +233,6 @@ export async function compileCompareSnapshotDraft(
     status: (insertedRows?.[0] as any)?.status as string,
     comparable,
     winner,
+    publishGatePass: publishGate.pass,
   };
 }

@@ -38,7 +38,7 @@ Minimal operational scripts for the live content pipeline.
 - Pricing fallback report: `npm run qa:pricing-fallback`
 - Queue pricing fallback re-hunts (dry run): `npm run qa:queue-pricing-fallback-rehunt`
 - Queue pricing fallback re-hunts (apply): `npm run qa:queue-pricing-fallback-rehunt:apply`
-- Runtime vs snapshot parity diff (best pages): `npm run qa:diff-runtime-snapshot -- --sample=50`
+- Runtime vs snapshot parity diff (best pages): `npm run qa:diff-runtime-snapshot -- --sample=50 --status=draft`
 - Shadow snapshot compile (draft only): `npm run qa:compile-shadow-snapshots -- --contexts=20 --pairs=30`
 - Frontend design pass: `npm run design:pass`
 

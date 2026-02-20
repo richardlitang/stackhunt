@@ -1,6 +1,7 @@
 import { getAdminClient } from '@/lib/supabase';
 import { resolveCompilerPolicyVersion } from '@/lib/compiler/policy-version';
 import { toClaimList, toEvidenceRefs } from '@/lib/compiler/snapshot-helpers';
+import { evaluateBestPublishGate } from '@/lib/compiler/best/publish-gate';
 
 type CompileBestOptions = {
   policyVersion?: string | null;
@@ -111,6 +112,17 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
     },
   };
 
+  const topK = ranked.slice(0, 5);
+  const publishGate = evaluateBestPublishGate({
+    rankedCount: ranked.length,
+    topKCount: topK.length,
+    topKWithEvidenceCount: topK.filter((entry) => entry.evidence_refs.length > 0).length,
+    topKFreshCount: topK.length, // v0 assumes review freshness already screened upstream
+    criticalConflictCount: 0,
+  });
+
+  (snapshotJson as any).publish_gate = publishGate;
+
   const { data: latestVersionRows, error: versionError } = await admin
     .from('best_snapshots')
     .select('version')
@@ -150,5 +162,6 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
     status: (insertedRows?.[0] as any)?.status as string,
     rankedCount: ranked.length,
     sourceCount: uniqueEvidenceUrls.size,
+    publishGatePass: publishGate.pass,
   };
 }

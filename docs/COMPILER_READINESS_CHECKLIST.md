@@ -79,6 +79,8 @@ Evidence:
 - `tests/fixtures/best_compare_golden/`
 - `scripts/diff-runtime-vs-snapshot.ts`
 - `tests/lib/compiler/`
+- `src/lib/compiler/best/publish-gate.ts`
+- `src/lib/compiler/compare/publish-gate.ts`
 
 ---
 
