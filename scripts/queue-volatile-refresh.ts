@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { getAvailableSourceSlots, parseQueueCap } from './lib/queue-guardrails.js';
 
 dotenv.config();
 
@@ -134,6 +135,21 @@ async function enqueue(
     source: 'admin',
     hunt_type: 'price_only',
   }));
+
+  const sourceCap = parseQueueCap(process.env.HUNT_QUEUE_SOURCE_PENDING_CAP, 400);
+  const { current, remaining } = await getAvailableSourceSlots(supabase as any, 'scheduled', sourceCap);
+  if (remaining <= 0) {
+    console.log(
+      `\nQueue source cap reached for "scheduled" (${current}/${sourceCap}). Skipping enqueue.`
+    );
+    return;
+  }
+  if (rows.length > remaining) {
+    console.log(
+      `\nQueue guardrail trimming rows from ${rows.length} to ${remaining} (scheduled pending ${current}/${sourceCap}).`
+    );
+    rows.length = remaining;
+  }
 
   const { error } = await supabase.from('hunt_queue').insert(rows);
   if (error) {
