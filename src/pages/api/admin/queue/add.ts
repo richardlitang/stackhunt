@@ -12,6 +12,12 @@ import { QueueAddRequestSchema, validationErrorResponse } from '@/lib/validation
 
 export const prerender = false;
 
+function parseCap(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.floor(parsed);
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const contentType = request.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
@@ -47,6 +53,63 @@ export const POST: APIRoute = async ({ request }) => {
     const { tool_name, context_title, priority } = result.data;
 
     const admin = getAdminClient();
+    const pendingStatuses = ['pending', 'claimed', 'processing'];
+    const contextPendingCap = parseCap(process.env.HUNT_QUEUE_CONTEXT_PENDING_CAP, 20);
+    const sourcePendingCap = parseCap(process.env.HUNT_QUEUE_SOURCE_PENDING_CAP, 400);
+
+    if (context_title) {
+      const { count: contextPendingCount, error: contextCountError } = await admin
+        .from('hunt_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('context_title', context_title)
+        .in('status', pendingStatuses);
+
+      if (contextCountError) {
+        console.error('Failed to check context queue cap:', contextCountError);
+      } else if ((contextPendingCount || 0) >= contextPendingCap) {
+        const payload = {
+          success: false,
+          error: 'Context queue cap reached',
+          hint: `Context has ${(contextPendingCount || 0).toString()} pending jobs (cap: ${contextPendingCap}).`,
+        };
+        if (isJson) {
+          return new Response(JSON.stringify(payload), {
+            status: 429,
+            headers: { 'Content-Type': 'application/json', 'Retry-After': '300' },
+          });
+        }
+        return new Response(null, {
+          status: 302,
+          headers: { Location: '/admin/queue?error=context_cap' },
+        });
+      }
+    }
+
+    const { count: sourcePendingCount, error: sourceCountError } = await admin
+      .from('hunt_queue')
+      .select('*', { count: 'exact', head: true })
+      .eq('source', 'admin')
+      .in('status', pendingStatuses);
+
+    if (sourceCountError) {
+      console.error('Failed to check source queue cap:', sourceCountError);
+    } else if ((sourcePendingCount || 0) >= sourcePendingCap) {
+      const payload = {
+        success: false,
+        error: 'Queue source cap reached',
+        hint: `Admin source has ${(sourcePendingCount || 0).toString()} pending jobs (cap: ${sourcePendingCap}).`,
+      };
+      if (isJson) {
+        return new Response(JSON.stringify(payload), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': '300' },
+        });
+      }
+      return new Response(null, {
+        status: 302,
+        headers: { Location: '/admin/queue?error=source_cap' },
+      });
+    }
 
     // V5: Ensure tool is classified before queuing (so Hunter gets Research Dossier)
     const { ensureClassification } = await import('@/lib/hunter/services/keyword-classifier');
