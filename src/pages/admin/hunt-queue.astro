@@ -62,6 +62,8 @@ const fairnessSources = Array.from(sourceBreakdown.entries())
 const oldestPendingHours = oldestPendingAt
   ? Math.max(0, Math.round((Date.now() - new Date(oldestPendingAt).getTime()) / (1000 * 60 * 60)))
   : 0;
+const starvationAlertHours = Number(import.meta.env.QUEUE_STARVATION_ALERT_HOURS || 24);
+const showStarvationAlert = oldestPendingHours >= starvationAlertHours;
 
 // Build query with filters
 let query = admin.from('hunt_queue').select(`
@@ -148,6 +150,16 @@ const statusLabels: Record<string, { label: string; color: string }> = {
         </div>
       </div>
     </div>
+
+    {
+      showStarvationAlert && (
+        <div class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <strong>Queue starvation warning:</strong> oldest in-flight item age is{' '}
+          <strong>{oldestPendingHours}h</strong> (threshold: {starvationAlertHours}h). Investigate
+          source caps, worker throughput, or blocked jobs.
+        </div>
+      )
+    }
 
     <!-- Fairness / Starvation Telemetry -->
     <div class="rounded-lg border border-slate-200 bg-white p-6">
