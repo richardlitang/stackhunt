@@ -22,6 +22,12 @@ Configured in `vercel.json`.
 - Primary worker: `/api/cron/hunt` (Vercel cron)
 - Local worker alternative:
   - `npm run queue:worker -- --interval 6h --batch 5`
+- Fairness controls:
+  - Claim ordering is fairness-aware in `claim_hunt_queue_item` (source/context in-flight load, then priority/FIFO).
+  - Admin queue API enforces:
+    - `HUNT_QUEUE_CONTEXT_PENDING_CAP` (default 20)
+    - `HUNT_QUEUE_SOURCE_PENDING_CAP` (default 400)
+  - Scheduled re-hunt scripts trim enqueue volume to remaining `source='scheduled'` capacity.
 
 ---
 
@@ -52,6 +58,15 @@ Configured in `vercel.json`.
 
 - Regenerate embeddings:
   - `npm run regenerate-embeddings`
+
+- Recompute context count semantics:
+  - `npx tsx scripts/backfill-context-counts.ts`
+
+- Verify context count consistency:
+  - `npx tsx scripts/check-context-count-consistency.ts`
+
+- Runtime vs snapshot parity diff (best):
+  - `npx tsx scripts/diff-runtime-vs-snapshot.ts --sample=50`
 
 ---
 
