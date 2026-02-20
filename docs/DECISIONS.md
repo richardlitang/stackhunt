@@ -16,6 +16,24 @@ Notes:
 - Keep entries short.
 - Use concrete dates.
 
+2026-02-19 - Vote Path Hardened with Actor-Key Atomic RPC + Reconciliation
+Context: Vote handling still had legacy behavior (`voteType=0` no-op), weaker dedupe semantics, and potential counter drift under concurrency.
+Decision: Add migration-backed vote hardening: `votes.actor_key`, unique `(review_id, actor_key)`, atomic `cast_vote` add/switch/remove semantics, and `reconcile_review_vote_counts()` for deterministic counter repair.
+Why: Votes are high-volume public writes and require DB-level correctness guarantees, not API-only assumptions.
+Impact: Vote remove/switch semantics are now explicit, dedupe is actor-key based, and periodic counter reconciliation is available via `qa:reconcile-votes`.
+
+2026-02-19 - Canonical Price Verification RPC + Deterministic Abuse Risk Scoring
+Context: `/api/verify-price` invoked `record_price_verification`, but the function definition was missing from migrations, creating drift risk and no durable moderation signal quality.
+Decision: Add migration-backed `public.record_price_verification(...)` with explicit grants, queue refresh behavior for inaccurate reports, and deterministic `risk_score` + `risk_reasons[]` on `price_verifications`.
+Why: This restores schema/code parity, keeps moderation explainable, and avoids ML-style opaque abuse decisions.
+Impact: Price verification submissions now return reproducible risk signals (`missing_turnstile`, `ip_only_actor_key`, `velocity_spike_*`, `fingerprint_churn`, `origin_mismatch`) and can be audited by admins.
+
+2026-02-19 - Signals Abuse Hardening Moved to DB-Atomic Upsert
+Context: `user_signals` abuse checks were partially API-side and non-atomic, so duplicate races and client bypasses could distort community signal aggregates.
+Decision: Add DB-level `actor_key` uniqueness (`item_id, signal_id, actor_key`), replace append-only signal writes with RPC upsert in `record_signal`, and recompute `signal_aggregates` in SQL after each upsert.
+Why: Abuse controls must live in the database for correctness under concurrency and across all callers.
+Impact: Each actor now has one canonical value per signal per item, re-submissions update in place, and aggregate counts remain deterministic.
+
 2026-02-16 - Community Host Source-Type Normalization
 Context: Forced Baserow re-hunt showed `community.baserow.io` claims persisted as `source_type='official'`, which weakens legal attribution and hedging behavior.
 Decision: Classify forum/community host patterns (`community.`, `forum.`, `discuss.` etc.) as `community` before first-party official matching, and backfill persisted rows via `normalize_community_source_types`.

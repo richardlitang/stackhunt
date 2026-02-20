@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       return rateLimitResponse(rateLimit);
     }
 
-    const { toolId, toolName, accurate } = await request.json();
+    const { toolId, toolName, accurate, fingerprintHash, sourcePage } = await request.json();
 
     if (!toolId || typeof accurate !== 'boolean') {
       return addRateLimitHeaders(
@@ -68,6 +68,21 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
         p_item_name: toolName || null,
         p_is_accurate: accurate,
         p_ip_hash: ipHash,
+        p_fingerprint_hash: typeof fingerprintHash === 'string' ? fingerprintHash : null,
+        p_has_turnstile: false,
+        p_source_page: typeof sourcePage === 'string' ? sourcePage : null,
+        p_origin_host: (() => {
+          const origin = request.headers.get('origin');
+          const referer = request.headers.get('referer');
+          const raw = origin || referer;
+          if (!raw) return null;
+          try {
+            return new URL(raw).host;
+          } catch {
+            return null;
+          }
+        })(),
+        p_expected_host: new URL(request.url).host,
       }
     );
 

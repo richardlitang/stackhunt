@@ -1,0 +1,8 @@
+{
+  "requiredSignatures": [
+    "cast_vote(uuid,smallint,text,text,text)",
+    "check_rate_limit(text,text,integer,integer)",
+    "record_signal(uuid,text,text,boolean,text,numeric,text,text,text,text)",
+    "record_price_verification(uuid,text,boolean,text,text,boolean,text,text,text)"
+  ]
+}

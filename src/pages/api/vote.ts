@@ -104,6 +104,17 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       );
     }
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(reviewId)) {
+      return addRateLimitHeaders(
+        new Response(JSON.stringify({ success: false, error: 'Invalid review ID format' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        rateLimit
+      );
+    }
+
     if (voteType !== -1 && voteType !== 0 && voteType !== 1) {
       return addRateLimitHeaders(
         new Response(JSON.stringify({ success: false, error: 'Invalid vote type' }), {
@@ -141,19 +152,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     // Hash IP for privacy (use the existing hashIP function for vote storage)
     const ipHash = hashIP(ip);
 
-    // Handle vote removal
-    if (voteType === 0) {
-      // For simplicity, we don't actually remove votes, just shadowban
-      return addRateLimitHeaders(
-        new Response(JSON.stringify({ success: true, action: 'removed' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-        rateLimit
-      );
-    }
-
-    // Cast vote via RPC function
+    // Cast vote via RPC function (supports add/switch/remove atomically)
     const { data, error } = await supabase.rpc('cast_vote', {
       p_review_id: reviewId,
       p_vote_type: voteType,

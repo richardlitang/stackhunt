@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { getBrowserFingerprint } from '@/lib/utils';
 
 interface Props {
   toolId: string;
@@ -44,6 +45,8 @@ export default function PriceVerification({
           toolId,
           toolName,
           accurate: isAccurate,
+          fingerprintHash: getBrowserFingerprint(),
+          sourcePage: typeof window !== 'undefined' ? window.location.pathname : null,
         }),
       });
 

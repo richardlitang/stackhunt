@@ -52,44 +52,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       );
     }
 
-    // Check if user already submitted this signal for this item (duplicate prevention)
-    const { data: existingSignal } = await supabase
-      .from('user_signals')
-      .select('id')
-      .eq('item_id', itemId)
-      .eq('ip_hash', ipHash)
-      .gte('created_at', oneHourAgo)
-      .limit(1)
-      .maybeSingle();
-
-    if (existingSignal) {
-      // Allow different signals, but prevent same signal spam
-      const { data: existingSignalForKey } = await supabase
-        .from('user_signals')
-        .select('id, signal_id')
-        .eq('item_id', itemId)
-        .eq('ip_hash', ipHash)
-        .gte('created_at', oneHourAgo);
-
-      // Get signal_id for the signalKey
-      const { data: signalDef } = await supabase
-        .from('signal_definitions')
-        .select('id')
-        .eq('key', signalKey)
-        .maybeSingle();
-
-      if (signalDef && existingSignalForKey?.some((s: any) => s.signal_id === signalDef.id)) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'You already submitted this signal recently',
-          }),
-          { status: 429, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-
-    // Call record_signal RPC (secure insert)
+    // Call record_signal RPC (secure upsert + aggregate recompute)
     const { data, error } = await supabase.rpc('record_signal', {
       p_item_id: itemId,
       p_signal_key: signalKey,
