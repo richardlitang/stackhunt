@@ -24,6 +24,45 @@ const stats = statsData || {
   total: 0,
 };
 
+const queueStatusesForFairness = ['pending', 'claimed', 'processing'];
+const { data: fairnessRows } = await admin
+  .from('hunt_queue')
+  .select('source, created_at, status')
+  .in('status', queueStatusesForFairness)
+  .limit(5000);
+
+const sourceBreakdown = new Map<string, { count: number; oldestCreatedAt: string | null }>();
+let oldestPendingAt: string | null = null;
+
+for (const row of fairnessRows || []) {
+  const source = row.source || 'unknown';
+  const existing = sourceBreakdown.get(source) || { count: 0, oldestCreatedAt: null };
+  existing.count += 1;
+  if (!existing.oldestCreatedAt || new Date(row.created_at).getTime() < new Date(existing.oldestCreatedAt).getTime()) {
+    existing.oldestCreatedAt = row.created_at;
+  }
+  sourceBreakdown.set(source, existing);
+
+  if (!oldestPendingAt || new Date(row.created_at).getTime() < new Date(oldestPendingAt).getTime()) {
+    oldestPendingAt = row.created_at;
+  }
+}
+
+const fairnessSources = Array.from(sourceBreakdown.entries())
+  .map(([source, data]) => ({
+    source,
+    count: data.count,
+    oldestHours: data.oldestCreatedAt
+      ? Math.max(0, Math.round((Date.now() - new Date(data.oldestCreatedAt).getTime()) / (1000 * 60 * 60)))
+      : 0,
+  }))
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 8);
+
+const oldestPendingHours = oldestPendingAt
+  ? Math.max(0, Math.round((Date.now() - new Date(oldestPendingAt).getTime()) / (1000 * 60 * 60)))
+  : 0;
+
 // Build query with filters
 let query = admin.from('hunt_queue').select(`
     id,
@@ -33,6 +72,7 @@ let query = admin.from('hunt_queue').select(`
     context_title,
     category_slug,
     status,
+    source,
     priority,
     attempts,
     max_attempts,
@@ -107,6 +147,64 @@ const statusLabels: Record<string, { label: string; color: string }> = {
           <div class="text-xs text-slate-500">Total</div>
         </div>
       </div>
+    </div>
+
+    <!-- Fairness / Starvation Telemetry -->
+    <div class="rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="text-lg font-semibold text-slate-900">Queue Fairness Telemetry</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Pending pressure by source and oldest in-flight age.
+      </p>
+
+      <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div class="text-xs uppercase tracking-wide text-slate-500">In-flight jobs</div>
+          <div class="mt-1 text-xl font-semibold text-slate-900">
+            {stats.pending + stats.claimed + stats.processing}
+          </div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div class="text-xs uppercase tracking-wide text-slate-500">Oldest in-flight</div>
+          <div class="mt-1 text-xl font-semibold text-slate-900">{oldestPendingHours}h</div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div class="text-xs uppercase tracking-wide text-slate-500">Top source share</div>
+          <div class="mt-1 text-xl font-semibold text-slate-900">
+            {fairnessSources[0]
+              ? `${Math.round((fairnessSources[0].count / Math.max(1, stats.pending + stats.claimed + stats.processing)) * 100)}%`
+              : '0%'}
+          </div>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div class="text-xs uppercase tracking-wide text-slate-500">Tracked sources</div>
+          <div class="mt-1 text-xl font-semibold text-slate-900">{fairnessSources.length}</div>
+        </div>
+      </div>
+
+      {
+        fairnessSources.length > 0 && (
+          <div class="mt-4 overflow-x-auto rounded-lg border border-slate-200">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-left">
+                <tr>
+                  <th class="px-3 py-2 font-medium text-slate-600">Source</th>
+                  <th class="px-3 py-2 font-medium text-slate-600">In-flight</th>
+                  <th class="px-3 py-2 font-medium text-slate-600">Oldest age</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                {fairnessSources.map((row) => (
+                  <tr>
+                    <td class="px-3 py-2 font-medium text-slate-700">{row.source}</td>
+                    <td class="px-3 py-2 text-slate-700">{row.count}</td>
+                    <td class="px-3 py-2 text-slate-700">{row.oldestHours}h</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      }
     </div>
 
     <!-- CSV Upload Section -->
