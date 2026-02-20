@@ -40,6 +40,7 @@
     "qa:backfill-claim-metadata": "node scripts/backfill-claim-metadata.mjs",
     "qa:queue-volatile-refresh": "npx tsx scripts/queue-volatile-refresh.ts",
     "qa:recompute-quality": "npx tsx scripts/recompute-quality-snapshots.ts",
+    "qa:diff-runtime-snapshot": "npx tsx scripts/diff-runtime-vs-snapshot.ts",
     "import-ideas": "npx tsx scripts/import-content-ideas.ts",
     "queue-ideas": "npx tsx scripts/queue-content-ideas.ts",
     "regenerate-embeddings": "npx tsx scripts/regenerate-embeddings.ts",

@@ -1,0 +1,24 @@
+{
+  "name": "basic ranking drift",
+  "runtime": [
+    { "id": "a", "score": 92 },
+    { "id": "b", "score": 88 },
+    { "id": "c", "score": 84 },
+    { "id": "d", "score": 80 }
+  ],
+  "snapshot": [
+    { "id": "a", "score": 91 },
+    { "id": "c", "score": 86 },
+    { "id": "b", "score": 85 },
+    { "id": "e", "score": 79 }
+  ],
+  "expected": {
+    "runtimeCount": 4,
+    "snapshotCount": 4,
+    "overlapCount": 3,
+    "topK": 3,
+    "topKAgreementCount": 3,
+    "missingInSnapshot": ["d"],
+    "missingInRuntime": ["e"]
+  }
+}
