@@ -22,6 +22,7 @@ import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import RelatedContent from '@/components/RelatedContent.astro';
 import TrustBar from '@/components/TrustBar.astro';
 import { getContextBySlug, getProvisionalReviewsForContext, supabase } from '@/lib/supabase';
+import { validateAdminAuth } from '@/lib/auth';
 import { generateContextMeta, generateListSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
 import { areToolsComparable } from '@/lib/analysis/comparator';
@@ -192,10 +193,15 @@ if (!context) {
 
 const publishedReviews = [...(context.reviews || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
 let provisionalReviews: any[] = [];
-try {
-  provisionalReviews = await getProvisionalReviewsForContext(context.id, 30);
-} catch (error) {
-  console.warn('[best page] Provisional reviews unavailable:', error);
+const wantsAdminPreview = Astro.url.searchParams.get('preview') === 'admin';
+const canUseAdminPreview = wantsAdminPreview ? await validateAdminAuth(Astro.cookies) : false;
+
+if (canUseAdminPreview) {
+  try {
+    provisionalReviews = await getProvisionalReviewsForContext(context.id, 30);
+  } catch (error) {
+    console.warn('[best page] Provisional reviews unavailable:', error);
+  }
 }
 
 const publishedItemIds = new Set(
@@ -225,7 +231,7 @@ const provisionalCandidates = provisionalReviews
 const provisionalSlots =
   publishedReviews.length < PROVISIONAL_TARGET_PICKS ? PROVISIONAL_TARGET_PICKS - publishedReviews.length : 0;
 const selectedProvisionalReviews =
-  provisionalSlots > 0
+  canUseAdminPreview && provisionalSlots > 0
     ? provisionalCandidates.slice(0, Math.min(MAX_PROVISIONAL_PICKS, provisionalSlots))
     : [];
 
