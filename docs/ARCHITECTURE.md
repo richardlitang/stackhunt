@@ -200,7 +200,7 @@ Manages hunt queue with:
 
 ## Database Schema
 
-### Tools
+### Items
 - `id` (uuid, PK)
 - `name`, `slug`, `website`
 - `logo_path`, `logo_url`
@@ -217,7 +217,7 @@ Manages hunt queue with:
 
 ### Reviews
 - `id` (uuid, PK)
-- `tool_id`, `context_id` (composite unique)
+- `item_id`, `context_id` (composite unique)
 - `score` (0-100)
 - `pros`, `cons` (jsonb arrays with source attribution)
 - `summary_markdown`
@@ -227,7 +227,7 @@ Manages hunt queue with:
 
 ### Knowledge Graph
 - `categories` - Functions, Audiences, Platforms
-- `tool_categories` - M:N linking table
+- `item_category_links` - M:N linking table with relevance scores
 
 ## Performance
 
