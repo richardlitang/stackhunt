@@ -2,6 +2,21 @@
 
 Purpose: run `/best` + `/compare` snapshot compilers in shadow mode before public cutover.
 
+## 0) Feature Flags
+
+Server-side flags (default `false`):
+
+- `BEST_SNAPSHOT_READ_ENABLED`
+- `BEST_SNAPSHOT_DRAFT_PREVIEW_ENABLED`
+- `COMPARE_SNAPSHOT_READ_ENABLED`
+- `COMPARE_SNAPSHOT_DRAFT_PREVIEW_ENABLED`
+
+Recommended rollout:
+
+1. Keep all flags `false` while compiling/parity testing.
+2. Turn on `*_DRAFT_PREVIEW_ENABLED` only for admin preview validation (`?preview=admin`).
+3. Turn on `*_READ_ENABLED` after readiness checklist is green.
+
 ## 1) Compile Draft Snapshots
 
 Dry compile top contexts + derived compare pairs:

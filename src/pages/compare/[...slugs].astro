@@ -19,6 +19,11 @@ import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import ProsCons from '@/components/ProsCons.astro';
 import TrustBar from '@/components/TrustBar.astro';
 import { supabase } from '@/lib/supabase';
+import { validateAdminAuth } from '@/lib/auth';
+import {
+  getLatestDraftCompareSnapshot,
+  getLatestPublishedCompareSnapshot,
+} from '@/lib/compiler/snapshot-store';
 import { getCanonicalUrl, formatPricingType } from '@/lib/utils';
 import {
   computeComparison,
@@ -43,6 +48,32 @@ const [slugA, slugB] = slugParts.map((s) => s.trim());
 // /compare/notion-vs-linear should redirect to /compare/linear-vs-notion
 if (slugA > slugB) {
   return Astro.redirect(`/compare/${slugB}-vs-${slugA}`, 301);
+}
+
+const wantsAdminPreview = Astro.url.searchParams.get('preview') === 'admin';
+const canUseAdminPreview = wantsAdminPreview ? await validateAdminAuth(Astro.cookies) : false;
+const snapshotReadEnabled =
+  String(import.meta.env.COMPARE_SNAPSHOT_READ_ENABLED || 'false').toLowerCase() === 'true';
+const snapshotDraftPreviewEnabled =
+  String(import.meta.env.COMPARE_SNAPSHOT_DRAFT_PREVIEW_ENABLED || 'false').toLowerCase() === 'true';
+const snapshotSpecKey = Astro.url.searchParams.get('spec');
+
+let selectedSnapshot: any = null;
+if (snapshotReadEnabled) {
+  if (canUseAdminPreview && snapshotDraftPreviewEnabled) {
+    try {
+      selectedSnapshot = await getLatestDraftCompareSnapshot(slugA, slugB, snapshotSpecKey);
+    } catch (error) {
+      console.warn('[compare page] Draft snapshot unavailable:', error);
+    }
+  }
+  if (!selectedSnapshot) {
+    try {
+      selectedSnapshot = await getLatestPublishedCompareSnapshot(slugA, slugB, snapshotSpecKey);
+    } catch (error) {
+      console.warn('[compare page] Published snapshot unavailable:', error);
+    }
+  }
 }
 
 // Fetch both tools with their reviews, offers, and metadata (Knowledge Cards)
@@ -221,9 +252,27 @@ for (const contrast of contrastingTags) {
 }
 
 // Determine overall winner
-const scoreA = toolA.avg_score || 0;
-const scoreB = toolB.avg_score || 0;
-const winner = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'tie';
+let scoreA = Number(toolA.avg_score || 0);
+let scoreB = Number(toolB.avg_score || 0);
+let winner: 'A' | 'B' | 'tie' = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'tie';
+
+if (selectedSnapshot?.snapshot_json) {
+  const snapshotWinner = String(selectedSnapshot.snapshot_json?.verdict?.winner || '').toLowerCase();
+  if (snapshotWinner === toolA.slug.toLowerCase() || snapshotWinner === 'a') winner = 'A';
+  else if (snapshotWinner === toolB.slug.toLowerCase() || snapshotWinner === 'b') winner = 'B';
+  else if (snapshotWinner === 'depends' || snapshotWinner === 'tie') winner = 'tie';
+
+  const sideBySide = Array.isArray(selectedSnapshot.snapshot_json?.side_by_side)
+    ? selectedSnapshot.snapshot_json.side_by_side
+    : [];
+  const scoreRow = sideBySide.find((row: any) => row?.key === 'avg_score');
+  if (scoreRow && typeof scoreRow === 'object') {
+    const maybeA = Number((scoreRow as any).a);
+    const maybeB = Number((scoreRow as any).b);
+    if (Number.isFinite(maybeA)) scoreA = maybeA;
+    if (Number.isFinite(maybeB)) scoreB = maybeB;
+  }
+}
 
 // Format learning curve for display
 const formatLearningCurve = (curve: string | null) => {
@@ -439,7 +488,7 @@ const compareTrustStatus: 'Source-backed' | 'Needs confirmation' = compareChecke
   : 'Needs confirmation';
 const compareConfidence: 'High' | 'Medium' | 'Low' =
   toolA.reviews?.length && toolB.reviews?.length ? 'High' : 'Medium';
-const compareSourcesCount = new Set(
+const compareSourcesCountFromReviews = new Set(
   [...(toolA.reviews || []), ...(toolB.reviews || [])]
     .flatMap((review: any) =>
       Array.isArray(review.sources)
@@ -448,8 +497,21 @@ const compareSourcesCount = new Set(
     )
     .slice(0, 200)
 ).size;
+const compareSourcesCountFromSnapshot = (() => {
+  const citations = selectedSnapshot?.snapshot_json?.citations;
+  if (!citations || typeof citations !== 'object') return 0;
+  const allCitations = Object.values(citations as Record<string, unknown>)
+    .flatMap((value) => (Array.isArray(value) ? value : []))
+    .filter((entry) => Boolean((entry as any)?.url))
+    .map((entry) => String((entry as any).url));
+  return new Set(allCitations).size;
+})();
+const compareSourcesCount =
+  compareSourcesCountFromSnapshot > 0 ? compareSourcesCountFromSnapshot : compareSourcesCountFromReviews;
 const comparisonDecisionText = curatedVerdict
   ? curatedVerdict
+  : typeof selectedSnapshot?.snapshot_json?.verdict?.rationale === 'string'
+    ? selectedSnapshot.snapshot_json.verdict.rationale
   : winner === 'A'
     ? `${toolA.name} is the stronger default choice for most buyers in this matchup.`
     : winner === 'B'

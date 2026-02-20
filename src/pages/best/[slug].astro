@@ -23,6 +23,10 @@ import RelatedContent from '@/components/RelatedContent.astro';
 import TrustBar from '@/components/TrustBar.astro';
 import { getContextBySlug, getProvisionalReviewsForContext, supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
+import {
+  getLatestDraftBestSnapshot,
+  getLatestPublishedBestSnapshot,
+} from '@/lib/compiler/snapshot-store';
 import { generateContextMeta, generateListSchema, generateBreadcrumbSchema } from '@/lib/seo';
 import { simpleMarkdown, getScoreColor } from '@/lib/utils';
 import { areToolsComparable } from '@/lib/analysis/comparator';
@@ -195,6 +199,28 @@ const publishedReviews = [...(context.reviews || [])].sort((a, b) => (b.score ||
 let provisionalReviews: any[] = [];
 const wantsAdminPreview = Astro.url.searchParams.get('preview') === 'admin';
 const canUseAdminPreview = wantsAdminPreview ? await validateAdminAuth(Astro.cookies) : false;
+const snapshotReadEnabled = String(import.meta.env.BEST_SNAPSHOT_READ_ENABLED || 'false').toLowerCase() === 'true';
+const snapshotDraftPreviewEnabled =
+  String(import.meta.env.BEST_SNAPSHOT_DRAFT_PREVIEW_ENABLED || 'false').toLowerCase() === 'true';
+
+let selectedSnapshot: any = null;
+
+if (snapshotReadEnabled) {
+  if (canUseAdminPreview && snapshotDraftPreviewEnabled) {
+    try {
+      selectedSnapshot = await getLatestDraftBestSnapshot(slug || '');
+    } catch (error) {
+      console.warn('[best page] Draft snapshot unavailable:', error);
+    }
+  }
+  if (!selectedSnapshot) {
+    try {
+      selectedSnapshot = await getLatestPublishedBestSnapshot(slug || '');
+    } catch (error) {
+      console.warn('[best page] Published snapshot unavailable:', error);
+    }
+  }
+}
 
 if (canUseAdminPreview) {
   try {
@@ -231,12 +257,11 @@ const provisionalCandidates = provisionalReviews
 const provisionalSlots =
   publishedReviews.length < PROVISIONAL_TARGET_PICKS ? PROVISIONAL_TARGET_PICKS - publishedReviews.length : 0;
 const selectedProvisionalReviews =
-  canUseAdminPreview && provisionalSlots > 0
+  canUseAdminPreview && provisionalSlots > 0 && !selectedSnapshot
     ? provisionalCandidates.slice(0, Math.min(MAX_PROVISIONAL_PICKS, provisionalSlots))
     : [];
 
-// Sort published + provisional picks by their active ranking score
-const sortedReviews = [
+const runtimeSortedReviews = [
   ...publishedReviews.map((review: any) => ({
     ...review,
     _isProvisional: false,
@@ -244,6 +269,44 @@ const sortedReviews = [
   })),
   ...selectedProvisionalReviews,
 ].sort((a, b) => (b._rankScore || 0) - (a._rankScore || 0));
+
+const snapshotRanked = Array.isArray(selectedSnapshot?.snapshot_json?.ranked)
+  ? (selectedSnapshot.snapshot_json.ranked as Array<{ item_id?: string; tool_id?: string; score?: number }>)
+  : [];
+const runtimeReviewByItemId = new Map(
+  runtimeSortedReviews
+    .map((review: any) => {
+      const itemId = String(review.item_id || review.item?.id || '').trim();
+      return itemId ? [itemId, review] : null;
+    })
+    .filter((entry): entry is [string, any] => Boolean(entry))
+);
+const snapshotOrderedReviews = snapshotRanked
+  .map((entry) => {
+    const itemId = String(entry.item_id || entry.tool_id || '').trim();
+    if (!itemId) return null;
+    const review = runtimeReviewByItemId.get(itemId);
+    if (!review) return null;
+    return {
+      ...review,
+      _isProvisional: false,
+      _rankScore: Number(entry.score ?? review.score ?? 0),
+      _snapshotRanked: true,
+    };
+  })
+  .filter((review): review is any => Boolean(review));
+const snapshotRankedIds = new Set(
+  snapshotOrderedReviews
+    .map((review: any) => String(review.item_id || review.item?.id || '').trim())
+    .filter((value: string) => value.length > 0)
+);
+const runtimeRemainderReviews = runtimeSortedReviews.filter((review: any) => {
+  const itemId = String(review.item_id || review.item?.id || '').trim();
+  return itemId ? !snapshotRankedIds.has(itemId) : true;
+});
+const sortedReviews = selectedSnapshot
+  ? [...snapshotOrderedReviews, ...runtimeRemainderReviews]
+  : runtimeSortedReviews;
 
 const displayToolCount = Math.max(context.tool_count || 0, sortedReviews.length);
 const contextForMeta = {
@@ -372,6 +435,8 @@ const listSourceCount = new Set(
     )
     .slice(0, 200)
 ).size;
+const snapshotSourceCount = Number(selectedSnapshot?.snapshot_json?.metrics?.sources_count || 0);
+const effectiveSourceCount = snapshotSourceCount > 0 ? snapshotSourceCount : listSourceCount;
 const listTrustStatus: 'Source-backed' | 'Needs confirmation' = contextCheckedLabel
   ? 'Source-backed'
   : 'Needs confirmation';
@@ -514,7 +579,7 @@ function isSparseSummary(summary: unknown): boolean {
           evaluationDepth="Docs-only"
           lastChecked={contextCheckedLabel || 'Unknown'}
           confidence={listConfidence}
-          sourcesCount={listSourceCount}
+          sourcesCount={effectiveSourceCount}
           sourcesHref="#tool-list"
         />
       </div>
@@ -555,7 +620,9 @@ function isSparseSummary(summary: unknown): boolean {
           }
         </h2>
         <span class="text-sm text-zinc-400">
-          {selectedProvisionalReviews.length > 0
+          {selectedSnapshot
+            ? 'Sorted by snapshot compiler'
+            : selectedProvisionalReviews.length > 0
             ? 'Sorted by contextual + provisional rank'
             : 'Sorted by contextual score'}
         </span>
