@@ -103,6 +103,9 @@ npm run test
 - [ ] Rollback path to runtime rendering is documented
 - [ ] Stakeholder approval recorded
 
+Evidence:
+- `docs/SHADOW_SNAPSHOT_RUNBOOK.md`
+
 ---
 
 ## Final Approval
