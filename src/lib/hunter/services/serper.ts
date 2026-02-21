@@ -1384,15 +1384,23 @@ function buildScoutFacts(
   }
 
   const pricingSource = curated.pricing?.[0];
-  if (pricingSource) {
+  const inferredPricingUrl =
+    pricingSource?.url ||
+    inferOfficialPricingUrlFromSources(sources, facts.identity?.website_url || toolWebsite);
+  if (inferredPricingUrl) {
     facts.pricing = {
-      pricing_page_url: pricingSource.url,
+      pricing_page_url: inferredPricingUrl,
     };
     facts.facts_ledger.push({
       key: 'pricing.pricing_page_url',
-      value: pricingSource.url,
-      confidence: 'high',
-      evidence: [{ url: pricingSource.url, domain: pricingSource.domain }],
+      value: inferredPricingUrl,
+      confidence: pricingSource ? 'high' : 'med',
+      evidence: [
+        {
+          url: inferredPricingUrl,
+          domain: extractDomain(inferredPricingUrl) || 'unknown',
+        },
+      ],
     });
   }
 
@@ -1408,6 +1416,71 @@ function buildScoutFacts(
   }
 
   return facts;
+}
+
+function inferOfficialPricingUrlFromSources(
+  sources: RawSource[],
+  toolWebsite?: string
+): string | undefined {
+  if (!toolWebsite || sources.length === 0) return undefined;
+
+  const candidates = sources.filter((source) => {
+    if (!isFirstPartyUrlForTool(source.url, toolWebsite)) return false;
+    return isLikelyPricingPath(source.url);
+  });
+
+  if (candidates.length === 0) return undefined;
+
+  candidates.sort((a, b) => {
+    const score = (source: RawSource): number => {
+      const hasPricingIntent = source.intent_tags.includes('pricing') ? 3 : 0;
+      const sourceTypeWeight = source.source_type === 'official' ? 2 : source.source_type === 'docs' ? 1 : 0;
+      const path = safePathname(source.url);
+      const pathPenalty = Math.min(path.split('/').filter(Boolean).length, 4);
+      return hasPricingIntent + sourceTypeWeight - pathPenalty;
+    };
+    return score(b) - score(a);
+  });
+
+  return candidates[0]?.url;
+}
+
+function isLikelyPricingPath(url: string): boolean {
+  const path = safePathname(url);
+  if (!path) return false;
+  const normalized = path.toLowerCase();
+  if (normalized.includes('/blog/') || normalized.includes('/docs/') || normalized.includes('/help/')) {
+    return false;
+  }
+  return /(pricing|plans?|billing|cost|quote|subscriptions?)/.test(normalized);
+}
+
+function safePathname(url: string): string {
+  try {
+    return new URL(url).pathname || '';
+  } catch {
+    return '';
+  }
+}
+
+function isFirstPartyUrlForTool(url: string, toolWebsite?: string): boolean {
+  if (!toolWebsite) return false;
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    const toolHostname = new URL(
+      toolWebsite.startsWith('http') ? toolWebsite : `https://${toolWebsite}`
+    ).hostname
+      .replace(/^www\./, '')
+      .toLowerCase();
+
+    return (
+      hostname === toolHostname ||
+      hostname.endsWith(`.${toolHostname}`) ||
+      toolHostname.endsWith(`.${hostname}`)
+    );
+  } catch {
+    return false;
+  }
 }
 
 function buildScoutQuality(facts: ScoutFacts, curated: CuratedSources): ScoutQuality {
