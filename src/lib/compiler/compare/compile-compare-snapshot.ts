@@ -3,6 +3,11 @@ import { resolveCompilerPolicyVersion } from '@/lib/compiler/policy-version';
 import { normalizeComparePair, toClaimList, toEvidenceRefs } from '@/lib/compiler/snapshot-helpers';
 import { evaluateComparePublishGate } from '@/lib/compiler/compare/publish-gate';
 import { getAdminClient } from '@/lib/supabase';
+import {
+  DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
+  type FactPackReadinessResult,
+  evaluateFactPackReadiness,
+} from '@/lib/compiler/fact-pack-readiness';
 
 type CompileCompareOptions = {
   policyVersion?: string | null;
@@ -73,6 +78,56 @@ export async function compileCompareSnapshotDraft(
   const toolB = items.find((item: any) => item.slug === toolBSlug);
   if (!toolA || !toolB) {
     throw new Error(`Unable to resolve ordered compare pair for "${toolASlug}-vs-${toolBSlug}"`);
+  }
+
+  const { data: factPacks, error: factPackError } = await admin
+    .from('item_fact_packs')
+    .select('item_id, quality_json, checked_at')
+    .in('item_id', [toolA.id, toolB.id])
+    .order('checked_at', { ascending: false })
+    .limit(12);
+  if (factPackError) {
+    throw new Error(
+      `Failed to load fact packs for "${toolASlug}-vs-${toolBSlug}": ${factPackError.message}`
+    );
+  }
+
+  const latestFactPackByItem = new Map<string, { quality_json: Record<string, unknown> | null }>();
+  for (const row of factPacks || []) {
+    const itemId = String((row as any).item_id || '');
+    if (!itemId || latestFactPackByItem.has(itemId)) continue;
+    latestFactPackByItem.set(itemId, {
+      quality_json:
+        (row as any).quality_json && typeof (row as any).quality_json === 'object'
+          ? ((row as any).quality_json as Record<string, unknown>)
+          : null,
+    });
+  }
+
+  const toolAFactPack = latestFactPackByItem.get(toolA.id);
+  const toolBFactPack = latestFactPackByItem.get(toolB.id);
+  const toolAReadiness: FactPackReadinessResult = toolAFactPack
+    ? evaluateFactPackReadiness(toolAFactPack.quality_json, DEFAULT_FACT_PACK_READINESS_THRESHOLDS)
+    : {
+        eligible: false,
+        reasons: ['fact_pack_missing'],
+        coverageRatio: 0,
+        requiredCoverageRatio: 0,
+        pricingAgeDays: null,
+      };
+  const toolBReadiness: FactPackReadinessResult = toolBFactPack
+    ? evaluateFactPackReadiness(toolBFactPack.quality_json, DEFAULT_FACT_PACK_READINESS_THRESHOLDS)
+    : {
+        eligible: false,
+        reasons: ['fact_pack_missing'],
+        coverageRatio: 0,
+        requiredCoverageRatio: 0,
+        pricingAgeDays: null,
+      };
+  if (!toolAReadiness.eligible || !toolBReadiness.eligible) {
+    throw new Error(
+      `Fact pack readiness failed: ${toolA.slug}=[${toolAReadiness.reasons.join(',')}], ${toolB.slug}=[${toolBReadiness.reasons.join(',')}]`
+    );
   }
 
   const categoryA = getPrimaryCategory(toolA);
@@ -170,6 +225,11 @@ export async function compileCompareSnapshotDraft(
       compiler: 'shadow-v0',
       compile_mode: 'draft_only',
       generated_at: new Date().toISOString(),
+      fact_pack_thresholds: DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
+      fact_pack_readiness: {
+        [toolA.slug]: toolAReadiness,
+        [toolB.slug]: toolBReadiness,
+      },
     },
   };
 

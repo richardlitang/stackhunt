@@ -2,6 +2,10 @@ import { getAdminClient } from '@/lib/supabase';
 import { resolveCompilerPolicyVersion } from '@/lib/compiler/policy-version';
 import { toClaimList, toEvidenceRefs } from '@/lib/compiler/snapshot-helpers';
 import { evaluateBestPublishGate } from '@/lib/compiler/best/publish-gate';
+import {
+  DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
+  evaluateFactPackReadiness,
+} from '@/lib/compiler/fact-pack-readiness';
 
 type CompileBestOptions = {
   policyVersion?: string | null;
@@ -60,7 +64,60 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
     throw new Error(`Failed to load reviews for "${slug}": ${reviewsError.message}`);
   }
 
-  const ranked = (reviews || [])
+  const candidateRows = (reviews || []).filter((review: any) => review?.item_id && review?.item?.slug);
+  const candidateItemIds = Array.from(
+    new Set(candidateRows.map((review: any) => String(review.item_id)).filter(Boolean))
+  );
+  const factPacksByItem = new Map<
+    string,
+    { quality_json: Record<string, unknown> | null; checked_at: string | null }
+  >();
+
+  if (candidateItemIds.length > 0) {
+    const { data: factPacks, error: factPackError } = await admin
+      .from('item_fact_packs')
+      .select('item_id, quality_json, checked_at')
+      .in('item_id', candidateItemIds)
+      .order('checked_at', { ascending: false })
+      .limit(candidateItemIds.length * 6);
+
+    if (factPackError) {
+      throw new Error(`Failed to load fact packs for "${slug}": ${factPackError.message}`);
+    }
+
+    for (const row of factPacks || []) {
+      const itemId = String((row as any).item_id || '');
+      if (!itemId || factPacksByItem.has(itemId)) continue;
+      factPacksByItem.set(itemId, {
+        quality_json:
+          (row as any).quality_json && typeof (row as any).quality_json === 'object'
+            ? ((row as any).quality_json as Record<string, unknown>)
+            : null,
+        checked_at: typeof (row as any).checked_at === 'string' ? (row as any).checked_at : null,
+      });
+    }
+  }
+
+  const excludedByReadiness: Array<{ item_slug: string; reasons: string[] }> = [];
+  const eligibleRows = candidateRows.filter((review: any) => {
+    const itemId = String(review.item_id);
+    const factPack = factPacksByItem.get(itemId);
+    if (!factPack) {
+      excludedByReadiness.push({ item_slug: review.item.slug, reasons: ['fact_pack_missing'] });
+      return false;
+    }
+    const readiness = evaluateFactPackReadiness(
+      factPack.quality_json,
+      DEFAULT_FACT_PACK_READINESS_THRESHOLDS
+    );
+    if (!readiness.eligible) {
+      excludedByReadiness.push({ item_slug: review.item.slug, reasons: readiness.reasons });
+      return false;
+    }
+    return true;
+  });
+
+  const ranked = eligibleRows
     .filter((review: any) => review?.item_id && review?.item?.slug)
     .map((review: any, index: number) => {
       const evidenceRefs = toEvidenceRefs(review.sources, 3);
@@ -104,11 +161,14 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
       sources_count: uniqueEvidenceUrls.size,
       last_checked_rollup: lastCheckedTs > 0 ? new Date(lastCheckedTs).toISOString() : null,
       coverage_rollup: ranked.length > 0 ? 1 : 0,
+      fact_pack_excluded_count: excludedByReadiness.length,
     },
     meta: {
       compiler: 'shadow-v0',
       compile_mode: 'draft_only',
       generated_at: new Date().toISOString(),
+      fact_pack_thresholds: DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
+      fact_pack_excluded: excludedByReadiness,
     },
   };
 
