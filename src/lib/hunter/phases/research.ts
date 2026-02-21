@@ -614,6 +614,16 @@ function extractDomain(url?: string | null): string | null {
 }
 
 function hasMeaningfulProductTokenOverlap(a: string, b: string): boolean {
+  const normalizeSimple = (value: string): string =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+
+  const simpleA = normalizeSimple(a);
+  const simpleB = normalizeSimple(b);
+  if (simpleA && simpleB && simpleA === simpleB) return true;
+
   const vendorTokens = new Set([
     'anthropic',
     'openai',
