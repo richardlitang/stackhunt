@@ -43,6 +43,8 @@ Minimal operational scripts for the live content pipeline.
 - Runtime vs snapshot parity diff (best pages): `npm run qa:diff-runtime-snapshot -- --sample=50 --status=draft`
 - Runtime vs snapshot parity diff (compare pages): `npm run qa:diff-compare-snapshot -- --sample=50 --status=draft`
 - Shadow snapshot compile (draft only): `npm run qa:compile-shadow-snapshots -- --contexts=20 --pairs=30`
+- Shadow compile defaults best-candidate review statuses to `published,draft` (admin-controlled path only).
+- Override review statuses explicitly: `npm run qa:compile-shadow-snapshots -- --review-statuses=published`
 - Optional relaxed gating during rollout: set `FACT_PACK_READINESS_PROFILE=relaxed` when compiling/diffing snapshots.
 - Optional best publish profiles:
 - `BEST_PUBLISH_PROFILE=balanced` (recommended midpoint, min ranked count = 2)

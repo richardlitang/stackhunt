@@ -29,6 +29,16 @@ function parseCsvArg(name: string): string[] {
     .filter((value) => value.length > 0);
 }
 
+function resolveReviewStatusesForBestCompiler(): string {
+  const fromArg = getArgValue('review-statuses');
+  if (fromArg && fromArg.trim().length > 0) return fromArg.trim();
+  if (process.env.BEST_COMPILER_REVIEW_STATUSES?.trim()) {
+    return process.env.BEST_COMPILER_REVIEW_STATUSES.trim();
+  }
+  // Shadow compile is an admin-controlled flow, so include draft coverage by default.
+  return 'published,draft';
+}
+
 async function main() {
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -40,6 +50,7 @@ async function main() {
   const pairLimit = parseLimit('pairs', 30, 1000);
   const requestedContextSlugs = parseCsvArg('context-slugs');
   const requestedPairs = parseCsvArg('compare-pairs');
+  process.env.BEST_COMPILER_REVIEW_STATUSES = resolveReviewStatusesForBestCompiler();
 
   const supabase = createClient(supabaseUrl, serviceRole, {
     auth: { persistSession: false, autoRefreshToken: false },
