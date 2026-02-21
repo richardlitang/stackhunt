@@ -904,6 +904,25 @@ export class GeminiService {
       delete parsed.websiteUrl;
     }
 
+    // Coerce nullable/legacy context fields so strict schema validation does not fail on nulls.
+    if (parsed.fitScore === null || parsed.fitScore === '') {
+      delete parsed.fitScore;
+    } else if (typeof parsed.fitScore === 'string') {
+      const coerced = Number(parsed.fitScore);
+      if (Number.isFinite(coerced)) parsed.fitScore = coerced;
+      else delete parsed.fitScore;
+    }
+    if (parsed.valueRating === null || parsed.valueRating === '') {
+      delete parsed.valueRating;
+    } else if (typeof parsed.valueRating === 'string') {
+      const coerced = Number(parsed.valueRating);
+      if (Number.isFinite(coerced)) parsed.valueRating = coerced;
+      else delete parsed.valueRating;
+    }
+    if (!Array.isArray(parsed.standoutFeatures)) delete parsed.standoutFeatures;
+    if (!Array.isArray(parsed.dealbreakers)) delete parsed.dealbreakers;
+    if (!Array.isArray(parsed.switchingFrom)) delete parsed.switchingFrom;
+
     const validated = AnalysisSchema.parse(parsed);
 
     // Use actual token count from API response, fallback to heuristic
