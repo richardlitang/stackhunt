@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { validateAdminAuth } from '@/lib/auth';
 import { getAdminClient } from '@/lib/supabase';
 import { diffRankings, diffWinner } from '@/lib/compiler/diff-report';
+import { logSnapshotAction } from '@/lib/compiler/audit-log';
 
 export const prerender = false;
 
@@ -44,6 +45,14 @@ function snapshotWinnerToAB(snapshotWinner: string | null, toolASlug: string, to
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!(await validateAdminAuth(cookies))) {
+    await logSnapshotAction({
+      action: 'snapshots.parity',
+      status: 'denied',
+      request,
+      cookies,
+      details: {},
+      error: 'Unauthorized',
+    });
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -123,18 +132,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         topKAgreementSum += diff.topKAgreementRate;
       }
 
+      const payload = {
+        success: true,
+        target,
+        status,
+        sampled: (contexts || []).length,
+        compared,
+        missingSnapshots,
+        avgOverlapRate: compared > 0 ? overlapRateSum / compared : 0,
+        avgTopKAgreementRate: compared > 0 ? topKAgreementSum / compared : 0,
+        timestamp: new Date().toISOString(),
+      };
+
+      await logSnapshotAction({
+        action: 'snapshots.parity',
+        status: 'success',
+        request,
+        cookies,
+        details: { target, sample, status, summary: payload },
+      });
+
       return new Response(
-        JSON.stringify({
-          success: true,
-          target,
-          status,
-          sampled: (contexts || []).length,
-          compared,
-          missingSnapshots,
-          avgOverlapRate: compared > 0 ? overlapRateSum / compared : 0,
-          avgTopKAgreementRate: compared > 0 ? topKAgreementSum / compared : 0,
-          timestamp: new Date().toISOString(),
-        }),
+        JSON.stringify(payload),
         {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -186,23 +205,41 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       if (diff.matches) matches += 1;
     }
 
+    const payload = {
+      success: true,
+      target,
+      status,
+      sampled: (compareRows || []).length,
+      compared,
+      winnerMatches: matches,
+      winnerAgreementRate: compared > 0 ? matches / compared : 0,
+      timestamp: new Date().toISOString(),
+    };
+
+    await logSnapshotAction({
+      action: 'snapshots.parity',
+      status: 'success',
+      request,
+      cookies,
+      details: { target, sample, status, summary: payload },
+    });
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        target,
-        status,
-        sampled: (compareRows || []).length,
-        compared,
-        winnerMatches: matches,
-        winnerAgreementRate: compared > 0 ? matches / compared : 0,
-        timestamp: new Date().toISOString(),
-      }),
+      JSON.stringify(payload),
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
+    await logSnapshotAction({
+      action: 'snapshots.parity',
+      status: 'error',
+      request,
+      cookies,
+      details: {},
+      error: error instanceof Error ? error.message : 'Parity computation failed',
+    });
     return new Response(
       JSON.stringify({
         success: false,

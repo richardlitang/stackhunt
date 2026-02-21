@@ -1,11 +1,20 @@
 import type { APIRoute } from 'astro';
 import { validateAdminAuth } from '@/lib/auth';
 import { compileBestSnapshotDraft } from '@/lib/compiler/best/compile-best-snapshot';
+import { logSnapshotAction } from '@/lib/compiler/audit-log';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!(await validateAdminAuth(cookies))) {
+    await logSnapshotAction({
+      action: 'best.compile',
+      status: 'denied',
+      request,
+      cookies,
+      details: {},
+      error: 'Unauthorized',
+    });
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -32,12 +41,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       specVersion: body.spec_version ?? null,
     });
 
+    await logSnapshotAction({
+      action: 'best.compile',
+      status: 'success',
+      request,
+      cookies,
+      details: { context_slug: contextSlug, result },
+    });
+
     return new Response(JSON.stringify({ success: true, result }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('[admin][best][compile] Failed to compile snapshot:', error);
+    await logSnapshotAction({
+      action: 'best.compile',
+      status: 'error',
+      request,
+      cookies,
+      details: {},
+      error: error instanceof Error ? error.message : 'Failed to compile best snapshot',
+    });
     return new Response(
       JSON.stringify({
         success: false,

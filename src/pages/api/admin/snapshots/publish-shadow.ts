@@ -3,6 +3,7 @@ import { validateAdminAuth } from '@/lib/auth';
 import { getAdminClient } from '@/lib/supabase';
 import { publishBestSnapshot } from '@/lib/compiler/best/publish-best-snapshot';
 import { publishCompareSnapshot } from '@/lib/compiler/compare/publish-compare-snapshot';
+import { logSnapshotAction } from '@/lib/compiler/audit-log';
 
 export const prerender = false;
 
@@ -14,6 +15,14 @@ function parseCap(value: unknown, fallback: number, max = 200): number {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!(await validateAdminAuth(cookies))) {
+    await logSnapshotAction({
+      action: 'snapshots.publish-shadow',
+      status: 'denied',
+      request,
+      cookies,
+      details: {},
+      error: 'Unauthorized',
+    });
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -91,17 +100,31 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .slice(0, compareLimit);
 
     if (!apply) {
-      return new Response(
-        JSON.stringify({
-          success: true,
+      const payload = {
+        success: true,
+        mode: 'dry-run',
+        bestEligible,
+        compareEligible: compareEligible.map((row) => ({
+          pair: `${row.slugA}-vs-${row.slugB}`,
+          specKey: row.specKey,
+        })),
+        timestamp: new Date().toISOString(),
+      };
+      await logSnapshotAction({
+        action: 'snapshots.publish-shadow',
+        status: 'success',
+        request,
+        cookies,
+        details: {
           mode: 'dry-run',
-          bestEligible,
-          compareEligible: compareEligible.map((row) => ({
-            pair: `${row.slugA}-vs-${row.slugB}`,
-            specKey: row.specKey,
-          })),
-          timestamp: new Date().toISOString(),
-        }),
+          best_limit: bestLimit,
+          compare_limit: compareLimit,
+          best_eligible: bestEligible.length,
+          compare_eligible: payload.compareEligible.length,
+        },
+      });
+      return new Response(
+        JSON.stringify(payload),
         {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -137,28 +160,54 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
+    const payload = {
+      success: true,
+      mode: 'apply',
+      best: {
+        attempted: bestEligible.length,
+        succeeded: bestPublished.filter((row) => row.ok).length,
+        results: bestPublished,
+      },
+      compare: {
+        attempted: compareEligible.length,
+        succeeded: comparePublished.filter((row) => row.ok).length,
+        results: comparePublished,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    await logSnapshotAction({
+      action: 'snapshots.publish-shadow',
+      status: 'success',
+      request,
+      cookies,
+      details: {
         mode: 'apply',
-        best: {
-          attempted: bestEligible.length,
-          succeeded: bestPublished.filter((row) => row.ok).length,
-          results: bestPublished,
-        },
-        compare: {
-          attempted: compareEligible.length,
-          succeeded: comparePublished.filter((row) => row.ok).length,
-          results: comparePublished,
-        },
-        timestamp: new Date().toISOString(),
-      }),
+        best_limit: bestLimit,
+        compare_limit: compareLimit,
+        best_attempted: payload.best.attempted,
+        best_succeeded: payload.best.succeeded,
+        compare_attempted: payload.compare.attempted,
+        compare_succeeded: payload.compare.succeeded,
+      },
+    });
+
+    return new Response(
+      JSON.stringify(payload),
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
+    await logSnapshotAction({
+      action: 'snapshots.publish-shadow',
+      status: 'error',
+      request,
+      cookies,
+      details: {},
+      error: error instanceof Error ? error.message : 'Failed to publish shadow snapshots',
+    });
     return new Response(
       JSON.stringify({
         success: false,

@@ -74,3 +74,4 @@ If a published snapshot is wrong:
 - Keep apply batch sizes small (`<=10`) until parity is stable.
 - Run parity reports after each publish batch.
 - Keep public serving on runtime paths until readiness checklist is fully green.
+- Audit trail is available in `/admin/snapshots` (`Action History`) backed by `snapshot_action_logs`.

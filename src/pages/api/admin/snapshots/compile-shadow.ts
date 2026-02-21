@@ -4,6 +4,7 @@ import { getAdminClient } from '@/lib/supabase';
 import { compileBestSnapshotDraft } from '@/lib/compiler/best/compile-best-snapshot';
 import { compileCompareSnapshotDraft } from '@/lib/compiler/compare/compile-compare-snapshot';
 import { normalizeComparePair } from '@/lib/compiler/snapshot-helpers';
+import { logSnapshotAction } from '@/lib/compiler/audit-log';
 
 export const prerender = false;
 
@@ -15,6 +16,14 @@ function parseCap(value: unknown, fallback: number, max = 200): number {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!(await validateAdminAuth(cookies))) {
+    await logSnapshotAction({
+      action: 'snapshots.compile-shadow',
+      status: 'denied',
+      request,
+      cookies,
+      details: {},
+      error: 'Unauthorized',
+    });
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -103,27 +112,54 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
+    const payload = {
+      success: true,
+      best: {
+        attempted: bestResults.length,
+        succeeded: bestResults.filter((row) => row.ok).length,
+        failures: bestResults.filter((row) => !row.ok),
+      },
+      compare: {
+        attempted: compareResults.length,
+        succeeded: compareResults.filter((row) => row.ok).length,
+        failures: compareResults.filter((row) => !row.ok),
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    await logSnapshotAction({
+      action: 'snapshots.compile-shadow',
+      status: 'success',
+      request,
+      cookies,
+      details: {
+        best_limit: bestLimit,
+        compare_limit: compareLimit,
+        summary: {
+          best_attempted: payload.best.attempted,
+          best_succeeded: payload.best.succeeded,
+          compare_attempted: payload.compare.attempted,
+          compare_succeeded: payload.compare.succeeded,
+        },
+      },
+    });
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        best: {
-          attempted: bestResults.length,
-          succeeded: bestResults.filter((row) => row.ok).length,
-          failures: bestResults.filter((row) => !row.ok),
-        },
-        compare: {
-          attempted: compareResults.length,
-          succeeded: compareResults.filter((row) => row.ok).length,
-          failures: compareResults.filter((row) => !row.ok),
-        },
-        timestamp: new Date().toISOString(),
-      }),
+      JSON.stringify(payload),
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
+    await logSnapshotAction({
+      action: 'snapshots.compile-shadow',
+      status: 'error',
+      request,
+      cookies,
+      details: {},
+      error: error instanceof Error ? error.message : 'Failed to compile shadow snapshots',
+    });
     return new Response(
       JSON.stringify({
         success: false,
