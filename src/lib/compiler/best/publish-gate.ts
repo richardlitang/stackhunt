@@ -29,6 +29,23 @@ export const DEFAULT_BEST_PUBLISH_THRESHOLDS: BestPublishGateThresholds = {
   maxCriticalConflictCount: 0,
 };
 
+export const LONG_TAIL_BEST_PUBLISH_THRESHOLDS: BestPublishGateThresholds = {
+  minRankedCount: 1,
+  minTopKEvidenceRate: 0.8,
+  minTopKFreshRate: 0.8,
+  maxCriticalConflictCount: 0,
+};
+
+export function resolveBestPublishThresholds(): BestPublishGateThresholds {
+  const profile = String(process.env.BEST_PUBLISH_PROFILE || '')
+    .trim()
+    .toLowerCase();
+  if (profile === 'long_tail') {
+    return LONG_TAIL_BEST_PUBLISH_THRESHOLDS;
+  }
+  return DEFAULT_BEST_PUBLISH_THRESHOLDS;
+}
+
 function safeRate(numerator: number, denominator: number): number {
   if (denominator <= 0) return 0;
   return numerator / denominator;

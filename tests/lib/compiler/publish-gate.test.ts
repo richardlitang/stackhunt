@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateBestPublishGate } from '@/lib/compiler/best/publish-gate';
+import {
+  DEFAULT_BEST_PUBLISH_THRESHOLDS,
+  LONG_TAIL_BEST_PUBLISH_THRESHOLDS,
+  evaluateBestPublishGate,
+  resolveBestPublishThresholds,
+} from '@/lib/compiler/best/publish-gate';
 import { evaluateComparePublishGate } from '@/lib/compiler/compare/publish-gate';
 
 describe('best publish gate', () => {
@@ -27,6 +32,34 @@ describe('best publish gate', () => {
 
     expect(result.pass).toBe(false);
     expect(result.reasons).toContain('ranked_count_below_min:3<5');
+  });
+});
+
+describe('best publish threshold profiles', () => {
+  it('resolves default thresholds when profile is unset', () => {
+    const original = process.env.BEST_PUBLISH_PROFILE;
+    delete process.env.BEST_PUBLISH_PROFILE;
+    try {
+      expect(resolveBestPublishThresholds()).toEqual(DEFAULT_BEST_PUBLISH_THRESHOLDS);
+    } finally {
+      if (typeof original === 'string') {
+        process.env.BEST_PUBLISH_PROFILE = original;
+      }
+    }
+  });
+
+  it('resolves long-tail thresholds when profile is long_tail', () => {
+    const original = process.env.BEST_PUBLISH_PROFILE;
+    process.env.BEST_PUBLISH_PROFILE = 'long_tail';
+    try {
+      expect(resolveBestPublishThresholds()).toEqual(LONG_TAIL_BEST_PUBLISH_THRESHOLDS);
+    } finally {
+      if (typeof original === 'string') {
+        process.env.BEST_PUBLISH_PROFILE = original;
+      } else {
+        delete process.env.BEST_PUBLISH_PROFILE;
+      }
+    }
   });
 });
 

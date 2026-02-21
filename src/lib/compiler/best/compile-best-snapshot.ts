@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase';
 import { resolveCompilerPolicyVersion } from '@/lib/compiler/policy-version';
 import { toClaimList, toEvidenceRefs } from '@/lib/compiler/snapshot-helpers';
-import { evaluateBestPublishGate } from '@/lib/compiler/best/publish-gate';
+import { evaluateBestPublishGate, resolveBestPublishThresholds } from '@/lib/compiler/best/publish-gate';
 import {
   evaluateFactPackReadiness,
   resolveFactPackReadinessThresholds,
@@ -22,6 +22,8 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
   const admin = getAdminClient();
   const factPackThresholds = resolveFactPackReadinessThresholds();
   const factPackProfile = String(process.env.FACT_PACK_READINESS_PROFILE || 'default');
+  const bestPublishThresholds = resolveBestPublishThresholds();
+  const bestPublishProfile = String(process.env.BEST_PUBLISH_PROFILE || 'default');
   const slug = String(contextSlug || '').trim().toLowerCase();
   if (!slug) {
     throw new Error('Context slug is required');
@@ -171,6 +173,8 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
       generated_at: new Date().toISOString(),
       fact_pack_profile: factPackProfile,
       fact_pack_thresholds: factPackThresholds,
+      best_publish_profile: bestPublishProfile,
+      best_publish_thresholds: bestPublishThresholds,
       fact_pack_excluded: excludedByReadiness,
     },
   };
@@ -182,7 +186,7 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
     topKWithEvidenceCount: topK.filter((entry) => entry.evidence_refs.length > 0).length,
     topKFreshCount: topK.length, // v0 assumes review freshness already screened upstream
     criticalConflictCount: 0,
-  });
+  }, bestPublishThresholds);
 
   (snapshotJson as any).publish_gate = publishGate;
 
