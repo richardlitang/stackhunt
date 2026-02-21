@@ -141,7 +141,7 @@ export function evaluateIndexReadiness(
     (Array.isArray(categorySpecificData.model_options) &&
       categorySpecificData.model_options.length > 0)
   );
-  const hasSetup = Boolean(
+  const hasStructuredSetup = Boolean(
     (Array.isArray(canonical?.setup_tracks?.non_dev) &&
       canonical.setup_tracks.non_dev.length > 0) ||
     (Array.isArray(canonical?.setup_tracks?.dev) && canonical.setup_tracks.dev.length > 0) ||
@@ -185,6 +185,15 @@ export function evaluateIndexReadiness(
         type?: string;
       }>)
     : [];
+  const hasSetupEvidenceFromSources = sourceEntries.some((source) => {
+    const sourceType = ((source.source_type || source.type || '') as string).toLowerCase();
+    if (!AUTHORITATIVE_SOURCE_TYPES.has(sourceType)) return false;
+    const lowerUrl = (source.url || '').toLowerCase();
+    return /\/(docs?|help|support|guides?|quickstart|get-started|getting-started|onboarding|setup|tutorials?|install|start)/.test(
+      lowerUrl
+    );
+  });
+  const hasSetup = hasStructuredSetup || hasSetupEvidenceFromSources;
   let authoritativeSourceCount = 0;
   const authoritativeDomains = new Set<string>();
   for (const source of sourceEntries) {

@@ -1764,9 +1764,9 @@ export async function executePersistencePhase(
   if (!ctx.contextTitle) {
     deps.log('[Discovery Hunt] Creating general review (no context)');
 
-    // Extract sources from pros/cons
+    // Extract claim-cited sources from pros/cons
     const allClaims = [...normalizedPros, ...validCons];
-    const sources = allClaims
+    const claimSources = allClaims
       .filter((claim) => claim.source_url)
       .map((claim) => ({
         url: claim.source_url,
@@ -1779,17 +1779,52 @@ export async function executePersistencePhase(
           }
         })(),
         type: claim.source_type,
+        source_type: claim.source_type,
       }));
 
-    // Deduplicate sources
-    const uniqueSources = Array.from(new Map(sources.map((s) => [s.url, s])).values());
+    // Merge with authoritative scout evidence so discovery reviews don't collapse to sparse sources.
+    const scoutEvidenceSources = sources
+      .filter(
+        (source) =>
+          AUTHORITATIVE_SOURCE_TYPES.has((source.source_type || '').toLowerCase()) &&
+          source.llm_ingestion_allowed !== 'NO'
+      )
+      .sort((a, b) => {
+        const score = (entry: (typeof sources)[number]): number => {
+          const url = (entry.url || '').toLowerCase();
+          const type = (entry.source_type || '').toLowerCase();
+          const typeWeight =
+            type === 'official' ? 4 : type === 'docs' ? 3 : type === 'support' ? 2 : 1;
+          const pathWeight = /(pricing|plans?|docs?|help|support|quickstart|get-started|onboarding|setup|api|developers?|legal|security|trust)/.test(
+            url
+          )
+            ? 2
+            : 0;
+          return typeWeight + pathWeight;
+        };
+        return score(b) - score(a);
+      })
+      .slice(0, 12)
+      .map((source) => ({
+        url: source.url,
+        domain: source.domain || null,
+        type: source.source_type || null,
+        source_type: source.source_type || null,
+      }));
+
+    // Deduplicate merged source pool by URL
+    const uniqueSources = Array.from(
+      new Map([...claimSources, ...scoutEvidenceSources].map((entry) => [entry.url, entry])).values()
+    );
 
     // Auto-publish if high quality and robust sources
     const dataQuality = knowledgeCard?.meta?.data_quality || 'medium';
     const canonicalConflicts = Number((specs.canonical as any)?.quality?.conflicts_count || 0);
     const discoveryScore = Number(ctx.analysis.analysis?.score || 0);
     const profile = POPULARITY_PROFILES[popularityTier];
-    const officialEvidenceSources = uniqueSources.filter((source) => source.type === 'official');
+    const officialEvidenceSources = uniqueSources.filter(
+      (source) => (source.source_type || source.type) === 'official'
+    );
     const officialEvidenceDomains = new Set(
       officialEvidenceSources
         .map((source) => source.domain?.replace(/^www\./i, '').toLowerCase())
