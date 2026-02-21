@@ -36,10 +36,20 @@ export const LONG_TAIL_BEST_PUBLISH_THRESHOLDS: BestPublishGateThresholds = {
   maxCriticalConflictCount: 0,
 };
 
+export const BALANCED_BEST_PUBLISH_THRESHOLDS: BestPublishGateThresholds = {
+  minRankedCount: 2,
+  minTopKEvidenceRate: 0.8,
+  minTopKFreshRate: 0.8,
+  maxCriticalConflictCount: 0,
+};
+
 export function resolveBestPublishThresholds(): BestPublishGateThresholds {
   const profile = String(process.env.BEST_PUBLISH_PROFILE || '')
     .trim()
     .toLowerCase();
+  if (profile === 'balanced') {
+    return BALANCED_BEST_PUBLISH_THRESHOLDS;
+  }
   if (profile === 'long_tail') {
     return LONG_TAIL_BEST_PUBLISH_THRESHOLDS;
   }

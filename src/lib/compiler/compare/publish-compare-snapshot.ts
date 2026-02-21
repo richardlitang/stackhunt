@@ -56,6 +56,27 @@ export async function publishCompareSnapshot(
   }
 
   const publishedAt = new Date().toISOString();
+  const demoteBaseQuery = admin
+    .from('compare_snapshots')
+    .update({
+      status: 'draft',
+      published_at: null,
+      updated_at: publishedAt,
+    })
+    .eq('tool_a_slug', toolASlug)
+    .eq('tool_b_slug', toolBSlug)
+    .eq('status', 'published')
+    .neq('id', draft.id);
+  const { error: demoteError } = specKey
+    ? await demoteBaseQuery.eq('spec_key', specKey)
+    : await demoteBaseQuery.is('spec_key', null);
+
+  if (demoteError) {
+    throw new Error(
+      `Failed to demote previous published compare snapshots for "${toolASlug}-vs-${toolBSlug}": ${demoteError.message}`
+    );
+  }
+
   const { error: updateError } = await admin
     .from('compare_snapshots')
     .update({

@@ -43,6 +43,23 @@ export async function publishBestSnapshot(contextSlug: string): Promise<PublishB
   }
 
   const publishedAt = new Date().toISOString();
+  const { error: demoteError } = await admin
+    .from('best_snapshots')
+    .update({
+      status: 'draft',
+      published_at: null,
+      updated_at: publishedAt,
+    })
+    .eq('context_slug', slug)
+    .eq('status', 'published')
+    .neq('id', draft.id);
+
+  if (demoteError) {
+    throw new Error(
+      `Failed to demote previous published best snapshots for "${slug}": ${demoteError.message}`
+    );
+  }
+
   const { error: updateError } = await admin
     .from('best_snapshots')
     .update({

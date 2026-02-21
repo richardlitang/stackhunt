@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BALANCED_BEST_PUBLISH_THRESHOLDS,
   DEFAULT_BEST_PUBLISH_THRESHOLDS,
   LONG_TAIL_BEST_PUBLISH_THRESHOLDS,
   evaluateBestPublishGate,
@@ -53,6 +54,20 @@ describe('best publish threshold profiles', () => {
     process.env.BEST_PUBLISH_PROFILE = 'long_tail';
     try {
       expect(resolveBestPublishThresholds()).toEqual(LONG_TAIL_BEST_PUBLISH_THRESHOLDS);
+    } finally {
+      if (typeof original === 'string') {
+        process.env.BEST_PUBLISH_PROFILE = original;
+      } else {
+        delete process.env.BEST_PUBLISH_PROFILE;
+      }
+    }
+  });
+
+  it('resolves balanced thresholds when profile is balanced', () => {
+    const original = process.env.BEST_PUBLISH_PROFILE;
+    process.env.BEST_PUBLISH_PROFILE = 'balanced';
+    try {
+      expect(resolveBestPublishThresholds()).toEqual(BALANCED_BEST_PUBLISH_THRESHOLDS);
     } finally {
       if (typeof original === 'string') {
         process.env.BEST_PUBLISH_PROFILE = original;

@@ -49,11 +49,15 @@ async function main() {
     throw new Error(`Failed to load best drafts: ${bestError.message}`);
   }
 
-  const bestEligible = (bestDrafts || [])
-    .filter((row: any) => Boolean(row?.context_slug))
-    .filter((row: any) => Boolean(row?.snapshot_json?.publish_gate?.pass))
-    .map((row: any) => String(row.context_slug))
-    .filter((value, index, arr) => arr.indexOf(value) === index)
+  const latestBestDraftByContext = new Map<string, any>();
+  for (const row of bestDrafts || []) {
+    const slug = String((row as any)?.context_slug || '').trim().toLowerCase();
+    if (!slug || latestBestDraftByContext.has(slug)) continue;
+    latestBestDraftByContext.set(slug, row);
+  }
+  const bestEligible = Array.from(latestBestDraftByContext.entries())
+    .filter(([, row]) => Boolean((row as any)?.snapshot_json?.publish_gate?.pass))
+    .map(([slug]) => slug)
     .slice(0, bestLimit);
 
   const { data: compareDrafts, error: compareError } = await supabase
@@ -67,8 +71,17 @@ async function main() {
     throw new Error(`Failed to load compare drafts: ${compareError.message}`);
   }
 
-  const compareEligible = (compareDrafts || [])
-    .filter((row: any) => Boolean(row?.tool_a_slug && row?.tool_b_slug))
+  const latestCompareDraftByPair = new Map<string, any>();
+  for (const row of compareDrafts || []) {
+    const slugA = String((row as any)?.tool_a_slug || '').trim().toLowerCase();
+    const slugB = String((row as any)?.tool_b_slug || '').trim().toLowerCase();
+    const specKey = typeof (row as any)?.spec_key === 'string' ? (row as any).spec_key : '';
+    if (!slugA || !slugB) continue;
+    const key = `${slugA}-vs-${slugB}::${specKey}`;
+    if (latestCompareDraftByPair.has(key)) continue;
+    latestCompareDraftByPair.set(key, row);
+  }
+  const compareEligible = Array.from(latestCompareDraftByPair.values())
     .filter((row: any) => Boolean(row?.snapshot_json?.publish_gate?.pass))
     .map((row: any) => ({
       slugA: String(row.tool_a_slug),
@@ -76,7 +89,6 @@ async function main() {
       specKey: typeof row.spec_key === 'string' ? row.spec_key : null,
       key: `${row.tool_a_slug}-vs-${row.tool_b_slug}::${row.spec_key || ''}`,
     }))
-    .filter((row, index, arr) => arr.findIndex((candidate) => candidate.key === row.key) === index)
     .slice(0, compareLimit);
 
   console.log('Shadow Publish Candidates');
