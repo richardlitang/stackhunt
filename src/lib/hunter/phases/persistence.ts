@@ -22,6 +22,7 @@ import { normalizeCategory } from '../../config/taxonomy';
 import { ensureParentSuite } from '../utils/suite-manager';
 import { updateNormalizedPricing } from '../../pricing/persist';
 import { mapSmpPricingToV2 } from '../../pricing';
+import { persistItemFactPack } from '../fact-pack';
 import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
@@ -1047,6 +1048,7 @@ export async function executePersistencePhase(
   deps.log(`[Phase 3: Persistence] Starting for: ${ctx.toolName}`);
 
   const toolSlug = slugify(ctx.toolName);
+  let resolvedCategorySlug: string | null = null;
 
   // Step 1: Find category (auto-map from taxonomy or use explicit categorySlug)
   let categoryId: string | null = null;
@@ -1068,6 +1070,7 @@ export async function executePersistencePhase(
       .eq('slug', ctx.categorySlug)
       .single();
     categoryId = cat?.id || null;
+    resolvedCategorySlug = cat?.id ? ctx.categorySlug : null;
   } else if (knowledgeCard?.smp_taxonomy?.primary_function) {
     // Auto-map from extracted taxonomy
     const primaryFunction = knowledgeCard.smp_taxonomy.primary_function;
@@ -1124,6 +1127,7 @@ export async function executePersistencePhase(
 
       if (cat) {
         categoryId = cat.id;
+        resolvedCategorySlug = categorySlug;
         deps.log(`[Category] Mapped "${primaryFunction}" → ${categorySlug}`);
       } else {
         deps.log(`[Category] Warning: No category found for slug "${categorySlug}"`);
@@ -1646,6 +1650,26 @@ export async function executePersistencePhase(
   if (itemError) throw new Error(`Failed to save item: ${itemError.message}`);
 
   deps.log(`Item saved: ${ctx.toolName} (id: ${item.id})`);
+
+  try {
+    const factPack = await persistItemFactPack({
+      supabase: deps.supabase,
+      itemId: item.id,
+      itemName: ctx.toolName,
+      itemSlug: toolSlug,
+      categorySlug: resolvedCategorySlug || ctx.detectedCategory || null,
+      knowledgeCard,
+      analysis,
+      specs: specs as Record<string, unknown>,
+      rawSources: ctx.research.scoutResult.raw_sources,
+    });
+    deps.log(
+      `[Fact Pack] Upserted ${factPack.schemaId} v${factPack.version} (coverage=${factPack.coverageRatio.toFixed(2)}, required=${factPack.requiredCoverageRatio.toFixed(2)}, conflicts=${factPack.conflictsCount})`
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    deps.log(`[Fact Pack] Warning: ${message}`);
+  }
 
   if (categoryId) {
     const { error: linkError } = await deps.supabase.from('item_category_links').upsert(
@@ -2219,23 +2243,27 @@ async function updatePricingOnly(
 
   const { data: existingBySlug } = await deps.supabase
     .from('items')
-    .select('id, specs')
+    .select('id, specs, name, slug')
     .eq('slug', toolSlug)
     .maybeSingle();
 
   let itemId = existingBySlug?.id as string | undefined;
   let specs = (existingBySlug?.specs as Record<string, unknown>) || {};
+  let factPackName = (existingBySlug?.name as string | undefined) || ctx.toolName;
+  let factPackSlug = (existingBySlug?.slug as string | undefined) || toolSlug;
 
   if (!itemId) {
     const { data: existingByName } = await deps.supabase
       .from('items')
-      .select('id, specs')
+      .select('id, specs, name, slug')
       .ilike('name', ctx.toolName)
       .limit(1)
       .maybeSingle();
 
     itemId = existingByName?.id as string | undefined;
     specs = (existingByName?.specs as Record<string, unknown>) || specs;
+    factPackName = (existingByName?.name as string | undefined) || factPackName;
+    factPackSlug = (existingByName?.slug as string | undefined) || factPackSlug;
   }
 
   if (!itemId) {
@@ -2276,6 +2304,26 @@ async function updatePricingOnly(
   if (error) throw new Error(`Failed to update pricing: ${error.message}`);
 
   deps.log(`[price_only] Pricing updated for item ${updated.id}`);
+
+  try {
+    const factPack = await persistItemFactPack({
+      supabase: deps.supabase,
+      itemId: updated.id,
+      itemName: factPackName,
+      itemSlug: factPackSlug,
+      categorySlug: ctx.detectedCategory || ctx.categorySlug || null,
+      knowledgeCard,
+      analysis: null,
+      specs,
+      rawSources: ctx.research!.scoutResult.raw_sources,
+    });
+    deps.log(
+      `[Fact Pack] Upserted ${factPack.schemaId} v${factPack.version} after price_only refresh`
+    );
+  } catch (factPackError) {
+    const message = factPackError instanceof Error ? factPackError.message : String(factPackError);
+    deps.log(`[Fact Pack] Warning (price_only): ${message}`);
+  }
 
   return {
     toolId: updated.id,
@@ -2404,6 +2452,26 @@ async function persistResearchOnly(
 
   deps.log(`[Research Only] Item saved: ${ctx.toolName} (id: ${item.id})`);
   deps.log(`[Research Only] Research data stored for batch synthesis`);
+
+  try {
+    const factPack = await persistItemFactPack({
+      supabase: deps.supabase,
+      itemId: item.id,
+      itemName: ctx.toolName,
+      itemSlug: toolSlug,
+      categorySlug: ctx.detectedCategory || ctx.categorySlug || null,
+      knowledgeCard,
+      analysis: null,
+      specs: specs as Record<string, unknown>,
+      rawSources: ctx.research.scoutResult.raw_sources,
+    });
+    deps.log(
+      `[Fact Pack] Upserted ${factPack.schemaId} v${factPack.version} in research-only mode`
+    );
+  } catch (factPackError) {
+    const message = factPackError instanceof Error ? factPackError.message : String(factPackError);
+    deps.log(`[Fact Pack] Warning (research-only): ${message}`);
+  }
 
   // Update queue item status to research_complete
   if (ctx.queueItemId) {
