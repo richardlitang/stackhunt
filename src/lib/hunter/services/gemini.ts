@@ -572,7 +572,18 @@ export class GeminiService {
       const smp = parsed.smp_pricing as any;
       if (!smp.model) {
         delete parsed.smp_pricing;
-      } else if (Array.isArray(smp.plans)) {
+      } else {
+        const normalizedModel =
+          typeof smp.model === 'string' ? smp.model.trim().toLowerCase() : String(smp.model || '');
+        const smpModelAliases: Record<string, string> = {
+          freemium: 'hybrid',
+          open_source: 'free',
+          paid: 'tiered',
+          enterprise: 'contact_sales',
+        };
+        smp.model = smpModelAliases[normalizedModel] ?? normalizedModel;
+      }
+      if (parsed.smp_pricing && Array.isArray(smp.plans)) {
         smp.annual_discount_pct =
           typeof smp.annual_discount_pct === 'number' ? smp.annual_discount_pct : null;
         smp.min_seats = typeof smp.min_seats === 'number' ? smp.min_seats : null;

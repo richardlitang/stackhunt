@@ -349,13 +349,6 @@ export async function executeResearchPhase(
     deps.log(`[Integrations] ⚠️ Not extracted`);
   }
 
-  // ========== QA LOGGING: PRICING ANALYSIS (Chain of Thought) ==========
-  if (knowledgeCard.pricing_analysis_log) {
-    deps.log(
-      `[Pricing CoT] ${knowledgeCard.pricing_analysis_log.substring(0, 200)}${knowledgeCard.pricing_analysis_log.length > 200 ? '...' : ''}`
-    );
-  }
-
   // ========== QA LOGGING: SMP PRICING ==========
   if (knowledgeCard.smp_pricing) {
     const p = knowledgeCard.smp_pricing;
@@ -568,6 +561,8 @@ async function checkForDuplicateTool(
   knowledgeCard: KnowledgeCard,
   deps: HunterDependencies
 ): Promise<{ id: string; name: string } | null> {
+  const normalizedInputDomain = extractDomain(knowledgeCard.website_url);
+
   // Use Postgres trigram similarity function (fast, indexed)
   const { data, error } = await deps.supabase.rpc('find_duplicate_item', {
     p_tool_name: toolName,
@@ -582,12 +577,73 @@ async function checkForDuplicateTool(
 
   if (data && data.length > 0) {
     const match = data[0];
+    const normalizedMatchDomain = extractDomain(match.website);
+    const sameDomain =
+      !!normalizedInputDomain && !!normalizedMatchDomain && normalizedInputDomain === normalizedMatchDomain;
+    const acceptableNameMatch = hasMeaningfulProductTokenOverlap(toolName, match.name);
+
+    // Guardrail: avoid same-vendor cross-product collisions (e.g., "Zoho Books" -> "Zoho CRM").
+    if (!sameDomain && !acceptableNameMatch) {
+      deps.log(
+        `Duplicate rejected: "${match.name}" lacks product-token overlap with "${toolName}" (score=${match.similarity_score})`
+      );
+      return null;
+    }
+
     const similarityPct = (match.similarity_score * 100).toFixed(1);
     deps.log(`Duplicate found: "${match.name}" (similarity: ${similarityPct}%)`);
     return { id: match.id, name: match.name };
   }
 
   return null;
+}
+
+function extractDomain(url?: string | null): string | null {
+  if (!url || typeof url !== 'string') return null;
+  const raw = url.trim().toLowerCase();
+  if (!raw) return null;
+  try {
+    const withProtocol = raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
+    return new URL(withProtocol).hostname.replace(/^www\./, '');
+  } catch {
+    return raw
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .split('/')[0] || null;
+  }
+}
+
+function hasMeaningfulProductTokenOverlap(a: string, b: string): boolean {
+  const vendorTokens = new Set([
+    'anthropic',
+    'openai',
+    'google',
+    'microsoft',
+    'meta',
+    'xai',
+    'amazon',
+    'aws',
+    'zoho',
+    'hubspot',
+    'salesforce',
+    'atlassian',
+  ]);
+
+  const normalize = (value: string): string[] =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter((token) => token.length > 1 && !vendorTokens.has(token));
+
+  const tokensA = new Set(normalize(a));
+  const tokensB = new Set(normalize(b));
+  if (tokensA.size === 0 || tokensB.size === 0) return false;
+  for (const token of tokensA) {
+    if (tokensB.has(token)) return true;
+  }
+  return false;
 }
 
 /**
