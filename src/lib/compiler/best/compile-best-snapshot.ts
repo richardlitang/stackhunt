@@ -3,8 +3,8 @@ import { resolveCompilerPolicyVersion } from '@/lib/compiler/policy-version';
 import { toClaimList, toEvidenceRefs } from '@/lib/compiler/snapshot-helpers';
 import { evaluateBestPublishGate } from '@/lib/compiler/best/publish-gate';
 import {
-  DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
   evaluateFactPackReadiness,
+  resolveFactPackReadinessThresholds,
 } from '@/lib/compiler/fact-pack-readiness';
 
 type CompileBestOptions = {
@@ -20,6 +20,8 @@ function parseDateValue(value: string | null | undefined): number {
 
 export async function compileBestSnapshotDraft(contextSlug: string, options: CompileBestOptions = {}) {
   const admin = getAdminClient();
+  const factPackThresholds = resolveFactPackReadinessThresholds();
+  const factPackProfile = String(process.env.FACT_PACK_READINESS_PROFILE || 'default');
   const slug = String(contextSlug || '').trim().toLowerCase();
   if (!slug) {
     throw new Error('Context slug is required');
@@ -108,7 +110,7 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
     }
     const readiness = evaluateFactPackReadiness(
       factPack.quality_json,
-      DEFAULT_FACT_PACK_READINESS_THRESHOLDS
+      factPackThresholds
     );
     if (!readiness.eligible) {
       excludedByReadiness.push({ item_slug: review.item.slug, reasons: readiness.reasons });
@@ -167,7 +169,8 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
       compiler: 'shadow-v0',
       compile_mode: 'draft_only',
       generated_at: new Date().toISOString(),
-      fact_pack_thresholds: DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
+      fact_pack_profile: factPackProfile,
+      fact_pack_thresholds: factPackThresholds,
       fact_pack_excluded: excludedByReadiness,
     },
   };

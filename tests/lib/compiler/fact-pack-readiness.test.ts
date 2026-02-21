@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
+  RELAXED_FACT_PACK_READINESS_THRESHOLDS,
   evaluateFactPackReadiness,
+  resolveFactPackReadinessThresholds,
 } from '@/lib/compiler/fact-pack-readiness';
 
 describe('evaluateFactPackReadiness', () => {
@@ -65,5 +67,33 @@ describe('evaluateFactPackReadiness', () => {
     expect(result.reasons).toContain(
       `fact_pack_pricing_age_exceeds_max:200>${DEFAULT_FACT_PACK_READINESS_THRESHOLDS.maxPricingAgeDays}`
     );
+  });
+});
+
+describe('resolveFactPackReadinessThresholds', () => {
+  it('returns default thresholds when profile is unset', () => {
+    const original = process.env.FACT_PACK_READINESS_PROFILE;
+    delete process.env.FACT_PACK_READINESS_PROFILE;
+    try {
+      expect(resolveFactPackReadinessThresholds()).toEqual(DEFAULT_FACT_PACK_READINESS_THRESHOLDS);
+    } finally {
+      if (typeof original === 'string') {
+        process.env.FACT_PACK_READINESS_PROFILE = original;
+      }
+    }
+  });
+
+  it('returns relaxed thresholds when profile is relaxed', () => {
+    const original = process.env.FACT_PACK_READINESS_PROFILE;
+    process.env.FACT_PACK_READINESS_PROFILE = 'relaxed';
+    try {
+      expect(resolveFactPackReadinessThresholds()).toEqual(RELAXED_FACT_PACK_READINESS_THRESHOLDS);
+    } finally {
+      if (typeof original === 'string') {
+        process.env.FACT_PACK_READINESS_PROFILE = original;
+      } else {
+        delete process.env.FACT_PACK_READINESS_PROFILE;
+      }
+    }
   });
 });

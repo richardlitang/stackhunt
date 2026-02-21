@@ -47,22 +47,31 @@ async function main() {
 
   let contextSlugs: string[] = requestedContextSlugs;
   if (contextSlugs.length === 0 && contextLimit > 0) {
-    const { data: contexts, error: contextError } = await supabase
-      .from('contexts')
-      .select('slug')
-      .not('slug', 'is', null)
-      .gt('published_reviews_count', 0)
-      .order('published_reviews_count', { ascending: false })
+    const { data: reviews, error: reviewError } = await supabase
+      .from('reviews')
+      .select('updated_at, context:contexts(slug)')
+      .eq('status', 'published')
+      .not('context_id', 'is', null)
       .order('updated_at', { ascending: false })
-      .limit(contextLimit);
+      .limit(Math.max(200, contextLimit * 40));
 
-    if (contextError) {
-      throw new Error(`Failed to fetch contexts: ${contextError.message}`);
+    if (reviewError) {
+      throw new Error(`Failed to fetch contexts from reviews: ${reviewError.message}`);
     }
 
-    contextSlugs = (contexts || [])
-      .map((row: any) => String(row.slug || '').trim().toLowerCase())
-      .filter((slug) => slug.length > 0);
+    const seen = new Set<string>();
+    const orderedSlugs: string[] = [];
+    for (const row of reviews || []) {
+      const slug = String((row as any)?.context?.slug || '')
+        .trim()
+        .toLowerCase();
+      if (!slug || seen.has(slug)) continue;
+      seen.add(slug);
+      orderedSlugs.push(slug);
+      if (orderedSlugs.length >= contextLimit) break;
+    }
+
+    contextSlugs = orderedSlugs;
   }
 
   const bestResults: Array<{ context: string; ok: boolean; message: string }> = [];

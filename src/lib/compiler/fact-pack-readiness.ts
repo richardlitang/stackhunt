@@ -15,6 +15,22 @@ export const DEFAULT_FACT_PACK_READINESS_THRESHOLDS: FactPackReadinessThresholds
   maxPricingAgeDays: 120,
 };
 
+export const RELAXED_FACT_PACK_READINESS_THRESHOLDS: FactPackReadinessThresholds = {
+  minCoverageRatio: 0.35,
+  minRequiredCoverageRatio: 0.6,
+  maxPricingAgeDays: 180,
+};
+
+export function resolveFactPackReadinessThresholds(): FactPackReadinessThresholds {
+  const profile = String(process.env.FACT_PACK_READINESS_PROFILE || '')
+    .trim()
+    .toLowerCase();
+  if (profile === 'relaxed') {
+    return RELAXED_FACT_PACK_READINESS_THRESHOLDS;
+  }
+  return DEFAULT_FACT_PACK_READINESS_THRESHOLDS;
+}
+
 export type FactPackReadinessResult = {
   eligible: boolean;
   reasons: string[];

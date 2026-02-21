@@ -43,6 +43,7 @@ Minimal operational scripts for the live content pipeline.
 - Runtime vs snapshot parity diff (best pages): `npm run qa:diff-runtime-snapshot -- --sample=50 --status=draft`
 - Runtime vs snapshot parity diff (compare pages): `npm run qa:diff-compare-snapshot -- --sample=50 --status=draft`
 - Shadow snapshot compile (draft only): `npm run qa:compile-shadow-snapshots -- --contexts=20 --pairs=30`
+- Optional relaxed gating during rollout: set `FACT_PACK_READINESS_PROFILE=relaxed` when compiling/diffing snapshots.
 - Shadow snapshot publish (dry run): `npm run qa:publish-shadow-snapshots`
 - Shadow snapshot publish (apply): `npm run qa:publish-shadow-snapshots -- --apply --best-limit=10 --compare-limit=10`
 - Frontend design pass: `npm run design:pass`

@@ -4,9 +4,9 @@ import { normalizeComparePair, toClaimList, toEvidenceRefs } from '@/lib/compile
 import { evaluateComparePublishGate } from '@/lib/compiler/compare/publish-gate';
 import { getAdminClient } from '@/lib/supabase';
 import {
-  DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
   type FactPackReadinessResult,
   evaluateFactPackReadiness,
+  resolveFactPackReadinessThresholds,
 } from '@/lib/compiler/fact-pack-readiness';
 
 type CompileCompareOptions = {
@@ -29,6 +29,8 @@ export async function compileCompareSnapshotDraft(
   options: CompileCompareOptions = {}
 ) {
   const admin = getAdminClient();
+  const factPackThresholds = resolveFactPackReadinessThresholds();
+  const factPackProfile = String(process.env.FACT_PACK_READINESS_PROFILE || 'default');
   const { toolASlug, toolBSlug } = normalizeComparePair(rawSlugA, rawSlugB);
 
   const { data: items, error: itemsError } = await admin
@@ -107,7 +109,7 @@ export async function compileCompareSnapshotDraft(
   const toolAFactPack = latestFactPackByItem.get(toolA.id);
   const toolBFactPack = latestFactPackByItem.get(toolB.id);
   const toolAReadiness: FactPackReadinessResult = toolAFactPack
-    ? evaluateFactPackReadiness(toolAFactPack.quality_json, DEFAULT_FACT_PACK_READINESS_THRESHOLDS)
+    ? evaluateFactPackReadiness(toolAFactPack.quality_json, factPackThresholds)
     : {
         eligible: false,
         reasons: ['fact_pack_missing'],
@@ -116,7 +118,7 @@ export async function compileCompareSnapshotDraft(
         pricingAgeDays: null,
       };
   const toolBReadiness: FactPackReadinessResult = toolBFactPack
-    ? evaluateFactPackReadiness(toolBFactPack.quality_json, DEFAULT_FACT_PACK_READINESS_THRESHOLDS)
+    ? evaluateFactPackReadiness(toolBFactPack.quality_json, factPackThresholds)
     : {
         eligible: false,
         reasons: ['fact_pack_missing'],
@@ -225,7 +227,8 @@ export async function compileCompareSnapshotDraft(
       compiler: 'shadow-v0',
       compile_mode: 'draft_only',
       generated_at: new Date().toISOString(),
-      fact_pack_thresholds: DEFAULT_FACT_PACK_READINESS_THRESHOLDS,
+      fact_pack_profile: factPackProfile,
+      fact_pack_thresholds: factPackThresholds,
       fact_pack_readiness: {
         [toolA.slug]: toolAReadiness,
         [toolB.slug]: toolBReadiness,
