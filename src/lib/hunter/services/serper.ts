@@ -1073,10 +1073,30 @@ function detectToolHostHint(sources: RawSource[], toolName: string): string | nu
     );
   if (candidates.length === 0) return null;
   const counts = new Map<string, number>();
+  const apexCounts = new Map<string, number>();
   for (const domain of candidates) {
     counts.set(domain, (counts.get(domain) || 0) + 1);
+    const apex = toApexDomain(domain);
+    apexCounts.set(apex, (apexCounts.get(apex) || 0) + 1);
   }
+
+  const bestApex = Array.from(apexCounts.entries()).sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    // Prefer common commercial domains when counts are tied.
+    const aCom = a[0].endsWith('.com') ? 1 : 0;
+    const bCom = b[0].endsWith('.com') ? 1 : 0;
+    if (bCom !== aCom) return bCom - aCom;
+    return a[0].length - b[0].length;
+  })[0]?.[0];
+
+  if (bestApex) return bestApex;
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+function toApexDomain(domain: string): string {
+  const parts = domain.toLowerCase().split('.').filter(Boolean);
+  if (parts.length <= 2) return domain.toLowerCase();
+  return parts.slice(-2).join('.');
 }
 
 function inferOfficialFallbackGate(url: string, toolWebsite?: string): SourcePolicyGate | null {
@@ -1097,7 +1117,10 @@ function inferOfficialFallbackGate(url: string, toolWebsite?: string): SourcePol
     ).hostname
       .replace(/^www\./, '')
       .toLowerCase();
-    if (hostname !== toolHostname && !hostname.endsWith(`.${toolHostname}`)) {
+    const isDirectMatch = hostname === toolHostname;
+    const isSubdomainOfTool = hostname.endsWith(`.${toolHostname}`);
+    const isParentDomainOfTool = toolHostname.endsWith(`.${hostname}`);
+    if (!isDirectMatch && !isSubdomainOfTool && !isParentDomainOfTool) {
       return null;
     }
 
@@ -1121,8 +1144,14 @@ function inferOfficialOverrideGate(
   const fallback = inferOfficialFallbackGate(url, toolWebsite);
   if (!fallback) return null;
 
-  // Never override explicit policy entries. Fallback only applies when registry has no policy.
+  // No explicit policy: allow inferred first-party fallback.
   if (!existingGate) {
+    return fallback;
+  }
+
+  // Explicit policy exists but blocks ingestion: allow narrow first-party override.
+  // This keeps policy conservative for third-party domains while unblocking vendor-owned docs/pricing.
+  if (existingGate.llm_ingestion_allowed === 'NO') {
     return fallback;
   }
 
