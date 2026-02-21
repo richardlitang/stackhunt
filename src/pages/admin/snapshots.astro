@@ -1,0 +1,377 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAdminClient } from '@/lib/supabase';
+
+const admin = getAdminClient();
+
+const [
+  { count: bestDraftCount },
+  { count: bestPublishedCount },
+  { count: compareDraftCount },
+  { count: comparePublishedCount },
+  { data: recentBest },
+  { data: recentCompare },
+] = await Promise.all([
+  admin.from('best_snapshots').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
+  admin.from('best_snapshots').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+  admin.from('compare_snapshots').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
+  admin.from('compare_snapshots').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+  admin
+    .from('best_snapshots')
+    .select('context_slug, version, status, computed_at, published_at')
+    .order('computed_at', { ascending: false })
+    .limit(8),
+  admin
+    .from('compare_snapshots')
+    .select('tool_a_slug, tool_b_slug, version, status, computed_at, published_at')
+    .order('computed_at', { ascending: false })
+    .limit(8),
+]);
+---
+
+<AdminLayout title="Snapshots">
+  <div class="space-y-8">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Snapshot Control Panel</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Compile, publish, and parity-check `/best` + `/compare` snapshots.
+      </p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="rounded-lg border border-slate-200 bg-white p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Best Draft</div>
+        <div class="mt-1 text-2xl font-semibold text-amber-600">{bestDraftCount || 0}</div>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-white p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Best Published</div>
+        <div class="mt-1 text-2xl font-semibold text-green-600">{bestPublishedCount || 0}</div>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-white p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Compare Draft</div>
+        <div class="mt-1 text-2xl font-semibold text-amber-600">{compareDraftCount || 0}</div>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-white p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Compare Published</div>
+        <div class="mt-1 text-2xl font-semibold text-green-600">{comparePublishedCount || 0}</div>
+      </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <section class="rounded-lg border border-slate-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Single Compile / Publish</h2>
+        <div class="mt-4 space-y-5">
+          <form data-action="/api/admin/best/compile" class="space-y-2">
+            <label class="text-sm font-medium text-slate-700">Compile Best by context slug</label>
+            <div class="flex gap-2">
+              <input
+                name="context_slug"
+                placeholder="crm-for-startups"
+                class="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
+                required
+              />
+              <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white">Run</button>
+            </div>
+          </form>
+
+          <form data-action="/api/admin/best/publish" class="space-y-2">
+            <label class="text-sm font-medium text-slate-700">Publish Best by context slug</label>
+            <div class="flex gap-2">
+              <input
+                name="context_slug"
+                placeholder="crm-for-startups"
+                class="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
+                required
+              />
+              <button class="rounded bg-green-600 px-3 py-2 text-sm font-medium text-white">Publish</button>
+            </div>
+          </form>
+
+          <form data-action="/api/admin/compare/compile" class="space-y-2">
+            <label class="text-sm font-medium text-slate-700">Compile Compare pair</label>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <input
+                name="slug_a"
+                placeholder="pipedrive"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+                required
+              />
+              <input
+                name="slug_b"
+                placeholder="copper"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+                required
+              />
+            </div>
+            <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white">Run</button>
+          </form>
+
+          <form data-action="/api/admin/compare/publish" class="space-y-2">
+            <label class="text-sm font-medium text-slate-700">Publish Compare pair</label>
+            <div class="grid gap-2 sm:grid-cols-3">
+              <input
+                name="slug_a"
+                placeholder="pipedrive"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+                required
+              />
+              <input
+                name="slug_b"
+                placeholder="copper"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+                required
+              />
+              <input
+                name="spec_key"
+                placeholder="optional spec"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <button class="rounded bg-green-600 px-3 py-2 text-sm font-medium text-white">Publish</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="rounded-lg border border-slate-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Batch Ops + Parity</h2>
+        <div class="mt-4 space-y-5">
+          <form data-action="/api/admin/snapshots/compile-shadow" class="space-y-2">
+            <label class="text-sm font-medium text-slate-700">Compile shadow batch</label>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <input
+                name="best_limit"
+                type="number"
+                min="1"
+                max="200"
+                value="10"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+              <input
+                name="compare_limit"
+                type="number"
+                min="1"
+                max="200"
+                value="10"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <button class="rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white">Compile Batch</button>
+          </form>
+
+          <form data-action="/api/admin/snapshots/publish-shadow" data-apply="false" class="space-y-2">
+            <label class="text-sm font-medium text-slate-700">Publish shadow batch (dry run)</label>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <input
+                name="best_limit"
+                type="number"
+                min="1"
+                max="200"
+                value="10"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+              <input
+                name="compare_limit"
+                type="number"
+                min="1"
+                max="200"
+                value="10"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div class="flex gap-2">
+              <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white">Dry Run</button>
+              <button
+                type="button"
+                data-submit-apply="true"
+                class="rounded bg-red-600 px-3 py-2 text-sm font-medium text-white"
+              >
+                Publish Apply
+              </button>
+            </div>
+          </form>
+
+          <form data-action="/api/admin/snapshots/parity" data-target="best" class="space-y-2">
+            <label class="text-sm font-medium text-slate-700">Parity: Best runtime vs snapshot</label>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <input
+                name="sample"
+                type="number"
+                min="1"
+                max="500"
+                value="50"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+              <select name="status" class="rounded border border-slate-300 px-3 py-2 text-sm">
+                <option value="draft">draft</option>
+                <option value="published">published</option>
+              </select>
+            </div>
+            <button class="rounded bg-purple-600 px-3 py-2 text-sm font-medium text-white">Run Best Parity</button>
+          </form>
+
+          <form data-action="/api/admin/snapshots/parity" data-target="compare" class="space-y-2">
+            <label class="text-sm font-medium text-slate-700">Parity: Compare runtime vs snapshot</label>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <input
+                name="sample"
+                type="number"
+                min="1"
+                max="500"
+                value="50"
+                class="rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+              <select name="status" class="rounded border border-slate-300 px-3 py-2 text-sm">
+                <option value="draft">draft</option>
+                <option value="published">published</option>
+              </select>
+            </div>
+            <button class="rounded bg-purple-600 px-3 py-2 text-sm font-medium text-white">Run Compare Parity</button>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="text-lg font-semibold text-slate-900">Recent Snapshots</h2>
+      <div class="mt-4 grid gap-6 lg:grid-cols-2">
+        <div>
+          <h3 class="mb-2 text-sm font-semibold text-slate-700">Best</h3>
+          <div class="overflow-hidden rounded border border-slate-200">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-left text-slate-600">
+                <tr>
+                  <th class="px-3 py-2">Context</th>
+                  <th class="px-3 py-2">v</th>
+                  <th class="px-3 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                {(recentBest || []).map((row: any) => (
+                  <tr>
+                    <td class="px-3 py-2 font-medium text-slate-700">{row.context_slug}</td>
+                    <td class="px-3 py-2 text-slate-600">{row.version}</td>
+                    <td class="px-3 py-2 text-slate-600">{row.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="mb-2 text-sm font-semibold text-slate-700">Compare</h3>
+          <div class="overflow-hidden rounded border border-slate-200">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-left text-slate-600">
+                <tr>
+                  <th class="px-3 py-2">Pair</th>
+                  <th class="px-3 py-2">v</th>
+                  <th class="px-3 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                {(recentCompare || []).map((row: any) => (
+                  <tr>
+                    <td class="px-3 py-2 font-medium text-slate-700">
+                      {row.tool_a_slug}-vs-{row.tool_b_slug}
+                    </td>
+                    <td class="px-3 py-2 text-slate-600">{row.version}</td>
+                    <td class="px-3 py-2 text-slate-600">{row.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="text-lg font-semibold text-slate-900">Result</h2>
+      <pre
+        id="snapshot-result"
+        class="mt-3 max-h-[420px] overflow-auto rounded bg-slate-950 p-4 text-xs text-green-200"
+      >Run an action...</pre>
+    </section>
+  </div>
+</AdminLayout>
+
+<script>
+  const output = document.getElementById('snapshot-result');
+  const forms = Array.from(document.querySelectorAll('form[data-action]'));
+
+  const format = (value) => JSON.stringify(value, null, 2);
+
+  async function handleSubmit(form, forceApply = null) {
+    const endpoint = form.dataset.action;
+    const data = Object.fromEntries(new FormData(form).entries());
+
+    if (form.dataset.target) data.target = form.dataset.target;
+    if (form.dataset.action?.includes('/publish-shadow')) {
+      data.apply =
+        forceApply !== null ? forceApply : String(form.dataset.apply || 'false').toLowerCase() === 'true';
+    }
+
+    if (output) output.textContent = `Running ${endpoint}...`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = { success: false, error: `Non-JSON response (${response.status})` };
+    }
+
+    if (output) output.textContent = format(payload);
+  }
+
+  for (const form of forms) {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submitButton = form.querySelector('button[type="submit"]');
+      const original = submitButton?.textContent || '';
+      if (submitButton) submitButton.disabled = true;
+      if (submitButton) submitButton.textContent = 'Running...';
+
+      try {
+        await handleSubmit(form);
+      } catch (error) {
+        if (output) output.textContent = format({ success: false, error: error?.message || 'Request failed' });
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+        if (submitButton) submitButton.textContent = original;
+      }
+    });
+  }
+
+  const applyButtons = Array.from(document.querySelectorAll('[data-submit-apply="true"]'));
+  for (const button of applyButtons) {
+    button.addEventListener('click', async (event) => {
+      event.preventDefault();
+      const form = button.closest('form');
+      if (!form) return;
+
+      const approved = window.confirm(
+        'Publish apply will promote eligible draft snapshots to published. Continue?'
+      );
+      if (!approved) return;
+
+      const original = button.textContent || '';
+      button.disabled = true;
+      button.textContent = 'Publishing...';
+      try {
+        await handleSubmit(form, true);
+      } catch (error) {
+        if (output) output.textContent = format({ success: false, error: error?.message || 'Request failed' });
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    });
+  }
+</script>

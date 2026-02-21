@@ -210,6 +210,23 @@ const hasWork =
       }
     </div>
 
+    <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-6">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 class="text-base font-semibold text-indigo-900">Snapshot Program Controls</h2>
+          <p class="mt-1 text-sm text-indigo-700">
+            Compile, publish, and parity-check `/best` + `/compare` snapshots.
+          </p>
+        </div>
+        <a
+          href="/admin/snapshots"
+          class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          Open Snapshot Console
+        </a>
+      </div>
+    </div>
+
     <!-- Quick Actions -->
     {
       (draftCount || 0) > 0 && (
