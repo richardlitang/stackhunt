@@ -261,6 +261,7 @@ async function main() {
     priority,
     source: 'scheduled',
     hunt_type: 'full' as const,
+    force_regenerate: true,
   }));
 
   const sourceCap = parseQueueCap(process.env.HUNT_QUEUE_SOURCE_PENDING_CAP, 400);

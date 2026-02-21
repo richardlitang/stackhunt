@@ -645,7 +645,10 @@ export class Hunter {
             : undefined,
         queueItemId: queueItem.id,
         huntType: (queueItem.hunt_type as any) || 'full',
-        forceUpdate: Boolean(queueItem.force_regenerate) || queueItem.hunt_type === 'price_only', // Ensure price_only refreshes bypass duplicate short-circuit
+        forceUpdate:
+          Boolean(queueItem.force_regenerate) ||
+          queueItem.hunt_type === 'price_only' ||
+          queueItem.hunt_type === 'refresh', // Refresh/price-only must bypass duplicate short-circuit
         researchDossier: queueItem.research_dossier || undefined, // V5: Pass dossier from Classifier
       });
 

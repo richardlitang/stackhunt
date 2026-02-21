@@ -418,7 +418,10 @@ async function processBatchSynthesis(
         contextTitle: queueItem.context_title || undefined,
         categorySlug: queueItem.category_slug || undefined,
         huntType: queueItem.hunt_type || undefined,
-        forceUpdate: Boolean(queueItem.force_regenerate) || queueItem.hunt_type === 'price_only',
+        forceUpdate:
+          Boolean(queueItem.force_regenerate) ||
+          queueItem.hunt_type === 'price_only' ||
+          queueItem.hunt_type === 'refresh',
         researchData: tool.specs.research_data,
       });
     }
@@ -477,7 +480,8 @@ async function processBatchSynthesis(
           contextTitle: input.contextTitle,
           categorySlug: input.categorySlug,
           queueItemId: input.queueId,
-          forceUpdate: input.forceUpdate || input.huntType === 'price_only',
+          forceUpdate:
+            input.forceUpdate || input.huntType === 'price_only' || input.huntType === 'refresh',
           huntType: input.huntType || 'full',
           skipAnalysis: false,
           skipPersistence: false,
@@ -664,7 +668,10 @@ async function processStaleItem(
       contextTitle: queueItem.context_title || undefined,
       categorySlug: queueItem.category_slug || undefined,
       queueItemId: queueItem.id,
-      forceUpdate: Boolean(queueItem.force_regenerate) || queueItem.hunt_type === 'price_only',
+      forceUpdate:
+        Boolean(queueItem.force_regenerate) ||
+        queueItem.hunt_type === 'price_only' ||
+        queueItem.hunt_type === 'refresh',
       huntType: queueItem.hunt_type || 'full',
       skipAnalysis: false,
       skipPersistence: false,

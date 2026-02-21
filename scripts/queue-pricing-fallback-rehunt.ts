@@ -219,6 +219,7 @@ async function main() {
     priority: entry.priority,
     source: 'scheduled',
     hunt_type: huntType as 'full' | 'refresh' | 'price_only',
+    force_regenerate: true,
   }));
 
   const sourceCap = parseQueueCap(process.env.HUNT_QUEUE_SOURCE_PENDING_CAP, 400);
