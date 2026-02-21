@@ -212,6 +212,7 @@ export function evaluateStrictPublishGate(
   const sources = toSources(review.sources);
   const fallbackEvidenceUrls = collectFallbackEvidenceUrls(item);
   const authoritativeDomains = new Set<string>();
+  let authoritativeSources = 0;
   let hasOfficialPricingSource = false;
   let hasOfficialDocOrHelpSource = false;
 
@@ -220,7 +221,10 @@ export function evaluateStrictPublishGate(
     const sourceType = (source.source_type || source.type || '').toLowerCase();
     const lowerUrl = (source.url || '').toLowerCase();
     if (AUTHORITATIVE_SOURCE_TYPES.has(sourceType) && domain) {
+      authoritativeSources += 1;
       authoritativeDomains.add(domain);
+    } else if (AUTHORITATIVE_SOURCE_TYPES.has(sourceType)) {
+      authoritativeSources += 1;
     }
     if (AUTHORITATIVE_SOURCE_TYPES.has(sourceType) || CLAIM_SOURCE_FALLBACK_PATH.test(lowerUrl)) {
       if (OFFICIAL_PRICING_PATH.test(lowerUrl)) hasOfficialPricingSource = true;
@@ -244,7 +248,8 @@ export function evaluateStrictPublishGate(
       (authoritativeDomains.size >= 1 &&
         hasOfficialPricingSource &&
         hasOfficialDocOrHelpSource &&
-        sources.length >= 5))
+        sources.length >= 5) ||
+      (authoritativeDomains.size >= 2 && authoritativeSources >= 5 && sources.length >= 8))
       ? 'A'
       : authoritativeDomains.size >= 1 && (hasOfficialPricingSource || hasOfficialDocOrHelpSource)
         ? 'B'
