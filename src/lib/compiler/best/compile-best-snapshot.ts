@@ -12,6 +12,21 @@ type CompileBestOptions = {
   specVersion?: string | null;
 };
 
+function resolveBestCompilerReviewStatuses(): Array<'published' | 'draft'> {
+  const raw = String(process.env.BEST_COMPILER_REVIEW_STATUSES || '')
+    .trim()
+    .toLowerCase();
+  if (!raw) return ['published'];
+
+  const allowed = new Set(['published', 'draft']);
+  const parsed = raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry): entry is 'published' | 'draft' => allowed.has(entry));
+
+  return parsed.length > 0 ? Array.from(new Set(parsed)) : ['published'];
+}
+
 function parseDateValue(value: string | null | undefined): number {
   if (!value) return 0;
   const ts = Date.parse(value);
@@ -24,6 +39,7 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
   const factPackProfile = String(process.env.FACT_PACK_READINESS_PROFILE || 'default');
   const bestPublishThresholds = resolveBestPublishThresholds();
   const bestPublishProfile = String(process.env.BEST_PUBLISH_PROFILE || 'default');
+  const reviewStatuses = resolveBestCompilerReviewStatuses();
   const slug = String(contextSlug || '').trim().toLowerCase();
   if (!slug) {
     throw new Error('Context slug is required');
@@ -60,7 +76,7 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
     `
     )
     .eq('context_id', context.id)
-    .eq('status', 'published')
+    .in('status', reviewStatuses)
     .order('score', { ascending: false, nullsFirst: false })
     .limit(50);
 
@@ -175,6 +191,7 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
       fact_pack_thresholds: factPackThresholds,
       best_publish_profile: bestPublishProfile,
       best_publish_thresholds: bestPublishThresholds,
+      review_statuses: reviewStatuses,
       fact_pack_excluded: excludedByReadiness,
     },
   };
