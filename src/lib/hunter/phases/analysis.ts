@@ -15,6 +15,7 @@ import {
   interpolateTemplate,
   classifySourceType,
   buildSnippetBucketsFromScout,
+  isLlmEligibleScoutSource,
 } from '../utils';
 import {
   SYNTHESIS_PROMPT,
@@ -114,9 +115,7 @@ export async function executeAnalysisPhase(
       .map((entry) => entry.url)
   );
   const policyEligibleSources = (ctx.research.scoutResult.raw_sources || []).filter(
-    (source) =>
-      source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-      source.policy.llm_ingestion_allowed !== 'NO'
+    (source) => isLlmEligibleScoutSource(source)
   );
   const synthesisSources = policyEligibleSources.filter((source) => curatedUrls.has(source.url));
   const baselineSources = synthesisSources.length > 0 ? synthesisSources : policyEligibleSources;

@@ -80,7 +80,7 @@ export function interpolateTemplate(template: string, vars: Record<string, strin
 export function buildFactSummary(card: KnowledgeCard): string {
   const lines: string[] = [];
 
-  lines.push(`## Verified Facts for ${card.official_name}`);
+  lines.push(`## Verified Facts for ${card.official_name || 'this tool'}`);
 
   // Pricing
   lines.push(`\n### Pricing`);
@@ -348,6 +348,14 @@ function capSnippets(snippets: string[], limit = DEFAULT_SNIPPET_LIMIT): string[
   return snippets.slice(0, limit);
 }
 
+export function isLlmEligibleScoutSource(source: Pick<RawSource, 'policy'>): boolean {
+  const mode = source?.policy?.acquisition_mode;
+  const ingestion = source?.policy?.llm_ingestion_allowed;
+  if (!mode || !ingestion) return false;
+  if (ingestion === 'NO') return false;
+  return mode === 'SCRAPE_ALLOWED' || mode === 'API_ONLY' || mode === 'LINK_ONLY';
+}
+
 export function buildSnippetBucketsFromScout(rawSources: RawSource[]): ScoutSnippetBuckets {
   const reviews: string[] = [];
   const pricing: string[] = [];
@@ -363,10 +371,7 @@ export function buildSnippetBucketsFromScout(rawSources: RawSource[]): ScoutSnip
 
   for (const source of rawSources) {
     // Hard guardrail: only sources explicitly allowed for ingestion should influence synthesis.
-    if (
-      source.policy.acquisition_mode !== 'SCRAPE_ALLOWED' ||
-      source.policy.llm_ingestion_allowed === 'NO'
-    ) {
+    if (!isLlmEligibleScoutSource(source)) {
       continue;
     }
 

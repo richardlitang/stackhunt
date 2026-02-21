@@ -22,6 +22,7 @@ import {
 } from './services';
 import { HunterLogger } from './services/logger';
 import { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';
+import { isLlmEligibleScoutSource } from './utils';
 import type {
   HunterConfig,
   HunterInput,
@@ -371,26 +372,21 @@ export class Hunter {
         };
 
         const scout = ctx.research.scoutResult;
-        const reviewCount = scout.curated_sources.reviews.length;
+        const reviewCount = scout.raw_sources.filter(
+          (source) => source.intent_tags.includes('reviews') && isLlmEligibleScoutSource(source)
+        ).length;
         const tribalCount = scout.raw_sources.filter(
           (source) =>
             source.source_type === 'community' &&
-            source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-            source.policy.llm_ingestion_allowed !== 'NO'
+            isLlmEligibleScoutSource(source)
         ).length;
         const officialCount = scout.raw_sources
           .filter((source) => ['official', 'docs', 'support', 'legal'].includes(source.source_type))
-          .filter(
-            (source) =>
-              source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-              source.policy.llm_ingestion_allowed !== 'NO'
-          ).length;
-        const pricingCount = scout.curated_sources.pricing.length;
-        const eligibleCount = scout.raw_sources.filter(
-          (source) =>
-            source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-            source.policy.llm_ingestion_allowed !== 'NO'
+          .filter((source) => isLlmEligibleScoutSource(source)).length;
+        const pricingCount = scout.raw_sources.filter(
+          (source) => source.intent_tags.includes('pricing') && isLlmEligibleScoutSource(source)
         ).length;
+        const eligibleCount = scout.raw_sources.filter((source) => isLlmEligibleScoutSource(source)).length;
         const _totalSnippets = reviewCount + tribalCount + pricingCount;
 
         if (!passesPreflight(eligibleCount, officialCount)) {
@@ -414,27 +410,24 @@ export class Hunter {
 
             // Re-evaluate pre-flight with fresh research output
             const freshScout = freshResearch.scoutResult;
-            const freshReviewCount = freshScout.curated_sources.reviews.length;
+            const freshReviewCount = freshScout.raw_sources.filter(
+              (source) => source.intent_tags.includes('reviews') && isLlmEligibleScoutSource(source)
+            ).length;
             const freshTribalCount = freshScout.raw_sources.filter(
               (source) =>
                 source.source_type === 'community' &&
-                source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-                source.policy.llm_ingestion_allowed !== 'NO'
+                isLlmEligibleScoutSource(source)
             ).length;
             const freshOfficialCount = freshScout.raw_sources
               .filter((source) =>
                 ['official', 'docs', 'support', 'legal'].includes(source.source_type)
               )
-              .filter(
-                (source) =>
-                  source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-                  source.policy.llm_ingestion_allowed !== 'NO'
-              ).length;
-            const freshPricingCount = freshScout.curated_sources.pricing.length;
-            const freshEligibleCount = freshScout.raw_sources.filter(
-              (source) =>
-                source.policy.acquisition_mode === 'SCRAPE_ALLOWED' &&
-                source.policy.llm_ingestion_allowed !== 'NO'
+              .filter((source) => isLlmEligibleScoutSource(source)).length;
+            const freshPricingCount = freshScout.raw_sources.filter(
+              (source) => source.intent_tags.includes('pricing') && isLlmEligibleScoutSource(source)
+            ).length;
+            const freshEligibleCount = freshScout.raw_sources.filter((source) =>
+              isLlmEligibleScoutSource(source)
             ).length;
             if (passesPreflight(freshEligibleCount, freshOfficialCount)) {
               this.log(

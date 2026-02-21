@@ -5,7 +5,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { slugify, interpolateTemplate, buildFactSummary, classifySourceType } from '@/lib/hunter/utils';
+import {
+  slugify,
+  interpolateTemplate,
+  buildFactSummary,
+  classifySourceType,
+  isLlmEligibleScoutSource,
+} from '@/lib/hunter/utils';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 
 describe('slugify', () => {
@@ -396,5 +402,39 @@ describe('classifySourceType', () => {
   it('classifies known editorial and community domains', () => {
     expect(classifySourceType('https://techradar.com/reviews/tool')).toBe('editorial');
     expect(classifySourceType('https://reddit.com/r/tool/comments/abc')).toBe('community');
+  });
+});
+
+describe('isLlmEligibleScoutSource', () => {
+  it('accepts scrape-allowed and non-scrape ingestion-allowed sources', () => {
+    expect(
+      isLlmEligibleScoutSource({
+        policy: { acquisition_mode: 'SCRAPE_ALLOWED', llm_ingestion_allowed: 'YES' } as any,
+      } as any)
+    ).toBe(true);
+    expect(
+      isLlmEligibleScoutSource({
+        policy: { acquisition_mode: 'LINK_ONLY', llm_ingestion_allowed: 'YES_LIMITED' } as any,
+      } as any)
+    ).toBe(true);
+    expect(
+      isLlmEligibleScoutSource({
+        policy: { acquisition_mode: 'API_ONLY', llm_ingestion_allowed: 'YES' } as any,
+      } as any)
+    ).toBe(true);
+  });
+
+  it('rejects blocked or non-ingestable sources', () => {
+    expect(
+      isLlmEligibleScoutSource({
+        policy: { acquisition_mode: 'BLOCKED', llm_ingestion_allowed: 'YES' } as any,
+      } as any)
+    ).toBe(false);
+    expect(
+      isLlmEligibleScoutSource({
+        policy: { acquisition_mode: 'SCRAPE_ALLOWED', llm_ingestion_allowed: 'NO' } as any,
+      } as any)
+    ).toBe(false);
+    expect(isLlmEligibleScoutSource({ policy: undefined as any } as any)).toBe(false);
   });
 });
