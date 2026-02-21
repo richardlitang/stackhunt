@@ -557,10 +557,24 @@ const hasMeaningfulPricingPlanName = (name?: string): boolean => {
   if (/^product\s+\d+$/i.test(normalized)) return false;
   return true;
 };
+const hasRenderablePlanPrice = (value: unknown): boolean =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0;
+const hasRenderablePricingPlan = (plan: unknown): boolean => {
+  if (!plan || typeof plan !== 'object') return false;
+  const planRecord = plan as Record<string, unknown>;
+  const planName = typeof planRecord.name === 'string' ? planRecord.name : '';
+  const hasNamedTier = planName.trim().length > 0;
+  const hasPriceSignal =
+    hasRenderablePlanPrice(planRecord.price_monthly) ||
+    hasRenderablePlanPrice(planRecord.price_annual) ||
+    hasRenderablePlanPrice(planRecord.price_per_unit);
+  const isEnterprise = planRecord.is_enterprise === true;
+  return (
+    hasMeaningfulPricingPlanName(planName) || (hasNamedTier && (hasPriceSignal || isEnterprise))
+  );
+};
 const hasRenderableSmpPlans = Boolean(
-  knowledgeCard?.smp_pricing?.plans?.some((plan) =>
-    hasMeaningfulPricingPlanName((plan as any)?.name)
-  )
+  knowledgeCard?.smp_pricing?.plans?.some((plan) => hasRenderablePricingPlan(plan))
 );
 const hasPricing = Boolean(
   (hasRenderableSmpPlans || knowledgeCard?.pricing?.tiers?.length > 0) &&
@@ -838,6 +852,17 @@ const evidenceLinksAll = (firstReview?.sources || [])
   .filter((entry): entry is EvidenceLinkEntry => Boolean(entry));
 const evidenceLinks = evidenceLinksAll.filter((entry) => entry.quality !== 'low');
 const lowConfidenceEvidenceLinks = evidenceLinksAll.filter((entry) => entry.quality === 'low');
+const normalizeSourceUrl = (value?: string | null): string | null => {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    parsed.hash = '';
+    parsed.search = '';
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
 const evidenceBasis = [
   'Official docs/help center',
   'Official pricing pages',
@@ -984,6 +1009,13 @@ isVerificationMode = baseEvidenceGrade === 'C';
 const officialPricingSource = officialEvidenceLinks.find(
   (entry) => entry.basis === 'Official pricing pages'
 );
+const directPricingPageSource =
+  typeof knowledgeCard?.smp_pricing?.pricing_page_url === 'string'
+    ? knowledgeCard.smp_pricing.pricing_page_url
+    : null;
+const pricingSourceUrl =
+  normalizeSourceUrl(officialPricingSource?.url) ||
+  normalizeSourceUrl(isEligibleEvidenceUrl(directPricingPageSource) ? directPricingPageSource : null);
 const officialDocsSource = officialEvidenceLinks.find(
   (entry) =>
     entry.basis === 'Official docs/help center' ||
@@ -1000,12 +1032,56 @@ const pricingSnapshotBullets = withUniqueText(
 const pricingEvidenceLinks = withUniqueText(
   pricingSnapshotBullets.filter((item) => Boolean(item.sourceUrl))
 ).slice(0, 3);
-const showPricingSection = true;
+const hasPricingCheckedProof = Boolean(pricingVerifiedLabel && pricingSourceUrl);
+const pricingCheckedLabel = hasPricingCheckedProof ? pricingVerifiedLabel : null;
+const prosConsSourceUrls = new Set(
+  [...effectiveEvidencePros, ...effectiveEvidenceCons]
+    .map((entry) => normalizeSourceUrl(entry.sourceUrl))
+    .filter((entry): entry is string => Boolean(entry))
+);
+const pricingSourceUrls = new Set(
+  [pricingSourceUrl, ...pricingEvidenceLinks.map((entry) => normalizeSourceUrl(entry.sourceUrl))]
+    .filter((entry): entry is string => Boolean(entry))
+);
+const faqSourceUrls = new Set(
+  faqItems
+    .map((item) => normalizeSourceUrl(item.answer_source_url))
+    .filter((entry): entry is string => Boolean(entry))
+);
+const specsSourceUrls = new Set(
+  [officialDocsSource?.url, ...canonicalHardLimits.map((item) => item.sourceUrl)]
+    .map((entry) => normalizeSourceUrl(entry))
+    .filter((entry): entry is string => Boolean(entry))
+);
+const baselineSourceUrls = new Set(
+  evidenceLinksAll
+    .map((entry) => normalizeSourceUrl(entry.url))
+    .filter((entry): entry is string => Boolean(entry))
+);
+const collectedSourceUrlSet = new Set<string>([
+  ...baselineSourceUrls,
+  ...prosConsSourceUrls,
+  ...pricingSourceUrls,
+  ...faqSourceUrls,
+  ...specsSourceUrls,
+]);
+const collectedSourcesBySection = {
+  pros_cons: prosConsSourceUrls.size,
+  pricing: pricingSourceUrls.size,
+  faq: faqSourceUrls.size,
+  specs: specsSourceUrls.size,
+};
+const collectedSourcesTotal = collectedSourceUrlSet.size;
+const hasCollectedSources = collectedSourcesTotal > 0;
+const showPricingSection = Boolean(
+  sectionStatus.pricing !== 'hide' &&
+  (hasPricing || officialPricingSource || pricingEvidenceLinks.length > 0 || canonicalHardLimits.length > 0)
+);
 const decisionProofPoints = [
   buildEvidenceBulletV2({
     text: `Pricing references reviewed from official pages (checked ${pricingVerifiedLabel || 'latest available date'}).`,
     kind: 'claim',
-    sourceUrl: officialPricingSource?.url,
+    sourceUrl: pricingSourceUrl,
     sourceLabel: 'Official pricing',
     retrievedAt: pricingVerifiedLabel || undefined,
     requiredSourcing: true,
@@ -1054,10 +1130,14 @@ const verdictDisplayLabel =
       : 'Not recommended yet';
 let verdictLabelRationale =
   verdictLabel === 'Choose'
-    ? `${tool.name} is a strong option when you want fast, source-backed answers.`
+    ? hasCollectedSources
+      ? `${tool.name} is a strong option when you want fast, source-backed answers.`
+      : `${tool.name} appears promising, but the source set is still being collected.`
     : verdictLabel === 'Consider'
       ? `${tool.name} is worth shortlisting, but check pricing and plan limits before you commit.`
-      : `${tool.name} is not a confident pick yet based on currently source-backed evidence.`;
+      : hasCollectedSources
+        ? `${tool.name} is not a confident pick yet based on currently source-backed evidence.`
+        : `${tool.name} is not a confident pick yet because source-backed evidence is still limited.`;
 const scoreDrivers = uniqueDecisionText([
   ...decisionSnapshotDifferentiators,
   ...decisionSnapshotBestWhen,
@@ -1088,7 +1168,9 @@ if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
 }
 isVerificationMode = evidenceGrade === 'C' || pendingVerificationCount > 0;
 const trustStatus: 'Source-backed' | 'Needs confirmation' =
-  isVerificationMode || pendingVerificationCount > 0 ? 'Needs confirmation' : 'Source-backed';
+  !hasCollectedSources || isVerificationMode || pendingVerificationCount > 0
+    ? 'Needs confirmation'
+    : 'Source-backed';
 const trustConfidenceLabel: 'High' | 'Medium' | 'Low' =
   contentConfidenceLevel === 'high'
     ? 'High'
@@ -1096,12 +1178,12 @@ const trustConfidenceLabel: 'High' | 'Medium' | 'Low' =
       ? 'Medium'
       : 'Low';
 const updateHistoryEntries = [
-  pricingVerifiedLabel
+  hasPricingCheckedProof
     ? {
-        date: pricingVerifiedLabel,
+        date: pricingCheckedLabel as string,
         what: 'Pricing references rechecked',
         why: 'Pricing is volatile and can change frequently',
-        source: officialPricingSource?.url || null,
+        source: pricingSourceUrl || null,
       }
     : null,
   specsVerifiedLabel
@@ -1183,8 +1265,9 @@ const schemas = [
       {
         showReviewInProgressBanner && (
           <div class="mb-4 rounded-lg border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm text-sky-100">
-            This page is being reviewed. Claims are source-backed, but final editorial verification is
-            still in progress.
+            {hasCollectedSources
+              ? 'This page is being reviewed. Claims are source-backed, but final editorial verification is still in progress.'
+              : 'This page is being reviewed. Source collection is still in progress before final editorial verification.'}
           </div>
         )
       }
@@ -1219,7 +1302,7 @@ const schemas = [
                           clip-rule="evenodd"
                         />
                       </svg>
-                      Source-backed
+                      {hasCollectedSources ? 'Source-backed' : 'Verified'}
                     </span>
                   )
                 }
@@ -1307,12 +1390,13 @@ const schemas = [
           </div>
 
           {
-            evidenceLinks.length > 0 && (
+            collectedSourcesTotal > 0 && (
               <p class="text-xs text-zinc-500">
-                Source-backed sources: {evidenceLinks.length}
-                {evidenceLinksAll.length > evidenceLinks.length
-                  ? ` • Collected: ${evidenceLinksAll.length}`
-                  : ''}
+                Sources collected: {collectedSourcesTotal}
+                {` • Pros/Cons ${collectedSourcesBySection.pros_cons}`}
+                {` • Pricing ${collectedSourcesBySection.pricing}`}
+                {` • FAQ ${collectedSourcesBySection.faq}`}
+                {` • Specs ${collectedSourcesBySection.specs}`}
                 {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
               </p>
             )
@@ -1327,7 +1411,7 @@ const schemas = [
             <p>
               Best for:{' '}
               <span class="text-zinc-300">
-                {decisionSnapshotBestWhen[0] || 'teams that prioritize source-backed guidance'}
+                {decisionSnapshotBestWhen[0] || 'teams that prioritize clear tool guidance'}
               </span>
             </p>
             <p>
@@ -1388,7 +1472,7 @@ const schemas = [
           <p class="mt-2 text-sm text-zinc-200">
             {
               decisionSnapshotBestWhen[0] ||
-                'Teams that need source-backed research output quickly.'
+                'Teams that need clear tool guidance quickly.'
             }
           </p>
         </div>
@@ -1398,7 +1482,9 @@ const schemas = [
             {
               hasVerifiedAvoidIf
                 ? avoidIfBullet?.text
-                : `No source-backed hard avoid condition found as of ${communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'latest check'}.`
+                : canonicalHardLimits.length > 0
+                  ? `No source-backed hard avoid trigger is confirmed yet (${communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'latest check'}). Review hard limits below.`
+                  : `No source-backed hard avoid trigger is confirmed in the latest review (${communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'latest check'}).`
             }
           </p>
         </div>
@@ -1464,9 +1550,9 @@ const schemas = [
         }
         <span class="text-xs text-zinc-500">
           Last checked {
-            communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'
+            communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'unknown'
           } •{' '}
-          {evidenceLinksAll.length} collected sources
+          {collectedSourcesTotal} sources collected
         </span>
       </div>
       {
@@ -1492,8 +1578,9 @@ const schemas = [
         </span>
       </div>
       <p class="mt-2 text-sm text-zinc-400">
-        Source-backed means a claim is present in the linked source on the date checked. Vendors can
-        update details after that date.
+        {hasCollectedSources
+          ? 'Source-backed means a claim is present in a linked source on the date checked. Vendors can update details after that date.'
+          : 'No qualifying sources collected yet. Claims remain in verification mode until section-level sources are attached.'}
       </p>
       <div class="mt-4 grid gap-4 md:grid-cols-2">
         <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
@@ -1833,7 +1920,11 @@ const schemas = [
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
-                  <p class="mt-1 text-sm text-zinc-400">Evidence-backed pros and cons only.</p>
+                  <p class="mt-1 text-sm text-zinc-400">
+                    {collectedSourcesBySection.pros_cons > 0
+                      ? 'Evidence-backed pros and cons only.'
+                      : 'Pros and cons will appear after source-backed claims are collected.'}
+                  </p>
                 </div>
                 <span class="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-400">
                   <span class="group-open:hidden">Expand</span>
@@ -1855,18 +1946,17 @@ const schemas = [
               </summary>
 
               <div class="mt-4">
-                {/* Show contextual pros/cons if available (more specific), otherwise global */}
-                {firstReview && (firstReview.pros?.length > 0 || firstReview.cons?.length > 0) ? (
-                  <ProsCons
-                    pros={firstReview.pros || []}
-                    cons={firstReview.cons || []}
-                    sourceDisplay="block"
-                  />
-                ) : (
-                  (globalPros.length > 0 || globalCons.length > 0) && (
-                    <ProsCons pros={globalPros} cons={globalCons} sourceDisplay="block" />
-                  )
-                )}
+                <ProsCons
+                  pros={effectiveEvidencePros.map((entry) => ({
+                    text: entry.text,
+                    source_url: entry.sourceUrl,
+                  }))}
+                  cons={effectiveEvidenceCons.map((entry) => ({
+                    text: entry.text,
+                    source_url: entry.sourceUrl,
+                  }))}
+                  sourceDisplay="block"
+                />
               </div>
             </details>
           )
@@ -1894,14 +1984,14 @@ const schemas = [
             <details
               id="pricing-plans"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-              open
+              open={hasPricing}
             >
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
-                  {pricingVerifiedLabel && (
+                  {pricingCheckedLabel && (
                     <p class="mt-1 text-xs text-zinc-500">
-                      Pricing checked {pricingVerifiedLabel}
+                      Pricing checked {pricingCheckedLabel}
                     </p>
                   )}
                 </div>
@@ -1925,8 +2015,9 @@ const schemas = [
               </summary>
               <div class="mt-4">
                 <p class="mb-4 text-xs text-zinc-500">
-                  Pricing changes frequently; confirm on the vendor site. Shown as of{' '}
-                  {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}.
+                  {pricingCheckedLabel
+                    ? `Pricing changes frequently; confirm on the vendor site. Shown as of ${pricingCheckedLabel}.`
+                    : 'Pricing changes frequently. Pricing check is pending until a pricing source URL and retrieved date are both captured.'}
                 </p>
                 {hasPricing ? (
                   <>
@@ -1973,10 +2064,10 @@ const schemas = [
                   </>
                 ) : (
                   <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-                    <p class="font-medium text-zinc-100">Pricing not confirmed.</p>
+                    <p class="font-medium text-zinc-100">Structured pricing is incomplete.</p>
                     <p>
-                      Structured plan pricing is missing or stale for this tool. We only publish
-                      numeric pricing when plan, billing cadence, region, check date, and source are present.
+                      We found pricing references, but not enough source-backed plan detail to
+                      publish a reliable numeric table yet.
                     </p>
                     {(officialPricingSource || pricingEvidenceLinks.length > 0) && (
                       <div class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
@@ -2024,7 +2115,7 @@ const schemas = [
                       </div>
                     )}
                     <p class="text-xs text-zinc-500">
-                      Last checked {pricingVerifiedLabel || communityVerifiedLabel || 'unknown'}.
+                      Last checked {pricingCheckedLabel || 'unknown'}.
                     </p>
                     {canonicalHardLimits.length > 0 && (
                       <p class="text-xs text-zinc-500">
@@ -2431,9 +2522,9 @@ const schemas = [
                 status={trustStatus}
                 pendingCount={pendingVerificationCount}
                 evaluationDepth={evaluationDepth}
-                lastChecked={communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'Unknown'}
+                lastChecked={communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'Unknown'}
                 confidence={trustConfidenceLabel}
-                sourcesCount={evidenceLinks.length}
+                sourcesCount={collectedSourcesTotal}
               />
             </div>
           </details>
@@ -2497,7 +2588,7 @@ const schemas = [
             <div>
               <h2 class="text-lg font-semibold text-zinc-100">Update History</h2>
               <p class="mt-1 text-sm text-zinc-400">
-                Last update {communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || 'unknown'} • Last check {pricingVerifiedLabel || specsVerifiedLabel || communityVerifiedLabel || 'unknown'}
+                Last update {communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'unknown'} • Last check {pricingCheckedLabel || specsVerifiedLabel || communityVerifiedLabel || 'unknown'}
               </p>
             </div>
             <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
