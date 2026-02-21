@@ -146,6 +146,23 @@ function resolvePopularityTier(metadata?: Record<string, unknown> | null): Popul
   return 'standard';
 }
 
+function resolveReviewDataQuality(review: ReviewRow): 'high' | 'medium' | 'low' | null {
+  const quality = typeof review.quality === 'string' ? review.quality.trim().toLowerCase() : '';
+  if (quality === 'high' || quality === 'medium' || quality === 'low') {
+    return quality as 'high' | 'medium' | 'low';
+  }
+
+  const metadata = review.item?.metadata || null;
+  const meta = metadata && typeof metadata.meta === 'object' ? (metadata.meta as Record<string, unknown>) : null;
+  const metadataQuality =
+    meta && typeof meta.data_quality === 'string' ? meta.data_quality.trim().toLowerCase() : '';
+  if (metadataQuality === 'high' || metadataQuality === 'medium' || metadataQuality === 'low') {
+    return metadataQuality as 'high' | 'medium' | 'low';
+  }
+
+  return null;
+}
+
 function analyzeReview(review: ReviewRow): {
   knownBlockers: string[];
   popularityTier: PopularityTier;
@@ -175,8 +192,8 @@ function analyzeReview(review: ReviewRow): {
   if (score < 70) knownBlockers.push('score_below_70');
   if (score < profile.minScore) knownBlockers.push(`score_below_${profile.minScore}_tier_gate`);
 
-  const quality = (review.quality || '').toLowerCase();
-  if (!profile.allowedDataQualities.includes(quality as 'high' | 'medium' | 'low')) {
+  const quality = resolveReviewDataQuality(review);
+  if (!quality || !profile.allowedDataQualities.includes(quality)) {
     knownBlockers.push(`data_quality_not_allowed_for_${popularityTier}`);
   }
 

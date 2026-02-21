@@ -150,6 +150,57 @@ function toPricingConfidence(
   return 'unknown';
 }
 
+function getMetadata(item: PublishableItemFields): Record<string, unknown> {
+  return (item.metadata as Record<string, unknown> | null) || {};
+}
+
+function getSpecs(item: PublishableItemFields): Record<string, unknown> {
+  return (item.specs as Record<string, unknown> | null) || {};
+}
+
+function collectFallbackEvidenceUrls(item: PublishableItemFields): string[] {
+  const metadata = getMetadata(item);
+  const specs = getSpecs(item);
+  const urls: string[] = [];
+  const addUrl = (value: unknown) => {
+    if (typeof value !== 'string') return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    try {
+      const parsed = new URL(trimmed);
+      urls.push(parsed.toString());
+    } catch {
+      // Ignore invalid URLs in metadata/specs.
+    }
+  };
+
+  addUrl(metadata.website_url);
+  addUrl((metadata.smp_pricing as Record<string, unknown> | undefined)?.pricing_page_url);
+  addUrl((metadata.setup_complexity as Record<string, unknown> | undefined)?.setup_url);
+
+  const constraints = (specs.constraints as Record<string, unknown> | undefined) || {};
+  const hardLimits = Array.isArray(constraints.hard_limits) ? constraints.hard_limits : [];
+  const hiddenCosts = Array.isArray(constraints.hidden_costs) ? constraints.hidden_costs : [];
+  for (const entry of [...hardLimits, ...hiddenCosts]) {
+    if (!entry || typeof entry !== 'object') continue;
+    addUrl((entry as Record<string, unknown>).source_url);
+  }
+
+  const faqs = Array.isArray(metadata.faqs) ? metadata.faqs : [];
+  for (const faq of faqs) {
+    if (!faq || typeof faq !== 'object') continue;
+    const faqRecord = faq as Record<string, unknown>;
+    const sourceType =
+      typeof faqRecord.answer_source_type === 'string'
+        ? faqRecord.answer_source_type.toLowerCase()
+        : '';
+    if (sourceType !== 'official') continue;
+    addUrl(faqRecord.answer_source_url);
+  }
+
+  return Array.from(new Set(urls));
+}
+
 export function evaluateStrictPublishGate(
   item: PublishableItemFields,
   review: PublishableReviewFields
@@ -159,6 +210,7 @@ export function evaluateStrictPublishGate(
   blockers.push(...readiness.reasons.map((reason) => `quality_gate:${reason}`));
 
   const sources = toSources(review.sources);
+  const fallbackEvidenceUrls = collectFallbackEvidenceUrls(item);
   const authoritativeDomains = new Set<string>();
   let hasOfficialPricingSource = false;
   let hasOfficialDocOrHelpSource = false;
@@ -176,11 +228,23 @@ export function evaluateStrictPublishGate(
     }
   }
 
+  for (const url of fallbackEvidenceUrls) {
+    const lowerUrl = url.toLowerCase();
+    const domain = extractDomainFromUrl(url);
+    if (domain) authoritativeDomains.add(domain);
+    if (OFFICIAL_PRICING_PATH.test(lowerUrl)) hasOfficialPricingSource = true;
+    if (OFFICIAL_DOC_PATH.test(lowerUrl)) hasOfficialDocOrHelpSource = true;
+  }
+
   const evidenceGrade: 'A' | 'B' | 'C' =
-    authoritativeDomains.size >= 2 &&
-    hasOfficialPricingSource &&
-    hasOfficialDocOrHelpSource &&
-    sources.length >= 3
+    ((authoritativeDomains.size >= 2 &&
+      hasOfficialPricingSource &&
+      hasOfficialDocOrHelpSource &&
+      sources.length >= 3) ||
+      (authoritativeDomains.size >= 1 &&
+        hasOfficialPricingSource &&
+        hasOfficialDocOrHelpSource &&
+        sources.length >= 5))
       ? 'A'
       : authoritativeDomains.size >= 1 && (hasOfficialPricingSource || hasOfficialDocOrHelpSource)
         ? 'B'
