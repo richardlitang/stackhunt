@@ -7,18 +7,21 @@ export type FactPackReadinessThresholds = {
   minCoverageRatio: number;
   minRequiredCoverageRatio: number;
   maxPricingAgeDays: number;
+  requireKnownPricingAge: boolean;
 };
 
 export const DEFAULT_FACT_PACK_READINESS_THRESHOLDS: FactPackReadinessThresholds = {
   minCoverageRatio: 0.5,
   minRequiredCoverageRatio: 0.8,
   maxPricingAgeDays: 120,
+  requireKnownPricingAge: true,
 };
 
 export const RELAXED_FACT_PACK_READINESS_THRESHOLDS: FactPackReadinessThresholds = {
   minCoverageRatio: 0.35,
   minRequiredCoverageRatio: 0.6,
   maxPricingAgeDays: 180,
+  requireKnownPricingAge: false,
 };
 
 export function resolveFactPackReadinessThresholds(): FactPackReadinessThresholds {
@@ -69,14 +72,13 @@ export function evaluateFactPackReadiness(
   const coverageRatio = readNumber(coverage.ratio);
   const requiredCoverageRatio = readNumber(coverage.required_ratio);
   const pricingFreshness = readPricingFreshness(quality);
+  const rawPricingAge = pricingFreshness?.age_days;
   const pricingAgeDaysRaw =
-    pricingFreshness && typeof pricingFreshness.age_days !== 'undefined'
-      ? Number(pricingFreshness.age_days)
+    pricingFreshness && typeof rawPricingAge !== 'undefined' && rawPricingAge !== null
+      ? Number(rawPricingAge)
       : null;
   const pricingAgeDays =
     pricingAgeDaysRaw === null || !Number.isFinite(pricingAgeDaysRaw) ? null : pricingAgeDaysRaw;
-  const pricingIsStale = Boolean(pricingFreshness?.is_stale);
-
   const reasons: string[] = [];
   if (coverageRatio < thresholds.minCoverageRatio) {
     reasons.push(
@@ -88,10 +90,11 @@ export function evaluateFactPackReadiness(
       `fact_pack_required_coverage_below_min:${requiredCoverageRatio.toFixed(2)}<${thresholds.minRequiredCoverageRatio.toFixed(2)}`
     );
   }
-  if (pricingIsStale) {
-    reasons.push('fact_pack_pricing_stale');
-  }
-  if (pricingAgeDays !== null && pricingAgeDays > thresholds.maxPricingAgeDays) {
+  if (pricingAgeDays === null) {
+    if (thresholds.requireKnownPricingAge) {
+      reasons.push('fact_pack_pricing_age_unknown');
+    }
+  } else if (pricingAgeDays > thresholds.maxPricingAgeDays) {
     reasons.push(
       `fact_pack_pricing_age_exceeds_max:${pricingAgeDays}>${thresholds.maxPricingAgeDays}`
     );

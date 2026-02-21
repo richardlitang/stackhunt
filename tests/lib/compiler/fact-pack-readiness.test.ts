@@ -48,7 +48,7 @@ describe('evaluateFactPackReadiness', () => {
     );
   });
 
-  it('fails when pricing freshness is stale', () => {
+  it('fails when pricing age exceeds max', () => {
     const result = evaluateFactPackReadiness({
       coverage: {
         ratio: 0.9,
@@ -63,10 +63,48 @@ describe('evaluateFactPackReadiness', () => {
     });
 
     expect(result.eligible).toBe(false);
-    expect(result.reasons).toContain('fact_pack_pricing_stale');
     expect(result.reasons).toContain(
       `fact_pack_pricing_age_exceeds_max:200>${DEFAULT_FACT_PACK_READINESS_THRESHOLDS.maxPricingAgeDays}`
     );
+  });
+
+  it('fails in default profile when pricing age is unknown', () => {
+    const result = evaluateFactPackReadiness({
+      coverage: {
+        ratio: 0.9,
+        required_ratio: 0.9,
+      },
+      freshness: {
+        pricing: {
+          age_days: null,
+          is_stale: true,
+        },
+      },
+    });
+
+    expect(result.eligible).toBe(false);
+    expect(result.reasons).toContain('fact_pack_pricing_age_unknown');
+  });
+
+  it('passes in relaxed profile when pricing age is unknown', () => {
+    const result = evaluateFactPackReadiness(
+      {
+        coverage: {
+          ratio: 0.9,
+          required_ratio: 0.9,
+        },
+        freshness: {
+          pricing: {
+            age_days: null,
+            is_stale: true,
+          },
+        },
+      },
+      RELAXED_FACT_PACK_READINESS_THRESHOLDS
+    );
+
+    expect(result.eligible).toBe(true);
+    expect(result.reasons).toEqual([]);
   });
 });
 
