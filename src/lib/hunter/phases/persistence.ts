@@ -3419,6 +3419,27 @@ async function createReview(
     );
   }
 
+  if (normalizedCons.length === 0) {
+    const derivedCons = buildDerivedConsFromConstraints(knowledgeCard, analysis.websiteUrl, sources);
+    const vettedDerived: ClaimWithSource[] = [];
+    for (const derived of derivedCons) {
+      const validation = validateNegativeClaim(derived, sources);
+      if (validation.isValid) vettedDerived.push(derived);
+    }
+    if (vettedDerived.length > 0) {
+      const deduped = Array.from(
+        new Map(
+          [...normalizedCons, ...vettedDerived].map((claim) => [
+            `${claim.text}|${claim.source_url || ''}`,
+            claim,
+          ])
+        ).values()
+      );
+      normalizedCons.push(...deduped.slice(normalizedCons.length));
+      deps.log(`[Guardrail] Added ${vettedDerived.length} derived review cons from constraints/pricing`);
+    }
+  }
+
   const conditionalDealbreakers = filterConditionalList(
     analysis.dealbreakers || [],
     'dealbreakers',
@@ -3501,6 +3522,7 @@ async function createReview(
     item_id: itemId, // V2: renamed from tool_id
     context_id: contextId,
     score: analysis.score,
+    quality: knowledgeCard?.meta?.data_quality || null,
     summary_markdown: derivedSummary,
     pros: normalizedPros,
     cons: normalizedCons,
