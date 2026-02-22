@@ -57,7 +57,7 @@ Community Signals
 
 Use anonymous signal capture:
 - Submit via `record_signal(...)` RPC.
-- Reuse IP hash + fingerprint hash logic (same as votes).
+- Reuse IP hash + fingerprint hash actor-identification logic (same anti-spam pattern used across public feedback endpoints).
 
 Anti‑spam:
 - Throttle by IP hash (rate limits table can be reused).

@@ -1,4 +1,4 @@
-# Data Model Snapshot (2026-02-06)
+# Data Model Snapshot (2026-02-06, historical)
 
 ## Tables (Public)
 - `categories` (10 fields)
@@ -13,7 +13,7 @@
 - `source_policy_review_queue` (9 fields)
 - `claims` (11 fields)
 - `affiliate_offers` (21 fields)
-- `votes` (7 fields)
+- `votes` (7 fields, legacy table at the time; now removed from live DB)
 - `market_state` (24 fields)
 - `price_history` (8 fields)
 - `click_events` (11 fields)

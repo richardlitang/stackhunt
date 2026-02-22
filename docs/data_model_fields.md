@@ -245,7 +245,7 @@ Fields (21):
 - `created_at`: string
 - `updated_at`: string
 
-## votes
+## votes (legacy / removed from live DB)
 Fields (7):
 - `id`: string
 - `review_id`: string
@@ -254,6 +254,9 @@ Fields (7):
 - `fingerprint_hash`: string | null
 - `turnstile_token`: string | null
 - `created_at`: string
+
+Note: Historical table used by the deprecated review vote pipeline. Active thumbs feedback now uses
+`user_signals` + `signal_aggregates` (`review_helpful` signal).
 
 ## market_state
 Fields (24):
