@@ -3034,31 +3034,66 @@ function buildDerivedConsFromConstraints(
     }
   })();
 
-  const fallbackPricingUrl = (() => {
-    if (!toolHost || sources.length === 0) return undefined;
-    const candidates = sources.filter((source) => {
-      const domain = source.domain?.toLowerCase();
-      const url = source.url?.toLowerCase() || '';
-      const _title = source.title?.toLowerCase() || '';
-      return domain === toolHost || domain?.endsWith(`.${toolHost}`) || url.includes(toolHost);
-    });
-    const pricingCandidate = candidates.find((source) => {
-      const url = source.url?.toLowerCase() || '';
-      const title = source.title?.toLowerCase() || '';
-      const snippet = source.snippet?.toLowerCase() || '';
-      return (
-        url.includes('pricing') ||
-        url.includes('plans') ||
-        title.includes('pricing') ||
-        title.includes('plans') ||
-        snippet.includes('pricing') ||
-        snippet.includes('plans')
-      );
-    });
-    return pricingCandidate?.url || candidates[0]?.url;
-  })();
+  const firstPartySources = sources.filter((source) => {
+    if (!toolHost) return true;
+    const domain = source.domain?.toLowerCase();
+    const url = source.url?.toLowerCase() || '';
+    return domain === toolHost || domain?.endsWith(`.${toolHost}`) || url.includes(toolHost);
+  });
 
-  const pricingSourceUrl = pricingUrl || fallbackPricingUrl;
+  const chooseSourceByKeywords = (keywords: string[], fallbackUrl?: string): string | undefined => {
+    let bestUrl: string | undefined = fallbackUrl;
+    let bestScore = 0;
+    for (const candidate of firstPartySources) {
+      const haystack = `${candidate.url} ${candidate.title} ${candidate.snippet}`.toLowerCase();
+      let score = 0;
+      for (const keyword of keywords) {
+        if (haystack.includes(keyword)) score += 1;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestUrl = candidate.url;
+      }
+    }
+    return bestUrl;
+  };
+
+  const fallbackFirstPartyUrl = firstPartySources[0]?.url;
+  const derivedSourceUrls: Record<string, string | undefined> = {
+    pricing: chooseSourceByKeywords(
+      ['pricing', 'plans', 'billing', 'subscription'],
+      fallbackFirstPartyUrl
+    ),
+    setup:
+      knowledgeCard?.setup_complexity?.setup_url ||
+      chooseSourceByKeywords(
+        ['setup', 'onboarding', 'getting-started', 'quickstart', 'install', 'guide', 'docs'],
+        fallbackFirstPartyUrl
+      ),
+    portability: chooseSourceByKeywords(
+      ['export', 'import', 'migration', 'portability', 'backup', 'api'],
+      fallbackFirstPartyUrl
+    ),
+    integrations: chooseSourceByKeywords(
+      ['integrations', 'marketplace', 'apps', 'api', 'developer', 'webhook'],
+      fallbackFirstPartyUrl
+    ),
+    security: chooseSourceByKeywords(
+      ['security', 'trust', 'compliance', 'privacy', 'soc2', 'gdpr', 'hipaa', 'dpa'],
+      fallbackFirstPartyUrl
+    ),
+    support: chooseSourceByKeywords(
+      ['support', 'help', 'docs', 'contact', 'sla'],
+      fallbackFirstPartyUrl
+    ),
+  };
+
+  const pricingSourceUrl = pricingUrl || derivedSourceUrls.pricing;
+  const setupSourceUrl = derivedSourceUrls.setup;
+  const portabilitySourceUrl = derivedSourceUrls.portability;
+  const integrationSourceUrl = derivedSourceUrls.integrations;
+  const securitySourceUrl = derivedSourceUrls.security;
+  const supportSourceUrl = derivedSourceUrls.support;
 
   const addDerivedCon = (text: string, sourceUrl?: string) => {
     if (!sourceUrl) return;
@@ -3087,6 +3122,82 @@ function buildDerivedConsFromConstraints(
       ? `Usage limits apply: ${limit.description}`
       : `Usage limits apply to ${limit.type}: ${limit.value} (${limit.consequence})`;
     addDerivedCon(description, sourceUrl);
+  }
+
+  const hiddenCosts = knowledgeCard?.constraints?.hidden_costs || [];
+  for (const hiddenCost of hiddenCosts.slice(0, 2)) {
+    if (!hiddenCost?.description) continue;
+    addDerivedCon(`Additional cost trigger: ${hiddenCost.description}`, pricingSourceUrl);
+  }
+
+  const setup = knowledgeCard?.setup_complexity;
+  if (setupSourceUrl && setup) {
+    if (setup.requires_developer === true) {
+      addDerivedCon('Setup may require developer involvement.', setupSourceUrl);
+    }
+    if (setup.requires_it_admin === true || setup.red_tape?.admin_required === true) {
+      addDerivedCon('Setup requires IT/admin privileges.', setupSourceUrl);
+    }
+    if (setup.implementation_partner_needed === true) {
+      addDerivedCon('Implementation partner support may be required for rollout.', setupSourceUrl);
+    }
+    if (setup.estimated_setup_time === 'days' || setup.estimated_setup_time === 'weeks') {
+      addDerivedCon(
+        `Initial setup typically takes ${setup.estimated_setup_time}, not minutes.`,
+        setupSourceUrl
+      );
+    }
+    if (setup.red_tape?.approval_required === true) {
+      addDerivedCon('Internal approval steps are required before rollout.', setupSourceUrl);
+    }
+  }
+
+  const portability = knowledgeCard?.smp_portability;
+  if (portabilitySourceUrl && portability) {
+    if (portability.has_data_export === false) {
+      addDerivedCon('No first-party data export path is documented.', portabilitySourceUrl);
+    }
+    if (portability.migration_difficulty === 'hard' || portability.migration_difficulty === 'locked') {
+      addDerivedCon(
+        `Migration-out difficulty is listed as ${portability.migration_difficulty}.`,
+        portabilitySourceUrl
+      );
+    }
+    if (
+      typeof portability.cancellation_notice_days === 'number' &&
+      portability.cancellation_notice_days > 0
+    ) {
+      addDerivedCon(
+        `Cancellation requires ${portability.cancellation_notice_days}-day notice.`,
+        portabilitySourceUrl
+      );
+    }
+  }
+
+  const integrations = knowledgeCard?.integrations;
+  if (integrationSourceUrl && integrations) {
+    if (integrations.has_api === false) {
+      addDerivedCon('No public API access is documented in first-party sources.', integrationSourceUrl);
+    }
+    if (integrations.has_webhooks === false) {
+      addDerivedCon('Webhook support is not documented in first-party sources.', integrationSourceUrl);
+    }
+  }
+
+  const security = knowledgeCard?.security;
+  if (securitySourceUrl && security?.sso_available === false) {
+    addDerivedCon('SSO is not listed as available for this product.', securitySourceUrl);
+  }
+
+  const support = knowledgeCard?.support;
+  if (supportSourceUrl && support) {
+    if (
+      support.has_live_chat === false &&
+      support.has_phone_support === false &&
+      support.has_dedicated_support === false
+    ) {
+      addDerivedCon('Real-time support channels are limited (no live chat/phone listed).', supportSourceUrl);
+    }
   }
 
   if (pricingSourceUrl) {
@@ -3126,7 +3237,16 @@ function buildDerivedConsFromConstraints(
     }
   }
 
-  return derived.slice(0, 2);
+  const deduped: ClaimWithSource[] = [];
+  const seen = new Set<string>();
+  for (const con of derived) {
+    const key = con.text.toLowerCase().trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(con);
+  }
+
+  return deduped.slice(0, 3);
 }
 
 /**
