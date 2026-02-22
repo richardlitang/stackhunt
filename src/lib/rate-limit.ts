@@ -25,7 +25,6 @@ export interface RateLimitResult {
 
 // Default limits for different endpoints
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
-  '/api/vote': { maxRequests: 30, windowSeconds: 60 }, // 30 votes/minute
   '/api/corrections': { maxRequests: 5, windowSeconds: 3600 }, // 5 corrections/hour
   '/api/admin/hunt': { maxRequests: 10, windowSeconds: 60 }, // 10 hunts/minute
   '/api/admin/hunt-context': { maxRequests: 5, windowSeconds: 60 }, // 5 context hunts/minute

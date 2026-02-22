@@ -190,7 +190,7 @@ Before going live, test:
 - Track aggregate update performance
 
 **Future Optimizations**:
-- Add Cloudflare Turnstile for bot protection (like VoteWidget)
+- Add Cloudflare Turnstile for bot protection on selected high-risk signal endpoints (if abuse increases)
 - Implement signal decay (older signals count less)
 - Add signal verification for verified payers
 

@@ -25,7 +25,7 @@ interface SignalOption {
 interface SignalDefinition {
   key: string;
   label: string;
-  category: 'pros' | 'cons' | 'gotcha' | 'vibe' | 'switch';
+  category: 'pros' | 'cons' | 'gotcha' | 'vibe' | 'switch' | 'experience';
   options?: SignalOption[];
 }
 
@@ -40,7 +40,7 @@ const PHASE_1_SIGNALS: SignalDefinition[] = [
   {
     key: 'review_helpful',
     label: 'Was this analysis helpful?',
-    category: 'pros',
+    category: 'experience',
     options: [
       { key: 'yes', label: 'Yes', icon: <Check className="h-4 w-4" /> },
       { key: 'partially', label: 'Partially', icon: <AlertTriangle className="h-4 w-4" /> },
@@ -117,7 +117,11 @@ export default function SignalReportWidget({
         let valueBool: boolean | null = null;
         let valueText: string | null = null;
 
-        if (signal?.category === 'pros' || signal?.category === 'cons') {
+        if (signalKey === 'review_helpful') {
+          if (optionKey === 'yes') valueBool = true;
+          else if (optionKey === 'no') valueBool = false;
+          else valueBool = null; // "partially" should not count as a negative vote
+        } else if (signal?.category === 'pros' || signal?.category === 'cons') {
           valueBool = optionKey === 'yes';
         } else if (signal?.category === 'gotcha') {
           valueText = optionKey;

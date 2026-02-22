@@ -70,9 +70,9 @@ Field -> occurrences
 - fit_score: 12
 - value_rating: 12
 - switching_from: 14
-- upvotes: 27
+- upvotes: 27 (legacy compatibility field; active thumbs feedback now stored in `user_signals`)
 - dealbreakers: 28
-- downvotes: 29
+- downvotes: 29 (legacy compatibility field; active thumbs feedback now stored in `user_signals`)
 - sentiment_tags: 33
 - display_order: 39
 - summary_markdown: 52
@@ -328,4 +328,3 @@ Field -> occurrences
 - updated_at: 138
 - domain: 263
 - status: 871
-

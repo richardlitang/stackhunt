@@ -116,14 +116,14 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
             </li>
           </ul>
 
-          <h3>C. Voting & Interaction</h3>
-          <p>To ensure the integrity of our voting system (upvotes/downvotes):</p>
+          <h3>C. Reader Feedback & Interaction</h3>
+          <p>To ensure the integrity of our anonymous reader feedback signals (e.g., helpful / not helpful):</p>
           <ul>
             <li>We collect a hashed browser fingerprint and a hashed IP address.</li>
             <li>
               <strong>Hashing:</strong> These identifiers are encrypted via a one-way hash before storage.
               We cannot reverse-engineer them to identify you personally. They exist solely to prevent
-              vote manipulation.
+              spam and manipulation of feedback signals.
             </li>
           </ul>
 
@@ -184,7 +184,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           <p>We use the limited data we collect to:</p>
           <ul>
             <li>Maintain the functionality and security of the website.</li>
-            <li>Prevent fraud and spam in our voting system.</li>
+            <li>Prevent fraud and spam in our anonymous reader feedback systems.</li>
             <li>Analyze aggregate trends to determine which tools to research next.</li>
           </ul>
 
@@ -193,7 +193,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
           <ul>
             <li><strong>Analytics:</strong> Retained for up to 12 months in aggregated form.</li>
             <li>
-              <strong>Vote Records:</strong> Hashed identifiers are retained indefinitely to maintain
+              <strong>Feedback Records:</strong> Hashed identifiers are retained indefinitely to maintain
               the integrity of the total vote counts.
             </li>
           </ul>

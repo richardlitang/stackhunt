@@ -80,7 +80,6 @@ const schemas = [
   ]),
 ];
 
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -292,10 +291,8 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
                 <span class="text-sm text-slate-500">Was this helpful?</span>
                 <VoteWidget
                   client:visible
-                  reviewId={firstReview.id}
-                  initialUpvotes={firstReview.upvotes}
-                  initialDownvotes={firstReview.downvotes}
-                  turnstileSiteKey={turnstileSiteKey}
+                  itemId={gear.id}
+                  storageKey={`review_helpful:${firstReview.id}`}
                 />
               </div>
               <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">

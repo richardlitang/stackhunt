@@ -121,7 +121,7 @@ flowchart TB
     P1[/best/[slug]]
     P2[/tool/[slug]]
     P3[/compare/[...slugs]]
-    P4[/api/vote]
+    P4[/api/signals/record]
     P5[/api/corrections]
     P6[/api/feedback]
   end
@@ -196,4 +196,3 @@ stateDiagram-v2
   Published --> Draft: re-hunt generates updated draft
   Rejected --> Draft: retry or new hunt
 ```
-

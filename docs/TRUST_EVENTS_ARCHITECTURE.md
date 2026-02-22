@@ -3,7 +3,7 @@
 Last updated: February 20, 2026
 
 This document summarizes StackHunt's public trust-event system:
-- review votes
+- thumbs feedback (review helpfulness)
 - community signals
 - price verification
 - corrections and feedback
@@ -13,7 +13,6 @@ It covers the data path from UI to moderation outcomes, anti-abuse controls, and
 ## 1) System Boundaries
 
 ### Public entry points
-- `POST /api/vote`
 - `POST /api/signals/record`
 - `POST /api/verify-price`
 - `POST /api/corrections`
@@ -25,7 +24,6 @@ It covers the data path from UI to moderation outcomes, anti-abuse controls, and
 - Cron and scheduled quality checks
 
 ### Core DB entities
-- `votes`
 - `reviews`
 - `user_signals`
 - `signal_aggregates`
@@ -40,24 +38,20 @@ It covers the data path from UI to moderation outcomes, anti-abuse controls, and
 flowchart LR
   U[Public User] --> UI[Widgets / Forms]
 
-  UI --> VOTE[POST /api/vote]
   UI --> SIGNAL[POST /api/signals/record]
   UI --> PRICE[POST /api/verify-price]
   UI --> CORR[POST /api/corrections]
   UI --> FEED[POST /api/feedback]
 
-  VOTE --> RL[Rate Limit + Validation]
   SIGNAL --> RL
   PRICE --> RL
   CORR --> RL
   FEED --> RL
 
-  RL --> RPC1[cast_vote RPC]
   RL --> RPC2[record_signal RPC]
   RL --> RPC3[record_price_verification RPC]
   RL --> DBW[(DB writes)]
 
-  RPC1 --> DBW
   RPC2 --> AGG[signal_aggregates recompute]
   RPC3 --> Q[queue price_only hunt if inaccurate]
 
@@ -70,20 +64,22 @@ flowchart LR
 
 ## 3) Per-Path Behavior
 
-## 3.1 Votes (review-level)
+## 3.1 Thumbs Feedback (review helpfulness)
 - UI: `src/components/VoteWidget.tsx`
-- API: `src/pages/api/vote.ts`
-- RPC: `cast_vote(uuid, smallint, text, text, text)`
-- Storage: `votes`; rollups on `reviews.upvotes/downvotes`
+- API: `src/pages/api/signals/record.ts`
+- RPC: `record_signal(uuid, text, text, boolean, text, numeric, text, text, text, text)`
+- Signal key: `review_helpful`
+- Storage: `user_signals`
+- Read model: `signal_aggregates` (`yes` / `no` options)
 
 ### Abuse controls
-- per-IP hash rate limit via `check_rate_limit`
-- Turnstile verification path (required in production by API policy)
+- endpoint-level rate limit
+- DB-atomic upsert semantics (one actor per `(item_id, signal_id)`)
 - hashed identifiers (privacy-preserving)
 
 ### Moderation impact
-- vote totals influence trust signals on review cards
-- low-vote/downvote heuristics can feed quality review workflows
+- thumbs feedback contributes to trust/reader feedback signals through structured aggregates
+- can be analyzed alongside tool-level community signals in a single pipeline
 
 ## 3.2 Community Signals (tool-level structured feedback)
 - UI: `src/components/SignalReportWidget.tsx`
@@ -178,14 +174,14 @@ Purpose:
 - `user_feedback` path should be either fully integrated into moderation UX or merged with corrections/events pipeline.
 
 2. Turnstile coverage:
-- enforced on vote path; evaluate consistency across other public write endpoints.
+- no longer used on the thumbs feedback path (structured signals); evaluate whether selected public write endpoints need added challenge coverage based on observed abuse.
 
 3. Vote migration deployment status:
-- hardening migration exists (`20260219123000_harden_votes_actor_key_atomic_cast_vote.sql`) but requires `db reset/push` in each environment before runtime behavior changes.
+- legacy vote path has been deprecated in favor of structured `review_helpful` signals; historical vote hardening migrations remain in migration history only.
 
 ## 8) Recommended Evolution Path
 
-1. Fix vote semantics + move to DB-atomic vote upsert/toggle.
+1. Expand structured feedback semantics (including optional unset/toggle behavior) without reintroducing a parallel vote pipeline.
 2. Unify trust-event reason codes and risk display in admin.
 3. Normalize feedback/corrections into one moderation queue surface.
 4. Refactor toward a formal "trust events layer" after behavior stabilizes.

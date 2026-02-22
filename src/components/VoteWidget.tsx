@@ -1,7 +1,6 @@
 /**
- * VoteWidget - Client-side React component for voting
- * Uses Cloudflare Turnstile for bot protection
- * Optimistic UI updates for instant feedback
+ * VoteWidget - Thumbs UI backed by structured signals
+ * Records `review_helpful` via /api/signals/record (shared feedback pipeline)
  */
 
 import { useState, useCallback, useEffect } from 'react';
@@ -10,167 +9,133 @@ import { Button } from '@/components/ui/button';
 import { cn, getBrowserFingerprint } from '@/lib/utils';
 
 interface VoteWidgetProps {
-  reviewId: string;
-  initialUpvotes: number;
-  initialDownvotes: number;
-  turnstileSiteKey: string;
+  itemId: string;
+  storageKey?: string;
+  signalKey?: string;
 }
 
 type VoteType = 'up' | 'down' | null;
 
+const DEFAULT_SIGNAL_KEY = 'review_helpful';
+
 export default function VoteWidget({
-  reviewId,
-  initialUpvotes,
-  initialDownvotes,
-  turnstileSiteKey,
+  itemId,
+  storageKey,
+  signalKey = DEFAULT_SIGNAL_KEY,
 }: VoteWidgetProps) {
-  const [upvotes, setUpvotes] = useState(initialUpvotes);
-  const [downvotes, setDownvotes] = useState(initialDownvotes);
+  const [upvotes, setUpvotes] = useState(0);
+  const [downvotes, setDownvotes] = useState(0);
   const [userVote, setUserVote] = useState<VoteType>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileReady, setTurnstileReady] = useState(false);
 
-  // Load Turnstile script
+  const persistedVoteKey = storageKey || `signal-vote-${signalKey}-${itemId}`;
+
+  // Sync local state from persisted selection
   useEffect(() => {
-    // Check if already loaded
-    if (window.turnstile) {
-      setTurnstileReady(true);
-      return;
+    try {
+      const stored = localStorage.getItem(persistedVoteKey);
+      if (stored === 'up' || stored === 'down') {
+        setUserVote(stored);
+      }
+    } catch (error) {
+      console.warn('Unable to read feedback vote from localStorage:', error);
+    }
+  }, [persistedVoteKey]);
+
+  // Hydrate aggregate counts from the structured signals API.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAggregates() {
+      try {
+        const response = await fetch(`/api/signals/aggregates?itemId=${encodeURIComponent(itemId)}`);
+        const result = await response.json();
+        if (!response.ok || !result.success || cancelled) return;
+
+        const rows = Array.isArray(result.aggregates) ? result.aggregates : [];
+        let yesCount = 0;
+        let noCount = 0;
+
+        for (const row of rows) {
+          if (row?.signal_key !== signalKey) continue;
+          if (row?.option_key === 'yes') yesCount = Number(row.count_total || 0);
+          if (row?.option_key === 'no') noCount = Number(row.count_total || 0);
+        }
+
+        setUpvotes(yesCount);
+        setDownvotes(noCount);
+      } catch (error) {
+        // Non-critical; keep initial counts and allow writes.
+        console.warn('Unable to load signal aggregates for VoteWidget:', error);
+      }
     }
 
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
-    script.async = true;
-
-    (window as unknown as { onTurnstileLoad: () => void }).onTurnstileLoad = () => {
-      setTurnstileReady(true);
-    };
-
-    document.head.appendChild(script);
-
+    loadAggregates();
     return () => {
-      document.head.removeChild(script);
+      cancelled = true;
     };
-  }, []);
-
-  // Render invisible Turnstile when ready
-  useEffect(() => {
-    if (!turnstileReady || !window.turnstile) return;
-
-    const container = document.getElementById(`turnstile-${reviewId}`);
-    if (!container) return;
-
-    window.turnstile.render(container, {
-      sitekey: turnstileSiteKey,
-      callback: (token: string) => {
-        setTurnstileToken(token);
-      },
-      'refresh-expired': 'auto',
-      size: 'invisible',
-    });
-  }, [turnstileReady, reviewId, turnstileSiteKey]);
-
-  // Check for existing vote in localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem(`vote-${reviewId}`);
-    if (stored === 'up' || stored === 'down') {
-      setUserVote(stored);
-    }
-  }, [reviewId]);
+  }, [itemId, signalKey]);
 
   const handleVote = useCallback(
-    async (voteType: VoteType) => {
+    async (voteType: Exclude<VoteType, null>) => {
       if (isLoading) return;
-
-      // Get turnstile token
-      let token = turnstileToken;
-      if (!token && window.turnstile) {
-        // Try to get a new token
-        try {
-          token = await new Promise((resolve, reject) => {
-            const container = document.getElementById(`turnstile-${reviewId}`);
-            if (!container) return reject('No container');
-
-            window.turnstile.reset(container);
-            // Token will come through callback, wait a bit
-            setTimeout(() => {
-              if (turnstileToken) resolve(turnstileToken);
-              else reject('No token');
-            }, 2000);
-          });
-        } catch {
-          // Continue without token for now
-        }
-      }
+      if (voteType === userVote) return; // Structured signals currently support set/switch, not remove.
 
       const previousVote = userVote;
       const previousUpvotes = upvotes;
       const previousDownvotes = downvotes;
 
-      // Optimistic update
-      if (voteType === userVote) {
-        // Removing vote
-        setUserVote(null);
-        if (voteType === 'up') setUpvotes((v) => v - 1);
-        else setDownvotes((v) => v - 1);
-      } else {
-        // Adding/changing vote
-        if (previousVote === 'up') setUpvotes((v) => v - 1);
-        if (previousVote === 'down') setDownvotes((v) => v - 1);
-
-        setUserVote(voteType);
-        if (voteType === 'up') setUpvotes((v) => v + 1);
-        else if (voteType === 'down') setDownvotes((v) => v + 1);
-      }
-
+      // Optimistic set/switch
+      if (previousVote === 'up') setUpvotes((v) => Math.max(0, v - 1));
+      if (previousVote === 'down') setDownvotes((v) => Math.max(0, v - 1));
+      if (voteType === 'up') setUpvotes((v) => v + 1);
+      if (voteType === 'down') setDownvotes((v) => v + 1);
+      setUserVote(voteType);
       setIsLoading(true);
 
       try {
-        const response = await fetch('/api/vote', {
+        const optionKey = voteType === 'up' ? 'yes' : 'no';
+
+        const response = await fetch('/api/signals/record', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            reviewId,
-            voteType: voteType === userVote ? 0 : voteType === 'up' ? 1 : -1,
+            itemId,
+            signalKey,
+            optionKey,
+            valueBool: voteType === 'up',
             fingerprintHash: getBrowserFingerprint(),
-            turnstileToken: token,
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+            sourcePage: typeof window !== 'undefined' ? window.location.pathname : null,
           }),
         });
 
         const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'Vote failed');
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Failed to record feedback');
         }
 
-        // Store vote in localStorage
-        if (voteType === userVote) {
-          localStorage.removeItem(`vote-${reviewId}`);
-        } else if (voteType) {
-          localStorage.setItem(`vote-${reviewId}`, voteType);
+        try {
+          localStorage.setItem(persistedVoteKey, voteType);
+        } catch (error) {
+          console.warn('Unable to write feedback vote to localStorage:', error);
         }
       } catch (error) {
-        // Revert optimistic update
         setUserVote(previousVote);
         setUpvotes(previousUpvotes);
         setDownvotes(previousDownvotes);
-        console.error('Vote error:', error);
+        console.error('VoteWidget feedback error:', error);
       } finally {
         setIsLoading(false);
       }
     },
-    [isLoading, userVote, upvotes, downvotes, reviewId, turnstileToken]
+    [isLoading, userVote, upvotes, downvotes, itemId, signalKey, persistedVoteKey]
   );
 
   const netScore = upvotes - downvotes;
 
   return (
     <div className="flex items-center gap-2">
-      {/* Hidden Turnstile container */}
-      <div id={`turnstile-${reviewId}`} className="hidden" />
-
-      {/* Upvote button */}
       <Button
         variant="ghost"
         size="sm"
@@ -182,13 +147,12 @@ export default function VoteWidget({
             ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-100'
             : 'bg-slate-100 text-slate-600 hover:bg-green-50 hover:text-green-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-green-950'
         )}
-        aria-label="Upvote"
+        aria-label="Helpful"
       >
         <ThumbsUp className={cn('h-4 w-4', userVote === 'up' && 'fill-current')} />
         <span>{upvotes}</span>
       </Button>
 
-      {/* Score - hide when 0 to reduce clutter */}
       {netScore !== 0 && (
         <span
           className={cn(
@@ -201,7 +165,6 @@ export default function VoteWidget({
         </span>
       )}
 
-      {/* Downvote button */}
       <Button
         variant="ghost"
         size="sm"
@@ -213,22 +176,11 @@ export default function VoteWidget({
             ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-100'
             : 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-red-950'
         )}
-        aria-label="Downvote"
+        aria-label="Not helpful"
       >
         <ThumbsDown className={cn('h-4 w-4', userVote === 'down' && 'fill-current')} />
         <span>{downvotes}</span>
       </Button>
     </div>
   );
-}
-
-// Type declaration for Turnstile
-declare global {
-  interface Window {
-    turnstile: {
-      render: (container: HTMLElement, options: unknown) => string;
-      reset: (container: HTMLElement) => void;
-      remove: (widgetId: string) => void;
-    };
-  }
 }

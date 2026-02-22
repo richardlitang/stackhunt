@@ -27,6 +27,7 @@ Context: Vote handling still had legacy behavior (`voteType=0` no-op), weaker de
 Decision: Add migration-backed vote hardening: `votes.actor_key`, unique `(review_id, actor_key)`, atomic `cast_vote` add/switch/remove semantics, and `reconcile_review_vote_counts()` for deterministic counter repair.
 Why: Votes are high-volume public writes and require DB-level correctness guarantees, not API-only assumptions.
 Impact: Vote remove/switch semantics are now explicit, dedupe is actor-key based, and periodic counter reconciliation is available via `qa:reconcile-votes`.
+Status (2026-02-22): Superseded for active thumbs feedback. Public thumbs feedback now writes structured `review_helpful` signals via `record_signal`; legacy `votes`/`cast_vote` were removed from the live DB. This entry remains as migration-history context.
 
 2026-02-19 - Canonical Price Verification RPC + Deterministic Abuse Risk Scoring
 Context: `/api/verify-price` invoked `record_price_verification`, but the function definition was missing from migrations, creating drift risk and no durable moderation signal quality.

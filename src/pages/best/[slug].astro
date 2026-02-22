@@ -409,7 +409,6 @@ const schemas = [
   ]),
 ];
 
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 const formatDate = (value?: string | null): string | null => {
   if (!value) return null;
   const parsed = new Date(value);
@@ -843,10 +842,8 @@ function isSparseSummary(summary: unknown): boolean {
                   <div class="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
                     <VoteWidget
                       client:visible
-                      reviewId={review.id}
-                      initialUpvotes={review.upvotes}
-                      initialDownvotes={review.downvotes}
-                      turnstileSiteKey={turnstileSiteKey}
+                      itemId={review.item.id}
+                      storageKey={`review_helpful:${review.id}`}
                     />
 
                     <a

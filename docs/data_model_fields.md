@@ -133,8 +133,8 @@ Fields (18):
 - `pros`: string[]
 - `cons`: string[]
 - `sentiment_tags`: string[]
-- `upvotes`: number
-- `downvotes`: number
+- `upvotes`: number (legacy compatibility field; thumbs feedback now uses structured signals)
+- `downvotes`: number (legacy compatibility field; thumbs feedback now uses structured signals)
 - `display_order`: number
 - `fit_score`: number | null
 - `value_rating`: number | null
@@ -371,4 +371,3 @@ Fields (22):
 - `curated_at`: string | null
 - `created_at`: string
 - `updated_at`: string
-
