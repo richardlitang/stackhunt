@@ -18,6 +18,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       valueBool,
       valueText,
       valueNum,
+      unset,
       fingerprintHash,
       ipHash: _clientIpHash,
       userAgent,
@@ -52,19 +53,30 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       );
     }
 
-    // Call record_signal RPC (secure upsert + aggregate recompute)
-    const { data, error } = await supabase.rpc('record_signal', {
-      p_item_id: itemId,
-      p_signal_key: signalKey,
-      p_option_key: optionKey || null,
-      p_value_bool: valueBool !== undefined ? valueBool : null,
-      p_value_text: valueText || null,
-      p_value_num: valueNum || null,
-      p_ip_hash: ipHash,
-      p_fingerprint_hash: fingerprintHash || null,
-      p_user_agent: userAgent || null,
-      p_source_page: sourcePage || null,
-    });
+    const rpcName = unset === true ? 'unset_signal' : 'record_signal';
+    const rpcPayload =
+      unset === true
+        ? {
+            p_item_id: itemId,
+            p_signal_key: signalKey,
+            p_ip_hash: ipHash,
+            p_fingerprint_hash: fingerprintHash || null,
+          }
+        : {
+            p_item_id: itemId,
+            p_signal_key: signalKey,
+            p_option_key: optionKey || null,
+            p_value_bool: valueBool !== undefined ? valueBool : null,
+            p_value_text: valueText || null,
+            p_value_num: valueNum || null,
+            p_ip_hash: ipHash,
+            p_fingerprint_hash: fingerprintHash || null,
+            p_user_agent: userAgent || null,
+            p_source_page: sourcePage || null,
+          };
+
+    // Call structured signal RPC (secure upsert/delete + aggregate recompute)
+    const { data, error } = await supabase.rpc(rpcName, rpcPayload);
 
     if (error) {
       console.error('Failed to record signal:', error.code || error.message);

@@ -79,18 +79,18 @@ export default function VoteWidget({
   const handleVote = useCallback(
     async (voteType: Exclude<VoteType, null>) => {
       if (isLoading) return;
-      if (voteType === userVote) return; // Structured signals currently support set/switch, not remove.
 
       const previousVote = userVote;
       const previousUpvotes = upvotes;
       const previousDownvotes = downvotes;
+      const isUnset = voteType === userVote;
 
-      // Optimistic set/switch
+      // Optimistic remove/set/switch
       if (previousVote === 'up') setUpvotes((v) => Math.max(0, v - 1));
       if (previousVote === 'down') setDownvotes((v) => Math.max(0, v - 1));
-      if (voteType === 'up') setUpvotes((v) => v + 1);
-      if (voteType === 'down') setDownvotes((v) => v + 1);
-      setUserVote(voteType);
+      if (!isUnset && voteType === 'up') setUpvotes((v) => v + 1);
+      if (!isUnset && voteType === 'down') setDownvotes((v) => v + 1);
+      setUserVote(isUnset ? null : voteType);
       setIsLoading(true);
 
       try {
@@ -102,8 +102,9 @@ export default function VoteWidget({
           body: JSON.stringify({
             itemId,
             signalKey,
-            optionKey,
-            valueBool: voteType === 'up',
+            optionKey: isUnset ? null : optionKey,
+            valueBool: isUnset ? null : voteType === 'up',
+            unset: isUnset,
             fingerprintHash: getBrowserFingerprint(),
             userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
             sourcePage: typeof window !== 'undefined' ? window.location.pathname : null,
@@ -116,7 +117,8 @@ export default function VoteWidget({
         }
 
         try {
-          localStorage.setItem(persistedVoteKey, voteType);
+          if (isUnset) localStorage.removeItem(persistedVoteKey);
+          else localStorage.setItem(persistedVoteKey, voteType);
         } catch (error) {
           console.warn('Unable to write feedback vote to localStorage:', error);
         }
