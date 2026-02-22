@@ -33,6 +33,7 @@
     "qa:autopilot:cron": "npm run qa:autopilot -- --recompute-limit=400 --gates-limit=80 --max-publish=10 --refresh-limit=25 --refresh-priority=90 --worker-batch=3",
     "qa:reconcile-votes": "npx tsx scripts/reconcile-vote-counts.ts",
     "qa:pricing-fallback": "npx tsx scripts/report-pricing-fallback.ts",
+    "qa:negative-signals": "node --import tsx scripts/report-negative-signal-coverage.ts",
     "qa:queue-pricing-fallback-rehunt": "npx tsx scripts/queue-pricing-fallback-rehunt.ts",
     "qa:queue-pricing-fallback-rehunt:apply": "npx tsx scripts/queue-pricing-fallback-rehunt.ts --apply",
     "qa:queue-blocked-rehunt": "npx tsx scripts/queue-blocked-rehunt.ts",

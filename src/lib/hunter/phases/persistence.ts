@@ -1497,7 +1497,7 @@ export async function executePersistencePhase(
     }
   }
 
-  if (validCons.length === 0) {
+  if (validCons.length === 0 || validCons.length < 3) {
     const derivedCons = buildDerivedConsFromConstraints(
       knowledgeCard,
       analysis.websiteUrl,
@@ -1507,12 +1507,30 @@ export async function executePersistencePhase(
       (con) => validateNegativeClaim(con, sourcesList).isValid
     );
     if (vettedDerived.length > 0) {
-      validCons = vettedDerived;
+      const existing = new Set(
+        validCons.map((con) =>
+          stripTerminalPunctuation(sanitizeNarrativeClaimText(con.text) || con.text).toLowerCase()
+        )
+      );
+      const uniqueDerived = vettedDerived.filter((con) => {
+        const key = stripTerminalPunctuation(sanitizeNarrativeClaimText(con.text) || con.text).toLowerCase();
+        return key.length > 0 && !existing.has(key);
+      });
+      const cap = Math.max(0, 3 - validCons.length);
+      const prioritized = [...uniqueDerived].sort((a, b) => {
+        const aPricing = isPricingBiasedDerivedCon(a.text) ? 1 : 0;
+        const bPricing = isPricingBiasedDerivedCon(b.text) ? 1 : 0;
+        return aPricing - bPricing;
+      });
+      const additions = prioritized.slice(0, cap);
+      validCons = [...validCons, ...additions];
       if (normalizedPros.length > 0) {
         specs.pros = normalizedPros;
       }
       specs.cons = validCons;
-      deps.log(`[Guardrail] Added ${vettedDerived.length} derived cons from constraints/pricing`);
+      deps.log(
+        `[Guardrail] Added ${additions.length} derived cons (from ${vettedDerived.length} vetted candidates)`
+      );
     } else if (derivedCons.length > 0) {
       deps.log('[Guardrail] Derived cons were filtered due to insufficient corroboration');
     }
@@ -3249,6 +3267,19 @@ function buildDerivedConsFromConstraints(
   return deduped.slice(0, 3);
 }
 
+function isPricingBiasedDerivedCon(text: string): boolean {
+  return (
+    /^Usage limits apply:/i.test(text) ||
+    /^Additional cost trigger:/i.test(text) ||
+    /^Minimum seat requirement:/i.test(text) ||
+    /^Implementation fee required/i.test(text) ||
+    /^Annual billing only$/i.test(text) ||
+    /^Pricing requires contacting sales$/i.test(text) ||
+    /^No self-serve free tier/i.test(text) ||
+    /^No self-serve free trial/i.test(text)
+  );
+}
+
 /**
  * Negative Sentiment Guardrail
  *
@@ -3296,7 +3327,7 @@ function validateNegativeClaim(
   }
   // Only apply guardrail to negative opinions from community sources
   // Facts from official sources don't need this check
-  if (claim.claim_type === 'fact' && claim.source_type === 'official') {
+  if (claim.claim_type === 'fact' && AUTHORITATIVE_SOURCE_TYPES.has(claim.source_type)) {
     return { isValid: true, corroboratingSourceCount: 1 };
   }
 
