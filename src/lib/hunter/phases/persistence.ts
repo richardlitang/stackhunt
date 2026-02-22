@@ -1528,9 +1528,17 @@ export async function executePersistencePhase(
         specs.pros = normalizedPros;
       }
       specs.cons = validCons;
+      const additionsNonPricingCount = additions.filter(
+        (claim) => !isPricingBiasedDerivedCon(claim.text)
+      ).length;
       deps.log(
         `[Guardrail] Added ${additions.length} derived cons (from ${vettedDerived.length} vetted candidates)`
       );
+      if (additions.length > 0 && additionsNonPricingCount === 0) {
+        deps.log(
+          '[Guardrail] Derived fallback remained pricing-only (no vetted non-pricing negatives found).'
+        );
+      }
     } else if (derivedCons.length > 0) {
       deps.log('[Guardrail] Derived cons were filtered due to insufficient corroboration');
     }
