@@ -71,10 +71,19 @@ const meta = {
 
         <!-- Search Bar -->
         <div class="mx-auto mt-8 max-w-md">
-          <div class="relative">
+          <form action="/tools" method="get" class="relative" id="home-search-form">
             <input
+              id="home-tools-search"
               type="text"
-              placeholder="Search tools or categories..."
+              name="q"
+              autocomplete="off"
+              aria-label="Search tools by name"
+              aria-autocomplete="list"
+              aria-controls="home-tool-suggestions"
+              aria-expanded="false"
+              minlength="2"
+              maxlength="64"
+              placeholder="Search tools by name..."
               class="w-full rounded-lg border border-zinc-800 bg-zinc-900/50 py-3 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-500 backdrop-blur-sm transition focus:border-indigo-500 focus:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
             />
             <svg
@@ -94,7 +103,22 @@ const meta = {
             >
               ⌘K
             </kbd>
-          </div>
+
+            <div
+              id="home-tool-suggestions"
+              role="listbox"
+              aria-label="Tool suggestions"
+              class="absolute left-0 right-0 top-full z-20 mt-2 hidden overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/95 shadow-2xl backdrop-blur-sm"
+            >
+              <div id="home-tool-suggestions-list" class="max-h-80 overflow-y-auto"></div>
+              <div
+                id="home-tool-suggestions-footer"
+                class="border-t border-zinc-800 px-3 py-2 text-xs text-zinc-500"
+              >
+                Press Enter to search all tools
+              </div>
+            </div>
+          </form>
 
           <!-- Quick Links -->
           <div class="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1">
@@ -243,6 +267,221 @@ const meta = {
 </style>
 
 <script is:inline>
+  // Lightweight client-side suggestions for homepage search
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('home-tools-search');
+    const form = document.getElementById('home-search-form');
+    const dropdown = document.getElementById('home-tool-suggestions');
+    const list = document.getElementById('home-tool-suggestions-list');
+    if (
+      !(input instanceof HTMLInputElement) ||
+      !(form instanceof HTMLFormElement) ||
+      !(dropdown instanceof HTMLDivElement) ||
+      !(list instanceof HTMLDivElement)
+    ) {
+      return;
+    }
+
+    let toolIndex = null;
+    let loadPromise = null;
+    let activeIndex = -1;
+    let visibleMatches = [];
+
+    const loadToolIndex = async () => {
+      if (toolIndex) return toolIndex;
+      if (loadPromise) return loadPromise;
+
+      loadPromise = fetch('/api/search/tool-index', { headers: { Accept: 'application/json' } })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((payload) => {
+          toolIndex = Array.isArray(payload?.items) ? payload.items : [];
+          return toolIndex;
+        })
+        .catch(() => {
+          toolIndex = [];
+          return toolIndex;
+        })
+        .finally(() => {
+          loadPromise = null;
+        });
+
+      return loadPromise;
+    };
+
+    const closeDropdown = () => {
+      dropdown.classList.add('hidden');
+      input.setAttribute('aria-expanded', 'false');
+      activeIndex = -1;
+    };
+
+    const openDropdown = () => {
+      dropdown.classList.remove('hidden');
+      input.setAttribute('aria-expanded', 'true');
+    };
+
+    const updateActiveState = () => {
+      const buttons = list.querySelectorAll('[data-suggestion-index]');
+      buttons.forEach((el, index) => {
+        const isActive = index === activeIndex;
+        el.classList.toggle('bg-zinc-800/70', isActive);
+        el.classList.toggle('border-zinc-700', isActive);
+        el.classList.toggle('border-zinc-900/0', !isActive);
+        if (isActive) {
+          el.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    };
+
+    const renderSuggestions = (query) => {
+      if (!Array.isArray(toolIndex) || !query || query.length < 2) {
+        visibleMatches = [];
+        list.replaceChildren();
+        closeDropdown();
+        return;
+      }
+
+      const q = query.trim().toLowerCase();
+      if (q.length < 2) {
+        visibleMatches = [];
+        list.replaceChildren();
+        closeDropdown();
+        return;
+      }
+
+      const startsWith = [];
+      const contains = [];
+
+      for (const tool of toolIndex) {
+        const name = String(tool?.name || '');
+        const lower = name.toLowerCase();
+        if (!lower.includes(q)) continue;
+        if (lower.startsWith(q)) startsWith.push(tool);
+        else contains.push(tool);
+        if (startsWith.length + contains.length >= 12) break;
+      }
+
+      const matches = startsWith.concat(contains).slice(0, 8);
+      visibleMatches = matches;
+      activeIndex = -1;
+
+      if (matches.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'px-3 py-3 text-sm text-zinc-400';
+        empty.textContent = 'No quick matches. Press Enter to search all tools.';
+        list.replaceChildren(empty);
+        openDropdown();
+        return;
+      }
+
+      const rows = matches.map((tool, index) => {
+        const row = document.createElement('a');
+        row.href = `/tool/${encodeURIComponent(tool.slug)}`;
+        row.className =
+          'block border-b border-zinc-900/60 px-3 py-2.5 transition hover:bg-zinc-800/60 focus:bg-zinc-800/60 focus:outline-none';
+        row.dataset.suggestionIndex = String(index);
+
+        const top = document.createElement('div');
+        top.className = 'flex items-center justify-between gap-3';
+
+        const nameWrap = document.createElement('div');
+        nameWrap.className = 'min-w-0';
+
+        const name = document.createElement('div');
+        name.className = 'truncate text-sm font-medium text-zinc-100';
+        name.textContent = tool.name;
+
+        const path = document.createElement('div');
+        path.className = 'truncate text-xs text-zinc-500';
+        path.textContent = `/tool/${tool.slug}`;
+
+        nameWrap.append(name, path);
+
+        const badge = document.createElement('div');
+        badge.className =
+          'shrink-0 rounded border border-zinc-800 bg-zinc-900/80 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400';
+        badge.textContent = 'Tool';
+
+        top.append(nameWrap, badge);
+        row.append(top);
+
+        const rawDescription = typeof tool.short_description === 'string' ? tool.short_description : '';
+        if (rawDescription.trim()) {
+          const desc = document.createElement('div');
+          desc.className = 'mt-1 line-clamp-2 text-xs text-zinc-400';
+          desc.textContent =
+            rawDescription.length > 120 ? `${rawDescription.slice(0, 117).trim()}...` : rawDescription;
+          row.append(desc);
+        }
+
+        row.addEventListener('mouseenter', () => {
+          activeIndex = index;
+          updateActiveState();
+        });
+
+        return row;
+      });
+
+      if (rows.length > 0) {
+        const last = rows[rows.length - 1];
+        last.classList.remove('border-b');
+      }
+
+      list.replaceChildren(...rows);
+      openDropdown();
+    };
+
+    input.addEventListener('focus', () => {
+      void loadToolIndex();
+      if (input.value.trim().length >= 2) {
+        renderSuggestions(input.value);
+      }
+    });
+
+    input.addEventListener('input', async () => {
+      if (!toolIndex) {
+        await loadToolIndex();
+      }
+      renderSuggestions(input.value);
+    });
+
+    input.addEventListener('keydown', (event) => {
+      if (dropdown.classList.contains('hidden')) return;
+
+      if (event.key === 'ArrowDown') {
+        if (visibleMatches.length === 0) return;
+        event.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, visibleMatches.length - 1);
+        updateActiveState();
+        return;
+      }
+
+      if (event.key === 'ArrowUp') {
+        if (visibleMatches.length === 0) return;
+        event.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        updateActiveState();
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        closeDropdown();
+        return;
+      }
+
+      if (event.key === 'Enter' && activeIndex >= 0 && visibleMatches[activeIndex]) {
+        event.preventDefault();
+        window.location.href = `/tool/${encodeURIComponent(visibleMatches[activeIndex].slug)}`;
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!(event.target instanceof Node)) return;
+      if (!form.contains(event.target)) {
+        closeDropdown();
+      }
+    });
+  });
+
   // Show more tools button
   document.addEventListener('DOMContentLoaded', () => {
     const showMoreBtn = document.getElementById('show-more-tools');
