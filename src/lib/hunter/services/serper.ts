@@ -33,6 +33,18 @@ const RESTRICTED_FALLBACK_DOMAINS = [
   'getapp.com',
   'softwareadvice.com',
 ];
+const COMMUNITY_SNIPPET_SIGNAL_DOMAINS = [
+  'reddit.com',
+  'news.ycombinator.com',
+  'stackoverflow.com',
+  'stackexchange.com',
+  'quora.com',
+  'indiehackers.com',
+  'lobste.rs',
+  'slashdot.org',
+  'dev.to',
+  'medium.com',
+];
 
 type QueryType =
   | 'reviews'
@@ -830,16 +842,57 @@ export class SerperService {
     blockReason?: string;
   } | null> {
     if (!this.policyProvider) {
+      const communityFallback = inferCommunitySnippetGate(url);
+      if (communityFallback) {
+        return {
+          gate: communityFallback,
+          isDeepScrapeAllowed: false,
+          blockReason: 'community_snippet_only_guardrail',
+        };
+      }
       return { gate: null, isDeepScrapeAllowed: false, blockReason: 'policy_unavailable' };
     }
 
     const gate = await this.policyProvider.getPolicyGate(url);
     if (!gate) {
+      const communityFallback = inferCommunitySnippetGate(url);
+      if (communityFallback) {
+        return {
+          gate: communityFallback,
+          isDeepScrapeAllowed: false,
+          blockReason: 'community_snippet_only_guardrail',
+        };
+      }
       const domain = this.extractDomain(url);
       if (domain) {
         await this.policyProvider.recordUnknownDomain(domain, url, title);
       }
       return { gate: null, isDeepScrapeAllowed: false, blockReason: 'policy_missing' };
+    }
+
+    // Guardrail: community domains are snippet-signal only in this pipeline.
+    if (isCommunitySnippetSignalDomain(url)) {
+      if (gate.llm_ingestion_allowed === 'NO') {
+        return {
+          gate: {
+            ...gate,
+            acquisition_mode: 'LINK_ONLY',
+            display_mode: 'LINK_ONLY',
+          },
+          isDeepScrapeAllowed: false,
+          blockReason: 'community_policy_blocked',
+        };
+      }
+      return {
+        gate: {
+          ...gate,
+          acquisition_mode: 'LINK_ONLY',
+          display_mode: 'LINK_ONLY',
+          llm_ingestion_allowed: gate.llm_ingestion_allowed,
+        },
+        isDeepScrapeAllowed: false,
+        blockReason: 'community_snippet_only_guardrail',
+      };
     }
 
     const isDeepScrapeAllowed =
@@ -1316,6 +1369,25 @@ function extractDomain(url: string): string | null {
   }
 }
 
+function isCommunitySnippetSignalDomain(url: string): boolean {
+  const domain = extractDomain(url);
+  if (!domain) return false;
+  return COMMUNITY_SNIPPET_SIGNAL_DOMAINS.some(
+    (host) => domain === host || domain.endsWith(`.${host}`)
+  );
+}
+
+function inferCommunitySnippetGate(url: string): SourcePolicyGate | null {
+  if (!isCommunitySnippetSignalDomain(url)) return null;
+  return {
+    acquisition_mode: 'LINK_ONLY',
+    llm_ingestion_allowed: 'YES_LIMITED',
+    display_mode: 'LINK_ONLY',
+    policy_version: 'community_snippet_only_v1',
+    max_chars_ingested: 600,
+  };
+}
+
 function buildScrapePlan(curated: CuratedSources, sources: RawSource[]): ScrapePlan {
   const plan: ScrapePlan = {
     pricing: { candidates: [], selected: [], blocked: [] },
@@ -1347,16 +1419,30 @@ function buildScrapePlan(curated: CuratedSources, sources: RawSource[]): ScrapeP
       new Set([...ranked.map((entry) => entry.canonical_url), ...blockedFromRaw.map((b) => b.url)])
     );
     plan[intent].candidates = candidates;
-    const selected = ranked.filter((entry) => entry.deep_scrape_allowed).slice(0, 2);
+    const selected = ranked
+      .filter((entry) => entry.deep_scrape_allowed && !isCommunitySnippetSignalDomain(entry.url))
+      .slice(0, 2);
     plan[intent].selected = selected.map((entry) => entry.canonical_url);
-    plan[intent].blocked = blockedFromRaw.length
-      ? blockedFromRaw
-      : ranked
-          .filter((entry) => !entry.deep_scrape_allowed)
-          .map((entry) => ({
-            url: entry.canonical_url,
-            reason: sourceMap.get(entry.url)?.policy.reason || 'policy_restricted',
-          }));
+    const blockedCommunity = ranked
+      .filter((entry) => isCommunitySnippetSignalDomain(entry.url))
+      .map((entry) => ({
+        url: entry.canonical_url,
+        reason: 'community_snippet_only_guardrail',
+      }));
+    const policyBlocked = ranked
+      .filter((entry) => !entry.deep_scrape_allowed && !isCommunitySnippetSignalDomain(entry.url))
+      .map((entry) => ({
+        url: entry.canonical_url,
+        reason: sourceMap.get(entry.url)?.policy.reason || 'policy_restricted',
+      }));
+    plan[intent].blocked = Array.from(
+      new Map(
+        [...blockedFromRaw, ...policyBlocked, ...blockedCommunity].map((entry) => [
+          `${entry.url}|${entry.reason}`,
+          entry,
+        ])
+      ).values()
+    );
   });
 
   return plan;
