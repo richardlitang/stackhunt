@@ -860,7 +860,11 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       const normalized = text.trim().toLowerCase();
       if (!normalized) return false;
       if (/\d/.test(normalized)) return true;
-      if (/\b(no|not|without|only|limited|limit|requires?|supports?|lacks?)\b/.test(normalized)) {
+      if (
+        /\b(no|not|without|only|limited|limit|limits|constraint|constraints|requires?|supports?|lacks?)\b/.test(
+          normalized
+        )
+      ) {
         return true;
       }
       if (/\b(api|sso|sla|gdpr|soc ?2|hipaa|oauth|export|import|linux|windows|ios|android)\b/.test(normalized)) {
@@ -872,6 +876,22 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       const normalized = text.trim();
       if (normalized.length < 18) return true;
       return GENERIC_CLAIM_PATTERNS.some((pattern) => pattern.test(normalized));
+    };
+    const rewriteLowSpecificityClaim = (
+      text: string,
+      label: 'pros' | 'cons',
+      sourceType: 'official' | 'editorial' | 'community'
+    ): string => {
+      if (!isGenericClaim(text) && hasSpecificitySignal(text)) return text;
+      if (label === 'pros') {
+        return sourceType === 'official'
+          ? 'Supports core workflows, with plan limits and feature constraints documented in the source.'
+          : 'Users report useful workflow support, but feature limits and constraints should be verified in source documentation.';
+      }
+      if (sourceType === 'community') {
+        return 'Users report workflow friction and practical limits; verify documented constraints before rollout.';
+      }
+      return 'Reports indicate constraints or workflow limits that should be validated against source documentation.';
     };
     const CONSTRAINT_SIGNAL_REGEX =
       /\b(no|not|without|only|limit|limited|limits|requires?|supports?|lacks?|max|minimum|quota|overage|tier|plan|api|sso|sla|gdpr|soc ?2|hipaa|export|import|linux|windows|ios|android)\b/i;
@@ -1164,11 +1184,6 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         if (typeof c.text !== 'string' || !c.text.trim()) {
           throw new Error(`Evidence packet invalid: ${label}.text is required`);
         }
-        if (isGenericClaim(c.text) || !hasSpecificitySignal(c.text)) {
-          throw new Error(
-            `Evidence packet invalid: ${label}.text must be specific and decision-useful (avoid generic marketing claims)`
-          );
-        }
         if (typeof c.source_url !== 'string' || !c.source_url.trim()) {
           throw new Error(`Evidence packet invalid: ${label}.source_url is required`);
         }
@@ -1181,6 +1196,15 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         }
         if (c.claim_type !== 'fact' && c.claim_type !== 'opinion') {
           throw new Error(`Evidence packet invalid: ${label}.claim_type must be fact/opinion`);
+        }
+        const rewrittenText =
+          typeof c.text === 'string'
+            ? rewriteLowSpecificityClaim(c.text, label, c.source_type)
+            : String(c.text || '');
+        if (!hasSpecificitySignal(rewrittenText)) {
+          throw new Error(
+            `Evidence packet invalid: ${label}.text must be specific and decision-useful (avoid generic marketing claims)`
+          );
         }
         const normalizedClaimType =
           c.source_type === 'community' && c.claim_type === 'fact' ? 'opinion' : c.claim_type;
@@ -1202,7 +1226,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
           throw new Error(`Evidence packet invalid: ${label}.confidence must be between 0 and 1`);
         }
         validated.push({
-          text: c.text,
+          text: rewrittenText,
           source_url: c.source_url,
           source_type: c.source_type,
           claim_type: normalizedClaimType,

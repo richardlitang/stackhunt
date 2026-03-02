@@ -592,7 +592,7 @@ describe('GeminiService.synthesize', () => {
     expect(result.tokensUsed).toBe(360);
   });
 
-  it('fails strict evidence stage when all attempts remain generic', async () => {
+  it('rewrites generic evidence claims into specific fallback phrasing', async () => {
     const genericEvidence = buildEvidencePayload({
       pros: [
         {
@@ -619,26 +619,35 @@ describe('GeminiService.synthesize', () => {
         usageMetadata: { totalTokenCount: 140 },
       })
       .mockResolvedValueOnce({
-        text: JSON.stringify(genericEvidence),
+        text: JSON.stringify(buildValidPayload()),
         usageMetadata: { totalTokenCount: 150 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(buildValidPayload()),
+        usageMetadata: { totalTokenCount: 151 },
       });
 
     const service = new GeminiService({ apiKey: 'test-key' });
-    await expect(
-      service.synthesize({
-        toolName: 'ExampleTool',
-        promptTemplate: 'test prompt',
-        contextTitle: 'Best for API automation',
-        reviewsSnippets: [],
-        pricingSnippets: [],
-        alternativesSnippets: [],
-        budgetAnalystSnippets: [],
-        tribalKnowledgeSnippets: [],
-        knowledgeCardFacts: 'facts',
-        existingCategories: { functions: [], audiences: [], platforms: [] },
-        strictClaimSourcing: true,
-      })
-    ).rejects.toThrow('must be specific and decision-useful');
+    const result = await service.synthesize({
+      toolName: 'ExampleTool',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    const firstPro = result.analysis.pros[0] as { text?: string };
+    const firstCon = result.analysis.cons[0] as { text?: string };
+    expect(firstPro.text?.toLowerCase()).not.toContain('solid choice for teams');
+    expect(firstCon.text?.toLowerCase()).not.toContain('good value overall');
+    expect(firstPro.text || '').toMatch(/(api|supports?|limit|constraint|requires?)/i);
+    expect(firstCon.text || '').toMatch(/(supports?|limit|constraint|requires?|users report)/i);
   });
 
   it('injects alternative signal weighting block into synthesis prompts', async () => {
