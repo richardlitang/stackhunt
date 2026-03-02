@@ -27,10 +27,6 @@ import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import {
-  classifyEntityScopeAttachment,
-  detectEntityScopeAmbiguity,
-} from '../validation/entity-scope-detector';
-import {
   classifyClaimVolatility,
   computeClaimRecheckBy,
   detectRiskyCopyTerms,
@@ -44,63 +40,12 @@ import {
   type PopularityTier,
 } from '@/lib/quality-gate';
 import { sanitizeUrl } from '@/lib/utils/url';
-import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
-import { generateDecisionEvidence, generateDecisionIntro } from '@/lib/tool-page-intro';
-import {
-  applyToolPageFreshnessPolicy,
-  deriveToolPageFollowupJob,
-} from '@/lib/tool-page-freshness-policy';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
   ContextInsert: Record<string, unknown>;
   ReviewInsert: Record<string, unknown>;
   AffiliateOfferInsert: Record<string, unknown>;
-}
-
-function stampJsonWithEntityScope(
-  value: Record<string, unknown> | null | undefined,
-  entityScope?: string,
-  toolName?: string
-): Record<string, unknown> | null {
-  const base = value && typeof value === 'object' ? value : {};
-  const existingMeta =
-    base._stackhunt && typeof base._stackhunt === 'object'
-      ? (base._stackhunt as Record<string, unknown>)
-      : {};
-  const ambiguity = toolName ? detectEntityScopeAmbiguity(toolName, entityScope) : null;
-  const attachment = classifyEntityScopeAttachment(toolName || '', entityScope);
-  if (!entityScope && !ambiguity) return value ?? null;
-  return {
-    ...base,
-    _stackhunt: {
-      ...existingMeta,
-      ...(entityScope ? { entity_scope: entityScope } : {}),
-      ...(ambiguity
-        ? {
-            scope_ambiguity_family: ambiguity.family,
-            scope_ambiguity_recommended_scopes: ambiguity.recommendedScopes,
-          }
-        : {}),
-      scope_attachment: attachment,
-      scope_persisted_at: new Date().toISOString(),
-    },
-  };
-}
-
-function stampSourcesWithEntityScope<
-  T extends {
-    [key: string]: unknown;
-    url?: string | null;
-    title?: string | null;
-    domain?: string | null;
-  }
->(sources: T[], entityScope?: string): T[] {
-  if (!entityScope) return sources;
-  return sources.map((source) => ({
-    ...source,
-    entity_scope: entityScope,
-  }));
 }
 
 /**
@@ -1047,43 +992,6 @@ function buildDiscoverySummary(
   cons: ClaimWithSource[],
   pros: ClaimWithSource[]
 ): string | null {
-  const decisionIntroRaw =
-    (analysis?.reviewContext?.decisionIntro as Record<string, unknown> | undefined) ||
-    (analysis?.reviewContext?.decision_intro as Record<string, unknown> | undefined);
-  const decisionWhat =
-    typeof decisionIntroRaw?.what_it_is === 'string' ? decisionIntroRaw.what_it_is.trim() : '';
-  const decisionBest =
-    typeof decisionIntroRaw?.best_for === 'string' ? decisionIntroRaw.best_for.trim() : '';
-  const decisionNot =
-    typeof decisionIntroRaw?.not_for === 'string' ? decisionIntroRaw.not_for.trim() : '';
-  const decisionTradeoff =
-    typeof decisionIntroRaw?.main_tradeoff === 'string'
-      ? decisionIntroRaw.main_tradeoff.trim()
-      : '';
-
-  const structuredLines: string[] = [];
-  if (decisionWhat.length > 0) {
-    structuredLines.push('**What it is**');
-    structuredLines.push(`- ${decisionWhat}`);
-  }
-  if (decisionBest.length > 0) {
-    if (structuredLines.length > 0) structuredLines.push('');
-    structuredLines.push('**Choose if**');
-    structuredLines.push(`- ${decisionBest}`);
-  }
-  if (decisionNot.length > 0) {
-    if (structuredLines.length > 0) structuredLines.push('');
-    structuredLines.push('**Avoid if**');
-    structuredLines.push(`- ${decisionNot}`);
-  }
-  if (decisionTradeoff.length > 0) {
-    if (structuredLines.length > 0) structuredLines.push('');
-    structuredLines.push('**Main tradeoff**');
-    structuredLines.push(`- ${decisionTradeoff}`);
-  }
-  const structuredSummary = structuredLines.join('\n').trim();
-  if (structuredSummary.length >= 80) return structuredSummary;
-
   const derived = buildDerivedSummary(cons, pros, null);
   if (derived && derived.trim().length >= 40) return derived;
 
@@ -1692,8 +1600,6 @@ export async function executePersistencePhase(
     ...knowledgeCard,
     // Space for company info and competitors to be added later
   };
-  const stampedMetadata =
-    stampJsonWithEntityScope(metadata, ctx.entityScope, ctx.toolName) || metadata;
   if (existingMetadata && typeof existingMetadata.popularity_tier === 'string') {
     metadata.popularity_tier = existingMetadata.popularity_tier;
   }
@@ -1727,32 +1633,7 @@ export async function executePersistencePhase(
   if (!derivedVerdict) {
     deps.log('[Guardrail] Derived verdict unavailable (insufficient vetted claims)');
   }
-  const generatedDecisionIntro = generateDecisionIntro({
-    toolName: ctx.toolName,
-    shortDescription: analysis.shortDescription,
-    pros: normalizedPros.map((claim) => claim.text),
-    cons: validCons.map((claim) => claim.text),
-    proClaims: normalizedPros,
-    conClaims: validCons,
-  });
-  const generatedDecisionEvidence = generateDecisionEvidence(normalizedPros, validCons);
-  const reviewContextWithDecisionIntro = {
-    ...(analysis.reviewContext || {}),
-    decisionIntro: generatedDecisionIntro,
-    decision_intro: generatedDecisionIntro,
-    decisionEvidence: generatedDecisionEvidence,
-    decision_evidence: generatedDecisionEvidence,
-  };
-  const sanitizedReviewContext = sanitizeReviewContext(
-    reviewContextWithDecisionIntro,
-    validCons,
-    deps
-  );
-  const stampedReviewContext = stampJsonWithEntityScope(
-    (sanitizedReviewContext as Record<string, unknown> | null) || null,
-    ctx.entityScope,
-    ctx.toolName
-  );
+  const sanitizedReviewContext = sanitizeReviewContext(analysis.reviewContext, validCons, deps);
 
   const itemData: Record<string, unknown> = {
     name: ctx.toolName,
@@ -1763,7 +1644,7 @@ export async function executePersistencePhase(
     short_description: sanitizeShortDescription(analysis.shortDescription, ctx.contextTitle),
     pricing_type: analysis.pricingType,
     // V2: Enhanced fields
-    metadata: stampedMetadata,
+    metadata,
     specs,
     verdict: derivedVerdict || null, // Derived from vetted claims for legal safety
     // Video data from research
@@ -1776,7 +1657,7 @@ export async function executePersistencePhase(
     pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
     pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
     // V3.1: Review Context (The "Human Touch" Layer)
-    review_context: stampedReviewContext,
+    review_context: sanitizedReviewContext,
     // V3.2: Parent/Child Relationship (Suite Bundling)
     parent_id: parentId,
     // Infer target_market from pricing plans
@@ -1961,7 +1842,6 @@ export async function executePersistencePhase(
     const uniqueSources = Array.from(
       new Map([...claimSources, ...scoutEvidenceSources].map((entry) => [entry.url, entry])).values()
     );
-    const stampedDiscoverySources = stampSourcesWithEntityScope(uniqueSources, ctx.entityScope);
 
     // Auto-publish if high quality and robust sources
     const dataQuality = knowledgeCard?.meta?.data_quality || 'medium';
@@ -2018,7 +1898,7 @@ export async function executePersistencePhase(
       summary_markdown: buildDiscoverySummary(ctx.analysis.analysis, validCons, normalizedPros),
       pros: normalizedPros,
       cons: validCons,
-      sources: stampedDiscoverySources,
+      sources: uniqueSources,
       quality: dataQuality,
       status: reviewStatus,
     };
@@ -2107,7 +1987,6 @@ export async function executePersistencePhase(
     ctx.research.knowledgeCard,
     Number((specs.canonical as any)?.quality?.conflicts_count || 0),
     ctx.contextTitle,
-    ctx.entityScope,
     popularityTier,
     deps
   );
@@ -2139,7 +2018,7 @@ async function persistQualityGateSnapshot(
 ): Promise<void> {
   const { data: itemRow, error: itemError } = await deps.supabase
     .from('items')
-    .select('id, name, metadata, specs, pricing_verified_at')
+    .select('id, metadata, specs, pricing_verified_at')
     .eq('id', itemId)
     .single();
 
@@ -2178,86 +2057,10 @@ async function persistQualityGateSnapshot(
 
   const specs = (itemRow.specs as Record<string, unknown>) || {};
   const canonical = (specs.canonical as Record<string, unknown>) || {};
-  const canonicalQuality = (canonical.quality as Record<string, unknown>) || {};
-  const canonicalEvidenceContract =
-    (canonical.tool_page_evidence_contract as Record<string, unknown>) || null;
-  const reviewSources = Array.isArray(gateReview?.sources)
-    ? (gateReview.sources as Array<Record<string, unknown>>)
-    : [];
-  const hasHandsOnSignal = Array.isArray(canonical.hands_on_checks) && canonical.hands_on_checks.length > 0;
-  const hasOfficialAndIndependentSignals =
-    reviewSources.some((source) => String(source.source_type || source.type || '').toLowerCase() === 'official') &&
-    reviewSources.some(
-      (source) => !['official', 'docs', 'support', 'legal'].includes(String(source.source_type || source.type || '').toLowerCase())
-    );
-  const inferredEvaluationDepth = hasHandsOnSignal
-    ? hasOfficialAndIndependentSignals
-      ? 'mixed'
-      : 'hands_on'
-    : 'docs_only';
-  const baseEvidenceContract = createToolPageEvidenceContract({
-    primaryIntent: 'tool review',
-    evaluationDepth:
-      typeof canonicalEvidenceContract?.evaluationDepth === 'string'
-        ? (canonicalEvidenceContract.evaluationDepth as string)
-        : inferredEvaluationDepth,
-    factFields: ['summary', 'best_for', 'not_for', 'pricing', 'alternatives', 'evidence'],
-    sourceTypeByField: {
-      summary: 'editorial_inference',
-      best_for: 'editorial_inference',
-      not_for: 'editorial_inference',
-      pricing: 'official_pricing',
-      alternatives: 'official_doc',
-      evidence: 'official_doc',
-      ...(canonicalEvidenceContract?.sourceTypeByField as Record<string, unknown> | undefined),
-    },
-    confidenceByField: {
-      summary: readiness.signals.score >= 80 ? 'high' : readiness.signals.score >= 60 ? 'medium' : 'low',
-      best_for: readiness.signals.required_sections_complete ? 'medium' : 'low',
-      not_for: readiness.signals.required_sections_complete ? 'medium' : 'low',
-      pricing: readiness.signals.section_publishability.pricing ? 'high' : 'unknown',
-      alternatives: readiness.signals.section_publishability.summary ? 'medium' : 'unknown',
-      evidence: readiness.signals.evidence_counts.verdict >= 1 ? 'medium' : 'low',
-      ...(canonicalEvidenceContract?.confidenceByField as Record<string, unknown> | undefined),
-    },
-    lastCheckedByField: {
-      summary: gateReview?.updated_at || gateReview?.created_at || null,
-      best_for: gateReview?.updated_at || gateReview?.created_at || null,
-      not_for: gateReview?.updated_at || gateReview?.created_at || null,
-      pricing: itemRow.pricing_verified_at || null,
-      alternatives: gateReview?.updated_at || gateReview?.created_at || null,
-      evidence: gateReview?.updated_at || gateReview?.created_at || null,
-      ...(canonicalEvidenceContract?.lastCheckedByField as Record<string, unknown> | undefined),
-    },
-    sectionReasonCodes: readiness.reasons,
-    sectionOmissionReasons:
-      (canonicalEvidenceContract?.sectionOmissionReasons as Record<string, unknown> | undefined) || {},
-  });
-  const sectionOmissionReasons = {
-    ...baseEvidenceContract.sectionOmissionReasons,
-  };
-  for (const [section, isPublishable] of Object.entries(readiness.signals.section_publishability)) {
-    if (isPublishable) continue;
-    if (!sectionOmissionReasons[section]) {
-      sectionOmissionReasons[section] = 'missing_source_backed_data';
-    }
-  }
-  const evidenceContractWithOmissions = createToolPageEvidenceContract({
-    ...baseEvidenceContract,
-    sectionOmissionReasons,
-  });
-  const freshnessApplied = applyToolPageFreshnessPolicy(evidenceContractWithOmissions);
-  const toolPageEvidenceContract = freshnessApplied.contract;
-  const staleContractFields = freshnessApplied.staleFields;
-  const shouldIndexWithFreshness = shouldIndex && staleContractFields.length === 0;
-  const noindexReasonsWithFreshness = [...noindexReasons];
-  if (staleContractFields.length > 0) {
-    noindexReasonsWithFreshness.push(`stale_contract_fields:${staleContractFields.join(',')}`);
-  }
   const quality = {
-    ...canonicalQuality,
-    should_index: shouldIndexWithFreshness,
-    noindex_reasons: noindexReasonsWithFreshness,
+    ...((canonical.quality as Record<string, unknown>) || {}),
+    should_index: shouldIndex,
+    noindex_reasons: noindexReasons,
     required_sections_complete: readiness.signals.required_sections_complete,
     volatiles_fresh: readiness.signals.volatiles_fresh,
     conflicts_count: readiness.signals.conflicts_count,
@@ -2265,7 +2068,6 @@ async function persistQualityGateSnapshot(
     section_publishability: readiness.signals.section_publishability,
     section_status: readiness.signals.section_status,
     evidence_counts: readiness.signals.evidence_counts,
-    tool_page_evidence_contract: toolPageEvidenceContract,
     last_evaluated_at: new Date().toISOString(),
   };
 
@@ -2274,7 +2076,6 @@ async function persistQualityGateSnapshot(
     canonical: {
       ...canonical,
       quality,
-      tool_page_evidence_contract: toolPageEvidenceContract,
     },
   };
 
@@ -2289,47 +2090,8 @@ async function persistQualityGateSnapshot(
   }
 
   deps.log(
-    `[Quality Gate] Snapshot persisted: should_index=${String(shouldIndexWithFreshness)} reasons=${noindexReasonsWithFreshness.join(',') || 'none'}`
+    `[Quality Gate] Snapshot persisted: should_index=${String(shouldIndex)} reasons=${noindexReasons.join(',') || 'none'}`
   );
-
-  const followup = deriveToolPageFollowupJob(toolPageEvidenceContract.sectionOmissionReasons);
-  if (followup && itemRow.name) {
-    const { data: insertedRows, error: enqueueError } = await deps.supabase
-      .from('hunt_queue')
-      .insert({
-        tool_name: itemRow.name,
-        context_title: null,
-        category_slug: null,
-        priority: followup.priority,
-        source: 'scheduled',
-        hunt_type: followup.huntType,
-      })
-      .select('id')
-      .limit(1);
-    if (enqueueError) {
-      deps.log(`[Quality Gate] Warning: Failed to enqueue follow-up hunt (${enqueueError.message})`);
-    } else if (insertedRows && insertedRows.length > 0) {
-      const { error: annotateError } = await deps.supabase
-        .from('hunt_queue')
-        .update({
-          error_details: {
-            automation_reason: 'tool_page_omission_followup',
-            reason_codes: followup.reasonCodes,
-          },
-        })
-        .eq('id', insertedRows[0].id);
-      if (annotateError) {
-        deps.log(
-          `[Quality Gate] Warning: Failed to annotate follow-up hunt (${annotateError.message})`
-        );
-      }
-      deps.log(
-        `[Quality Gate] Enqueued follow-up ${followup.huntType} hunt (${insertedRows[0].id})`
-      );
-    } else {
-      deps.log('[Quality Gate] Follow-up hunt skipped (cooldown or duplicate guardrail)');
-    }
-  }
 }
 
 async function persistArticleInsights({
@@ -2542,29 +2304,25 @@ async function updatePricingOnly(
 
   const { data: existingBySlug } = await deps.supabase
     .from('items')
-    .select('id, specs, name, slug, metadata, review_context')
+    .select('id, specs, name, slug')
     .eq('slug', toolSlug)
     .maybeSingle();
 
   let itemId = existingBySlug?.id as string | undefined;
   let specs = (existingBySlug?.specs as Record<string, unknown>) || {};
-  let metadata = (existingBySlug?.metadata as Record<string, unknown>) || {};
-  let reviewContext = (existingBySlug?.review_context as Record<string, unknown>) || {};
   let factPackName = (existingBySlug?.name as string | undefined) || ctx.toolName;
   let factPackSlug = (existingBySlug?.slug as string | undefined) || toolSlug;
 
   if (!itemId) {
     const { data: existingByName } = await deps.supabase
       .from('items')
-      .select('id, specs, name, slug, metadata, review_context')
+      .select('id, specs, name, slug')
       .ilike('name', ctx.toolName)
       .limit(1)
       .maybeSingle();
 
     itemId = existingByName?.id as string | undefined;
     specs = (existingByName?.specs as Record<string, unknown>) || specs;
-    metadata = (existingByName?.metadata as Record<string, unknown>) || metadata;
-    reviewContext = (existingByName?.review_context as Record<string, unknown>) || reviewContext;
     factPackName = (existingByName?.name as string | undefined) || factPackName;
     factPackSlug = (existingByName?.slug as string | undefined) || factPackSlug;
   }
@@ -2596,8 +2354,6 @@ async function updatePricingOnly(
     .from('items')
     .update({
       specs,
-      metadata: stampJsonWithEntityScope(metadata, ctx.entityScope, ctx.toolName),
-      review_context: stampJsonWithEntityScope(reviewContext, ctx.entityScope, ctx.toolName),
       pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
       pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
       parent_id: parentId,
@@ -2720,8 +2476,6 @@ async function persistResearchOnly(
     ...(existingMetadata || {}),
     ...knowledgeCard,
   };
-  const stampedMetadata =
-    stampJsonWithEntityScope(metadata, ctx.entityScope, ctx.toolName) || metadata;
   if (existingMetadata && typeof existingMetadata.popularity_tier === 'string') {
     metadata.popularity_tier = existingMetadata.popularity_tier;
   }
@@ -2741,19 +2495,13 @@ async function persistResearchOnly(
     website: knowledgeCard?.website_url || null,
     short_description: null, // Will be filled in synthesis
     pricing_type: mapSmpPricingToPricingModel(knowledgeCard?.smp_pricing?.model),
-    metadata: stampedMetadata,
+    metadata,
     specs,
     data_confidence: dataConfidence,
     learning_curve: knowledgeCard?.learning_curve || null,
     pricing_verified_at: knowledgeCard?.smp_pricing ? new Date().toISOString() : null,
     pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
   };
-  if (ctx.entityScope) {
-    specs.research_data = {
-      ...(specs.research_data as Record<string, unknown>),
-      entity_scope: ctx.entityScope,
-    } as any;
-  }
 
   const { data: item, error: itemError } = await deps.supabase
     .from('items')
@@ -3717,47 +3465,6 @@ function sanitizeReviewContext(
     sanitized.userAdvocate = ua;
   }
 
-  if (sanitized.decisionIntro && typeof sanitized.decisionIntro === 'object') {
-    const intro = { ...sanitized.decisionIntro };
-    if (intro.not_for && containsNegativeCue(String(intro.not_for)) && !isBackedByClaims(String(intro.not_for), validCons)) {
-      deps.log('[Guardrail] Dropped decisionIntro.not_for lacking corroborating cons');
-      intro.not_for = null;
-    }
-    if (intro.main_tradeoff && containsNegativeCue(String(intro.main_tradeoff)) && !isBackedByClaims(String(intro.main_tradeoff), validCons)) {
-      deps.log('[Guardrail] Dropped decisionIntro.main_tradeoff lacking corroborating cons');
-      intro.main_tradeoff = null;
-    }
-    sanitized.decisionIntro = intro;
-    sanitized.decision_intro = intro;
-  }
-  if (sanitized.decisionEvidence && typeof sanitized.decisionEvidence === 'object') {
-    const evidence = { ...sanitized.decisionEvidence };
-    const notForReason = evidence.not_for_reason;
-    if (
-      notForReason &&
-      typeof notForReason === 'object' &&
-      typeof notForReason.text === 'string' &&
-      containsNegativeCue(notForReason.text) &&
-      !isBackedByClaims(notForReason.text, validCons)
-    ) {
-      deps.log('[Guardrail] Dropped decisionEvidence.not_for_reason lacking corroborating cons');
-      delete evidence.not_for_reason;
-    }
-    const tradeoffReason = evidence.tradeoff_reason;
-    if (
-      tradeoffReason &&
-      typeof tradeoffReason === 'object' &&
-      typeof tradeoffReason.text === 'string' &&
-      containsNegativeCue(tradeoffReason.text) &&
-      !isBackedByClaims(tradeoffReason.text, validCons)
-    ) {
-      deps.log('[Guardrail] Dropped decisionEvidence.tradeoff_reason lacking corroborating cons');
-      delete evidence.tradeoff_reason;
-    }
-    sanitized.decisionEvidence = evidence;
-    sanitized.decision_evidence = evidence;
-  }
-
   return sanitized;
 }
 
@@ -3800,7 +3507,6 @@ async function createReview(
   knowledgeCard: any,
   canonicalConflictsCount: number,
   contextTitle: string | undefined,
-  entityScope: string | undefined,
   popularityTier: PopularityTier,
   deps: HunterDependencies
 ): Promise<string> {
@@ -3989,11 +3695,8 @@ async function createReview(
   };
 
   // Add sources if provided (for audit trail)
-  const scopedSourcesForReview = sources && sources.length > 0
-    ? stampSourcesWithEntityScope(sources, entityScope)
-    : sources;
-  if (scopedSourcesForReview && scopedSourcesForReview.length > 0) {
-    reviewData.sources = scopedSourcesForReview;
+  if (sources && sources.length > 0) {
+    reviewData.sources = sources;
   }
 
   // AUTO-PUBLISH LOGIC: High-confidence reviews go live immediately
@@ -4069,14 +3772,13 @@ async function createReview(
 
   if (reviewError) throw new Error(`Failed to save review: ${reviewError.message}`);
 
-  if (scopedSourcesForReview && scopedSourcesForReview.length > 0) {
+  if (sources && sources.length > 0) {
     const claimRows = buildClaimLedgerRows(
       itemId,
       contextId,
       normalizedPros,
       normalizedCons,
-      scopedSourcesForReview,
-      entityScope
+      sources
     );
     if (claimRows.length > 0) {
       const { error: claimsError } = await deps.supabase.from('claims').insert(claimRows);
@@ -4106,8 +3808,7 @@ function buildClaimLedgerRows(
     llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
     is_deep_scrape_allowed?: boolean;
     block_reason?: string;
-  }>,
-  entityScope?: string
+  }>
 ): Array<{
   item_id: string;
   context_id: string | null;
@@ -4179,7 +3880,6 @@ function buildClaimLedgerRows(
       llm_ingestion_allowed: source?.llm_ingestion_allowed || 'UNCLASSIFIED',
       is_deep_scrape_allowed: source?.is_deep_scrape_allowed ?? null,
       block_reason: source?.block_reason || null,
-      entity_scope: entityScope || null,
       retrieved_at: source?.retrieved_at || claim.retrieved_at || null,
       checked_at: claim.checked_at || claim.retrieved_at || null,
       volatility: claim.volatility || null,
@@ -4202,7 +3902,6 @@ function buildClaimLedgerRows(
         source_urls: claim.source_urls || (claim.source_url ? [claim.source_url] : []),
         verification_method: claim.verification_method || null,
         scope: claim.scope || null,
-        entity_scope: entityScope || null,
         volatility: claim.volatility || null,
         recheck_by: claim.recheck_by || null,
       },

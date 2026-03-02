@@ -45,12 +45,6 @@ import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
-import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
-import {
-  createToolPageEvidenceContract,
-  normalizeToolEvaluationDepth,
-} from '@/lib/tool-page-evidence-contract';
-import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -136,9 +130,6 @@ const idealFor = Array.isArray(userAdvocate?.idealFor || userAdvocate?.ideal_for
 const avoidIf = Array.isArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if)
   ? userAdvocate?.avoidIf || userAdvocate?.avoid_if
   : [];
-const decisionIntro =
-  (reviewContext?.decisionIntro as Record<string, unknown> | null) ||
-  (reviewContext?.decision_intro as Record<string, unknown> | null);
 
 // Fetch alternatives using hybrid search (vector similarity + category guardrails)
 // Strategy: Compute live, cache at edge - no DB storage of computed relationships
@@ -281,7 +272,7 @@ const isLikelyIncompleteClause = (value: string): boolean => {
     lower
   );
 };
-type EvidenceBullet = { text: string; sourceUrl: string; scope?: string | null };
+type EvidenceBullet = { text: string; sourceUrl: string };
 type EvidenceSource = { url: string; label?: string; retrievedAt?: string };
 type EvidenceBulletV2 = {
   text: string;
@@ -297,12 +288,6 @@ const toEvidenceBullet = (claim: unknown): EvidenceBullet | null => {
   const rawText = typeof value.text === 'string' ? value.text : '';
   let text = rawText ? stripControlChars(rawText) : '';
   let sourceUrl = typeof value.source_url === 'string' ? value.source_url.trim() : '';
-  let scope =
-    typeof value.scope === 'string'
-      ? value.scope.trim()
-      : typeof value.claim_scope === 'string'
-        ? value.claim_scope.trim()
-        : null;
   if (rawText && rawText.includes('"text"')) {
     try {
       const nested = JSON.parse(rawText) as Record<string, unknown>;
@@ -312,17 +297,13 @@ const toEvidenceBullet = (claim: unknown): EvidenceBullet | null => {
       if (!sourceUrl && typeof nested.source_url === 'string') {
         sourceUrl = nested.source_url.trim();
       }
-      if (!scope) {
-        if (typeof nested.scope === 'string') scope = nested.scope.trim();
-        else if (typeof nested.claim_scope === 'string') scope = nested.claim_scope.trim();
-      }
     } catch {
       // Keep original text/source fallback when nested payload is not valid JSON.
     }
   }
   if (!text || isLikelyIncompleteClause(text) || !sourceUrl || !isEligibleEvidenceUrl(sourceUrl))
     return null;
-  return { text, sourceUrl, scope };
+  return { text, sourceUrl };
 };
 const buildEvidenceBulletV2 = ({
   text,
@@ -392,7 +373,6 @@ const persistedQuality =
         section_publishability?: Record<string, boolean>;
         section_status?: Record<string, 'show' | 'hide' | 'procedural'>;
         evidence_counts?: Record<string, number>;
-        tool_page_evidence_contract?: Record<string, unknown>;
       }
     | undefined) || undefined;
 const sectionPublishability = {
@@ -438,7 +418,8 @@ const knowledgeCardForSeo =
     ? { ...knowledgeCard, faqs: filteredFaqItems }
     : knowledgeCard;
 const faqItems = filteredFaqItems;
-const hasFAQData = faqItems.length > 0;
+const hasFAQ = faqItems.length > 0 && sectionPublishability.faq;
+const faqSchema = hasFAQ ? generateToolFAQSchema(tool, knowledgeCardForSeo) : null;
 
 const gateShouldIndex =
   typeof persistedQuality?.should_index === 'boolean'
@@ -559,7 +540,7 @@ const hasNonDevTrackContent = Array.isArray(setupTracks?.non_dev)
 const hasDevTrackContent = Array.isArray(setupTracks?.dev)
   ? setupTracks.dev.some((step) => hasMeaningfulStepAction(step))
   : false;
-const hasGettingStartedData = Boolean(
+const hasGettingStarted = Boolean(
   hasSetupComplexityContent || hasNonDevTrackContent || hasDevTrackContent
 );
 const comparativeFeaturePeerCount =
@@ -568,7 +549,7 @@ const comparativeFeaturePeerCount =
     ? ((knowledgeCard?.meta as Record<string, unknown>)
         .comparative_feature_peer_count as number)
     : 0;
-const hasSpecsData = Boolean(categorySpecificData || vipSpecifics);
+const hasSpecs = Boolean((categorySpecificData || vipSpecifics) && sectionStatus.specs === 'show');
 const hasMeaningfulPricingPlanName = (name?: string): boolean => {
   if (!name || !name.trim()) return false;
   const normalized = name.trim().toLowerCase();
@@ -599,7 +580,7 @@ const hasPricing = Boolean(
   (hasRenderableSmpPlans || knowledgeCard?.pricing?.tiers?.length > 0) &&
   sectionStatus.pricing === 'show'
 );
-const hasPlatformData = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
+const hasPlatform = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
 const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
   areToolsComparable(
@@ -616,7 +597,13 @@ const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
   )
 );
 const hasComparableAlternatives = comparableAlternatives.length > 0;
-const hasCommunityData = Boolean(eligibleSignalEvidenceCount >= 3);
+const hasCommunity = Boolean(
+  eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show'
+);
+const showProceduralVerdict =
+  hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
+const showProceduralSpecs =
+  hasProceduralGuidance && sectionStatus.specs === 'procedural' && !hasSpecs;
 const taxonomyPrimary =
   typeof knowledgeCard?.smp_taxonomy?.primary_function === 'string'
     ? knowledgeCard.smp_taxonomy.primary_function.toLowerCase()
@@ -694,31 +681,24 @@ const hasToolNameSignal = (value: string): boolean => {
   return toolNameTokens.length > 0 && toolNameTokens.some((token) => lower.includes(token));
 };
 const decisionSnapshotSummary =
-  (typeof decisionIntro?.what_it_is === 'string' && decisionIntro.what_it_is.trim().length > 0
-    ? decisionIntro.what_it_is
-    : null) ||
   tool.short_description ||
   knowledgeCard?.tagline ||
   `${tool.name} across pricing, fit, and rollout risk.`;
 const decisionSnapshotBestWhen = uniqueDecisionText(
-  (typeof decisionIntro?.best_for === 'string' && decisionIntro.best_for.trim().length > 0
-    ? [decisionIntro.best_for]
-    : idealFor.length > 0
+  idealFor.length > 0
     ? idealFor
     : tags.audiences.length > 0
       ? tags.audiences.map((tag) => tag.name)
-      : firstReview?.pros || [])
+      : firstReview?.pros || []
 ).slice(0, 3);
 const decisionSnapshotWatchOuts = uniqueDecisionText(
-  (typeof decisionIntro?.not_for === 'string' && decisionIntro.not_for.trim().length > 0
-    ? [decisionIntro.not_for]
-    : guardedAvoidIf.length > 0
+  guardedAvoidIf.length > 0
     ? guardedAvoidIf.slice(0, 2)
     : isPaymentsCategory && paymentTriggerCons.length > 0
       ? paymentTriggerCons.slice(0, 2)
       : fallbackConsText.length > 0
         ? fallbackConsText.slice(0, 2)
-        : (firstReview?.cons || []).slice(0, 2))
+        : (firstReview?.cons || []).slice(0, 2)
 ).slice(0, 3);
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value)
@@ -742,64 +722,8 @@ const handsOnTestedAtLabel = (() => {
 const hasHandsOnTestNotes = Boolean(
   handsOnTestEnvironment || handsOnTestSteps.length > 0 || handsOnTestFindings.length > 0 || handsOnTestedAtLabel
 );
-const storedEvidenceContract = persistedQuality?.tool_page_evidence_contract as
-  | Record<string, unknown>
-  | undefined;
-const inferredEvaluationDepthRaw =
-  handsOnChecks.length > 0 || hasHandsOnTestNotes ? 'hands_on' : 'docs_only';
-const toolPageEvidenceContract = createToolPageEvidenceContract({
-  primaryIntent: `${tool.name} review`,
-  evaluationDepth:
-    typeof storedEvidenceContract?.evaluationDepth === 'string'
-      ? (storedEvidenceContract.evaluationDepth as string)
-      : inferredEvaluationDepthRaw,
-  factFields:
-    Array.isArray(storedEvidenceContract?.factFields) &&
-    storedEvidenceContract.factFields.every((value) => typeof value === 'string')
-      ? (storedEvidenceContract.factFields as string[])
-      : ['summary', 'best_for', 'not_for', 'pricing', 'alternatives', 'evidence'],
-  sourceTypeByField:
-    (storedEvidenceContract?.sourceTypeByField as Record<string, unknown> | undefined) || {},
-  confidenceByField:
-    (storedEvidenceContract?.confidenceByField as Record<string, unknown> | undefined) || {},
-  lastCheckedByField:
-    (storedEvidenceContract?.lastCheckedByField as Record<string, unknown> | undefined) || {},
-  sectionReasonCodes:
-    (storedEvidenceContract?.sectionReasonCodes as string[] | undefined) || gateReasons,
-  sectionOmissionReasons:
-    (storedEvidenceContract?.sectionOmissionReasons as Record<string, unknown> | undefined) || {},
-});
-const sectionContract = computeToolPageSectionContract({
-  evidenceContract: toolPageEvidenceContract,
-  sectionStatus,
-  sectionPublishability,
-  hasFaqData,
-  hasGettingStartedData,
-  hasSpecsData,
-  hasCommunityData,
-  hasPlatformData,
-  hasSecurityData: Boolean(knowledgeCard?.security),
-  hasPortabilityData: Boolean(knowledgeCard?.smp_portability),
-});
-const hasFAQ = sectionContract.allowedSections.faq;
-const hasGettingStarted = sectionContract.allowedSections.getting_started;
-const hasSpecs = sectionContract.allowedSections.specs;
-const hasPlatform = sectionContract.allowedSections.platform_integrations;
-const hasCommunity = sectionContract.allowedSections.community;
-const hasSecurity = sectionContract.allowedSections.security;
-const hasPortability = sectionContract.allowedSections.portability;
-const faqSchema = hasFAQ ? generateToolFAQSchema(tool, knowledgeCardForSeo) : null;
-const showProceduralVerdict =
-  hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
-const showProceduralSpecs =
-  hasProceduralGuidance && sectionStatus.specs === 'procedural' && !hasSpecs;
-const evaluationDepthNormalized = normalizeToolEvaluationDepth(toolPageEvidenceContract.evaluationDepth);
 const evaluationDepth: 'Docs-only' | 'Light hands-on' | 'Deep hands-on' =
-  evaluationDepthNormalized === 'docs_only'
-    ? 'Docs-only'
-    : handsOnChecks.length >= 3
-      ? 'Deep hands-on'
-      : 'Light hands-on';
+  handsOnChecks.length >= 3 ? 'Deep hands-on' : handsOnChecks.length > 0 ? 'Light hands-on' : 'Docs-only';
 const testedItems =
   evaluationDepth === 'Docs-only'
     ? ['Official docs/help pages reviewed', 'Official pricing pages reviewed', 'Source dates checked']
@@ -828,6 +752,7 @@ const TRUSTED_INDEPENDENT_DOMAINS = new Set([
   'reuters.com',
   'forbes.com',
   'crunchbase.com',
+  'github.com',
 ]);
 const evidenceLinksAll = (firstReview?.sources || [])
   .map((source) => {
@@ -864,28 +789,14 @@ const evidenceLinksAll = (firstReview?.sources || [])
           ? 'Official status pages'
           : path.includes('/pricing') || path.includes('/plans') || path.includes('/subscription')
             ? 'Official pricing pages'
-            : path.includes('/docs') ||
-                path.includes('/help') ||
-                path.includes('/support') ||
-                path.includes('/developers') ||
-                path.includes('/developer') ||
-                path.includes('/api')
-              ? 'Official docs/help center'
-              : 'Official product pages'
-        : hostname.includes('github.com') &&
-            (path.includes('/issues') ||
-              path.includes('/discussions') ||
-              path.includes('/pull/') ||
-              path.includes('/releases'))
-          ? 'GitHub issues'
-          : sourceType === 'community'
-            ? 'Community discussions'
+            : path.includes('/changelog') || path.includes('/release') || path.includes('/updates')
+              ? 'Official changelogs'
+              : 'Official docs/help center'
+        : sourceType === 'community'
+          ? 'Community discussions'
+          : hostname.includes('github.com') && path.includes('/issues')
+            ? 'GitHub issues'
             : 'Independent reviews';
-    const basisWithChangelog =
-      basis === 'Official product pages' &&
-      (path.includes('/changelog') || path.includes('/release') || path.includes('/updates'))
-        ? 'Official changelogs'
-        : basis;
     const title =
       typeof source?.title === 'string' && source.title.trim().length > 0
         ? source.title.trim()
@@ -915,11 +826,7 @@ const evidenceLinksAll = (firstReview?.sources || [])
           ? 'Official source with tool-specific signal'
           : 'Official source with weak tool-specific signal';
       }
-    } else if (
-      basisWithChangelog === 'Community discussions' ||
-      basisWithChangelog === 'GitHub issues' ||
-      hostname.includes('youtube.com')
-    ) {
+    } else if (basis === 'Community discussions' || hostname.includes('youtube.com')) {
       quality = 'low';
       inclusionReason = 'Community or user-generated source (anecdotal)';
     } else if (
@@ -936,7 +843,7 @@ const evidenceLinksAll = (firstReview?.sources || [])
       url,
       title,
       domain: hostname,
-      basis: basisWithChangelog,
+      basis,
       quality,
       inclusionReason,
       sourceType,
@@ -958,7 +865,6 @@ const normalizeSourceUrl = (value?: string | null): string | null => {
 };
 const evidenceBasis = [
   'Official docs/help center',
-  'Official product pages',
   'Official pricing pages',
   'Official changelogs',
   'Official status pages',
@@ -985,35 +891,6 @@ const formatVerifiedDate = (value?: string | null): string | null => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
-const PRICING_CLAIM_TERMS =
-  /\b(price|pricing|plan|plans|tier|tiers|seat|seats|monthly|annual|billing|billed|cost|costs|free trial|trial|quote|contact sales|per user|per seat)\b/i;
-const isPricingClaimText = (value: string): boolean => PRICING_CLAIM_TERMS.test(value);
-const isGitHubFamilyTool = /\bgithub\b/i.test(tool.name);
-const isGitHubParentPage = isGitHubFamilyTool && !/\b(copilot|actions|enterprise)\b/i.test(tool.name);
-const hasExplicitGitHubScopeQualifier = (value: string, scope?: string | null): boolean => {
-  const scopedText = `${scope || ''} ${value}`.toLowerCase();
-  return /\b(copilot|github copilot|github actions|actions|ghes|github enterprise server|enterprise server|enterprise cloud|advanced security)\b/.test(
-    scopedText
-  );
-};
-const getScopeSuppressionReason = (value: string, scope?: string | null): string | null => {
-  if (!isGitHubParentPage) return null;
-  const text = value.toLowerCase();
-  if (hasExplicitGitHubScopeQualifier(value, scope)) return null;
-  if (/\b(self-hosted|self hosted|on-prem|on prem)\b/.test(text)) {
-    return 'self_hosting_requires_ghe_scope';
-  }
-  if (
-    /\b(ai|assistant|code completion|models?)\b/.test(text) &&
-    /\b(price|pricing|plan|plans|seat|monthly|annual|\$)\b/.test(text)
-  ) {
-    return 'ai_pricing_requires_copilot_scope';
-  }
-  if (/\b(runner|runners)\b/.test(text) && !/\bself-hosted runner\b/.test(text)) {
-    return 'runner_claim_requires_actions_scope';
-  }
-  return null;
 };
 const clampSourceContext = (value: string): string => {
   const normalized = stripControlChars(value).replace(/\s+/g, ' ').trim();
@@ -1157,35 +1034,6 @@ const pricingEvidenceLinks = withUniqueText(
 ).slice(0, 3);
 const hasPricingCheckedProof = Boolean(pricingVerifiedLabel && pricingSourceUrl);
 const pricingCheckedLabel = hasPricingCheckedProof ? pricingVerifiedLabel : null;
-const isPricingEvidenceIncomplete = sectionStatus.pricing !== 'hide' && !hasPricingCheckedProof;
-const shouldSuppressClaimForRender = (item: Pick<EvidenceBullet, 'text' | 'scope'>): boolean =>
-  (isPricingEvidenceIncomplete && isPricingClaimText(item.text)) ||
-  Boolean(getScopeSuppressionReason(item.text, item.scope));
-const filterClaimsForRender = (items: EvidenceBullet[]): EvidenceBullet[] =>
-  items.filter((item) => !shouldSuppressClaimForRender(item));
-const displayEvidencePros = filterClaimsForRender(effectiveEvidencePros);
-const displayEvidenceCons = filterClaimsForRender(effectiveEvidenceCons);
-const displayCanonicalHardLimits = filterClaimsForRender(canonicalHardLimits);
-const renderClaimPool = [...effectiveEvidencePros, ...effectiveEvidenceCons, ...canonicalHardLimits];
-const suppressedPricingClaimCount = renderClaimPool.filter(
-  (item) => isPricingEvidenceIncomplete && isPricingClaimText(item.text)
-).length;
-const suppressedScopeReasons = renderClaimPool
-  .map((item) => getScopeSuppressionReason(item.text, item.scope))
-  .filter((reason): reason is string => Boolean(reason));
-const suppressedScopeClaimCount = suppressedScopeReasons.length;
-const suppressedScopeReasonCounts = {
-  copilot: suppressedScopeReasons.filter((reason) => reason === 'ai_pricing_requires_copilot_scope')
-    .length,
-  ghesSelfHosting: suppressedScopeReasons.filter(
-    (reason) => reason === 'self_hosting_requires_ghe_scope'
-  ).length,
-  actions: suppressedScopeReasons.filter((reason) => reason === 'runner_claim_requires_actions_scope')
-    .length,
-};
-const hasScopeSuppressionEditorialWarning =
-  isGitHubParentPage && (suppressedScopeClaimCount > 0 || suppressedPricingClaimCount > 0);
-const displayHasStrengths = displayEvidencePros.length + displayEvidenceCons.length >= 2;
 const prosConsSourceUrls = new Set(
   [...effectiveEvidencePros, ...effectiveEvidenceCons]
     .map((entry) => normalizeSourceUrl(entry.sourceUrl))
@@ -1280,32 +1128,16 @@ const verdictDisplayLabel =
     : verdictLabel === 'Consider'
       ? 'Fit with caveats'
       : 'Not recommended yet';
-const decisionTradeoffRationale =
-  typeof decisionIntro?.main_tradeoff === 'string' && decisionIntro.main_tradeoff.trim().length >= 24
-    ? decisionIntro.main_tradeoff.trim()
-    : null;
 let verdictLabelRationale =
-  decisionTradeoffRationale ||
-  (verdictLabel === 'Choose'
+  verdictLabel === 'Choose'
     ? hasCollectedSources
-      ? `${tool.name} shows source-backed fit signals for this workflow; verify limits and pricing against current needs.`
+      ? `${tool.name} is a strong option when you want fast, source-backed answers.`
       : `${tool.name} appears promising, but the source set is still being collected.`
     : verdictLabel === 'Consider'
-      ? hasPricingCheckedProof
-        ? `${tool.name} can fit teams with this profile, but you should verify pricing and plan limits before purchase.`
-        : `${tool.name} can fit teams with this profile, but current pricing is not fully confirmed yet.`
+      ? `${tool.name} is worth shortlisting, but check pricing and plan limits before you commit.`
       : hasCollectedSources
         ? `${tool.name} is not a confident pick yet based on currently source-backed evidence.`
-        : `${tool.name} is not a confident pick yet because source-backed evidence is still limited.`);
-if (
-  (isPricingEvidenceIncomplete && isPricingClaimText(verdictLabelRationale)) ||
-  Boolean(getScopeSuppressionReason(verdictLabelRationale))
-) {
-  verdictLabelRationale = `${tool.name} has unresolved pricing tradeoffs on this page until official pricing verification is complete.`;
-  if (!isPricingEvidenceIncomplete) {
-    verdictLabelRationale = `${tool.name} has unresolved scope-specific claims on this page until product-level scope is explicit.`;
-  }
-}
+        : `${tool.name} is not a confident pick yet because source-backed evidence is still limited.`;
 const scoreDrivers = uniqueDecisionText([
   ...decisionSnapshotDifferentiators,
   ...decisionSnapshotBestWhen,
@@ -1328,11 +1160,6 @@ const tradeoffCons = uniqueDecisionText([
   )
   .filter((item): item is EvidenceBulletV2 => Boolean(item));
 const hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
-const displayAvoidIfBullet =
-  avoidIfBullet && shouldSuppressClaimForRender({ text: avoidIfBullet.text, scope: null })
-    ? null
-    : avoidIfBullet;
-const hasDisplayAvoidIf = Boolean(displayAvoidIfBullet && !displayAvoidIfBullet.unverified);
 pendingVerificationCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter(
   (item) => item?.unverified
 ).length;
@@ -1376,34 +1203,13 @@ const updateHistoryEntries = [
       }
     : null,
 ].filter((entry): entry is { date: string; what: string; why: string; source: string | null } => Boolean(entry));
-const reviewH1 = `${tool.name} Review`;
-const reviewDek = 'Pricing, tradeoffs, best for, and alternatives';
-const toolMeta = generateToolMeta(tool, tool.review_count);
-const decisionIntroTradeoff =
-  typeof decisionIntro?.main_tradeoff === 'string' && decisionIntro.main_tradeoff.trim().length > 0
-    ? decisionIntro.main_tradeoff
-    : 'Not confirmed';
-const introForQa = `${decisionSnapshotSummary} Best for: ${decisionSnapshotBestWhen[0] || 'Not confirmed'}. Not for: ${
-  decisionSnapshotWatchOuts[0] || 'Not confirmed'
-}. Main tradeoff: ${decisionIntroTradeoff}.`;
-const schemaMatchesVisibleContent = !faqSchema || hasFAQ;
-const toolPageQaGate = evaluateToolPageQaGate({
-  title: toolMeta.title,
-  h1: reviewH1,
-  intro: introForQa,
-  verdict: verdictLabelRationale,
-  evaluationDepth: evaluationDepthNormalized,
-  pricingSectionVisible: showPricingSection,
-  hasPricingCheckedProof,
-  schemaMatchesVisibleContent,
-});
 const publishedAnalysesLabel =
   tool.review_count > 0 ? String(tool.review_count) : isVerificationMode ? 'In review' : '0';
 shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
-if (showReviewInProgressBanner && pendingVerificationCount === 0) {
+if (showReviewInProgressBanner) {
   shouldNoindex = false;
 }
-shouldNoindex = shouldNoindex || !toolPageQaGate.pass;
+const toolMeta = generateToolMeta(tool, tool.review_count);
 const meta = {
   ...toolMeta,
   description:
@@ -1433,18 +1239,6 @@ const schemas = [
   <AffiliateDisclosure variant="banner" hasAffiliateLinks={primaryOffer?.is_affiliate || false} />
 
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-    {
-      toolPageQaGate.blockers.length > 0 && (
-        <div
-          class="hidden"
-          aria-hidden="true"
-          data-tool-page-qa-blockers={toolPageQaGate.blockers.join(',')}
-          data-tool-page-section-omissions={Object.entries(sectionContract.sectionOmissionReasons)
-            .map(([key, reason]) => `${key}:${reason}`)
-            .join(',')}
-        />
-      )
-    }
     <!-- Breadcrumbs -->
     <nav class="mb-6 flex items-center gap-2 text-sm text-zinc-400" aria-label="Breadcrumb">
       <a href="/" class="hover:text-hunt-500">Home</a>
@@ -1494,10 +1288,10 @@ const schemas = [
           />
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">
-                Tool Review
+                Tool Briefing
               </p>
               <div class="mt-1 flex items-center gap-3">
-                <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{reviewH1}</h1>
+                <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{tool.name}</h1>
                 {
                   tool.is_verified && (
                     <span class="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-xs font-medium text-blue-200 ring-1 ring-blue-400/30">
@@ -1516,7 +1310,6 @@ const schemas = [
               {
                 (tool.short_description || knowledgeCard?.tagline) && (
                   <div class="mt-2 space-y-1">
-                    <p class="text-sm text-zinc-400">{reviewDek}</p>
                     {tool.short_description && <p class="text-zinc-200">{tool.short_description}</p>}
                     {knowledgeCard?.tagline && knowledgeCard.tagline !== tool.short_description && (
                       <p class="text-sm italic text-zinc-400">{knowledgeCard.tagline}</p>
@@ -1687,8 +1480,8 @@ const schemas = [
           <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-300">Avoid if</h3>
           <p class="mt-2 text-sm text-zinc-200">
             {
-              hasDisplayAvoidIf
-                ? displayAvoidIfBullet?.text
+              hasVerifiedAvoidIf
+                ? avoidIfBullet?.text
                 : canonicalHardLimits.length > 0
                   ? `No source-backed hard avoid trigger is confirmed yet (${communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'latest check'}). Review hard limits below.`
                   : `No source-backed hard avoid trigger is confirmed in the latest review (${communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'latest check'}).`
@@ -1696,11 +1489,11 @@ const schemas = [
           </p>
         </div>
       </div>
-      {displayCanonicalHardLimits.length > 0 && (
+      {canonicalHardLimits.length > 0 && (
         <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
           <h3 class="text-sm font-semibold text-zinc-200">Hard limits / dealbreakers</h3>
           <ul class="mt-2 space-y-2 text-sm text-zinc-300">
-            {displayCanonicalHardLimits.slice(0, 4).map((item) => (
+            {canonicalHardLimits.slice(0, 4).map((item) => (
               <li>
                 - {item.text}{' '}
                 <a
@@ -2118,7 +1911,7 @@ const schemas = [
 
         {/* Strengths & Weaknesses - Prefer contextual over global */}
         {
-          displayHasStrengths && (
+          hasStrengths && (
             <details
               id="strengths"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -2128,11 +1921,7 @@ const schemas = [
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
                   <p class="mt-1 text-sm text-zinc-400">
-                    {isPricingEvidenceIncomplete && suppressedPricingClaimCount > 0
-                      ? 'Pricing-related claims are hidden until official pricing verification is complete.'
-                      : suppressedScopeClaimCount > 0
-                        ? 'Sub-product and enterprise-specific claims are hidden until they are explicitly scoped.'
-                      : collectedSourcesBySection.pros_cons > 0
+                    {collectedSourcesBySection.pros_cons > 0
                       ? 'Evidence-backed pros and cons only.'
                       : 'Pros and cons will appear after source-backed claims are collected.'}
                   </p>
@@ -2158,11 +1947,11 @@ const schemas = [
 
               <div class="mt-4">
                 <ProsCons
-                  pros={displayEvidencePros.map((entry) => ({
+                  pros={effectiveEvidencePros.map((entry) => ({
                     text: entry.text,
                     source_url: entry.sourceUrl,
                   }))}
-                  cons={displayEvidenceCons.map((entry) => ({
+                  cons={effectiveEvidenceCons.map((entry) => ({
                     text: entry.text,
                     source_url: entry.sourceUrl,
                   }))}
@@ -2424,7 +2213,7 @@ const schemas = [
 
         {/* Platform Support & Integrations */}
         {
-          hasPlatform && (
+          (knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
             <PlatformIntegrations
               platforms={knowledgeCard.platforms || []}
               integrations={knowledgeCard.integrations}
@@ -2542,14 +2331,14 @@ const schemas = [
         }
 
         {/* Security & Compliance */}
-        {hasSecurity && knowledgeCard?.security && <SecurityCompliance security={knowledgeCard.security} />}
+        {knowledgeCard?.security && <SecurityCompliance security={knowledgeCard.security} />}
 
         {/* Support Options */}
         {knowledgeCard?.support && <SupportOptions support={knowledgeCard.support} />}
 
         {/* Portability */}
         {
-          hasPortability && knowledgeCard?.smp_portability && (
+          knowledgeCard?.smp_portability && (
             <PortabilityCard portability={knowledgeCard.smp_portability} toolName={tool.name} />
           )
         }
@@ -2740,40 +2529,6 @@ const schemas = [
             </div>
           </details>
           <h2 class="text-lg font-semibold text-zinc-100">Methodology & Sources</h2>
-          {hasScopeSuppressionEditorialWarning && (
-            <div class="mt-3 rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
-              <p class="text-xs font-semibold uppercase tracking-wide text-amber-300">
-                Editorial scope guard active
-              </p>
-              <p class="mt-1 text-sm text-zinc-300">
-                Some claims are hidden on this parent page until they are explicitly scoped (for
-                example, Copilot, GitHub Actions, or GitHub Enterprise Server) and pricing claims
-                require official pricing verification.
-              </p>
-              <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                {suppressedPricingClaimCount > 0 && (
-                  <span class="rounded-full border border-amber-700/40 bg-amber-950/40 px-2 py-1 text-amber-200">
-                    Pricing verification ({suppressedPricingClaimCount})
-                  </span>
-                )}
-                {suppressedScopeReasonCounts.copilot > 0 && (
-                  <span class="rounded-full border border-amber-700/40 bg-amber-950/40 px-2 py-1 text-amber-200">
-                    Copilot scope ({suppressedScopeReasonCounts.copilot})
-                  </span>
-                )}
-                {suppressedScopeReasonCounts.ghesSelfHosting > 0 && (
-                  <span class="rounded-full border border-amber-700/40 bg-amber-950/40 px-2 py-1 text-amber-200">
-                    GHES/self-hosting scope ({suppressedScopeReasonCounts.ghesSelfHosting})
-                  </span>
-                )}
-                {suppressedScopeReasonCounts.actions > 0 && (
-                  <span class="rounded-full border border-amber-700/40 bg-amber-950/40 px-2 py-1 text-amber-200">
-                    Actions scope ({suppressedScopeReasonCounts.actions})
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
           <div class="mt-3 flex flex-wrap gap-2">
             {evidenceBasis.map((chip) => (
               <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
@@ -3015,9 +2770,9 @@ const schemas = [
   </div>
 
   <script is:inline>
-    const pageRoot = document.querySelector('main') || document.body;
+    const pageRoot = (document.querySelector('main') as HTMLElement | null) || document.body;
 
-    const trackOutboundClick = (link) => {
+    const trackOutboundClick = (link: HTMLAnchorElement) => {
       const href = link.getAttribute('href') || '';
       const isExternal = /^https?:\/\//i.test(href);
       if (!isExternal) return;
@@ -3036,32 +2791,32 @@ const schemas = [
         }
       })();
 
-      if (typeof window.plausible === 'function') {
-        window.plausible('outbound_click', {
+      if (typeof (window as any).plausible === 'function') {
+        (window as any).plausible('outbound_click', {
           props: { type, location, tool, href: sanitizedHref },
         });
       }
     };
 
     let isSuggestEditReady = false;
-    let openSuggestEdit = null;
-    let closeSuggestEdit = null;
+    let openSuggestEdit: (() => void) | null = null;
+    let closeSuggestEdit: (() => void) | null = null;
 
     const initSuggestEditModal = () => {
       if (isSuggestEditReady) return;
       const modal = document.getElementById('suggest-edit-modal');
-      const modalPanel = modal?.querySelector('[data-modal-panel]');
-      const form = document.getElementById('suggest-edit-form');
+      const modalPanel = modal?.querySelector('[data-modal-panel]') as HTMLElement | null;
+      const form = document.getElementById('suggest-edit-form') as HTMLFormElement | null;
       const success = document.getElementById('suggest-edit-success');
       if (!modal || !modalPanel || !form || !success) return;
 
-      let lastFocusedElement = null;
+      let lastFocusedElement: HTMLElement | null = null;
 
       const focusFirstFocusable = () => {
-        const firstFocusable = modal.querySelector(
+        const firstFocusable = modal.querySelector<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
-        if (firstFocusable instanceof HTMLElement) firstFocusable.focus();
+        firstFocusable?.focus();
       };
 
       const closeModal = () => {
@@ -3072,8 +2827,7 @@ const schemas = [
       };
 
       const openModal = () => {
-        lastFocusedElement =
-          document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        lastFocusedElement = document.activeElement as HTMLElement | null;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         modal.setAttribute('aria-hidden', 'false');
@@ -3082,13 +2836,13 @@ const schemas = [
         setTimeout(() => focusFirstFocusable(), 0);
       };
 
-      const trapFocus = (event) => {
+      const trapFocus = (event: KeyboardEvent) => {
         if (event.key !== 'Tab' || modal.classList.contains('hidden')) return;
         const focusable = Array.from(
-          modal.querySelectorAll(
+          modal.querySelectorAll<HTMLElement>(
             'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
           )
-        ).filter((el) => el instanceof HTMLElement && !el.hasAttribute('disabled'));
+        ).filter((el) => !el.hasAttribute('disabled'));
         if (focusable.length === 0) return;
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
@@ -3144,20 +2898,20 @@ const schemas = [
     };
 
     pageRoot.addEventListener('click', async (event) => {
-      const target = event.target instanceof HTMLElement ? event.target : null;
+      const target = event.target as HTMLElement | null;
       if (!target) return;
 
-      const link = target.closest('a');
-      if (link instanceof HTMLAnchorElement) trackOutboundClick(link);
+      const link = target.closest('a') as HTMLAnchorElement | null;
+      if (link) trackOutboundClick(link);
 
-      const openSuggestEditButton = target.closest('[data-suggest-edit]');
+      const openSuggestEditButton = target.closest('[data-suggest-edit]') as HTMLElement | null;
       if (openSuggestEditButton) {
         initSuggestEditModal();
         openSuggestEdit?.();
         return;
       }
 
-      const closeSuggestEditButton = target.closest('[data-close-modal]');
+      const closeSuggestEditButton = target.closest('[data-close-modal]') as HTMLElement | null;
       if (closeSuggestEditButton) {
         closeSuggestEdit?.();
       }
