@@ -486,6 +486,7 @@ describe('GeminiService.synthesize', () => {
       expect.arrayContaining(['verdict', 'shortDescription', 'reviewContext', 'faqs'])
     );
     expect((result.generationQuality.meanConfidence || 0) < 0.68).toBe(true);
+    expect((result.generationQuality.actionabilityScore || 0) < 60).toBe(true);
   });
 
   it('coerces community fact claims to opinion in strict evidence mode', async () => {
@@ -675,5 +676,60 @@ describe('GeminiService.synthesize', () => {
     expect(stageOnePrompt).toContain('ALTERNATIVE SIGNALS (Heuristic, Source-Backed Validation Required)');
     expect(stageOnePrompt).toContain('Coda');
     expect(stageOnePrompt).toContain('Airtable');
+  });
+
+  it('computes actionability score for decision-useful outputs', async () => {
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(
+          buildEvidencePayload({
+            pros: [
+              {
+                text: 'API rate limit is 5 requests/second on the standard plan',
+                source_url: 'https://example.com/docs/limits',
+                source_type: 'official',
+                claim_type: 'fact',
+                confidence: 0.88,
+              },
+            ],
+            cons: [
+              {
+                text: 'SSO is available only on enterprise plans above 50 seats',
+                source_url: 'https://independent.example.org/review',
+                source_type: 'editorial',
+                claim_type: 'fact',
+                confidence: 0.72,
+              },
+            ],
+          })
+        ),
+        usageMetadata: { totalTokenCount: 180 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          ...buildValidPayload(),
+          switchingFrom: ['Airtable'],
+          dealbreakers: ['Users report setup friction for SSO provisioning'],
+        }),
+        usageMetadata: { totalTokenCount: 190 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'ExampleTool',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(result.generationQuality.actionabilityScore).toBeGreaterThan(55);
+    expect(result.generationQuality.actionabilityScore).toBeLessThanOrEqual(100);
   });
 });

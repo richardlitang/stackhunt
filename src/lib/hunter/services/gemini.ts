@@ -69,6 +69,7 @@ export interface SynthesisGenerationQuality {
   nonOfficialClaims?: number;
   distinctDomains?: number;
   maxDomainShare?: number;
+  actionabilityScore?: number;
   abstainedFields: Array<'verdict' | 'shortDescription' | 'websiteUrl' | 'faqs' | 'reviewContext'>;
 }
 
@@ -865,6 +866,38 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       if (normalized.length < 18) return true;
       return GENERIC_CLAIM_PATTERNS.some((pattern) => pattern.test(normalized));
     };
+    const CONSTRAINT_SIGNAL_REGEX =
+      /\b(no|not|without|only|limit|limited|limits|requires?|supports?|lacks?|max|minimum|quota|overage|tier|plan|api|sso|sla|gdpr|soc ?2|hipaa|export|import|linux|windows|ios|android)\b/i;
+    const hasNumericSignal = (text: string): boolean => /\d/.test(text);
+    const clamp = (value: number, min: number, max: number): number =>
+      Math.min(max, Math.max(min, value));
+    const computeActionabilityScore = (
+      claimTexts: string[],
+      options: {
+        vetoCount: number;
+        switchingCount: number;
+        dealbreakerCount: number;
+        abstainedCount: number;
+        distinctDomains?: number;
+      }
+    ): number => {
+      const totalClaims = Math.max(1, claimTexts.length);
+      const numericRatio = claimTexts.filter((text) => hasNumericSignal(text)).length / totalClaims;
+      const constraintRatio =
+        claimTexts.filter((text) => CONSTRAINT_SIGNAL_REGEX.test(text)).length / totalClaims;
+      const diversityScore = options.distinctDomains
+        ? Math.min(options.distinctDomains, 4) / 4
+        : 0;
+      const rawScore =
+        numericRatio * 35 +
+        constraintRatio * 25 +
+        (options.vetoCount > 0 ? 15 : 0) +
+        (options.switchingCount > 0 ? 10 : 0) +
+        (options.dealbreakerCount > 0 ? 10 : 0) +
+        diversityScore * 5;
+      const abstentionPenalty = options.abstainedCount * 4;
+      return Math.round(clamp(rawScore - abstentionPenalty, 0, 100));
+    };
     const fixClaim = (claim: unknown) => {
       if (typeof claim === 'object' && claim !== null) {
         const c = claim as Record<string, unknown>;
@@ -1582,6 +1615,27 @@ ${JSON.stringify(evidencePacket, null, 2)}`
           nonOfficialClaims: evidencePacket?.quality.nonOfficialClaims,
           distinctDomains: evidencePacket?.quality.distinctDomains,
           maxDomainShare: evidencePacket?.quality.maxDomainShare,
+          actionabilityScore: computeActionabilityScore(
+            [
+              ...(Array.isArray(parsed.pros)
+                ? parsed.pros
+                    .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
+                    .filter((text: unknown): text is string => typeof text === 'string')
+                : []),
+              ...(Array.isArray(parsed.cons)
+                ? parsed.cons
+                    .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
+                    .filter((text: unknown): text is string => typeof text === 'string')
+                : []),
+            ],
+            {
+              vetoCount: Array.isArray(parsed.vetoLogic) ? parsed.vetoLogic.length : 0,
+              switchingCount: Array.isArray(parsed.switchingFrom) ? parsed.switchingFrom.length : 0,
+              dealbreakerCount: Array.isArray(parsed.dealbreakers) ? parsed.dealbreakers.length : 0,
+              abstainedCount: evidencePacket ? evidencePacket.abstentions.length : 0,
+              distinctDomains: evidencePacket?.quality.distinctDomains,
+            }
+          ),
           abstainedFields: evidencePacket
             ? evidencePacket.abstentions.map((entry) => entry.field)
             : [],
