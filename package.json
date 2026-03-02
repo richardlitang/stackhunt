@@ -28,6 +28,7 @@
     "qa:gates": "npx tsx scripts/report-draft-gate-reasons.ts",
     "qa:rendered-tool-pages": "node scripts/qa-rendered-tool-pages.mjs",
     "qa:smoke:live": "node scripts/smoke-live-tool-page.mjs",
+    "qa:seo:sitemaps": "node scripts/check-sitemaps.mjs",
     "qa:rpc": "node scripts/check-rpc-signatures.mjs",
     "qa:prepush": "npm run qa:rpc && npm run typecheck && npm run lint && npm run build",
     "qa:content-policy": "node scripts/ci-content-policy-gates.mjs",

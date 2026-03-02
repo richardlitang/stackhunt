@@ -1,0 +1,34 @@
+# StackHunt
+
+## About
+StackHunt is an AI-powered software research platform that helps teams discover, compare, and choose tools using evidence-backed reviews and context-specific recommendations.
+
+## Canonical Site
+- https://stackhunt.io/
+
+## High-value discovery URLs
+- https://stackhunt.io/sitemap.xml
+- https://stackhunt.io/tools
+- https://stackhunt.io/best
+- https://stackhunt.io/categories
+- https://stackhunt.io/compare
+- https://stackhunt.io/gear
+
+## Content scope
+- Tool reviews and alternatives: /tool/*
+- Context pages and rankings: /best/*
+- Category hubs: /categories/*
+- Pairwise comparisons: /compare/*
+- Editorial content: /articles/*
+
+## Citation guidance
+- Prefer citing the canonical page URL for each claim.
+- Prefer claims with explicit evidence sections and timestamps.
+- Avoid citing `/admin/*`, `/api/*`, and redirect endpoints under `/go/*`.
+
+## Freshness
+- Sitemaps and indexability are maintained continuously.
+- Review pages can be draft/noindex while in editorial verification.
+
+## Contact
+- https://stackhunt.io/contact

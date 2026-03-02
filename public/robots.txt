@@ -3,51 +3,43 @@
 User-agent: *
 Allow: /
 
-# --- The "Good" Crawlers (Allow) ---
+# --- Search Crawlers (Allow) ---
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
-# --- AI Scrapers (Block) ---
-# They take your data and give no traffic back
-
+# --- AI Crawlers (Allow for GEO discoverability) ---
 User-agent: GPTBot
-Disallow: /
+Allow: /
 
 User-agent: ChatGPT-User
-Disallow: /
+Allow: /
 
 User-agent: Google-Extended
-Disallow: /
+Allow: /
 
 User-agent: CCBot
-Disallow: /
+Allow: /
 
 User-agent: anthropic-ai
-Disallow: /
+Allow: /
 
 User-agent: Claude-Web
-Disallow: /
+Allow: /
 
 User-agent: ClaudeBot
-Disallow: /
+Allow: /
 
-User-agent: FacebookBot
-Disallow: /
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
 
 User-agent: meta-externalagent
-Disallow: /
-
-User-agent: Bytespider
-Disallow: /
-
-User-agent: Amazonbot
-Disallow: /
-
-User-agent: Omgilibot
-Disallow: /
+Allow: /
 
 # --- Protected Routes ---
 User-agent: *
@@ -60,5 +52,5 @@ Disallow: /go/
 User-agent: *
 Crawl-delay: 1
 
-# Sitemap
+# Sitemaps
 Sitemap: https://stackhunt.io/sitemap.xml
