@@ -6,6 +6,9 @@ Content ideas flow through two tables:
 1. **content_ideas** - Strategic planning layer with SEO metrics, ROI scoring
 2. **hunt_queue** - Execution layer for the Hunter to process
 
+Related operating standard:
+- `docs/SEO_CONTENT_WORKFLOW_PLAN.md` for SEO + helpfulness gates, KPIs, and 30-60-90 rollout.
+
 ## Import → Queue Flow
 
 ### Automatic Queuing (Priority ≥90)
