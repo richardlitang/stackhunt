@@ -10,11 +10,14 @@
 
 import type { APIRoute } from 'astro';
 import { createHunter } from '@/lib/hunter';
+import { getAdminClient } from '@/lib/supabase';
+import { maybeAutoPublishReview } from '@/lib/review-auto-publish';
 
 export const prerender = false;
 
 // Maximum items to process per cron run (stay within Vercel timeout)
 const MAX_ITEMS_PER_RUN = 3;
+const AUTO_PUBLISH_SAFE_DRAFTS = import.meta.env.AUTO_PUBLISH_SAFE_DRAFTS !== 'false';
 
 export const GET: APIRoute = async ({ request }) => {
   // Verify cron secret (Vercel sets this header)
@@ -51,6 +54,7 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     // Create hunter in DRAFT mode
     const hunter = createHunter({ isDraftMode: true });
+    const admin = getAdminClient();
 
     // Process up to MAX_ITEMS_PER_RUN from queue
     for (let i = 0; i < MAX_ITEMS_PER_RUN; i++) {
@@ -67,6 +71,21 @@ export const GET: APIRoute = async ({ request }) => {
         error: result.error,
         reviewId: result.reviewId || undefined,
       });
+
+      if (AUTO_PUBLISH_SAFE_DRAFTS && result.success && result.reviewId) {
+        const publishResult = await maybeAutoPublishReview(admin as any, result.reviewId);
+        if (publishResult.published) {
+          console.log(`[Cron] Auto-published review ${publishResult.reviewId}`);
+        } else if (publishResult.reason !== 'already_published') {
+          console.log(
+            `[Cron] Auto-publish skipped for ${publishResult.reviewId}: ${publishResult.reason}${
+              publishResult.blockers?.length
+                ? ` (${publishResult.blockers.slice(0, 3).join(', ')})`
+                : ''
+            }`
+          );
+        }
+      }
 
       // If this one failed, don't continue (might be a systemic issue)
       if (!result.success) {

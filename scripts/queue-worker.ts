@@ -120,6 +120,7 @@ async function processQueue(): Promise<void> {
     const { ApiError } = await import('../src/lib/hunter/errors');
     const { alertCritical, alertQueueSummary } = await import('../src/lib/notifications/discord');
     const { createClient } = await import('@supabase/supabase-js');
+    const { maybeAutoPublishReview } = await import('../src/lib/review-auto-publish');
 
     const discordUrl = process.env.DISCORD_WEBHOOK_URL;
 
@@ -127,6 +128,7 @@ async function processQueue(): Promise<void> {
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+    const autoPublishSafeDrafts = process.env.AUTO_PUBLISH_SAFE_DRAFTS !== 'false';
 
     // ===================================================================
     // Priority 1: Check for batch synthesis opportunities (≥10 tools)
@@ -164,6 +166,8 @@ async function processQueue(): Promise<void> {
     const result = await hunter.processQueueBatch(batchSize, { maxTokens: maxTokensPerRun });
     const errors: Array<{ tool: string; error: string; category?: string }> = [];
     const successes: Array<{ tool: string; context?: string }> = [];
+    let autoPublished = 0;
+    let autoPublishSkipped = 0;
 
     for (const r of result.results) {
       if (!r.success && r.error) {
@@ -187,6 +191,22 @@ async function processQueue(): Promise<void> {
           tool: r.toolName,
           context: r.contextTitle,
         });
+        if (autoPublishSafeDrafts && r.reviewId) {
+          const publishResult = await maybeAutoPublishReview(supabase as any, r.reviewId);
+          if (publishResult.published) {
+            autoPublished += 1;
+            console.log(`✅ Auto-published safe draft: ${r.toolName} (${r.reviewId})`);
+          } else if (publishResult.reason !== 'already_published') {
+            autoPublishSkipped += 1;
+            console.log(
+              `ℹ️ Auto-publish skipped for ${r.toolName} (${r.reviewId}): ${publishResult.reason}${
+                publishResult.blockers?.length
+                  ? ` (${publishResult.blockers.slice(0, 3).join(', ')})`
+                  : ''
+              }`
+            );
+          }
+        }
       }
     }
     const processedTitles = Array.from(new Set([
@@ -197,6 +217,9 @@ async function processQueue(): Promise<void> {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`\n📊 Results: ${result.processed} processed, ${result.succeeded} succeeded, ${result.failed} failed (${duration}s)`);
     console.log(`   Tokens: ${result.tokensUsed.toLocaleString()}`);
+    if (autoPublishSafeDrafts) {
+      console.log(`   Auto-published: ${autoPublished} (skipped: ${autoPublishSkipped})`);
+    }
 
     // macOS notification
     if (result.processed > 0) {
