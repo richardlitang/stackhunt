@@ -600,6 +600,14 @@ const hasComparableAlternatives = comparableAlternatives.length > 0;
 const hasCommunity = Boolean(
   eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show'
 );
+// Runtime safety aliases for section contract wiring.
+const hasFaqData = hasFAQ;
+const hasGettingStartedData = hasGettingStarted;
+const hasSpecsData = hasSpecs;
+const hasCommunityData = hasCommunity;
+const hasPlatformData = hasPlatform;
+const hasSecurityData = Boolean(knowledgeCard?.security);
+const hasPortabilityData = Boolean(knowledgeCard?.smp_portability);
 const showProceduralVerdict =
   hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
 const showProceduralSpecs =
