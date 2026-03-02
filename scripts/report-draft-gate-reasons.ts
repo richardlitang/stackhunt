@@ -261,6 +261,9 @@ function analyzeReview(review: ReviewRow): {
 
   const conflictsCount = getCanonicalConflicts(review.item?.specs || null);
   if (conflictsCount > 0) knownBlockers.push(`canonical_conflicts:${conflictsCount}`);
+  if (actionabilityScore === null) {
+    knownBlockers.push('missing_actionability_score');
+  }
   if (actionabilityScore !== null && actionabilityScore < minActionabilityScore) {
     knownBlockers.push(`low_actionability:${actionabilityScore}<${minActionabilityScore}`);
   }

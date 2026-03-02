@@ -274,8 +274,9 @@ async function maybeEnqueueCoverageGapRehunt(params: {
   const gaps = detectCoverageGaps(analysis, knowledgeCard, generationQuality);
   const minActionabilityScore = getMinActionabilityScore();
   const actionabilityScore = getGenerationActionabilityScore(generationQuality);
+  const hasMissingActionability = actionabilityScore === null;
   const hasActionabilityGap =
-    actionabilityScore !== null && actionabilityScore < minActionabilityScore;
+    hasMissingActionability || (actionabilityScore !== null && actionabilityScore < minActionabilityScore);
   const hasCriticalGap = gaps.includes('pricing_ceilings');
   if (!hasActionabilityGap && !hasCriticalGap && gaps.length < 2) return;
 
@@ -298,7 +299,9 @@ async function maybeEnqueueCoverageGapRehunt(params: {
 
   const reasonParts: string[] = [];
   if (gaps.length > 0) reasonParts.push(`coverage_gaps:${gaps.join('|')}`);
-  if (hasActionabilityGap) {
+  if (hasMissingActionability) {
+    reasonParts.push('missing_actionability');
+  } else if (hasActionabilityGap) {
     reasonParts.push(`low_actionability:${actionabilityScore ?? 0}<${minActionabilityScore}`);
   }
   const reason = reasonParts.join(';');
@@ -308,7 +311,7 @@ async function maybeEnqueueCoverageGapRehunt(params: {
     category_slug: categorySlug || null,
     hunt_type: 'full',
     force_regenerate: true,
-    priority: hasActionabilityGap ? 95 : hasCriticalGap ? 90 : 75,
+    priority: hasMissingActionability ? 96 : hasActionabilityGap ? 95 : hasCriticalGap ? 90 : 75,
     source: 'scheduled',
     requested_by: reason,
   });
@@ -1991,6 +1994,7 @@ export async function executePersistencePhase(
     const actionabilityScore = getGenerationActionabilityScore(
       (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined
     );
+    const hasMissingActionability = actionabilityScore === null;
     const hasLowActionability =
       actionabilityScore !== null && actionabilityScore < minActionabilityScore;
     const officialEvidenceSources = uniqueSources.filter(
@@ -2018,11 +2022,13 @@ export async function executePersistencePhase(
         discoveryScore
       ) &&
       canonicalConflicts === 0 &&
+      !hasMissingActionability &&
       !hasLowActionability;
     const shouldAutoPublish =
       deps.config.isDraftMode === false &&
       ((dataQuality === 'high' && uniqueSources.length >= 2 && canonicalConflicts === 0) ||
         qualifiesDiscoveryFastPath) &&
+      !hasMissingActionability &&
       !hasLowActionability;
     const reviewStatus = shouldAutoPublish ? 'published' : 'draft';
 
@@ -3836,8 +3842,13 @@ async function createReview(
   }
   const minActionabilityScore = getMinActionabilityScore();
   const actionabilityScore = getGenerationActionabilityScore(generationQuality);
+  const hasMissingActionability = actionabilityScore === null;
   const hasLowActionability =
     actionabilityScore !== null && actionabilityScore < minActionabilityScore;
+  if (hasMissingActionability) {
+    legalIssues.push('MISSING_ACTIONABILITY_SCORE');
+    deps.log('[Guardrail] Forced draft: generation actionability score missing');
+  }
   if (hasLowActionability) {
     legalIssues.push('LOW_ACTIONABILITY_SCORE');
     deps.log(
@@ -3890,6 +3901,7 @@ async function createReview(
     normalizedCons.length >= 2 &&
     legalIssues.length === 0 &&
     canonicalConflictsCount === 0 &&
+    !hasMissingActionability &&
     !hasLowActionability;
   const qualifiesFastPath =
     profile.allowedDataQualities.includes(
@@ -3913,6 +3925,7 @@ async function createReview(
     ) &&
     legalIssues.length === 0 &&
     canonicalConflictsCount === 0 &&
+    !hasMissingActionability &&
     !hasLowActionability;
 
   if (
