@@ -742,36 +742,10 @@ export class GeminiService {
   ): Promise<{ analysis: HunterAnalysis; tokensUsed: number }> {
     const model = getGeminiModelForStage('analysis_synthesis');
     // Prompt should already be interpolated with variables
-    const prompt = input.promptTemplate;
-
-    const generateFn = async () => {
-      return geminiCircuit.execute(async () => {
-        try {
-          return await generateContentWithThinkingFallback(this.client, {
-            model,
-            contents: prompt,
-            config: {
-              temperature: 0.3,
-              responseMimeType: 'application/json',
-              thinkingConfig: {
-                thinkingLevel: ThinkingLevel.HIGH, // Deep reasoning for synthesis
-              },
-            },
-          });
-        } catch (error) {
-          throw classifyGeminiError(error);
-        }
-      });
-    };
-    const response = withRetry
-      ? await withRetry(generateFn, 'Gemini synthesis')
-      : await generateFn();
-
-    const content = response.text;
-    if (!content) throw new Error('Empty response from Gemini');
-
-    const rawParsed = this.parseJsonResponse(content);
-    const parsed = Array.isArray(rawParsed) ? rawParsed[0] || {} : rawParsed;
+    let prompt = input.promptTemplate;
+    const maxSchemaAttempts = 2;
+    let totalTokensUsed = 0;
+    let lastSchemaError: unknown = null;
 
     // Fix common AI mistakes: source_type and claim_type confusion
     // AI sometimes puts "fact"/"opinion" in source_type instead of claim_type
@@ -794,25 +768,6 @@ export class GeminiService {
       }
       return claim;
     };
-    if (Array.isArray(parsed.pros)) {
-      parsed.pros = parsed.pros.map(fixClaim);
-    }
-    if (Array.isArray(parsed.cons)) {
-      parsed.cons = parsed.cons.map(fixClaim);
-    }
-
-    if (Array.isArray(parsed.faqs)) {
-      parsed.faqs = parsed.faqs.map((faq: any) => {
-        if (typeof faq?.answer === 'string') {
-          faq.answer = faq.answer.trim();
-          if (faq.answer.endsWith('...')) {
-            faq.answer = faq.answer.replace(/\.\.\.$/, '.').trim();
-          }
-        }
-        return faq;
-      });
-    }
-
     // Normalize legacy/snake_case review context payloads to AnalysisSchema shape
     const toStringArray = (value: unknown): string[] => {
       if (Array.isArray(value)) {
@@ -856,156 +811,282 @@ export class GeminiService {
       };
     };
 
-    const rawReviewContext = (parsed.reviewContext || parsed.review_context) as
-      | Record<string, any>
-      | undefined;
-    if (rawReviewContext && typeof rawReviewContext === 'object') {
-      const rawBudget = (rawReviewContext.budgetAnalyst ||
-        rawReviewContext.budget_analyst ||
-        {}) as Record<string, unknown>;
-      const rawUser = (rawReviewContext.userAdvocate ||
-        rawReviewContext.user_advocate ||
-        {}) as Record<string, unknown>;
-
-      const rawDecisionIntro = (rawReviewContext.decisionIntro ||
-        rawReviewContext.decision_intro ||
-        {}) as Record<string, unknown>;
-      const rawDecisionEvidence = (rawReviewContext.decisionEvidence ||
-        rawReviewContext.decision_evidence ||
-        {}) as Record<string, unknown>;
-
-      parsed.reviewContext = {
-        humanVerdict:
-          typeof rawReviewContext.humanVerdict === 'string'
-            ? rawReviewContext.humanVerdict
-            : typeof rawReviewContext.human_verdict === 'string'
-              ? rawReviewContext.human_verdict
-              : null,
-        decisionIntro: {
-          what_it_is:
-            typeof rawDecisionIntro.what_it_is === 'string' ? rawDecisionIntro.what_it_is : null,
-          best_for: typeof rawDecisionIntro.best_for === 'string' ? rawDecisionIntro.best_for : null,
-          not_for: typeof rawDecisionIntro.not_for === 'string' ? rawDecisionIntro.not_for : null,
-          main_tradeoff:
-            typeof rawDecisionIntro.main_tradeoff === 'string'
-              ? rawDecisionIntro.main_tradeoff
-              : null,
-          summary: typeof rawDecisionIntro.summary === 'string' ? rawDecisionIntro.summary : null,
-        },
-        decisionEvidence: {
-          best_for_reason: normalizeDecisionSignal(rawDecisionEvidence.best_for_reason),
-          not_for_reason: normalizeDecisionSignal(rawDecisionEvidence.not_for_reason),
-          tradeoff_reason: normalizeDecisionSignal(rawDecisionEvidence.tradeoff_reason),
-        },
-        budgetAnalyst: {
-          costDrivers: toStringArray(rawBudget.costDrivers || rawBudget.cost_drivers),
-          oneTimeFees: toStringArray(rawBudget.oneTimeFees || rawBudget.one_time_fees),
-          commitmentTerms:
-            typeof rawBudget.commitmentTerms === 'string'
-              ? rawBudget.commitmentTerms
-              : typeof rawBudget.commitment_terms === 'string'
-                ? rawBudget.commitment_terms
-                : null,
-          roiThreshold:
-            typeof rawBudget.roiThreshold === 'string'
-              ? rawBudget.roiThreshold
-              : typeof rawBudget.roi_threshold === 'string'
-                ? rawBudget.roi_threshold
-                : null,
-        },
-        userAdvocate: {
-          vibe: typeof rawUser.vibe === 'string' ? rawUser.vibe : null,
-          originStory:
-            typeof rawUser.originStory === 'string'
-              ? rawUser.originStory
-              : typeof rawUser.origin_story === 'string'
-                ? rawUser.origin_story
-                : null,
-          idealFor: toStringArray(rawUser.idealFor || rawUser.ideal_for),
-          avoidIf: toStringArray(rawUser.avoidIf || rawUser.avoid_if),
-          powerTip:
-            typeof rawUser.powerTip === 'string'
-              ? rawUser.powerTip
-              : typeof rawUser.power_tip === 'string'
-                ? rawUser.power_tip
-                : null,
-          delighters: toStringArray(rawUser.delighters),
-          frustrations: toStringArray(rawUser.frustrations),
-        },
-      };
-    }
-    delete parsed.review_context;
-
-    if (input.strictClaimSourcing !== false) {
-      const countInvalidClaims = (claims: unknown): number => {
-        if (!Array.isArray(claims)) return 0;
-        return claims.filter((claim) => {
-          if (!claim || typeof claim !== 'object') return true;
-          const c = claim as Record<string, unknown>;
-          return typeof c.text !== 'string' || typeof c.source_url !== 'string' || !c.source_url.trim();
-        }).length;
+    for (let attempt = 1; attempt <= maxSchemaAttempts; attempt += 1) {
+      const generateFn = async () => {
+        return geminiCircuit.execute(async () => {
+          try {
+            return await generateContentWithThinkingFallback(this.client, {
+              model,
+              contents: prompt,
+              config: {
+                temperature: 0.3,
+                responseMimeType: 'application/json',
+                // Strict contract for synthesis output (field-level shape guidance).
+                responseSchema: {
+                  type: 'object',
+                  required: [
+                    'score',
+                    'pros',
+                    'cons',
+                    'summary',
+                    'sentimentTags',
+                    'pricingType',
+                    'graphTags',
+                  ],
+                  properties: {
+                    score: { type: 'number' },
+                    pros: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        required: ['text', 'source_url', 'source_type', 'claim_type'],
+                        properties: {
+                          text: { type: 'string' },
+                          source_url: { type: 'string' },
+                          source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                          claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                        },
+                      },
+                    },
+                    cons: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        required: ['text', 'source_url', 'source_type', 'claim_type'],
+                        properties: {
+                          text: { type: 'string' },
+                          source_url: { type: 'string' },
+                          source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                          claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                        },
+                      },
+                    },
+                    summary: { type: 'string' },
+                    sentimentTags: { type: 'array', items: { type: 'string' } },
+                    pricingType: {
+                      type: 'string',
+                      enum: ['free', 'freemium', 'paid', 'enterprise', 'open_source'],
+                    },
+                    websiteUrl: { type: 'string', nullable: true },
+                    shortDescription: { type: 'string', nullable: true },
+                    verdict: { type: 'string', nullable: true },
+                    graphTags: {
+                      type: 'object',
+                      required: ['functions', 'audiences', 'platforms'],
+                      properties: {
+                        functions: { type: 'array', items: { type: 'string' } },
+                        audiences: { type: 'array', items: { type: 'string' } },
+                        platforms: { type: 'array', items: { type: 'string' } },
+                      },
+                    },
+                  },
+                },
+                thinkingConfig: {
+                  thinkingLevel: ThinkingLevel.HIGH, // Deep reasoning for synthesis
+                },
+              },
+            });
+          } catch (error) {
+            throw classifyGeminiError(error);
+          }
+        });
       };
 
-      const prosInvalid = countInvalidClaims(parsed.pros);
-      const consInvalid = countInvalidClaims(parsed.cons);
-      if (prosInvalid > 0 || consInvalid > 0) {
-        throw new Error(
-          `Strict claim sourcing failed: pros_invalid=${prosInvalid} cons_invalid=${consInvalid}`
-        );
+      const response = withRetry
+        ? await withRetry(generateFn, `Gemini synthesis (attempt ${attempt}/${maxSchemaAttempts})`)
+        : await generateFn();
+
+      const content = response.text;
+      if (!content) throw new Error('Empty response from Gemini');
+      totalTokensUsed +=
+        response.usageMetadata?.totalTokenCount ?? Math.ceil((prompt.length + content.length) / 4);
+
+      try {
+        const rawParsed = this.parseJsonResponse(content);
+        const parsed = Array.isArray(rawParsed) ? rawParsed[0] || {} : rawParsed;
+
+        if (Array.isArray(parsed.pros)) {
+          parsed.pros = parsed.pros.map(fixClaim);
+        }
+        if (Array.isArray(parsed.cons)) {
+          parsed.cons = parsed.cons.map(fixClaim);
+        }
+
+        if (Array.isArray(parsed.faqs)) {
+          parsed.faqs = parsed.faqs.map((faq: any) => {
+            if (typeof faq?.answer === 'string') {
+              faq.answer = faq.answer.trim();
+              if (faq.answer.endsWith('...')) {
+                faq.answer = faq.answer.replace(/\.\.\.$/, '.').trim();
+              }
+            }
+            return faq;
+          });
+        }
+
+        const rawReviewContext = (parsed.reviewContext || parsed.review_context) as
+          | Record<string, any>
+          | undefined;
+        if (rawReviewContext && typeof rawReviewContext === 'object') {
+          const rawBudget = (rawReviewContext.budgetAnalyst ||
+            rawReviewContext.budget_analyst ||
+            {}) as Record<string, unknown>;
+          const rawUser = (rawReviewContext.userAdvocate ||
+            rawReviewContext.user_advocate ||
+            {}) as Record<string, unknown>;
+
+          const rawDecisionIntro = (rawReviewContext.decisionIntro ||
+            rawReviewContext.decision_intro ||
+            {}) as Record<string, unknown>;
+          const rawDecisionEvidence = (rawReviewContext.decisionEvidence ||
+            rawReviewContext.decision_evidence ||
+            {}) as Record<string, unknown>;
+
+          parsed.reviewContext = {
+            humanVerdict:
+              typeof rawReviewContext.humanVerdict === 'string'
+                ? rawReviewContext.humanVerdict
+                : typeof rawReviewContext.human_verdict === 'string'
+                  ? rawReviewContext.human_verdict
+                  : null,
+            decisionIntro: {
+              what_it_is:
+                typeof rawDecisionIntro.what_it_is === 'string' ? rawDecisionIntro.what_it_is : null,
+              best_for:
+                typeof rawDecisionIntro.best_for === 'string' ? rawDecisionIntro.best_for : null,
+              not_for: typeof rawDecisionIntro.not_for === 'string' ? rawDecisionIntro.not_for : null,
+              main_tradeoff:
+                typeof rawDecisionIntro.main_tradeoff === 'string'
+                  ? rawDecisionIntro.main_tradeoff
+                  : null,
+              summary: typeof rawDecisionIntro.summary === 'string' ? rawDecisionIntro.summary : null,
+            },
+            decisionEvidence: {
+              best_for_reason: normalizeDecisionSignal(rawDecisionEvidence.best_for_reason),
+              not_for_reason: normalizeDecisionSignal(rawDecisionEvidence.not_for_reason),
+              tradeoff_reason: normalizeDecisionSignal(rawDecisionEvidence.tradeoff_reason),
+            },
+            budgetAnalyst: {
+              costDrivers: toStringArray(rawBudget.costDrivers || rawBudget.cost_drivers),
+              oneTimeFees: toStringArray(rawBudget.oneTimeFees || rawBudget.one_time_fees),
+              commitmentTerms:
+                typeof rawBudget.commitmentTerms === 'string'
+                  ? rawBudget.commitmentTerms
+                  : typeof rawBudget.commitment_terms === 'string'
+                    ? rawBudget.commitment_terms
+                    : null,
+              roiThreshold:
+                typeof rawBudget.roiThreshold === 'string'
+                  ? rawBudget.roiThreshold
+                  : typeof rawBudget.roi_threshold === 'string'
+                    ? rawBudget.roi_threshold
+                    : null,
+            },
+            userAdvocate: {
+              vibe: typeof rawUser.vibe === 'string' ? rawUser.vibe : null,
+              originStory:
+                typeof rawUser.originStory === 'string'
+                  ? rawUser.originStory
+                  : typeof rawUser.origin_story === 'string'
+                    ? rawUser.origin_story
+                    : null,
+              idealFor: toStringArray(rawUser.idealFor || rawUser.ideal_for),
+              avoidIf: toStringArray(rawUser.avoidIf || rawUser.avoid_if),
+              powerTip:
+                typeof rawUser.powerTip === 'string'
+                  ? rawUser.powerTip
+                  : typeof rawUser.power_tip === 'string'
+                    ? rawUser.power_tip
+                    : null,
+              delighters: toStringArray(rawUser.delighters),
+              frustrations: toStringArray(rawUser.frustrations),
+            },
+          };
+        }
+        delete parsed.review_context;
+
+        if (input.strictClaimSourcing !== false) {
+          const countInvalidClaims = (claims: unknown): number => {
+            if (!Array.isArray(claims)) return 0;
+            return claims.filter((claim) => {
+              if (!claim || typeof claim !== 'object') return true;
+              const c = claim as Record<string, unknown>;
+              return (
+                typeof c.text !== 'string' ||
+                typeof c.source_url !== 'string' ||
+                !c.source_url.trim()
+              );
+            }).length;
+          };
+
+          const prosInvalid = countInvalidClaims(parsed.pros);
+          const consInvalid = countInvalidClaims(parsed.cons);
+          if (prosInvalid > 0 || consInvalid > 0) {
+            throw new Error(
+              `Strict claim sourcing failed: pros_invalid=${prosInvalid} cons_invalid=${consInvalid}`
+            );
+          }
+        }
+
+        if (parsed.verdict && typeof parsed.verdict === 'string' && parsed.verdict.length > 200) {
+          parsed.verdict = parsed.verdict.slice(0, 197) + '...';
+        }
+        if (
+          parsed.shortDescription &&
+          typeof parsed.shortDescription === 'string' &&
+          parsed.shortDescription.length > 200
+        ) {
+          parsed.shortDescription = parsed.shortDescription.slice(0, 197) + '...';
+        }
+
+        const sanitizedUrl = sanitizeUrl(parsed.websiteUrl);
+        if (sanitizedUrl) {
+          parsed.websiteUrl = sanitizedUrl;
+        } else {
+          delete parsed.websiteUrl;
+        }
+
+        if (parsed.fitScore === null || parsed.fitScore === '') {
+          delete parsed.fitScore;
+        } else if (typeof parsed.fitScore === 'string') {
+          const coerced = Number(parsed.fitScore);
+          if (Number.isFinite(coerced)) parsed.fitScore = coerced;
+          else delete parsed.fitScore;
+        }
+        if (parsed.valueRating === null || parsed.valueRating === '') {
+          delete parsed.valueRating;
+        } else if (typeof parsed.valueRating === 'string') {
+          const coerced = Number(parsed.valueRating);
+          if (Number.isFinite(coerced)) parsed.valueRating = coerced;
+          else delete parsed.valueRating;
+        }
+        if (!Array.isArray(parsed.standoutFeatures)) delete parsed.standoutFeatures;
+        if (!Array.isArray(parsed.dealbreakers)) delete parsed.dealbreakers;
+        if (!Array.isArray(parsed.switchingFrom)) delete parsed.switchingFrom;
+
+        const validated = AnalysisSchema.parse(parsed);
+        return {
+          analysis: validated as unknown as HunterAnalysis,
+          tokensUsed: totalTokensUsed,
+        };
+      } catch (error) {
+        lastSchemaError = error;
+        if (attempt >= maxSchemaAttempts) break;
+        const issue = error instanceof Error ? error.message : 'unknown schema validation error';
+        prompt = `${input.promptTemplate}
+
+RETRY REQUIREMENTS:
+- The previous response failed validation: ${issue}
+- Return valid JSON only (no markdown/code fences).
+- Keep required fields present and ensure pros/cons are objects with text, source_url, source_type, claim_type.`;
       }
     }
 
-    // Fix verdict: truncate if too long (max 200 chars)
-    if (parsed.verdict && typeof parsed.verdict === 'string' && parsed.verdict.length > 200) {
-      parsed.verdict = parsed.verdict.slice(0, 197) + '...';
-    }
-
-    // Fix shortDescription: truncate if too long (max 200 chars)
-    if (
-      parsed.shortDescription &&
-      typeof parsed.shortDescription === 'string' &&
-      parsed.shortDescription.length > 200
-    ) {
-      parsed.shortDescription = parsed.shortDescription.slice(0, 197) + '...';
-    }
-
-    // Sanitize websiteUrl using utility (handles missing protocol, invalid formats)
-    const sanitizedUrl = sanitizeUrl(parsed.websiteUrl);
-    if (sanitizedUrl) {
-      parsed.websiteUrl = sanitizedUrl;
-    } else {
-      delete parsed.websiteUrl;
-    }
-
-    // Coerce nullable/legacy context fields so strict schema validation does not fail on nulls.
-    if (parsed.fitScore === null || parsed.fitScore === '') {
-      delete parsed.fitScore;
-    } else if (typeof parsed.fitScore === 'string') {
-      const coerced = Number(parsed.fitScore);
-      if (Number.isFinite(coerced)) parsed.fitScore = coerced;
-      else delete parsed.fitScore;
-    }
-    if (parsed.valueRating === null || parsed.valueRating === '') {
-      delete parsed.valueRating;
-    } else if (typeof parsed.valueRating === 'string') {
-      const coerced = Number(parsed.valueRating);
-      if (Number.isFinite(coerced)) parsed.valueRating = coerced;
-      else delete parsed.valueRating;
-    }
-    if (!Array.isArray(parsed.standoutFeatures)) delete parsed.standoutFeatures;
-    if (!Array.isArray(parsed.dealbreakers)) delete parsed.dealbreakers;
-    if (!Array.isArray(parsed.switchingFrom)) delete parsed.switchingFrom;
-
-    const validated = AnalysisSchema.parse(parsed);
-
-    // Use actual token count from API response, fallback to heuristic
-    const tokensUsed =
-      response.usageMetadata?.totalTokenCount ?? Math.ceil((prompt.length + content.length) / 4);
-
-    return {
-      analysis: validated as unknown as HunterAnalysis,
-      tokensUsed,
-    };
+    throw new Error(
+      `Gemini synthesis schema validation failed after ${maxSchemaAttempts} attempts: ${
+        lastSchemaError instanceof Error ? lastSchemaError.message : 'unknown error'
+      }`
+    );
   }
 
   /**

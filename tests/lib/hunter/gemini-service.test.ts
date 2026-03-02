@@ -204,4 +204,43 @@ describe('GeminiService.synthesize', () => {
     expect(typeof result.analysis.pros[0]).toBe('string');
     expect(typeof result.analysis.cons[0]).toBe('string');
   });
+
+  it('retries once when first synthesis payload fails strict schema checks', async () => {
+    const invalidPayload = {
+      ...buildValidPayload(),
+      pros: ['Strong API access'],
+      cons: ['SSO only on enterprise'],
+    };
+    const validPayload = buildValidPayload();
+
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(invalidPayload),
+        usageMetadata: { totalTokenCount: 101 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(validPayload),
+        usageMetadata: { totalTokenCount: 202 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'ExampleTool',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(result.tokensUsed).toBe(303);
+    expect(Array.isArray(result.analysis.pros)).toBe(true);
+    expect(typeof result.analysis.pros[0]).toBe('object');
+    expect(mockGenerateContentWithThinkingFallback).toHaveBeenCalledTimes(2);
+  });
 });
