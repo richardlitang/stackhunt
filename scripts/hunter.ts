@@ -22,17 +22,49 @@ import { parse } from 'csv-parse/sync';
 // Load environment variables
 config();
 
+type EntityScopeAmbiguity = {
+  recommendedScopes: string[];
+};
+
+function detectEntityScopeAmbiguity(
+  toolName: string,
+  entityScope?: string
+): EntityScopeAmbiguity | null {
+  if (entityScope) return null;
+  const normalized = toolName.trim().toLowerCase();
+  if (normalized === 'github') {
+    return { recommendedScopes: ['core', 'copilot', 'actions', 'enterprise_cloud'] };
+  }
+  return null;
+}
+
+function buildAutoScopeQueueVariants(
+  toolName: string,
+  contextTitle?: string
+): Array<{ toolName: string; entityScope?: string; contextTitle?: string }> {
+  const ambiguity = detectEntityScopeAmbiguity(toolName);
+  if (!ambiguity) return [{ toolName, contextTitle }];
+  return ambiguity.recommendedScopes.map((scope) => ({
+    toolName,
+    entityScope: scope,
+    contextTitle,
+  }));
+}
+
 // Dynamic import to handle module resolution
 async function main() {
   const { values } = parseArgs({
     options: {
       tool: { type: 'string', short: 't' },
       context: { type: 'string', short: 'c' },
+      'entity-scope': { type: 'string' },
+      scope: { type: 'string' },
       category: { type: 'string', short: 'g' },
       publish: { type: 'boolean', short: 'p' },  // Skip draft, publish immediately
       rehunt: { type: 'boolean', short: 'r' },   // Force re-extraction for duplicates
       'research-only': { type: 'boolean' },       // Two-stage: stop after research (for batch synthesis)
       queue: { type: 'string', short: 'q' },      // 'add' | 'process' | 'batch' | 'cleanup' | 'status'
+      'auto-scope-queue': { type: 'boolean' },    // Queue conservative parent/sub variants for ambiguous tools
       strategy: { type: 'string', short: 's' },   // 'analyze' | 'import' | 'ahrefs' | 'classify' | 'approve' | 'status' | 'thresholds'
       file: { type: 'string', short: 'f' },       // CSV file for import
       priority: { type: 'string' },               // Queue priority (0-100) or min ROI for approve
@@ -173,6 +205,7 @@ HUNT QUEUE (Worker Operations)
     -t, --tool         Tool name (required)
     -c, --context      Context/audience
     --priority         Priority 0-100 (default: 50)
+    --auto-scope-queue Queue conservative variants for ambiguous parent tools (e.g. GitHub + GitHub Copilot)
 
   --queue process      Process next item from queue
   --queue batch        Process multiple items
@@ -187,6 +220,8 @@ DIRECT HUNT (Bypass Queue)
 
   -t, --tool           Tool name to research (required)
   -c, --context        Context/audience
+  --entity-scope       Optional sub-product scope (core|copilot|actions|enterprise_cloud|enterprise_server|ghes)
+  --scope              Alias for --entity-scope
   -g, --category       Category slug
   -p, --publish        Publish immediately (skip draft review)
   --research-only      Two-stage: stop after research phase (for batch synthesis)
@@ -194,6 +229,10 @@ DIRECT HUNT (Bypass Queue)
 Examples:
   npm run hunt -- --tool="Salesforce"
   npm run hunt -- --tool="Slack" --context="Best for Remote Teams"
+  npm run hunt -- --tool="GitHub" --entity-scope=core
+  npm run hunt -- --tool="GitHub" --entity-scope=copilot
+  npm run hunt -- --tool="GitHub" --entity-scope=actions
+  npm run hunt -- --tool="GitHub" --entity-scope=ghes
   npm run hunt -- --tool="Notion" --publish
   npm run hunt -- --tool="Cursor" --context="Best AI Code Editor" --research-only
 
@@ -224,16 +263,82 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
       process.exit(1);
     }
 
+    const autoScopeQueue = !!values['auto-scope-queue'];
+    const ambiguity = detectEntityScopeAmbiguity(values.tool as string);
+
+    if (autoScopeQueue && ambiguity) {
+      const variants = buildAutoScopeQueueVariants(
+        values.tool as string,
+        (values.context as string) || undefined
+      );
+      const requestedPriority = parseInt(values.priority as string) || 50;
+      console.log(
+        `Auto scope queue: adding ${variants.length} conservative variants for ${values.tool}`
+      );
+      const rows = variants.map((variant, index) => ({
+        tool_name: variant.toolName,
+        entity_scope: variant.entityScope || null,
+        context_title: (values.context as string) || null,
+        category_slug: (values.category as string) || null,
+        priority: Math.max(1, requestedPriority - index),
+        source: 'admin',
+        hunt_type: 'full',
+      })) as any[];
+
+      const inserted: Array<{
+        id: string;
+        tool_name: string;
+        priority: number | null;
+        entity_scope?: string | null;
+      }> = [];
+      for (const row of rows) {
+        const { data, error } = await supabase.from('hunt_queue').insert(row).select().single();
+        if (error) {
+          if (error.code === '23505') {
+            const scopeLabel = row.entity_scope ? ` [scope=${row.entity_scope}]` : '';
+            console.log(`  ⏭️  ${row.tool_name}${scopeLabel} already in queue (pending/processing)`);
+            continue;
+          }
+          console.error(`  Failed to add ${row.tool_name}: ${error.message}`);
+          process.exit(1);
+        }
+        inserted.push({
+          id: data.id,
+          tool_name: data.tool_name,
+          priority: data.priority,
+          entity_scope: (data as any).entity_scope || null,
+        });
+      }
+
+      if (inserted.length > 0) {
+        console.log('Queued variants:');
+        inserted.forEach((item) => {
+          const scopeLabel = item.entity_scope ? ` [scope=${item.entity_scope}]` : '';
+          console.log(`  - ${item.tool_name}${scopeLabel} (p${item.priority}) [${item.id}]`);
+        });
+      } else {
+        console.log('No new variants were queued.');
+      }
+      return;
+    }
+
+    if (!autoScopeQueue && ambiguity) {
+      console.log(
+        `Tip: "${values.tool}" is ambiguous. Use --auto-scope-queue to enqueue conservative variants (e.g. core + Copilot).`
+      );
+    }
+
     const { data, error } = await supabase
       .from('hunt_queue')
       .insert({
         tool_name: values.tool as string,
+        entity_scope: ((values['entity-scope'] || values.scope) as string) || null,
         context_title: (values.context as string) || null,
         category_slug: (values.category as string) || null,
         priority: parseInt(values.priority as string) || 50,
         source: 'admin',
         hunt_type: 'full',
-      })
+      } as any)
       .select()
       .single();
 
@@ -247,6 +352,9 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
     } else {
       console.log(`Added to hunt queue: ${values.tool}`);
       console.log(`  Context: ${values.context || '(none)'}`);
+      if (values['entity-scope'] || values.scope) {
+        console.log(`  Entity scope: ${(values['entity-scope'] || values.scope) as string}`);
+      }
       console.log(`  Priority: ${data.priority}`);
       console.log(`  Queue ID: ${data.id}`);
     }
@@ -361,10 +469,20 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
   const isDraftMode = !values.publish;
   const forceUpdate = !!values.rehunt;
   const researchOnly = !!values['research-only'];
+  const entityScope = (values['entity-scope'] || values.scope) as string | undefined;
 
   console.log('═'.repeat(60));
   console.log(`🎯 Starting hunt for: ${values.tool}`);
   if (values.context) console.log(`📋 Context: ${values.context}`);
+  if (entityScope) console.log(`🧭 Entity scope: ${entityScope}`);
+  const scopeAmbiguity = detectEntityScopeAmbiguity(values.tool as string, entityScope);
+  if (scopeAmbiguity) {
+    console.log(`⚠️  Scope ambiguity: "${values.tool}" is a parent product with common sub-products`);
+    console.log(`   Recommended scoped hunts: ${scopeAmbiguity.recommendedScopes.join(', ')}`);
+    console.log(
+      `   Example: npm run hunt -- --tool="${values.tool}" --entity-scope=${scopeAmbiguity.recommendedScopes[0]}`
+    );
+  }
   if (values.category) console.log(`📁 Category: ${values.category}`);
   if (researchOnly) {
     console.log(`🔬 Mode: RESEARCH ONLY (will await batch synthesis)`);
@@ -414,6 +532,7 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
 
   const result = await hunter.hunt({
     toolName: values.tool as string,
+    entityScope,
     contextTitle: values.context as string | undefined,
     categorySlug: values.category as string | undefined,
     forceUpdate,
