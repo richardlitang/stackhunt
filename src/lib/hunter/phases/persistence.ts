@@ -121,6 +121,7 @@ const COVERAGE_MIGRATION_TOKENS =
   /\b(migration|migrate|switch|switching|lock[-\s]?in|export|import|portability|data portability)\b/i;
 const COVERAGE_SUPPORT_TOKENS =
   /\b(support|docs|documentation|SLA|uptime|ticket|response time|customer success)\b/i;
+const DEFAULT_MIN_ACTIONABILITY_SCORE = 58;
 
 const POPULARITY_PROFILES: Record<
   PopularityTier,
@@ -176,6 +177,20 @@ function meetsAuthoritativeSourceThreshold(
   if (count >= minRequired) return true;
   if (tier === 'popular' && count >= 1 && score >= 88) return true;
   return false;
+}
+
+function getMinActionabilityScore(): number {
+  const raw = typeof process !== 'undefined' ? process.env.HUNTER_MIN_ACTIONABILITY_SCORE : undefined;
+  const parsed = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(parsed)) return DEFAULT_MIN_ACTIONABILITY_SCORE;
+  return Math.min(100, Math.max(0, Math.round(parsed)));
+}
+
+function getGenerationActionabilityScore(generationQuality?: Record<string, unknown>): number | null {
+  const raw = generationQuality?.actionabilityScore;
+  const numeric = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.min(100, Math.max(0, numeric));
 }
 
 function meetsAuthoritativeDomainThreshold(
@@ -257,8 +272,12 @@ async function maybeEnqueueCoverageGapRehunt(params: {
 }): Promise<void> {
   const { toolName, contextTitle, categorySlug, analysis, knowledgeCard, generationQuality, deps } = params;
   const gaps = detectCoverageGaps(analysis, knowledgeCard, generationQuality);
+  const minActionabilityScore = getMinActionabilityScore();
+  const actionabilityScore = getGenerationActionabilityScore(generationQuality);
+  const hasActionabilityGap =
+    actionabilityScore !== null && actionabilityScore < minActionabilityScore;
   const hasCriticalGap = gaps.includes('pricing_ceilings');
-  if (!hasCriticalGap && gaps.length < 2) return;
+  if (!hasActionabilityGap && !hasCriticalGap && gaps.length < 2) return;
 
   let existingQuery = deps.supabase
     .from('hunt_queue')
@@ -277,14 +296,19 @@ async function maybeEnqueueCoverageGapRehunt(params: {
     return;
   }
 
-  const reason = `coverage_gaps:${gaps.join('|')}`;
+  const reasonParts: string[] = [];
+  if (gaps.length > 0) reasonParts.push(`coverage_gaps:${gaps.join('|')}`);
+  if (hasActionabilityGap) {
+    reasonParts.push(`low_actionability:${actionabilityScore ?? 0}<${minActionabilityScore}`);
+  }
+  const reason = reasonParts.join(';');
   const { error } = await deps.supabase.from('hunt_queue').insert({
     tool_name: toolName,
     context_title: contextTitle || null,
     category_slug: categorySlug || null,
     hunt_type: 'full',
     force_regenerate: true,
-    priority: hasCriticalGap ? 90 : 75,
+    priority: hasActionabilityGap ? 95 : hasCriticalGap ? 90 : 75,
     source: 'scheduled',
     requested_by: reason,
   });
@@ -293,7 +317,7 @@ async function maybeEnqueueCoverageGapRehunt(params: {
     return;
   }
   deps.log(
-    `[Coverage Gap] Enqueued re-hunt for ${toolName}${contextTitle ? ` (${contextTitle})` : ''} due to gaps: ${gaps.join(', ')}`
+    `[Coverage Gap] Enqueued re-hunt for ${toolName}${contextTitle ? ` (${contextTitle})` : ''} due to ${reason}`
   );
 }
 
@@ -1963,6 +1987,12 @@ export async function executePersistencePhase(
     const canonicalConflicts = Number((specs.canonical as any)?.quality?.conflicts_count || 0);
     const discoveryScore = Number(ctx.analysis.analysis?.score || 0);
     const profile = POPULARITY_PROFILES[popularityTier];
+    const minActionabilityScore = getMinActionabilityScore();
+    const actionabilityScore = getGenerationActionabilityScore(
+      (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined
+    );
+    const hasLowActionability =
+      actionabilityScore !== null && actionabilityScore < minActionabilityScore;
     const officialEvidenceSources = uniqueSources.filter(
       (source) => (source.source_type || source.type) === 'official'
     );
@@ -1987,15 +2017,17 @@ export async function executePersistencePhase(
         officialEvidenceSources.length,
         discoveryScore
       ) &&
-      canonicalConflicts === 0;
+      canonicalConflicts === 0 &&
+      !hasLowActionability;
     const shouldAutoPublish =
       deps.config.isDraftMode === false &&
       ((dataQuality === 'high' && uniqueSources.length >= 2 && canonicalConflicts === 0) ||
-        qualifiesDiscoveryFastPath);
+        qualifiesDiscoveryFastPath) &&
+      !hasLowActionability;
     const reviewStatus = shouldAutoPublish ? 'published' : 'draft';
 
     deps.log(
-      `[Discovery Review] Tier: ${popularityTier}, Quality: ${dataQuality}, Score: ${discoveryScore}, Sources: ${uniqueSources.length}, Official Sources: ${officialEvidenceSources.length}, Conflicts: ${canonicalConflicts}, Status: ${reviewStatus}`
+      `[Discovery Review] Tier: ${popularityTier}, Quality: ${dataQuality}, Score: ${discoveryScore}, Sources: ${uniqueSources.length}, Official Sources: ${officialEvidenceSources.length}, Conflicts: ${canonicalConflicts}, Actionability: ${actionabilityScore ?? 'n/a'} (min ${minActionabilityScore}), Status: ${reviewStatus}`
     );
 
     // Upsert-like behavior for discovery review (context_id is null, so onConflict is unreliable).
@@ -3802,6 +3834,16 @@ async function createReview(
       '[Guardrail] Forced draft: unsupported risky narrative claim without sufficient evidence'
     );
   }
+  const minActionabilityScore = getMinActionabilityScore();
+  const actionabilityScore = getGenerationActionabilityScore(generationQuality);
+  const hasLowActionability =
+    actionabilityScore !== null && actionabilityScore < minActionabilityScore;
+  if (hasLowActionability) {
+    legalIssues.push('LOW_ACTIONABILITY_SCORE');
+    deps.log(
+      `[Guardrail] Forced draft: actionability score ${actionabilityScore} below minimum ${minActionabilityScore}`
+    );
+  }
 
   const authoritativeSources = sources.filter((source) =>
     AUTHORITATIVE_SOURCE_TYPES.has((source.source_type || '').toLowerCase())
@@ -3847,7 +3889,8 @@ async function createReview(
     filteredCons.length <= 1 &&
     normalizedCons.length >= 2 &&
     legalIssues.length === 0 &&
-    canonicalConflictsCount === 0;
+    canonicalConflictsCount === 0 &&
+    !hasLowActionability;
   const qualifiesFastPath =
     profile.allowedDataQualities.includes(
       knowledgeCard.meta.data_quality as 'high' | 'medium' | 'low'
@@ -3869,7 +3912,8 @@ async function createReview(
       analysis.score
     ) &&
     legalIssues.length === 0 &&
-    canonicalConflictsCount === 0;
+    canonicalConflictsCount === 0 &&
+    !hasLowActionability;
 
   if (
     (isHighConfidence || qualifiesFastPath) &&
@@ -3879,18 +3923,18 @@ async function createReview(
     reviewData.status = 'published';
     if (isHighConfidence) {
       deps.log(
-        `[Auto-publish] High confidence review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+        `[Auto-publish] High confidence review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, actionability=${actionabilityScore ?? 'n/a'}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
       );
     } else {
       deps.log(
-        `[Auto-publish] Fast path review (tier=${popularityTier}, quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, authoritative_sources=${authoritativeSources.length}, authoritative_domains=${authoritativeDomains.size}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+        `[Auto-publish] Fast path review (tier=${popularityTier}, quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, actionability=${actionabilityScore ?? 'n/a'}, authoritative_sources=${authoritativeSources.length}, authoritative_domains=${authoritativeDomains.size}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
       );
     }
   } else {
     reviewData.status = 'draft';
     if (!isHighConfidence) {
       deps.log(
-        `[Draft] Review needs manual review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+        `[Draft] Review needs manual review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, actionability=${actionabilityScore ?? 'n/a'}, min_actionability=${minActionabilityScore}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
       );
       if (legalIssues.length > 0) {
         deps.log(`[Draft] Legal guardrail issues: ${legalIssues.join(', ')}`);
