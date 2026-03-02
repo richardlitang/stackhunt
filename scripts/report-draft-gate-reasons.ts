@@ -320,10 +320,31 @@ async function main() {
 
   const supabase = createClient(supabaseUrl, serviceRole);
 
-  const { data, error } = await supabase
-    .from('reviews')
-    .select(
-      `
+  const baseSelect = `
+      id,
+      item_id,
+      status,
+      score,
+      quality,
+      summary_markdown,
+      cons,
+      sources,
+      updated_at,
+      item:items(
+        id,
+        name,
+        slug,
+        short_description,
+        verdict,
+        review_count,
+        pricing_confidence,
+        pricing_verified_at,
+        updated_at,
+        metadata,
+        specs
+      )
+    `;
+  const withGenerationQualitySelect = `
       id,
       item_id,
       status,
@@ -347,12 +368,35 @@ async function main() {
         metadata,
         specs
       )
-    `
-    )
-    .in('status', ['draft', 'review'])
-    .not('item_id', 'is', null)
-    .order('updated_at', { ascending: false })
-    .limit(limit);
+    `;
+
+  let data: ReviewRow[] | null = null;
+  let error: { message: string } | null = null;
+  {
+    const result = await supabase
+      .from('reviews')
+      .select(withGenerationQualitySelect)
+      .in('status', ['draft', 'review'])
+      .not('item_id', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+    data = (result.data as ReviewRow[] | null) || null;
+    error = result.error ? { message: result.error.message } : null;
+  }
+  if (error && /generation_quality/.test(error.message) && /does not exist/i.test(error.message)) {
+    const fallback = await supabase
+      .from('reviews')
+      .select(baseSelect)
+      .in('status', ['draft', 'review'])
+      .not('item_id', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+    data = ((fallback.data || []) as Array<Omit<ReviewRow, 'generation_quality'>>).map((row) => ({
+      ...row,
+      generation_quality: null,
+    }));
+    error = fallback.error ? { message: fallback.error.message } : null;
+  }
 
   if (error) {
     console.error('Query failed:', error.message);
