@@ -109,6 +109,10 @@ async function main() {
     'missing_required_sections,mvup_incomplete,authoritative_sources_low,authoritative_domains_low';
   const workerBatch = getArgValue('worker-batch') || '5';
   const renderedSample = getArgValue('rendered-sample') || '15';
+  const maxMissingActionabilityArg = Number(getArgValue('max-missing-actionability') || '0');
+  const maxMissingActionability = Number.isFinite(maxMissingActionabilityArg)
+    ? Math.max(0, Math.floor(maxMissingActionabilityArg))
+    : 0;
 
   console.log('\nQA Autopilot');
   console.log(`Mode: ${dryRun ? 'DRY RUN' : 'APPLY'}`);
@@ -152,12 +156,24 @@ async function main() {
     );
     const actionabilityBelow = extractFirstNumber(gatesResult.output, /below threshold:\s*(\d+)/i);
     const actionabilityMissing = extractFirstNumber(gatesResult.output, /missing score:\s*(\d+)/i);
+    const missingActionabilityBlockers = extractFirstNumber(
+      gatesResult.output,
+      /(\d+)x\s+missing_actionability_score/i
+    );
     details.push(`Published safe drafts: ${publishedCount}`);
     details.push(
       `Actionability: min=${actionabilityMin || 'n/a'} avg=${
         actionabilityAvg === null ? 'n/a' : actionabilityAvg.toFixed(1)
       } below=${actionabilityBelow} missing=${actionabilityMissing}`
     );
+    details.push(
+      `Actionability blockers: missing_actionability_score=${missingActionabilityBlockers} (max ${maxMissingActionability})`
+    );
+    if (missingActionabilityBlockers > maxMissingActionability) {
+      throw new Error(
+        `Fail-fast: missing_actionability_score=${missingActionabilityBlockers} exceeds max=${maxMissingActionability}`
+      );
+    }
 
     if (!dryRun) {
       const ideasResult = runStep('Queue new content ideas', [

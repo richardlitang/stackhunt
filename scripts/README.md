@@ -36,6 +36,7 @@ Minimal operational scripts for the live content pipeline.
 - Full apply run: `npm run qa:autopilot`
 - Cron-safe apply run: `npm run qa:autopilot:cron`
 - Draft gate audit now reports `actionability` metrics (min threshold, average, below-threshold, missing) via `npm run qa:gates`.
+- `qa:autopilot` fail-fast: set `--max-missing-actionability=<n>` (default `0`) to stop runs when `missing_actionability_score` blockers exceed your tolerance.
 - Pricing fallback report: `npm run qa:pricing-fallback`
 - Queue pricing fallback re-hunts (dry run): `npm run qa:queue-pricing-fallback-rehunt`
 - Queue pricing fallback re-hunts (apply): `npm run qa:queue-pricing-fallback-rehunt:apply`
