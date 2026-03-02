@@ -2778,7 +2778,7 @@ const schemas = [
   </div>
 
   <script is:inline>
-    const pageRoot = (document.querySelector('main') as HTMLElement | null) || document.body;
+    const pageRoot = document.querySelector('main') || document.body;
 
     const trackOutboundClick = (link: HTMLAnchorElement) => {
       const href = link.getAttribute('href') || '';
@@ -2799,32 +2799,32 @@ const schemas = [
         }
       })();
 
-      if (typeof (window as any).plausible === 'function') {
-        (window as any).plausible('outbound_click', {
+      if (typeof window.plausible === 'function') {
+        window.plausible('outbound_click', {
           props: { type, location, tool, href: sanitizedHref },
         });
       }
     };
 
     let isSuggestEditReady = false;
-    let openSuggestEdit: (() => void) | null = null;
-    let closeSuggestEdit: (() => void) | null = null;
+    let openSuggestEdit = null;
+    let closeSuggestEdit = null;
 
     const initSuggestEditModal = () => {
       if (isSuggestEditReady) return;
       const modal = document.getElementById('suggest-edit-modal');
-      const modalPanel = modal?.querySelector('[data-modal-panel]') as HTMLElement | null;
-      const form = document.getElementById('suggest-edit-form') as HTMLFormElement | null;
+      const modalPanel = modal?.querySelector('[data-modal-panel]');
+      const form = document.getElementById('suggest-edit-form');
       const success = document.getElementById('suggest-edit-success');
       if (!modal || !modalPanel || !form || !success) return;
 
-      let lastFocusedElement: HTMLElement | null = null;
+      let lastFocusedElement = null;
 
       const focusFirstFocusable = () => {
-        const firstFocusable = modal.querySelector<HTMLElement>(
+        const firstFocusable = modal.querySelector(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
-        firstFocusable?.focus();
+        if (firstFocusable instanceof HTMLElement) firstFocusable.focus();
       };
 
       const closeModal = () => {
@@ -2835,7 +2835,8 @@ const schemas = [
       };
 
       const openModal = () => {
-        lastFocusedElement = document.activeElement as HTMLElement | null;
+        lastFocusedElement =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         modal.setAttribute('aria-hidden', 'false');
@@ -2844,13 +2845,13 @@ const schemas = [
         setTimeout(() => focusFirstFocusable(), 0);
       };
 
-      const trapFocus = (event: KeyboardEvent) => {
+      const trapFocus = (event) => {
         if (event.key !== 'Tab' || modal.classList.contains('hidden')) return;
         const focusable = Array.from(
-          modal.querySelectorAll<HTMLElement>(
+          modal.querySelectorAll(
             'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
           )
-        ).filter((el) => !el.hasAttribute('disabled'));
+        ).filter((el) => el instanceof HTMLElement && !el.hasAttribute('disabled'));
         if (focusable.length === 0) return;
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
@@ -2906,20 +2907,20 @@ const schemas = [
     };
 
     pageRoot.addEventListener('click', async (event) => {
-      const target = event.target as HTMLElement | null;
+      const target = event.target instanceof HTMLElement ? event.target : null;
       if (!target) return;
 
-      const link = target.closest('a') as HTMLAnchorElement | null;
-      if (link) trackOutboundClick(link);
+      const link = target.closest('a');
+      if (link instanceof HTMLAnchorElement) trackOutboundClick(link);
 
-      const openSuggestEditButton = target.closest('[data-suggest-edit]') as HTMLElement | null;
+      const openSuggestEditButton = target.closest('[data-suggest-edit]');
       if (openSuggestEditButton) {
         initSuggestEditModal();
         openSuggestEdit?.();
         return;
       }
 
-      const closeSuggestEditButton = target.closest('[data-close-modal]') as HTMLElement | null;
+      const closeSuggestEditButton = target.closest('[data-close-modal]');
       if (closeSuggestEditButton) {
         closeSuggestEdit?.();
       }
