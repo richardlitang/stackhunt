@@ -50,6 +50,15 @@ import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 export const prerender = false;
 
 const { slug } = Astro.params;
+const hasVersionBypassParam = Astro.url.searchParams.has('v');
+if (hasVersionBypassParam) {
+  // Cache-bust requests like ?v=34 should always skip CDN/page cache.
+  const noStore = 'no-store, max-age=0';
+  Astro.response.headers.set('Cache-Control', noStore);
+  Astro.response.headers.set('CDN-Cache-Control', noStore);
+  Astro.response.headers.set('Vercel-CDN-Cache-Control', noStore);
+}
+
 const tool = await getToolBySlugAndType(slug, 'tool');
 
 if (!tool) {
