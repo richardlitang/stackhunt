@@ -678,6 +678,42 @@ describe('GeminiService.synthesize', () => {
     expect(stageOnePrompt).toContain('Airtable');
   });
 
+  it('backfills switchingFrom from alternative signals when model omits it', async () => {
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(buildEvidencePayload()),
+        usageMetadata: { totalTokenCount: 200 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          ...buildValidPayload(),
+          switchingFrom: undefined,
+        }),
+        usageMetadata: { totalTokenCount: 210 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'Notion',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [
+        '[https://example.com/1] Notion vs Coda for docs',
+        '[https://example.com/2] Airtable vs Notion for product ops',
+        '[https://example.com/3] Coda alternatives for small teams',
+      ],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(result.analysis.switchingFrom).toEqual(expect.arrayContaining(['Coda', 'Airtable']));
+  });
+
   it('computes actionability score for decision-useful outputs', async () => {
     mockGenerateContentWithThinkingFallback
       .mockResolvedValueOnce({

@@ -117,8 +117,11 @@ export class GeminiService {
     throw lastError instanceof Error ? lastError : new Error('Failed to parse JSON response');
   }
 
-  private buildAlternativeSignalBlock(toolName: string, snippets: string[]): string {
-    if (!Array.isArray(snippets) || snippets.length === 0) return '';
+  private buildAlternativeSignals(
+    toolName: string,
+    snippets: string[]
+  ): { block: string; candidates: string[] } {
+    if (!Array.isArray(snippets) || snippets.length === 0) return { block: '', candidates: [] };
 
     const stopwords = new Set([
       'best',
@@ -179,13 +182,17 @@ export class GeminiService {
     const top = Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, 6);
-    if (top.length === 0) return '';
+    if (top.length === 0) return { block: '', candidates: [] };
 
     const lines = top.map(([name, mentions]) => `- ${name} (mentions: ${mentions})`);
-    return `ALTERNATIVE SIGNALS (Heuristic, Source-Backed Validation Required):
+    const candidates = top.map(([name]) => name);
+    return {
+      block: `ALTERNATIVE SIGNALS (Heuristic, Source-Backed Validation Required):
 ${lines.join('\n')}
 
-Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention counts as weak priors; only assert claims with cited evidence URLs.`;
+Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention counts as weak priors; only assert claims with cited evidence URLs.`,
+      candidates,
+    };
   }
 
   /**
@@ -1176,12 +1183,12 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
     };
 
     let evidencePacket: EvidencePacket | null = null;
-    const alternativeSignalBlock = this.buildAlternativeSignalBlock(
+    const alternativeSignals = this.buildAlternativeSignals(
       input.toolName,
       input.alternativesSnippets
     );
-    const promptBase = alternativeSignalBlock
-      ? `${input.promptTemplate}\n\n${alternativeSignalBlock}`
+    const promptBase = alternativeSignals.block
+      ? `${input.promptTemplate}\n\n${alternativeSignals.block}`
       : input.promptTemplate;
     if (useTwoStageSynthesis) {
       let evidencePrompt = `${promptBase}
@@ -1604,6 +1611,12 @@ ${JSON.stringify(evidencePacket, null, 2)}`
         }
         if (!Array.isArray(parsed.standoutFeatures)) delete parsed.standoutFeatures;
         if (!Array.isArray(parsed.dealbreakers)) delete parsed.dealbreakers;
+        if (
+          (!Array.isArray(parsed.switchingFrom) || parsed.switchingFrom.length === 0) &&
+          alternativeSignals.candidates.length > 0
+        ) {
+          parsed.switchingFrom = alternativeSignals.candidates.slice(0, 3);
+        }
         if (!Array.isArray(parsed.switchingFrom)) delete parsed.switchingFrom;
 
         const validated = AnalysisSchema.parse(parsed);
