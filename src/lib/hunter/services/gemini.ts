@@ -764,6 +764,36 @@ export class GeminiService {
     // Fix common AI mistakes: source_type and claim_type confusion
     // AI sometimes puts "fact"/"opinion" in source_type instead of claim_type
     const validSourceTypes = ['official', 'editorial', 'community'];
+    const GENERIC_CLAIM_PATTERNS = [
+      /\beasy to use\b/i,
+      /\buser[- ]?friendly\b/i,
+      /\bpowerful\b/i,
+      /\brobust\b/i,
+      /\bscalable\b/i,
+      /\bgreat support\b/i,
+      /\bgood value\b/i,
+      /\bfeature[- ]?rich\b/i,
+      /\bgreat for\b/i,
+      /\bsolid choice\b/i,
+      /\bworth (?:considering|shortlisting)\b/i,
+    ];
+    const hasSpecificitySignal = (text: string): boolean => {
+      const normalized = text.trim().toLowerCase();
+      if (!normalized) return false;
+      if (/\d/.test(normalized)) return true;
+      if (/\b(no|not|without|only|limited|limit|requires?|supports?|lacks?)\b/.test(normalized)) {
+        return true;
+      }
+      if (/\b(api|sso|sla|gdpr|soc ?2|hipaa|oauth|export|import|linux|windows|ios|android)\b/.test(normalized)) {
+        return true;
+      }
+      return false;
+    };
+    const isGenericClaim = (text: string): boolean => {
+      const normalized = text.trim();
+      if (normalized.length < 18) return true;
+      return GENERIC_CLAIM_PATTERNS.some((pattern) => pattern.test(normalized));
+    };
     const fixClaim = (claim: unknown) => {
       if (typeof claim === 'object' && claim !== null) {
         const c = claim as Record<string, unknown>;
@@ -869,6 +899,11 @@ export class GeminiService {
         const c = claim as Record<string, unknown>;
         if (typeof c.text !== 'string' || !c.text.trim()) {
           throw new Error(`Evidence packet invalid: ${label}.text is required`);
+        }
+        if (isGenericClaim(c.text) || !hasSpecificitySignal(c.text)) {
+          throw new Error(
+            `Evidence packet invalid: ${label}.text must be specific and decision-useful (avoid generic marketing claims)`
+          );
         }
         if (typeof c.source_url !== 'string' || !c.source_url.trim()) {
           throw new Error(`Evidence packet invalid: ${label}.source_url is required`);

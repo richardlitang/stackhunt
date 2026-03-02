@@ -444,7 +444,7 @@ describe('GeminiService.synthesize', () => {
             ],
             cons: [
               {
-                text: 'Some users report governance setup can be complex',
+                text: 'Users report SSO setup requires multiple admin steps and role mapping',
                 source_url: 'https://independent.example.org/review',
                 source_type: 'editorial',
                 claim_type: 'opinion',
@@ -496,7 +496,7 @@ describe('GeminiService.synthesize', () => {
           buildEvidencePayload({
             cons: [
               {
-                text: 'Users report occasional sync issues during peak usage',
+                text: 'Users report sync conflicts when editing shared docs from iOS and web simultaneously',
                 source_url: 'https://reddit.com/r/example/comments/abc123/thread',
                 source_type: 'community',
                 claim_type: 'fact',
@@ -533,5 +533,110 @@ describe('GeminiService.synthesize', () => {
     };
     expect(firstCon.source_type).toBe('community');
     expect(firstCon.claim_type).toBe('opinion');
+  });
+
+  it('retries evidence stage when claims are generic and accepts specific retry', async () => {
+    const genericEvidence = buildEvidencePayload({
+      pros: [
+        {
+          text: 'Easy to use',
+          source_url: 'https://example.com/docs',
+          source_type: 'official',
+          claim_type: 'opinion',
+          confidence: 0.8,
+        },
+      ],
+    });
+    const specificEvidence = buildEvidencePayload({
+      pros: [
+        {
+          text: 'Supports scoped API keys and role-based access controls',
+          source_url: 'https://example.com/docs/security',
+          source_type: 'official',
+          claim_type: 'fact',
+          confidence: 0.84,
+        },
+      ],
+    });
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(genericEvidence),
+        usageMetadata: { totalTokenCount: 110 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(specificEvidence),
+        usageMetadata: { totalTokenCount: 120 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(buildValidPayload()),
+        usageMetadata: { totalTokenCount: 130 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'ExampleTool',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(mockGenerateContentWithThinkingFallback).toHaveBeenCalledTimes(3);
+    expect(result.tokensUsed).toBe(360);
+  });
+
+  it('fails strict evidence stage when all attempts remain generic', async () => {
+    const genericEvidence = buildEvidencePayload({
+      pros: [
+        {
+          text: 'Solid choice for teams',
+          source_url: 'https://example.com/docs',
+          source_type: 'official',
+          claim_type: 'opinion',
+          confidence: 0.7,
+        },
+      ],
+      cons: [
+        {
+          text: 'Good value overall',
+          source_url: 'https://independent.example.org/review',
+          source_type: 'editorial',
+          claim_type: 'opinion',
+          confidence: 0.62,
+        },
+      ],
+    });
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(genericEvidence),
+        usageMetadata: { totalTokenCount: 140 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(genericEvidence),
+        usageMetadata: { totalTokenCount: 150 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    await expect(
+      service.synthesize({
+        toolName: 'ExampleTool',
+        promptTemplate: 'test prompt',
+        contextTitle: 'Best for API automation',
+        reviewsSnippets: [],
+        pricingSnippets: [],
+        alternativesSnippets: [],
+        budgetAnalystSnippets: [],
+        tribalKnowledgeSnippets: [],
+        knowledgeCardFacts: 'facts',
+        existingCategories: { functions: [], audiences: [], platforms: [] },
+        strictClaimSourcing: true,
+      })
+    ).rejects.toThrow('must be specific and decision-useful');
   });
 });
