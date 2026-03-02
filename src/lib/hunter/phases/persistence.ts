@@ -1899,6 +1899,7 @@ export async function executePersistencePhase(
       pros: normalizedPros,
       cons: validCons,
       sources: uniqueSources,
+      generation_quality: ctx.analysis.generationQuality || null,
       quality: dataQuality,
       status: reviewStatus,
     };
@@ -1985,6 +1986,7 @@ export async function executePersistencePhase(
       published_at: source.published_at,
     })),
     ctx.research.knowledgeCard,
+    ctx.analysis.generationQuality as Record<string, unknown> | undefined,
     Number((specs.canonical as any)?.quality?.conflicts_count || 0),
     ctx.contextTitle,
     popularityTier,
@@ -3505,6 +3507,7 @@ async function createReview(
     time_since?: string;
   }>,
   knowledgeCard: any,
+  generationQuality: Record<string, unknown> | undefined,
   canonicalConflictsCount: number,
   contextTitle: string | undefined,
   popularityTier: PopularityTier,
@@ -3685,6 +3688,7 @@ async function createReview(
     summary_markdown: derivedSummary,
     pros: normalizedPros,
     cons: normalizedCons,
+    generation_quality: generationQuality || null,
     sentiment_tags: analysis.sentimentTags,
     // Migration 022: Context-specific review fields
     fit_score: analysis.fitScore || null,

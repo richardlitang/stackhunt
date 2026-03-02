@@ -281,7 +281,7 @@ export interface SMPPlanData {
 export interface SMPPricingData {
   // Model & Currency
   model: SMPPricingModel;
-  currency: 'USD' | 'EUR' | 'GBP'; // Strict enum, normalize to USD internally
+  currency: string; // 3-letter ISO code (e.g., USD, EUR, GBP, SGD, INR)
 
   // Billing options
   billing_cycles: BillingCycle[];
@@ -792,6 +792,7 @@ export interface Review {
   cons: string[];
   sentiment_tags: string[];
   sources?: unknown[];
+  generation_quality?: Record<string, unknown> | null;
   upvotes: number;
   downvotes: number;
   display_order: number;
@@ -1205,6 +1206,7 @@ export interface ReviewInsert {
   pros?: string[];
   cons?: string[];
   sentiment_tags?: string[];
+  generation_quality?: Record<string, unknown> | null;
   display_order?: number;
   // V2.2: Contextual fit
   fit_score?: number | null;
