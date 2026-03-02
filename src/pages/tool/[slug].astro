@@ -1220,8 +1220,6 @@ const updateHistoryEntries = [
       }
     : null,
 ].filter((entry): entry is { date: string; what: string; why: string; source: string | null } => Boolean(entry));
-const publishedAnalysesLabel =
-  tool.review_count > 0 ? String(tool.review_count) : isVerificationMode ? 'In review' : '0';
 shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
 if (showReviewInProgressBanner) {
   shouldNoindex = false;
@@ -1304,9 +1302,7 @@ const schemas = [
             class="shrink-0 rounded-2xl border border-zinc-700/80 shadow-md"
           />
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">
-                Tool Briefing
-              </p>
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">Review</p>
               <div class="mt-1 flex items-center gap-3">
                 <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{tool.name}</h1>
                 {
@@ -1406,23 +1402,11 @@ const schemas = [
             />
           </div>
 
-          {
-            collectedSourcesTotal > 0 && (
-              <p class="text-xs text-zinc-500">
-                Sources collected: {collectedSourcesTotal}
-                {` • Pros/Cons ${collectedSourcesBySection.pros_cons}`}
-                {` • Pricing ${collectedSourcesBySection.pricing}`}
-                {` • FAQ ${collectedSourcesBySection.faq}`}
-                {` • Specs ${collectedSourcesBySection.specs}`}
-                {communityVerifiedLabel ? ` • Updated ${communityVerifiedLabel}` : ''}
-              </p>
-            )
-          }
         </div>
 
         <aside class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner">
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-            In 10 Seconds
+            Decision Snapshot
           </p>
           <div class="mt-3 grid gap-1 text-xs text-zinc-400">
             <p>
@@ -2260,71 +2244,6 @@ const schemas = [
 
       <!-- Sidebar -->
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
-        {/* Quick Stats - Moved to top for quick scanning */}
-        <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
-          <h3 class="mb-4 font-semibold text-zinc-100">Quick Stats</h3>
-          <dl class="space-y-3">
-            <div class="flex justify-between">
-              <dt class="group relative text-sm text-zinc-400">
-                <span class="cursor-help border-b border-dotted border-zinc-600">Internal index</span>
-                <div
-                  class="pointer-events-none absolute bottom-full left-0 mb-2 hidden w-64 rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-xs text-zinc-300 shadow-xl group-hover:block z-10"
-                >
-                  <p class="font-medium text-zinc-100 mb-1">What is this?</p>
-                  <p>
-                    Calculated from feature density, update frequency, and market adoption—not user
-                    votes. Community signals appear separately below.
-                  </p>
-                </div>
-              </dt>
-              <dd class="text-sm font-medium text-zinc-100">
-                {
-                  tool.review_count < 10 && tool.avg_score > 0 ? (
-                    <span class="inline-flex items-center gap-1.5">
-                      {Math.round(tool.avg_score)}/100
-                      <span class="text-xs text-zinc-500">(Early)</span>
-                    </span>
-                  ) : tool.avg_score > 0 ? (
-                    `${Math.round(tool.avg_score)}/100`
-                  ) : (
-                    <span class="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
-                      Tracking
-                    </span>
-                  )
-                }
-              </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-sm text-zinc-400">Published Analyses</dt>
-              <dd class="text-sm font-medium text-zinc-100">
-                {publishedAnalysesLabel}
-              </dd>
-            </div>
-            {
-              tool.category && (
-                <div class="flex justify-between">
-                  <dt class="text-sm text-zinc-400">Category</dt>
-                  <dd class="text-sm font-medium text-zinc-100">{tool.category.name}</dd>
-                </div>
-              )
-            }
-          </dl>
-          {
-            tool.data_confidence && tool.data_confidence < 0.8 && (
-              <div class="mt-4 rounded-lg border border-amber-700 bg-amber-900/30 px-3 py-2 text-xs text-amber-400">
-                <svg class="inline-block h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                Some data may be approximate
-              </div>
-            )
-          }
-        </div>
-
         {/* Company Info */}
         {
           knowledgeCard && (
