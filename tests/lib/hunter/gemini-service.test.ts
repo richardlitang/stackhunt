@@ -639,4 +639,41 @@ describe('GeminiService.synthesize', () => {
       })
     ).rejects.toThrow('must be specific and decision-useful');
   });
+
+  it('injects alternative signal weighting block into synthesis prompts', async () => {
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(buildEvidencePayload()),
+        usageMetadata: { totalTokenCount: 160 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(buildValidPayload()),
+        usageMetadata: { totalTokenCount: 170 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    await service.synthesize({
+      toolName: 'Notion',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [
+        '[https://example.com/1] Notion vs Coda: Which tool is better for docs?',
+        '[https://example.com/2] Coda alternatives and Notion competitors in 2026',
+        '[https://example.com/3] Airtable vs Notion for product ops',
+      ],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    const stageOnePrompt = mockGenerateContentWithThinkingFallback.mock.calls[0]?.[1]?.contents;
+    expect(typeof stageOnePrompt).toBe('string');
+    expect(stageOnePrompt).toContain('ALTERNATIVE SIGNALS (Heuristic, Source-Backed Validation Required)');
+    expect(stageOnePrompt).toContain('Coda');
+    expect(stageOnePrompt).toContain('Airtable');
+  });
 });

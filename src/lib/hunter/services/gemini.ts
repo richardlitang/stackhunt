@@ -116,6 +116,77 @@ export class GeminiService {
     throw lastError instanceof Error ? lastError : new Error('Failed to parse JSON response');
   }
 
+  private buildAlternativeSignalBlock(toolName: string, snippets: string[]): string {
+    if (!Array.isArray(snippets) || snippets.length === 0) return '';
+
+    const stopwords = new Set([
+      'best',
+      'top',
+      'alternatives',
+      'alternative',
+      'compare',
+      'comparison',
+      'review',
+      'reviews',
+      'pricing',
+      'plan',
+      'plans',
+      'guide',
+      'tools',
+      'tool',
+      'software',
+      'apps',
+      'app',
+      'for',
+      'with',
+      'and',
+      'the',
+      'vs',
+      'versus',
+    ]);
+
+    const toolTokens = new Set(
+      toolName
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((token) => token.length >= 3)
+    );
+    const counts = new Map<string, number>();
+    const regex = /\b([A-Z][A-Za-z0-9.+-]*(?:\s+[A-Z][A-Za-z0-9.+-]*){0,2})\b/g;
+
+    for (const rawSnippet of snippets) {
+      const snippet =
+        typeof rawSnippet === 'string' ? rawSnippet.replace(/^\[[^\]]+\]\s*/, '') : '';
+      if (!snippet) continue;
+
+      const matches = snippet.match(regex) || [];
+      for (const match of matches) {
+        const candidate = match.trim().replace(/[.,:;!?]+$/g, '');
+        if (candidate.length < 3 || candidate.length > 40) continue;
+        const candidateLower = candidate.toLowerCase();
+        if (stopwords.has(candidateLower)) continue;
+        if (candidateLower.includes('http')) continue;
+        const candidateTokens = candidateLower.split(/[^a-z0-9]+/).filter(Boolean);
+        if (candidateTokens.length === 0) continue;
+        if (candidateTokens.every((token) => stopwords.has(token))) continue;
+        if (candidateTokens.some((token) => toolTokens.has(token))) continue;
+        if (candidateTokens.every((token) => token.length < 3)) continue;
+        counts.set(candidate, (counts.get(candidate) || 0) + 1);
+      }
+    }
+
+    const top = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, 6);
+    if (top.length === 0) return '';
+
+    const lines = top.map(([name, mentions]) => `- ${name} (mentions: ${mentions})`);
+    return `ALTERNATIVE SIGNALS (Heuristic, Source-Backed Validation Required):
+${lines.join('\n')}
+
+Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention counts as weak priors; only assert claims with cited evidence URLs.`;
+  }
+
   /**
    * Extract structured facts (Pass 1 - The Librarian + Forensic Accountant)
    */
@@ -1072,8 +1143,15 @@ export class GeminiService {
     };
 
     let evidencePacket: EvidencePacket | null = null;
+    const alternativeSignalBlock = this.buildAlternativeSignalBlock(
+      input.toolName,
+      input.alternativesSnippets
+    );
+    const promptBase = alternativeSignalBlock
+      ? `${input.promptTemplate}\n\n${alternativeSignalBlock}`
+      : input.promptTemplate;
     if (useTwoStageSynthesis) {
-      let evidencePrompt = `${input.promptTemplate}
+      let evidencePrompt = `${promptBase}
 
 STAGE 1 TASK - EVIDENCE PACKET ONLY:
 Return JSON only (no markdown) with EXACTLY these fields:
@@ -1190,7 +1268,7 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
           lastSchemaError = error;
           if (attempt >= maxSchemaAttempts) break;
           const issue = error instanceof Error ? error.message : 'unknown evidence validation error';
-          evidencePrompt = `${input.promptTemplate}
+          evidencePrompt = `${promptBase}
 
 STAGE 1 TASK - EVIDENCE PACKET ONLY:
 The previous response failed validation: ${issue}
@@ -1208,7 +1286,7 @@ Return valid JSON only with required fields score/pros/cons/pricingType/graphTag
 
     // Prompt should already be interpolated with variables
     let prompt = useTwoStageSynthesis
-      ? `${input.promptTemplate}
+      ? `${promptBase}
 
 STAGE 2 TASK - NARRATIVE RENDERING:
 Use the evidence packet below as immutable source-of-truth.
@@ -1219,7 +1297,7 @@ Use the evidence packet below as immutable source-of-truth.
 
 EVIDENCE_PACKET:
 ${JSON.stringify(evidencePacket, null, 2)}`
-      : input.promptTemplate;
+      : promptBase;
 
     for (let attempt = 1; attempt <= maxSchemaAttempts; attempt += 1) {
       const generateFn = async () => {
@@ -1517,7 +1595,7 @@ ${JSON.stringify(evidencePacket, null, 2)}`
         lastSchemaError = error;
         if (attempt >= maxSchemaAttempts) break;
         const issue = error instanceof Error ? error.message : 'unknown schema validation error';
-        prompt = `${input.promptTemplate}
+        prompt = `${promptBase}
 
 RETRY REQUIREMENTS:
 - The previous response failed validation: ${issue}
