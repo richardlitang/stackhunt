@@ -38,8 +38,8 @@ function buildValidPayload() {
     cons: [
       {
         text: 'Enterprise SSO requires higher paid tier',
-        source_url: 'https://example.com/pricing',
-        source_type: 'official',
+        source_url: 'https://independent.example.org/review',
+        source_type: 'editorial',
         claim_type: 'fact',
       },
     ],
@@ -192,6 +192,62 @@ describe('GeminiService.synthesize', () => {
         strictClaimSourcing: true,
       })
     ).rejects.toThrow('Gemini synthesis evidence stage failed');
+  });
+
+  it('throws when evidence packet lacks source diversity', async () => {
+    const lowDiversityEvidence = {
+      score: 80,
+      pros: [
+        {
+          text: 'API supports scoped keys for production use',
+          source_url: 'https://example.com/docs/api',
+          source_type: 'official',
+          claim_type: 'fact',
+        },
+      ],
+      cons: [
+        {
+          text: 'Enterprise SSO requires higher paid tier',
+          source_url: 'https://example.com/pricing',
+          source_type: 'official',
+          claim_type: 'fact',
+        },
+      ],
+      pricingType: 'paid',
+      graphTags: {
+        functions: ['Automation'],
+        audiences: ['Startups'],
+        platforms: ['Web'],
+      },
+    };
+
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(lowDiversityEvidence),
+        usageMetadata: { totalTokenCount: 121 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(lowDiversityEvidence),
+        usageMetadata: { totalTokenCount: 122 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+
+    await expect(
+      service.synthesize({
+        toolName: 'ExampleTool',
+        promptTemplate: 'test prompt',
+        contextTitle: 'Best for API automation',
+        reviewsSnippets: [],
+        pricingSnippets: [],
+        alternativesSnippets: [],
+        budgetAnalystSnippets: [],
+        tribalKnowledgeSnippets: [],
+        knowledgeCardFacts: 'facts',
+        existingCategories: { functions: [], audiences: [], platforms: [] },
+        strictClaimSourcing: true,
+      })
+    ).rejects.toThrow('source diversity requires at least one official and one non-official claim');
   });
 
   it('allows legacy string claims when strict claim sourcing is disabled', async () => {

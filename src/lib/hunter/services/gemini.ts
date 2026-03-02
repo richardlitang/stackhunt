@@ -887,10 +887,41 @@ export class GeminiService {
         if (!Array.isArray(value)) throw new Error(`Evidence packet invalid: graphTags.${field} must be array`);
         return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
       };
+      const prosClaims = validateEvidenceClaimArray(packet.pros, 'pros');
+      const consClaims = validateEvidenceClaimArray(packet.cons, 'cons');
+      const allClaims = [...prosClaims, ...consClaims];
+      const officialClaims = allClaims.filter((claim) => claim.source_type === 'official').length;
+      const nonOfficialClaims = allClaims.length - officialClaims;
+      if (officialClaims < 1 || nonOfficialClaims < 1) {
+        throw new Error(
+          'Evidence packet invalid: source diversity requires at least one official and one non-official claim'
+        );
+      }
+      const domainCount = new Map<string, number>();
+      for (const claim of allClaims) {
+        try {
+          const hostname = new URL(claim.source_url).hostname.toLowerCase().replace(/^www\./, '');
+          domainCount.set(hostname, (domainCount.get(hostname) || 0) + 1);
+        } catch {
+          throw new Error('Evidence packet invalid: source_url must be a valid URL for diversity checks');
+        }
+      }
+      if (domainCount.size < 2) {
+        throw new Error('Evidence packet invalid: source diversity requires at least two distinct domains');
+      }
+      const maxDomainClaims = Math.max(...domainCount.values());
+      const maxDomainShare = maxDomainClaims / allClaims.length;
+      if (maxDomainShare > 0.8) {
+        throw new Error(
+          `Evidence packet invalid: source concentration too high (${Math.round(
+            maxDomainShare * 100
+          )}% from one domain)`
+        );
+      }
       return {
         score,
-        pros: validateEvidenceClaimArray(packet.pros, 'pros'),
-        cons: validateEvidenceClaimArray(packet.cons, 'cons'),
+        pros: prosClaims,
+        cons: consClaims,
         pricingType: packet.pricingType,
         graphTags: {
           functions: validateStringArray(graphTags.functions, 'functions'),
