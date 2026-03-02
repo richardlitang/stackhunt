@@ -57,6 +57,7 @@ export interface SynthesizeInput {
     audiences: string[];
     platforms: string[];
   };
+  strictClaimSourcing?: boolean;
   promptTemplate: string;
 }
 
@@ -825,6 +826,36 @@ export class GeminiService {
       return [];
     };
 
+    const normalizeDecisionSignal = (raw: unknown) => {
+      if (!raw || typeof raw !== 'object') return undefined;
+      const candidate = raw as Record<string, unknown>;
+      return {
+        text: typeof candidate.text === 'string' ? candidate.text : null,
+        source_url:
+          typeof candidate.source_url === 'string'
+            ? candidate.source_url
+            : typeof candidate.sourceUrl === 'string'
+              ? candidate.sourceUrl
+              : null,
+        source_type:
+          candidate.source_type === 'official' ||
+          candidate.source_type === 'editorial' ||
+          candidate.source_type === 'community'
+            ? candidate.source_type
+            : candidate.sourceType === 'official' ||
+                candidate.sourceType === 'editorial' ||
+                candidate.sourceType === 'community'
+              ? candidate.sourceType
+              : null,
+        claim_type:
+          candidate.claim_type === 'fact' || candidate.claim_type === 'opinion'
+            ? candidate.claim_type
+            : candidate.claimType === 'fact' || candidate.claimType === 'opinion'
+              ? candidate.claimType
+              : null,
+      };
+    };
+
     const rawReviewContext = (parsed.reviewContext || parsed.review_context) as
       | Record<string, any>
       | undefined;
@@ -836,6 +867,13 @@ export class GeminiService {
         rawReviewContext.user_advocate ||
         {}) as Record<string, unknown>;
 
+      const rawDecisionIntro = (rawReviewContext.decisionIntro ||
+        rawReviewContext.decision_intro ||
+        {}) as Record<string, unknown>;
+      const rawDecisionEvidence = (rawReviewContext.decisionEvidence ||
+        rawReviewContext.decision_evidence ||
+        {}) as Record<string, unknown>;
+
       parsed.reviewContext = {
         humanVerdict:
           typeof rawReviewContext.humanVerdict === 'string'
@@ -843,6 +881,22 @@ export class GeminiService {
             : typeof rawReviewContext.human_verdict === 'string'
               ? rawReviewContext.human_verdict
               : null,
+        decisionIntro: {
+          what_it_is:
+            typeof rawDecisionIntro.what_it_is === 'string' ? rawDecisionIntro.what_it_is : null,
+          best_for: typeof rawDecisionIntro.best_for === 'string' ? rawDecisionIntro.best_for : null,
+          not_for: typeof rawDecisionIntro.not_for === 'string' ? rawDecisionIntro.not_for : null,
+          main_tradeoff:
+            typeof rawDecisionIntro.main_tradeoff === 'string'
+              ? rawDecisionIntro.main_tradeoff
+              : null,
+          summary: typeof rawDecisionIntro.summary === 'string' ? rawDecisionIntro.summary : null,
+        },
+        decisionEvidence: {
+          best_for_reason: normalizeDecisionSignal(rawDecisionEvidence.best_for_reason),
+          not_for_reason: normalizeDecisionSignal(rawDecisionEvidence.not_for_reason),
+          tradeoff_reason: normalizeDecisionSignal(rawDecisionEvidence.tradeoff_reason),
+        },
         budgetAnalyst: {
           costDrivers: toStringArray(rawBudget.costDrivers || rawBudget.cost_drivers),
           oneTimeFees: toStringArray(rawBudget.oneTimeFees || rawBudget.one_time_fees),
@@ -881,6 +935,25 @@ export class GeminiService {
       };
     }
     delete parsed.review_context;
+
+    if (input.strictClaimSourcing !== false) {
+      const countInvalidClaims = (claims: unknown): number => {
+        if (!Array.isArray(claims)) return 0;
+        return claims.filter((claim) => {
+          if (!claim || typeof claim !== 'object') return true;
+          const c = claim as Record<string, unknown>;
+          return typeof c.text !== 'string' || typeof c.source_url !== 'string' || !c.source_url.trim();
+        }).length;
+      };
+
+      const prosInvalid = countInvalidClaims(parsed.pros);
+      const consInvalid = countInvalidClaims(parsed.cons);
+      if (prosInvalid > 0 || consInvalid > 0) {
+        throw new Error(
+          `Strict claim sourcing failed: pros_invalid=${prosInvalid} cons_invalid=${consInvalid}`
+        );
+      }
+    }
 
     // Fix verdict: truncate if too long (max 200 chars)
     if (parsed.verdict && typeof parsed.verdict === 'string' && parsed.verdict.length > 200) {
