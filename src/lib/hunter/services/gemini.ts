@@ -61,6 +61,17 @@ export interface SynthesizeInput {
   promptTemplate: string;
 }
 
+export interface SynthesisGenerationQuality {
+  stage1Enabled: boolean;
+  meanConfidence?: number;
+  lowConfidenceRatio?: number;
+  officialClaims?: number;
+  nonOfficialClaims?: number;
+  distinctDomains?: number;
+  maxDomainShare?: number;
+  abstainedFields: Array<'verdict' | 'shortDescription' | 'websiteUrl' | 'faqs' | 'reviewContext'>;
+}
+
 export class GeminiService {
   private client: GoogleGenAI;
   private apiKey: string;
@@ -739,7 +750,11 @@ export class GeminiService {
   async synthesize(
     input: SynthesizeInput,
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
-  ): Promise<{ analysis: HunterAnalysis; tokensUsed: number }> {
+  ): Promise<{
+    analysis: HunterAnalysis;
+    tokensUsed: number;
+    generationQuality: SynthesisGenerationQuality;
+  }> {
     const model = getGeminiModelForStage('analysis_synthesis');
     const maxSchemaAttempts = 2;
     let totalTokensUsed = 0;
@@ -828,6 +843,14 @@ export class GeminiService {
         field: 'verdict' | 'shortDescription' | 'websiteUrl' | 'faqs' | 'reviewContext';
         reason: string;
       }>;
+      quality: {
+        meanConfidence: number;
+        lowConfidenceRatio: number;
+        officialClaims: number;
+        nonOfficialClaims: number;
+        distinctDomains: number;
+        maxDomainShare: number;
+      };
     };
 
     const validateEvidenceClaimArray = (claims: unknown, label: 'pros' | 'cons'): EvidenceClaim[] => {
@@ -996,6 +1019,14 @@ export class GeminiService {
           platforms: validateStringArray(graphTags.platforms, 'platforms'),
         },
         abstentions: mergedAbstentions,
+        quality: {
+          meanConfidence,
+          lowConfidenceRatio,
+          officialClaims,
+          nonOfficialClaims,
+          distinctDomains: domainCount.size,
+          maxDomainShare,
+        },
       };
     };
 
@@ -1424,9 +1455,22 @@ ${JSON.stringify(evidencePacket, null, 2)}`
         if (!Array.isArray(parsed.switchingFrom)) delete parsed.switchingFrom;
 
         const validated = AnalysisSchema.parse(parsed);
+        const generationQuality: SynthesisGenerationQuality = {
+          stage1Enabled: !!evidencePacket,
+          meanConfidence: evidencePacket?.quality.meanConfidence,
+          lowConfidenceRatio: evidencePacket?.quality.lowConfidenceRatio,
+          officialClaims: evidencePacket?.quality.officialClaims,
+          nonOfficialClaims: evidencePacket?.quality.nonOfficialClaims,
+          distinctDomains: evidencePacket?.quality.distinctDomains,
+          maxDomainShare: evidencePacket?.quality.maxDomainShare,
+          abstainedFields: evidencePacket
+            ? evidencePacket.abstentions.map((entry) => entry.field)
+            : [],
+        };
         return {
           analysis: validated as unknown as HunterAnalysis,
           tokensUsed: totalTokensUsed,
+          generationQuality,
         };
       } catch (error) {
         lastSchemaError = error;

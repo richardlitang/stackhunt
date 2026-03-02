@@ -481,5 +481,10 @@ describe('GeminiService.synthesize', () => {
     expect(result.analysis.faqs).toBeUndefined();
     expect(result.analysis.reviewContext).toBeUndefined();
     expect(typeof result.analysis.summary).toBe('string');
+    expect(result.generationQuality.stage1Enabled).toBe(true);
+    expect(result.generationQuality.abstainedFields).toEqual(
+      expect.arrayContaining(['verdict', 'shortDescription', 'reviewContext', 'faqs'])
+    );
+    expect((result.generationQuality.meanConfidence || 0) < 0.68).toBe(true);
   });
 });

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import type { KnowledgeCard } from '../knowledge-card';
 import type { ClaimVolatility, ClaimVerificationMethod } from '@/lib/claim-policy';
 import type { PricingModel, HuntType } from '@/types/database';
+import type { SynthesisGenerationQuality } from './services/gemini';
 
 // ============================================================================
 // CONFIGURATION
@@ -31,6 +32,7 @@ export interface HunterConfig {
 
 export interface HunterInput {
   toolName: string;
+  entityScope?: HunterEntityScope;
   contextTitle?: string;
   categorySlug?: string;
   website?: string;
@@ -195,6 +197,60 @@ export interface HunterAnalysis {
   // V3.1: Review Context (The "Human Touch" Layer)
   reviewContext?: {
     humanVerdict?: string | null;
+    decisionIntro?: {
+      what_it_is?: string | null;
+      best_for?: string | null;
+      not_for?: string | null;
+      main_tradeoff?: string | null;
+      summary?: string | null;
+    };
+    decisionEvidence?: {
+      best_for_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+        source_type?: SourceType | null;
+        claim_type?: ClaimType | null;
+      };
+      not_for_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+        source_type?: SourceType | null;
+        claim_type?: ClaimType | null;
+      };
+      tradeoff_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+        source_type?: SourceType | null;
+        claim_type?: ClaimType | null;
+      };
+    };
+    decision_intro?: {
+      what_it_is?: string | null;
+      best_for?: string | null;
+      not_for?: string | null;
+      main_tradeoff?: string | null;
+      summary?: string | null;
+    };
+    decision_evidence?: {
+      best_for_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+        source_type?: SourceType | null;
+        claim_type?: ClaimType | null;
+      };
+      not_for_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+        source_type?: SourceType | null;
+        claim_type?: ClaimType | null;
+      };
+      tradeoff_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+        source_type?: SourceType | null;
+        claim_type?: ClaimType | null;
+      };
+    };
     budgetAnalyst?: {
       costDrivers: string[];
       oneTimeFees: string[];
@@ -280,6 +336,7 @@ export interface SerperResponse {
 export interface HunterContext {
   // Input
   toolName: string;
+  entityScope?: HunterEntityScope;
   contextTitle?: string;
   categorySlug?: string;
   website?: string;
@@ -329,6 +386,13 @@ export type SourceIntent =
   | 'limits'
   | 'reviews'
   | 'alternatives';
+
+export type HunterEntityScope =
+  | 'core'
+  | 'copilot'
+  | 'actions'
+  | 'enterprise_cloud'
+  | 'enterprise_server';
 
 export type ScoutSourceType =
   | 'official'
@@ -460,6 +524,7 @@ export interface AnalysisOutput {
   embedding: number[];
   logo: { path: string; url: string } | null;
   tokensUsed: number;
+  generationQuality?: SynthesisGenerationQuality;
 }
 
 /**
@@ -625,6 +690,80 @@ export const AnalysisSchema = z.object({
   reviewContext: z
     .object({
       humanVerdict: z.string().nullable().optional(),
+      decisionIntro: z
+        .object({
+          what_it_is: z.string().nullable().optional(),
+          best_for: z.string().nullable().optional(),
+          not_for: z.string().nullable().optional(),
+          main_tradeoff: z.string().nullable().optional(),
+          summary: z.string().nullable().optional(),
+        })
+        .optional(),
+      decisionEvidence: z
+        .object({
+          best_for_reason: z
+            .object({
+              text: z.string().nullable().optional(),
+              source_url: z.string().url().nullable().optional(),
+              source_type: z.enum(['official', 'editorial', 'community']).nullable().optional(),
+              claim_type: z.enum(['fact', 'opinion']).nullable().optional(),
+            })
+            .optional(),
+          not_for_reason: z
+            .object({
+              text: z.string().nullable().optional(),
+              source_url: z.string().url().nullable().optional(),
+              source_type: z.enum(['official', 'editorial', 'community']).nullable().optional(),
+              claim_type: z.enum(['fact', 'opinion']).nullable().optional(),
+            })
+            .optional(),
+          tradeoff_reason: z
+            .object({
+              text: z.string().nullable().optional(),
+              source_url: z.string().url().nullable().optional(),
+              source_type: z.enum(['official', 'editorial', 'community']).nullable().optional(),
+              claim_type: z.enum(['fact', 'opinion']).nullable().optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+      decision_intro: z
+        .object({
+          what_it_is: z.string().nullable().optional(),
+          best_for: z.string().nullable().optional(),
+          not_for: z.string().nullable().optional(),
+          main_tradeoff: z.string().nullable().optional(),
+          summary: z.string().nullable().optional(),
+        })
+        .optional(),
+      decision_evidence: z
+        .object({
+          best_for_reason: z
+            .object({
+              text: z.string().nullable().optional(),
+              source_url: z.string().url().nullable().optional(),
+              source_type: z.enum(['official', 'editorial', 'community']).nullable().optional(),
+              claim_type: z.enum(['fact', 'opinion']).nullable().optional(),
+            })
+            .optional(),
+          not_for_reason: z
+            .object({
+              text: z.string().nullable().optional(),
+              source_url: z.string().url().nullable().optional(),
+              source_type: z.enum(['official', 'editorial', 'community']).nullable().optional(),
+              claim_type: z.enum(['fact', 'opinion']).nullable().optional(),
+            })
+            .optional(),
+          tradeoff_reason: z
+            .object({
+              text: z.string().nullable().optional(),
+              source_url: z.string().url().nullable().optional(),
+              source_type: z.enum(['official', 'editorial', 'community']).nullable().optional(),
+              claim_type: z.enum(['fact', 'opinion']).nullable().optional(),
+            })
+            .optional(),
+        })
+        .optional(),
       budgetAnalyst: z
         .object({
           costDrivers: z.array(z.string()).default([]),

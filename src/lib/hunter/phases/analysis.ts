@@ -23,6 +23,7 @@ import {
   getPersonaContext,
   buildAdaptiveSpecificsPrompt,
 } from '../services/prompts';
+import { generateDecisionEvidence, generateDecisionIntro } from '@/lib/tool-page-intro';
 import { getCategoryDefinition } from '../schemas';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 
@@ -171,7 +172,7 @@ export async function executeAnalysisPhase(
     : interpolatedPrompt;
 
   // Step 8: Synthesize analysis (Pass 2 - The Architect + Human Context Roles)
-  const { analysis, tokensUsed: synthesisTokens } = await deps.gemini.synthesize(
+  const { analysis, tokensUsed: synthesisTokens, generationQuality } = await deps.gemini.synthesize(
     {
       toolName: ctx.toolName,
       contextTitle: ctx.contextTitle,
@@ -187,6 +188,16 @@ export async function executeAnalysisPhase(
     },
     deps.withRetry
   );
+  if (generationQuality.stage1Enabled) {
+    deps.log(
+      `[Pass 2] Generation quality: mean_confidence=${(generationQuality.meanConfidence ?? 0).toFixed(2)} low_conf_ratio=${(generationQuality.lowConfidenceRatio ?? 0).toFixed(2)} official=${generationQuality.officialClaims ?? 0} non_official=${generationQuality.nonOfficialClaims ?? 0} domains=${generationQuality.distinctDomains ?? 0}`
+    );
+    if (generationQuality.abstainedFields.length > 0) {
+      deps.log(
+        `[Pass 2] Auto-abstained fields: ${generationQuality.abstainedFields.join(', ')}`
+      );
+    }
+  }
 
   sanitizeModelOptions(
     analysis,
@@ -205,6 +216,72 @@ export async function executeAnalysisPhase(
 
   // Attach Knowledge Card to analysis
   analysis.knowledgeCard = ctx.research.knowledgeCard;
+  const synthesizedDecisionIntro =
+    (analysis.reviewContext?.decisionIntro as Record<string, unknown> | undefined) ||
+    (analysis.reviewContext?.decision_intro as Record<string, unknown> | undefined);
+  if (!analysis.reviewContext) {
+    analysis.reviewContext = {};
+  }
+  if (!synthesizedDecisionIntro) {
+    const proClaims = extractClaimEvidence(analysis.pros);
+    const conClaims = extractClaimEvidence(analysis.cons);
+    const generatedDecisionIntro = generateDecisionIntro({
+      toolName: ctx.toolName,
+      shortDescription: analysis.shortDescription,
+      pros: Array.isArray(analysis.pros)
+        ? analysis.pros
+            .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
+            .filter((text: unknown): text is string => typeof text === 'string' && text.trim().length > 0)
+        : [],
+      cons: Array.isArray(analysis.cons)
+        ? analysis.cons
+            .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
+            .filter((text: unknown): text is string => typeof text === 'string' && text.trim().length > 0)
+        : [],
+      proClaims,
+      conClaims,
+    });
+    analysis.reviewContext.decisionIntro = generatedDecisionIntro;
+    analysis.reviewContext.decision_intro = generatedDecisionIntro;
+    deps.log('[Pass 2] Decision intro generated from synthesized claims');
+  }
+  const synthesizedDecisionEvidence =
+    (analysis.reviewContext?.decisionEvidence as Record<string, unknown> | undefined) ||
+    (analysis.reviewContext?.decision_evidence as Record<string, unknown> | undefined);
+  if (!synthesizedDecisionEvidence) {
+    const prosEvidence = Array.isArray(analysis.pros)
+      ? analysis.pros
+          .map((claim: any) =>
+            typeof claim === 'string'
+              ? null
+              : {
+                  text: claim?.text,
+                  source_url: claim?.source_url || claim?.source,
+                  source_type: claim?.source_type,
+                  claim_type: claim?.claim_type,
+                }
+          )
+          .filter(Boolean)
+      : [];
+    const consEvidence = Array.isArray(analysis.cons)
+      ? analysis.cons
+          .map((claim: any) =>
+            typeof claim === 'string'
+              ? null
+              : {
+                  text: claim?.text,
+                  source_url: claim?.source_url || claim?.source,
+                  source_type: claim?.source_type,
+                  claim_type: claim?.claim_type,
+                }
+          )
+          .filter(Boolean)
+      : [];
+    const generatedDecisionEvidence = generateDecisionEvidence(prosEvidence, consEvidence);
+    analysis.reviewContext.decisionEvidence = generatedDecisionEvidence;
+    analysis.reviewContext.decision_evidence = generatedDecisionEvidence;
+    deps.log('[Pass 2] Decision evidence generated from sourced claims');
+  }
   if (analysis.faqs && analysis.faqs.length > 0) {
     const mappedFaqs = analysis.faqs
       .filter((faq: any) => !!faq.answer_source_url)
@@ -259,8 +336,27 @@ export async function executeAnalysisPhase(
   // Step 8.5: Validate analysis output
   const { validateAnalysis, formatValidationReport } =
     await import('../validation/schema-validator.js');
-  const analysisValidation = validateAnalysis(analysis);
+  let analysisValidation = validateAnalysis(analysis);
   deps.log(formatValidationReport(analysisValidation, 'Analysis'));
+
+  const hasNarrativeQualityBlockers = analysisValidation.validations.some((validation) => {
+    if (validation.field.startsWith('reviewContext.decisionIntro')) return true;
+    if (
+      validation.field === 'verdict' &&
+      validation.message.toLowerCase().includes('generic')
+    ) {
+      return true;
+    }
+    return false;
+  });
+  if (!analysisValidation.shouldPublish && hasNarrativeQualityBlockers) {
+    const repaired = repairNarrativeQuality(analysis, ctx.toolName);
+    if (repaired) {
+      analysisValidation = validateAnalysis(analysis);
+      deps.log('[Pass 2] Applied deterministic narrative regeneration before persistence');
+      deps.log(formatValidationReport(analysisValidation, 'Analysis (Post-Repair)'));
+    }
+  }
 
   // Store analysis validation metrics
   if (ctx.queueItemId) {
@@ -336,7 +432,135 @@ export async function executeAnalysisPhase(
     embedding,
     logo,
     tokensUsed: synthesisTokens,
+    generationQuality,
   };
+}
+
+const GENERIC_NARRATIVE_PATTERNS = [
+  /\bworth shortlisting\b/i,
+  /\brobust and powerful solution\b/i,
+  /\bbest-in-class capabilities\b/i,
+  /\bstrong option(?: based on)?(?: the)? current source-backed evidence\b/i,
+  /\bsolid choice for modern teams\b/i,
+];
+
+function extractClaimTexts(claims: unknown): string[] {
+  if (!Array.isArray(claims)) return [];
+  return claims
+    .map((claim) => (typeof claim === 'string' ? claim : (claim as any)?.text))
+    .filter((text: unknown): text is string => typeof text === 'string' && text.trim().length > 0)
+    .map((text) => text.trim());
+}
+
+function extractClaimEvidence(claims: unknown): Array<{
+  text?: string | null;
+  source_url?: string | null;
+  source_type?: string | null;
+  claim_type?: string | null;
+}> {
+  if (!Array.isArray(claims)) return [];
+  const evidence: Array<{
+    text?: string | null;
+    source_url?: string | null;
+    source_type?: string | null;
+    claim_type?: string | null;
+  }> = [];
+  for (const claim of claims) {
+    if (typeof claim === 'string') continue;
+    evidence.push({
+      text: (claim as any)?.text,
+      source_url: (claim as any)?.source_url || (claim as any)?.source,
+      source_type: (claim as any)?.source_type,
+      claim_type: (claim as any)?.claim_type,
+    });
+  }
+  return evidence;
+}
+
+function hasGenericNarrative(text?: string | null): boolean {
+  if (!text || text.trim().length === 0) return false;
+  return GENERIC_NARRATIVE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function buildDeterministicVerdict(pros: string[], cons: string[]): string | null {
+  const pro = pros[0];
+  const con = cons[0];
+  if (pro && con) return `Choose when ${pro}. Skip when ${con}.`;
+  if (pro) return `Choose when ${pro}.`;
+  if (con) return `Skip when ${con}.`;
+  return null;
+}
+
+function repairNarrativeQuality(
+  analysis: {
+    shortDescription?: string;
+    verdict?: string;
+    pros: unknown;
+    cons: unknown;
+    reviewContext?: Record<string, unknown>;
+  },
+  toolName: string
+): boolean {
+  const pros = extractClaimTexts(analysis.pros);
+  const cons = extractClaimTexts(analysis.cons);
+  const prosEvidence = extractClaimEvidence(analysis.pros);
+  const consEvidence = extractClaimEvidence(analysis.cons);
+  const generatedDecisionIntro = generateDecisionIntro({
+    toolName,
+    shortDescription: analysis.shortDescription,
+    pros,
+    cons,
+    proClaims: prosEvidence,
+    conClaims: consEvidence,
+  });
+
+  if (!analysis.reviewContext || typeof analysis.reviewContext !== 'object') {
+    analysis.reviewContext = {};
+  }
+
+  const currentDecisionIntro =
+    ((analysis.reviewContext.decisionIntro as Record<string, unknown> | undefined) ||
+      (analysis.reviewContext.decision_intro as Record<string, unknown> | undefined) ||
+      {}) as Record<string, unknown>;
+  const decisionFields = ['what_it_is', 'best_for', 'not_for', 'main_tradeoff'] as const;
+  let updated = false;
+  const repairedDecisionIntro: Record<string, unknown> = { ...currentDecisionIntro };
+
+  for (const field of decisionFields) {
+    const currentValue =
+      typeof currentDecisionIntro[field] === 'string' ? String(currentDecisionIntro[field]).trim() : '';
+    if (currentValue.length < 24 || hasGenericNarrative(currentValue)) {
+      repairedDecisionIntro[field] = generatedDecisionIntro[field];
+      updated = true;
+    }
+  }
+  repairedDecisionIntro.summary = [
+    repairedDecisionIntro.what_it_is,
+    repairedDecisionIntro.best_for,
+    repairedDecisionIntro.not_for,
+    repairedDecisionIntro.main_tradeoff,
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join(' ')
+    .trim();
+  analysis.reviewContext.decisionIntro = repairedDecisionIntro;
+  analysis.reviewContext.decision_intro = repairedDecisionIntro;
+  const generatedDecisionEvidence = generateDecisionEvidence(prosEvidence, consEvidence);
+  if (Object.keys(generatedDecisionEvidence).length > 0) {
+    analysis.reviewContext.decisionEvidence = generatedDecisionEvidence;
+    analysis.reviewContext.decision_evidence = generatedDecisionEvidence;
+  }
+
+  const currentVerdict = typeof analysis.verdict === 'string' ? analysis.verdict.trim() : '';
+  if (!currentVerdict || hasGenericNarrative(currentVerdict)) {
+    const generatedVerdict = buildDeterministicVerdict(pros, cons);
+    if (generatedVerdict) {
+      analysis.verdict = generatedVerdict;
+      updated = true;
+    }
+  }
+
+  return updated;
 }
 
 function sanitizeModelOptions(
@@ -575,6 +799,18 @@ async function buildExistingContentBaseline(
   const reviewContext = item?.review_context as
     | {
         humanVerdict?: string;
+        decisionIntro?: {
+          what_it_is?: string;
+          best_for?: string;
+          not_for?: string;
+          main_tradeoff?: string;
+        };
+        decision_intro?: {
+          what_it_is?: string;
+          best_for?: string;
+          not_for?: string;
+          main_tradeoff?: string;
+        };
         userAdvocate?: {
           vibe?: string;
           idealFor?: string[];
@@ -586,6 +822,20 @@ async function buildExistingContentBaseline(
 
   if (reviewContext?.humanVerdict) {
     lines.push(`human_verdict: ${truncate(reviewContext.humanVerdict, 360)}`);
+  }
+  const decisionIntro =
+    reviewContext?.decisionIntro || reviewContext?.decision_intro || undefined;
+  if (decisionIntro?.what_it_is) {
+    lines.push(`decision_what_it_is: ${truncate(decisionIntro.what_it_is, 240)}`);
+  }
+  if (decisionIntro?.best_for) {
+    lines.push(`decision_best_for: ${truncate(decisionIntro.best_for, 240)}`);
+  }
+  if (decisionIntro?.not_for) {
+    lines.push(`decision_not_for: ${truncate(decisionIntro.not_for, 240)}`);
+  }
+  if (decisionIntro?.main_tradeoff) {
+    lines.push(`decision_main_tradeoff: ${truncate(decisionIntro.main_tradeoff, 240)}`);
   }
   if (reviewContext?.userAdvocate?.vibe) {
     lines.push(`user_vibe: ${reviewContext.userAdvocate.vibe}`);
