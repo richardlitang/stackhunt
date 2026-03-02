@@ -823,6 +823,10 @@ export class GeminiService {
       cons: EvidenceClaim[];
       pricingType: 'free' | 'freemium' | 'paid' | 'enterprise' | 'open_source';
       graphTags: { functions: string[]; audiences: string[]; platforms: string[] };
+      abstentions: Array<{
+        field: 'verdict' | 'shortDescription' | 'websiteUrl' | 'faqs' | 'reviewContext';
+        reason: string;
+      }>;
     };
 
     const validateEvidenceClaimArray = (claims: unknown, label: 'pros' | 'cons'): EvidenceClaim[] => {
@@ -882,6 +886,28 @@ export class GeminiService {
       if (!packet.graphTags || typeof packet.graphTags !== 'object') {
         throw new Error('Evidence packet invalid: graphTags is required');
       }
+      const abstentions = Array.isArray(packet.abstentions)
+        ? packet.abstentions
+            .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+            .map((item) => ({
+              field: item.field,
+              reason: typeof item.reason === 'string' ? item.reason.trim() : '',
+            }))
+            .filter(
+              (
+                item
+              ): item is {
+                field: 'verdict' | 'shortDescription' | 'websiteUrl' | 'faqs' | 'reviewContext';
+                reason: string;
+              } =>
+                (item.field === 'verdict' ||
+                  item.field === 'shortDescription' ||
+                  item.field === 'websiteUrl' ||
+                  item.field === 'faqs' ||
+                  item.field === 'reviewContext') &&
+                item.reason.length > 0
+            )
+        : [];
       const graphTags = packet.graphTags as Record<string, unknown>;
       const validateStringArray = (value: unknown, field: string) => {
         if (!Array.isArray(value)) throw new Error(`Evidence packet invalid: graphTags.${field} must be array`);
@@ -928,6 +954,7 @@ export class GeminiService {
           audiences: validateStringArray(graphTags.audiences, 'audiences'),
           platforms: validateStringArray(graphTags.platforms, 'platforms'),
         },
+        abstentions,
       };
     };
 
@@ -942,6 +969,7 @@ Return JSON only (no markdown) with EXACTLY these fields:
 - cons (array of objects: text, source_url, source_type, claim_type)
 - pricingType (free|freemium|paid|enterprise|open_source)
 - graphTags (object with arrays: functions, audiences, platforms)
+- abstentions (optional array of {field, reason} where field is one of verdict|shortDescription|websiteUrl|faqs|reviewContext)
 
 Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Stage 1.`;
 
@@ -997,6 +1025,20 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
                           functions: { type: 'array', items: { type: 'string' } },
                           audiences: { type: 'array', items: { type: 'string' } },
                           platforms: { type: 'array', items: { type: 'string' } },
+                        },
+                      },
+                      abstentions: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          required: ['field', 'reason'],
+                          properties: {
+                            field: {
+                              type: 'string',
+                              enum: ['verdict', 'shortDescription', 'websiteUrl', 'faqs', 'reviewContext'],
+                            },
+                            reason: { type: 'string' },
+                          },
                         },
                       },
                     },
@@ -1057,6 +1099,7 @@ Use the evidence packet below as immutable source-of-truth.
 - Do not introduce new unsupported claims.
 - Keep pros/cons aligned to this packet.
 - Expand only narrative fields (summary, verdict, shortDescription, reviewContext, faqs).
+- If EVIDENCE_PACKET.abstentions contains a field, return that field as null/omitted in Stage 2.
 
 EVIDENCE_PACKET:
 ${JSON.stringify(evidencePacket, null, 2)}`
@@ -1266,6 +1309,15 @@ ${JSON.stringify(evidencePacket, null, 2)}`
             audiences: [...evidencePacket.graphTags.audiences],
             platforms: [...evidencePacket.graphTags.platforms],
           };
+          const abstainedFields = new Set(evidencePacket.abstentions.map((entry) => entry.field));
+          if (abstainedFields.has('verdict')) delete parsed.verdict;
+          if (abstainedFields.has('shortDescription')) delete parsed.shortDescription;
+          if (abstainedFields.has('websiteUrl')) delete parsed.websiteUrl;
+          if (abstainedFields.has('faqs')) delete parsed.faqs;
+          if (abstainedFields.has('reviewContext')) {
+            delete parsed.reviewContext;
+            delete parsed.review_context;
+          }
         }
 
         if (input.strictClaimSourcing !== false) {

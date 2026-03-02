@@ -73,7 +73,29 @@ function buildValidPayload() {
   };
 }
 
-function buildEvidencePayload() {
+function buildEvidencePayload(
+  overrides: Partial<{
+    score: number;
+    pros: Array<{
+      text: string;
+      source_url: string;
+      source_type: 'official' | 'editorial' | 'community';
+      claim_type: 'fact' | 'opinion';
+    }>;
+    cons: Array<{
+      text: string;
+      source_url: string;
+      source_type: 'official' | 'editorial' | 'community';
+      claim_type: 'fact' | 'opinion';
+    }>;
+    pricingType: 'free' | 'freemium' | 'paid' | 'enterprise' | 'open_source';
+    graphTags: { functions: string[]; audiences: string[]; platforms: string[] };
+    abstentions: Array<{
+      field: 'verdict' | 'shortDescription' | 'websiteUrl' | 'faqs' | 'reviewContext';
+      reason: string;
+    }>;
+  }> = {}
+) {
   const payload = buildValidPayload();
   return {
     score: payload.score,
@@ -81,6 +103,7 @@ function buildEvidencePayload() {
     cons: payload.cons,
     pricingType: payload.pricingType,
     graphTags: payload.graphTags,
+    ...overrides,
   };
 }
 
@@ -322,5 +345,67 @@ describe('GeminiService.synthesize', () => {
     expect(Array.isArray(result.analysis.pros)).toBe(true);
     expect(typeof result.analysis.pros[0]).toBe('object');
     expect(mockGenerateContentWithThinkingFallback).toHaveBeenCalledTimes(3);
+  });
+
+  it('removes abstained low-confidence fields from stage 2 output', async () => {
+    const narrativePayload = {
+      ...buildValidPayload(),
+      websiteUrl: 'https://example.com',
+      shortDescription: 'Strong API tooling with enterprise controls.',
+      verdict: 'Choose for API controls.',
+      faqs: [
+        {
+          question: 'Is it good for startups?',
+          answer: 'It can work well for API-first startups with budget for governance.',
+          question_source: 'paa',
+          answer_source_url: 'https://example.com/docs/faq',
+        },
+      ],
+      review_context: {
+        human_verdict: 'Strong technical fit but pricing can be limiting.',
+      },
+    };
+
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(
+          buildEvidencePayload({
+            abstentions: [
+              { field: 'verdict', reason: 'insufficient confidence for one-line recommendation' },
+              { field: 'shortDescription', reason: 'insufficient confidence for concise descriptor' },
+              { field: 'websiteUrl', reason: 'conflicting canonical URL signals' },
+              { field: 'faqs', reason: 'insufficient validated FAQ evidence' },
+              { field: 'reviewContext', reason: 'insufficient qualitative evidence' },
+            ],
+          })
+        ),
+        usageMetadata: { totalTokenCount: 130 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(narrativePayload),
+        usageMetadata: { totalTokenCount: 230 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'ExampleTool',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(result.tokensUsed).toBe(360);
+    expect(result.analysis.verdict).toBeUndefined();
+    expect(result.analysis.shortDescription).toBeUndefined();
+    expect(result.analysis.websiteUrl).toBeUndefined();
+    expect(result.analysis.faqs).toBeUndefined();
+    expect(result.analysis.reviewContext).toBeUndefined();
   });
 });
