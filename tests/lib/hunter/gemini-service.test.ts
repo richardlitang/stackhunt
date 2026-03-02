@@ -73,6 +73,17 @@ function buildValidPayload() {
   };
 }
 
+function buildEvidencePayload() {
+  const payload = buildValidPayload();
+  return {
+    score: payload.score,
+    pros: payload.pros,
+    cons: payload.cons,
+    pricingType: payload.pricingType,
+    graphTags: payload.graphTags,
+  };
+}
+
 describe('GeminiService.synthesize', () => {
   beforeEach(() => {
     mockGenerateContentWithThinkingFallback.mockReset();
@@ -113,10 +124,15 @@ describe('GeminiService.synthesize', () => {
       },
     };
 
-    mockGenerateContentWithThinkingFallback.mockResolvedValue({
-      text: JSON.stringify(payload),
-      usageMetadata: { totalTokenCount: 321 },
-    });
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(buildEvidencePayload()),
+        usageMetadata: { totalTokenCount: 123 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(payload),
+        usageMetadata: { totalTokenCount: 321 },
+      });
 
     const service = new GeminiService({ apiKey: 'test-key' });
     const result = await service.synthesize({
@@ -133,7 +149,7 @@ describe('GeminiService.synthesize', () => {
       strictClaimSourcing: true,
     });
 
-    expect(result.tokensUsed).toBe(321);
+    expect(result.tokensUsed).toBe(444);
     expect(result.analysis.reviewContext?.decisionIntro?.what_it_is).toBe(
       'An API-first automation platform.'
     );
@@ -149,10 +165,15 @@ describe('GeminiService.synthesize', () => {
       cons: ['SSO only on enterprise'],
     };
 
-    mockGenerateContentWithThinkingFallback.mockResolvedValue({
-      text: JSON.stringify(payload),
-      usageMetadata: { totalTokenCount: 111 },
-    });
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(payload),
+        usageMetadata: { totalTokenCount: 111 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(payload),
+        usageMetadata: { totalTokenCount: 112 },
+      });
 
     const service = new GeminiService({ apiKey: 'test-key' });
 
@@ -170,7 +191,7 @@ describe('GeminiService.synthesize', () => {
         existingCategories: { functions: [], audiences: [], platforms: [] },
         strictClaimSourcing: true,
       })
-    ).rejects.toThrow('Strict claim sourcing failed');
+    ).rejects.toThrow('Gemini synthesis evidence stage failed');
   });
 
   it('allows legacy string claims when strict claim sourcing is disabled', async () => {
@@ -206,21 +227,24 @@ describe('GeminiService.synthesize', () => {
   });
 
   it('retries once when first synthesis payload fails strict schema checks', async () => {
-    const invalidPayload = {
+    const invalidNarrativePayload = {
       ...buildValidPayload(),
-      pros: ['Strong API access'],
-      cons: ['SSO only on enterprise'],
+      summary: null,
     };
     const validPayload = buildValidPayload();
 
     mockGenerateContentWithThinkingFallback
       .mockResolvedValueOnce({
-        text: JSON.stringify(invalidPayload),
+        text: JSON.stringify(buildEvidencePayload()),
         usageMetadata: { totalTokenCount: 101 },
       })
       .mockResolvedValueOnce({
-        text: JSON.stringify(validPayload),
+        text: JSON.stringify(invalidNarrativePayload),
         usageMetadata: { totalTokenCount: 202 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(validPayload),
+        usageMetadata: { totalTokenCount: 303 },
       });
 
     const service = new GeminiService({ apiKey: 'test-key' });
@@ -238,9 +262,9 @@ describe('GeminiService.synthesize', () => {
       strictClaimSourcing: true,
     });
 
-    expect(result.tokensUsed).toBe(303);
+    expect(result.tokensUsed).toBe(606);
     expect(Array.isArray(result.analysis.pros)).toBe(true);
     expect(typeof result.analysis.pros[0]).toBe('object');
-    expect(mockGenerateContentWithThinkingFallback).toHaveBeenCalledTimes(2);
+    expect(mockGenerateContentWithThinkingFallback).toHaveBeenCalledTimes(3);
   });
 });

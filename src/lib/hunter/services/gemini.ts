@@ -741,11 +741,10 @@ export class GeminiService {
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
   ): Promise<{ analysis: HunterAnalysis; tokensUsed: number }> {
     const model = getGeminiModelForStage('analysis_synthesis');
-    // Prompt should already be interpolated with variables
-    let prompt = input.promptTemplate;
     const maxSchemaAttempts = 2;
     let totalTokensUsed = 0;
     let lastSchemaError: unknown = null;
+    const useTwoStageSynthesis = input.strictClaimSourcing !== false;
 
     // Fix common AI mistakes: source_type and claim_type confusion
     // AI sometimes puts "fact"/"opinion" in source_type instead of claim_type
@@ -810,6 +809,227 @@ export class GeminiService {
               : null,
       };
     };
+
+    type EvidenceClaim = {
+      text: string;
+      source_url: string;
+      source_type: 'official' | 'editorial' | 'community';
+      claim_type: 'fact' | 'opinion';
+    };
+
+    type EvidencePacket = {
+      score: number;
+      pros: EvidenceClaim[];
+      cons: EvidenceClaim[];
+      pricingType: 'free' | 'freemium' | 'paid' | 'enterprise' | 'open_source';
+      graphTags: { functions: string[]; audiences: string[]; platforms: string[] };
+    };
+
+    const validateEvidenceClaimArray = (claims: unknown, label: 'pros' | 'cons'): EvidenceClaim[] => {
+      if (!Array.isArray(claims)) {
+        throw new Error(`Evidence packet invalid: ${label} must be an array`);
+      }
+      const validated: EvidenceClaim[] = [];
+      for (const claim of claims.map(fixClaim)) {
+        if (!claim || typeof claim !== 'object') {
+          throw new Error(`Evidence packet invalid: ${label} entries must be objects`);
+        }
+        const c = claim as Record<string, unknown>;
+        if (typeof c.text !== 'string' || !c.text.trim()) {
+          throw new Error(`Evidence packet invalid: ${label}.text is required`);
+        }
+        if (typeof c.source_url !== 'string' || !c.source_url.trim()) {
+          throw new Error(`Evidence packet invalid: ${label}.source_url is required`);
+        }
+        if (
+          c.source_type !== 'official' &&
+          c.source_type !== 'editorial' &&
+          c.source_type !== 'community'
+        ) {
+          throw new Error(`Evidence packet invalid: ${label}.source_type must be official/editorial/community`);
+        }
+        if (c.claim_type !== 'fact' && c.claim_type !== 'opinion') {
+          throw new Error(`Evidence packet invalid: ${label}.claim_type must be fact/opinion`);
+        }
+        validated.push({
+          text: c.text,
+          source_url: c.source_url,
+          source_type: c.source_type,
+          claim_type: c.claim_type,
+        });
+      }
+      return validated;
+    };
+
+    const parseEvidencePacket = (raw: unknown): EvidencePacket => {
+      if (!raw || typeof raw !== 'object') {
+        throw new Error('Evidence packet invalid: payload must be an object');
+      }
+      const packet = raw as Record<string, unknown>;
+      const score = typeof packet.score === 'number' ? packet.score : Number(packet.score);
+      if (!Number.isFinite(score)) {
+        throw new Error('Evidence packet invalid: score must be numeric');
+      }
+      if (
+        packet.pricingType !== 'free' &&
+        packet.pricingType !== 'freemium' &&
+        packet.pricingType !== 'paid' &&
+        packet.pricingType !== 'enterprise' &&
+        packet.pricingType !== 'open_source'
+      ) {
+        throw new Error('Evidence packet invalid: pricingType is missing or unsupported');
+      }
+      if (!packet.graphTags || typeof packet.graphTags !== 'object') {
+        throw new Error('Evidence packet invalid: graphTags is required');
+      }
+      const graphTags = packet.graphTags as Record<string, unknown>;
+      const validateStringArray = (value: unknown, field: string) => {
+        if (!Array.isArray(value)) throw new Error(`Evidence packet invalid: graphTags.${field} must be array`);
+        return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+      };
+      return {
+        score,
+        pros: validateEvidenceClaimArray(packet.pros, 'pros'),
+        cons: validateEvidenceClaimArray(packet.cons, 'cons'),
+        pricingType: packet.pricingType,
+        graphTags: {
+          functions: validateStringArray(graphTags.functions, 'functions'),
+          audiences: validateStringArray(graphTags.audiences, 'audiences'),
+          platforms: validateStringArray(graphTags.platforms, 'platforms'),
+        },
+      };
+    };
+
+    let evidencePacket: EvidencePacket | null = null;
+    if (useTwoStageSynthesis) {
+      let evidencePrompt = `${input.promptTemplate}
+
+STAGE 1 TASK - EVIDENCE PACKET ONLY:
+Return JSON only (no markdown) with EXACTLY these fields:
+- score (number)
+- pros (array of objects: text, source_url, source_type, claim_type)
+- cons (array of objects: text, source_url, source_type, claim_type)
+- pricingType (free|freemium|paid|enterprise|open_source)
+- graphTags (object with arrays: functions, audiences, platforms)
+
+Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Stage 1.`;
+
+      for (let attempt = 1; attempt <= maxSchemaAttempts; attempt += 1) {
+        const generateEvidenceFn = async () => {
+          return geminiCircuit.execute(async () => {
+            try {
+              return await generateContentWithThinkingFallback(this.client, {
+                model,
+                contents: evidencePrompt,
+                config: {
+                  temperature: 0.2,
+                  responseMimeType: 'application/json',
+                  responseSchema: {
+                    type: 'object',
+                    required: ['score', 'pros', 'cons', 'pricingType', 'graphTags'],
+                    properties: {
+                      score: { type: 'number' },
+                      pros: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          required: ['text', 'source_url', 'source_type', 'claim_type'],
+                          properties: {
+                            text: { type: 'string' },
+                            source_url: { type: 'string' },
+                            source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                            claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                          },
+                        },
+                      },
+                      cons: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          required: ['text', 'source_url', 'source_type', 'claim_type'],
+                          properties: {
+                            text: { type: 'string' },
+                            source_url: { type: 'string' },
+                            source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                            claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                          },
+                        },
+                      },
+                      pricingType: {
+                        type: 'string',
+                        enum: ['free', 'freemium', 'paid', 'enterprise', 'open_source'],
+                      },
+                      graphTags: {
+                        type: 'object',
+                        required: ['functions', 'audiences', 'platforms'],
+                        properties: {
+                          functions: { type: 'array', items: { type: 'string' } },
+                          audiences: { type: 'array', items: { type: 'string' } },
+                          platforms: { type: 'array', items: { type: 'string' } },
+                        },
+                      },
+                    },
+                  },
+                  thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                },
+              });
+            } catch (error) {
+              throw classifyGeminiError(error);
+            }
+          });
+        };
+
+        const response = withRetry
+          ? await withRetry(
+              generateEvidenceFn,
+              `Gemini synthesis evidence stage (attempt ${attempt}/${maxSchemaAttempts})`
+            )
+          : await generateEvidenceFn();
+
+        const content = response.text;
+        if (!content) throw new Error('Empty response from Gemini synthesis evidence stage');
+        totalTokensUsed +=
+          response.usageMetadata?.totalTokenCount ??
+          Math.ceil((evidencePrompt.length + content.length) / 4);
+
+        try {
+          const rawEvidence = this.parseJsonResponse(content);
+          const evidence = Array.isArray(rawEvidence) ? rawEvidence[0] || {} : rawEvidence;
+          evidencePacket = parseEvidencePacket(evidence);
+          break;
+        } catch (error) {
+          lastSchemaError = error;
+          if (attempt >= maxSchemaAttempts) break;
+          const issue = error instanceof Error ? error.message : 'unknown evidence validation error';
+          evidencePrompt = `${input.promptTemplate}
+
+STAGE 1 TASK - EVIDENCE PACKET ONLY:
+The previous response failed validation: ${issue}
+Return valid JSON only with required fields score/pros/cons/pricingType/graphTags.`;
+        }
+      }
+      if (!evidencePacket) {
+        throw new Error(
+          `Gemini synthesis evidence stage failed after ${maxSchemaAttempts} attempts: ${
+            lastSchemaError instanceof Error ? lastSchemaError.message : 'unknown error'
+          }`
+        );
+      }
+    }
+
+    // Prompt should already be interpolated with variables
+    let prompt = useTwoStageSynthesis
+      ? `${input.promptTemplate}
+
+STAGE 2 TASK - NARRATIVE RENDERING:
+Use the evidence packet below as immutable source-of-truth.
+- Do not introduce new unsupported claims.
+- Keep pros/cons aligned to this packet.
+- Expand only narrative fields (summary, verdict, shortDescription, reviewContext, faqs).
+
+EVIDENCE_PACKET:
+${JSON.stringify(evidencePacket, null, 2)}`
+      : input.promptTemplate;
 
     for (let attempt = 1; attempt <= maxSchemaAttempts; attempt += 1) {
       const generateFn = async () => {
@@ -1004,6 +1224,18 @@ export class GeminiService {
           };
         }
         delete parsed.review_context;
+
+        if (evidencePacket) {
+          parsed.score = evidencePacket.score;
+          parsed.pros = evidencePacket.pros.map((claim) => ({ ...claim }));
+          parsed.cons = evidencePacket.cons.map((claim) => ({ ...claim }));
+          parsed.pricingType = evidencePacket.pricingType;
+          parsed.graphTags = {
+            functions: [...evidencePacket.graphTags.functions],
+            audiences: [...evidencePacket.graphTags.audiences],
+            platforms: [...evidencePacket.graphTags.platforms],
+          };
+        }
 
         if (input.strictClaimSourcing !== false) {
           const countInvalidClaims = (claims: unknown): number => {
