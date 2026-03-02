@@ -487,4 +487,51 @@ describe('GeminiService.synthesize', () => {
     );
     expect((result.generationQuality.meanConfidence || 0) < 0.68).toBe(true);
   });
+
+  it('coerces community fact claims to opinion in strict evidence mode', async () => {
+    const narrativePayload = buildValidPayload();
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(
+          buildEvidencePayload({
+            cons: [
+              {
+                text: 'Users report occasional sync issues during peak usage',
+                source_url: 'https://reddit.com/r/example/comments/abc123/thread',
+                source_type: 'community',
+                claim_type: 'fact',
+                confidence: 0.62,
+              },
+            ],
+          })
+        ),
+        usageMetadata: { totalTokenCount: 150 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(narrativePayload),
+        usageMetadata: { totalTokenCount: 250 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'ExampleTool',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    const firstCon = result.analysis.cons[0] as {
+      source_type?: string;
+      claim_type?: string;
+    };
+    expect(firstCon.source_type).toBe('community');
+    expect(firstCon.claim_type).toBe('opinion');
+  });
 });

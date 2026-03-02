@@ -779,6 +779,10 @@ export class GeminiService {
             c.source_type = 'editorial';
           }
         }
+        // Guardrail: community claims are treated as opinions, not hard facts.
+        if (c.source_type === 'community' && c.claim_type === 'fact') {
+          c.claim_type = 'opinion';
+        }
       }
       return claim;
     };
@@ -879,16 +883,18 @@ export class GeminiService {
         if (c.claim_type !== 'fact' && c.claim_type !== 'opinion') {
           throw new Error(`Evidence packet invalid: ${label}.claim_type must be fact/opinion`);
         }
+        const normalizedClaimType =
+          c.source_type === 'community' && c.claim_type === 'fact' ? 'opinion' : c.claim_type;
         const fallbackConfidence =
-          c.source_type === 'official' && c.claim_type === 'fact'
+          c.source_type === 'official' && normalizedClaimType === 'fact'
             ? 0.9
-            : c.source_type === 'official' && c.claim_type === 'opinion'
+            : c.source_type === 'official' && normalizedClaimType === 'opinion'
               ? 0.75
-              : c.source_type === 'editorial' && c.claim_type === 'fact'
+              : c.source_type === 'editorial' && normalizedClaimType === 'fact'
                 ? 0.72
-                : c.source_type === 'editorial' && c.claim_type === 'opinion'
+                : c.source_type === 'editorial' && normalizedClaimType === 'opinion'
                   ? 0.64
-                  : c.source_type === 'community' && c.claim_type === 'fact'
+                  : c.source_type === 'community' && normalizedClaimType === 'fact'
                     ? 0.58
                     : 0.5;
         const confidence =
@@ -900,7 +906,7 @@ export class GeminiService {
           text: c.text,
           source_url: c.source_url,
           source_type: c.source_type,
-          claim_type: c.claim_type,
+          claim_type: normalizedClaimType,
           confidence,
         });
       }
