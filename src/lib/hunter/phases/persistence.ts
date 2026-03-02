@@ -113,6 +113,14 @@ const INCOMPLETE_CLAUSE_ENDING =
 const COMMUNITY_HEDGING_PREFIX =
   /^(users report(?: that)?|community (?:reports|mentions|consensus (?:is|suggests)|feedback)|according to (?:reddit|hn|community)|based on user discussions)/i;
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
+const COVERAGE_ONBOARDING_TOKENS =
+  /\b(onboard|onboarding|setup|implementation|learning curve|ramp|time to value|adoption)\b/i;
+const COVERAGE_PRICING_TOKENS =
+  /\b(price|pricing|cost|billing|plan|tier|seat|quota|limit|cap|overage|enterprise)\b/i;
+const COVERAGE_MIGRATION_TOKENS =
+  /\b(migration|migrate|switch|switching|lock[-\s]?in|export|import|portability|data portability)\b/i;
+const COVERAGE_SUPPORT_TOKENS =
+  /\b(support|docs|documentation|SLA|uptime|ticket|response time|customer success)\b/i;
 
 const POPULARITY_PROFILES: Record<
   PopularityTier,
@@ -180,6 +188,113 @@ function meetsAuthoritativeDomainThreshold(
   if (domains >= minRequired) return true;
   if (tier === 'standard' && domains >= 1 && sourceCount >= 4 && score >= 80) return true;
   return false;
+}
+
+type CoverageDimension = 'onboarding' | 'pricing_ceilings' | 'migration_risk' | 'support_quality';
+
+function detectCoverageGaps(
+  analysis: any,
+  knowledgeCard: any,
+  generationQuality?: Record<string, unknown>
+): CoverageDimension[] {
+  const readClaimTexts = (claims: unknown[]): string[] =>
+    claims
+      .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
+      .filter((text: unknown): text is string => typeof text === 'string' && text.trim().length > 0);
+  const claimTexts = [...readClaimTexts(analysis?.pros || []), ...readClaimTexts(analysis?.cons || [])];
+  const reviewContextText = [
+    analysis?.reviewContext?.humanVerdict,
+    analysis?.reviewContext?.userAdvocate?.originStory,
+    ...(analysis?.reviewContext?.userAdvocate?.avoidIf || []),
+    ...(analysis?.reviewContext?.userAdvocate?.frustrations || []),
+    ...(analysis?.reviewContext?.userAdvocate?.idealFor || []),
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join(' ');
+  const summaryText = typeof analysis?.summary === 'string' ? analysis.summary : '';
+  const combinedText = [summaryText, ...claimTexts, reviewContextText].join('\n');
+
+  const abstainedFields = Array.isArray((generationQuality as any)?.abstainedFields)
+    ? ((generationQuality as any).abstainedFields as string[])
+    : [];
+  const hasReviewContext = !abstainedFields.includes('reviewContext');
+
+  const hasOnboardingSignal =
+    COVERAGE_ONBOARDING_TOKENS.test(combinedText) ||
+    typeof knowledgeCard?.setup_complexity?.tier === 'string' ||
+    typeof knowledgeCard?.setup_complexity?.description === 'string';
+  const hasPricingSignal =
+    COVERAGE_PRICING_TOKENS.test(combinedText) ||
+    Array.isArray(knowledgeCard?.constraints?.limits) ||
+    Array.isArray(knowledgeCard?.smp_pricing?.plans);
+  const hasMigrationSignal =
+    COVERAGE_MIGRATION_TOKENS.test(combinedText) ||
+    Boolean(knowledgeCard?.smp_portability?.has_data_export) ||
+    Array.isArray(knowledgeCard?.smp_portability?.export_formats) ||
+    Array.isArray(analysis?.switchingFrom);
+  const hasSupportSignal =
+    COVERAGE_SUPPORT_TOKENS.test(combinedText) ||
+    (hasReviewContext &&
+      Array.isArray(analysis?.reviewContext?.userAdvocate?.frustrations) &&
+      analysis.reviewContext.userAdvocate.frustrations.length > 0);
+
+  const gaps: CoverageDimension[] = [];
+  if (!hasOnboardingSignal) gaps.push('onboarding');
+  if (!hasPricingSignal) gaps.push('pricing_ceilings');
+  if (!hasMigrationSignal) gaps.push('migration_risk');
+  if (!hasSupportSignal) gaps.push('support_quality');
+  return gaps;
+}
+
+async function maybeEnqueueCoverageGapRehunt(params: {
+  toolName: string;
+  contextTitle?: string | null;
+  categorySlug?: string | null;
+  analysis: any;
+  knowledgeCard: any;
+  generationQuality?: Record<string, unknown>;
+  deps: HunterDependencies;
+}): Promise<void> {
+  const { toolName, contextTitle, categorySlug, analysis, knowledgeCard, generationQuality, deps } = params;
+  const gaps = detectCoverageGaps(analysis, knowledgeCard, generationQuality);
+  const hasCriticalGap = gaps.includes('pricing_ceilings');
+  if (!hasCriticalGap && gaps.length < 2) return;
+
+  let existingQuery = deps.supabase
+    .from('hunt_queue')
+    .select('id,status')
+    .eq('tool_name', toolName)
+    .in('status', ['pending', 'claimed', 'processing'])
+    .limit(1);
+  existingQuery = contextTitle
+    ? existingQuery.eq('context_title', contextTitle)
+    : existingQuery.is('context_title', null);
+  const { data: existing } = await existingQuery;
+  if (Array.isArray(existing) && existing.length > 0) {
+    deps.log(
+      `[Coverage Gap] Re-hunt already queued for ${toolName}${contextTitle ? ` (${contextTitle})` : ''}; skipping`
+    );
+    return;
+  }
+
+  const reason = `coverage_gaps:${gaps.join('|')}`;
+  const { error } = await deps.supabase.from('hunt_queue').insert({
+    tool_name: toolName,
+    context_title: contextTitle || null,
+    category_slug: categorySlug || null,
+    hunt_type: 'full',
+    force_regenerate: true,
+    priority: hasCriticalGap ? 90 : 75,
+    source: 'scheduled',
+    requested_by: reason,
+  });
+  if (error) {
+    deps.log(`[Coverage Gap] Failed to enqueue re-hunt: ${error.message}`);
+    return;
+  }
+  deps.log(
+    `[Coverage Gap] Enqueued re-hunt for ${toolName}${contextTitle ? ` (${contextTitle})` : ''} due to gaps: ${gaps.join(', ')}`
+  );
 }
 
 function isConditional(text: string): boolean {
@@ -1932,6 +2047,15 @@ export async function executePersistencePhase(
       derivedVerdict,
       sanitizedReviewContext,
     });
+    await maybeEnqueueCoverageGapRehunt({
+      toolName: ctx.toolName,
+      contextTitle: null,
+      categorySlug: ctx.categorySlug || null,
+      analysis: ctx.analysis.analysis,
+      knowledgeCard: ctx.research.knowledgeCard,
+      generationQuality: (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined,
+      deps,
+    });
 
     const suggestedContexts = await suggestContextIdeas(ctx, analysis, deps);
     if (suggestedContexts.length > 0) {
@@ -1994,6 +2118,15 @@ export async function executePersistencePhase(
   );
 
   deps.log(`Review created: ${reviewId}`);
+  await maybeEnqueueCoverageGapRehunt({
+    toolName: ctx.toolName,
+    contextTitle: ctx.contextTitle || null,
+    categorySlug: ctx.categorySlug || null,
+    analysis: ctx.analysis.analysis,
+    knowledgeCard: ctx.research.knowledgeCard,
+    generationQuality: (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined,
+    deps,
+  });
   await persistQualityGateSnapshot(item.id, reviewId, deps);
   await persistArticleInsights({
     deps,
