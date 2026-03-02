@@ -55,4 +55,4 @@ Minimal operational scripts for the live content pipeline.
 - Frontend design pass: `npm run design:pass`
 
 The cron-safe wrapper uses lower limits (`max-publish=10`, `worker-batch=3`) to keep each run bounded and reduce accidental mass publish risk.
-The autopilot flow also posts a summary to `DISCORD_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` when configured.
+The autopilot flow also posts a summary to `DISCORD_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` when configured, including `qa:gates` actionability metrics (`min`, `avg`, `below`, `missing`).

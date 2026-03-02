@@ -40,6 +40,15 @@ function extractFirstNumber(output: string, pattern: RegExp): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function extractFirstNullableNumber(output: string, pattern: RegExp): number | null {
+  const match = output.match(pattern);
+  if (!match) return null;
+  const raw = match[1]?.trim().toLowerCase();
+  if (!raw || raw === 'n/a' || raw === 'na') return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 async function postWebhookNotifications(payload: {
   ok: boolean;
   message: string;
@@ -90,6 +99,7 @@ async function main() {
   const recomputeLimit = getArgValue('recompute-limit') || '800';
   const gatesLimit = getArgValue('gates-limit') || '120';
   const maxPublish = getArgValue('max-publish') || '40';
+  const ideasLimit = getArgValue('ideas-limit') || '10';
   const refreshLimit = getArgValue('refresh-limit') || '50';
   const refreshPriority = getArgValue('refresh-priority') || '95';
   const blockedLimit = getArgValue('blocked-limit') || '20';
@@ -98,6 +108,7 @@ async function main() {
     getArgValue('blocked-reasons') ||
     'missing_required_sections,mvup_incomplete,authoritative_sources_low,authoritative_domains_low';
   const workerBatch = getArgValue('worker-batch') || '5';
+  const renderedSample = getArgValue('rendered-sample') || '15';
 
   console.log('\nQA Autopilot');
   console.log(`Mode: ${dryRun ? 'DRY RUN' : 'APPLY'}`);
@@ -106,6 +117,12 @@ async function main() {
 
   try {
     runStep('Typecheck', ['run', 'typecheck']);
+    runStep('Rendered tool pages gate', [
+      'run',
+      'qa:rendered-tool-pages',
+      '--',
+      `--sample=${renderedSample}`,
+    ]);
 
     const recomputeArgs = ['run', 'qa:recompute-quality', '--', `--limit=${recomputeLimit}`];
     if (!dryRun) recomputeArgs.push('--apply');
@@ -128,7 +145,37 @@ async function main() {
     if (!dryRun) gatesArgs.push('--apply');
     const gatesResult = runStep('Audit gate blockers and publish safe drafts', gatesArgs);
     const publishedCount = extractFirstNumber(gatesResult.output, /Published\s+(\d+)\s+review\(s\)/i);
+    const actionabilityMin = extractFirstNumber(gatesResult.output, /min threshold:\s*(\d+)/i);
+    const actionabilityAvg = extractFirstNullableNumber(
+      gatesResult.output,
+      /average score:\s*([0-9.]+|n\/a)/i
+    );
+    const actionabilityBelow = extractFirstNumber(gatesResult.output, /below threshold:\s*(\d+)/i);
+    const actionabilityMissing = extractFirstNumber(gatesResult.output, /missing score:\s*(\d+)/i);
     details.push(`Published safe drafts: ${publishedCount}`);
+    details.push(
+      `Actionability: min=${actionabilityMin || 'n/a'} avg=${
+        actionabilityAvg === null ? 'n/a' : actionabilityAvg.toFixed(1)
+      } below=${actionabilityBelow} missing=${actionabilityMissing}`
+    );
+
+    if (!dryRun) {
+      const ideasResult = runStep('Queue new content ideas', [
+        'run',
+        'queue-ideas',
+        '--',
+        '--all',
+        '--min-priority',
+        '0',
+        '--limit',
+        ideasLimit,
+      ]);
+      const queuedIdeas = extractFirstNumber(ideasResult.output, /Queued:\s*(\d+)/i);
+      details.push(`New ideas queued: ${queuedIdeas}`);
+    } else {
+      console.log('\nSkipping queue-ideas step in dry run mode.');
+      details.push('New ideas queue skipped (dry run)');
+    }
 
     const blockedArgs = [
       'run',
@@ -137,6 +184,7 @@ async function main() {
       `--limit=${blockedLimit}`,
       `--priority=${blockedPriority}`,
       `--reasons=${blockedReasons}`,
+      '--cooldown-hours=168',
     ];
     if (!dryRun) blockedArgs.push('--apply');
     const blockedResult = runStep('Queue blocked drafts for full re-hunt', blockedArgs);
@@ -149,6 +197,7 @@ async function main() {
       '--',
       `--limit=${refreshLimit}`,
       `--priority=${refreshPriority}`,
+      '--cooldown-hours=168',
     ];
     if (!dryRun) refreshArgs.push('--apply');
     const refreshResult = runStep('Queue volatile refresh jobs', refreshArgs);
