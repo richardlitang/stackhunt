@@ -815,6 +815,7 @@ export class GeminiService {
       source_url: string;
       source_type: 'official' | 'editorial' | 'community';
       claim_type: 'fact' | 'opinion';
+      confidence: number;
     };
 
     type EvidencePacket = {
@@ -855,11 +856,29 @@ export class GeminiService {
         if (c.claim_type !== 'fact' && c.claim_type !== 'opinion') {
           throw new Error(`Evidence packet invalid: ${label}.claim_type must be fact/opinion`);
         }
+        const fallbackConfidence =
+          c.source_type === 'official' && c.claim_type === 'fact'
+            ? 0.9
+            : c.source_type === 'official' && c.claim_type === 'opinion'
+              ? 0.75
+              : c.source_type === 'editorial' && c.claim_type === 'fact'
+                ? 0.72
+                : c.source_type === 'editorial' && c.claim_type === 'opinion'
+                  ? 0.64
+                  : c.source_type === 'community' && c.claim_type === 'fact'
+                    ? 0.58
+                    : 0.5;
+        const confidence =
+          typeof c.confidence === 'number' && Number.isFinite(c.confidence) ? c.confidence : fallbackConfidence;
+        if (confidence < 0 || confidence > 1) {
+          throw new Error(`Evidence packet invalid: ${label}.confidence must be between 0 and 1`);
+        }
         validated.push({
           text: c.text,
           source_url: c.source_url,
           source_type: c.source_type,
           claim_type: c.claim_type,
+          confidence,
         });
       }
       return validated;
@@ -944,6 +963,28 @@ export class GeminiService {
           )}% from one domain)`
         );
       }
+      const meanConfidence =
+        allClaims.reduce((sum, claim) => sum + claim.confidence, 0) / Math.max(1, allClaims.length);
+      const lowConfidenceRatio =
+        allClaims.filter((claim) => claim.confidence < 0.6).length / Math.max(1, allClaims.length);
+      const autoAbstentions: EvidencePacket['abstentions'] = [];
+      if (meanConfidence < 0.68 || lowConfidenceRatio > 0.5) {
+        const reason = `auto-abstain due to weak confidence distribution (mean=${meanConfidence.toFixed(
+          2
+        )}, low_ratio=${lowConfidenceRatio.toFixed(2)})`;
+        autoAbstentions.push(
+          { field: 'verdict', reason },
+          { field: 'shortDescription', reason },
+          { field: 'reviewContext', reason },
+          { field: 'faqs', reason }
+        );
+      }
+      const mergedAbstentions = [
+        ...abstentions,
+        ...autoAbstentions.filter(
+          (candidate) => !abstentions.some((existing) => existing.field === candidate.field)
+        ),
+      ];
       return {
         score,
         pros: prosClaims,
@@ -954,7 +995,7 @@ export class GeminiService {
           audiences: validateStringArray(graphTags.audiences, 'audiences'),
           platforms: validateStringArray(graphTags.platforms, 'platforms'),
         },
-        abstentions,
+        abstentions: mergedAbstentions,
       };
     };
 
@@ -967,6 +1008,7 @@ Return JSON only (no markdown) with EXACTLY these fields:
 - score (number)
 - pros (array of objects: text, source_url, source_type, claim_type)
 - cons (array of objects: text, source_url, source_type, claim_type)
+- each claim SHOULD include confidence (number 0..1)
 - pricingType (free|freemium|paid|enterprise|open_source)
 - graphTags (object with arrays: functions, audiences, platforms)
 - abstentions (optional array of {field, reason} where field is one of verdict|shortDescription|websiteUrl|faqs|reviewContext)
@@ -998,6 +1040,7 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
                             source_url: { type: 'string' },
                             source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
                             claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                            confidence: { type: 'number' },
                           },
                         },
                       },
@@ -1011,6 +1054,7 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
                             source_url: { type: 'string' },
                             source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
                             claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                            confidence: { type: 'number' },
                           },
                         },
                       },

@@ -81,12 +81,14 @@ function buildEvidencePayload(
       source_url: string;
       source_type: 'official' | 'editorial' | 'community';
       claim_type: 'fact' | 'opinion';
+      confidence?: number;
     }>;
     cons: Array<{
       text: string;
       source_url: string;
       source_type: 'official' | 'editorial' | 'community';
       claim_type: 'fact' | 'opinion';
+      confidence?: number;
     }>;
     pricingType: 'free' | 'freemium' | 'paid' | 'enterprise' | 'open_source';
     graphTags: { functions: string[]; audiences: string[]; platforms: string[] };
@@ -407,5 +409,77 @@ describe('GeminiService.synthesize', () => {
     expect(result.analysis.websiteUrl).toBeUndefined();
     expect(result.analysis.faqs).toBeUndefined();
     expect(result.analysis.reviewContext).toBeUndefined();
+  });
+
+  it('auto-abstains narrative fields when evidence confidence distribution is weak', async () => {
+    const narrativePayload = {
+      ...buildValidPayload(),
+      shortDescription: 'Short narrative that should be suppressed by auto-abstain.',
+      verdict: 'Narrative verdict that should be suppressed.',
+      faqs: [
+        {
+          question: 'Should I use this?',
+          answer: 'It depends on your use case and constraints.',
+          question_source: 'paa',
+          answer_source_url: 'https://example.com/docs/faq',
+        },
+      ],
+      review_context: {
+        human_verdict: 'This should be suppressed by auto-abstain.',
+      },
+    };
+
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(
+          buildEvidencePayload({
+            pros: [
+              {
+                text: 'API supports scoped keys for production use',
+                source_url: 'https://example.com/docs/api',
+                source_type: 'official',
+                claim_type: 'fact',
+                confidence: 0.45,
+              },
+            ],
+            cons: [
+              {
+                text: 'Some users report governance setup can be complex',
+                source_url: 'https://independent.example.org/review',
+                source_type: 'editorial',
+                claim_type: 'opinion',
+                confidence: 0.42,
+              },
+            ],
+          })
+        ),
+        usageMetadata: { totalTokenCount: 140 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(narrativePayload),
+        usageMetadata: { totalTokenCount: 240 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'ExampleTool',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(result.tokensUsed).toBe(380);
+    expect(result.analysis.verdict).toBeUndefined();
+    expect(result.analysis.shortDescription).toBeUndefined();
+    expect(result.analysis.faqs).toBeUndefined();
+    expect(result.analysis.reviewContext).toBeUndefined();
+    expect(typeof result.analysis.summary).toBe('string');
   });
 });
