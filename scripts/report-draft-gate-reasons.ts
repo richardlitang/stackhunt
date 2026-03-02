@@ -7,6 +7,7 @@ import { evaluateStrictPublishGate } from '../src/lib/review-publish-gate';
 dotenv.config();
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
+const DEFAULT_MIN_ACTIONABILITY_SCORE = 58;
 type PopularityTier = 'popular' | 'standard' | 'below_standard';
 
 const POPULARITY_PROFILES: Record<
@@ -58,6 +59,7 @@ type ReviewRow = {
   summary_markdown: string | null;
   cons: unknown;
   sources: unknown;
+  generation_quality: Record<string, unknown> | null;
   updated_at: string;
   item: {
     id: string;
@@ -116,6 +118,20 @@ function getNoindexReasons(specs: Record<string, unknown> | null): string[] {
   return toStringArray(quality.noindex_reasons);
 }
 
+function getMinActionabilityScore(): number {
+  const raw = process.env.HUNTER_MIN_ACTIONABILITY_SCORE;
+  const parsed = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(parsed)) return DEFAULT_MIN_ACTIONABILITY_SCORE;
+  return Math.min(100, Math.max(0, Math.round(parsed)));
+}
+
+function getActionabilityScore(generationQuality: Record<string, unknown> | null): number | null {
+  const raw = generationQuality?.actionabilityScore;
+  const parsed = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.min(100, Math.max(0, parsed));
+}
+
 function getCanonicalConflicts(specs: Record<string, unknown> | null): number {
   const canonical = (specs?.canonical as Record<string, unknown> | undefined) || {};
   const quality = (canonical.quality as Record<string, unknown> | undefined) || {};
@@ -167,6 +183,8 @@ function analyzeReview(review: ReviewRow): {
   knownBlockers: string[];
   popularityTier: PopularityTier;
   evidenceGrade: 'A' | 'B' | 'C';
+  actionabilityScore: number | null;
+  minActionabilityScore: number;
   strictMetrics: {
     requiredSourcingMissingCount: number;
     riskFlagsCount: number;
@@ -179,6 +197,8 @@ function analyzeReview(review: ReviewRow): {
   };
 } {
   const knownBlockers: string[] = [];
+  const minActionabilityScore = getMinActionabilityScore();
+  const actionabilityScore = getActionabilityScore(review.generation_quality);
   const popularityTier = resolvePopularityTier(review.item?.metadata || null);
   const profile = POPULARITY_PROFILES[popularityTier];
   const gateScore = getGateScore(review.item?.specs || null);
@@ -241,6 +261,9 @@ function analyzeReview(review: ReviewRow): {
 
   const conflictsCount = getCanonicalConflicts(review.item?.specs || null);
   if (conflictsCount > 0) knownBlockers.push(`canonical_conflicts:${conflictsCount}`);
+  if (actionabilityScore !== null && actionabilityScore < minActionabilityScore) {
+    knownBlockers.push(`low_actionability:${actionabilityScore}<${minActionabilityScore}`);
+  }
   const strict = evaluateStrictPublishGate(
     {
       ...(review.item || {}),
@@ -259,6 +282,8 @@ function analyzeReview(review: ReviewRow): {
     knownBlockers: Array.from(new Set(knownBlockers)),
     popularityTier,
     evidenceGrade: strict.evidenceGrade,
+    actionabilityScore,
+    minActionabilityScore,
     strictMetrics: {
       requiredSourcingMissingCount: strict.metrics.requiredSourcingMissingCount,
       riskFlagsCount: strict.metrics.riskFlagsCount,
@@ -304,6 +329,7 @@ async function main() {
       summary_markdown,
       cons,
       sources,
+      generation_quality,
       updated_at,
       item:items(
         id,
@@ -338,6 +364,10 @@ async function main() {
   const blockerCounts = new Map<string, number>();
   const latestByItem = new Map<string, ReviewRow>();
   const safeLatestReviews: ReviewRow[] = [];
+  const actionabilityValues: number[] = [];
+  let belowMinActionabilityCount = 0;
+  let missingActionabilityCount = 0;
+  const minActionabilityScore = getMinActionabilityScore();
 
   console.log('\nDraft Gate Audit');
   console.log(`Rows fetched: ${data?.length || 0}`);
@@ -347,6 +377,14 @@ async function main() {
   for (const row of rows) {
     const reviewCount = row.item?.review_count ?? 0;
     const analysis = analyzeReview(row);
+    if (analysis.actionabilityScore !== null) {
+      actionabilityValues.push(analysis.actionabilityScore);
+      if (analysis.actionabilityScore < analysis.minActionabilityScore) {
+        belowMinActionabilityCount += 1;
+      }
+    } else {
+      missingActionabilityCount += 1;
+    }
     if (!latestByItem.has(row.item_id)) {
       latestByItem.set(row.item_id, row);
       if (analysis.knownBlockers.length === 0) {
@@ -367,9 +405,22 @@ async function main() {
       `  strict_metrics: required_sourcing_missing=${analysis.strictMetrics.requiredSourcingMissingCount} risk_flags=${analysis.strictMetrics.riskFlagsCount} pricing_confidence=${analysis.strictMetrics.pricingConfidence}`
     );
     console.log(
+      `  actionability: score=${analysis.actionabilityScore ?? 'n/a'} min=${analysis.minActionabilityScore}`
+    );
+    console.log(
       `  blockers=${analysis.knownBlockers.length > 0 ? analysis.knownBlockers.join(', ') : 'none_detected'}`
     );
   }
+
+  const avgActionability =
+    actionabilityValues.length > 0
+      ? actionabilityValues.reduce((sum, value) => sum + value, 0) / actionabilityValues.length
+      : null;
+  console.log('\nActionability metrics:');
+  console.log(`  min threshold: ${minActionabilityScore}`);
+  console.log(`  average score: ${avgActionability !== null ? avgActionability.toFixed(1) : 'n/a'}`);
+  console.log(`  below threshold: ${belowMinActionabilityCount}`);
+  console.log(`  missing score: ${missingActionabilityCount}`);
 
   console.log('\nTop blocker counts:');
   const sorted = Array.from(blockerCounts.entries()).sort((a, b) => b[1] - a[1]);
