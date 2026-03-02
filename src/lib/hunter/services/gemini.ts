@@ -914,9 +914,15 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         return false;
       }
     };
+    type ClaimEvidence = {
+      text: string;
+      source_url: string;
+      source_type?: 'official' | 'editorial' | 'community';
+      claim_type?: 'fact' | 'opinion';
+    };
     const extractClaimEvidence = (
       claims: unknown
-    ): Array<{ text: string; source_url: string }> => {
+    ): ClaimEvidence[] => {
       if (!Array.isArray(claims)) return [];
       return claims
         .map((claim) => {
@@ -924,12 +930,23 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
           const c = claim as Record<string, unknown>;
           if (typeof c.text !== 'string' || !c.text.trim()) return null;
           if (!isValidUrl(c.source_url)) return null;
-          return {
+          const source_type: ClaimEvidence['source_type'] =
+            c.source_type === 'official' ||
+            c.source_type === 'editorial' ||
+            c.source_type === 'community'
+              ? c.source_type
+              : undefined;
+          const claim_type: ClaimEvidence['claim_type'] =
+            c.claim_type === 'fact' || c.claim_type === 'opinion' ? c.claim_type : undefined;
+          const evidence: ClaimEvidence = {
             text: c.text.trim(),
             source_url: c.source_url.trim(),
+            source_type,
+            claim_type,
           };
+          return evidence;
         })
-        .filter((entry): entry is { text: string; source_url: string } => !!entry);
+        .filter((entry): entry is ClaimEvidence => !!entry);
     };
     const buildVetoFallbackEntry = (
       alternative: string,
@@ -947,7 +964,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
     const normalizeVetoLogic = (
       raw: unknown,
       alternatives: string[],
-      consEvidence: Array<{ text: string; source_url: string }>
+      consEvidence: ClaimEvidence[]
     ): Array<{ condition: string; alternative: string; reason: string; source_url: string }> => {
       const normalized = Array.isArray(raw)
         ? raw
@@ -990,6 +1007,56 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       if (normalized.length > 0) return normalized.slice(0, 3);
       if (alternatives.length === 0 || consEvidence.length === 0) return [];
       return [buildVetoFallbackEntry(alternatives[0], consEvidence[0])];
+    };
+    const normalizeRealityChecks = (
+      raw: unknown,
+      consEvidence: ClaimEvidence[]
+    ): Array<{ claim: string; reality: string; impact: string; source_url: string }> => {
+      const normalized = Array.isArray(raw)
+        ? raw
+            .map((entry) => {
+              if (!entry || typeof entry !== 'object') return null;
+              const candidate = entry as Record<string, unknown>;
+              const claim =
+                typeof candidate.claim === 'string' && candidate.claim.trim()
+                  ? candidate.claim.trim()
+                  : null;
+              const reality =
+                typeof candidate.reality === 'string' && candidate.reality.trim()
+                  ? candidate.reality.trim()
+                  : null;
+              const impact =
+                typeof candidate.impact === 'string' && candidate.impact.trim()
+                  ? candidate.impact.trim()
+                  : null;
+              const source_url = isValidUrl(candidate.source_url)
+                ? candidate.source_url.trim()
+                : null;
+              if (!claim || !reality || !impact || !source_url) return null;
+              return { claim, reality, impact, source_url };
+            })
+            .filter(
+              (
+                entry
+              ): entry is { claim: string; reality: string; impact: string; source_url: string } =>
+                !!entry
+            )
+        : [];
+      if (normalized.length > 0) return normalized.slice(0, 3);
+      if (consEvidence.length === 0) return [];
+      const evidence = consEvidence[0];
+      const hedgedReality =
+        evidence.source_type === 'community' || evidence.source_type === 'editorial'
+          ? evidence.text
+          : `Users report that ${evidence.text.charAt(0).toLowerCase()}${evidence.text.slice(1)}`;
+      return [
+        {
+          claim: 'Vendor messaging emphasizes broad capability across common workflows.',
+          reality: hedgedReality,
+          impact: 'Teams with strict requirements should validate this area during trial before rollout.',
+          source_url: evidence.source_url,
+        },
+      ];
     };
     const fixClaim = (claim: unknown) => {
       if (typeof claim === 'object' && claim !== null) {
@@ -1703,11 +1770,13 @@ ${JSON.stringify(evidencePacket, null, 2)}`
         ) {
           parsed.switchingFrom = alternativeSignals.candidates.slice(0, 3);
         }
+        const consEvidence = extractClaimEvidence(parsed.cons);
         parsed.vetoLogic = normalizeVetoLogic(
           parsed.vetoLogic,
           alternativeSignals.candidates,
-          extractClaimEvidence(parsed.cons)
+          consEvidence
         );
+        parsed.realityChecks = normalizeRealityChecks(parsed.realityChecks, consEvidence);
         if (!Array.isArray(parsed.switchingFrom)) delete parsed.switchingFrom;
 
         const validated = AnalysisSchema.parse(parsed);

@@ -755,6 +755,54 @@ describe('GeminiService.synthesize', () => {
     expect(typeof (result.analysis.vetoLogic || [])[0].source_url).toBe('string');
   });
 
+  it('backfills realityChecks from sourced cons when model omits them', async () => {
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(
+          buildEvidencePayload({
+            cons: [
+              {
+                text: 'Users report sync conflicts when editing shared docs from iOS and web simultaneously',
+                source_url: 'https://reddit.com/r/example/comments/abc123/thread',
+                source_type: 'community',
+                claim_type: 'opinion',
+                confidence: 0.64,
+              },
+            ],
+          })
+        ),
+        usageMetadata: { totalTokenCount: 240 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          ...buildValidPayload(),
+          realityChecks: undefined,
+        }),
+        usageMetadata: { totalTokenCount: 250 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'Notion',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(Array.isArray(result.analysis.realityChecks)).toBe(true);
+    expect((result.analysis.realityChecks || []).length).toBeGreaterThan(0);
+    expect((result.analysis.realityChecks || [])[0]).toMatchObject({
+      source_url: 'https://reddit.com/r/example/comments/abc123/thread',
+    });
+  });
+
   it('computes actionability score for decision-useful outputs', async () => {
     mockGenerateContentWithThinkingFallback
       .mockResolvedValueOnce({
