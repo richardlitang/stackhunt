@@ -714,6 +714,47 @@ describe('GeminiService.synthesize', () => {
     expect(result.analysis.switchingFrom).toEqual(expect.arrayContaining(['Coda', 'Airtable']));
   });
 
+  it('backfills vetoLogic from alternatives and sourced cons when model omits it', async () => {
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(buildEvidencePayload()),
+        usageMetadata: { totalTokenCount: 220 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          ...buildValidPayload(),
+          vetoLogic: undefined,
+        }),
+        usageMetadata: { totalTokenCount: 230 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'Notion',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [
+        '[https://example.com/1] Notion vs Coda for docs',
+        '[https://example.com/2] Airtable vs Notion for product ops',
+        '[https://example.com/3] Coda alternatives for small teams',
+      ],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(Array.isArray(result.analysis.vetoLogic)).toBe(true);
+    expect((result.analysis.vetoLogic || []).length).toBeGreaterThan(0);
+    expect((result.analysis.vetoLogic || [])[0]).toMatchObject({
+      alternative: 'Coda',
+    });
+    expect(typeof (result.analysis.vetoLogic || [])[0].source_url).toBe('string');
+  });
+
   it('computes actionability score for decision-useful outputs', async () => {
     mockGenerateContentWithThinkingFallback
       .mockResolvedValueOnce({

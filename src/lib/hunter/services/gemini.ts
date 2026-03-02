@@ -905,6 +905,92 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       const abstentionPenalty = options.abstainedCount * 4;
       return Math.round(clamp(rawScore - abstentionPenalty, 0, 100));
     };
+    const isValidUrl = (value: unknown): value is string => {
+      if (typeof value !== 'string' || !value.trim()) return false;
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const extractClaimEvidence = (
+      claims: unknown
+    ): Array<{ text: string; source_url: string }> => {
+      if (!Array.isArray(claims)) return [];
+      return claims
+        .map((claim) => {
+          if (!claim || typeof claim !== 'object') return null;
+          const c = claim as Record<string, unknown>;
+          if (typeof c.text !== 'string' || !c.text.trim()) return null;
+          if (!isValidUrl(c.source_url)) return null;
+          return {
+            text: c.text.trim(),
+            source_url: c.source_url.trim(),
+          };
+        })
+        .filter((entry): entry is { text: string; source_url: string } => !!entry);
+    };
+    const buildVetoFallbackEntry = (
+      alternative: string,
+      claim: { text: string; source_url: string }
+    ): { condition: string; alternative: string; reason: string; source_url: string } => {
+      const truncatedClaim =
+        claim.text.length > 140 ? `${claim.text.slice(0, 137).trimEnd()}...` : claim.text;
+      return {
+        condition: `If this limitation is a blocker: ${truncatedClaim}`,
+        alternative,
+        reason: `${alternative} may be a better fit when this constraint is unacceptable for your workflow.`,
+        source_url: claim.source_url,
+      };
+    };
+    const normalizeVetoLogic = (
+      raw: unknown,
+      alternatives: string[],
+      consEvidence: Array<{ text: string; source_url: string }>
+    ): Array<{ condition: string; alternative: string; reason: string; source_url: string }> => {
+      const normalized = Array.isArray(raw)
+        ? raw
+            .map((entry) => {
+              if (!entry || typeof entry !== 'object') return null;
+              const candidate = entry as Record<string, unknown>;
+              const condition =
+                typeof candidate.condition === 'string' && candidate.condition.trim()
+                  ? candidate.condition.trim()
+                  : typeof candidate.text === 'string' && candidate.text.trim()
+                    ? candidate.text.trim()
+                    : null;
+              const alternative =
+                typeof candidate.alternative === 'string' && candidate.alternative.trim()
+                  ? candidate.alternative.trim()
+                  : alternatives[0] || null;
+              const reason =
+                typeof candidate.reason === 'string' && candidate.reason.trim()
+                  ? candidate.reason.trim()
+                  : condition
+                    ? `Consider ${alternative || 'an alternative'} when this condition is critical.`
+                    : null;
+              const source_url = isValidUrl(candidate.source_url)
+                ? candidate.source_url.trim()
+                : consEvidence[0]?.source_url;
+              if (!condition || !alternative || !reason || !source_url) return null;
+              return { condition, alternative, reason, source_url };
+            })
+            .filter(
+              (
+                entry
+              ): entry is {
+                condition: string;
+                alternative: string;
+                reason: string;
+                source_url: string;
+              } => !!entry
+            )
+        : [];
+      if (normalized.length > 0) return normalized.slice(0, 3);
+      if (alternatives.length === 0 || consEvidence.length === 0) return [];
+      return [buildVetoFallbackEntry(alternatives[0], consEvidence[0])];
+    };
     const fixClaim = (claim: unknown) => {
       if (typeof claim === 'object' && claim !== null) {
         const c = claim as Record<string, unknown>;
@@ -1617,6 +1703,11 @@ ${JSON.stringify(evidencePacket, null, 2)}`
         ) {
           parsed.switchingFrom = alternativeSignals.candidates.slice(0, 3);
         }
+        parsed.vetoLogic = normalizeVetoLogic(
+          parsed.vetoLogic,
+          alternativeSignals.candidates,
+          extractClaimEvidence(parsed.cons)
+        );
         if (!Array.isArray(parsed.switchingFrom)) delete parsed.switchingFrom;
 
         const validated = AnalysisSchema.parse(parsed);
