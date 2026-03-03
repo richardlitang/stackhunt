@@ -9,7 +9,6 @@
 
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import type { HunterAnalysis } from '../types.js';
-import { AnalysisSchema } from '../types.js';
 import { geminiCircuit } from './circuit-breaker.js';
 import {
   buildForensicFramework,
@@ -20,6 +19,7 @@ import { buildFactSummary, buildSnippetBucketsFromScout } from '../utils.js';
 import type { KnowledgeCard } from '../../knowledge-card.js';
 import { getGeminiModelForStage, toCacheModelName } from './model-router.js';
 import { generateContentWithThinkingFallback } from './gemini-compat.js';
+import { parseAndValidateAnalysisResponse } from './analysis-response.js';
 
 export interface BatchSynthesisInput {
   itemId: string;
@@ -105,62 +105,6 @@ function compactSnippetLines(lines: string[], maxLines: number, maxCharsPerLine:
   }
 
   return compacted;
-}
-
-function normalizeMarkdownJson(content: string): string {
-  let cleaned = content.trim();
-  if (cleaned.startsWith('```json')) {
-    cleaned = cleaned.slice(7);
-  }
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.slice(3);
-  }
-  if (cleaned.endsWith('```')) {
-    cleaned = cleaned.slice(0, -3);
-  }
-  return cleaned.trim();
-}
-
-function parseAndValidateAnalysisResponse(content: string, applyClaimFixes: boolean): HunterAnalysis {
-  const parsed = JSON.parse(normalizeMarkdownJson(content));
-
-  if (applyClaimFixes) {
-    const validSourceTypes = ['official', 'editorial', 'community'];
-    const fixClaim = (claim: unknown) => {
-      if (typeof claim === 'object' && claim !== null) {
-        const c = claim as Record<string, unknown>;
-        if (c.source_type && !validSourceTypes.includes(c.source_type as string)) {
-          if (c.source_type === 'fact' || c.source_type === 'opinion') {
-            if (!c.claim_type) c.claim_type = c.source_type;
-            c.source_type = 'editorial';
-          }
-        }
-        if (!c.claim_type) {
-          c.claim_type = 'opinion';
-        }
-      }
-      return claim;
-    };
-
-    if (Array.isArray(parsed.pros)) parsed.pros = parsed.pros.map(fixClaim);
-    if (Array.isArray(parsed.cons)) parsed.cons = parsed.cons.map(fixClaim);
-  }
-
-  if (parsed.verdict && parsed.verdict.length > 200) {
-    parsed.verdict = parsed.verdict.slice(0, 197) + '...';
-  }
-  if (parsed.shortDescription && parsed.shortDescription.length > 200) {
-    parsed.shortDescription = parsed.shortDescription.slice(0, 197) + '...';
-  }
-  if (!parsed.sentimentTags) parsed.sentimentTags = [];
-  if (!parsed.vetoLogic) parsed.vetoLogic = [];
-  if (!parsed.realityChecks) parsed.realityChecks = [];
-  if (!parsed.graphTags) {
-    parsed.graphTags = { functions: [], audiences: [], platforms: [] };
-  }
-
-  const validated = AnalysisSchema.parse(parsed);
-  return validated as unknown as HunterAnalysis;
 }
 
 export class BatchSynthesisService {
@@ -272,7 +216,7 @@ export class BatchSynthesisService {
               throw new Error(`Empty response for ${input.toolName}`);
             }
 
-            const validated = parseAndValidateAnalysisResponse(content, true);
+            const validated = parseAndValidateAnalysisResponse(content, { applyClaimFixes: true });
 
             // Track timing
             const toolDuration = Date.now() - toolStartTime;
@@ -474,5 +418,5 @@ Output ONLY valid JSON matching the HunterAnalysis schema.`;
     throw new Error(`Empty response for ${input.toolName}`);
   }
 
-  return parseAndValidateAnalysisResponse(content, false);
+  return parseAndValidateAnalysisResponse(content);
 }

@@ -21,8 +21,9 @@ import { classifyGeminiError } from '../errors';
 import { geminiCircuit } from './circuit-breaker';
 import { buildExtractionPrompt } from '../prompts/extraction';
 import { sanitizeUrl } from '../../utils/url';
-import { getGeminiModelForStage } from './model-router';
+import { getGeminiModelForStage, getGeminiModelForTier } from './model-router';
 import { generateContentWithThinkingFallback } from './gemini-compat';
+import { normalizeAnalysisResponseObject } from './analysis-response';
 
 export interface GeminiConfig {
   apiKey: string;
@@ -80,6 +81,17 @@ export class GeminiService {
   constructor(config: GeminiConfig) {
     this.apiKey = config.apiKey;
     this.client = new GoogleGenAI({ apiKey: config.apiKey });
+  }
+
+  private parseThinkingLevel(
+    rawValue: string | undefined,
+    fallback: ThinkingLevel
+  ): ThinkingLevel {
+    const normalized = (rawValue || '').trim().toUpperCase();
+    if (normalized === 'LOW') return ThinkingLevel.LOW;
+    if (normalized === 'MEDIUM') return ThinkingLevel.MEDIUM;
+    if (normalized === 'HIGH') return ThinkingLevel.HIGH;
+    return fallback;
   }
 
   private parseJsonResponse(content: string): any {
@@ -200,7 +212,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
    */
   async extractKnowledgeCard(
     input: ExtractKnowledgeCardInput,
-    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
+    withRetry?: <T>(fn: () => Promise<T>, operation: string, maxRetries?: number) => Promise<T>,
     options?: { mode?: 'full' | 'pricing_only' }
   ): Promise<{ knowledgeCard: KnowledgeCard; tokensUsed: number }> {
     const model = getGeminiModelForStage('research_extraction');
@@ -223,6 +235,10 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       pricingDeepContent: input.pricingDeepContent,
     });
 
+    const extractionThinkingLevel = this.parseThinkingLevel(
+      process.env.HUNTER_GEMINI_EXTRACTION_THINKING_LEVEL,
+      options?.mode === 'pricing_only' ? ThinkingLevel.LOW : ThinkingLevel.HIGH
+    );
     const generateFn = async () => {
       return geminiCircuit.execute(async () => {
         try {
@@ -234,8 +250,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
               responseMimeType: 'application/json',
               responseSchema: GeminiKnowledgeCardSchema,
               thinkingConfig: {
-                thinkingLevel:
-                  options?.mode === 'pricing_only' ? ThinkingLevel.LOW : ThinkingLevel.HIGH, // Deep reasoning for comprehensive extraction
+                thinkingLevel: extractionThinkingLevel, // Deep reasoning for comprehensive extraction
               },
             },
           });
@@ -828,7 +843,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
    */
   async synthesize(
     input: SynthesizeInput,
-    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
+    withRetry?: <T>(fn: () => Promise<T>, operation: string, maxRetries?: number) => Promise<T>
   ): Promise<{
     analysis: HunterAnalysis;
     tokensUsed: number;
@@ -836,6 +851,20 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
   }> {
     const model = getGeminiModelForStage('analysis_synthesis');
     const maxSchemaAttempts = 2;
+    const synthesisThinkingLevel = this.parseThinkingLevel(
+      process.env.HUNTER_GEMINI_SYNTHESIS_THINKING_LEVEL,
+      ThinkingLevel.MEDIUM
+    );
+    const timeoutFallbackModel =
+      process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_FALLBACK_MODEL || getGeminiModelForTier('FAST_CHEAP');
+    const timeoutFallbackThinkingLevel = this.parseThinkingLevel(
+      process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_FALLBACK_THINKING_LEVEL,
+      ThinkingLevel.LOW
+    );
+    const isTimeoutError = (error: unknown): boolean => {
+      const message = error instanceof Error ? error.message : String(error);
+      return /\btimed out\b|\btimeout\b/i.test(message);
+    };
     let totalTokensUsed = 0;
     let lastSchemaError: unknown = null;
     const useTwoStageSynthesis = input.strictClaimSourcing !== false;
@@ -1289,10 +1318,9 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       const allClaims = [...prosClaims, ...consClaims];
       const officialClaims = allClaims.filter((claim) => claim.source_type === 'official').length;
       const nonOfficialClaims = allClaims.length - officialClaims;
+      const diversityIssues: string[] = [];
       if (officialClaims < 1 || nonOfficialClaims < 1) {
-        throw new Error(
-          'Evidence packet invalid: source diversity requires at least one official and one non-official claim'
-        );
+        diversityIssues.push('missing official/non-official balance');
       }
       const domainCount = new Map<string, number>();
       for (const claim of allClaims) {
@@ -1304,22 +1332,27 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         }
       }
       if (domainCount.size < 2) {
-        throw new Error('Evidence packet invalid: source diversity requires at least two distinct domains');
+        diversityIssues.push('fewer than two distinct domains');
       }
-      const maxDomainClaims = Math.max(...domainCount.values());
-      const maxDomainShare = maxDomainClaims / allClaims.length;
+      const maxDomainClaims = Math.max(...domainCount.values(), 0);
+      const maxDomainShare = maxDomainClaims / Math.max(1, allClaims.length);
       if (maxDomainShare > 0.8) {
-        throw new Error(
-          `Evidence packet invalid: source concentration too high (${Math.round(
-            maxDomainShare * 100
-          )}% from one domain)`
-        );
+        diversityIssues.push(`source concentration too high (${Math.round(maxDomainShare * 100)}% from one domain)`);
       }
       const meanConfidence =
         allClaims.reduce((sum, claim) => sum + claim.confidence, 0) / Math.max(1, allClaims.length);
       const lowConfidenceRatio =
         allClaims.filter((claim) => claim.confidence < 0.6).length / Math.max(1, allClaims.length);
       const autoAbstentions: EvidencePacket['abstentions'] = [];
+      if (diversityIssues.length > 0) {
+        const reason = `auto-abstain due to evidence diversity gaps (${diversityIssues.join('; ')})`;
+        autoAbstentions.push(
+          { field: 'verdict', reason },
+          { field: 'shortDescription', reason },
+          { field: 'reviewContext', reason },
+          { field: 'faqs', reason }
+        );
+      }
       if (meanConfidence < 0.68 || lowConfidenceRatio > 0.5) {
         const reason = `auto-abstain due to weak confidence distribution (mean=${meanConfidence.toFixed(
           2
@@ -1383,79 +1416,86 @@ Return JSON only (no markdown) with EXACTLY these fields:
 Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Stage 1.`;
 
       for (let attempt = 1; attempt <= maxSchemaAttempts; attempt += 1) {
-        const generateEvidenceFn = async () => {
+        const generateEvidenceFn = async (
+          requestModel: string,
+          thinkingLevel: ThinkingLevel,
+          includeSchema: boolean
+        ) => {
           return geminiCircuit.execute(async () => {
             try {
-              return await generateContentWithThinkingFallback(this.client, {
-                model,
-                contents: evidencePrompt,
-                config: {
-                  temperature: 0.2,
-                  responseMimeType: 'application/json',
-                  responseSchema: {
-                    type: 'object',
-                    required: ['score', 'pros', 'cons', 'pricingType', 'graphTags'],
-                    properties: {
-                      score: { type: 'number' },
-                      pros: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          required: ['text', 'source_url', 'source_type', 'claim_type'],
-                          properties: {
-                            text: { type: 'string' },
-                            source_url: { type: 'string' },
-                            source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
-                            claim_type: { type: 'string', enum: ['fact', 'opinion'] },
-                            confidence: { type: 'number' },
-                          },
-                        },
-                      },
-                      cons: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          required: ['text', 'source_url', 'source_type', 'claim_type'],
-                          properties: {
-                            text: { type: 'string' },
-                            source_url: { type: 'string' },
-                            source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
-                            claim_type: { type: 'string', enum: ['fact', 'opinion'] },
-                            confidence: { type: 'number' },
-                          },
-                        },
-                      },
-                      pricingType: {
-                        type: 'string',
-                        enum: ['free', 'freemium', 'paid', 'enterprise', 'open_source'],
-                      },
-                      graphTags: {
+              const config: Record<string, unknown> = {
+                temperature: 0.2,
+                responseMimeType: 'application/json',
+                thinkingConfig: { thinkingLevel },
+              };
+              if (includeSchema) {
+                config.responseSchema = {
+                  type: 'object',
+                  required: ['score', 'pros', 'cons', 'pricingType', 'graphTags'],
+                  properties: {
+                    score: { type: 'number' },
+                    pros: {
+                      type: 'array',
+                      items: {
                         type: 'object',
-                        required: ['functions', 'audiences', 'platforms'],
+                        required: ['text', 'source_url', 'source_type', 'claim_type'],
                         properties: {
-                          functions: { type: 'array', items: { type: 'string' } },
-                          audiences: { type: 'array', items: { type: 'string' } },
-                          platforms: { type: 'array', items: { type: 'string' } },
+                          text: { type: 'string' },
+                          source_url: { type: 'string' },
+                          source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                          claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                          confidence: { type: 'number' },
                         },
                       },
-                      abstentions: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          required: ['field', 'reason'],
-                          properties: {
-                            field: {
-                              type: 'string',
-                              enum: ['verdict', 'shortDescription', 'websiteUrl', 'faqs', 'reviewContext'],
-                            },
-                            reason: { type: 'string' },
+                    },
+                    cons: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        required: ['text', 'source_url', 'source_type', 'claim_type'],
+                        properties: {
+                          text: { type: 'string' },
+                          source_url: { type: 'string' },
+                          source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                          claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                          confidence: { type: 'number' },
+                        },
+                      },
+                    },
+                    pricingType: {
+                      type: 'string',
+                      enum: ['free', 'freemium', 'paid', 'enterprise', 'open_source'],
+                    },
+                    graphTags: {
+                      type: 'object',
+                      required: ['functions', 'audiences', 'platforms'],
+                      properties: {
+                        functions: { type: 'array', items: { type: 'string' } },
+                        audiences: { type: 'array', items: { type: 'string' } },
+                        platforms: { type: 'array', items: { type: 'string' } },
+                      },
+                    },
+                    abstentions: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        required: ['field', 'reason'],
+                        properties: {
+                          field: {
+                            type: 'string',
+                            enum: ['verdict', 'shortDescription', 'websiteUrl', 'faqs', 'reviewContext'],
                           },
+                          reason: { type: 'string' },
                         },
                       },
                     },
                   },
-                  thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-                },
+                };
+              }
+              return await generateContentWithThinkingFallback(this.client, {
+                model: requestModel,
+                contents: evidencePrompt,
+                config,
               });
             } catch (error) {
               throw classifyGeminiError(error);
@@ -1463,12 +1503,27 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
           });
         };
 
-        const response = withRetry
-          ? await withRetry(
-              generateEvidenceFn,
-              `Gemini synthesis evidence stage (attempt ${attempt}/${maxSchemaAttempts})`
-            )
-          : await generateEvidenceFn();
+        const operationLabel = `Gemini synthesis evidence stage (attempt ${attempt}/${maxSchemaAttempts})`;
+        let response;
+        try {
+          response = withRetry
+            ? await withRetry(
+                () => generateEvidenceFn(model, synthesisThinkingLevel, true),
+                operationLabel,
+                1
+              )
+            : await generateEvidenceFn(model, synthesisThinkingLevel, true);
+        } catch (error) {
+          if (!isTimeoutError(error)) throw error;
+          response = withRetry
+            ? await withRetry(
+                () =>
+                  generateEvidenceFn(timeoutFallbackModel, timeoutFallbackThinkingLevel, false),
+                `${operationLabel} timeout fallback`,
+                1
+              )
+            : await generateEvidenceFn(timeoutFallbackModel, timeoutFallbackThinkingLevel, false);
+        }
 
         const content = response.text;
         if (!content) throw new Error('Empty response from Gemini synthesis evidence stage');
@@ -1517,79 +1572,83 @@ ${JSON.stringify(evidencePacket, null, 2)}`
       : promptBase;
 
     for (let attempt = 1; attempt <= maxSchemaAttempts; attempt += 1) {
-      const generateFn = async () => {
+      const generateFn = async (
+        requestModel: string,
+        thinkingLevel: ThinkingLevel,
+        includeSchema: boolean
+      ) => {
         return geminiCircuit.execute(async () => {
           try {
-            return await generateContentWithThinkingFallback(this.client, {
-              model,
-              contents: prompt,
-              config: {
-                temperature: 0.3,
-                responseMimeType: 'application/json',
-                // Strict contract for synthesis output (field-level shape guidance).
-                responseSchema: {
-                  type: 'object',
-                  required: [
-                    'score',
-                    'pros',
-                    'cons',
-                    'summary',
-                    'sentimentTags',
-                    'pricingType',
-                    'graphTags',
-                  ],
-                  properties: {
-                    score: { type: 'number' },
-                    pros: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        required: ['text', 'source_url', 'source_type', 'claim_type'],
-                        properties: {
-                          text: { type: 'string' },
-                          source_url: { type: 'string' },
-                          source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
-                          claim_type: { type: 'string', enum: ['fact', 'opinion'] },
-                        },
-                      },
-                    },
-                    cons: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        required: ['text', 'source_url', 'source_type', 'claim_type'],
-                        properties: {
-                          text: { type: 'string' },
-                          source_url: { type: 'string' },
-                          source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
-                          claim_type: { type: 'string', enum: ['fact', 'opinion'] },
-                        },
-                      },
-                    },
-                    summary: { type: 'string' },
-                    sentimentTags: { type: 'array', items: { type: 'string' } },
-                    pricingType: {
-                      type: 'string',
-                      enum: ['free', 'freemium', 'paid', 'enterprise', 'open_source'],
-                    },
-                    websiteUrl: { type: 'string', nullable: true },
-                    shortDescription: { type: 'string', nullable: true },
-                    verdict: { type: 'string', nullable: true },
-                    graphTags: {
+            const config: Record<string, unknown> = {
+              temperature: 0.3,
+              responseMimeType: 'application/json',
+              thinkingConfig: { thinkingLevel },
+            };
+            if (includeSchema) {
+              config.responseSchema = {
+                type: 'object',
+                required: [
+                  'score',
+                  'pros',
+                  'cons',
+                  'summary',
+                  'sentimentTags',
+                  'pricingType',
+                  'graphTags',
+                ],
+                properties: {
+                  score: { type: 'number' },
+                  pros: {
+                    type: 'array',
+                    items: {
                       type: 'object',
-                      required: ['functions', 'audiences', 'platforms'],
+                      required: ['text', 'source_url', 'source_type', 'claim_type'],
                       properties: {
-                        functions: { type: 'array', items: { type: 'string' } },
-                        audiences: { type: 'array', items: { type: 'string' } },
-                        platforms: { type: 'array', items: { type: 'string' } },
+                        text: { type: 'string' },
+                        source_url: { type: 'string' },
+                        source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                        claim_type: { type: 'string', enum: ['fact', 'opinion'] },
                       },
                     },
                   },
+                  cons: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['text', 'source_url', 'source_type', 'claim_type'],
+                      properties: {
+                        text: { type: 'string' },
+                        source_url: { type: 'string' },
+                        source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                        claim_type: { type: 'string', enum: ['fact', 'opinion'] },
+                      },
+                    },
+                  },
+                  summary: { type: 'string' },
+                  sentimentTags: { type: 'array', items: { type: 'string' } },
+                  pricingType: {
+                    type: 'string',
+                    enum: ['free', 'freemium', 'paid', 'enterprise', 'open_source'],
+                  },
+                  websiteUrl: { type: 'string', nullable: true },
+                  shortDescription: { type: 'string', nullable: true },
+                  verdict: { type: 'string', nullable: true },
+                  graphTags: {
+                    type: 'object',
+                    required: ['functions', 'audiences', 'platforms'],
+                    properties: {
+                      functions: { type: 'array', items: { type: 'string' } },
+                      audiences: { type: 'array', items: { type: 'string' } },
+                      platforms: { type: 'array', items: { type: 'string' } },
+                    },
+                  },
                 },
-                thinkingConfig: {
-                  thinkingLevel: ThinkingLevel.HIGH, // Deep reasoning for synthesis
-                },
-              },
+              };
+            }
+            return await generateContentWithThinkingFallback(this.client, {
+              model: requestModel,
+              contents: prompt,
+              config,
             });
           } catch (error) {
             throw classifyGeminiError(error);
@@ -1597,9 +1656,22 @@ ${JSON.stringify(evidencePacket, null, 2)}`
         });
       };
 
-      const response = withRetry
-        ? await withRetry(generateFn, `Gemini synthesis (attempt ${attempt}/${maxSchemaAttempts})`)
-        : await generateFn();
+      const operationLabel = `Gemini synthesis (attempt ${attempt}/${maxSchemaAttempts})`;
+      let response;
+      try {
+        response = withRetry
+          ? await withRetry(() => generateFn(model, synthesisThinkingLevel, true), operationLabel, 1)
+          : await generateFn(model, synthesisThinkingLevel, true);
+      } catch (error) {
+        if (!isTimeoutError(error)) throw error;
+        response = withRetry
+          ? await withRetry(
+              () => generateFn(timeoutFallbackModel, timeoutFallbackThinkingLevel, false),
+              `${operationLabel} timeout fallback`,
+              1
+            )
+          : await generateFn(timeoutFallbackModel, timeoutFallbackThinkingLevel, false);
+      }
 
       const content = response.text;
       if (!content) throw new Error('Empty response from Gemini');
@@ -1754,24 +1826,6 @@ ${JSON.stringify(evidencePacket, null, 2)}`
           }
         }
 
-        if (parsed.verdict && typeof parsed.verdict === 'string' && parsed.verdict.length > 200) {
-          parsed.verdict = parsed.verdict.slice(0, 197) + '...';
-        }
-        if (
-          parsed.shortDescription &&
-          typeof parsed.shortDescription === 'string' &&
-          parsed.shortDescription.length > 200
-        ) {
-          parsed.shortDescription = parsed.shortDescription.slice(0, 197) + '...';
-        }
-
-        const sanitizedUrl = sanitizeUrl(parsed.websiteUrl);
-        if (sanitizedUrl) {
-          parsed.websiteUrl = sanitizedUrl;
-        } else {
-          delete parsed.websiteUrl;
-        }
-
         if (parsed.fitScore === null || parsed.fitScore === '') {
           delete parsed.fitScore;
         } else if (typeof parsed.fitScore === 'string') {
@@ -1802,8 +1856,10 @@ ${JSON.stringify(evidencePacket, null, 2)}`
         );
         parsed.realityChecks = normalizeRealityChecks(parsed.realityChecks, consEvidence);
         if (!Array.isArray(parsed.switchingFrom)) delete parsed.switchingFrom;
-
-        const validated = AnalysisSchema.parse(parsed);
+        const normalizedParsed = normalizeAnalysisResponseObject(parsed, {
+          sanitizeWebsiteUrl: true,
+        });
+        const validated = AnalysisSchema.parse(normalizedParsed);
         const generationQuality: SynthesisGenerationQuality = {
           stage1Enabled: !!evidencePacket,
           meanConfidence: evidencePacket?.quality.meanConfidence,
@@ -1826,9 +1882,15 @@ ${JSON.stringify(evidencePacket, null, 2)}`
                 : []),
             ],
             {
-              vetoCount: Array.isArray(parsed.vetoLogic) ? parsed.vetoLogic.length : 0,
-              switchingCount: Array.isArray(parsed.switchingFrom) ? parsed.switchingFrom.length : 0,
-              dealbreakerCount: Array.isArray(parsed.dealbreakers) ? parsed.dealbreakers.length : 0,
+              vetoCount: Array.isArray(normalizedParsed.vetoLogic)
+                ? normalizedParsed.vetoLogic.length
+                : 0,
+              switchingCount: Array.isArray(normalizedParsed.switchingFrom)
+                ? normalizedParsed.switchingFrom.length
+                : 0,
+              dealbreakerCount: Array.isArray(normalizedParsed.dealbreakers)
+                ? normalizedParsed.dealbreakers.length
+                : 0,
               abstainedCount: evidencePacket ? evidencePacket.abstentions.length : 0,
               distinctDomains: evidencePacket?.quality.distinctDomains,
             }
