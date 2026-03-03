@@ -523,7 +523,9 @@ async function processBatchSynthesis(
     };
 
     // Save analyses through canonical persistence + queue completion
-    for (const [toolName, { itemId: queueId, analysis }] of result.analyses.entries()) {
+    for (const [queueId, synthesized] of result.analyses.entries()) {
+      const toolName = synthesized.toolName;
+      const analysis = synthesized.analysis;
       const input = inputs.find((entry) => entry.queueId === queueId);
       if (!input) {
         console.error(`[Batch] Missing input metadata for ${toolName} (${queueId})`);
@@ -607,7 +609,7 @@ async function processBatchSynthesis(
 
     // Mark failed items
     for (const err of result.errors) {
-      const input = inputs.find(i => i.toolName === err.toolName);
+      const input = inputs.find(i => i.queueId === err.itemId);
       if (input) {
         await queueService.markFailed(
           input.queueId,

@@ -65,11 +65,11 @@ export interface BatchSynthesisInput {
 }
 
 export interface BatchSynthesisResult {
-  analyses: Map<string, { itemId: string; analysis: HunterAnalysis }>;
+  analyses: Map<string, { itemId: string; toolName: string; analysis: HunterAnalysis }>;
   tokensUsed: number;
   cacheHitRate: number;
   durationMs: number;
-  errors: Array<{ toolName: string; error: string }>;
+  errors: Array<{ itemId: string; toolName: string; error: string }>;
 }
 
 function getPolicyEligibleSources(
@@ -228,8 +228,8 @@ export class BatchSynthesisService {
       cachedContentName = null;
     }
 
-    const analyses = new Map<string, { itemId: string; analysis: HunterAnalysis }>();
-    const errors: Array<{ toolName: string; error: string }> = [];
+    const analyses = new Map<string, { itemId: string; toolName: string; analysis: HunterAnalysis }>();
+    const errors: Array<{ itemId: string; toolName: string; error: string }> = [];
     let totalTokens = 0;
     let cachedTokens = 0;
 
@@ -293,7 +293,7 @@ export class BatchSynthesisService {
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             console.error(`[Batch] ✗ ${input.toolName}: ${errorMessage}`);
-            errors.push({ toolName: input.toolName, error: errorMessage });
+            errors.push({ itemId: input.itemId, toolName: input.toolName, error: errorMessage });
             throw error;
           }
         })
@@ -302,8 +302,9 @@ export class BatchSynthesisService {
       // Collect successful results
       for (const result of results) {
         if (result.status === 'fulfilled') {
-          analyses.set(result.value.toolName, {
+          analyses.set(result.value.itemId, {
             itemId: result.value.itemId,
+            toolName: result.value.toolName,
             analysis: result.value.analysis,
           });
         }
