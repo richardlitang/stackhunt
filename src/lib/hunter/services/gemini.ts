@@ -1457,6 +1457,10 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
           (candidate) => !abstentions.some((existing) => existing.field === candidate.field)
         ),
       ];
+      const effectiveAbstentions =
+        isOfficialHeavyButDistributed && meanConfidence >= 0.75
+          ? mergedAbstentions.filter((entry) => entry.field !== 'reviewContext')
+          : mergedAbstentions;
       return {
         score,
         pros: prosClaims,
@@ -1467,7 +1471,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
           audiences: validateStringArray(graphTags.audiences, 'audiences'),
           platforms: validateStringArray(graphTags.platforms, 'platforms'),
         },
-        abstentions: mergedAbstentions,
+        abstentions: effectiveAbstentions,
         quality: {
           meanConfidence,
           lowConfidenceRatio,
