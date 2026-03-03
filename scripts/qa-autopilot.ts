@@ -113,6 +113,14 @@ async function main() {
   const maxMissingActionability = Number.isFinite(maxMissingActionabilityArg)
     ? Math.max(0, Math.floor(maxMissingActionabilityArg))
     : 0;
+  const maxCopyBelowThresholdArg = Number(getArgValue('max-copy-below-threshold') || '0');
+  const maxCopyBelowThreshold = Number.isFinite(maxCopyBelowThresholdArg)
+    ? Math.max(0, Math.floor(maxCopyBelowThresholdArg))
+    : 0;
+  const maxCopyMissingScenarioArg = Number(getArgValue('max-copy-missing-scenario') || '0');
+  const maxCopyMissingScenario = Number.isFinite(maxCopyMissingScenarioArg)
+    ? Math.max(0, Math.floor(maxCopyMissingScenarioArg))
+    : 0;
 
   console.log('\nQA Autopilot');
   console.log(`Mode: ${dryRun ? 'DRY RUN' : 'APPLY'}`);
@@ -191,9 +199,22 @@ async function main() {
         copyQualityAvg === null ? 'n/a' : copyQualityAvg.toFixed(1)
       } below=${copyQualityBelow} missing_scenario=${copyMissingScenario} generic_hits=${copyGenericHits}`
     );
+    details.push(
+      `Copy blockers: below_threshold=${copyQualityBelow} (max ${maxCopyBelowThreshold}) missing_scenario=${copyMissingScenario} (max ${maxCopyMissingScenario})`
+    );
     if (missingActionabilityBlockers > maxMissingActionability) {
       throw new Error(
         `Fail-fast: missing_actionability_score=${missingActionabilityBlockers} exceeds max=${maxMissingActionability}`
+      );
+    }
+    if (copyQualityBelow > maxCopyBelowThreshold) {
+      throw new Error(
+        `Fail-fast: copy_below_threshold=${copyQualityBelow} exceeds max=${maxCopyBelowThreshold}`
+      );
+    }
+    if (copyMissingScenario > maxCopyMissingScenario) {
+      throw new Error(
+        `Fail-fast: copy_missing_scenario=${copyMissingScenario} exceeds max=${maxCopyMissingScenario}`
       );
     }
 
