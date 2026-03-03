@@ -107,11 +107,70 @@ const maxTokensPerRun = (() => {
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 600000;
 })();
+const maxItemSeconds = (() => {
+  const raw = process.env.HUNTER_MAX_ITEM_SECONDS;
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 900;
+})();
 const staleClaimMinutes = (() => {
   const raw = process.env.HUNTER_STALE_CLAIM_MINUTES;
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 15;
 })();
+
+async function markTimedOutClaimAsFailed(
+  supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>,
+  timeoutSeconds: number
+): Promise<{ queueId?: string; toolName?: string }> {
+  const claimPattern = `%-${process.pid}-%`;
+  const { data: claimedRow, error: claimLookupError } = await supabase
+    .from('hunt_queue')
+    .select('id, tool_name')
+    .in('status', ['claimed', 'processing'])
+    .like('claimed_by', claimPattern)
+    .order('claimed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (claimLookupError || !claimedRow?.id) {
+    return {};
+  }
+
+  const timeoutError = `Worker wall-clock timeout after ${timeoutSeconds}s`;
+  const { error: failError } = await supabase.rpc('fail_hunt', {
+    p_queue_id: claimedRow.id,
+    p_error: timeoutError,
+    p_error_details: {
+      timeout_seconds: timeoutSeconds,
+      worker_pid: process.pid,
+      worker_mode: 'queue_worker',
+      timeout_policy: 'hard_item_wall_clock',
+    },
+    p_dlq_reason: 'timeout',
+  });
+
+  if (failError) {
+    await supabase
+      .from('hunt_queue')
+      .update({
+        status: 'failed',
+        error_message: timeoutError,
+        error_details: {
+          timeout_seconds: timeoutSeconds,
+          worker_pid: process.pid,
+          worker_mode: 'queue_worker',
+          timeout_policy: 'hard_item_wall_clock',
+          fallback: true,
+        },
+        claimed_by: null,
+        heartbeat_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', claimedRow.id);
+  }
+
+  return { queueId: claimedRow.id, toolName: claimedRow.tool_name };
+}
 
 // Main processing function
 async function processQueue(): Promise<void> {
@@ -190,7 +249,61 @@ async function processQueue(): Promise<void> {
       `Processing up to ${regularBatchSize} regular queue items (token cap: ${maxTokensPerRun.toLocaleString()})...`
     );
 
-    const result = await hunter.processQueueBatch(regularBatchSize, { maxTokens: maxTokensPerRun });
+    const results: Awaited<ReturnType<typeof hunter.processNextFromQueue>>[] = [];
+    let processed = 0;
+    let succeeded = 0;
+    let failed = 0;
+    let tokensUsed = 0;
+    const itemTimeoutMs = maxItemSeconds * 1000;
+
+    for (let i = 0; i < regularBatchSize; i++) {
+      const itemPromise = hunter.processNextFromQueue();
+      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(
+            new Error(
+              `[Queue] Item wall-clock timeout exceeded (${maxItemSeconds}s). Terminating worker to prevent runaway token usage.`
+            )
+          );
+        }, itemTimeoutMs);
+      });
+
+      let r: Awaited<ReturnType<typeof hunter.processNextFromQueue>>;
+      try {
+        r = await Promise.race([itemPromise, timeoutPromise]);
+      } catch (timeoutError) {
+        const recovered = await markTimedOutClaimAsFailed(supabase, maxItemSeconds);
+        const timedOutTool = recovered.toolName ? ` tool=${recovered.toolName}` : '';
+        const timedOutId = recovered.queueId ? ` queue_id=${recovered.queueId}` : '';
+        throw new Error(
+          `${(timeoutError as Error).message}${timedOutTool}${timedOutId}`
+        );
+      } finally {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+      }
+
+      if (r.error === 'No items in queue') {
+        break;
+      }
+
+      results.push(r);
+      processed += 1;
+      tokensUsed += r.tokensUsed || 0;
+      if (r.success) succeeded += 1;
+      else failed += 1;
+
+      if (tokensUsed >= maxTokensPerRun) {
+        console.log(
+          `[Queue] Token budget reached for batch (${tokensUsed}/${maxTokensPerRun}). Stopping early.`
+        );
+        break;
+      }
+    }
+
+    const result = { processed, succeeded, failed, results, tokensUsed };
     const errors: Array<{ tool: string; error: string; category?: string }> = [];
     const successes: Array<{ tool: string; context?: string }> = [];
     let autoPublished = 0;
@@ -336,6 +449,11 @@ async function processQueue(): Promise<void> {
         message: formatted.details, // Send full error details for critical alerts
         action: `Check worker logs. Category: ${formatted.category}`,
       });
+    }
+
+    if (/wall-clock timeout/i.test(message)) {
+      console.error('🛑 Hard timeout triggered. Exiting worker for safe recovery.');
+      process.exit(1);
     }
 
     if (runOnce) process.exit(1);
