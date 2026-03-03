@@ -159,6 +159,20 @@ const idealFor = Array.isArray(userAdvocate?.idealFor || userAdvocate?.ideal_for
 const avoidIf = Array.isArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if)
   ? userAdvocate?.avoidIf || userAdvocate?.avoid_if
   : [];
+const budgetCostDrivers = Array.isArray(budgetAnalyst?.costDrivers || budgetAnalyst?.cost_drivers)
+  ? (budgetAnalyst?.costDrivers || budgetAnalyst?.cost_drivers)
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .map((item) => item.trim())
+  : [];
+const budgetOneTimeFees = Array.isArray(budgetAnalyst?.oneTimeFees || budgetAnalyst?.one_time_fees)
+  ? (budgetAnalyst?.oneTimeFees || budgetAnalyst?.one_time_fees)
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .map((item) => item.trim())
+  : [];
+const budgetCommitmentTerms = (budgetAnalyst?.commitmentTerms ||
+  budgetAnalyst?.commitment_terms) as string | null | undefined;
+const budgetRoiThreshold = (budgetAnalyst?.roiThreshold ||
+  budgetAnalyst?.roi_threshold) as string | null | undefined;
 
 // Fetch alternatives using hybrid search (vector similarity + category guardrails)
 // Strategy: Compute live, cache at edge - no DB storage of computed relationships
@@ -297,6 +311,10 @@ const isLikelyIncompleteClause = (value: string): boolean => {
   if (!text) return true;
   const lower = text.toLowerCase();
   if (lower.length < 12) return false;
+  if (/\b(price increase|cost increase)\b/.test(lower) && !/\d/.test(lower)) return true;
+  if (/\b(approximately|about|around)\b/.test(lower) && !/\b(approximately|about|around)\s*(?:\$|€|£)?\d/.test(lower)) {
+    return true;
+  }
   return /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/.test(
     lower
   );
@@ -608,6 +626,18 @@ const hasRenderableSmpPlans = Boolean(
 const hasPricing = Boolean(
   (hasRenderableSmpPlans || knowledgeCard?.pricing?.tiers?.length > 0) &&
   sectionStatus.pricing === 'show'
+);
+const hasFreePlanSignal = Boolean(
+  String(tool.pricing_type || '').toLowerCase() === 'freemium' ||
+    (typeof knowledgeCard?.pricing?.starting_price === 'string' &&
+      /\bfree\b/i.test(knowledgeCard.pricing.starting_price)) ||
+    (Array.isArray(knowledgeCard?.smp_pricing?.plans) &&
+      knowledgeCard.smp_pricing.plans.some((plan) => {
+        const monthly = typeof plan?.price_monthly === 'number' ? plan.price_monthly : null;
+        const annual = typeof plan?.price_annual === 'number' ? plan.price_annual : null;
+        const name = typeof plan?.name === 'string' ? plan.name : '';
+        return monthly === 0 || annual === 0 || /\bfree\b/i.test(name);
+      }))
 );
 const hasPlatform = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
@@ -959,14 +989,16 @@ const globalEvidenceCons = (Array.isArray(globalCons) ? globalCons : [])
   .filter((item): item is EvidenceBullet => Boolean(item));
 const effectiveEvidencePros =
   contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros;
+const CONTRADICTORY_FREE_TIER_PATTERN =
+  /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan|trial)\b/i;
+const rawEvidenceCons = contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
+const effectiveEvidenceCons = rawEvidenceCons.filter(
+  (item) => !(hasFreePlanSignal && CONTRADICTORY_FREE_TIER_PATTERN.test(item.text))
+);
 const hasStrengths =
   effectiveEvidencePros.length +
-    (contextualEvidenceCons.length > 0
-      ? contextualEvidenceCons.length
-      : globalEvidenceCons.length) >=
+    effectiveEvidenceCons.length >=
   2;
-const effectiveEvidenceCons =
-  contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
 const hiddenCostBullets = Array.isArray(constraints?.hidden_costs)
   ? constraints.hidden_costs
       .map((cost: any) => {
@@ -1168,13 +1200,66 @@ const verdictDisplayLabel =
 let verdictLabelRationale =
   verdictLabel === 'Choose'
     ? hasCollectedSources
-      ? `${tool.name} is a strong option when you want fast, source-backed answers.`
+      ? `${tool.name} looks strong for teams that match the verified use case and can move quickly.`
       : `${tool.name} appears promising, but the source set is still being collected.`
     : verdictLabel === 'Consider'
-      ? `${tool.name} is worth shortlisting, but check pricing and plan limits before you commit.`
+      ? `${tool.name} can be the right fit, but pricing and plan gating can change the decision.`
       : hasCollectedSources
         ? `${tool.name} is not a confident pick yet based on currently source-backed evidence.`
         : `${tool.name} is not a confident pick yet because source-backed evidence is still limited.`;
+const normalizeNarrativeSentence = (value: string): string =>
+  stripControlChars(value).replace(/\s+/g, ' ').replace(/[.]+$/, '').trim();
+const joinNarrativeItems = (items: string[]): string => {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+};
+const pricingNarrativeLead = (() => {
+  const sentences: string[] = [];
+  const normalizedCostDrivers = budgetCostDrivers
+    .map(normalizeNarrativeSentence)
+    .filter((item) => item.length > 0)
+    .slice(0, 3);
+  const normalizedOneTimeFees = budgetOneTimeFees
+    .map(normalizeNarrativeSentence)
+    .filter((item) => item.length > 0)
+    .slice(0, 2);
+  const normalizedCommitmentTerms =
+    typeof budgetCommitmentTerms === 'string'
+      ? normalizeNarrativeSentence(budgetCommitmentTerms)
+      : '';
+  const normalizedRoiThreshold =
+    typeof budgetRoiThreshold === 'string' ? normalizeNarrativeSentence(budgetRoiThreshold) : '';
+
+  if (normalizedCostDrivers.length > 0) {
+    sentences.push(`Your bill is mostly driven by ${joinNarrativeItems(normalizedCostDrivers)}.`);
+  }
+  if (normalizedOneTimeFees.length > 0) {
+    sentences.push(`Expect one-time costs around ${joinNarrativeItems(normalizedOneTimeFees)}.`);
+  }
+  if (normalizedCommitmentTerms.length > 0) {
+    sentences.push(`Contract terms: ${normalizedCommitmentTerms}.`);
+  }
+  if (normalizedRoiThreshold.length > 0) {
+    sentences.push(`Best value threshold: ${normalizedRoiThreshold}.`);
+  }
+
+  if (sentences.length === 0 && pricingSnapshotBullets.length > 0) {
+    const firstPricingSignal = normalizeNarrativeSentence(pricingSnapshotBullets[0].text);
+    if (firstPricingSignal.length > 0) {
+      sentences.push(`${firstPricingSignal}.`);
+    }
+  }
+
+  if (sentences.length === 0) {
+    return hasPricing
+      ? 'Pricing scales with plan and usage, so model your real team shape before committing.'
+      : 'Published pricing details are still incomplete; verify budget assumptions on the official pricing page.';
+  }
+
+  return sentences.slice(0, 3).join(' ');
+})();
 const scoreDrivers = uniqueDecisionText([
   ...decisionSnapshotDifferentiators,
   ...decisionSnapshotBestWhen,
@@ -1476,18 +1561,12 @@ const schemas = [
     <section
       class="mb-8 rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-5 shadow-sm"
     >
-      <h2 class="text-lg font-semibold text-zinc-100">Quick take: {verdictDisplayLabel}</h2>
-      <p class="mt-1 text-sm text-zinc-300">{verdictLabelRationale}</p>
-      <div class="mt-3 grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
-        <p>
-          <span class="text-zinc-500">Best fit:</span>{' '}
-          {decisionSnapshotBestWhen[0] || 'Teams that need clear tool guidance quickly.'}
-        </p>
-        <p>
-          <span class="text-zinc-500">Watch out for:</span>{' '}
-          {decisionSnapshotWatchOuts[0] || 'Some buying details are still being confirmed.'}
-        </p>
-      </div>
+      <h2 class="text-lg font-semibold text-zinc-100">Should You Shortlist {tool.name}?</h2>
+      <p class="mt-1 text-sm leading-relaxed text-zinc-300">{verdictLabelRationale}</p>
+      <p class="mt-2 text-sm leading-relaxed text-zinc-300">
+        Best fit: {decisionSnapshotBestWhen[0] || 'Teams that need clear tool guidance quickly.'}{' '}
+        Main risk: {decisionSnapshotWatchOuts[0] || 'Some buying details are still being confirmed.'}
+      </p>
       <div class="mt-4 flex flex-wrap items-center gap-3">
         {
           tool.website && (
@@ -1521,95 +1600,6 @@ const schemas = [
         </span>
       </div>
     </section>
-
-    <section
-      id="how-we-evaluate"
-      class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
-    >
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-lg font-semibold text-zinc-100">How We Evaluated</h2>
-        <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-          Evaluation depth: {evaluationDepth}
-        </span>
-      </div>
-      <p class="mt-2 text-sm text-zinc-400">
-        {hasCollectedSources
-          ? 'Source-backed means a claim is present in a linked source on the date checked. Vendors can update details after that date.'
-          : 'No qualifying sources collected yet. Claims remain in verification mode until section-level sources are attached.'}
-      </p>
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-          <h3 class="text-sm font-semibold text-zinc-200">What we tested for this review</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {testedItems.map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
-        </div>
-        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-          <h3 class="text-sm font-semibold text-zinc-200">Not tested</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {notTestedItems.map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-      <p class="mt-4 text-xs text-zinc-500">
-        See{' '}
-        <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">
-          methodology
-        </a>{' '}
-        and{' '}
-        <a href="/disclosure" class="text-hunt-500 hover:text-hunt-400">
-          disclosures
-        </a>
-        .
-      </p>
-    </section>
-
-    {
-      showWeTestedIt && (
-        <section
-          id="we-tested-it"
-          class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
-        >
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-zinc-100">We tested it</h2>
-            {handsOnTestedAtLabel && (
-              <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-                Tested on {handsOnTestedAtLabel}
-              </span>
-            )}
-          </div>
-          {handsOnTestEnvironment && (
-            <p class="mt-2 text-sm text-zinc-300">Environment: {handsOnTestEnvironment}</p>
-          )}
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
-            {handsOnTestSteps.length > 0 && (
-              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <h3 class="text-sm font-semibold text-zinc-200">Steps run</h3>
-                <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-                  {handsOnTestSteps.map((step) => (
-                    <li>- {step}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {handsOnTestFindings.length > 0 && (
-              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <h3 class="text-sm font-semibold text-zinc-200">Findings</h3>
-                <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-                  {handsOnTestFindings.map((finding) => (
-                    <li>- {finding}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </section>
-      )
-    }
 
     {/* Table of Contents */}
     <nav
@@ -1774,41 +1764,6 @@ const schemas = [
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
       <div class="space-y-8 lg:col-span-2">
-        {/* About - What is it? (FIRST for users learning about the tool) */}
-        {
-          hasAbout && (
-            <details
-              id="about"
-              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <summary class="flex items-center justify-between cursor-pointer">
-                <h2 class="text-lg font-semibold text-zinc-100">About {tool.name}</h2>
-                <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
-                  <span class="group-open:hidden">Expand</span>
-                  <span class="hidden group-open:inline">Collapse</span>
-                  <svg
-                    class="h-4 w-4 transition-transform group-open:rotate-90"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </span>
-              </summary>
-              <div
-                class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed"
-                set:html={simpleMarkdown(tool.long_description || '')}
-              />
-            </details>
-          )
-        }
-
         {/* Our Verdict - Quick summary with key points */}
         {
           hasVerdict && (
@@ -1902,75 +1857,6 @@ const schemas = [
           )
         }
 
-        {/* Strengths & Weaknesses - Prefer contextual over global */}
-        {
-          hasStrengths && (
-            <details
-              id="strengths"
-              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-              open
-            >
-              <summary class="flex items-center justify-between cursor-pointer">
-                <div>
-                  <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
-                  <p class="mt-1 text-sm text-zinc-400">
-                    {collectedSourcesBySection.pros_cons > 0
-                      ? 'Evidence-backed pros and cons only.'
-                      : 'Pros and cons will appear after source-backed claims are collected.'}
-                  </p>
-                </div>
-                <span class="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-400">
-                  <span class="group-open:hidden">Expand</span>
-                  <span class="hidden group-open:inline">Collapse</span>
-                  <svg
-                    class="h-4 w-4 transition-transform group-open:rotate-90"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </span>
-              </summary>
-
-              <div class="mt-4">
-                <ProsCons
-                  pros={effectiveEvidencePros.map((entry) => ({
-                    text: entry.text,
-                    source_url: entry.sourceUrl,
-                  }))}
-                  cons={effectiveEvidenceCons.map((entry) => ({
-                    text: entry.text,
-                    source_url: entry.sourceUrl,
-                  }))}
-                  sourceDisplay="block"
-                />
-              </div>
-            </details>
-          )
-        }
-
-        {/* Getting Started - Setup guide with friction score and actual steps */}
-        {
-          hasGettingStarted && (
-            <div id="getting-started">
-              <GettingStarted
-                setupComplexity={knowledgeCard?.setup_complexity}
-                toolName={tool.name}
-                hasApi={Boolean(knowledgeCard?.integrations?.has_api)}
-                websiteUrl={knowledgeCard?.website_url || tool.website}
-                setupTracks={setupTracks}
-                setupUrl={gettingStartedCtaUrl}
-              />
-            </div>
-          )
-        }
-
         {/* Pricing Plans */}
         {
           showPricingSection && (
@@ -2007,6 +1893,7 @@ const schemas = [
                 </span>
               </summary>
               <div class="mt-4">
+                <p class="mb-4 text-sm leading-relaxed text-zinc-200">{pricingNarrativeLead}</p>
                 <p class="mb-4 text-xs text-zinc-500">
                   {pricingCheckedLabel
                     ? `Pricing changes frequently; confirm on the vendor site. Shown as of ${pricingCheckedLabel}.`
@@ -2014,23 +1901,6 @@ const schemas = [
                 </p>
                 {hasPricing ? (
                   <>
-                    <PricingPlansGrid
-                      smp_pricing={knowledgeCard?.smp_pricing}
-                      legacy_pricing={knowledgeCard?.pricing}
-                      toolName={tool.name}
-                    >
-                      <PriceVerification
-                        slot="verification"
-                        client:visible
-                        toolId={tool.id}
-                        toolName={tool.name}
-                        currentPrice={knowledgeCard?.pricing?.starting_price}
-                        pricingType={tool.pricing_type}
-                        verificationCount={tool.user_verifications_this_week || 0}
-                        variant="inline"
-                      />
-                    </PricingPlansGrid>
-
                     <PricingInsights
                       variant="compact"
                       budgetAnalyst={
@@ -2054,6 +1924,23 @@ const schemas = [
                           : undefined
                       }
                     />
+
+                    <PricingPlansGrid
+                      smp_pricing={knowledgeCard?.smp_pricing}
+                      legacy_pricing={knowledgeCard?.pricing}
+                      toolName={tool.name}
+                    >
+                      <PriceVerification
+                        slot="verification"
+                        client:visible
+                        toolId={tool.id}
+                        toolName={tool.name}
+                        currentPrice={knowledgeCard?.pricing?.starting_price}
+                        pricingType={tool.pricing_type}
+                        verificationCount={tool.user_verifications_this_week || 0}
+                        variant="inline"
+                      />
+                    </PricingPlansGrid>
                   </>
                 ) : (
                   <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
@@ -2136,6 +2023,75 @@ const schemas = [
           )
         }
 
+        {/* Getting Started - Setup guide with friction score and actual steps */}
+        {
+          hasGettingStarted && (
+            <div id="getting-started">
+              <GettingStarted
+                setupComplexity={knowledgeCard?.setup_complexity}
+                toolName={tool.name}
+                hasApi={Boolean(knowledgeCard?.integrations?.has_api)}
+                websiteUrl={knowledgeCard?.website_url || tool.website}
+                setupTracks={setupTracks}
+                setupUrl={gettingStartedCtaUrl}
+              />
+            </div>
+          )
+        }
+
+        {/* Strengths & Weaknesses - Prefer contextual over global */}
+        {
+          hasStrengths && (
+            <details
+              id="strengths"
+              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              open
+            >
+              <summary class="flex items-center justify-between cursor-pointer">
+                <div>
+                  <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
+                  <p class="mt-1 text-sm text-zinc-400">
+                    {collectedSourcesBySection.pros_cons > 0
+                      ? 'Evidence-backed pros and cons only.'
+                      : 'Pros and cons will appear after source-backed claims are collected.'}
+                  </p>
+                </div>
+                <span class="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-400">
+                  <span class="group-open:hidden">Expand</span>
+                  <span class="hidden group-open:inline">Collapse</span>
+                  <svg
+                    class="h-4 w-4 transition-transform group-open:rotate-90"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </span>
+              </summary>
+
+              <div class="mt-4">
+                <ProsCons
+                  pros={effectiveEvidencePros.map((entry) => ({
+                    text: entry.text,
+                    source_url: entry.sourceUrl,
+                  }))}
+                  cons={effectiveEvidenceCons.map((entry) => ({
+                    text: entry.text,
+                    source_url: entry.sourceUrl,
+                  }))}
+                  sourceDisplay="block"
+                />
+              </div>
+            </details>
+          )
+        }
+
         {/* Features Showcase */}
         {
           (knowledgeCard?.features?.core?.length > 0 ||
@@ -2213,6 +2169,41 @@ const schemas = [
               toolName={tool.name}
               sectionId="platform-integrations"
             />
+          )
+        }
+
+        {/* About - Deep context after decision, pricing, and rollout guidance */}
+        {
+          hasAbout && (
+            <details
+              id="about"
+              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <summary class="flex items-center justify-between cursor-pointer">
+                <h2 class="text-lg font-semibold text-zinc-100">About {tool.name}</h2>
+                <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+                  <span class="group-open:hidden">Expand</span>
+                  <span class="hidden group-open:inline">Collapse</span>
+                  <svg
+                    class="h-4 w-4 transition-transform group-open:rotate-90"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </span>
+              </summary>
+              <div
+                class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed"
+                set:html={simpleMarkdown(tool.long_description || '')}
+              />
+            </details>
           )
         }
 
@@ -2426,6 +2417,95 @@ const schemas = [
                 />
               );
             })}
+          </div>
+        </section>
+      )
+    }
+
+    <section
+      id="how-we-evaluate"
+      class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold text-zinc-100">How We Evaluated</h2>
+        <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+          Evaluation depth: {evaluationDepth}
+        </span>
+      </div>
+      <p class="mt-2 text-sm text-zinc-400">
+        {hasCollectedSources
+          ? 'Source-backed means a claim is present in a linked source on the date checked. Vendors can update details after that date.'
+          : 'No qualifying sources collected yet. Claims remain in verification mode until section-level sources are attached.'}
+      </p>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+          <h3 class="text-sm font-semibold text-zinc-200">What we tested for this review</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {testedItems.map((item) => (
+              <li>- {item}</li>
+            ))}
+          </ul>
+        </div>
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+          <h3 class="text-sm font-semibold text-zinc-200">Not tested</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {notTestedItems.map((item) => (
+              <li>- {item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <p class="mt-4 text-xs text-zinc-500">
+        See{' '}
+        <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">
+          methodology
+        </a>{' '}
+        and{' '}
+        <a href="/disclosure" class="text-hunt-500 hover:text-hunt-400">
+          disclosures
+        </a>
+        .
+      </p>
+    </section>
+
+    {
+      showWeTestedIt && (
+        <section
+          id="we-tested-it"
+          class="mt-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-zinc-100">We tested it</h2>
+            {handsOnTestedAtLabel && (
+              <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+                Tested on {handsOnTestedAtLabel}
+              </span>
+            )}
+          </div>
+          {handsOnTestEnvironment && (
+            <p class="mt-2 text-sm text-zinc-300">Environment: {handsOnTestEnvironment}</p>
+          )}
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            {handsOnTestSteps.length > 0 && (
+              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <h3 class="text-sm font-semibold text-zinc-200">Steps run</h3>
+                <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+                  {handsOnTestSteps.map((step) => (
+                    <li>- {step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {handsOnTestFindings.length > 0 && (
+              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <h3 class="text-sm font-semibold text-zinc-200">Findings</h3>
+                <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+                  {handsOnTestFindings.map((finding) => (
+                    <li>- {finding}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </section>
       )
