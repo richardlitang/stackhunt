@@ -92,6 +92,25 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   const failures = [];
   const text = stripHtml(html);
   const notConfirmedHits = (text.match(/\bNot confirmed\b/g) || []).length;
+  const bestFitHits = (text.match(/\bBest fit:\b/gi) || []).length;
+  const weakFitHits = (text.match(/\bWeak fit:\b/gi) || []).length;
+  const tradeoffHits = (text.match(/\bTradeoff:\b/gi) || []).length;
+  const canonicalVerdictPointerHits =
+    (text.match(/\bCanonical constraints live in\s+Why This Verdict\b/gi) || []).length;
+  const decisionSectionMatch = html.match(
+    /<section[^>]*>[\s\S]*?<h2[^>]*>\s*Decision in 60 Seconds\s*<\/h2>[\s\S]*?<\/section>/i
+  );
+  if (decisionSectionMatch) {
+    const hrefMatches = Array.from(
+      decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)
+    ).map((match) => match[1]);
+    const disallowedDecisionLinks = hrefMatches.filter((href) => href !== '#verdict');
+    if (disallowedDecisionLinks.length > 0) {
+      failures.push(
+        `decision_section_has_extra_cta_links:${Array.from(new Set(disallowedDecisionLinks)).join(',')}`
+      );
+    }
+  }
   if (!/\bHow We Evaluated\b/i.test(text)) failures.push('missing_how_we_evaluated');
   if (!/\bVerdict\b/i.test(text)) failures.push('missing_verdict_section');
   if (!/\bBest for\b/i.test(text)) failures.push('missing_best_for_language');
@@ -100,6 +119,18 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   }
   if (notConfirmedHits > maxNotConfirmed) {
     failures.push(`too_many_not_confirmed:${notConfirmedHits}`);
+  }
+  if (bestFitHits > 1) {
+    failures.push(`duplicated_best_fit_label:${bestFitHits}`);
+  }
+  if (weakFitHits > 1) {
+    failures.push(`duplicated_weak_fit_label:${weakFitHits}`);
+  }
+  if (tradeoffHits > 1) {
+    failures.push(`duplicated_tradeoff_label:${tradeoffHits}`);
+  }
+  if (canonicalVerdictPointerHits > 1) {
+    failures.push(`duplicated_verdict_pointer_copy:${canonicalVerdictPointerHits}`);
   }
   for (const pattern of GENERIC_PATTERNS) {
     if (pattern.test(text)) {
@@ -278,6 +309,49 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   const notConfirmedHits = (source.match(/\bNot confirmed\b/g) || []).length;
   if (notConfirmedHits > maxNotConfirmed * 4) {
     failures.push(`template_not_confirmed_excessive:${notConfirmedHits}`);
+  }
+
+  const bestFitHits = (source.match(/\bBest fit:\b/gi) || []).length;
+  if (bestFitHits > 1) {
+    failures.push(`template_duplicate_best_fit_label:${bestFitHits}`);
+  }
+  const weakFitHits = (source.match(/\bWeak fit:\b/gi) || []).length;
+  if (weakFitHits > 1) {
+    failures.push(`template_duplicate_weak_fit_label:${weakFitHits}`);
+  }
+  const tradeoffHits = (source.match(/\bTradeoff:\b/gi) || []).length;
+  if (tradeoffHits > 1) {
+    failures.push(`template_duplicate_tradeoff_label:${tradeoffHits}`);
+  }
+  const hardLimitsJumpHits = (
+    source.match(/<a[^>]+href="#verdict"[\s\S]*?>\s*Hard limits\s*<\/a>/gi) || []
+  ).length;
+  if (hardLimitsJumpHits > 0) {
+    failures.push(`template_hard_limits_jump_present:${hardLimitsJumpHits}`);
+  }
+  const canonicalVerdictPointerHits = (
+    source.match(/\bCanonical constraints live in[\s\S]*?Why This Verdict\b/gi) || []
+  ).length;
+  if (canonicalVerdictPointerHits > 1) {
+    failures.push(`template_duplicate_verdict_pointer_copy:${canonicalVerdictPointerHits}`);
+  }
+  const decisionSectionMatch = source.match(
+    /<section[\s\S]*?<h2[^>]*>\s*Decision in 60 Seconds\s*<\/h2>[\s\S]*?<\/section>/i
+  );
+  if (decisionSectionMatch) {
+    const hrefMatches = Array.from(
+      decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)
+    ).map((match) => match[1]);
+    const disallowedDecisionLinks = hrefMatches.filter((href) => href !== '#verdict');
+    if (disallowedDecisionLinks.length > 0) {
+      failures.push(
+        `template_decision_section_has_extra_cta_links:${Array.from(
+          new Set(disallowedDecisionLinks)
+        ).join(',')}`
+      );
+    }
+  } else {
+    failures.push('template_missing_decision_section');
   }
   return failures;
 }
