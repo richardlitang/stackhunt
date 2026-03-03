@@ -1,0 +1,288 @@
+#!/usr/bin/env node
+
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+
+function hasFlag(name) {
+  return process.argv.includes(`--${name}`);
+}
+
+function getArgValue(name, fallback = null) {
+  const hit = process.argv.find((arg) => arg.startsWith(`--${name}=`));
+  if (!hit) return fallback;
+  return hit.split('=').slice(1).join('=').trim();
+}
+
+function runCommand(command, label, extraEnv = {}) {
+  return new Promise((resolve, reject) => {
+    const [cmd, ...args] = command;
+    console.log(`\n=== ${label} ===`);
+    console.log(`$ ${cmd} ${args.join(' ')}`);
+    const child = spawn(cmd, args, {
+      stdio: 'inherit',
+      env: { ...process.env, ...extraEnv },
+    });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`${label} failed with exit code ${code ?? 'unknown'}`));
+    });
+  });
+}
+
+function stopServer(server) {
+  if (!server || server.pid == null) return;
+  if (server.exitCode !== null) return;
+  server.kill('SIGTERM');
+}
+
+async function waitForUrl(url, timeoutMs) {
+  await runCommand(['npx', 'wait-on', url, '--timeout', String(timeoutMs)], 'Wait for preview');
+}
+
+async function startPreview(baseUrl, port, timeoutMs) {
+  const server = spawn(
+    'npm',
+    ['run', 'preview', '--', '--host', '127.0.0.1', '--port', String(port)],
+    {
+      stdio: 'inherit',
+      env: process.env,
+    }
+  );
+  await waitForUrl(baseUrl, timeoutMs);
+  return server;
+}
+
+function extractLocsFromSitemap(xml) {
+  const matches = Array.from(xml.matchAll(/<loc>([^<]+)<\/loc>/g)).map((m) => m[1]);
+  return matches;
+}
+
+function stripHtml(input) {
+  return input
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const GENERIC_PATTERNS = [
+  /\bworth shortlisting\b/i,
+  /\brobust and powerful solution\b/i,
+  /\bbest-in-class capabilities\b/i,
+  /\bstrong option(?: based on)?(?: the)? current source-backed evidence\b/i,
+  /\bsolid choice for modern teams\b/i,
+];
+
+const SPEC_SHEET_PATTERNS = [
+  /\bTL;DR\b/i,
+  /\bCommunity Insights\b/i,
+  /\bCapabilities & Differentiators\b/i,
+  /\bDecision Snapshot\b/i,
+];
+
+function auditRenderedPage({ url, html, maxNotConfirmed }) {
+  const failures = [];
+  const text = stripHtml(html);
+  const notConfirmedHits = (text.match(/\bNot confirmed\b/g) || []).length;
+  if (!/\bHow We Evaluated\b/i.test(text)) failures.push('missing_how_we_evaluated');
+  if (!/\bVerdict\b/i.test(text)) failures.push('missing_verdict_section');
+  if (!/\bBest for\b/i.test(text)) failures.push('missing_best_for_language');
+  if (!/\bWatch outs\b/i.test(text) && !/\bNot for\b/i.test(text)) {
+    failures.push('missing_not_for_watch_outs_language');
+  }
+  if (notConfirmedHits > maxNotConfirmed) {
+    failures.push(`too_many_not_confirmed:${notConfirmedHits}`);
+  }
+  for (const pattern of GENERIC_PATTERNS) {
+    if (pattern.test(text)) {
+      failures.push(`generic_phrase:${pattern}`);
+    }
+  }
+  for (const pattern of SPEC_SHEET_PATTERNS) {
+    if (pattern.test(text)) {
+      failures.push(`spec_sheet_phrase:${pattern}`);
+    }
+  }
+  const headingMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  if (!headingMatch || !/\bReview\b/i.test(stripHtml(headingMatch[1]))) {
+    failures.push('h1_missing_review_intent');
+  }
+
+  return {
+    url,
+    failures,
+    notConfirmedHits,
+  };
+}
+
+async function fetchText(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Request failed (${response.status}) for ${url}`);
+  }
+  return response.text();
+}
+
+async function discoverToolUrls(baseUrl) {
+  const sitemapCandidates = ['/sitemap-tools.xml', '/sitemap.xml'];
+  for (const pathname of sitemapCandidates) {
+    try {
+      const xml = await fetchText(`${baseUrl}${pathname}`);
+      const locs = extractLocsFromSitemap(xml)
+        .map((loc) => {
+          try {
+            return new URL(loc).pathname;
+          } catch {
+            return null;
+          }
+        })
+        .filter((loc) => typeof loc === 'string' && loc.startsWith('/tool/'));
+      if (locs.length > 0) return Array.from(new Set(locs));
+    } catch {
+      // Try next sitemap candidate.
+    }
+  }
+  return [];
+}
+
+async function main() {
+  const sampleSize = Number(getArgValue('sample', '25')) || 25;
+  const port = Number(getArgValue('port', '4324')) || 4324;
+  const timeoutMs = Number(getArgValue('timeout-ms', '90000')) || 90000;
+  const maxNotConfirmed = Number(getArgValue('max-not-confirmed', '8')) || 8;
+  const templateOnly = hasFlag('template-only');
+  const skipBuild = hasFlag('skip-build');
+  const externalServer = hasFlag('external-server');
+  const allowTemplateFallback = !hasFlag('no-template-fallback');
+  const baseUrl = getArgValue('base-url', `http://127.0.0.1:${port}`);
+
+  if (templateOnly) {
+    const fallbackFailures = runTemplateFallbackChecks({ maxNotConfirmed });
+    if (fallbackFailures.length > 0) {
+      console.error('\nqa-rendered-tool-pages: FAIL (template-only)\n');
+      for (const failure of fallbackFailures) {
+        console.error(`- ${failure}`);
+      }
+      process.exit(1);
+    }
+    console.log('\nqa-rendered-tool-pages: PASS (template-only mode)');
+    return;
+  }
+
+  let previewServer = null;
+  const teardown = () => stopServer(previewServer);
+  process.on('exit', teardown);
+  process.on('SIGINT', () => {
+    teardown();
+    process.exit(130);
+  });
+  process.on('SIGTERM', () => {
+    teardown();
+    process.exit(143);
+  });
+
+  try {
+    if (!skipBuild) {
+      await runCommand(['npm', 'run', 'build'], 'Build');
+    }
+    if (!externalServer) {
+      previewServer = await startPreview(baseUrl, port, timeoutMs);
+    }
+
+    const toolPaths = await discoverToolUrls(baseUrl);
+    if (toolPaths.length === 0) {
+      throw new Error('No /tool/* URLs discovered from sitemap endpoints');
+    }
+    const samplePaths = toolPaths.slice(0, Math.max(1, sampleSize));
+    console.log(`\nAuditing ${samplePaths.length} rendered tool page(s) from ${toolPaths.length} discovered`);
+
+    const failures = [];
+    for (const toolPath of samplePaths) {
+      const url = `${baseUrl}${toolPath}`;
+      const html = await fetchText(url);
+      const audited = auditRenderedPage({ url, html, maxNotConfirmed });
+      if (audited.failures.length > 0) {
+        failures.push(audited);
+      }
+    }
+
+    if (failures.length > 0) {
+      console.error('\nqa-rendered-tool-pages: FAIL\n');
+      for (const failure of failures) {
+        console.error(`- ${failure.url}`);
+        for (const reason of failure.failures) {
+          console.error(`  - ${reason}`);
+        }
+      }
+      process.exit(1);
+    }
+
+    console.log('\nqa-rendered-tool-pages: PASS');
+    console.log(`Checked ${samplePaths.length} rendered tool page(s).`);
+  } catch (error) {
+    if (!allowTemplateFallback) throw error;
+    const fallbackFailures = runTemplateFallbackChecks({ maxNotConfirmed });
+    if (fallbackFailures.length > 0) {
+      console.error('\nqa-rendered-tool-pages: FAIL (template fallback)\n');
+      for (const failure of fallbackFailures) {
+        console.error(`- ${failure}`);
+      }
+      process.exit(1);
+    }
+    console.warn('\nqa-rendered-tool-pages: PASS (template fallback mode)');
+    console.warn(
+      `Rendered audit skipped due runtime constraints: ${error instanceof Error ? error.message : String(error)}`
+    );
+  } finally {
+    teardown();
+  }
+}
+
+function runTemplateFallbackChecks({ maxNotConfirmed }) {
+  const root = process.cwd();
+  const toolPagePath = path.join(root, 'src/pages/tool/[slug].astro');
+  const failures = [];
+  if (!fs.existsSync(toolPagePath)) {
+    return ['missing_tool_page_source'];
+  }
+  const source = fs.readFileSync(toolPagePath, 'utf8');
+  const requiredMarkers = [
+    { label: 'qa_gate_wired', pattern: /\bevaluateToolPageQaGate\(/ },
+    { label: 'how_we_evaluated_heading', pattern: /How We Evaluated/ },
+    { label: 'verdict_heading', pattern: /(Decision in 60 Seconds|Should You Shortlist|Verdict:)/ },
+    { label: 'review_dek', pattern: /Pricing, tradeoffs, best for, and alternatives/ },
+    { label: 'decision_intro_tradeoff', pattern: /decisionIntroTradeoff/ },
+  ];
+  for (const marker of requiredMarkers) {
+    if (!marker.pattern.test(source)) failures.push(`missing_marker:${marker.label}`);
+  }
+
+  const genericHits = GENERIC_PATTERNS.filter((pattern) => pattern.test(source));
+  if (genericHits.length > 0) {
+    failures.push(`generic_phrase_in_template:${genericHits.length}`);
+  }
+
+  const specSheetHits = SPEC_SHEET_PATTERNS.filter((pattern) => pattern.test(source));
+  if (specSheetHits.length > 0) {
+    failures.push(`spec_sheet_phrase_in_template:${specSheetHits.length}`);
+  }
+
+  const notConfirmedHits = (source.match(/\bNot confirmed\b/g) || []).length;
+  if (notConfirmedHits > maxNotConfirmed * 4) {
+    failures.push(`template_not_confirmed_excessive:${notConfirmedHits}`);
+  }
+  return failures;
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

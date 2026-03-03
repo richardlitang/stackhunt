@@ -152,6 +152,10 @@ const budgetAnalyst = (reviewContext?.budgetAnalyst || reviewContext?.budget_ana
   unknown
 > | null;
 const humanVerdict = (reviewContext?.humanVerdict || reviewContext?.human_verdict) as string | null;
+const decisionIntroRaw = (reviewContext?.decisionIntro || reviewContext?.decision_intro) as Record<
+  string,
+  unknown
+> | null;
 const delighters = Array.isArray(userAdvocate?.delighters) ? userAdvocate?.delighters : [];
 const frustrations = Array.isArray(userAdvocate?.frustrations) ? userAdvocate?.frustrations : [];
 const powerTip = (userAdvocate?.powerTip || userAdvocate?.power_tip) as string | null;
@@ -163,13 +167,19 @@ const idealFor = Array.isArray(userAdvocate?.idealFor || userAdvocate?.ideal_for
 const avoidIf = Array.isArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if)
   ? userAdvocate?.avoidIf || userAdvocate?.avoid_if
   : [];
-const budgetCostDrivers = Array.isArray(budgetAnalyst?.costDrivers || budgetAnalyst?.cost_drivers)
-  ? (budgetAnalyst?.costDrivers || budgetAnalyst?.cost_drivers)
+const budgetCostDriversRaw = budgetAnalyst
+  ? budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
+  : null;
+const budgetCostDrivers = Array.isArray(budgetCostDriversRaw)
+  ? budgetCostDriversRaw
       .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
       .map((item) => item.trim())
   : [];
-const budgetOneTimeFees = Array.isArray(budgetAnalyst?.oneTimeFees || budgetAnalyst?.one_time_fees)
-  ? (budgetAnalyst?.oneTimeFees || budgetAnalyst?.one_time_fees)
+const budgetOneTimeFeesRaw = budgetAnalyst
+  ? budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
+  : null;
+const budgetOneTimeFees = Array.isArray(budgetOneTimeFeesRaw)
+  ? budgetOneTimeFeesRaw
       .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
       .map((item) => item.trim())
   : [];
@@ -642,6 +652,14 @@ const hasFreePlanSignal = Boolean(
         return monthly === 0 || annual === 0 || /\bfree\b/i.test(name);
       }))
 );
+const normalizedPlatformLabels = new Set(
+  (Array.isArray(knowledgeCard?.platforms) ? knowledgeCard.platforms : [])
+    .filter((platform): platform is string => typeof platform === 'string')
+    .map((platform) => platform.trim().toLowerCase())
+);
+const hasNonWebPlatformSignal = Array.from(normalizedPlatformLabels).some((platform) =>
+  /\b(android|ios|mobile|desktop|mac|windows|linux)\b/.test(platform)
+);
 const hasPlatformRaw = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
 const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
@@ -659,8 +677,20 @@ const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
   )
 );
 const hasComparableAlternatives = comparableAlternatives.length > 0;
+const hasCommunityNarrativeSignal = Boolean(
+  (Array.isArray(idealFor) && idealFor.some((item) => typeof item === 'string' && item.trim().length >= 16)) ||
+    (Array.isArray(avoidIf) && avoidIf.some((item) => typeof item === 'string' && item.trim().length >= 16)) ||
+    (Array.isArray(delighters) &&
+      delighters.some((item) => typeof item === 'string' && item.trim().length >= 20)) ||
+    (Array.isArray(frustrations) &&
+      frustrations.some((item) => typeof item === 'string' && item.trim().length >= 20)) ||
+    (typeof powerTip === 'string' && powerTip.trim().length >= 24) ||
+    (typeof humanVerdict === 'string' && humanVerdict.trim().length >= 80)
+);
 const hasCommunityRaw = Boolean(
-  eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show'
+  sectionStatus.community === 'show' &&
+    eligibleSignalEvidenceCount >= 4 &&
+    hasCommunityNarrativeSignal
 );
 const evidenceContract = createToolPageEvidenceContract({
   factFields: ['evidence', 'pricing', 'alternatives'],
@@ -705,14 +735,23 @@ const hasGettingStarted = sectionContract.allowedSections.getting_started;
 const hasSpecs = sectionContract.allowedSections.specs;
 const hasCommunity = sectionContract.allowedSections.community;
 const hasPlatform = sectionContract.allowedSections.platform;
+const hasSecurity = sectionContract.allowedSections.security;
+const hasPortability = sectionContract.allowedSections.portability;
+const hasOperationalDetails = Boolean(
+  knowledgeCard ||
+    parentTool ||
+    (hasSecurity && knowledgeCard?.security) ||
+    knowledgeCard?.support ||
+    (hasPortability && knowledgeCard?.smp_portability)
+);
 // Runtime safety aliases for section contract wiring.
-const hasFaqData = hasFAQRaw;
-const hasGettingStartedData = hasGettingStartedRaw;
-const hasSpecsData = hasSpecsRaw;
-const hasCommunityData = hasCommunityRaw;
-const hasPlatformData = hasPlatformRaw;
-const hasSecurityData = Boolean(knowledgeCard?.security);
-const hasPortabilityData = Boolean(knowledgeCard?.smp_portability);
+const _hasFaqData = hasFAQRaw;
+const _hasGettingStartedData = hasGettingStartedRaw;
+const _hasSpecsData = hasSpecsRaw;
+const _hasCommunityData = hasCommunityRaw;
+const _hasPlatformData = hasPlatformRaw;
+const _hasSecurityData = Boolean(knowledgeCard?.security);
+const _hasPortabilityData = Boolean(knowledgeCard?.smp_portability);
 const showProceduralVerdict =
   hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
 const showProceduralSpecs =
@@ -763,6 +802,17 @@ const cleanDecisionText = (value: unknown): string | null => {
   if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 };
+const cleanNarrativeText = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const cleaned = stripControlChars(
+    value
+      .trim()
+      .replace(/^[-\u2022]\s*/, '')
+      .replace(/\s+/g, ' ')
+  );
+  if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+};
 const countClaimBullets = (raw: unknown): number => {
   if (!Array.isArray(raw)) return 0;
   return raw.filter((entry) => {
@@ -794,19 +844,34 @@ const hasToolNameSignal = (value: string): boolean => {
   const lower = value.toLowerCase();
   return toolNameTokens.length > 0 && toolNameTokens.some((token) => lower.includes(token));
 };
-const decisionSnapshotSummary =
+const decisionIntroWhatItIs = cleanNarrativeText(decisionIntroRaw?.what_it_is);
+const decisionIntroBestFor = cleanDecisionText(decisionIntroRaw?.best_for);
+const decisionIntroNotFor = cleanDecisionText(decisionIntroRaw?.not_for);
+const decisionIntroTradeoff = cleanNarrativeText(decisionIntroRaw?.main_tradeoff);
+const fallbackDecisionSummary =
   tool.short_description ||
   knowledgeCard?.tagline ||
-  `${tool.name} across pricing, fit, and rollout risk.`;
+  `${tool.name} can work well for some teams, but fit depends on your workflow and plan constraints.`;
+const decisionSnapshotSummaryCandidate = decisionIntroWhatItIs || fallbackDecisionSummary;
+const introLooksSpecSheet = /\bacross pricing,\s*fit,\s*and rollout risk\b/i.test(
+  decisionSnapshotSummaryCandidate
+);
+const decisionSnapshotSummary = introLooksSpecSheet
+  ? fallbackDecisionSummary
+  : decisionSnapshotSummaryCandidate;
 const decisionSnapshotBestWhen = uniqueDecisionText(
-  idealFor.length > 0
+  decisionIntroBestFor
+    ? [decisionIntroBestFor, ...idealFor]
+    : idealFor.length > 0
     ? idealFor
     : tags.audiences.length > 0
       ? tags.audiences.map((tag) => tag.name)
       : firstReview?.pros || []
 ).slice(0, 3);
 const decisionSnapshotWatchOuts = uniqueDecisionText(
-  guardedAvoidIf.length > 0
+  decisionIntroNotFor
+    ? [decisionIntroNotFor, ...guardedAvoidIf]
+    : guardedAvoidIf.length > 0
     ? guardedAvoidIf.slice(0, 2)
     : isPaymentsCategory && paymentTriggerCons.length > 0
       ? paymentTriggerCons.slice(0, 2)
@@ -814,6 +879,11 @@ const decisionSnapshotWatchOuts = uniqueDecisionText(
         ? fallbackConsText.slice(0, 2)
         : (firstReview?.cons || []).slice(0, 2)
 ).slice(0, 3);
+const decisionTradeoffSummary =
+  decisionIntroTradeoff ||
+  cleanNarrativeText(topHardLimit?.text) ||
+  cleanNarrativeText(decisionSnapshotWatchOuts[0]) ||
+  'Tradeoff not confirmed yet.';
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
@@ -1038,9 +1108,13 @@ const effectiveEvidencePros =
   contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros;
 const CONTRADICTORY_FREE_TIER_PATTERN =
   /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan|trial)\b/i;
+const WEB_ONLY_CLAIM_PATTERN =
+  /\b(web[-\s]*only|limited to web|web-based environments only|platform access.*web)\b/i;
 const rawEvidenceCons = contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
 const effectiveEvidenceCons = rawEvidenceCons.filter(
-  (item) => !(hasFreePlanSignal && CONTRADICTORY_FREE_TIER_PATTERN.test(item.text))
+  (item) =>
+    !(hasFreePlanSignal && CONTRADICTORY_FREE_TIER_PATTERN.test(item.text)) &&
+    !(hasNonWebPlatformSignal && WEB_ONLY_CLAIM_PATTERN.test(item.text))
 );
 const hasStrengths =
   effectiveEvidencePros.length +
@@ -1238,7 +1312,7 @@ const verdictLabel =
     : decisionSnapshotBestWhen.length > 0
       ? 'Consider'
       : 'Avoid';
-const verdictDisplayLabel =
+const _verdictDisplayLabel =
   verdictLabel === 'Choose'
     ? 'Good fit'
     : verdictLabel === 'Consider'
@@ -1247,13 +1321,13 @@ const verdictDisplayLabel =
 let verdictLabelRationale =
   verdictLabel === 'Choose'
     ? hasCollectedSources
-      ? `${tool.name} looks strong for teams that match the verified use case and can move quickly.`
-      : `${tool.name} appears promising, but the source set is still being collected.`
+      ? `${tool.name} has clear strengths for a specific workflow, with fewer unresolved constraints than peers in this category.`
+      : `${tool.name} appears promising, but core sourcing is still being completed.`
     : verdictLabel === 'Consider'
-      ? `${tool.name} can be the right fit, but pricing and plan gating can change the decision.`
+      ? `${tool.name} can be a fit, but the decision usually depends on plan limits, integrations, and rollout constraints.`
       : hasCollectedSources
-        ? `${tool.name} is not a confident pick yet based on currently source-backed evidence.`
-        : `${tool.name} is not a confident pick yet because source-backed evidence is still limited.`;
+        ? `${tool.name} is not a confident recommendation yet based on currently verified evidence.`
+        : `${tool.name} is not a confident recommendation yet because source-backed evidence is still limited.`;
 const normalizeNarrativeSentence = (value: string): string =>
   stripControlChars(value).replace(/\s+/g, ' ').replace(/[.]+$/, '').trim();
 const joinNarrativeItems = (items: string[]): string => {
@@ -1328,7 +1402,7 @@ const tradeoffCons = uniqueDecisionText([
     })
   )
   .filter((item): item is EvidenceBulletV2 => Boolean(item));
-const hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
+const _hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
 pendingVerificationCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter(
   (item) => item?.unverified
 ).length;
@@ -1372,15 +1446,21 @@ const updateHistoryEntries = [
       }
     : null,
 ].filter((entry): entry is { date: string; what: string; why: string; source: string | null } => Boolean(entry));
+const toolReviewHeading = `${tool.name} Review`;
 const toolPageQaGate = evaluateToolPageQaGate({
   title: `${tool.name} Review | StackHunt`,
-  h1: `${tool.name} Review`,
-  intro: stripControlChars(tool.short_description || knowledgeCard?.tagline || ''),
+  h1: toolReviewHeading,
+  intro: stripControlChars(decisionSnapshotSummary || ''),
   verdict: stripControlChars(renderVerdict || tool.verdict || ''),
   evaluationDepth: evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
   pricingSectionVisible: showPricingSection,
   hasPricingCheckedProof,
   schemaMatchesVisibleContent: Boolean(!hasFAQ || faqSchema),
+  hasBestForSignal: decisionSnapshotBestWhen.length > 0,
+  hasNotForSignal: decisionSnapshotWatchOuts.length > 0,
+  hasTradeoffSignal: decisionTradeoffSummary !== 'Tradeoff not confirmed yet.',
+  hasDecisionSummaryBlock: true,
+  introLooksSpecSheet,
 });
 shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
 shouldNoindex = shouldNoindex || !toolPageQaGate.pass;
@@ -1467,7 +1547,7 @@ const schemas = [
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">Review</p>
               <div class="mt-1 flex items-center gap-3">
-                <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{tool.name}</h1>
+                <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{toolReviewHeading}</h1>
                 {
                   tool.is_verified && (
                     <span class="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-xs font-medium text-blue-200 ring-1 ring-blue-400/30">
@@ -1483,13 +1563,13 @@ const schemas = [
                   )
                 }
               </div>
+              <p class="mt-1 text-sm text-zinc-400">
+                Pricing, tradeoffs, best for, and alternatives.
+              </p>
               {
-                (tool.short_description || knowledgeCard?.tagline) && (
+                decisionSnapshotSummary && (
                   <div class="mt-2 space-y-1">
-                    {tool.short_description && <p class="text-zinc-200">{tool.short_description}</p>}
-                    {knowledgeCard?.tagline && knowledgeCard.tagline !== tool.short_description && (
-                      <p class="text-sm italic text-zinc-400">{knowledgeCard.tagline}</p>
-                    )}
+                    <p class="text-zinc-200">{decisionSnapshotSummary}</p>
                   </div>
                 )
               }
@@ -1569,22 +1649,32 @@ const schemas = [
 
         <aside class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner">
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-            Decision Snapshot
+            At A Glance
           </p>
           <div class="mt-3 grid gap-1 text-xs text-zinc-400">
             <p>
-              Best for:{' '}
+              Best fit:{' '}
               <span class="text-zinc-300">
-                {decisionSnapshotBestWhen[0] || 'teams that prioritize clear tool guidance'}
+                {decisionSnapshotBestWhen[0] || 'Not confirmed'}
               </span>
             </p>
             <p>
-              Top limit:{' '}
+              Weak fit:{' '}
               <span class="text-zinc-300">
-                {decisionSnapshotWatchOuts[0] || 'Some buying details are still being confirmed'}
+                {decisionSnapshotWatchOuts[0] || 'Not confirmed'}
+              </span>
+            </p>
+            <p>
+              Main tradeoff:{' '}
+              <span class="text-zinc-300">
+                {decisionTradeoffSummary}
               </span>
             </p>
           </div>
+          <p class="mt-3 text-xs text-zinc-500">
+            Last checked {communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'unknown'} ·{' '}
+            {evaluationDepth}
+          </p>
           <div class="mt-4 space-y-2">
             {
               tool.website && (
@@ -1619,12 +1709,21 @@ const schemas = [
     <section
       class="mb-8 rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-5 shadow-sm"
     >
-      <h2 class="text-lg font-semibold text-zinc-100">Should You Shortlist {tool.name}?</h2>
+      <h2 class="text-lg font-semibold text-zinc-100">Decision in 60 Seconds</h2>
       <p class="mt-1 text-sm leading-relaxed text-zinc-300">{verdictLabelRationale}</p>
-      <p class="mt-2 text-sm leading-relaxed text-zinc-300">
-        Best fit: {decisionSnapshotBestWhen[0] || 'Teams that need clear tool guidance quickly.'}{' '}
-        Main risk: {decisionSnapshotWatchOuts[0] || 'Some buying details are still being confirmed.'}
-      </p>
+      <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+        <li>
+          <span class="font-medium text-zinc-100">Best fit:</span>{' '}
+          {decisionSnapshotBestWhen[0] || 'Not confirmed'}
+        </li>
+        <li>
+          <span class="font-medium text-zinc-100">Weak fit:</span>{' '}
+          {decisionSnapshotWatchOuts[0] || 'Not confirmed'}
+        </li>
+        <li>
+          <span class="font-medium text-zinc-100">Tradeoff:</span> {decisionTradeoffSummary}
+        </li>
+      </ul>
       <div class="mt-4 flex flex-wrap items-center gap-3">
         {
           tool.website && (
@@ -1664,7 +1763,7 @@ const schemas = [
       class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
       aria-label="On this page"
     >
-      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">On this page</h2>
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Quick jump</h2>
       <div class="mb-3 flex flex-wrap items-center gap-2">
         {
           tool.website && (
@@ -2196,7 +2295,7 @@ const schemas = [
             </section>
           )
         }
-        {/* Community Insights (Real user insights) */}
+        {/* Field Notes (source-backed user signal summary) */}
         {
           hasCommunity && (userAdvocate || guardedHumanVerdict) && (
             <TribalKnowledge
@@ -2285,38 +2384,56 @@ const schemas = [
 
       <!-- Sidebar -->
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
-        {/* Company Info */}
         {
-          knowledgeCard && (
-            <CompanyInfo
-              company={knowledgeCard.company}
-              audience={knowledgeCard.audience}
-              learningCurve={tool.learning_curve}
-            />
-          )
-        }
+          hasOperationalDetails && (
+            <details class="group rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+              <summary class="flex cursor-pointer list-none items-center justify-between">
+                <h3 class="font-semibold text-zinc-100">Operational details</h3>
+                <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+                  <span class="group-open:hidden">Expand</span>
+                  <span class="hidden group-open:inline">Collapse</span>
+                </span>
+              </summary>
+              <div class="mt-4 space-y-6">
+                {/* Company Info */}
+                {
+                  knowledgeCard && (
+                    <CompanyInfo
+                      company={knowledgeCard.company}
+                      audience={knowledgeCard.audience}
+                      learningCurve={tool.learning_curve}
+                    />
+                  )
+                }
 
-        {/* Suite Navigation (if part of a bundle) */}
-        {
-          parentTool && (
-            <SuiteNavigation
-              currentToolId={tool.id}
-              parentId={parentTool.id}
-              parentName={parentTool.name}
-            />
-          )
-        }
+                {/* Suite Navigation (if part of a bundle) */}
+                {
+                  parentTool && (
+                    <SuiteNavigation
+                      currentToolId={tool.id}
+                      parentId={parentTool.id}
+                      parentName={parentTool.name}
+                    />
+                  )
+                }
 
-        {/* Security & Compliance */}
-        {knowledgeCard?.security && <SecurityCompliance security={knowledgeCard.security} />}
+                {/* Security & Compliance */}
+                {
+                  hasSecurity &&
+                    knowledgeCard?.security && <SecurityCompliance security={knowledgeCard.security} />
+                }
 
-        {/* Support Options */}
-        {knowledgeCard?.support && <SupportOptions support={knowledgeCard.support} />}
+                {/* Support Options */}
+                {knowledgeCard?.support && <SupportOptions support={knowledgeCard.support} />}
 
-        {/* Portability */}
-        {
-          knowledgeCard?.smp_portability && (
-            <PortabilityCard portability={knowledgeCard.smp_portability} toolName={tool.name} />
+                {/* Portability */}
+                {
+                  hasPortability && knowledgeCard?.smp_portability && (
+                    <PortabilityCard portability={knowledgeCard.smp_portability} toolName={tool.name} />
+                  )
+                }
+              </div>
+            </details>
           )
         }
 

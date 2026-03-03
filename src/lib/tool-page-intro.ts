@@ -43,6 +43,7 @@ const GENERIC_DECISION_PATTERNS = [
   /\bbest-in-class capabilities?\b/gi,
   /\bgreat for teams?\b/gi,
   /\bmodern teams?\b/gi,
+  /\bsoftware buying decision\b/gi,
 ];
 
 function removeGenericPhrases(value: string): string {
@@ -158,7 +159,7 @@ export function generateDecisionIntro(input: DecisionIntroInput): DecisionIntro 
   const whatItIsRaw =
     descriptionCandidate.length >= 20
       ? descriptionCandidate
-      : `${input.toolName} is covered here as a software buying decision.`;
+      : `${input.toolName} is a software product reviewed here for practical team fit and rollout tradeoffs.`;
 
   const best_for = toBuyerFitSentence(
     'Best for teams where',
@@ -175,7 +176,10 @@ export function generateDecisionIntro(input: DecisionIntroInput): DecisionIntro 
       ? `Main tradeoff: stronger fit when ${specificPro}, but higher risk when ${specificCon}`
       : 'Main tradeoff: advantages are clearer than constraints only after source-backed claims are complete';
 
-  const what_it_is = toSentence(whatItIsRaw, `${input.toolName} is covered here as a software buying decision.`);
+  const what_it_is = toSentence(
+    whatItIsRaw,
+    `${input.toolName} is a software product reviewed for practical team fit and rollout tradeoffs.`
+  );
   const main_tradeoff = toSentence(
     tradeoffRaw,
     'Main tradeoff: advantages and constraints are still being confirmed from source-backed claims.'

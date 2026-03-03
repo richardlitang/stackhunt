@@ -41,3 +41,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Tool page structure gates
+        run: npm run qa:rendered-tool-pages -- --template-only --sample=15

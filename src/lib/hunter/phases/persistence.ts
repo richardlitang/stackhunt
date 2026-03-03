@@ -2220,7 +2220,9 @@ async function persistQualityGateSnapshot(
 ): Promise<void> {
   const { data: itemRow, error: itemError } = await deps.supabase
     .from('items')
-    .select('id, name, metadata, specs, pricing_verified_at, short_description, verdict, updated_at')
+    .select(
+      'id, name, metadata, specs, pricing_verified_at, short_description, verdict, review_context, updated_at'
+    )
     .eq('id', itemId)
     .single();
 
@@ -2331,6 +2333,25 @@ async function persistQualityGateSnapshot(
     specs: sectionContract.sectionOmissionReasons.specs ? 1 : 0,
     community: sectionContract.sectionOmissionReasons.community ? 1 : 0,
   };
+  const reviewContext = (itemRow.review_context as Record<string, unknown> | null) || null;
+  const decisionIntro =
+    (reviewContext?.decisionIntro as Record<string, unknown> | undefined) ||
+    (reviewContext?.decision_intro as Record<string, unknown> | undefined);
+  const hasBestForSignal = Boolean(
+    decisionIntro &&
+      typeof decisionIntro.best_for === 'string' &&
+      decisionIntro.best_for.trim().length >= 12
+  );
+  const hasNotForSignal = Boolean(
+    decisionIntro &&
+      typeof decisionIntro.not_for === 'string' &&
+      decisionIntro.not_for.trim().length >= 12
+  );
+  const hasTradeoffSignal = Boolean(
+    decisionIntro &&
+      typeof decisionIntro.main_tradeoff === 'string' &&
+      decisionIntro.main_tradeoff.trim().length >= 12
+  );
   const qaGate = evaluateToolPageQaGate({
     title: `${itemRow.name || 'Tool'} Review | StackHunt`,
     h1: `${itemRow.name || 'Tool'} Review`,
@@ -2340,6 +2361,13 @@ async function persistQualityGateSnapshot(
     pricingSectionVisible: readiness.signals.section_status.pricing === 'show',
     hasPricingCheckedProof: Boolean(itemRow.pricing_verified_at),
     schemaMatchesVisibleContent: true,
+    hasBestForSignal,
+    hasNotForSignal,
+    hasTradeoffSignal,
+    hasDecisionSummaryBlock: true,
+    introLooksSpecSheet: /\bacross pricing,\s*fit,\s*and rollout risk\b/i.test(
+      String(itemRow.short_description || '')
+    ),
   });
   if (!qaGate.pass) {
     shouldIndex = false;
@@ -3759,6 +3787,54 @@ function validateNegativeClaim(
   return { isValid: true, corroboratingSourceCount: corroboratingCount, corroboratingSources };
 }
 
+const DECISION_INTRO_SPEC_SHEET_PATTERNS = [
+  /\bacross pricing,\s*fit,\s*and rollout risk\b/i,
+  /\bpricing,\s*fit,\s*and rollout risk\b/i,
+];
+
+const DECISION_INTRO_GENERIC_PATTERNS = [
+  /\brobust and powerful solution\b/i,
+  /\bworth shortlisting\b/i,
+  /\bbest-in-class capabilities?\b/i,
+  /\bclear tool guidance\b/i,
+];
+
+function sanitizeDecisionIntroField(value: unknown, minLength = 12): string | null {
+  if (typeof value !== 'string') return null;
+  const cleaned = value
+    .trim()
+    .replace(/^[-\u2022]\s*/, '')
+    .replace(/^best for:\s*/i, '')
+    .replace(/^not for:\s*/i, '')
+    .replace(/^main tradeoff:\s*/i, '')
+    .replace(/\s+/g, ' ');
+  if (cleaned.length < minLength) return null;
+  if (DECISION_INTRO_SPEC_SHEET_PATTERNS.some((pattern) => pattern.test(cleaned))) return null;
+  if (DECISION_INTRO_GENERIC_PATTERNS.some((pattern) => pattern.test(cleaned))) return null;
+  return cleaned;
+}
+
+function sanitizeDecisionIntro(
+  rawDecisionIntro: unknown,
+  deps: HunterDependencies
+): Record<string, string> | null {
+  if (!rawDecisionIntro || typeof rawDecisionIntro !== 'object') return null;
+  const intro = rawDecisionIntro as Record<string, unknown>;
+  const sanitizedIntro = {
+    what_it_is: sanitizeDecisionIntroField(intro.what_it_is, 18),
+    best_for: sanitizeDecisionIntroField(intro.best_for, 12),
+    not_for: sanitizeDecisionIntroField(intro.not_for, 12),
+    main_tradeoff: sanitizeDecisionIntroField(intro.main_tradeoff, 12),
+    summary: sanitizeDecisionIntroField(intro.summary, 24),
+  };
+  const populatedCount = Object.values(sanitizedIntro).filter(Boolean).length;
+  if (populatedCount === 0) {
+    deps.log('[Guardrail] Dropped decision_intro (generic/spec-sheet wording)');
+    return null;
+  }
+  return sanitizedIntro as Record<string, string>;
+}
+
 function sanitizeReviewContext(
   reviewContext: any,
   validCons: ClaimWithSource[],
@@ -3801,6 +3877,18 @@ function sanitizeReviewContext(
     ua.avoidIf = avoidIfBacked;
     ua.frustrations = frustrationsBacked;
     sanitized.userAdvocate = ua;
+  }
+
+  const decisionIntroRaw =
+    (sanitized.decision_intro as Record<string, unknown> | undefined) ||
+    (sanitized.decisionIntro as Record<string, unknown> | undefined);
+  const sanitizedDecisionIntro = sanitizeDecisionIntro(decisionIntroRaw, deps);
+  if (sanitizedDecisionIntro) {
+    sanitized.decision_intro = sanitizedDecisionIntro;
+    sanitized.decisionIntro = sanitizedDecisionIntro;
+  } else {
+    delete sanitized.decision_intro;
+    delete sanitized.decisionIntro;
   }
 
   return sanitized;

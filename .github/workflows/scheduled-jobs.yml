@@ -6,6 +6,10 @@ on:
     - cron: '0 6 * * *'
     # QA autopilot cron-safe run - every 6 hours at :30
     - cron: '30 */6 * * *'
+    # Daily topic discovery - 7am UTC
+    - cron: '0 7 * * *'
+    # Daily decision intro backfill - 8:15am UTC
+    - cron: '15 8 * * *'
 
   # Allow manual triggers with job selection
   workflow_dispatch:
@@ -17,6 +21,8 @@ on:
         options:
           - hunt-queue
           - qa-autopilot
+          - discover-topics
+          - decision-intro-backfill
 
 env:
   NODE_VERSION: '20'
@@ -44,6 +50,25 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for key in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY GEMINI_API_KEY SERPER_API_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing required secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "One or more required secrets are missing for hunt-queue."
+            exit 1
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
 
       - name: Recover stale jobs
         run: |
@@ -123,6 +148,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for key in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY GEMINI_API_KEY SERPER_API_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing required secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "One or more required secrets are missing for qa-autopilot."
+            exit 1
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
       - name: Run QA autopilot (cron profile)
         run: npm run qa:autopilot:cron
         env:
@@ -160,12 +204,84 @@ jobs:
           fi
 
   # ============================================================
+  # DAILY: Decision Intro Backfill (8:15am UTC)
+  # Normalizes review_context decision intro/evidence for published tools
+  # ============================================================
+  decision-intro-backfill:
+    name: Decision Intro Backfill
+    if: github.event.schedule == '15 8 * * *' || github.event.inputs.job == 'decision-intro-backfill'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for key in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing required secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "One or more required secrets are missing for decision-intro-backfill."
+            exit 1
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Backfill decision intro
+        run: npm run qa:backfill-decision-intro -- --apply --limit=600
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{
+                "content": "@here Automation failure!",
+                "embeds": [{
+                  "title": "Decision Intro Backfill Failed",
+                  "description": "The scheduled decision intro backfill job failed. Check GitHub Actions logs.",
+                  "color": 16711680,
+                  "fields": [
+                    {"name": "Workflow", "value": "scheduled-jobs.yml", "inline": true},
+                    {"name": "Job", "value": "decision-intro-backfill", "inline": true}
+                  ],
+                  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+                }]
+              }' \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
+          fi
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"❌ Decision intro backfill failed. Check GitHub Actions logs."}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }}
+          fi
+
+  # ============================================================
   # DAILY: Topic Discovery (7am UTC)
   # AI-powered discovery of new content opportunities
   # ============================================================
   discover-topics:
     name: Discover Topics
-    if: false # disabled per request; keep job for reference
+    if: github.event.schedule == '0 7 * * *' || github.event.inputs.job == 'discover-topics'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
