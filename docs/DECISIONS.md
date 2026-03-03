@@ -16,6 +16,23 @@ Notes:
 - Keep entries short.
 - Use concrete dates.
 
+2026-03-03 - Tool Page Editorial v2 Blueprint Adopted
+Context: Recent tool pages improved evidence handling but still read as spec sheets due duplicated verdict surfaces, card/list overload, and inconsistent narrative cohesion.
+Decision: Adopt editorial-v2 as the next implementation target for `/tool/[slug]`:
+- `docs/TOOL_PAGE_EDITORIAL_BLUEPRINT_V2.md`
+- `docs/plans/2026-03-03-tool-page-editorial-v2-implementation.md`
+Why: Reader retention and decision clarity are now constrained more by page structure and copy flow than by raw fact coverage.
+Impact: Upcoming tool-page changes should prioritize narrative-first ordering, contradiction blocking, pricing-first buyer guidance, and reduced decorative section noise before broader rollout.
+
+2026-03-02 - Tool Page Standard v1 + QA Gate + Codex Brief Adopted
+Context: Tool pages (`/tool/[slug]`) had strong sourcing/legal guardrails but still showed template-noise and generic decision language in rendered output.
+Decision: Adopt tool-page-first quality package in docs as the implementation source of truth:
+- `docs/TOOL_PAGE_STANDARD_V1.md`
+- `docs/TOOL_PAGE_QA_GATE_V1.md`
+- `docs/CODEX_TOOL_PAGE_BRIEF_V1.md`
+Why: We need one enforceable contract for page purpose, required evidence, section suppression, and publish/index behavior before extending to `/best` and `/compare`.
+Impact: Future tool-page changes should implement against these docs first; publish/index and lint checks should be aligned to this v1 contract before rollout to other page types.
+
 2026-02-20 - Snapshot Compiler Trust Contract (Policy V1)
 Context: `/best` and `/compare` are moving toward deterministic snapshot compilers, but confidence, staleness, evidence scope, and conflict behavior were not yet locked as one cross-cutting contract.
 Decision: Adopt `compiler_policy_version = 2026-02-20.v1` with four mandatory rules: (1) volatility-tier freshness windows, (2) evidence-tier requirements, (3) explicit conflict state (`disputed`) for critical fields, and (4) explicit count semantics (`all_reviews_count`, `published_reviews_count`, `snapshot_ranked_count`).
