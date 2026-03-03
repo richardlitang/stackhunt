@@ -10,6 +10,7 @@ vi.mock('@google/genai', () => ({
   },
   ThinkingLevel: {
     HIGH: 'HIGH',
+    MEDIUM: 'MEDIUM',
     LOW: 'LOW',
   },
 }));
@@ -20,6 +21,7 @@ vi.mock('@/lib/hunter/services/gemini-compat', () => ({
 
 vi.mock('@/lib/hunter/services/model-router', () => ({
   getGeminiModelForStage: () => 'gemini-test-model',
+  getGeminiModelForTier: () => 'gemini-test-fast-model',
 }));
 
 import { GeminiService } from '@/lib/hunter/services/gemini';
@@ -219,7 +221,7 @@ describe('GeminiService.synthesize', () => {
     ).rejects.toThrow('Gemini synthesis evidence stage failed');
   });
 
-  it('throws when evidence packet lacks source diversity', async () => {
+  it('auto-abstains when evidence packet lacks source diversity', async () => {
     const lowDiversityEvidence = {
       score: 80,
       pros: [
@@ -245,6 +247,7 @@ describe('GeminiService.synthesize', () => {
         platforms: ['Web'],
       },
     };
+    const synthesisPayload = buildValidPayload();
 
     mockGenerateContentWithThinkingFallback
       .mockResolvedValueOnce({
@@ -252,27 +255,29 @@ describe('GeminiService.synthesize', () => {
         usageMetadata: { totalTokenCount: 121 },
       })
       .mockResolvedValueOnce({
-        text: JSON.stringify(lowDiversityEvidence),
+        text: JSON.stringify(synthesisPayload),
         usageMetadata: { totalTokenCount: 122 },
       });
 
     const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'ExampleTool',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for API automation',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
 
-    await expect(
-      service.synthesize({
-        toolName: 'ExampleTool',
-        promptTemplate: 'test prompt',
-        contextTitle: 'Best for API automation',
-        reviewsSnippets: [],
-        pricingSnippets: [],
-        alternativesSnippets: [],
-        budgetAnalystSnippets: [],
-        tribalKnowledgeSnippets: [],
-        knowledgeCardFacts: 'facts',
-        existingCategories: { functions: [], audiences: [], platforms: [] },
-        strictClaimSourcing: true,
-      })
-    ).rejects.toThrow('source diversity requires at least one official and one non-official claim');
+    expect(result.generationQuality.nonOfficialClaims).toBe(0);
+    expect(result.generationQuality.abstainedFields).toEqual(
+      expect.arrayContaining(['verdict', 'shortDescription', 'reviewContext', 'faqs'])
+    );
   });
 
   it('allows legacy string claims when strict claim sourcing is disabled', async () => {
@@ -865,5 +870,7 @@ describe('GeminiService.synthesize', () => {
 
     expect(result.generationQuality.actionabilityScore).toBeGreaterThan(55);
     expect(result.generationQuality.actionabilityScore).toBeLessThanOrEqual(100);
+    expect((result.generationQuality.readerUtilityScore || 0) >= 55).toBe(true);
+    expect(result.generationQuality.readerUtilityScore).toBeLessThanOrEqual(100);
   });
 });
