@@ -82,6 +82,31 @@ function getPolicyEligibleSources(
   );
 }
 
+function compactSnippetLines(lines: string[], maxLines: number, maxCharsPerLine: number): string[] {
+  const seen = new Set<string>();
+  const compacted: string[] = [];
+
+  for (const raw of lines) {
+    if (!raw || compacted.length >= maxLines) break;
+
+    const normalized = raw.trim().replace(/\s+/g, ' ');
+    if (!normalized) continue;
+
+    const dedupeKey = normalized.toLowerCase();
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+
+    if (normalized.length <= maxCharsPerLine) {
+      compacted.push(normalized);
+      continue;
+    }
+
+    compacted.push(`${normalized.slice(0, maxCharsPerLine - 1)}…`);
+  }
+
+  return compacted;
+}
+
 export class BatchSynthesisService {
   private client: GoogleGenAI;
   private apiKey: string;
@@ -267,32 +292,38 @@ export class BatchSynthesisService {
     const eligibleSources = getPolicyEligibleSources(scout.raw_sources);
     const promptSources = eligibleSources.length > 0 ? eligibleSources : scout.raw_sources;
     const snippetBuckets = buildSnippetBucketsFromScout(promptSources);
+    const reviews = compactSnippetLines(snippetBuckets.reviewsSnippets, 6, 300);
+    const pricing = compactSnippetLines(snippetBuckets.pricingSnippets, 6, 300);
+    const alternatives = compactSnippetLines(snippetBuckets.alternativesSnippets, 5, 300);
+    const budget = compactSnippetLines(snippetBuckets.budgetAnalystSnippets, 5, 300);
+    const tribal = compactSnippetLines(snippetBuckets.tribalKnowledgeSnippets, 6, 300);
 
     return `
 TOOL: ${input.toolName}
 ${input.contextTitle ? `CONTEXT: ${input.contextTitle}` : ''}
+EVIDENCE_COUNTS: reviews=${reviews.length}, pricing=${pricing.length}, alternatives=${alternatives.length}, budget=${budget.length}, tribal=${tribal.length}
 
 === VERIFIED FACTS (from Pass 1 extraction) ===
 ${factSummary}
 
 === REVIEWS & OPINIONS ===
-${snippetBuckets.reviewsSnippets.join('\n')}
+${reviews.join('\n')}
 
 === PRICING & FEATURES ===
-${snippetBuckets.pricingSnippets.join('\n')}
+${pricing.join('\n')}
 
 === ALTERNATIVES & COMPARISONS ===
-${snippetBuckets.alternativesSnippets.join('\n')}
+${alternatives.join('\n')}
 
 === BUDGET ANALYST (Hidden Costs) ===
-${snippetBuckets.budgetAnalystSnippets.join('\n')}
+${budget.join('\n')}
 
 === TRIBAL KNOWLEDGE (Reddit/HN) ===
-${snippetBuckets.tribalKnowledgeSnippets.join('\n')}
+${tribal.join('\n')}
 
 === SOURCES (Use these URLs for source_url) ===
 ${promptSources
-  .slice(0, 20)
+  .slice(0, 12)
   .map((s) => `- ${s.url} (${s.domain}): ${s.title}`)
   .join('\n')}
 
@@ -401,22 +432,26 @@ Follow these rules:
   const eligibleSources = getPolicyEligibleSources(scout.raw_sources);
   const promptSources = eligibleSources.length > 0 ? eligibleSources : scout.raw_sources;
   const snippetBuckets = buildSnippetBucketsFromScout(promptSources);
+  const reviews = compactSnippetLines(snippetBuckets.reviewsSnippets, 6, 300);
+  const pricing = compactSnippetLines(snippetBuckets.pricingSnippets, 6, 300);
+  const tribal = compactSnippetLines(snippetBuckets.tribalKnowledgeSnippets, 6, 300);
 
   const prompt = `${systemPrompt}
 
 TOOL: ${input.toolName}
+EVIDENCE_COUNTS: reviews=${reviews.length}, pricing=${pricing.length}, tribal=${tribal.length}
 
 VERIFIED FACTS:
 ${factSummary}
 
 REVIEWS:
-${snippetBuckets.reviewsSnippets.join('\n')}
+${reviews.join('\n')}
 
 PRICING:
-${snippetBuckets.pricingSnippets.join('\n')}
+${pricing.join('\n')}
 
 TRIBAL KNOWLEDGE:
-${snippetBuckets.tribalKnowledgeSnippets.join('\n')}
+${tribal.join('\n')}
 
 Existing Knowledge Graph tags to reuse:
 - Functions: ${existingCategories.functions.join(', ')}

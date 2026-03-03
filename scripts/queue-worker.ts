@@ -220,10 +220,17 @@ async function processQueue(): Promise<void> {
       ...successes.map(s => s.tool),
       ...errors.map(e => e.tool),
     ].filter(t => t && t !== 'Unknown')));
+    const researchOnlyCount = result.results.filter(
+      (r) => r.success && r.queueStatus === 'research_complete'
+    ).length;
+    const completedCount = result.results.filter(
+      (r) => r.success && r.queueStatus !== 'research_complete'
+    ).length;
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`\n📊 Results: ${result.processed} processed, ${result.succeeded} succeeded, ${result.failed} failed (${duration}s)`);
     console.log(`   Tokens: ${result.tokensUsed.toLocaleString()}`);
+    console.log(`   Success mix: ${completedCount} completed, ${researchOnlyCount} research_only`);
     if (autoPublishSafeDrafts) {
       console.log(`   Auto-published: ${autoPublished} (skipped: ${autoPublishSkipped})`);
     }
@@ -318,6 +325,15 @@ interface StaleItem {
   category: string | null;
 }
 
+type QueueItemForBatch = {
+  id: string;
+  tool_name: string;
+  context_title: string | null;
+  category_slug: string | null;
+  hunt_type: string | null;
+  force_regenerate: boolean | null;
+};
+
 function toSlug(value: string): string {
   return value
     .toLowerCase()
@@ -405,32 +421,48 @@ async function processBatchSynthesis(
     }
 
     const inputs: BatchInput[] = [];
+    const { data: queueItems, error: queueItemsError } = await supabase
+      .from('hunt_queue')
+      .select('id, tool_name, context_title, category_slug, hunt_type, force_regenerate')
+      .in('id', batch.toolIds);
 
-    for (let i = 0; i < batch.toolIds.length; i++) {
-      const queueId = batch.toolIds[i];
-      const toolName = batch.toolNames[i];
+    if (queueItemsError) {
+      throw new Error(`[Batch] Failed to load queue items: ${queueItemsError.message}`);
+    }
 
-      const { data: queueItem } = await supabase
-        .from('hunt_queue')
-        .select('id, tool_name, context_title, category_slug, hunt_type, force_regenerate')
-        .eq('id', queueId)
-        .maybeSingle();
+    const queueById = new Map<string, QueueItemForBatch>();
+    const slugToQueue = new Map<string, QueueItemForBatch>();
+    for (const queueItem of (queueItems || []) as QueueItemForBatch[]) {
+      queueById.set(queueItem.id, queueItem);
+      slugToQueue.set(toSlug(queueItem.tool_name || ''), queueItem);
+    }
 
+    const toolSlugs = Array.from(slugToQueue.keys()).filter(Boolean);
+    const { data: tools, error: toolsError } = await supabase
+      .from('items')
+      .select('id, name, slug, specs')
+      .in('slug', toolSlugs);
+
+    if (toolsError) {
+      throw new Error(`[Batch] Failed to load research data: ${toolsError.message}`);
+    }
+
+    const toolBySlug = new Map<string, { id: string; name: string; slug: string; specs: any }>();
+    for (const tool of tools || []) {
+      toolBySlug.set(tool.slug, tool as any);
+    }
+
+    for (const queueId of batch.toolIds) {
+      const queueItem = queueById.get(queueId);
       if (!queueItem) {
-        console.warn(`[Batch] Missing queue item for ${toolName} (${queueId}), skipping`);
+        console.warn(`[Batch] Missing queue item for queue id ${queueId}, skipping`);
         continue;
       }
 
-      // Get stored research data from tool specs
-      const toolSlug = toSlug(queueItem.tool_name || toolName);
-      const { data: tool } = await supabase
-        .from('items')
-        .select('id, name, specs')
-        .eq('slug', toolSlug)
-        .maybeSingle();
-
+      const toolSlug = toSlug(queueItem.tool_name || '');
+      const tool = toolBySlug.get(toolSlug);
       if (!tool?.specs?.research_data) {
-        console.warn(`[Batch] No research data for ${toolName}, skipping`);
+        console.warn(`[Batch] No research data for ${queueItem.tool_name}, skipping`);
         continue;
       }
 
