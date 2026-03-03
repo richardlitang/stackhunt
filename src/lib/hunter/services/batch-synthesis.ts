@@ -107,6 +107,62 @@ function compactSnippetLines(lines: string[], maxLines: number, maxCharsPerLine:
   return compacted;
 }
 
+function normalizeMarkdownJson(content: string): string {
+  let cleaned = content.trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.slice(7);
+  }
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.slice(3);
+  }
+  if (cleaned.endsWith('```')) {
+    cleaned = cleaned.slice(0, -3);
+  }
+  return cleaned.trim();
+}
+
+function parseAndValidateAnalysisResponse(content: string, applyClaimFixes: boolean): HunterAnalysis {
+  const parsed = JSON.parse(normalizeMarkdownJson(content));
+
+  if (applyClaimFixes) {
+    const validSourceTypes = ['official', 'editorial', 'community'];
+    const fixClaim = (claim: unknown) => {
+      if (typeof claim === 'object' && claim !== null) {
+        const c = claim as Record<string, unknown>;
+        if (c.source_type && !validSourceTypes.includes(c.source_type as string)) {
+          if (c.source_type === 'fact' || c.source_type === 'opinion') {
+            if (!c.claim_type) c.claim_type = c.source_type;
+            c.source_type = 'editorial';
+          }
+        }
+        if (!c.claim_type) {
+          c.claim_type = 'opinion';
+        }
+      }
+      return claim;
+    };
+
+    if (Array.isArray(parsed.pros)) parsed.pros = parsed.pros.map(fixClaim);
+    if (Array.isArray(parsed.cons)) parsed.cons = parsed.cons.map(fixClaim);
+  }
+
+  if (parsed.verdict && parsed.verdict.length > 200) {
+    parsed.verdict = parsed.verdict.slice(0, 197) + '...';
+  }
+  if (parsed.shortDescription && parsed.shortDescription.length > 200) {
+    parsed.shortDescription = parsed.shortDescription.slice(0, 197) + '...';
+  }
+  if (!parsed.sentimentTags) parsed.sentimentTags = [];
+  if (!parsed.vetoLogic) parsed.vetoLogic = [];
+  if (!parsed.realityChecks) parsed.realityChecks = [];
+  if (!parsed.graphTags) {
+    parsed.graphTags = { functions: [], audiences: [], platforms: [] };
+  }
+
+  const validated = AnalysisSchema.parse(parsed);
+  return validated as unknown as HunterAnalysis;
+}
+
 export class BatchSynthesisService {
   private client: GoogleGenAI;
   private apiKey: string;
@@ -216,8 +272,7 @@ export class BatchSynthesisService {
               throw new Error(`Empty response for ${input.toolName}`);
             }
 
-            const parsed = this.parseAndFixResponse(content);
-            const validated = AnalysisSchema.parse(parsed);
+            const validated = parseAndValidateAnalysisResponse(content, true);
 
             // Track timing
             const toolDuration = Date.now() - toolStartTime;
@@ -333,67 +388,6 @@ Return ONLY valid JSON, no markdown code blocks.
   }
 
   /**
-   * Parse and fix common AI response issues
-   */
-  private parseAndFixResponse(content: string): unknown {
-    // Remove markdown code blocks if present
-    let cleaned = content.trim();
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.slice(7);
-    }
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.slice(3);
-    }
-    if (cleaned.endsWith('```')) {
-      cleaned = cleaned.slice(0, -3);
-    }
-    cleaned = cleaned.trim();
-
-    const parsed = JSON.parse(cleaned);
-
-    // Fix common AI mistakes
-    const validSourceTypes = ['official', 'editorial', 'community'];
-    const fixClaim = (claim: unknown) => {
-      if (typeof claim === 'object' && claim !== null) {
-        const c = claim as Record<string, unknown>;
-        // Fix source_type/claim_type confusion
-        if (c.source_type && !validSourceTypes.includes(c.source_type as string)) {
-          if (c.source_type === 'fact' || c.source_type === 'opinion') {
-            if (!c.claim_type) c.claim_type = c.source_type;
-            c.source_type = 'editorial';
-          }
-        }
-        // Ensure claim_type exists
-        if (!c.claim_type) {
-          c.claim_type = 'opinion';
-        }
-      }
-      return claim;
-    };
-
-    if (Array.isArray(parsed.pros)) parsed.pros = parsed.pros.map(fixClaim);
-    if (Array.isArray(parsed.cons)) parsed.cons = parsed.cons.map(fixClaim);
-
-    // Truncate oversized strings
-    if (parsed.verdict && parsed.verdict.length > 200) {
-      parsed.verdict = parsed.verdict.slice(0, 197) + '...';
-    }
-    if (parsed.shortDescription && parsed.shortDescription.length > 200) {
-      parsed.shortDescription = parsed.shortDescription.slice(0, 197) + '...';
-    }
-
-    // Ensure arrays exist
-    if (!parsed.sentimentTags) parsed.sentimentTags = [];
-    if (!parsed.vetoLogic) parsed.vetoLogic = [];
-    if (!parsed.realityChecks) parsed.realityChecks = [];
-    if (!parsed.graphTags) {
-      parsed.graphTags = { functions: [], audiences: [], platforms: [] };
-    }
-
-    return parsed;
-  }
-
-  /**
    * Chunk array into smaller arrays for controlled concurrency
    */
   private chunkArray<T>(array: T[], size: number): T[][] {
@@ -479,14 +473,5 @@ Output ONLY valid JSON matching the HunterAnalysis schema.`;
     throw new Error(`Empty response for ${input.toolName}`);
   }
 
-  // Parse and validate
-  let cleaned = content.trim();
-  if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
-  if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
-  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
-
-  const parsed = JSON.parse(cleaned.trim());
-  const validated = AnalysisSchema.parse(parsed);
-
-  return validated as unknown as HunterAnalysis;
+  return parseAndValidateAnalysisResponse(content, false);
 }
