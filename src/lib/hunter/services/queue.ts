@@ -24,6 +24,7 @@ export interface QueueConfig {
 export interface QueueItem {
   id: string;
   tool_name: string;
+  entity_scope?: string | null;
   context_title: string | null;
   category_slug: string | null;
   hunt_type?: string | null;
@@ -235,6 +236,44 @@ export class QueueService {
       return;
     }
     log(`Queue item failed: ${queueId} (reason: ${dlqReason || 'unknown'})`);
+  }
+
+  /**
+   * Mark a queue item as research_complete (research-only pass finished)
+   */
+  async markResearchComplete(
+    queueId: string,
+    options: {
+      detectedCategory?: string | null;
+      clearBatchId?: boolean;
+      researchCompletedAt?: string;
+    } = {},
+    onLog?: (message: string) => void
+  ): Promise<void> {
+    const log = onLog || (() => {});
+    const researchCompletedAt = options.researchCompletedAt || new Date().toISOString();
+    const updatePayload: Record<string, unknown> = {
+      status: 'research_complete',
+      research_completed_at: researchCompletedAt,
+      updated_at: researchCompletedAt,
+    };
+
+    if (options.detectedCategory !== undefined) {
+      updatePayload.detected_category = options.detectedCategory;
+    }
+    if (options.clearBatchId) {
+      updatePayload.batch_id = null;
+    }
+
+    const { error } = await this.supabase.from('hunt_queue').update(updatePayload).eq('id', queueId);
+    if (error) {
+      throw new Error(`Failed to mark queue item as research_complete: ${error.message}`);
+    }
+    log(
+      `Queue item marked research_complete: ${queueId} (category: ${
+        options.detectedCategory ?? 'unchanged'
+      })`
+    );
   }
 
   /**

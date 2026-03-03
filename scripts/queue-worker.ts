@@ -483,11 +483,15 @@ async function processBatchSynthesis(
 
     if (inputs.length === 0) {
       console.error('[Batch] No valid inputs, aborting');
-      // Reset queue items
-      await supabase
-        .from('hunt_queue')
-        .update({ status: 'research_complete', batch_id: null })
-        .in('id', batch.toolIds);
+      await Promise.all(
+        batch.toolIds.map((queueId) =>
+          queueService.markResearchComplete(
+            queueId,
+            { clearBatchId: true },
+            (message) => console.log(`[Batch Persist] ${message}`)
+          )
+        )
+      );
       return;
     }
 
@@ -625,11 +629,15 @@ async function processBatchSynthesis(
 
   } catch (error) {
     console.error('[Batch] Synthesis failed:', error);
-    // Reset queue items to research_complete
-    await supabase
-      .from('hunt_queue')
-      .update({ status: 'research_complete', batch_id: null })
-      .in('id', batch.toolIds);
+    await Promise.all(
+      batch.toolIds.map((queueId) =>
+        queueService.markResearchComplete(
+          queueId,
+          { clearBatchId: true },
+          (message) => console.log(`[Batch Persist] ${message}`)
+        )
+      )
+    );
     throw error;
   }
 }
