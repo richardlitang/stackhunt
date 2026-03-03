@@ -123,6 +123,7 @@ const COVERAGE_MIGRATION_TOKENS =
 const COVERAGE_SUPPORT_TOKENS =
   /\b(support|docs|documentation|SLA|uptime|ticket|response time|customer success)\b/i;
 const DEFAULT_MIN_ACTIONABILITY_SCORE = 58;
+const DEFAULT_MIN_READER_UTILITY_SCORE = 62;
 
 const POPULARITY_PROFILES: Record<
   PopularityTier,
@@ -187,11 +188,33 @@ function getMinActionabilityScore(): number {
   return Math.min(100, Math.max(0, Math.round(parsed)));
 }
 
+function getMinReaderUtilityScore(): number {
+  const raw = typeof process !== 'undefined' ? process.env.HUNTER_MIN_READER_UTILITY_SCORE : undefined;
+  const parsed = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(parsed)) return DEFAULT_MIN_READER_UTILITY_SCORE;
+  return Math.min(100, Math.max(0, Math.round(parsed)));
+}
+
 function getGenerationActionabilityScore(generationQuality?: Record<string, unknown>): number | null {
   const raw = generationQuality?.actionabilityScore;
   const numeric = typeof raw === 'number' ? raw : Number(raw);
   if (!Number.isFinite(numeric)) return null;
   return Math.min(100, Math.max(0, numeric));
+}
+
+function getGenerationReaderUtilityScore(generationQuality?: Record<string, unknown>): number | null {
+  const raw = generationQuality?.readerUtilityScore;
+  const numeric = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.min(100, Math.max(0, numeric));
+}
+
+function isMissingGenerationQualityColumnError(error: { message?: string } | null | undefined): boolean {
+  const message = error?.message || '';
+  return (
+    message.includes("Could not find the 'generation_quality' column of 'reviews'") ||
+    message.includes('column "generation_quality" of relation "reviews" does not exist')
+  );
 }
 
 function meetsAuthoritativeDomainThreshold(
@@ -275,11 +298,17 @@ async function maybeEnqueueCoverageGapRehunt(params: {
   const gaps = detectCoverageGaps(analysis, knowledgeCard, generationQuality);
   const minActionabilityScore = getMinActionabilityScore();
   const actionabilityScore = getGenerationActionabilityScore(generationQuality);
+  const minReaderUtilityScore = getMinReaderUtilityScore();
+  const readerUtilityScore = getGenerationReaderUtilityScore(generationQuality);
   const hasMissingActionability = actionabilityScore === null;
   const hasActionabilityGap =
     hasMissingActionability || (actionabilityScore !== null && actionabilityScore < minActionabilityScore);
+  const hasMissingReaderUtility = readerUtilityScore === null;
+  const hasReaderUtilityGap =
+    hasMissingReaderUtility ||
+    (readerUtilityScore !== null && readerUtilityScore < minReaderUtilityScore);
   const hasCriticalGap = gaps.includes('pricing_ceilings');
-  if (!hasActionabilityGap && !hasCriticalGap && gaps.length < 2) return;
+  if (!hasActionabilityGap && !hasReaderUtilityGap && !hasCriticalGap && gaps.length < 2) return;
 
   let existingQuery = deps.supabase
     .from('hunt_queue')
@@ -304,6 +333,11 @@ async function maybeEnqueueCoverageGapRehunt(params: {
     reasonParts.push('missing_actionability');
   } else if (hasActionabilityGap) {
     reasonParts.push(`low_actionability:${actionabilityScore ?? 0}<${minActionabilityScore}`);
+  }
+  if (hasMissingReaderUtility) {
+    reasonParts.push('missing_reader_utility');
+  } else if (hasReaderUtilityGap) {
+    reasonParts.push(`low_reader_utility:${readerUtilityScore ?? 0}<${minReaderUtilityScore}`);
   }
   const reason = reasonParts.join(';');
   const { error } = await deps.supabase.from('hunt_queue').insert({
@@ -1953,12 +1987,19 @@ export async function executePersistencePhase(
     const discoveryScore = Number(ctx.analysis.analysis?.score || 0);
     const profile = POPULARITY_PROFILES[popularityTier];
     const minActionabilityScore = getMinActionabilityScore();
+    const minReaderUtilityScore = getMinReaderUtilityScore();
     const actionabilityScore = getGenerationActionabilityScore(
+      (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined
+    );
+    const readerUtilityScore = getGenerationReaderUtilityScore(
       (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined
     );
     const hasMissingActionability = actionabilityScore === null;
     const hasLowActionability =
       actionabilityScore !== null && actionabilityScore < minActionabilityScore;
+    const hasMissingReaderUtility = readerUtilityScore === null;
+    const hasLowReaderUtility =
+      readerUtilityScore !== null && readerUtilityScore < minReaderUtilityScore;
     const officialEvidenceSources = uniqueSources.filter(
       (source) => (source.source_type || source.type) === 'official'
     );
@@ -1985,17 +2026,21 @@ export async function executePersistencePhase(
       ) &&
       canonicalConflicts === 0 &&
       !hasMissingActionability &&
-      !hasLowActionability;
+      !hasLowActionability &&
+      !hasMissingReaderUtility &&
+      !hasLowReaderUtility;
     const shouldAutoPublish =
       deps.config.isDraftMode === false &&
       ((dataQuality === 'high' && uniqueSources.length >= 2 && canonicalConflicts === 0) ||
         qualifiesDiscoveryFastPath) &&
       !hasMissingActionability &&
-      !hasLowActionability;
+      !hasLowActionability &&
+      !hasMissingReaderUtility &&
+      !hasLowReaderUtility;
     const reviewStatus = shouldAutoPublish ? 'published' : 'draft';
 
     deps.log(
-      `[Discovery Review] Tier: ${popularityTier}, Quality: ${dataQuality}, Score: ${discoveryScore}, Sources: ${uniqueSources.length}, Official Sources: ${officialEvidenceSources.length}, Conflicts: ${canonicalConflicts}, Actionability: ${actionabilityScore ?? 'n/a'} (min ${minActionabilityScore}), Status: ${reviewStatus}`
+      `[Discovery Review] Tier: ${popularityTier}, Quality: ${dataQuality}, Score: ${discoveryScore}, Sources: ${uniqueSources.length}, Official Sources: ${officialEvidenceSources.length}, Conflicts: ${canonicalConflicts}, Actionability: ${actionabilityScore ?? 'n/a'} (min ${minActionabilityScore}), ReaderUtility: ${readerUtilityScore ?? 'n/a'} (min ${minReaderUtilityScore}), Status: ${reviewStatus}`
     );
 
     // Upsert-like behavior for discovery review (context_id is null, so onConflict is unreliable).
@@ -2028,7 +2073,25 @@ export async function executePersistencePhase(
           .single()
       : deps.supabase.from('reviews').insert(reviewPayload).select('id').single();
 
-    const { data: review, error: reviewError } = await reviewQuery;
+    let { data: review, error: reviewError } = await reviewQuery;
+    if (reviewError && isMissingGenerationQualityColumnError(reviewError as { message?: string })) {
+      deps.log(
+        '[Discovery Review] generation_quality column missing; retrying review write without generation_quality'
+      );
+      const reviewPayloadLegacy = { ...reviewPayload } as Record<string, unknown>;
+      delete reviewPayloadLegacy.generation_quality;
+      const legacyQuery = existingDiscoveryReview
+        ? deps.supabase
+            .from('reviews')
+            .update(reviewPayloadLegacy)
+            .eq('id', existingDiscoveryReview.id)
+            .select('id')
+            .single()
+        : deps.supabase.from('reviews').insert(reviewPayloadLegacy).select('id').single();
+      const legacyResult = await legacyQuery;
+      review = legacyResult.data;
+      reviewError = legacyResult.error;
+    }
 
     if (reviewError) {
       deps.log(`[Discovery Review] Warning: Failed to create review: ${reviewError.message}`);
@@ -2473,6 +2536,49 @@ async function updatePricingOnly(
       pricing_v2: mappedPricingV2,
     });
   }
+
+  // price_only must only refresh pricing freshness surfaces and must not mutate editorial sections.
+  const priceOnlyTimestamp = new Date().toISOString();
+  const canonical = (specs.canonical && typeof specs.canonical === 'object'
+    ? specs.canonical
+    : {}) as Record<string, unknown>;
+  const canonicalQuality = (canonical.quality && typeof canonical.quality === 'object'
+    ? canonical.quality
+    : {}) as Record<string, unknown>;
+  const sectionStatus = (canonicalQuality.section_status &&
+  typeof canonicalQuality.section_status === 'object'
+    ? canonicalQuality.section_status
+    : {}) as Record<string, unknown>;
+  const sectionPublishability = (canonicalQuality.section_publishability &&
+  typeof canonicalQuality.section_publishability === 'object'
+    ? canonicalQuality.section_publishability
+    : {}) as Record<string, unknown>;
+  const sectionLastUpdated = (canonical.section_last_updated &&
+  typeof canonical.section_last_updated === 'object'
+    ? canonical.section_last_updated
+    : {}) as Record<string, unknown>;
+  specs = {
+    ...specs,
+    canonical: {
+      ...canonical,
+      section_last_updated: {
+        ...sectionLastUpdated,
+        pricing_plans: priceOnlyTimestamp,
+      },
+      quality: {
+        ...canonicalQuality,
+        section_status: {
+          ...sectionStatus,
+          pricing_plans: 'fresh',
+        },
+        section_publishability: {
+          ...sectionPublishability,
+          pricing_plans: true,
+        },
+        last_price_only_refresh_at: priceOnlyTimestamp,
+      },
+    },
+  };
 
   let parentId: string | null = null;
   const bundledIn = knowledgeCard?.smp_pricing?.bundled_in;
@@ -3803,10 +3909,15 @@ async function createReview(
     );
   }
   const minActionabilityScore = getMinActionabilityScore();
+  const minReaderUtilityScore = getMinReaderUtilityScore();
   const actionabilityScore = getGenerationActionabilityScore(generationQuality);
+  const readerUtilityScore = getGenerationReaderUtilityScore(generationQuality);
   const hasMissingActionability = actionabilityScore === null;
   const hasLowActionability =
     actionabilityScore !== null && actionabilityScore < minActionabilityScore;
+  const hasMissingReaderUtility = readerUtilityScore === null;
+  const hasLowReaderUtility =
+    readerUtilityScore !== null && readerUtilityScore < minReaderUtilityScore;
   if (hasMissingActionability) {
     legalIssues.push('MISSING_ACTIONABILITY_SCORE');
     deps.log('[Guardrail] Forced draft: generation actionability score missing');
@@ -3815,6 +3926,16 @@ async function createReview(
     legalIssues.push('LOW_ACTIONABILITY_SCORE');
     deps.log(
       `[Guardrail] Forced draft: actionability score ${actionabilityScore} below minimum ${minActionabilityScore}`
+    );
+  }
+  if (hasMissingReaderUtility) {
+    legalIssues.push('MISSING_READER_UTILITY_SCORE');
+    deps.log('[Guardrail] Forced draft: generation reader utility score missing');
+  }
+  if (hasLowReaderUtility) {
+    legalIssues.push('LOW_READER_UTILITY_SCORE');
+    deps.log(
+      `[Guardrail] Forced draft: reader utility score ${readerUtilityScore} below minimum ${minReaderUtilityScore}`
     );
   }
 
@@ -3864,7 +3985,9 @@ async function createReview(
     legalIssues.length === 0 &&
     canonicalConflictsCount === 0 &&
     !hasMissingActionability &&
-    !hasLowActionability;
+    !hasLowActionability &&
+    !hasMissingReaderUtility &&
+    !hasLowReaderUtility;
   const qualifiesFastPath =
     profile.allowedDataQualities.includes(
       knowledgeCard.meta.data_quality as 'high' | 'medium' | 'low'
@@ -3888,7 +4011,9 @@ async function createReview(
     legalIssues.length === 0 &&
     canonicalConflictsCount === 0 &&
     !hasMissingActionability &&
-    !hasLowActionability;
+    !hasLowActionability &&
+    !hasMissingReaderUtility &&
+    !hasLowReaderUtility;
 
   if (
     (isHighConfidence || qualifiesFastPath) &&
@@ -3902,14 +4027,14 @@ async function createReview(
       );
     } else {
       deps.log(
-        `[Auto-publish] Fast path review (tier=${popularityTier}, quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, actionability=${actionabilityScore ?? 'n/a'}, authoritative_sources=${authoritativeSources.length}, authoritative_domains=${authoritativeDomains.size}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+        `[Auto-publish] Fast path review (tier=${popularityTier}, quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, actionability=${actionabilityScore ?? 'n/a'}, reader_utility=${readerUtilityScore ?? 'n/a'}, authoritative_sources=${authoritativeSources.length}, authoritative_domains=${authoritativeDomains.size}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
       );
     }
   } else {
     reviewData.status = 'draft';
     if (!isHighConfidence) {
       deps.log(
-        `[Draft] Review needs manual review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, actionability=${actionabilityScore ?? 'n/a'}, min_actionability=${minActionabilityScore}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
+        `[Draft] Review needs manual review (quality=${knowledgeCard.meta.data_quality}, score=${analysis.score}, actionability=${actionabilityScore ?? 'n/a'}, min_actionability=${minActionabilityScore}, reader_utility=${readerUtilityScore ?? 'n/a'}, min_reader_utility=${minReaderUtilityScore}, ${filteredCons.length} filtered, ${normalizedCons.length} valid cons)`
       );
       if (legalIssues.length > 0) {
         deps.log(`[Draft] Legal guardrail issues: ${legalIssues.join(', ')}`);
@@ -3920,11 +4045,26 @@ async function createReview(
     }
   }
 
-  const { data: review, error: reviewError } = await deps.supabase
+  let { data: review, error: reviewError } = await deps.supabase
     .from('reviews')
     .upsert(reviewData, { onConflict: 'item_id,context_id' })
     .select('id')
     .single();
+
+  if (reviewError && isMissingGenerationQualityColumnError(reviewError as { message?: string })) {
+    deps.log(
+      '[Persistence] generation_quality column missing; retrying review write without generation_quality'
+    );
+    const legacyReviewData = { ...reviewData };
+    delete legacyReviewData.generation_quality;
+    const legacyResult = await deps.supabase
+      .from('reviews')
+      .upsert(legacyReviewData, { onConflict: 'item_id,context_id' })
+      .select('id')
+      .single();
+    review = legacyResult.data;
+    reviewError = legacyResult.error;
+  }
 
   if (reviewError) throw new Error(`Failed to save review: ${reviewError.message}`);
 

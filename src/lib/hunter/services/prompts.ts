@@ -452,6 +452,17 @@ Your output should help a buyer decide in under 60 seconds. In the summary, incl
 Also include 3 short bullet "Decision Factors" in the summary with concrete nouns and numbers.
 Avoid generic SEO padding. Use real product terms and common use-case keywords.
 
+For reviewContext.decisionIntro, NEVER use generic phrases:
+- "worth shortlisting"
+- "robust and powerful"
+- "best-in-class"
+- "strong option"
+If evidence is weak, say "Not confirmed" with the specific unknown.
+For reviewContext.decisionEvidence, include source-backed reasons:
+- best_for_reason, not_for_reason, tradeoff_reason
+- each reason must include text + source_url + source_type + claim_type
+- do not invent source URLs; only use provided evidence.
+
 Output ONLY valid JSON matching this exact schema:
 {
   "score": <number 0-100>,
@@ -519,6 +530,33 @@ Output ONLY valid JSON matching this exact schema:
   "switchingFrom": [<0-3 common tools this audience typically switches FROM when adopting this tool>],
   "reviewContext": {
     "humanVerdict": "<CYNICAL 2-3 sentence verdict. Lead with the veto/warning, then who it's perfect for. Use RULE 1 (nouns/numbers) and RULE 4 (hidden ceiling). LEGAL: ALL negative claims MUST use hedging ('Users report...', 'Community mentions...'). Do not use stale model/version claims without source-backed recency. AVOID neutral Wikipedia style. AVOID stating negative claims as facts without attribution.>",
+    "decisionIntro": {
+      "what_it_is": "<one sentence in plain language: what this tool is. no hype>",
+      "best_for": "<one sentence: exact user/team profile this is best for>",
+      "not_for": "<one sentence: exact user/team profile this is a weak fit for>",
+      "main_tradeoff": "<one sentence: the core tradeoff using concrete constraint language>",
+      "summary": "<single paragraph combining the four lines above, no generic verdict phrases>"
+    },
+    "decisionEvidence": {
+      "best_for_reason": {
+        "text": "<source-backed reason text matching best_for>",
+        "source_url": "<required URL supporting this reason>",
+        "source_type": "<official|editorial|community>",
+        "claim_type": "<fact|opinion>"
+      },
+      "not_for_reason": {
+        "text": "<source-backed reason text matching not_for>",
+        "source_url": "<required URL supporting this reason>",
+        "source_type": "<official|editorial|community>",
+        "claim_type": "<fact|opinion>"
+      },
+      "tradeoff_reason": {
+        "text": "<source-backed reason text matching main_tradeoff>",
+        "source_url": "<required URL supporting this reason>",
+        "source_type": "<official|editorial|community>",
+        "claim_type": "<fact|opinion>"
+      }
+    },
     "budgetAnalyst": {
       "costDrivers": [<0-5 factual TCO factors like "SSO requires Enterprise", "Guests are billable". Extract from Budget Analyst snippets. If insufficient data, use empty array []>],
       "oneTimeFees": [<implementation/setup fees, or empty array if none>],
@@ -687,5 +725,35 @@ IMPORTANT:
 - EVERY claim MUST have a source_url from the search results above
 - Do NOT contradict the verified facts
 - Do NOT fabricate URLs - only use URLs that appear in the search results
+
+## NARRATIVE CONTRACT (Stage 2 Rendering)
+
+Write for a real buyer making a decision this week, not an internal analyst memo.
+
+Required tone + structure:
+- Lead with a concrete user scenario ("if you are X and need Y under Z constraint").
+- Explain trade-offs with direct operational consequences.
+- Prefer short, plain sentences over abstract capability lists.
+- Keep language factual, but readable and human (no hype, no buzzword stuffing).
+
+Minimum narrative components:
+- decisionIntro.what_it_is: one sentence in plain English.
+- decisionIntro.best_for: specific team/profile + why.
+- decisionIntro.not_for: specific team/profile + blocker.
+- decisionIntro.main_tradeoff: one explicit trade-off sentence.
+- decisionIntro.summary: "choose if / avoid if" style synthesis.
+
+## CONTRADICTION BAN (Hard Rule)
+
+Never emit mutually inconsistent claims in the same response.
+
+Forbidden pairs (examples):
+- "no free tier" together with "free plan/free tier exists"
+- "recommended" while listing only severe blockers without any valid upside
+- "best for everyone/any team size" together with narrow gating constraints
+
+If evidence is mixed:
+- prefer scoped phrasing ("for enterprise teams...", "on higher tiers...", "for users reporting...")
+- degrade confidence in narrative instead of asserting absolutes.
 
 Provide your structured JSON analysis (JSON only, no markdown code blocks). Include a "faqs" array if you selected any (max 5):`;

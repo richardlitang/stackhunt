@@ -8,6 +8,7 @@ dotenv.config();
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
 const DEFAULT_MIN_ACTIONABILITY_SCORE = 58;
+const DEFAULT_MIN_READER_UTILITY_SCORE = 62;
 type PopularityTier = 'popular' | 'standard' | 'below_standard';
 
 const POPULARITY_PROFILES: Record<
@@ -132,6 +133,20 @@ function getActionabilityScore(generationQuality: Record<string, unknown> | null
   return Math.min(100, Math.max(0, parsed));
 }
 
+function getMinReaderUtilityScore(): number {
+  const raw = process.env.HUNTER_MIN_READER_UTILITY_SCORE;
+  const parsed = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(parsed)) return DEFAULT_MIN_READER_UTILITY_SCORE;
+  return Math.min(100, Math.max(0, Math.round(parsed)));
+}
+
+function getReaderUtilityScore(generationQuality: Record<string, unknown> | null): number | null {
+  const raw = generationQuality?.readerUtilityScore;
+  const parsed = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.min(100, Math.max(0, parsed));
+}
+
 function getCanonicalConflicts(specs: Record<string, unknown> | null): number {
   const canonical = (specs?.canonical as Record<string, unknown> | undefined) || {};
   const quality = (canonical.quality as Record<string, unknown> | undefined) || {};
@@ -184,7 +199,9 @@ function analyzeReview(review: ReviewRow): {
   popularityTier: PopularityTier;
   evidenceGrade: 'A' | 'B' | 'C';
   actionabilityScore: number | null;
+  readerUtilityScore: number | null;
   minActionabilityScore: number;
+  minReaderUtilityScore: number;
   strictMetrics: {
     requiredSourcingMissingCount: number;
     riskFlagsCount: number;
@@ -201,7 +218,9 @@ function analyzeReview(review: ReviewRow): {
 } {
   const knownBlockers: string[] = [];
   const minActionabilityScore = getMinActionabilityScore();
+  const minReaderUtilityScore = getMinReaderUtilityScore();
   const actionabilityScore = getActionabilityScore(review.generation_quality);
+  const readerUtilityScore = getReaderUtilityScore(review.generation_quality);
   const popularityTier = resolvePopularityTier(review.item?.metadata || null);
   const profile = POPULARITY_PROFILES[popularityTier];
   const gateScore = getGateScore(review.item?.specs || null);
@@ -270,6 +289,12 @@ function analyzeReview(review: ReviewRow): {
   if (actionabilityScore !== null && actionabilityScore < minActionabilityScore) {
     knownBlockers.push(`low_actionability:${actionabilityScore}<${minActionabilityScore}`);
   }
+  if (readerUtilityScore === null) {
+    knownBlockers.push('missing_reader_utility_score');
+  }
+  if (readerUtilityScore !== null && readerUtilityScore < minReaderUtilityScore) {
+    knownBlockers.push(`low_reader_utility:${readerUtilityScore}<${minReaderUtilityScore}`);
+  }
   const strict = evaluateStrictPublishGate(
     {
       ...(review.item || {}),
@@ -289,7 +314,9 @@ function analyzeReview(review: ReviewRow): {
     popularityTier,
     evidenceGrade: strict.evidenceGrade,
     actionabilityScore,
+    readerUtilityScore,
     minActionabilityScore,
+    minReaderUtilityScore,
     strictMetrics: {
       requiredSourcingMissingCount: strict.metrics.requiredSourcingMissingCount,
       riskFlagsCount: strict.metrics.riskFlagsCount,
@@ -420,6 +447,9 @@ async function main() {
   const actionabilityValues: number[] = [];
   let belowMinActionabilityCount = 0;
   let missingActionabilityCount = 0;
+  const readerUtilityValues: number[] = [];
+  let belowMinReaderUtilityCount = 0;
+  let missingReaderUtilityCount = 0;
   const copyQualityScores: number[] = [];
   let copyGenericPhraseHits = 0;
   let copyMissingScenarioCount = 0;
@@ -442,6 +472,14 @@ async function main() {
       }
     } else {
       missingActionabilityCount += 1;
+    }
+    if (analysis.readerUtilityScore !== null) {
+      readerUtilityValues.push(analysis.readerUtilityScore);
+      if (analysis.readerUtilityScore < analysis.minReaderUtilityScore) {
+        belowMinReaderUtilityCount += 1;
+      }
+    } else {
+      missingReaderUtilityCount += 1;
     }
     copyQualityScores.push(analysis.strictMetrics.copyQualityScore);
     copyGenericPhraseHits += analysis.strictMetrics.genericPhraseCount;
@@ -474,6 +512,9 @@ async function main() {
       `  actionability: score=${analysis.actionabilityScore ?? 'n/a'} min=${analysis.minActionabilityScore}`
     );
     console.log(
+      `  reader_utility: score=${analysis.readerUtilityScore ?? 'n/a'} min=${analysis.minReaderUtilityScore}`
+    );
+    console.log(
       `  blockers=${analysis.knownBlockers.length > 0 ? analysis.knownBlockers.join(', ') : 'none_detected'}`
     );
   }
@@ -487,6 +528,15 @@ async function main() {
   console.log(`  average score: ${avgActionability !== null ? avgActionability.toFixed(1) : 'n/a'}`);
   console.log(`  below threshold: ${belowMinActionabilityCount}`);
   console.log(`  missing score: ${missingActionabilityCount}`);
+  const avgReaderUtility =
+    readerUtilityValues.length > 0
+      ? readerUtilityValues.reduce((sum, value) => sum + value, 0) / readerUtilityValues.length
+      : null;
+  console.log('\nReader utility metrics:');
+  console.log(`  min threshold: ${getMinReaderUtilityScore()}`);
+  console.log(`  average score: ${avgReaderUtility !== null ? avgReaderUtility.toFixed(1) : 'n/a'}`);
+  console.log(`  below threshold: ${belowMinReaderUtilityCount}`);
+  console.log(`  missing score: ${missingReaderUtilityCount}`);
 
   const avgCopyQuality =
     copyQualityScores.length > 0

@@ -71,6 +71,7 @@ export interface SynthesisGenerationQuality {
   distinctDomains?: number;
   maxDomainShare?: number;
   actionabilityScore?: number;
+  readerUtilityScore?: number;
   abstainedFields: Array<'verdict' | 'shortDescription' | 'websiteUrl' | 'faqs' | 'reviewContext'>;
 }
 
@@ -954,6 +955,55 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       const abstentionPenalty = options.abstainedCount * 4;
       return Math.round(clamp(rawScore - abstentionPenalty, 0, 100));
     };
+    const SCENARIO_SIGNAL_REGEX =
+      /\b(if|when|unless|team|teams|startup|enterprise|small business|solo|agency|developer|marketer|ops|compliance|budget|rollout|migration|switch)\b/i;
+    const CONSEQUENCE_SIGNAL_REGEX =
+      /\b(blocker|risk|trade[- ]?off|means|impact|forces|requires|cannot|can't|only on|tier|plan|overage|limit)\b/i;
+    const computeReaderUtilityScore = (
+      options: {
+        claimTexts: string[];
+        decisionIntro?: {
+          best_for?: string | null;
+          not_for?: string | null;
+          main_tradeoff?: string | null;
+          summary?: string | null;
+        } | null;
+        userAdvocate?: {
+          avoidIf?: string[];
+          frustrations?: string[];
+          idealFor?: string[];
+        } | null;
+        vetoCount: number;
+        realityCheckCount: number;
+        abstainedCount: number;
+      }
+    ): number => {
+      const claimTexts = options.claimTexts.filter((text) => typeof text === 'string' && text.trim().length > 0);
+      const totalClaims = Math.max(1, claimTexts.length);
+      const scenarioRatio =
+        claimTexts.filter((text) => SCENARIO_SIGNAL_REGEX.test(text)).length / totalClaims;
+      const consequenceRatio =
+        claimTexts.filter((text) => CONSEQUENCE_SIGNAL_REGEX.test(text)).length / totalClaims;
+      const hasDecisionIntro = Boolean(
+        options.decisionIntro?.best_for &&
+          options.decisionIntro?.not_for &&
+          options.decisionIntro?.main_tradeoff
+      );
+      const hasUserAdvocateSignals = Boolean(
+        (options.userAdvocate?.avoidIf?.length || 0) > 0 ||
+          (options.userAdvocate?.frustrations?.length || 0) > 0 ||
+          (options.userAdvocate?.idealFor?.length || 0) > 0
+      );
+      const rawScore =
+        scenarioRatio * 30 +
+        consequenceRatio * 25 +
+        (hasDecisionIntro ? 20 : 0) +
+        (hasUserAdvocateSignals ? 10 : 0) +
+        (options.vetoCount > 0 ? 8 : 0) +
+        (options.realityCheckCount > 0 ? 7 : 0);
+      const abstentionPenalty = options.abstainedCount * 5;
+      return Math.round(clamp(rawScore - abstentionPenalty, 0, 100));
+    };
     const isValidUrl = (value: unknown): value is string => {
       if (typeof value !== 'string' || !value.trim()) return false;
       try {
@@ -1198,6 +1248,41 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         distinctDomains: number;
         maxDomainShare: number;
       };
+    };
+
+    const buildEvidenceContradictionGuardrails = (
+      packet: EvidencePacket | null
+    ): string => {
+      if (!packet) return '';
+      const allClaims = [...packet.pros, ...packet.cons];
+      if (allClaims.length === 0) return '';
+      const texts = allClaims.map((claim) => claim.text.toLowerCase());
+      const hasNoFreeTier = texts.some(
+        (text) =>
+          /\bno free tier\b/.test(text) ||
+          /\bno free plan\b/.test(text) ||
+          /\bwithout free tier\b/.test(text)
+      );
+      const hasFreeTier = texts.some(
+        (text) =>
+          /\bfree tier\b/.test(text) ||
+          /\bfree plan\b/.test(text) ||
+          /\bfree forever\b/.test(text)
+      );
+      const hasAnyTeamSize = texts.some((text) => /\b(any team size|everyone|all teams)\b/.test(text));
+      const hasNarrowGate = texts.some((text) =>
+        /\b(enterprise|minimum seats?|only on (?:pro|business|enterprise)|higher tier)\b/.test(text)
+      );
+
+      const contradictions: string[] = [];
+      if (hasNoFreeTier && hasFreeTier) {
+        contradictions.push('free-tier conflict detected in evidence claims');
+      }
+      if (hasAnyTeamSize && hasNarrowGate) {
+        contradictions.push('broad audience claim conflicts with tier-based gating constraints');
+      }
+      if (contradictions.length === 0) return '';
+      return `CONTRADICTION_GUARDRAILS:\n${contradictions.map((item) => `- ${item}`).join('\n')}\nUse scoped phrasing and avoid asserting both sides.`;
     };
 
     const validateEvidenceClaimArray = (claims: unknown, label: 'pros' | 'cons'): EvidenceClaim[] => {
@@ -1566,9 +1651,13 @@ Use the evidence packet below as immutable source-of-truth.
 - Keep pros/cons aligned to this packet.
 - Expand only narrative fields (summary, verdict, shortDescription, reviewContext, faqs).
 - If EVIDENCE_PACKET.abstentions contains a field, return that field as null/omitted in Stage 2.
+- Narrative must be scenario-led ("best for / avoid if / trade-off") and readable for non-technical buyers.
+- Do not emit contradictory claims. If evidence conflicts, scope it by plan/tier/team profile.
 
 EVIDENCE_PACKET:
-${JSON.stringify(evidencePacket, null, 2)}`
+${JSON.stringify(evidencePacket, null, 2)}
+
+${buildEvidenceContradictionGuardrails(evidencePacket)}`
       : promptBase;
 
     for (let attempt = 1; attempt <= maxSchemaAttempts; attempt += 1) {
@@ -1895,6 +1984,29 @@ ${JSON.stringify(evidencePacket, null, 2)}`
               distinctDomains: evidencePacket?.quality.distinctDomains,
             }
           ),
+          readerUtilityScore: computeReaderUtilityScore({
+            claimTexts: [
+              ...(Array.isArray(parsed.pros)
+                ? parsed.pros
+                    .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
+                    .filter((text: unknown): text is string => typeof text === 'string')
+                : []),
+              ...(Array.isArray(parsed.cons)
+                ? parsed.cons
+                    .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
+                    .filter((text: unknown): text is string => typeof text === 'string')
+                : []),
+            ],
+            decisionIntro: normalizedParsed.reviewContext?.decisionIntro || null,
+            userAdvocate: normalizedParsed.reviewContext?.userAdvocate || null,
+            vetoCount: Array.isArray(normalizedParsed.vetoLogic)
+              ? normalizedParsed.vetoLogic.length
+              : 0,
+            realityCheckCount: Array.isArray(normalizedParsed.realityChecks)
+              ? normalizedParsed.realityChecks.length
+              : 0,
+            abstainedCount: evidencePacket ? evidencePacket.abstentions.length : 0,
+          }),
           abstainedFields: evidencePacket
             ? evidencePacket.abstentions.map((entry) => entry.field)
             : [],

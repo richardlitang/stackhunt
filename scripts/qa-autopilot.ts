@@ -113,6 +113,10 @@ async function main() {
   const maxMissingActionability = Number.isFinite(maxMissingActionabilityArg)
     ? Math.max(0, Math.floor(maxMissingActionabilityArg))
     : 0;
+  const maxMissingReaderUtilityArg = Number(getArgValue('max-missing-reader-utility') || '0');
+  const maxMissingReaderUtility = Number.isFinite(maxMissingReaderUtilityArg)
+    ? Math.max(0, Math.floor(maxMissingReaderUtilityArg))
+    : 0;
   const maxCopyBelowThresholdArg = Number(getArgValue('max-copy-below-threshold') || '0');
   const maxCopyBelowThreshold = Number.isFinite(maxCopyBelowThresholdArg)
     ? Math.max(0, Math.floor(maxCopyBelowThresholdArg))
@@ -168,6 +172,30 @@ async function main() {
       gatesResult.output,
       /(\d+)x\s+missing_actionability_score/i
     );
+    const missingReaderUtilityBlockers = extractFirstNumber(
+      gatesResult.output,
+      /(\d+)x\s+missing_reader_utility_score/i
+    );
+    const lowReaderUtilityBlockers = extractFirstNumber(
+      gatesResult.output,
+      /(\d+)x\s+low_reader_utility:/i
+    );
+    const readerUtilityMin = extractFirstNumber(
+      gatesResult.output,
+      /Reader utility metrics:[\s\S]*?min threshold:\s*(\d+)/i
+    );
+    const readerUtilityAvg = extractFirstNullableNumber(
+      gatesResult.output,
+      /Reader utility metrics:[\s\S]*?average score:\s*([0-9.]+|n\/a)/i
+    );
+    const readerUtilityBelow = extractFirstNumber(
+      gatesResult.output,
+      /Reader utility metrics:[\s\S]*?below threshold:\s*(\d+)/i
+    );
+    const readerUtilityMissing = extractFirstNumber(
+      gatesResult.output,
+      /Reader utility metrics:[\s\S]*?missing score:\s*(\d+)/i
+    );
     details.push(`Published safe drafts: ${publishedCount}`);
     details.push(
       `Actionability: min=${actionabilityMin || 'n/a'} avg=${
@@ -176,6 +204,14 @@ async function main() {
     );
     details.push(
       `Actionability blockers: missing_actionability_score=${missingActionabilityBlockers} (max ${maxMissingActionability})`
+    );
+    details.push(
+      `Reader utility: min=${readerUtilityMin || 'n/a'} avg=${
+        readerUtilityAvg === null ? 'n/a' : readerUtilityAvg.toFixed(1)
+      } below=${readerUtilityBelow} missing=${readerUtilityMissing}`
+    );
+    details.push(
+      `Reader utility blockers: missing_reader_utility_score=${missingReaderUtilityBlockers} (max ${maxMissingReaderUtility}) low_reader_utility=${lowReaderUtilityBlockers}`
     );
     const copyQualityMin = extractFirstNumber(gatesResult.output, /Copy quality metrics:[\s\S]*?min threshold:\s*(\d+)/i);
     const copyQualityAvg = extractFirstNullableNumber(
@@ -205,6 +241,11 @@ async function main() {
     if (missingActionabilityBlockers > maxMissingActionability) {
       throw new Error(
         `Fail-fast: missing_actionability_score=${missingActionabilityBlockers} exceeds max=${maxMissingActionability}`
+      );
+    }
+    if (missingReaderUtilityBlockers > maxMissingReaderUtility) {
+      throw new Error(
+        `Fail-fast: missing_reader_utility_score=${missingReaderUtilityBlockers} exceeds max=${maxMissingReaderUtility}`
       );
     }
     if (copyQualityBelow > maxCopyBelowThreshold) {
