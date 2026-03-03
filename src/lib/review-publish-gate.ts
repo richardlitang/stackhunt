@@ -23,6 +23,21 @@ const OFFICIAL_DOC_PATH =
   /\/(docs?|help|support|developers?|api|changelog|release|updates|status)/i;
 const CLAIM_SOURCE_FALLBACK_PATH =
   /\/(pricing|plans?|docs?|help|support|developers?|api|security|trust|legal)/i;
+const GENERIC_COPY_PATTERNS = [
+  /\bsolid choice\b/i,
+  /\bgreat (?:tool|choice|option)\b/i,
+  /\bgood for teams\b/i,
+  /\bclear tool guidance\b/i,
+  /\bpowerful platform\b/i,
+  /\bintuitive interface\b/i,
+  /\brobust solution\b/i,
+  /\bhelps you\b/i,
+];
+const SCENARIO_DECISION_PATTERNS = [
+  /\bif [^.!?]{5,120}\b(?:choose|use|pick)\b/i,
+  /\bif [^.!?]{5,120}\b(?:avoid|skip|switch)\b/i,
+];
+const MIN_COPY_QUALITY_SCORE = 60;
 
 type SourceRow = {
   url?: string;
@@ -66,6 +81,9 @@ export interface StrictPublishGateResult {
     pricingClaimsMissingGuards: number;
     staleHighVolatilityClaims: number;
     riskyCopyTermCount: number;
+    genericPhraseCount: number;
+    scenarioRecommendationCount: number;
+    copyQualityScore: number;
   };
 }
 
@@ -297,6 +315,28 @@ export function evaluateStrictPublishGate(
         .filter(Boolean)
     )
   );
+  const narrativeCorpus = [
+    summaryText,
+    normalizeText(item.verdict || ''),
+    normalizeText(item.short_description || ''),
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const genericPhraseCount = GENERIC_COPY_PATTERNS.reduce(
+    (count, pattern) => count + (pattern.test(narrativeCorpus) ? 1 : 0),
+    0
+  );
+  const scenarioRecommendationCount = SCENARIO_DECISION_PATTERNS.reduce(
+    (count, pattern) => count + (pattern.test(narrativeCorpus) ? 1 : 0),
+    0
+  );
+  const copyQualityScore = Math.max(
+    0,
+    100 -
+      genericPhraseCount * 20 -
+      (scenarioRecommendationCount > 0 ? 0 : 35) -
+      (narrativeCorpus.length < 180 ? 15 : 0)
+  );
   if (!['high', 'medium'].includes(pricingConfidence) && hasNumericPricingClaims) {
     blockers.push('strict:pricing_confidence_low_or_unknown_with_numeric_claims');
   }
@@ -308,6 +348,15 @@ export function evaluateStrictPublishGate(
   }
   if (riskyCopyTerms.length > 0) {
     blockers.push(`strict:risky_copy_terms:${riskyCopyTerms.join('|')}`);
+  }
+  if (genericPhraseCount > 0) {
+    blockers.push(`strict:copy_contains_generic_filler:${genericPhraseCount}`);
+  }
+  if (scenarioRecommendationCount === 0) {
+    blockers.push('strict:copy_missing_scenario_recommendation');
+  }
+  if (copyQualityScore < MIN_COPY_QUALITY_SCORE) {
+    blockers.push(`strict:copy_quality_score_below_min:${copyQualityScore}<${MIN_COPY_QUALITY_SCORE}`);
   }
 
   return {
@@ -321,6 +370,9 @@ export function evaluateStrictPublishGate(
       pricingClaimsMissingGuards,
       staleHighVolatilityClaims,
       riskyCopyTermCount: riskyCopyTerms.length,
+      genericPhraseCount,
+      scenarioRecommendationCount,
+      copyQualityScore,
     },
   };
 }
