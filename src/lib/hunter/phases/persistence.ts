@@ -40,6 +40,7 @@ import {
   type PopularityTier,
 } from '@/lib/quality-gate';
 import { sanitizeUrl } from '@/lib/utils/url';
+import { normalizeCategorySlug, resolveCategoryFromPrimaryFunction } from '../category-resolver';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -1205,60 +1206,21 @@ export async function executePersistencePhase(
   sanitizeSetupComplexityWithEvidence(knowledgeCard, guardrailSources, analysis.websiteUrl, deps);
 
   if (ctx.categorySlug) {
+    const normalizedExplicitSlug = normalizeCategorySlug(ctx.categorySlug);
     // Legacy: explicit category slug provided
     const { data: cat } = await deps.supabase
       .from('categories')
       .select('id')
-      .eq('slug', ctx.categorySlug)
+      .eq('slug', normalizedExplicitSlug || ctx.categorySlug)
       .single();
     categoryId = cat?.id || null;
-    resolvedCategorySlug = cat?.id ? ctx.categorySlug : null;
+    resolvedCategorySlug = cat?.id ? normalizedExplicitSlug || ctx.categorySlug : null;
   } else if (knowledgeCard?.smp_taxonomy?.primary_function) {
     // Auto-map from extracted taxonomy
     const primaryFunction = knowledgeCard.smp_taxonomy.primary_function;
     deps.log(`[Category] Auto-mapping from taxonomy: "${primaryFunction}"`);
 
-    // Map primary_function to category slug
-    const funcToCategory: Record<string, string> = {
-      'Project Management': 'project-management',
-      Communication: 'communication',
-      Notetaking: 'notetaking',
-      'Note-Taking': 'notetaking',
-      'Developer Tools': 'developer-tools',
-      'Code Editor': 'developer-tools',
-      Development: 'developer-tools',
-      Design: 'design',
-      CRM: 'crm-sales',
-      Collaboration: 'collaboration',
-      Productivity: 'productivity',
-      'AI & Automation': 'ai-automation',
-      'Artificial Intelligence': 'ai-automation',
-      AI: 'ai-automation',
-      'AI Code Assistant': 'ai-automation',
-      'AI Tools': 'ai-automation',
-      'AI Audio Platform': 'ai-automation',
-      Analytics: 'seo-analytics',
-      SEO: 'seo-analytics',
-      'SEO Tools': 'seo-analytics',
-      'Email Marketing': 'email-marketing',
-      'Social Media': 'social-media',
-      'Customer Support': 'customer-support',
-      HR: 'hr-recruiting',
-      'HR & Payroll': 'hr-recruiting',
-      Accounting: 'accounting',
-      'Accounting Software': 'accounting',
-      Finance: 'accounting',
-      'Spend Management': 'accounting',
-      'Business Banking': 'payments',
-      Payments: 'payments',
-      'Video Editing': 'video-editing',
-      'Practice Management': 'healthcare',
-      'Dental Practice Management': 'healthcare',
-      Automation: 'ai-automation',
-      'Website Builder': 'no-code',
-    };
-
-    const categorySlug = funcToCategory[primaryFunction];
+    const categorySlug = resolveCategoryFromPrimaryFunction(primaryFunction);
     if (categorySlug) {
       const { data: cat } = await deps.supabase
         .from('categories')
