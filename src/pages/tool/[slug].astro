@@ -315,10 +315,18 @@ const extractJsonClaimText = (snippet: string): string | null => {
 };
 const sanitizeStructuredClaimMarkdown = (value: string | null): string | null => {
   if (!value || typeof value !== 'string') return value;
-  return value.replace(/\{[^{}\n]*"text"[^{}\n]*\}/g, (snippet) => {
+  const decoded = value.replace(/\{[^{}\n]*"text"[^{}\n]*\}/g, (snippet) => {
     const claimText = extractJsonClaimText(snippet);
     return claimText || snippet;
   });
+  const legacyVerdictHeadingPattern = new RegExp(
+    String.raw`^\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:t(?:l;dr|ldr)|community\s+insights)\s*(?:\*\*)?\s*:?\s*$`,
+    'gim'
+  );
+  return decoded
+    .replace(legacyVerdictHeadingPattern, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 };
 const isLikelyIncompleteClause = (value: string): boolean => {
   const text = stripControlChars(value).replace(TERMINAL_PUNCTUATION, '').trim();
