@@ -107,6 +107,11 @@ const maxTokensPerRun = (() => {
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 600000;
 })();
+const staleClaimMinutes = (() => {
+  const raw = process.env.HUNTER_STALE_CLAIM_MINUTES;
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 15;
+})();
 
 // Main processing function
 async function processQueue(): Promise<void> {
@@ -132,6 +137,21 @@ async function processQueue(): Promise<void> {
     const { QueueService } = await import('../src/lib/hunter/services/queue');
     const queueService = new QueueService({ supabase: supabase as any });
     const autoPublishSafeDrafts = process.env.AUTO_PUBLISH_SAFE_DRAFTS !== 'false';
+
+    // Safety: reclaim stale claimed/processing rows from dead workers before new claims.
+    const { data: releasedStaleClaims, error: staleCleanupError } = await supabase.rpc(
+      'release_stale_hunt_claims',
+      {
+        p_stale_minutes: staleClaimMinutes,
+      }
+    );
+    if (staleCleanupError) {
+      console.warn(`⚠️ Stale-claim cleanup failed: ${staleCleanupError.message}`);
+    } else if ((releasedStaleClaims as number) > 0) {
+      console.log(
+        `🧹 Released ${releasedStaleClaims} stale queue claim(s) older than ${staleClaimMinutes}m`
+      );
+    }
 
     // ===================================================================
     // Priority 1: Check for batch synthesis opportunities (≥10 tools)
@@ -175,8 +195,18 @@ async function processQueue(): Promise<void> {
     const successes: Array<{ tool: string; context?: string }> = [];
     let autoPublished = 0;
     let autoPublishSkipped = 0;
+    let estimatedUsd = 0;
+    let telemetryRetries = 0;
+    let telemetryTimeoutFailures = 0;
+    let telemetryTimeoutFallbacks = 0;
 
     for (const r of result.results) {
+      if (r.telemetry) {
+        estimatedUsd += r.telemetry.cost.estimatedUsd;
+        telemetryRetries += r.telemetry.retries.retries;
+        telemetryTimeoutFailures += r.telemetry.retries.timeoutFailures;
+        telemetryTimeoutFallbacks += r.telemetry.retries.timeoutFallbackInvocations;
+      }
       if (!r.success && r.error) {
         // Import formatter dynamically
         const { formatValidationError } = await import('../src/lib/utils/error-formatter');
@@ -230,6 +260,10 @@ async function processQueue(): Promise<void> {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`\n📊 Results: ${result.processed} processed, ${result.succeeded} succeeded, ${result.failed} failed (${duration}s)`);
     console.log(`   Tokens: ${result.tokensUsed.toLocaleString()}`);
+    console.log(`   Estimated AI cost: $${estimatedUsd.toFixed(4)}`);
+    console.log(
+      `   Retries: ${telemetryRetries} (timeouts: ${telemetryTimeoutFailures}, timeout fallbacks: ${telemetryTimeoutFallbacks})`
+    );
     console.log(`   Success mix: ${completedCount} completed, ${researchOnlyCount} research_only`);
     if (autoPublishSafeDrafts) {
       console.log(`   Auto-published: ${autoPublished} (skipped: ${autoPublishSkipped})`);
