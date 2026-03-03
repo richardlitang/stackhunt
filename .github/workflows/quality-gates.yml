@@ -44,6 +44,9 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Tool page structure gates
         run: npm run qa:rendered-tool-pages -- --template-only --sample=15
