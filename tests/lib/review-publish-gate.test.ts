@@ -79,4 +79,72 @@ describe('review publish gate copy quality', () => {
     expect(result.metrics.scenarioRecommendationCount).toBeGreaterThan(0);
     expect(result.metrics.copyQualityScore).toBeGreaterThanOrEqual(60);
   });
+
+  it('accepts decision language that does not use "if ... choose" phrasing', () => {
+    const result = evaluateStrictPublishGate(
+      baseItem({
+        verdict:
+          'Best for teams shipping weekly campaigns with fewer than 5 approval layers. Not for teams requiring strict pre-send legal review gates.',
+      }),
+      baseReview({
+        summary_markdown:
+          'Best for SMB teams that need rapid launch and basic segmentation. Avoid if you need SOC 2 controls on every seat. Switch when your workflow requires locked-down role approvals.',
+      })
+    );
+
+    expect(result.blockers).not.toContain('strict:copy_missing_scenario_recommendation');
+    expect(result.metrics.scenarioRecommendationCount).toBeGreaterThan(0);
+  });
+
+  it('does not trigger pricing QA blocker when no pricing claim is asserted', () => {
+    const result = evaluateStrictPublishGate(
+      baseItem({
+        pricing_verified_at: null,
+        short_description: 'Workflow automation for support teams.',
+        verdict:
+          'Best for teams that need quick campaign workflows. Avoid if strict legal approvals are required at each step.',
+      }),
+      baseReview({
+        summary_markdown:
+          'Best for teams launching campaigns quickly with lightweight approval flows. Avoid if you need enterprise legal controls in week one.',
+        cons: [
+          {
+            text: 'Advanced workflow branching takes manual setup.',
+            source_url: 'https://example.com/help/getting-started',
+            checked_at: '2026-03-01T00:00:00.000Z',
+            scope: 'teams with custom automations',
+            volatility: 'medium',
+          },
+        ],
+      })
+    );
+
+    expect(result.blockers).not.toContain('strict:qa_gate:pricing_visible_without_checked_proof');
+  });
+
+  it('triggers pricing QA blocker when pricing claims are present without proof', () => {
+    const result = evaluateStrictPublishGate(
+      baseItem({
+        pricing_verified_at: null,
+        metadata: {},
+      }),
+      baseReview({
+        summary_markdown:
+          'Best for teams under 10 seats at $20/month. Avoid if you need advanced governance on entry tiers.',
+        cons: [
+          {
+            text: 'Starter plan costs $20/month and adds seat charges after 10 users.',
+            scope: 'starter plan, monthly billing',
+            volatility: 'high',
+          },
+        ],
+        sources: [
+          { source_type: 'official', url: 'https://example.com/help/getting-started' },
+          { source_type: 'official', url: 'https://example.com/docs/api' },
+        ],
+      })
+    );
+
+    expect(result.blockers).toContain('strict:qa_gate:pricing_visible_without_checked_proof');
+  });
 });

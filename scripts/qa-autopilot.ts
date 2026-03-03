@@ -125,6 +125,10 @@ async function main() {
   const maxCopyMissingScenario = Number.isFinite(maxCopyMissingScenarioArg)
     ? Math.max(0, Math.floor(maxCopyMissingScenarioArg))
     : 0;
+  const maxStrictQaGateArg = Number(getArgValue('max-strict-qa-gate-blockers') || '0');
+  const maxStrictQaGateBlockers = Number.isFinite(maxStrictQaGateArg)
+    ? Math.max(0, Math.floor(maxStrictQaGateArg))
+    : 0;
 
   console.log('\nQA Autopilot');
   console.log(`Mode: ${dryRun ? 'DRY RUN' : 'APPLY'}`);
@@ -157,6 +161,7 @@ async function main() {
       '--min-reviews=0',
       '--publish-safe',
       `--max-publish=${maxPublish}`,
+      `--max-strict-qa-gate-blockers=${maxStrictQaGateBlockers}`,
     ];
     if (!dryRun) gatesArgs.push('--apply');
     const gatesResult = runStep('Audit gate blockers and publish safe drafts', gatesArgs);
@@ -230,6 +235,10 @@ async function main() {
       gatesResult.output,
       /Copy quality metrics:[\s\S]*?generic phrase hits \(total\):\s*(\d+)/i
     );
+    const strictQaGateBlockers = extractFirstNumber(
+      gatesResult.output,
+      /Strict QA gate blockers:[\s\S]*?total:\s*(\d+)/i
+    );
     details.push(
       `Copy quality: min=${copyQualityMin || 'n/a'} avg=${
         copyQualityAvg === null ? 'n/a' : copyQualityAvg.toFixed(1)
@@ -237,6 +246,9 @@ async function main() {
     );
     details.push(
       `Copy blockers: below_threshold=${copyQualityBelow} (max ${maxCopyBelowThreshold}) missing_scenario=${copyMissingScenario} (max ${maxCopyMissingScenario})`
+    );
+    details.push(
+      `Strict QA gate blockers: total=${strictQaGateBlockers} (max ${maxStrictQaGateBlockers})`
     );
     if (missingActionabilityBlockers > maxMissingActionability) {
       throw new Error(

@@ -30,13 +30,33 @@ Minimal operational scripts for the live content pipeline.
   - `HUNT_QUEUE_CONTEXT_PENDING_CAP` (default `20` in admin enqueue API)
   - `HUNT_QUEUE_SOURCE_PENDING_CAP` (default `400` for `source='admin'` and scheduled scripts)
 
+## Hunt Telemetry & Reliability Env
+
+- Timeout controls:
+  - `HUNTER_OPERATION_TIMEOUT_MS` (global override)
+  - `HUNTER_GEMINI_EVIDENCE_TIMEOUT_MS` (default `300000`)
+  - `HUNTER_GEMINI_SYNTHESIS_TIMEOUT_MS` (default `300000`)
+  - `HUNTER_GEMINI_EXTRACTION_TIMEOUT_MS` (default `180000`)
+- Thinking controls:
+  - `HUNTER_GEMINI_SYNTHESIS_THINKING_LEVEL` (`LOW|MEDIUM|HIGH`, default `MEDIUM`)
+  - `HUNTER_GEMINI_EXTRACTION_THINKING_LEVEL` (`LOW|MEDIUM|HIGH`)
+- Timeout fallback controls:
+  - `HUNTER_GEMINI_SYNTHESIS_TIMEOUT_FALLBACK_MODEL` (default fast/cheap tier model)
+  - `HUNTER_GEMINI_SYNTHESIS_TIMEOUT_FALLBACK_THINKING_LEVEL` (`LOW|MEDIUM|HIGH`, default `LOW`)
+- Cost estimate controls (used for CLI telemetry output):
+  - `HUNTER_COST_PER_MILLION_TOKENS_RESEARCH` (default `0.3`)
+  - `HUNTER_COST_PER_MILLION_TOKENS_ANALYSIS` (default `0.6`)
+  - `HUNTER_COST_PER_MILLION_TOKENS_OTHER` (default = analysis value)
+
 ## QA Runbook
 
 - Dry run (no writes): `npm run qa:autopilot -- --dry-run --skip-worker`
 - Full apply run: `npm run qa:autopilot`
 - Cron-safe apply run: `npm run qa:autopilot:cron`
 - Draft gate audit now reports `actionability` metrics (min threshold, average, below-threshold, missing) via `npm run qa:gates`.
+- Draft gate audit can fail fast on strict tool-page QA blockers: `npm run qa:gates -- --max-strict-qa-gate-blockers=0`.
 - `qa:autopilot` fail-fast: set `--max-missing-actionability=<n>` (default `0`) to stop runs when `missing_actionability_score` blockers exceed your tolerance.
+- `qa:autopilot` also supports `--max-strict-qa-gate-blockers=<n>` (default `0`) to stop runs when strict QA gate blockers appear.
 - Pricing fallback report: `npm run qa:pricing-fallback`
 - Queue pricing fallback re-hunts (dry run): `npm run qa:queue-pricing-fallback-rehunt`
 - Queue pricing fallback re-hunts (apply): `npm run qa:queue-pricing-fallback-rehunt:apply`

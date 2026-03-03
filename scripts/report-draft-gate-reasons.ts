@@ -337,11 +337,17 @@ async function main() {
   const publishSafe = hasFlag('publish-safe');
   const apply = hasFlag('apply');
   const maxPublishArg = Number(getArgValue('max-publish') || 25);
+  const maxStrictQaGateArg = Number(
+    getArgValue('max-strict-qa-gate-blockers') || getArgValue('max-strict-qa-gate') || -1
+  );
   const limitArg = Number(getArgValue('limit') || 50);
   const minReviewsArg = Number(getArgValue('min-reviews') || 2);
   const limit = Number.isFinite(limitArg) ? Math.max(1, Math.min(limitArg, 200)) : 50;
   const minReviews = Number.isFinite(minReviewsArg) ? Math.max(0, minReviewsArg) : 2;
   const maxPublish = Number.isFinite(maxPublishArg) ? Math.max(1, Math.min(maxPublishArg, 200)) : 25;
+  const maxStrictQaGateBlockers = Number.isFinite(maxStrictQaGateArg)
+    ? Math.max(-1, Math.floor(maxStrictQaGateArg))
+    : -1;
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -557,6 +563,23 @@ async function main() {
     for (const [blocker, count] of sorted) {
       console.log(`  ${count}x ${blocker}`);
     }
+  }
+  const strictQaGateBlockers = sorted
+    .filter(([blocker]) => blocker.startsWith('strict:qa_gate:'))
+    .reduce((sum, [, count]) => sum + count, 0);
+  const strictQaGateKinds = sorted.filter(([blocker]) => blocker.startsWith('strict:qa_gate:')).length;
+  console.log('\nStrict QA gate blockers:');
+  console.log(`  total: ${strictQaGateBlockers}`);
+  console.log(`  unique kinds: ${strictQaGateKinds}`);
+  console.log(
+    `  threshold: ${maxStrictQaGateBlockers < 0 ? 'disabled' : maxStrictQaGateBlockers}`
+  );
+
+  if (maxStrictQaGateBlockers >= 0 && strictQaGateBlockers > maxStrictQaGateBlockers) {
+    console.error(
+      `\nFail-fast: strict_qa_gate_blockers=${strictQaGateBlockers} exceeds max=${maxStrictQaGateBlockers}`
+    );
+    process.exit(1);
   }
 
   if (!publishSafe) return;

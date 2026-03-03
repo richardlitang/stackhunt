@@ -290,6 +290,8 @@ export function evaluateStrictPublishGate(
   }
 
   const summaryText = normalizeText(review.summary_markdown || '');
+  const verdictText = normalizeText(item.verdict || '');
+  const shortDescriptionText = normalizeText(item.short_description || '');
   let riskFlagsCount = 0;
   if (RISKY_ABSOLUTE_TERMS.test(summaryText)) riskFlagsCount += 1;
   if (COMPARATOR_TERMS.test(summaryText) && sources.length < 2) riskFlagsCount += 1;
@@ -317,13 +319,19 @@ export function evaluateStrictPublishGate(
     new Set(
       [summaryText, ...consClaims.map((claim) => claim.text)]
         .flatMap((text) => detectRiskyCopyTerms(text))
-        .filter(Boolean)
+      .filter(Boolean)
     )
   );
+  const hasClaimLevelPricingProof = consClaims.some((claim) => {
+    if (!claim.sourceUrl) return false;
+    const lowerSourceUrl = claim.sourceUrl.toLowerCase();
+    if (OFFICIAL_PRICING_PATH.test(lowerSourceUrl)) return true;
+    return PRICING_NUMERIC_TERMS.test(claim.text) && Boolean(claim.checkedAt);
+  });
   const narrativeCorpus = [
     summaryText,
-    normalizeText(item.verdict || ''),
-    normalizeText(item.short_description || ''),
+    verdictText,
+    shortDescriptionText,
   ]
     .filter(Boolean)
     .join(' ');
@@ -364,15 +372,17 @@ export function evaluateStrictPublishGate(
     blockers.push(`strict:copy_quality_score_below_min:${copyQualityScore}<${MIN_COPY_QUALITY_SCORE}`);
   }
 
-  const metadata = getMetadata(item);
+  const hasPricingProofForGate = Boolean(
+    item.pricing_verified_at || hasOfficialPricingSource || hasClaimLevelPricingProof
+  );
   const qaGate = evaluateToolPageQaGate({
     title: 'Tool Review | StackHunt',
     h1: 'Tool Review',
-    intro: summaryText || normalizeText(item.short_description || ''),
-    verdict: normalizeText(item.verdict || summaryText),
+    intro: summaryText || shortDescriptionText,
+    verdict: verdictText || summaryText,
     evaluationDepth: 'docs_only',
-    pricingSectionVisible: Boolean(metadata.smp_pricing || metadata.pricing),
-    hasPricingCheckedProof: Boolean(item.pricing_verified_at),
+    pricingSectionVisible: hasNumericPricingClaims,
+    hasPricingCheckedProof: hasPricingProofForGate,
     schemaMatchesVisibleContent: true,
   });
   if (!qaGate.pass) {

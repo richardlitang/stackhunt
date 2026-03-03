@@ -11,6 +11,37 @@ import { supabase } from '@/lib/supabase';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import type { Tool, Review } from '@/types/database';
 
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function getToolPageTelemetry(specs: unknown) {
+  const specsRecord = toRecord(specs);
+  const canonical = toRecord(specsRecord.canonical);
+  const quality = toRecord(canonical.quality);
+  const omissionReasons = toRecord(quality.tool_page_contract_omission_reasons);
+
+  const qaBlockers = toStringArray(quality.tool_page_qa_blockers);
+  const staleFields = toStringArray(quality.tool_page_freshness_stale_fields);
+  const noindexReasons = toStringArray(quality.noindex_reasons);
+  const omissionEntries = Object.entries(omissionReasons).filter(
+    ([, reason]) => typeof reason === 'string' && reason.length > 0
+  ) as Array<[string, string]>;
+
+  return {
+    qaBlockers,
+    staleFields,
+    noindexReasons,
+    omissionEntries,
+  };
+}
+
 // Fetch all tools with their first review
 const { data: tools, error } = await supabase
   .from('items')
@@ -135,6 +166,37 @@ for (const tool of noindexed) {
 const topNoindexReasons = Array.from(noindexReasonCounts.entries())
   .sort((a, b) => b[1] - a[1])
   .slice(0, 8);
+
+const noindexedTelemetryRows = noindexed.map((tool) => ({
+  id: tool.id,
+  telemetry: getToolPageTelemetry(tool.specs),
+}));
+const noindexedWithQaBlockers = noindexedTelemetryRows.filter(
+  (row) => row.telemetry.qaBlockers.length > 0
+).length;
+const noindexedWithStaleFields = noindexedTelemetryRows.filter(
+  (row) => row.telemetry.staleFields.length > 0
+).length;
+const noindexedWithSectionOmissions = noindexedTelemetryRows.filter(
+  (row) => row.telemetry.omissionEntries.length > 0
+).length;
+
+const qaBlockerCounts = new Map<string, number>();
+const staleFieldCounts = new Map<string, number>();
+for (const row of noindexedTelemetryRows) {
+  for (const blocker of row.telemetry.qaBlockers) {
+    qaBlockerCounts.set(blocker, (qaBlockerCounts.get(blocker) || 0) + 1);
+  }
+  for (const field of row.telemetry.staleFields) {
+    staleFieldCounts.set(field, (staleFieldCounts.get(field) || 0) + 1);
+  }
+}
+const topQaBlockers = Array.from(qaBlockerCounts.entries())
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 5);
+const topStaleFields = Array.from(staleFieldCounts.entries())
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 5);
 ---
 
 <AdminLayout title="Content Quality Dashboard">
@@ -183,7 +245,7 @@ const topNoindexReasons = Array.from(noindexReasonCounts.entries())
         </p>
       </div>
 
-      <div class="grid gap-6 lg:grid-cols-3">
+      <div class="grid gap-6 lg:grid-cols-4">
         <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-5">
           <h3 class="text-sm font-semibold text-zinc-200">Top Noindex Reasons</h3>
           <div class="mt-3 space-y-2">
@@ -233,6 +295,44 @@ const topNoindexReasons = Array.from(noindexReasonCounts.entries())
                   </div>
                 </div>
               ))
+            }
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-5">
+          <h3 class="text-sm font-semibold text-zinc-200">Tool-Page QA Telemetry</h3>
+          <div class="mt-3 space-y-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Noindexed with QA blockers</span>
+              <span class="text-zinc-200">
+                {noindexedWithQaBlockers}/{noindexedCount}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Noindexed with stale fields</span>
+              <span class="text-zinc-200">
+                {noindexedWithStaleFields}/{noindexedCount}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Noindexed with omissions</span>
+              <span class="text-zinc-200">
+                {noindexedWithSectionOmissions}/{noindexedCount}
+              </span>
+            </div>
+            {
+              topQaBlockers.length > 0 && (
+                <div class="pt-2 text-xs text-zinc-500">
+                  Top QA blocker: {topQaBlockers[0][0]} ({topQaBlockers[0][1]})
+                </div>
+              )
+            }
+            {
+              topStaleFields.length > 0 && (
+                <div class="text-xs text-zinc-500">
+                  Top stale field: {topStaleFields[0][0]} ({topStaleFields[0][1]})
+                </div>
+              )
             }
           </div>
         </div>
@@ -317,6 +417,34 @@ const topNoindexReasons = Array.from(noindexReasonCounts.entries())
                           {tool.readiness.signals.evidence_counts.specs}· community=
                           {tool.readiness.signals.evidence_counts.community_domains}
                         </span>
+                      </div>
+                      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                        {
+                          (() => {
+                            const telemetry = getToolPageTelemetry(tool.specs);
+                            const qaText =
+                              telemetry.qaBlockers.length > 0
+                                ? telemetry.qaBlockers.join(', ')
+                                : 'none';
+                            const staleText =
+                              telemetry.staleFields.length > 0
+                                ? telemetry.staleFields.join(', ')
+                                : 'none';
+                            const omissionText =
+                              telemetry.omissionEntries.length > 0
+                                ? telemetry.omissionEntries
+                                    .map(([section, reason]) => `${section}:${reason}`)
+                                    .join(' | ')
+                                : 'none';
+                            return (
+                              <>
+                                <span>QA blockers: {qaText}</span>
+                                <span>Stale fields: {staleText}</span>
+                                <span>Section omissions: {omissionText}</span>
+                              </>
+                            );
+                          })()
+                        }
                       </div>
                     </div>
                   </div>

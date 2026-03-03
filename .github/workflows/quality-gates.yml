@@ -34,7 +34,7 @@ jobs:
         run: npm run test
 
       - name: Strict publish gates
-        run: npm run qa:gates
+        run: npm run qa:gates -- --max-strict-qa-gate-blockers=0
 
       - name: Content policy gates
         run: npm run qa:content-policy
