@@ -189,6 +189,9 @@ function analyzeReview(review: ReviewRow): {
     requiredSourcingMissingCount: number;
     riskFlagsCount: number;
     pricingConfidence: 'high' | 'medium' | 'low' | 'unknown';
+    genericPhraseCount: number;
+    scenarioRecommendationCount: number;
+    copyQualityScore: number;
   };
   sourceStats: {
     total: number;
@@ -291,6 +294,9 @@ function analyzeReview(review: ReviewRow): {
       requiredSourcingMissingCount: strict.metrics.requiredSourcingMissingCount,
       riskFlagsCount: strict.metrics.riskFlagsCount,
       pricingConfidence: strict.metrics.pricingConfidence,
+      genericPhraseCount: strict.metrics.genericPhraseCount,
+      scenarioRecommendationCount: strict.metrics.scenarioRecommendationCount,
+      copyQualityScore: strict.metrics.copyQualityScore,
     },
     sourceStats: {
       total: sources.length,
@@ -414,7 +420,12 @@ async function main() {
   const actionabilityValues: number[] = [];
   let belowMinActionabilityCount = 0;
   let missingActionabilityCount = 0;
+  const copyQualityScores: number[] = [];
+  let copyGenericPhraseHits = 0;
+  let copyMissingScenarioCount = 0;
+  let copyBelowMinCount = 0;
   const minActionabilityScore = getMinActionabilityScore();
+  const minCopyQualityScore = 60;
 
   console.log('\nDraft Gate Audit');
   console.log(`Rows fetched: ${data?.length || 0}`);
@@ -431,6 +442,14 @@ async function main() {
       }
     } else {
       missingActionabilityCount += 1;
+    }
+    copyQualityScores.push(analysis.strictMetrics.copyQualityScore);
+    copyGenericPhraseHits += analysis.strictMetrics.genericPhraseCount;
+    if (analysis.strictMetrics.scenarioRecommendationCount === 0) {
+      copyMissingScenarioCount += 1;
+    }
+    if (analysis.strictMetrics.copyQualityScore < minCopyQualityScore) {
+      copyBelowMinCount += 1;
     }
     if (!latestByItem.has(row.item_id)) {
       latestByItem.set(row.item_id, row);
@@ -449,7 +468,7 @@ async function main() {
       `  sources=${analysis.sourceStats.total} authoritative_sources=${analysis.sourceStats.authoritativeSources} authoritative_domains=${analysis.sourceStats.authoritativeDomains} evidence_grade=${analysis.evidenceGrade}`
     );
     console.log(
-      `  strict_metrics: required_sourcing_missing=${analysis.strictMetrics.requiredSourcingMissingCount} risk_flags=${analysis.strictMetrics.riskFlagsCount} pricing_confidence=${analysis.strictMetrics.pricingConfidence}`
+      `  strict_metrics: required_sourcing_missing=${analysis.strictMetrics.requiredSourcingMissingCount} risk_flags=${analysis.strictMetrics.riskFlagsCount} pricing_confidence=${analysis.strictMetrics.pricingConfidence} generic_phrases=${analysis.strictMetrics.genericPhraseCount} scenario_recos=${analysis.strictMetrics.scenarioRecommendationCount} copy_quality=${analysis.strictMetrics.copyQualityScore}`
     );
     console.log(
       `  actionability: score=${analysis.actionabilityScore ?? 'n/a'} min=${analysis.minActionabilityScore}`
@@ -468,6 +487,17 @@ async function main() {
   console.log(`  average score: ${avgActionability !== null ? avgActionability.toFixed(1) : 'n/a'}`);
   console.log(`  below threshold: ${belowMinActionabilityCount}`);
   console.log(`  missing score: ${missingActionabilityCount}`);
+
+  const avgCopyQuality =
+    copyQualityScores.length > 0
+      ? copyQualityScores.reduce((sum, value) => sum + value, 0) / copyQualityScores.length
+      : null;
+  console.log('\nCopy quality metrics:');
+  console.log(`  min threshold: ${minCopyQualityScore}`);
+  console.log(`  average score: ${avgCopyQuality !== null ? avgCopyQuality.toFixed(1) : 'n/a'}`);
+  console.log(`  below threshold: ${copyBelowMinCount}`);
+  console.log(`  missing scenario recos: ${copyMissingScenarioCount}`);
+  console.log(`  generic phrase hits (total): ${copyGenericPhraseHits}`);
 
   console.log('\nTop blocker counts:');
   const sorted = Array.from(blockerCounts.entries()).sort((a, b) => b[1] - a[1]);

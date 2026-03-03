@@ -169,6 +169,28 @@ async function main() {
     details.push(
       `Actionability blockers: missing_actionability_score=${missingActionabilityBlockers} (max ${maxMissingActionability})`
     );
+    const copyQualityMin = extractFirstNumber(gatesResult.output, /Copy quality metrics:[\s\S]*?min threshold:\s*(\d+)/i);
+    const copyQualityAvg = extractFirstNullableNumber(
+      gatesResult.output,
+      /Copy quality metrics:[\s\S]*?average score:\s*([0-9.]+|n\/a)/i
+    );
+    const copyQualityBelow = extractFirstNumber(
+      gatesResult.output,
+      /Copy quality metrics:[\s\S]*?below threshold:\s*(\d+)/i
+    );
+    const copyMissingScenario = extractFirstNumber(
+      gatesResult.output,
+      /Copy quality metrics:[\s\S]*?missing scenario recos:\s*(\d+)/i
+    );
+    const copyGenericHits = extractFirstNumber(
+      gatesResult.output,
+      /Copy quality metrics:[\s\S]*?generic phrase hits \(total\):\s*(\d+)/i
+    );
+    details.push(
+      `Copy quality: min=${copyQualityMin || 'n/a'} avg=${
+        copyQualityAvg === null ? 'n/a' : copyQualityAvg.toFixed(1)
+      } below=${copyQualityBelow} missing_scenario=${copyMissingScenario} generic_hits=${copyGenericHits}`
+    );
     if (missingActionabilityBlockers > maxMissingActionability) {
       throw new Error(
         `Fail-fast: missing_actionability_score=${missingActionabilityBlockers} exceeds max=${maxMissingActionability}`
