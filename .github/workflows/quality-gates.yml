@@ -35,6 +35,9 @@ jobs:
 
       - name: Strict publish gates
         run: npm run qa:gates -- --max-strict-qa-gate-blockers=0
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Content policy gates
         run: npm run qa:content-policy
