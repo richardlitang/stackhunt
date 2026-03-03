@@ -7,6 +7,11 @@ export interface ToolPageQaGateInput {
   pricingSectionVisible: boolean;
   hasPricingCheckedProof: boolean;
   schemaMatchesVisibleContent: boolean;
+  hasBestForSignal?: boolean;
+  hasNotForSignal?: boolean;
+  hasTradeoffSignal?: boolean;
+  hasDecisionSummaryBlock?: boolean;
+  introLooksSpecSheet?: boolean;
 }
 
 export interface ToolPageQaGateResult {
@@ -26,6 +31,10 @@ function isReviewTitle(title: string): boolean {
   return /\breview\b/i.test(title);
 }
 
+function isReviewHeading(h1: string): boolean {
+  return /\breview\b/i.test(h1);
+}
+
 function isCompareHeading(h1: string): boolean {
   return /\b(vs\.?|versus|compare)\b/i.test(h1);
 }
@@ -42,8 +51,32 @@ export function evaluateToolPageQaGate(input: ToolPageQaGateInput): ToolPageQaGa
     blockers.push('intent_mismatch:title_review_h1_compare');
   }
 
+  if (isReviewTitle(input.title) && !isReviewHeading(input.h1)) {
+    blockers.push('intent_mismatch:h1_missing_review_intent');
+  }
+
   if (hasGenericVerdictPhrase(input.intro, input.verdict)) {
     blockers.push('generic_verdict_phrase_detected');
+  }
+
+  if (input.hasBestForSignal === false) {
+    blockers.push('missing_best_for_signal');
+  }
+
+  if (input.hasNotForSignal === false) {
+    blockers.push('missing_not_for_signal');
+  }
+
+  if (input.hasTradeoffSignal === false) {
+    blockers.push('missing_tradeoff_signal');
+  }
+
+  if (input.hasDecisionSummaryBlock === false) {
+    blockers.push('missing_decision_summary_block');
+  }
+
+  if (input.introLooksSpecSheet) {
+    blockers.push('spec_sheet_intro_pattern_detected');
   }
 
   if (input.pricingSectionVisible && !input.hasPricingCheckedProof) {
