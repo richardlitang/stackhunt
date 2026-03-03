@@ -74,6 +74,7 @@ export interface HunterResult {
   success: boolean;
   toolId?: string;
   toolName?: string;
+  queueStatus?: 'completed' | 'research_complete' | 'failed' | 'defunct';
   contextId?: string;
   contextTitle?: string;
   reviewId?: string;
@@ -87,6 +88,35 @@ export interface HunterResult {
   error?: string;
   tokensUsed?: number;
   durationMs?: number;
+  telemetry?: HuntTelemetry;
+}
+
+export interface HuntTokenTelemetry {
+  total: number;
+  research: number;
+  analysis: number;
+  other: number;
+}
+
+export interface HuntRetryTelemetry {
+  retries: number;
+  timeoutFailures: number;
+  timeoutFallbackInvocations: number;
+}
+
+export interface HuntCostTelemetry {
+  estimatedUsd: number;
+  usdPerMillionTokens: {
+    research: number;
+    analysis: number;
+    other: number;
+  };
+}
+
+export interface HuntTelemetry {
+  tokens: HuntTokenTelemetry;
+  retries: HuntRetryTelemetry;
+  cost: HuntCostTelemetry;
 }
 
 // Result from context-first hunt
@@ -547,7 +577,7 @@ export interface HunterDependencies {
   inventory: any; // ModelInventoryService
   logo: any; // LogoService
   config: HunterConfig;
-  withRetry: <T>(fn: () => Promise<T>, operation: string) => Promise<T>;
+  withRetry: <T>(fn: () => Promise<T>, operation: string, maxRetries?: number) => Promise<T>;
   log: (message: string) => void;
 }
 

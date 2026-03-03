@@ -28,6 +28,7 @@
 import { parseArgs } from 'util';
 import { exec } from 'child_process';
 import { config } from 'dotenv';
+import type { QueueService } from '../src/lib/hunter/services/queue';
 
 config();
 
@@ -128,26 +129,29 @@ async function processQueue(): Promise<void> {
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+    const { QueueService } = await import('../src/lib/hunter/services/queue');
+    const queueService = new QueueService({ supabase: supabase as any });
     const autoPublishSafeDrafts = process.env.AUTO_PUBLISH_SAFE_DRAFTS !== 'false';
 
     // ===================================================================
     // Priority 1: Check for batch synthesis opportunities (≥10 tools)
     // ===================================================================
     const batchResult = await checkForBatchSynthesis(supabase);
+    let specialProcessed = false;
     if (batchResult) {
       console.log(`\n🚀 Batch synthesis ready: ${batchResult.category} (${batchResult.toolCount} tools)`);
-      await processBatchSynthesis(supabase, batchResult);
-      return; // Done for this cycle
+      await processBatchSynthesis(supabase, batchResult, queueService);
+      specialProcessed = true;
     }
 
     // ===================================================================
     // Priority 2: Check for stale items (>7 days in research_complete)
     // ===================================================================
-    const staleResult = await checkForStaleItems(supabase);
-    if (staleResult) {
+    const staleResult = !specialProcessed ? await checkForStaleItems(supabase) : null;
+    if (staleResult && !specialProcessed) {
       console.log(`\n⏰ Processing stale item: ${staleResult.toolName} (>7 days old)`);
-      await processStaleItem(supabase, staleResult);
-      return; // Done for this cycle
+      await processStaleItem(supabase, staleResult, queueService);
+      specialProcessed = true;
     }
 
     // ===================================================================
@@ -161,9 +165,12 @@ async function processQueue(): Promise<void> {
       isDraftMode: true,
     });
 
-    console.log(`Processing up to ${batchSize} items (token cap: ${maxTokensPerRun.toLocaleString()})...`);
+    const regularBatchSize = specialProcessed ? 1 : batchSize;
+    console.log(
+      `Processing up to ${regularBatchSize} regular queue items (token cap: ${maxTokensPerRun.toLocaleString()})...`
+    );
 
-    const result = await hunter.processQueueBatch(batchSize, { maxTokens: maxTokensPerRun });
+    const result = await hunter.processQueueBatch(regularBatchSize, { maxTokens: maxTokensPerRun });
     const errors: Array<{ tool: string; error: string; category?: string }> = [];
     const successes: Array<{ tool: string; context?: string }> = [];
     let autoPublished = 0;
@@ -366,7 +373,8 @@ async function checkForStaleItems(
  */
 async function processBatchSynthesis(
   supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>,
-  batch: BatchReadyGroup
+  batch: BatchReadyGroup,
+  queueService: QueueService
 ): Promise<void> {
   const startTime = Date.now();
   const batchId = crypto.randomUUID();
@@ -379,16 +387,8 @@ async function processBatchSynthesis(
   console.log(`Names: ${batch.toolNames.slice(0, 5).join(', ')}${batch.toolNames.length > 5 ? '...' : ''}`);
 
   try {
-    // Mark items as processing
-    await supabase
-      .from('hunt_queue')
-      .update({
-        status: 'processing',
-        batch_id: batchId,
-        claimed_at: new Date().toISOString(),
-        started_at: new Date().toISOString(),
-      })
-      .in('id', batch.toolIds);
+    // Mark batch grouping only; per-item lifecycle transitions use QueueService RPCs.
+    await supabase.from('hunt_queue').update({ batch_id: batchId }).in('id', batch.toolIds);
 
     // Load research data for all items
     const { BatchSynthesisService } = await import('../src/lib/hunter/services/batch-synthesis.js');
@@ -478,9 +478,6 @@ async function processBatchSynthesis(
     );
 
     const { executePersistencePhase } = await import('../src/lib/hunter/phases/persistence.js');
-    const { QueueService } = await import('../src/lib/hunter/services/queue.js');
-    const queueService = new QueueService({ supabase });
-
     const persistenceConfig = {
       supabaseUrl: process.env.SUPABASE_URL!,
       supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -498,6 +495,13 @@ async function processBatchSynthesis(
       }
 
       try {
+        await queueService.markStarted(input.queueId, (message) =>
+          console.log(`[Batch Persist] ${message}`)
+        );
+        queueService.startHeartbeat(input.queueId, (message) =>
+          console.log(`[Batch Persist] ${message}`)
+        );
+
         const ctx = {
           toolName: input.toolName,
           contextTitle: input.contextTitle,
@@ -553,14 +557,15 @@ async function processBatchSynthesis(
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.error(`[Batch] Persistence failed for ${input.toolName}: ${message}`);
-        await supabase
-          .from('hunt_queue')
-          .update({
-            status: 'failed',
-            error_message: message,
-            completed_at: new Date().toISOString(),
-          })
-          .eq('id', input.queueId);
+        await queueService.markFailed(
+          input.queueId,
+          message,
+          undefined,
+          'unknown',
+          (logMessage) => console.log(`[Batch Persist] ${logMessage}`)
+        );
+      } finally {
+        queueService.stopHeartbeat();
       }
     }
 
@@ -568,14 +573,13 @@ async function processBatchSynthesis(
     for (const err of result.errors) {
       const input = inputs.find(i => i.toolName === err.toolName);
       if (input) {
-        await supabase
-          .from('hunt_queue')
-          .update({
-            status: 'failed',
-            error_message: err.error,
-            completed_at: new Date().toISOString(),
-          })
-          .eq('id', input.queueId);
+        await queueService.markFailed(
+          input.queueId,
+          err.error,
+          undefined,
+          'unknown',
+          (logMessage) => console.log(`[Batch Persist] ${logMessage}`)
+        );
       }
     }
 
@@ -603,7 +607,8 @@ async function processBatchSynthesis(
  */
 async function processStaleItem(
   supabase: ReturnType<typeof import('@supabase/supabase-js').createClient>,
-  item: StaleItem
+  item: StaleItem,
+  queueService: QueueService
 ): Promise<void> {
   console.log(`\n${'─'.repeat(60)}`);
   console.log(`⏰ Stale Item: ${item.toolName}`);
@@ -632,26 +637,12 @@ async function processStaleItem(
 
     if (!tool?.specs?.research_data) {
       console.error(`[Stale] No research data for ${item.toolName}`);
-      await supabase
-        .from('hunt_queue')
-        .update({
-          status: 'failed',
-          error_message: 'No research data found',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', item.id);
+      await queueService.markFailed(item.id, 'No research data found');
       return;
     }
 
-    // Mark as processing
-    await supabase
-      .from('hunt_queue')
-      .update({
-        status: 'processing',
-        claimed_at: new Date().toISOString(),
-        started_at: new Date().toISOString(),
-      })
-      .eq('id', item.id);
+    await queueService.markStarted(item.id, (message) => console.log(`[Stale Persist] ${message}`));
+    queueService.startHeartbeat(item.id, (message) => console.log(`[Stale Persist] ${message}`));
 
     // Get existing categories
     const { data: cats } = await supabase.from('categories').select('name, type');
@@ -675,9 +666,6 @@ async function processStaleItem(
     );
 
     const { executePersistencePhase } = await import('../src/lib/hunter/phases/persistence.js');
-    const { QueueService } = await import('../src/lib/hunter/services/queue.js');
-    const queueService = new QueueService({ supabase });
-
     const persistenceConfig = {
       supabaseUrl: process.env.SUPABASE_URL!,
       supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -741,20 +729,15 @@ async function processStaleItem(
       item.id,
       (message) => console.log(`[Stale Persist] ${message}`)
     );
+    queueService.stopHeartbeat();
 
     console.log(`✅ Stale item processed: ${item.toolName}`);
 
   } catch (error) {
+    queueService.stopHeartbeat();
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[Stale] Failed to process ${item.toolName}:`, message);
-    await supabase
-      .from('hunt_queue')
-      .update({
-        status: 'failed',
-        error_message: message,
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', item.id);
+    await queueService.markFailed(item.id, message);
   }
 }
 

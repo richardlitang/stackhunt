@@ -27,6 +27,7 @@ import type {
   HunterConfig,
   HunterInput,
   HunterResult,
+  HuntTelemetry,
   HunterContext,
   HunterDependencies,
   ResearchOutput,
@@ -44,6 +45,15 @@ export class Hunter {
   private logger: HunterLogger | null = null;
   private maxTokensPerHunt: number;
   private readonly resumeResearchMaxAgeMs = 60 * 24 * 60 * 60 * 1000; // 60 days
+  private retryTelemetry: {
+    retries: number;
+    timeoutFailures: number;
+    timeoutFallbackInvocations: number;
+  } = {
+    retries: 0,
+    timeoutFailures: 0,
+    timeoutFallbackInvocations: 0,
+  };
 
   constructor(config: HunterConfig) {
     this.config = config;
@@ -90,13 +100,94 @@ export class Hunter {
     return normalizedCandidate === normalizedTarget;
   }
 
+  private resetRunTelemetry(): void {
+    this.retryTelemetry = {
+      retries: 0,
+      timeoutFailures: 0,
+      timeoutFallbackInvocations: 0,
+    };
+  }
+
+  private parseUsdPerMillionToken(value: string | undefined, fallback: number): number {
+    const parsed = value ? Number(value) : Number.NaN;
+    if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+    return parsed;
+  }
+
+  private buildHuntTelemetry(totalTokens: number): HuntTelemetry | undefined {
+    const summary = this.logger?.getSummary();
+    if (!summary) return undefined;
+
+    let researchTokens = 0;
+    let analysisTokens = 0;
+    for (const phase of summary.phaseTimings) {
+      const tokens = Number(phase.metrics?.tokens_used || 0);
+      if (!Number.isFinite(tokens) || tokens <= 0) continue;
+      if (phase.phase === 'research') researchTokens += tokens;
+      if (phase.phase === 'analysis') analysisTokens += tokens;
+    }
+    const otherTokens = Math.max(0, totalTokens - researchTokens - analysisTokens);
+
+    const researchUsdPerM = this.parseUsdPerMillionToken(
+      process.env.HUNTER_COST_PER_MILLION_TOKENS_RESEARCH,
+      0.3
+    );
+    const analysisUsdPerM = this.parseUsdPerMillionToken(
+      process.env.HUNTER_COST_PER_MILLION_TOKENS_ANALYSIS,
+      0.6
+    );
+    const otherUsdPerM = this.parseUsdPerMillionToken(
+      process.env.HUNTER_COST_PER_MILLION_TOKENS_OTHER,
+      analysisUsdPerM
+    );
+
+    const estimatedUsd =
+      (researchTokens / 1_000_000) * researchUsdPerM +
+      (analysisTokens / 1_000_000) * analysisUsdPerM +
+      (otherTokens / 1_000_000) * otherUsdPerM;
+
+    return {
+      tokens: {
+        total: totalTokens,
+        research: researchTokens,
+        analysis: analysisTokens,
+        other: otherTokens,
+      },
+      retries: {
+        retries: this.retryTelemetry.retries,
+        timeoutFailures: this.retryTelemetry.timeoutFailures,
+        timeoutFallbackInvocations: this.retryTelemetry.timeoutFallbackInvocations,
+      },
+      cost: {
+        estimatedUsd,
+        usdPerMillionTokens: {
+          research: researchUsdPerM,
+          analysis: analysisUsdPerM,
+          other: otherUsdPerM,
+        },
+      },
+    };
+  }
+
+  private withTelemetry(result: HunterResult, fallbackTokens = 0): HunterResult {
+    const totalTokens =
+      typeof result.tokensUsed === 'number' && Number.isFinite(result.tokensUsed)
+        ? result.tokensUsed
+        : fallbackTokens;
+    return {
+      ...result,
+      telemetry: this.buildHuntTelemetry(totalTokens),
+    };
+  }
+
   private async loadLatestResearchCheckpoint(
     toolName: string,
-    contextTitle?: string
+    contextTitle?: string,
+    entityScope?: string
   ): Promise<ResearchOutput | null> {
     const { data, error } = await this.supabase
       .from('hunt_queue')
-      .select('id, context_title, last_completed_phase, phase_checkpoint, updated_at')
+      .select('id, context_title, entity_scope, last_completed_phase, phase_checkpoint, updated_at')
       .eq('tool_name', toolName)
       .order('updated_at', { ascending: false })
       .limit(25);
@@ -109,6 +200,7 @@ export class Hunter {
     const rows = (data || []) as Array<{
       id: string;
       context_title: string | null;
+      entity_scope?: string | null;
       last_completed_phase: number | null;
       phase_checkpoint: Record<string, unknown> | null;
       updated_at: string | null;
@@ -117,6 +209,9 @@ export class Hunter {
     const match = rows.find((row) => {
       if ((row.last_completed_phase || 0) < 1) return false;
       if (!this.contextMatches(row.context_title, contextTitle)) return false;
+      const normalizedRowScope = (row.entity_scope || '').trim().toLowerCase();
+      const normalizedTargetScope = (entityScope || '').trim().toLowerCase();
+      if (normalizedRowScope !== normalizedTargetScope) return false;
       if (!row.phase_checkpoint || typeof row.phase_checkpoint !== 'object') return false;
       const checkpointResearch = (row.phase_checkpoint as any).research;
       if (!checkpointResearch?.scoutResult || !checkpointResearch?.knowledgeCard) return false;
@@ -165,7 +260,32 @@ export class Hunter {
    * Retry wrapper with exponential backoff
    */
   private async withRetry<T>(fn: () => Promise<T>, operation: string, maxRetries = 3): Promise<T> {
-    const attemptTimeoutMs = 120000;
+    const parseTimeoutOverride = (value: string | undefined): number | null => {
+      if (!value) return null;
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed <= 0) return null;
+      return Math.floor(parsed);
+    };
+    const resolveAttemptTimeoutMs = (operationName: string): number => {
+      const explicitOverride = parseTimeoutOverride(process.env.HUNTER_OPERATION_TIMEOUT_MS);
+      if (explicitOverride) return explicitOverride;
+
+      const op = operationName.toLowerCase();
+      if (op.includes('gemini synthesis evidence stage')) {
+        return parseTimeoutOverride(process.env.HUNTER_GEMINI_EVIDENCE_TIMEOUT_MS) ?? 300000;
+      }
+      if (op.includes('gemini synthesis')) {
+        return parseTimeoutOverride(process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_MS) ?? 300000;
+      }
+      if (op.includes('gemini fact extraction')) {
+        return parseTimeoutOverride(process.env.HUNTER_GEMINI_EXTRACTION_TIMEOUT_MS) ?? 180000;
+      }
+      return 120000;
+    };
+    const attemptTimeoutMs = resolveAttemptTimeoutMs(operation);
+    if (operation.toLowerCase().includes('timeout fallback')) {
+      this.retryTelemetry.timeoutFallbackInvocations += 1;
+    }
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -181,6 +301,10 @@ export class Hunter {
         ]);
       } catch (error) {
         lastError = error as Error;
+        this.retryTelemetry.retries += 1;
+        if (/\btimed out\b|\btimeout\b/i.test(lastError.message)) {
+          this.retryTelemetry.timeoutFailures += 1;
+        }
         this.log(`${operation} failed (attempt ${attempt}/${maxRetries}): ${lastError.message}`);
 
         if (attempt < maxRetries) {
@@ -205,6 +329,7 @@ export class Hunter {
   async hunt(input: HunterInput): Promise<HunterResult> {
     const startTime = Date.now();
     this.logger = new HunterLogger();
+    this.resetRunTelemetry();
     const maxTokens = this.maxTokensPerHunt;
     const softTokenThreshold = Math.floor(maxTokens * 0.85);
 
@@ -215,6 +340,7 @@ export class Hunter {
     // Create HunterContext that flows through all phases
     const ctx: HunterContext = {
       toolName: input.toolName,
+      entityScope: input.entityScope,
       contextTitle: input.contextTitle,
       categorySlug: input.categorySlug,
       queueItemId: input.queueItemId,
@@ -278,7 +404,8 @@ export class Hunter {
       if (!ctx.research && ctx.forceUpdate) {
         const resumedResearch = await this.loadLatestResearchCheckpoint(
           input.toolName,
-          input.contextTitle
+          input.contextTitle,
+          input.entityScope
         );
         if (resumedResearch) {
           ctx.research = resumedResearch;
@@ -316,12 +443,12 @@ export class Hunter {
           if (!saved) {
             this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
             // Abort to prevent duplicate work
-            return {
+            return this.withTelemetry({
               success: false,
               error: 'Checkpoint version conflict - item may have been processed by another worker',
               tokensUsed: ctx.tokensUsed,
               durationMs: Date.now() - ctx.startTime,
-            };
+            }, ctx.tokensUsed);
           }
 
           checkpointVersion = (checkpointVersion ?? 0) + 1; // Update local version
@@ -335,24 +462,24 @@ export class Hunter {
         if (status.shutdownDate) this.log(`   Shutdown: ${status.shutdownDate}`);
         if (status.reason) this.log(`   Reason: ${status.reason}`);
 
-        return {
+        return this.withTelemetry({
           success: true,
           defunctStatus: status,
           tokensUsed: ctx.tokensUsed,
           durationMs: Date.now() - ctx.startTime,
-        };
+        }, ctx.tokensUsed);
       }
 
       // Early exit: Hard duplicate detected (unless forceUpdate)
       if (ctx.research.isDuplicate && !ctx.forceUpdate) {
         ctx.skipAnalysis = true;
         this.log(`⚠️ Duplicate detected, skipping expensive analysis`);
-        return {
+        return this.withTelemetry({
           success: true,
           toolId: ctx.research.existingToolId,
           tokensUsed: ctx.tokensUsed,
           durationMs: Date.now() - ctx.startTime,
-        };
+        }, ctx.tokensUsed);
       }
       if (ctx.research.isDuplicate && ctx.forceUpdate) {
         this.log(`🔄 Duplicate detected, but forceUpdate=true - continuing with re-extraction`);
@@ -504,12 +631,13 @@ export class Hunter {
         this.log(`Tokens: ${ctx.tokensUsed}, Duration: ${Date.now() - ctx.startTime}ms`);
 
         // Don't clear checkpoint - item is in research_complete status
-        return {
+        return this.withTelemetry({
           success: true,
           toolId: persistence.toolId,
+          queueStatus: 'research_complete',
           tokensUsed: ctx.tokensUsed,
           durationMs: Date.now() - ctx.startTime,
-        };
+        }, ctx.tokensUsed);
       }
 
       if (!ctx.skipAnalysis && !ctx.analysis) {
@@ -540,12 +668,12 @@ export class Hunter {
 
           if (!saved) {
             this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
-            return {
+            return this.withTelemetry({
               success: false,
               error: 'Checkpoint version conflict - item may have been processed by another worker',
               tokensUsed: ctx.tokensUsed,
               durationMs: Date.now() - ctx.startTime,
-            };
+            }, ctx.tokensUsed);
           }
 
           checkpointVersion = (checkpointVersion ?? 0) + 1; // Update local version
@@ -574,32 +702,32 @@ export class Hunter {
           await this.queue.clearCheckpoint(ctx.queueItemId, this.log.bind(this));
         }
 
-        return {
+        return this.withTelemetry({
           success: true,
           toolId: persistence.toolId,
           contextId: persistence.contextId || undefined,
           reviewId: persistence.reviewId || undefined,
           tokensUsed: ctx.tokensUsed,
           durationMs: Date.now() - ctx.startTime,
-        };
+        }, ctx.tokensUsed);
       }
 
       // If persistence was skipped, return partial result
-      return {
+      return this.withTelemetry({
         success: true,
         tokensUsed: ctx.tokensUsed,
         durationMs: Date.now() - ctx.startTime,
         error: 'Persistence skipped due to validation failure',
-      };
+      }, ctx.tokensUsed);
     } catch (error) {
       const err = error as Error;
       this.log(`❌ Hunt failed: ${err.message}`);
-      return {
+      return this.withTelemetry({
         success: false,
         error: err.message,
         tokensUsed: ctx.tokensUsed,
         durationMs: Date.now() - ctx.startTime,
-      };
+      }, ctx.tokensUsed);
     } finally {
       const summary = this.logger?.getSummary();
       if (summary) {
@@ -637,6 +765,7 @@ export class Hunter {
       // Execute hunt (with Research Dossier if available)
       const result = await this.hunt({
         toolName: queueItem.tool_name,
+        entityScope: (queueItem.entity_scope || undefined) as any,
         contextTitle: queueItem.context_title || undefined,
         categorySlug: queueItem.category_slug || undefined,
         specialInstructions:
@@ -665,6 +794,9 @@ export class Hunter {
             this.log.bind(this)
           );
           await this.queue.clearCheckpoint(queueItem.id, this.log.bind(this));
+        } else if (result.queueStatus === 'research_complete') {
+          // Research-only flow already persists queue status and checkpoint semantics.
+          this.log(`[Queue] Research-only flow complete, leaving status as research_complete`);
         } else {
           await this.queue.markCompleted(
             queueItem.id,

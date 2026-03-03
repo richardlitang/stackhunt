@@ -66,7 +66,7 @@ export const GET: APIRoute = async ({ request }) => {
       }
 
       results.push({
-        toolName: result.queueItemId,
+        toolName: result.toolName || result.queueItemId,
         success: result.success,
         error: result.error,
         reviewId: result.reviewId || undefined,

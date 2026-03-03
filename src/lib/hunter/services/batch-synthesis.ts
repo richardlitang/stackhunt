@@ -173,7 +173,8 @@ export class BatchSynthesisService {
                   responseMimeType: 'application/json',
                   systemInstruction: cachedContentName ? undefined : framework.systemInstruction,
                   thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.HIGH, // Pro-level reasoning for synthesis
+                    // Batch path favors throughput + lower cost; keep deep reasoning in full hunts.
+                    thinkingLevel: ThinkingLevel.MEDIUM,
                   },
                 },
               };
@@ -432,7 +433,7 @@ Output ONLY valid JSON matching the HunterAnalysis schema.`;
         responseMimeType: 'application/json',
         systemInstruction: systemPrompt,
         thinkingConfig: {
-          thinkingLevel: ThinkingLevel.HIGH, // High reasoning for individual synthesis
+          thinkingLevel: ThinkingLevel.MEDIUM,
         },
       },
     });
