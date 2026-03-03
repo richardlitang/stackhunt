@@ -45,6 +45,9 @@ import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
+import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
+import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
+import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -465,8 +468,7 @@ const knowledgeCardForSeo =
     ? { ...knowledgeCard, faqs: filteredFaqItems }
     : knowledgeCard;
 const faqItems = filteredFaqItems;
-const hasFAQ = faqItems.length > 0 && sectionPublishability.faq;
-const faqSchema = hasFAQ ? generateToolFAQSchema(tool, knowledgeCardForSeo) : null;
+const hasFAQRaw = faqItems.length > 0 && sectionPublishability.faq;
 
 const gateShouldIndex =
   typeof persistedQuality?.should_index === 'boolean'
@@ -587,7 +589,7 @@ const hasNonDevTrackContent = Array.isArray(setupTracks?.non_dev)
 const hasDevTrackContent = Array.isArray(setupTracks?.dev)
   ? setupTracks.dev.some((step) => hasMeaningfulStepAction(step))
   : false;
-const hasGettingStarted = Boolean(
+const hasGettingStartedRaw = Boolean(
   hasSetupComplexityContent || hasNonDevTrackContent || hasDevTrackContent
 );
 const comparativeFeaturePeerCount =
@@ -596,7 +598,7 @@ const comparativeFeaturePeerCount =
     ? ((knowledgeCard?.meta as Record<string, unknown>)
         .comparative_feature_peer_count as number)
     : 0;
-const hasSpecs = Boolean((categorySpecificData || vipSpecifics) && sectionStatus.specs === 'show');
+const hasSpecsRaw = Boolean((categorySpecificData || vipSpecifics) && sectionStatus.specs === 'show');
 const hasMeaningfulPricingPlanName = (name?: string): boolean => {
   if (!name || !name.trim()) return false;
   const normalized = name.trim().toLowerCase();
@@ -639,7 +641,7 @@ const hasFreePlanSignal = Boolean(
         return monthly === 0 || annual === 0 || /\bfree\b/i.test(name);
       }))
 );
-const hasPlatform = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
+const hasPlatformRaw = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
 const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
   areToolsComparable(
@@ -656,21 +658,65 @@ const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
   )
 );
 const hasComparableAlternatives = comparableAlternatives.length > 0;
-const hasCommunity = Boolean(
+const hasCommunityRaw = Boolean(
   eligibleSignalEvidenceCount >= 3 && sectionStatus.community === 'show'
 );
+const evidenceContract = createToolPageEvidenceContract({
+  factFields: ['evidence', 'pricing', 'alternatives'],
+  evaluationDepth: 'docs_only',
+  confidenceByField: {
+    evidence: contentConfidenceLevel,
+    pricing: tool.pricing_verified_at ? 'high' : 'unknown',
+    alternatives: hasAlternatives ? 'medium' : 'unknown',
+  },
+  lastCheckedByField: {
+    evidence:
+      ((firstReview as { updated_at?: string | null; created_at?: string | null } | null)
+        ?.updated_at ||
+        (firstReview as { updated_at?: string | null; created_at?: string | null } | null)
+          ?.created_at ||
+        tool.last_verified_at) ??
+      null,
+    pricing: tool.pricing_verified_at || tool.last_verified_at || null,
+    alternatives: tool.updated_at || tool.last_verified_at || null,
+  },
+});
+const freshnessPolicy = applyToolPageFreshnessPolicy(evidenceContract, new Date());
+const sectionContract = computeToolPageSectionContract({
+  evidenceContract: freshnessPolicy.contract,
+  sectionStatus: {
+    specs: sectionStatus.specs,
+    community: sectionStatus.community,
+  },
+  sectionPublishability: {
+    faq: sectionPublishability.faq,
+  },
+  hasFaqData: hasFAQRaw,
+  hasGettingStartedData: hasGettingStartedRaw,
+  hasSpecsData: hasSpecsRaw,
+  hasCommunityData: hasCommunityRaw,
+  hasPlatformData: hasPlatformRaw,
+  hasSecurityData: Boolean(knowledgeCard?.security),
+  hasPortabilityData: Boolean(knowledgeCard?.smp_portability),
+});
+const hasFAQ = sectionContract.allowedSections.faq;
+const hasGettingStarted = sectionContract.allowedSections.getting_started;
+const hasSpecs = sectionContract.allowedSections.specs;
+const hasCommunity = sectionContract.allowedSections.community;
+const hasPlatform = sectionContract.allowedSections.platform;
 // Runtime safety aliases for section contract wiring.
-const hasFaqData = hasFAQ;
-const hasGettingStartedData = hasGettingStarted;
-const hasSpecsData = hasSpecs;
-const hasCommunityData = hasCommunity;
-const hasPlatformData = hasPlatform;
+const hasFaqData = hasFAQRaw;
+const hasGettingStartedData = hasGettingStartedRaw;
+const hasSpecsData = hasSpecsRaw;
+const hasCommunityData = hasCommunityRaw;
+const hasPlatformData = hasPlatformRaw;
 const hasSecurityData = Boolean(knowledgeCard?.security);
 const hasPortabilityData = Boolean(knowledgeCard?.smp_portability);
 const showProceduralVerdict =
   hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
 const showProceduralSpecs =
   hasProceduralGuidance && sectionStatus.specs === 'procedural' && !hasSpecs;
+const faqSchema = hasFAQ ? generateToolFAQSchema(tool, knowledgeCardForSeo) : null;
 const taxonomyPrimary =
   typeof knowledgeCard?.smp_taxonomy?.primary_function === 'string'
     ? knowledgeCard.smp_taxonomy.primary_function.toLowerCase()
