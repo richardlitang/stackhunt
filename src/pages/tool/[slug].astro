@@ -80,8 +80,26 @@ const _contextLinks = await getToolContexts(tool.id);
 const tags = await getToolTags(tool.id);
 
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
-const publishedReviews = (tool.reviews || []).filter((review) => review.status === 'published');
+const toEpochMs = (value: unknown): number => {
+  if (typeof value !== 'string' || value.trim().length === 0) return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const reviewTimestamp = (review: { updated_at?: string | null; created_at?: string | null }): number =>
+  toEpochMs(review.updated_at) || toEpochMs(review.created_at);
+const reviews = Array.isArray(tool.reviews) ? tool.reviews : [];
+const publishedReviews = reviews
+  .filter((review) => review.status === 'published')
+  .sort((a, b) => reviewTimestamp(b) - reviewTimestamp(a));
 const firstReview = publishedReviews[0] || null;
+const freshestUnpublishedReview = reviews
+  .filter((review) => review.status === 'draft' || review.status === 'review')
+  .sort((a, b) => reviewTimestamp(b) - reviewTimestamp(a))[0];
+const hasNewerUnpublishedReview =
+  Boolean(firstReview) &&
+  Boolean(freshestUnpublishedReview) &&
+  reviewTimestamp(freshestUnpublishedReview as { updated_at?: string | null; created_at?: string | null }) >
+    reviewTimestamp(firstReview as { updated_at?: string | null; created_at?: string | null });
 
 // Extract Knowledge Card data for new components
 const knowledgeCard = tool.metadata as KnowledgeCard | null;
@@ -118,7 +136,9 @@ const websiteHostLabel = (() => {
   }
 })();
 const vipSpecifics = toolSpecs?.specifics as Record<string, unknown> | undefined;
-const reviewContext = tool.review_context as Record<string, unknown> | null;
+const reviewContext = hasNewerUnpublishedReview
+  ? null
+  : (tool.review_context as Record<string, unknown> | null);
 const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<
   string,
   unknown
