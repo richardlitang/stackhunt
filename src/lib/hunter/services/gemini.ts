@@ -1404,8 +1404,8 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       const officialClaims = allClaims.filter((claim) => claim.source_type === 'official').length;
       const nonOfficialClaims = allClaims.length - officialClaims;
       const diversityIssues: string[] = [];
-      if (officialClaims < 1 || nonOfficialClaims < 1) {
-        diversityIssues.push('missing official/non-official balance');
+      if (officialClaims < 1) {
+        diversityIssues.push('missing official sourcing');
       }
       const domainCount = new Map<string, number>();
       for (const claim of allClaims) {
@@ -1421,15 +1421,17 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       }
       const maxDomainClaims = Math.max(...domainCount.values(), 0);
       const maxDomainShare = maxDomainClaims / Math.max(1, allClaims.length);
-      if (maxDomainShare > 0.8) {
+      if (maxDomainShare > 0.9) {
         diversityIssues.push(`source concentration too high (${Math.round(maxDomainShare * 100)}% from one domain)`);
       }
+      const isOfficialHeavyButDistributed =
+        officialClaims >= 1 && nonOfficialClaims === 0 && domainCount.size >= 2 && maxDomainShare <= 0.9;
       const meanConfidence =
         allClaims.reduce((sum, claim) => sum + claim.confidence, 0) / Math.max(1, allClaims.length);
       const lowConfidenceRatio =
         allClaims.filter((claim) => claim.confidence < 0.6).length / Math.max(1, allClaims.length);
       const autoAbstentions: EvidencePacket['abstentions'] = [];
-      if (diversityIssues.length > 0) {
+      if (diversityIssues.length > 0 && !isOfficialHeavyButDistributed) {
         const reason = `auto-abstain due to evidence diversity gaps (${diversityIssues.join('; ')})`;
         autoAbstentions.push(
           { field: 'verdict', reason },
