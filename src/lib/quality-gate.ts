@@ -6,6 +6,7 @@ export interface QualityGateSignals {
   volatiles_fresh: boolean;
   conflicts_count: number;
   has_risky_claims: boolean;
+  content_contradictions: string[];
   score: number;
   section_publishability: {
     summary: boolean;
@@ -23,6 +24,13 @@ export interface QualityGateSignals {
     faq: 'show' | 'hide' | 'procedural';
     community: 'show' | 'hide' | 'procedural';
     verdict: 'show' | 'hide' | 'procedural';
+  };
+  section_freshness: {
+    pricing: { status: 'fresh' | 'stale' | 'unknown'; age_days: number | null };
+    setup: { status: 'fresh' | 'stale' | 'unknown'; age_days: number | null };
+    faq: { status: 'fresh' | 'stale' | 'unknown'; age_days: number | null };
+    community: { status: 'fresh' | 'stale' | 'unknown'; age_days: number | null };
+    verdict: { status: 'fresh' | 'stale' | 'unknown'; age_days: number | null };
   };
   evidence_counts: {
     pricing: number;
@@ -53,6 +61,11 @@ const VOLATILE_FAQ_TERMS =
   /\b(model|version|pricing|price|plan|quota|limit|token|tokens|rate limit|context window|deprecated|deprecation|gpt|claude|opus|sonnet|haiku|o[1-9])\b/i;
 const RISKY_ABSOLUTE_CLAIMS =
   /\b(always|never|broken|scam|unreliable|guaranteed|everyone|nobody)\b/i;
+const NEGATIVE_FREE_CLAIM =
+  /\b(?:no|not|without|lacks?)\s+(?:a\s+)?free\s+(?:tier|plan|trial)\b|\bno free (?:tier|plan|trial)\b/i;
+const POSITIVE_FREE_CLAIM = /\bfree\s+(?:tier|plan|trial)\b|\brobust free plan\b|\bfree forever\b/i;
+const NOT_RECOMMENDED_TERMS = /\bnot recommended\b|\bavoid\b|\bskip\b/i;
+const RECOMMENDED_TERMS = /\brecommended\b|\bstrong choice\b|\bgood fit\b|\bbest fit\b/i;
 export type PopularityTier = 'popular' | 'standard' | 'below_standard';
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
 
@@ -73,6 +86,117 @@ function isFresh(
   if (Number.isNaN(parsed.getTime())) return false;
   const ageMs = Date.now() - parsed.getTime();
   return ageMs <= maxAgeDays * 24 * 60 * 60 * 1000;
+}
+
+function getAgeDays(dateValue: string | null | undefined): number | null {
+  if (!dateValue) return null;
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return Math.floor((Date.now() - parsed.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+function resolveSectionFreshness(
+  dateValue: string | null | undefined,
+  maxAgeDays: number
+): { status: 'fresh' | 'stale' | 'unknown'; age_days: number | null } {
+  const ageDays = getAgeDays(dateValue);
+  if (ageDays === null) return { status: 'unknown', age_days: null };
+  return {
+    status: ageDays <= maxAgeDays ? 'fresh' : 'stale',
+    age_days: ageDays,
+  };
+}
+
+function hasFreePlanSignal(rawPricing: unknown): boolean {
+  if (!rawPricing || typeof rawPricing !== 'object') return false;
+  const queue: unknown[] = [rawPricing];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (!current || typeof current !== 'object') continue;
+    if (Array.isArray(current)) {
+      queue.push(...current);
+      continue;
+    }
+    const obj = current as Record<string, unknown>;
+    const name = [
+      obj.name,
+      obj.plan_name,
+      obj.tier_name,
+      obj.id,
+      obj.slug,
+      obj.label,
+      obj.plan,
+      obj.tier,
+    ]
+      .filter((value) => typeof value === 'string')
+      .join(' ')
+      .toLowerCase();
+    if (/\bfree\b/.test(name)) return true;
+
+    const priceCandidates = [
+      obj.price,
+      obj.amount,
+      obj.price_monthly,
+      obj.monthly_price,
+      obj.starting_price,
+      obj.base_price,
+      obj.value,
+    ];
+    for (const candidate of priceCandidates) {
+      if (typeof candidate === 'number' && Number.isFinite(candidate) && candidate === 0) return true;
+      if (
+        typeof candidate === 'string' &&
+        /\b(?:\$?\s*0(?:\.0+)?)\b/.test(candidate.trim().toLowerCase())
+      ) {
+        return true;
+      }
+    }
+
+    queue.push(...Object.values(obj));
+  }
+  return false;
+}
+
+function detectContentContradictions(params: {
+  tool: Tool;
+  review?: Review | null;
+  knowledgeCard: Record<string, any>;
+}): string[] {
+  const contradictions: string[] = [];
+  const { tool, review, knowledgeCard } = params;
+  const pricingData = knowledgeCard?.smp_pricing || knowledgeCard?.pricing || null;
+  const hasFreePricingSignal = hasFreePlanSignal(pricingData);
+  const textCorpus = [
+    review?.summary_markdown || '',
+    tool.verdict || '',
+    tool.short_description || '',
+    ...(Array.isArray(review?.pros) ? review!.pros : []),
+    ...(Array.isArray(review?.cons) ? review!.cons : []),
+  ]
+    .filter((value) => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+
+  const claimsNoFree = NEGATIVE_FREE_CLAIM.test(textCorpus);
+  const claimsHasFree = POSITIVE_FREE_CLAIM.test(textCorpus);
+
+  if (hasFreePricingSignal && claimsNoFree) {
+    contradictions.push('free_plan_conflict:claims_no_free_but_pricing_has_free');
+  }
+  if (!hasFreePricingSignal && claimsHasFree) {
+    contradictions.push('free_plan_conflict:claims_free_without_pricing_signal');
+  }
+
+  if (review?.score !== null && typeof review?.score === 'number') {
+    if (review.score >= 70 && NOT_RECOMMENDED_TERMS.test(textCorpus)) {
+      contradictions.push('verdict_score_conflict:high_score_with_not_recommended_language');
+    }
+    if (review.score <= 45 && RECOMMENDED_TERMS.test(textCorpus)) {
+      contradictions.push('verdict_score_conflict:low_score_with_recommended_language');
+    }
+  }
+
+  return contradictions;
 }
 
 export function resolvePopularityTier(metadata?: Record<string, unknown> | null): PopularityTier {
@@ -303,6 +427,12 @@ export function evaluateIndexReadiness(
 
   const conflictsCount =
     Number(canonical?.quality?.conflicts_count) > 0 ? Number(canonical.quality.conflicts_count) : 0;
+  const contentContradictions = detectContentContradictions({
+    tool,
+    review: firstReview,
+    knowledgeCard,
+  });
+  const totalConflicts = conflictsCount + contentContradictions.length;
   const riskyClaimText = `${firstReview?.summary_markdown || ''} ${(metadata as Record<string, any>)?.humanVerdict || ''}`;
   const hasRiskyClaims =
     RISKY_ABSOLUTE_CLAIMS.test(riskyClaimText) && eligibleCommunityDomains.length < 2;
@@ -311,7 +441,7 @@ export function evaluateIndexReadiness(
   if (requiredSectionsComplete) score += 55;
   if (mvupComplete) score += 20;
   if (volatilesFresh) score += 25;
-  if (conflictsCount === 0) score += 10;
+  if (totalConflicts === 0) score += 10;
   if (!hasRiskyClaims) score += 10;
 
   const reasons: string[] = [];
@@ -319,6 +449,9 @@ export function evaluateIndexReadiness(
   if (!mvupComplete) reasons.push('mvup_incomplete');
   if (!volatilesFresh) reasons.push('volatile_facts_not_fresh');
   if (conflictsCount > 0) reasons.push(`conflicts_detected:${conflictsCount}`);
+  if (contentContradictions.length > 0) {
+    reasons.push(...contentContradictions.map((code) => `content_contradiction:${code}`));
+  }
   if (pricingConflictsCount > 0)
     reasons.push(`pricing_conflicts_detected:${pricingConflictsCount}`);
   if (hasRiskyClaims) reasons.push('UNSUPPORTED_NEGATIVE_CLAIM');
@@ -328,8 +461,9 @@ export function evaluateIndexReadiness(
       required_sections_complete: requiredSectionsComplete,
       mvup_complete: mvupComplete,
       volatiles_fresh: volatilesFresh,
-      conflicts_count: conflictsCount,
+      conflicts_count: totalConflicts,
       has_risky_claims: hasRiskyClaims,
+      content_contradictions: contentContradictions,
       score,
       section_publishability: {
         summary: hasSummary,
@@ -348,6 +482,28 @@ export function evaluateIndexReadiness(
         community: getSectionStatus(hasCommunity, 'procedural'),
         verdict: getSectionStatus(hasVerdict, 'procedural'),
       },
+      section_freshness: {
+        pricing: resolveSectionFreshness(
+          tool.pricing_verified_at || knowledgeCard?.meta?.extraction_date || tool.updated_at,
+          HIGH_VOLATILITY_WINDOW_DAYS
+        ),
+        setup: resolveSectionFreshness(
+          knowledgeCard?.setup_complexity?.updated_at ||
+            knowledgeCard?.setup_complexity?.checked_at ||
+            knowledgeCard?.meta?.extraction_date,
+          FRESHNESS_WINDOW_DAYS
+        ),
+        faq: resolveSectionFreshness(
+          Array.isArray(validFaqs) && validFaqs.length > 0
+            ? validFaqs
+                .map((faq: any) => faq.answer_checked_at || faq.retrieved_at || faq.checked_at)
+                .find((value: string | null | undefined) => Boolean(value))
+            : null,
+          HIGH_VOLATILITY_WINDOW_DAYS
+        ),
+        community: resolveSectionFreshness(firstReview?.updated_at || null, FRESHNESS_WINDOW_DAYS),
+        verdict: resolveSectionFreshness(firstReview?.updated_at || tool.updated_at, FRESHNESS_WINDOW_DAYS),
+      },
       evidence_counts: {
         pricing: hasPricing ? 1 : 0,
         specs: hasSpecs ? 1 : 0,
@@ -356,7 +512,7 @@ export function evaluateIndexReadiness(
         verdict: hasVerdict ? 1 : 0,
       },
     },
-    shouldIndex: mvupComplete && volatilesFresh && conflictsCount === 0 && !hasRiskyClaims,
+    shouldIndex: mvupComplete && volatilesFresh && totalConflicts === 0 && !hasRiskyClaims,
     reasons,
   };
 }
