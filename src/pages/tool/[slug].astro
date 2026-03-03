@@ -45,6 +45,7 @@ import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
+import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
 import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
 import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
@@ -1371,7 +1372,18 @@ const updateHistoryEntries = [
       }
     : null,
 ].filter((entry): entry is { date: string; what: string; why: string; source: string | null } => Boolean(entry));
+const toolPageQaGate = evaluateToolPageQaGate({
+  title: `${tool.name} Review | StackHunt`,
+  h1: `${tool.name} Review`,
+  intro: stripControlChars(tool.short_description || knowledgeCard?.tagline || ''),
+  verdict: stripControlChars(renderVerdict || tool.verdict || ''),
+  evaluationDepth: evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
+  pricingSectionVisible: showPricingSection,
+  hasPricingCheckedProof,
+  schemaMatchesVisibleContent: Boolean(!hasFAQ || faqSchema),
+});
 shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
+shouldNoindex = shouldNoindex || !toolPageQaGate.pass;
 if (showReviewInProgressBanner) {
   shouldNoindex = false;
 }

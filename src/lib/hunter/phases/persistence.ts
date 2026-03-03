@@ -39,6 +39,10 @@ import {
   resolvePopularityTier,
   type PopularityTier,
 } from '@/lib/quality-gate';
+import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
+import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
+import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
+import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
 import { sanitizeUrl } from '@/lib/utils/url';
 import { normalizeCategorySlug, resolveCategoryFromPrimaryFunction } from '../category-resolver';
 
@@ -2216,7 +2220,7 @@ async function persistQualityGateSnapshot(
 ): Promise<void> {
   const { data: itemRow, error: itemError } = await deps.supabase
     .from('items')
-    .select('id, metadata, specs, pricing_verified_at')
+    .select('id, name, metadata, specs, pricing_verified_at, short_description, verdict, updated_at')
     .eq('id', itemId)
     .single();
 
@@ -2246,19 +2250,106 @@ async function persistQualityGateSnapshot(
   const gateReview = (reviewRows && reviewRows.length > 0 ? reviewRows[0] : null) as any;
   const readiness = evaluateIndexReadiness(itemRow as any, gateReview);
   const isDraftReview = gateReview?.status !== 'published';
-  const shouldIndex = readiness.shouldIndex && !isDraftReview;
+  let shouldIndex = readiness.shouldIndex && !isDraftReview;
   const noindexReasons = [...readiness.reasons];
 
   if (isDraftReview) {
     noindexReasons.push('draft_review');
   }
 
+  const metadata = (itemRow.metadata as Record<string, any>) || {};
   const specs = (itemRow.specs as Record<string, unknown>) || {};
   const canonical = (specs.canonical as Record<string, unknown>) || {};
+  const faqRows = Array.isArray(metadata.faqs) ? metadata.faqs : [];
+  const hasFaqData = faqRows.some(
+    (row) =>
+      row &&
+      typeof row === 'object' &&
+      typeof (row as Record<string, unknown>).question === 'string' &&
+      typeof (row as Record<string, unknown>).answer === 'string'
+  );
+  const setupComplexity =
+    metadata.setup_complexity && typeof metadata.setup_complexity === 'object'
+      ? (metadata.setup_complexity as Record<string, unknown>)
+      : null;
+  const hasGettingStartedData = Boolean(
+    setupComplexity &&
+      (Array.isArray(setupComplexity.steps) ||
+        typeof setupComplexity.estimated_setup_time === 'string' ||
+        typeof setupComplexity.setup_url === 'string')
+  );
+  const hasSpecsData = Boolean(
+    (specs.categorySpecificData && typeof specs.categorySpecificData === 'object') ||
+      (specs.specifics && typeof specs.specifics === 'object')
+  );
+  const hasCommunityData = Number(readiness.signals.evidence_counts.community_domains || 0) > 0;
+  const hasPlatformData = Boolean(
+    (Array.isArray(metadata.platforms) && metadata.platforms.length > 0) || metadata.integrations
+  );
+  const hasSecurityData = Boolean(metadata.security);
+  const hasPortabilityData = Boolean(metadata.smp_portability);
+  const evidenceContract = createToolPageEvidenceContract({
+    factFields: ['evidence', 'pricing', 'alternatives'],
+    evaluationDepth: 'docs_only',
+    confidenceByField: {
+      evidence:
+        readiness.signals.score >= 85
+          ? 'high'
+          : readiness.signals.score >= 70
+            ? 'medium'
+            : 'low',
+      pricing: itemRow.pricing_verified_at ? 'high' : 'unknown',
+      alternatives: readiness.signals.evidence_counts.community_domains > 0 ? 'medium' : 'unknown',
+    },
+    lastCheckedByField: {
+      evidence: gateReview?.updated_at || gateReview?.created_at || itemRow.updated_at || null,
+      pricing: itemRow.pricing_verified_at || itemRow.updated_at || null,
+      alternatives: itemRow.updated_at || null,
+    },
+  });
+  const freshnessPolicy = applyToolPageFreshnessPolicy(evidenceContract, new Date());
+  const sectionContract = computeToolPageSectionContract({
+    evidenceContract: freshnessPolicy.contract,
+    sectionStatus: {
+      specs: readiness.signals.section_status.specs,
+      community: readiness.signals.section_status.community,
+    },
+    sectionPublishability: {
+      faq: readiness.signals.section_publishability.faq,
+    },
+    hasFaqData,
+    hasGettingStartedData,
+    hasSpecsData,
+    hasCommunityData,
+    hasPlatformData,
+    hasSecurityData,
+    hasPortabilityData,
+  });
+  const sectionContractOmissionCounts = {
+    total: Object.keys(sectionContract.sectionOmissionReasons).length,
+    faq: sectionContract.sectionOmissionReasons.faq ? 1 : 0,
+    specs: sectionContract.sectionOmissionReasons.specs ? 1 : 0,
+    community: sectionContract.sectionOmissionReasons.community ? 1 : 0,
+  };
+  const qaGate = evaluateToolPageQaGate({
+    title: `${itemRow.name || 'Tool'} Review | StackHunt`,
+    h1: `${itemRow.name || 'Tool'} Review`,
+    intro: String(itemRow.short_description || ''),
+    verdict: String(gateReview?.summary_markdown || itemRow.verdict || ''),
+    evaluationDepth: 'docs_only',
+    pricingSectionVisible: readiness.signals.section_status.pricing === 'show',
+    hasPricingCheckedProof: Boolean(itemRow.pricing_verified_at),
+    schemaMatchesVisibleContent: true,
+  });
+  if (!qaGate.pass) {
+    shouldIndex = false;
+    noindexReasons.push(...qaGate.blockers.map((blocker) => `qa_gate:${blocker}`));
+  }
+  const dedupedNoindexReasons = Array.from(new Set(noindexReasons));
   const quality = {
     ...((canonical.quality as Record<string, unknown>) || {}),
     should_index: shouldIndex,
-    noindex_reasons: noindexReasons,
+    noindex_reasons: dedupedNoindexReasons,
     required_sections_complete: readiness.signals.required_sections_complete,
     volatiles_fresh: readiness.signals.volatiles_fresh,
     conflicts_count: readiness.signals.conflicts_count,
@@ -2266,6 +2357,12 @@ async function persistQualityGateSnapshot(
     section_publishability: readiness.signals.section_publishability,
     section_status: readiness.signals.section_status,
     evidence_counts: readiness.signals.evidence_counts,
+    tool_page_contract_omission_reasons: sectionContract.sectionOmissionReasons,
+    tool_page_contract_omission_counts: sectionContractOmissionCounts,
+    tool_page_freshness_stale_fields: freshnessPolicy.staleFields,
+    tool_page_freshness_stale_count: freshnessPolicy.staleFields.length,
+    tool_page_qa_blockers: qaGate.blockers,
+    tool_page_qa_blocker_count: qaGate.blockers.length,
     last_evaluated_at: new Date().toISOString(),
   };
 
@@ -2288,7 +2385,7 @@ async function persistQualityGateSnapshot(
   }
 
   deps.log(
-    `[Quality Gate] Snapshot persisted: should_index=${String(shouldIndex)} reasons=${noindexReasons.join(',') || 'none'}`
+    `[Quality Gate] Snapshot persisted: should_index=${String(shouldIndex)} reasons=${dedupedNoindexReasons.join(',') || 'none'}`
   );
 }
 

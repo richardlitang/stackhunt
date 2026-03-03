@@ -6,6 +6,7 @@ import {
   hasScopeQualifier,
   isClaimStale,
 } from '@/lib/claim-policy';
+import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
 import type { Review, Tool } from '@/types/database';
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
@@ -36,6 +37,10 @@ const GENERIC_COPY_PATTERNS = [
 const SCENARIO_DECISION_PATTERNS = [
   /\bif [^.!?]{5,120}\b(?:choose|use|pick)\b/i,
   /\bif [^.!?]{5,120}\b(?:avoid|skip|switch)\b/i,
+  /\bbest for\b[^.!?]{8,160}/i,
+  /\bnot for\b[^.!?]{8,160}/i,
+  /\bavoid if\b[^.!?]{8,160}/i,
+  /\bswitch (?:when|if)\b[^.!?]{8,160}/i,
 ];
 const MIN_COPY_QUALITY_SCORE = 60;
 
@@ -357,6 +362,23 @@ export function evaluateStrictPublishGate(
   }
   if (copyQualityScore < MIN_COPY_QUALITY_SCORE) {
     blockers.push(`strict:copy_quality_score_below_min:${copyQualityScore}<${MIN_COPY_QUALITY_SCORE}`);
+  }
+
+  const metadata = getMetadata(item);
+  const qaGate = evaluateToolPageQaGate({
+    title: 'Tool Review | StackHunt',
+    h1: 'Tool Review',
+    intro: summaryText || normalizeText(item.short_description || ''),
+    verdict: normalizeText(item.verdict || summaryText),
+    evaluationDepth: 'docs_only',
+    pricingSectionVisible: Boolean(metadata.smp_pricing || metadata.pricing),
+    hasPricingCheckedProof: Boolean(item.pricing_verified_at),
+    schemaMatchesVisibleContent: true,
+  });
+  if (!qaGate.pass) {
+    for (const blocker of qaGate.blockers) {
+      blockers.push(`strict:qa_gate:${blocker}`);
+    }
   }
 
   return {
