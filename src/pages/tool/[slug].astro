@@ -671,14 +671,15 @@ const hasFreePlanSignal = Boolean(
         return monthly === 0 || annual === 0 || /\bfree\b/i.test(name);
       }))
 );
-const normalizedPlatformLabels = new Set(
-  (Array.isArray(knowledgeCard?.platforms) ? knowledgeCard.platforms : [])
-    .filter((platform): platform is string => typeof platform === 'string')
-    .map((platform) => platform.trim().toLowerCase())
-);
-const hasNonWebPlatformSignal = Array.from(normalizedPlatformLabels).some((platform) =>
-  /\b(android|ios|mobile|desktop|mac|windows|linux)\b/.test(platform)
-);
+const WEB_ONLY_CLAIM_PATTERN =
+  /\b(platform access is limited to web-based environments|web[-\s]*only|limited to web[-\s]*based environments|web-based environments only)\b/i;
+const CONTRADICTORY_FREE_PLAN_PATTERN = /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan)\b/i;
+const isDisallowedConClaim = (text: string): boolean => {
+  if (!text) return false;
+  if (WEB_ONLY_CLAIM_PATTERN.test(text)) return true;
+  if (hasFreePlanSignal && CONTRADICTORY_FREE_PLAN_PATTERN.test(text)) return true;
+  return false;
+};
 const renderVerdictSafe = (() => {
   if (!renderVerdict) return renderVerdict;
   let next = renderVerdict;
@@ -688,12 +689,7 @@ const renderVerdictSafe = (() => {
       ''
     );
   }
-  if (hasNonWebPlatformSignal) {
-    next = next.replace(
-      /\bplatform access is limited to web-based environments\b[^.\n]*(?:[.\n]|$)/gi,
-      ''
-    );
-  }
+  next = next.replace(/\b(?:web[-\s]*only|limited to web(?:[-\s]*based environments)?|platform access is limited to web-based environments)\b[^.\n]*(?:[.\n]|$)/gi, '');
   next = next.replace(/\n{3,}/g, '\n\n').trim();
   return next || renderVerdict;
 })();
@@ -913,14 +909,22 @@ const decisionIntroBestFor = cleanDecisionSlotText(
   (decisionSlotsRaw?.best_fit as string | undefined) ?? decisionIntroRaw?.best_for,
   'best_fit'
 );
-const decisionIntroNotFor = cleanDecisionSlotText(
+const decisionIntroNotForRaw = cleanDecisionSlotText(
   (decisionSlotsRaw?.weak_fit as string | undefined) ?? decisionIntroRaw?.not_for,
   'weak_fit'
 );
-const decisionIntroTradeoff = cleanDecisionSlotText(
+const decisionIntroNotFor =
+  decisionIntroNotForRaw && !isDisallowedConClaim(decisionIntroNotForRaw)
+    ? decisionIntroNotForRaw
+    : '';
+const decisionIntroTradeoffRaw = cleanDecisionSlotText(
   (decisionSlotsRaw?.tradeoff as string | undefined) ?? decisionIntroRaw?.main_tradeoff,
   'tradeoff'
 );
+const decisionIntroTradeoff =
+  decisionIntroTradeoffRaw && !isDisallowedConClaim(decisionIntroTradeoffRaw)
+    ? decisionIntroTradeoffRaw
+    : '';
 const fallbackDecisionSummary =
   tool.short_description ||
   knowledgeCard?.tagline ||
@@ -941,7 +945,7 @@ const decisionSnapshotBestWhen = uniqueDecisionText(
       ? tags.audiences.map((tag) => tag.name)
       : firstReview?.pros || []
 ).slice(0, 3);
-const decisionSnapshotWatchOuts = uniqueDecisionText(
+const decisionSnapshotWatchOutCandidates = uniqueDecisionText(
   decisionIntroNotFor
     ? [decisionIntroNotFor, ...guardedAvoidIf]
     : guardedAvoidIf.length > 0
@@ -951,12 +955,11 @@ const decisionSnapshotWatchOuts = uniqueDecisionText(
       : fallbackConsText.length > 0
         ? fallbackConsText.slice(0, 2)
         : (firstReview?.cons || []).slice(0, 2)
-).slice(0, 3);
-const decisionTradeoffSummary =
-  decisionIntroTradeoff ||
-  cleanNarrativeText(topHardLimit?.text) ||
-  cleanNarrativeText(decisionSnapshotWatchOuts[0]) ||
-  'Tradeoff not confirmed yet.';
+);
+const decisionSnapshotWatchOuts = decisionSnapshotWatchOutCandidates
+  .filter((item) => !isDisallowedConClaim(item))
+  .slice(0, 3);
+let decisionTradeoffSummary = decisionIntroTradeoff || '';
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
@@ -1179,18 +1182,9 @@ const globalEvidenceCons = (Array.isArray(globalCons) ? globalCons : [])
   .filter((item): item is EvidenceBullet => Boolean(item));
 const effectiveEvidencePros =
   contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros;
-const WEB_ONLY_CLAIM_PATTERN =
-  /\b(web[-\s]*only|limited to web|limited to web[-\s]*based environments|web-based environments only|platform access.*web)\b/i;
-const CONTRADICTORY_FREE_PLAN_PATTERN = /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan)\b/i;
-const isContradictoryConClaim = (text: string): boolean => {
-  if (!text) return false;
-  if (hasFreePlanSignal && CONTRADICTORY_FREE_PLAN_PATTERN.test(text)) return true;
-  if (hasNonWebPlatformSignal && WEB_ONLY_CLAIM_PATTERN.test(text)) return true;
-  return false;
-};
 const rawEvidenceCons = contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
 const effectiveEvidenceCons = rawEvidenceCons.filter(
-  (item) => !isContradictoryConClaim(item.text)
+  (item) => !isDisallowedConClaim(item.text)
 );
 const hasStrengths =
   effectiveEvidencePros.length +
@@ -1224,7 +1218,7 @@ const hardLimitFromConstraints = Array.isArray(constraints?.hard_limits)
           typeof limit?.plan_name_match === 'string' ? ` (${limit.plan_name_match})` : '';
         const text = `${metric}: ${value}${unit}${plan}`.trim();
         if (!text || text === 'Limit:') return null;
-        if (isContradictoryConClaim(text)) return null;
+        if (isDisallowedConClaim(text)) return null;
         return { text, sourceUrl } as EvidenceBullet;
       })
       .filter((item): item is EvidenceBullet => Boolean(item))
@@ -1249,6 +1243,11 @@ const hardLimitBullets = withUniqueText(
 );
 const canonicalHardLimits = withUniqueText([...hardLimitBullets, ...hiddenCostBullets]).slice(0, 6);
 const topHardLimit = canonicalHardLimits[0] || null;
+decisionTradeoffSummary =
+  decisionTradeoffSummary ||
+  cleanNarrativeText(topHardLimit?.text) ||
+  cleanNarrativeText(decisionSnapshotWatchOuts[0]) ||
+  'Tradeoff not confirmed yet.';
 const gettingStartedCtaUrl = knowledgeCard?.setup_complexity?.setup_url || tool.website || null;
 const officialDomains = new Set(officialEvidenceLinks.map((entry) => entry.domain));
 const hasOfficialPricingSource = officialEvidenceLinks.some(
