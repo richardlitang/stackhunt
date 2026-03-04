@@ -24,6 +24,7 @@ import AudienceFitTable from '@/components/AudienceFitTable.astro';
 import MigrationDirectionCards from '@/components/MigrationDirectionCards.astro';
 import SwitchReasonsCards from '@/components/SwitchReasonsCards.astro';
 import CompareSuggestionsGrid from '@/components/CompareSuggestionsGrid.astro';
+import ChooseIfCards from '@/components/ChooseIfCards.astro';
 import { supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {
@@ -808,60 +809,16 @@ const schemas = [
       (chooseAIf.length > 0 || chooseBIf.length > 0) && (
         <section class="mt-12">
           <h2 class="mb-6 text-xl font-semibold text-zinc-100">When to Choose</h2>
-          <div class="grid gap-6 lg:grid-cols-2">
-            {chooseAIf.length > 0 && (
-              <div class="rounded-xl border border-emerald-500/40 bg-emerald-900/20 p-5">
-                <h3 class="mb-3 flex items-center gap-2 font-semibold text-emerald-300">
-                  <Logo domain={toolA.logo_url} name={toolA.name} size="sm" class="rounded-lg" />
-                  Choose {toolA.name} if...
-                </h3>
-                <ul class="space-y-2">
-                  {chooseAIf.map((reason: string) => (
-                    <li class="flex items-start gap-2 text-sm text-zinc-200">
-                      <svg
-                        class="h-4 w-4 mt-0.5 text-green-500 shrink-0"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                      {reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {chooseBIf.length > 0 && (
-              <div class="rounded-xl border border-sky-500/40 bg-sky-900/20 p-5">
-                <h3 class="mb-3 flex items-center gap-2 font-semibold text-sky-300">
-                  <Logo domain={toolB.logo_url} name={toolB.name} size="sm" class="rounded-lg" />
-                  Choose {toolB.name} if...
-                </h3>
-                <ul class="space-y-2">
-                  {chooseBIf.map((reason: string) => (
-                    <li class="flex items-start gap-2 text-sm text-zinc-200">
-                      <svg
-                        class="h-4 w-4 mt-0.5 text-blue-500 shrink-0"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                      {reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <ChooseIfCards
+            columns={[
+              ...(chooseAIf.length > 0
+                ? [{ name: toolA.name, logoUrl: toolA.logo_url, reasons: chooseAIf, tone: 'emerald' as const }]
+                : []),
+              ...(chooseBIf.length > 0
+                ? [{ name: toolB.name, logoUrl: toolB.logo_url, reasons: chooseBIf, tone: 'sky' as const }]
+                : []),
+            ]}
+          />
         </section>
       )
     }
