@@ -1,3 +1,5 @@
+import { isBlockedEvidenceDomain } from '@/lib/tool-page-evidence-policy';
+
 export interface ToolPageEvidenceLinkEntry {
   url: string;
   title: string;
@@ -65,13 +67,7 @@ export function buildToolPageEvidenceLinks(
         }
       })();
       const blocked =
-        hostname.includes('reddit.com') ||
-        hostname.includes('ycombinator.com') ||
-        hostname.includes('g2.com') ||
-        hostname.includes('capterra.com') ||
-        hostname.includes('trustpilot.com') ||
-        hostname.includes('stackexchange.com') ||
-        hostname.includes('stackoverflow.com');
+        isBlockedEvidenceDomain(hostname);
       if (blocked) return null;
       const sourceType = String(source?.source_type || source?.type || '').toLowerCase();
       const basis =
