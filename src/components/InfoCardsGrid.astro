@@ -1,0 +1,63 @@
+---
+interface InfoCard {
+  title: string;
+  body?: string;
+  items?: string[];
+  note?: string;
+}
+
+interface Props {
+  cards: InfoCard[];
+  className?: string;
+  cardClassName?: string;
+  titleClassName?: string;
+  bodyClassName?: string;
+  listClassName?: string;
+  noteClassName?: string;
+}
+
+const {
+  cards,
+  className = 'mt-4 grid gap-3 md:grid-cols-3',
+  cardClassName = 'rounded-lg border border-zinc-800 bg-zinc-950/40 p-4',
+  titleClassName = 'text-sm font-semibold text-zinc-100',
+  bodyClassName = 'mt-2 text-sm text-zinc-300',
+  listClassName = 'mt-2 space-y-1 text-sm text-zinc-300',
+  noteClassName = 'mt-2 text-xs text-zinc-500',
+} = Astro.props as Props;
+
+const validCards = (Array.isArray(cards) ? cards : []).filter(
+  (card) =>
+    card &&
+    typeof card.title === 'string' &&
+    card.title.trim().length > 0 &&
+    (typeof card.body === 'string' || Array.isArray(card.items))
+);
+
+if (validCards.length === 0) {
+  return null;
+}
+---
+
+<div class={className}>
+  {
+    validCards.map((card) => (
+      <div class={cardClassName}>
+        <h3 class={titleClassName}>{card.title}</h3>
+        {typeof card.body === 'string' && card.body.trim().length > 0 && (
+          <p class={bodyClassName}>{card.body}</p>
+        )}
+        {Array.isArray(card.items) && card.items.length > 0 && (
+          <ul class={listClassName}>
+            {card.items.map((line) => (
+              <li>- {line}</li>
+            ))}
+          </ul>
+        )}
+        {typeof card.note === 'string' && card.note.trim().length > 0 && (
+          <p class={noteClassName}>{card.note}</p>
+        )}
+      </div>
+    ))
+  }
+</div>

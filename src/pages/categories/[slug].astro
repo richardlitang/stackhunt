@@ -7,6 +7,7 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import InfoCardsGrid from '@/components/InfoCardsGrid.astro';
 import ToolCard from '@/components/ToolCard.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
 import Logo from '@/components/Logo.astro';
@@ -186,52 +187,42 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
             : 'We track tools in this category with source-backed reviews and list-level context pages.'
           : 'This category is active, but enough source-backed tool profiles have not been published yet.'}
       </p>
-      <div class="mt-5 grid gap-4 md:grid-cols-3">
-        <div class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-          <h3 class="text-sm font-semibold text-zinc-100">Where Teams Usually See Value</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {(highlightStrengths.length > 0
-              ? highlightStrengths
-              : [
-                  'Faster execution of a repeated workflow',
-                  'Cleaner collaboration handoffs',
-                  'Lower operational friction after onboarding',
-                ]
-            ).map((line) => (
-              <li>- {line}</li>
-            ))}
-          </ul>
-        </div>
-        <div class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-          <h3 class="text-sm font-semibold text-zinc-100">Where Rollouts Usually Break</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {(highlightWatchouts.length > 0
-              ? highlightWatchouts
-              : [
-                  'Plan-gated features discovered late in rollout',
-                  'Migration work under-scoped during trial',
-                  'Integration assumptions not validated early',
-                ]
-            ).map((line) => (
-              <li>- {line}</li>
-            ))}
-          </ul>
-        </div>
-        <div class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-          <h3 class="text-sm font-semibold text-zinc-100">Current Category Pricing Shape</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {(pricingMixRows.length > 0
-              ? pricingMixRows
-              : ['Pricing data is still being collected for this category.']
-            ).map((line) => (
-              <li>- {line}</li>
-            ))}
-          </ul>
-          <p class="mt-2 text-xs text-zinc-500">
-            Validate cancellation terms, seat mechanics, and usage thresholds before committing.
-          </p>
-        </div>
-      </div>
+      <InfoCardsGrid
+        className="mt-5 grid gap-4 md:grid-cols-3"
+        cardClassName="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4"
+        cards={[
+          {
+            title: 'Where Teams Usually See Value',
+            items:
+              highlightStrengths.length > 0
+                ? highlightStrengths
+                : [
+                    'Faster execution of a repeated workflow',
+                    'Cleaner collaboration handoffs',
+                    'Lower operational friction after onboarding',
+                  ],
+          },
+          {
+            title: 'Where Rollouts Usually Break',
+            items:
+              highlightWatchouts.length > 0
+                ? highlightWatchouts
+                : [
+                    'Plan-gated features discovered late in rollout',
+                    'Migration work under-scoped during trial',
+                    'Integration assumptions not validated early',
+                  ],
+          },
+          {
+            title: 'Current Category Pricing Shape',
+            items:
+              pricingMixRows.length > 0
+                ? pricingMixRows
+                : ['Pricing data is still being collected for this category.'],
+            note: 'Validate cancellation terms, seat mechanics, and usage thresholds before committing.',
+          },
+        ]}
+      />
     </section>
 
     <!-- Content Grid -->

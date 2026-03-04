@@ -30,6 +30,7 @@ import PriceVerification from '@/components/PriceVerification';
 import SuiteNavigation from '@/components/SuiteNavigation.astro';
 import DynamicSpecs from '@/components/DynamicSpecs.astro';
 import IncludedTools from '@/components/IncludedTools.astro';
+import InfoCardsGrid from '@/components/InfoCardsGrid.astro';
 import TwoColumnChecklistCards from '@/components/TwoColumnChecklistCards.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
@@ -1450,14 +1451,9 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
             Use this section to pressure-test adoption before committing budget or migration effort.
             It translates the verdict into practical rollout checkpoints.
           </p>
-          <div class="mt-4 grid gap-3 md:grid-cols-3">
-            {workflowFitCards.map((card) => (
-              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <h3 class="text-sm font-semibold text-zinc-100">{card.title}</h3>
-                <p class="mt-2 text-sm text-zinc-300">{card.body}</p>
-              </div>
-            ))}
-          </div>
+          <InfoCardsGrid
+            cards={workflowFitCards.map((card) => ({ title: card.title, body: card.body }))}
+          />
           {workflowFitHighlights.length > 0 && (
             <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
               <h3 class="text-sm font-semibold text-zinc-200">Workflow Signals from Current Evidence</h3>
