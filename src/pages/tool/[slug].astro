@@ -94,6 +94,7 @@ import {
   isEligibleEvidenceUrl,
 } from '@/lib/tool-page-evidence-policy';
 import { selectToolPageReview } from '@/lib/reviews/select-review';
+import { deriveToolPageSetupSignals } from '@/lib/tool-page-setup';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -500,28 +501,12 @@ const hasAbout = (() => {
 const hasFeatures = Boolean(
   knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0
 );
-const hasMeaningfulStepAction = (step: unknown): boolean => {
-  if (!step || typeof step !== 'object') return false;
-  const action = (step as Record<string, unknown>).action;
-  return typeof action === 'string' && action.trim().length >= 6;
-};
-const hasSetupComplexityContent = Boolean(
-  knowledgeCard?.setup_complexity &&
-  ((Array.isArray(knowledgeCard.setup_complexity.steps) &&
-    knowledgeCard.setup_complexity.steps.some((step) => hasMeaningfulStepAction(step))) ||
-    (typeof knowledgeCard.setup_complexity.estimated_setup_time === 'string' &&
-      knowledgeCard.setup_complexity.estimated_setup_time.trim().length > 0) ||
-    Boolean(knowledgeCard.setup_complexity.setup_url))
-);
-const hasNonDevTrackContent = Array.isArray(setupTracks?.non_dev)
-  ? setupTracks.non_dev.some((step) => hasMeaningfulStepAction(step))
-  : false;
-const hasDevTrackContent = Array.isArray(setupTracks?.dev)
-  ? setupTracks.dev.some((step) => hasMeaningfulStepAction(step))
-  : false;
-const hasGettingStartedRaw = Boolean(
-  hasSetupComplexityContent || hasNonDevTrackContent || hasDevTrackContent
-);
+const setupSignals = deriveToolPageSetupSignals({
+  knowledgeCard,
+  setupTracks: setupTracks || null,
+  website: tool.website,
+});
+const hasGettingStartedRaw = setupSignals.hasGettingStarted;
 const comparativeFeaturePeerCount =
   typeof (knowledgeCard?.meta as Record<string, unknown> | undefined)?.comparative_feature_peer_count ===
   'number'
@@ -825,7 +810,7 @@ decisionTradeoffSummary =
   cleanNarrativeText(topHardLimit?.text) ||
   cleanNarrativeText(decisionSnapshotWatchOuts[0]) ||
   'Tradeoff not confirmed yet.';
-const gettingStartedCtaUrl = knowledgeCard?.setup_complexity?.setup_url || tool.website || null;
+const gettingStartedCtaUrl = setupSignals.gettingStartedCtaUrl;
 const baseEvidenceGrade: ToolPageEvidenceGrade = deriveToolPageBaseEvidenceGrade({
   officialEvidenceLinks,
   canonicalHardLimitCount: canonicalHardLimits.length,
