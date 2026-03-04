@@ -65,6 +65,7 @@ import { buildToolPageEvaluationViewModel } from '@/lib/tool-page-evaluation';
 import { buildToolPageSourcesViewModel } from '@/lib/tool-page-sources';
 import { buildToolPageDecisionSnapshot } from '@/lib/tool-page-decision';
 import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page-evidence-grade';
+import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page-constraints';
 import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
 import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
@@ -1155,26 +1156,13 @@ const hardLimitFromConstraints = Array.isArray(constraints?.hard_limits)
       })
       .filter((item): item is EvidenceBullet => Boolean(item))
   : [];
-const withUniqueText = (items: EvidenceBullet[]): EvidenceBullet[] => {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    const key = item.text.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-};
-const hardLimitBullets = withUniqueText(
-  [
-    ...hardLimitFromConstraints,
-    ...effectiveEvidenceCons.filter((item) =>
-      /\b(limit|limited|quota|cap|hard stop|ceiling|overage|maximum|max)\b/i.test(item.text)
-    ),
-    ...hiddenCostBullets.filter((item) => /\b(setup fee|one-time|activation)\b/i.test(item.text)),
-  ].slice(0, 6)
-);
-const canonicalHardLimits = withUniqueText([...hardLimitBullets, ...hiddenCostBullets]).slice(0, 6);
-const topHardLimit = canonicalHardLimits[0] || null;
+const toolPageCanonicalHardLimits = deriveToolPageCanonicalHardLimits({
+  hardLimitFromConstraints,
+  effectiveEvidenceCons,
+  hiddenCostBullets,
+});
+const { hardLimitBullets: _hardLimitBullets, canonicalHardLimits, topHardLimit } =
+  toolPageCanonicalHardLimits;
 decisionTradeoffSummary =
   decisionTradeoffSummary ||
   cleanNarrativeText(topHardLimit?.text) ||
