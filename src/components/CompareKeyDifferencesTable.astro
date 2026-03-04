@@ -1,0 +1,111 @@
+---
+import PricingBadge from '@/components/PricingBadge.astro';
+
+interface Highlight {
+  label: string;
+  winnerA: boolean;
+  winnerB: boolean;
+}
+
+interface Props {
+  toolAName: string;
+  toolBName: string;
+  scoreA: number;
+  scoreB: number;
+  pricingTypeA?: string | null;
+  pricingTypeB?: string | null;
+  learningCurveA?: string | null;
+  learningCurveB?: string | null;
+  highlights: Highlight[];
+}
+
+const {
+  toolAName,
+  toolBName,
+  scoreA,
+  scoreB,
+  pricingTypeA = null,
+  pricingTypeB = null,
+  learningCurveA = null,
+  learningCurveB = null,
+  highlights,
+} = Astro.props as Props;
+
+const formatLearningCurve = (curve: string | null) => {
+  if (!curve) return 'Unknown';
+  const map: Record<string, string> = {
+    minutes: '~Minutes',
+    hours: '~Hours',
+    days: '~Days',
+    weeks: '~Weeks',
+    months: '~Months',
+  };
+  return map[curve] || curve;
+};
+
+const filteredHighlights = (Array.isArray(highlights) ? highlights : []).filter(
+  (entry) =>
+    !(
+      entry.label === 'Learning Curve' &&
+      (learningCurveA || learningCurveB)
+    )
+);
+---
+
+<div class="overflow-hidden rounded-xl border border-zinc-700 shadow-sm">
+  <table class="w-full">
+    <thead class="bg-zinc-900">
+      <tr>
+        <th class="px-6 py-3 text-left text-sm font-semibold text-zinc-300">Aspect</th>
+        <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">{toolAName}</th>
+        <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">{toolBName}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200">
+      <tr>
+        <td class="px-6 py-4 text-sm font-medium text-zinc-300">Overall Score</td>
+        <td class="px-6 py-4 text-center">
+          <span class={`font-bold ${scoreA >= scoreB ? 'text-green-600' : 'text-zinc-300'}`}>
+            {scoreA}/100
+            {scoreA > scoreB && ' ✓'}
+          </span>
+        </td>
+        <td class="px-6 py-4 text-center">
+          <span class={`font-bold ${scoreB >= scoreA ? 'text-green-600' : 'text-zinc-300'}`}>
+            {scoreB}/100
+            {scoreB > scoreA && ' ✓'}
+          </span>
+        </td>
+      </tr>
+      <tr>
+        <td class="px-6 py-4 text-sm font-medium text-zinc-300">Pricing</td>
+        <td class="px-6 py-4 text-center">
+          <PricingBadge type={pricingTypeA} size="sm" />
+        </td>
+        <td class="px-6 py-4 text-center">
+          <PricingBadge type={pricingTypeB} size="sm" />
+        </td>
+      </tr>
+      {(learningCurveA || learningCurveB) && (
+        <tr>
+          <td class="px-6 py-4 text-sm font-medium text-zinc-300">Learning Curve</td>
+          <td class="px-6 py-4 text-center text-sm text-zinc-300">{formatLearningCurve(learningCurveA)}</td>
+          <td class="px-6 py-4 text-center text-sm text-zinc-300">{formatLearningCurve(learningCurveB)}</td>
+        </tr>
+      )}
+      {
+        filteredHighlights.map((entry) => (
+          <tr>
+            <td class="px-6 py-4 text-sm font-medium text-zinc-300">{entry.label}</td>
+            <td class="px-6 py-4 text-center">
+              {entry.winnerA ? <span class="text-green-600">✓ Better</span> : <span class="text-zinc-500">-</span>}
+            </td>
+            <td class="px-6 py-4 text-center">
+              {entry.winnerB ? <span class="text-green-600">✓ Better</span> : <span class="text-zinc-500">-</span>}
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>

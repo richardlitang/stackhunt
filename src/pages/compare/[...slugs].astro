@@ -13,6 +13,7 @@ import InfoCardsGrid from '@/components/InfoCardsGrid.astro';
 import Logo from '@/components/Logo.astro';
 import ScoreBadge from '@/components/ScoreBadge.astro';
 import PricingBadge from '@/components/PricingBadge.astro';
+import CompareKeyDifferencesTable from '@/components/CompareKeyDifferencesTable.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import SmartComparisonTable from '@/components/SmartComparisonTable';
@@ -279,19 +280,6 @@ if (selectedSnapshot?.snapshot_json) {
     if (Number.isFinite(maybeB)) scoreB = maybeB;
   }
 }
-
-// Format learning curve for display
-const formatLearningCurve = (curve: string | null) => {
-  if (!curve) return 'Unknown';
-  const map: Record<string, string> = {
-    minutes: '~Minutes',
-    hours: '~Hours',
-    days: '~Days',
-    weeks: '~Weeks',
-    months: '~Months',
-  };
-  return map[curve] || curve;
-};
 
 // Get comparison insights data (if curated)
 const curatedVerdict = comparisonInsights?.verdict;
@@ -800,90 +788,17 @@ const schemas = [
       highlights.length > 0 && (
         <section class="mt-12">
           <h2 class="mb-6 text-xl font-semibold text-zinc-100">Key Differences</h2>
-          <div class="overflow-hidden rounded-xl border border-zinc-700 shadow-sm">
-            <table class="w-full">
-              <thead class="bg-zinc-900">
-                <tr>
-                  <th class="px-6 py-3 text-left text-sm font-semibold text-zinc-300">Aspect</th>
-                  <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">
-                    {toolA.name}
-                  </th>
-                  <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">
-                    {toolB.name}
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-200">
-                <tr>
-                  <td class="px-6 py-4 text-sm font-medium text-zinc-300">Overall Score</td>
-                  <td class="px-6 py-4 text-center">
-                    <span
-                      class={`font-bold ${scoreA >= scoreB ? 'text-green-600' : 'text-zinc-300'}`}
-                    >
-                      {scoreA}/100
-                      {scoreA > scoreB && ' ✓'}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 text-center">
-                    <span
-                      class={`font-bold ${scoreB >= scoreA ? 'text-green-600' : 'text-zinc-300'}`}
-                    >
-                      {scoreB}/100
-                      {scoreB > scoreA && ' ✓'}
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="px-6 py-4 text-sm font-medium text-zinc-300">Pricing</td>
-                  <td class="px-6 py-4 text-center">
-                    <PricingBadge type={toolA.pricing_type} size="sm" />
-                  </td>
-                  <td class="px-6 py-4 text-center">
-                    <PricingBadge type={toolB.pricing_type} size="sm" />
-                  </td>
-                </tr>
-                {(toolA.learning_curve || toolB.learning_curve) && (
-                  <tr>
-                    <td class="px-6 py-4 text-sm font-medium text-zinc-300">Learning Curve</td>
-                    <td class="px-6 py-4 text-center text-sm text-zinc-300">
-                      {formatLearningCurve(toolA.learning_curve)}
-                    </td>
-                    <td class="px-6 py-4 text-center text-sm text-zinc-300">
-                      {formatLearningCurve(toolB.learning_curve)}
-                    </td>
-                  </tr>
-                )}
-                {/* Filter out Learning Curve from highlights if we already show the dedicated row */}
-                {highlights
-                  .filter(
-                    (h) =>
-                      !(
-                        h.label === 'Learning Curve' &&
-                        (toolA.learning_curve || toolB.learning_curve)
-                      )
-                  )
-                  .map((h) => (
-                    <tr>
-                      <td class="px-6 py-4 text-sm font-medium text-zinc-300">{h.label}</td>
-                      <td class="px-6 py-4 text-center">
-                        {h.winnerA ? (
-                          <span class="text-green-600">✓ Better</span>
-                        ) : (
-                          <span class="text-zinc-500">-</span>
-                        )}
-                      </td>
-                      <td class="px-6 py-4 text-center">
-                        {h.winnerB ? (
-                          <span class="text-green-600">✓ Better</span>
-                        ) : (
-                          <span class="text-zinc-500">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+          <CompareKeyDifferencesTable
+            toolAName={toolA.name}
+            toolBName={toolB.name}
+            scoreA={scoreA}
+            scoreB={scoreB}
+            pricingTypeA={toolA.pricing_type}
+            pricingTypeB={toolB.pricing_type}
+            learningCurveA={toolA.learning_curve}
+            learningCurveB={toolB.learning_curve}
+            highlights={highlights}
+          />
         </section>
       )
     }
