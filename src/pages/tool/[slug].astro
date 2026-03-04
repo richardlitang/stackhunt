@@ -44,52 +44,42 @@ import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import {
-  buildToolPagePricingViewModel,
-  deriveToolPagePricingSignals,
-} from '@/lib/tool-page/pricing';
-import { buildToolPageEvaluationViewModel } from '@/lib/tool-page/evaluation';
-import { buildToolPageSourcesViewModel } from '@/lib/tool-page/sources';
-import { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';
-import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page/evidence-grade';
-import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
-import { buildToolPageEvidenceLinks } from '@/lib/tool-page/evidence-links';
-import {
+  buildToolPageAlternativesState,
+  buildToolPageAlternativesStateInput,
+  deriveToolPageBaseEvidenceGrade,
+  deriveToolPageCanonicalHardLimits,
+  deriveToolPageCoreState,
+  buildToolPageDecisionSnapshot,
   buildToolPageEvidenceBulletV2,
   toToolPageEvidenceBullet,
   type ToolPageEvidenceBullet as EvidenceBullet,
   type ToolPageEvidenceBulletV2 as EvidenceBulletV2,
-} from '@/lib/tool-page/evidence-bullets';
-import {
+  buildToolPageEvidenceLinks,
+  countEligibleEvidenceDomains,
+  isEligibleEvidenceUrl,
+  buildToolPageEvaluationViewModel,
+  buildToolPagePricingViewModel,
+  deriveToolPageReviewContextSignals,
+  deriveToolPageReviewContentLists,
+  deriveToolPageReviewProgress,
+  deriveToolPageReviewSignals,
+  deriveToolPageSectionSignals,
+  buildToolPageSectionState,
+  deriveToolPageSetupSignals,
+  buildToolPageSourceAriaLabel,
+  buildToolPageSourcesViewModel,
   cleanToolPageDecisionSlotText,
   cleanToolPageNarrativeText,
   extractToolPageClaimText,
   stripToolPageControlChars,
   uniqueToolPageDecisionText,
-} from '@/lib/tool-page/text';
-import {
-  buildToolPageSourceAriaLabel,
-} from '@/lib/tool-page/source-labels';
-import {
-  countEligibleEvidenceDomains,
-  isEligibleEvidenceUrl,
-} from '@/lib/tool-page/evidence-policy';
-import { selectToolPageReview } from '@/lib/reviews/select-review';
-import { deriveToolPageSetupSignals } from '@/lib/tool-page/setup';
-import { deriveToolPageSectionSignals } from '@/lib/tool-page/section-signals';
-import { buildToolPageSectionState } from '@/lib/tool-page/section-state';
-import { buildToolPageAlternativesState } from '@/lib/tool-page/alternatives-state';
-import { deriveToolPageVerdictPolicy } from '@/lib/tool-page/verdict-policy';
-import { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
-import {
-  deriveToolPageReviewContentLists,
   deriveToolPageSourceEvidenceDomains,
-} from '@/lib/tool-page/review-content';
-import { deriveToolPageReviewProgress } from '@/lib/tool-page/review-progress';
-import { buildToolPageTradeoffEvidence } from '@/lib/tool-page/tradeoff-evidence';
-import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
-import { buildToolPageRuntime } from '@/lib/tool-page/runtime';
-import { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
-import { buildToolPageAlternativesStateInput } from '@/lib/tool-page/alternatives-input';
+  buildToolPageTradeoffEvidence,
+  deriveToolPageVerdictPolicy,
+  buildToolPageRuntime,
+  deriveToolPagePricingSignals,
+} from '@/lib/tool-page';
+import { selectToolPageReview } from '@/lib/reviews/select-review';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
