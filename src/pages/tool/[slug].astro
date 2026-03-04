@@ -62,6 +62,7 @@ import {
   deriveToolPagePricingSignals,
 } from '@/lib/tool-page-pricing';
 import { buildToolPageEvaluationViewModel } from '@/lib/tool-page-evaluation';
+import { buildToolPageSourcesViewModel } from '@/lib/tool-page-sources';
 import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
 import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
@@ -1081,17 +1082,6 @@ const evidenceLinksAll = (firstReview?.sources || [])
   .filter((entry): entry is EvidenceLinkEntry => Boolean(entry));
 const evidenceLinks = evidenceLinksAll.filter((entry) => entry.quality !== 'low');
 const lowConfidenceEvidenceLinks = evidenceLinksAll.filter((entry) => entry.quality === 'low');
-const normalizeSourceUrl = (value?: string | null): string | null => {
-  if (!value) return null;
-  try {
-    const parsed = new URL(value);
-    parsed.hash = '';
-    parsed.search = '';
-    return parsed.toString();
-  } catch {
-    return null;
-  }
-};
 const evidenceBasis = [
   'Official docs/help center',
   'Official pricing pages',
@@ -1278,45 +1268,18 @@ const {
   pricingNarrativeLead,
   pricingNarrativeLabel,
 } = pricingViewModel;
-const prosConsSourceUrls = new Set(
-  [...effectiveEvidencePros, ...effectiveEvidenceCons]
-    .map((entry) => normalizeSourceUrl(entry.sourceUrl))
-    .filter((entry): entry is string => Boolean(entry))
-);
-const pricingSourceUrls = new Set(
-  [pricingSourceUrl, ...pricingEvidenceLinks.map((entry) => normalizeSourceUrl(entry.sourceUrl))]
-    .filter((entry): entry is string => Boolean(entry))
-);
-const faqSourceUrls = new Set(
-  faqItems
-    .map((item) => normalizeSourceUrl(item.answer_source_url))
-    .filter((entry): entry is string => Boolean(entry))
-);
-const specsSourceUrls = new Set(
-  [officialDocsSource?.url, ...canonicalHardLimits.map((item) => item.sourceUrl)]
-    .map((entry) => normalizeSourceUrl(entry))
-    .filter((entry): entry is string => Boolean(entry))
-);
-const baselineSourceUrls = new Set(
-  evidenceLinksAll
-    .map((entry) => normalizeSourceUrl(entry.url))
-    .filter((entry): entry is string => Boolean(entry))
-);
-const collectedSourceUrlSet = new Set<string>([
-  ...baselineSourceUrls,
-  ...prosConsSourceUrls,
-  ...pricingSourceUrls,
-  ...faqSourceUrls,
-  ...specsSourceUrls,
-]);
-const collectedSourcesBySection = {
-  pros_cons: prosConsSourceUrls.size,
-  pricing: pricingSourceUrls.size,
-  faq: faqSourceUrls.size,
-  specs: specsSourceUrls.size,
-};
-const collectedSourcesTotal = collectedSourceUrlSet.size;
-const hasCollectedSources = collectedSourcesTotal > 0;
+const toolPageSourcesViewModel = buildToolPageSourcesViewModel({
+  evidenceLinksAll,
+  effectiveEvidencePros,
+  effectiveEvidenceCons,
+  pricingSourceUrl,
+  pricingEvidenceLinks,
+  faqItems,
+  officialDocsSourceUrl: officialDocsSource?.url || null,
+  canonicalHardLimits,
+});
+const { collectedSourcesBySection, collectedSourcesTotal, hasCollectedSources } =
+  toolPageSourcesViewModel;
 const toolPageViewModel = buildToolPageViewModel({
   activeReviewLens,
   hasVerdict,
