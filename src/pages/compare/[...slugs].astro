@@ -16,7 +16,6 @@ import PricingBadge from '@/components/PricingBadge.astro';
 import CompareKeyDifferencesTable from '@/components/CompareKeyDifferencesTable.astro';
 import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
-import SmartComparisonTable from '@/components/SmartComparisonTable';
 import ProsCons from '@/components/ProsCons.astro';
 import TrustBar from '@/components/TrustBar.astro';
 import AudienceFitTable from '@/components/AudienceFitTable.astro';
@@ -25,6 +24,7 @@ import SwitchReasonsCards from '@/components/SwitchReasonsCards.astro';
 import CompareSuggestionsGrid from '@/components/CompareSuggestionsGrid.astro';
 import ChooseIfCards from '@/components/ChooseIfCards.astro';
 import ComparePricingCrossoverSection from '@/components/ComparePricingCrossoverSection.astro';
+import CompareFeatureComparisonSection from '@/components/CompareFeatureComparisonSection.astro';
 import { supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {
@@ -894,24 +894,20 @@ const schemas = [
     />
 
     <!-- Smart Feature Comparison (using Knowledge Cards) -->
-    <section class="mt-12">
-      <h2 class="mb-6 text-xl font-semibold text-zinc-100">Detailed Feature Comparison</h2>
-      <SmartComparisonTable
-        client:load
-        toolA={{
-          name: toolA.name,
-          slug: toolA.slug,
-          logo_url: toolA.logo_url,
-          metadata: toolA.metadata,
-        }}
-        toolB={{
-          name: toolB.name,
-          slug: toolB.slug,
-          logo_url: toolB.logo_url,
-          metadata: toolB.metadata,
-        }}
-      />
-    </section>
+    <CompareFeatureComparisonSection
+      toolA={{
+        name: toolA.name,
+        slug: toolA.slug,
+        logo_url: toolA.logo_url,
+        metadata: toolA.metadata,
+      }}
+      toolB={{
+        name: toolB.name,
+        slug: toolB.slug,
+        logo_url: toolB.logo_url,
+        metadata: toolB.metadata,
+      }}
+    />
 
     <!-- You Might Also Compare -->
     {
