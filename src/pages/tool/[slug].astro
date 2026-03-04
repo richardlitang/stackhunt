@@ -95,6 +95,7 @@ import {
 } from '@/lib/tool-page-evidence-policy';
 import { selectToolPageReview } from '@/lib/reviews/select-review';
 import { deriveToolPageSetupSignals } from '@/lib/tool-page-setup';
+import { deriveToolPageSectionSignals } from '@/lib/tool-page-section-signals';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -436,7 +437,6 @@ const knowledgeCardForSeo =
     ? { ...knowledgeCard, faqs: filteredFaqItems }
     : knowledgeCard;
 const faqItems = filteredFaqItems;
-const hasFAQRaw = faqItems.length > 0 && sectionPublishability.faq;
 
 const gateShouldIndex =
   typeof persistedQuality?.should_index === 'boolean'
@@ -498,9 +498,6 @@ const hasAbout = (() => {
       .trim();
   return normalize(longDescription) !== normalize(shortDescription);
 })();
-const hasFeatures = Boolean(
-  knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0
-);
 const setupSignals = deriveToolPageSetupSignals({
   knowledgeCard,
   setupTracks: setupTracks || null,
@@ -513,7 +510,6 @@ const comparativeFeaturePeerCount =
     ? ((knowledgeCard?.meta as Record<string, unknown>)
         .comparative_feature_peer_count as number)
     : 0;
-const hasSpecsRaw = Boolean((categorySpecificData || vipSpecifics) && sectionStatus.specs === 'show');
 const pricingSignals = deriveToolPagePricingSignals({
   toolPricingType: tool.pricing_type,
   pricingStartingPrice:
@@ -552,8 +548,37 @@ const renderVerdictSafe = (() => {
   return next || renderVerdict;
 })();
 const hasVerdict = Boolean(renderVerdictSafe && sectionStatus.verdict === 'show');
-const hasPlatformRaw = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
-const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
+const sectionSignals = deriveToolPageSectionSignals({
+  faqCount: faqItems.length,
+  faqPublishable: sectionPublishability.faq,
+  featureCoreCount: Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core.length : 0,
+  featureUniqueCount: Array.isArray(knowledgeCard?.features?.unique)
+    ? knowledgeCard.features.unique.length
+    : 0,
+  hasCategorySpecificData: Boolean(categorySpecificData),
+  hasVipSpecifics: Boolean(vipSpecifics),
+  specsSectionStatus: sectionStatus.specs,
+  hasPlatforms: Array.isArray(knowledgeCard?.platforms) && knowledgeCard.platforms.length > 0,
+  hasIntegrations: Boolean(knowledgeCard?.integrations),
+  alternativesCount: orderedAlternatives?.length || 0,
+  communitySectionStatus: sectionStatus.community,
+  eligibleSignalEvidenceCount,
+  idealFor: Array.isArray(idealFor) ? idealFor.filter((item): item is string => typeof item === 'string') : [],
+  avoidIf: Array.isArray(avoidIf) ? avoidIf.filter((item): item is string => typeof item === 'string') : [],
+  delighters: Array.isArray(delighters)
+    ? delighters.filter((item): item is string => typeof item === 'string')
+    : [],
+  frustrations: Array.isArray(frustrations)
+    ? frustrations.filter((item): item is string => typeof item === 'string')
+    : [],
+  powerTip: typeof powerTip === 'string' ? powerTip : null,
+  humanVerdict: typeof humanVerdict === 'string' ? humanVerdict : null,
+});
+const hasFAQRaw = sectionSignals.hasFAQRaw;
+const hasFeatures = sectionSignals.hasFeatures;
+const hasSpecsRaw = sectionSignals.hasSpecsRaw;
+const hasPlatformRaw = sectionSignals.hasPlatformRaw;
+const hasAlternatives = sectionSignals.hasAlternatives;
 const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
   areToolsComparable(
     {
@@ -569,21 +594,7 @@ const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
   )
 );
 const hasComparableAlternatives = comparableAlternatives.length > 0;
-const hasCommunityNarrativeSignal = Boolean(
-  (Array.isArray(idealFor) && idealFor.some((item) => typeof item === 'string' && item.trim().length >= 16)) ||
-    (Array.isArray(avoidIf) && avoidIf.some((item) => typeof item === 'string' && item.trim().length >= 16)) ||
-    (Array.isArray(delighters) &&
-      delighters.some((item) => typeof item === 'string' && item.trim().length >= 20)) ||
-    (Array.isArray(frustrations) &&
-      frustrations.some((item) => typeof item === 'string' && item.trim().length >= 20)) ||
-    (typeof powerTip === 'string' && powerTip.trim().length >= 24) ||
-    (typeof humanVerdict === 'string' && humanVerdict.trim().length >= 80)
-);
-const hasCommunityRaw = Boolean(
-  sectionStatus.community === 'show' &&
-    eligibleSignalEvidenceCount >= 4 &&
-    hasCommunityNarrativeSignal
-);
+const hasCommunityRaw = sectionSignals.hasCommunityRaw;
 const evidenceContract = createToolPageEvidenceContract({
   factFields: ['evidence', 'pricing', 'alternatives'],
   evaluationDepth: 'docs_only',
