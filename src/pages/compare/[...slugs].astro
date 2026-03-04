@@ -25,6 +25,7 @@ import CompareSuggestionsGrid from '@/components/CompareSuggestionsGrid.astro';
 import ChooseIfCards from '@/components/ChooseIfCards.astro';
 import ComparePricingCrossoverSection from '@/components/ComparePricingCrossoverSection.astro';
 import CompareFeatureComparisonSection from '@/components/CompareFeatureComparisonSection.astro';
+import CompareQuickLinks from '@/components/CompareQuickLinks.astro';
 import { supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {
@@ -931,29 +932,12 @@ const schemas = [
     }
 
     <!-- Quick Links -->
-    <section class="mt-8 border-t border-zinc-800 pt-6">
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-400">
-        <a href={`/tool/${toolA.slug}`} class="hover:text-indigo-400 transition">
-          More about {toolA.name} →
-        </a>
-        <span class="text-zinc-700">|</span>
-        <a href={`/tool/${toolB.slug}`} class="hover:text-indigo-400 transition">
-          More about {toolB.name} →
-        </a>
-        {
-          toolA.category && (
-            <>
-              <span class="text-zinc-700">|</span>
-              <a
-                href={`/categories/${toolA.category.slug}`}
-                class="hover:text-indigo-400 transition"
-              >
-                All {toolA.category.name} tools →
-              </a>
-            </>
-          )
-        }
-      </div>
-    </section>
+    <CompareQuickLinks
+      toolASlug={toolA.slug}
+      toolAName={toolA.name}
+      toolBSlug={toolB.slug}
+      toolBName={toolB.name}
+      category={toolA.category}
+    />
   </div>
 </BaseLayout>

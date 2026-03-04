@@ -1,0 +1,38 @@
+---
+interface CategoryRef {
+  slug: string;
+  name: string;
+}
+
+interface Props {
+  toolASlug: string;
+  toolAName: string;
+  toolBSlug: string;
+  toolBName: string;
+  category?: CategoryRef | null;
+}
+
+const { toolASlug, toolAName, toolBSlug, toolBName, category = null } = Astro.props as Props;
+---
+
+<section class="mt-8 border-t border-zinc-800 pt-6">
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-400">
+    <a href={`/tool/${toolASlug}`} class="transition hover:text-indigo-400">
+      More about {toolAName} →
+    </a>
+    <span class="text-zinc-700">|</span>
+    <a href={`/tool/${toolBSlug}`} class="transition hover:text-indigo-400">
+      More about {toolBName} →
+    </a>
+    {
+      category && (
+        <>
+          <span class="text-zinc-700">|</span>
+          <a href={`/categories/${category.slug}`} class="transition hover:text-indigo-400">
+            All {category.name} tools →
+          </a>
+        </>
+      )
+    }
+  </div>
+</section>
