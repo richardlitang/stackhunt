@@ -14,6 +14,15 @@ function getArgValue(name, fallback = null) {
   return hit.split('=').slice(1).join('=').trim();
 }
 
+function parseCsvArg(name) {
+  const raw = getArgValue(name, '');
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
 function runCommand(command, label, extraEnv = {}) {
   return new Promise((resolve, reject) => {
     const [cmd, ...args] = command;
@@ -62,6 +71,10 @@ function extractLocsFromSitemap(xml) {
   return matches;
 }
 
+function extractSitemapUrlsFromIndex(xml) {
+  return Array.from(xml.matchAll(/<sitemap>\s*<loc>([^<]+)<\/loc>\s*<\/sitemap>/g)).map((m) => m[1]);
+}
+
 function stripHtml(input) {
   return input
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -79,6 +92,8 @@ const GENERIC_PATTERNS = [
   /\bbest-in-class capabilities\b/i,
   /\bstrong option(?: based on)?(?: the)? current source-backed evidence\b/i,
   /\bsolid choice for modern teams\b/i,
+  /\bbest value threshold\b/i,
+  /\bworth it when\b/i,
 ];
 
 const SPEC_SHEET_PATTERNS = [
@@ -86,7 +101,14 @@ const SPEC_SHEET_PATTERNS = [
   /\bCommunity Insights\b/i,
   /\bCapabilities & Differentiators\b/i,
   /\bDecision Snapshot\b/i,
+  /\bWhat most buyers usually care about first\b/i,
+  /\bplatform access is limited to web-based environments\b/i,
 ];
+const CONTRADICTORY_FREE_PLAN_PATTERN = /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan)\b/i;
+const POSITIVE_FREE_SIGNAL_PATTERN = /\b(freemium|free\s+tier|free\s+plan)\b/i;
+const WEB_ONLY_PATTERN =
+  /\b(platform access is limited to web-based environments|web[-\s]*only|web-based environments only)\b/i;
+const NON_WEB_PLATFORM_PATTERN = /\b(ios|android|windows|mac(?:os)?|desktop app|desktop apps)\b/i;
 
 function auditRenderedPage({ url, html, maxNotConfirmed }) {
   const failures = [];
@@ -95,6 +117,11 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   const bestFitHits = (text.match(/\bBest fit:\b/gi) || []).length;
   const weakFitHits = (text.match(/\bWeak fit:\b/gi) || []).length;
   const tradeoffHits = (text.match(/\bTradeoff:\b/gi) || []).length;
+  const decisionHeadingHits = (text.match(/\bDecision in 60 Seconds\b/gi) || []).length;
+  const readerControlsHits = (
+    html.match(/<h[1-6][^>]*>\s*Reader controls\s*<\/h[1-6]>/gi) || []
+  ).length;
+  const quickJumpHits = (html.match(/>\s*Quick jump\s*</gi) || []).length;
   const canonicalVerdictPointerHits =
     (text.match(/\bCanonical constraints live in\s+Why This Verdict\b/gi) || []).length;
   const decisionSectionMatch = html.match(
@@ -129,6 +156,15 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   if (tradeoffHits > 1) {
     failures.push(`duplicated_tradeoff_label:${tradeoffHits}`);
   }
+  if (decisionHeadingHits > 1) {
+    failures.push(`duplicated_decision_heading:${decisionHeadingHits}`);
+  }
+  if (readerControlsHits > 1) {
+    failures.push(`duplicated_reader_controls_heading:${readerControlsHits}`);
+  }
+  if (quickJumpHits > 1) {
+    failures.push(`duplicated_quick_jump_heading:${quickJumpHits}`);
+  }
   if (canonicalVerdictPointerHits > 1) {
     failures.push(`duplicated_verdict_pointer_copy:${canonicalVerdictPointerHits}`);
   }
@@ -145,6 +181,12 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   const headingMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
   if (!headingMatch || !/\bReview\b/i.test(stripHtml(headingMatch[1]))) {
     failures.push('h1_missing_review_intent');
+  }
+  if (POSITIVE_FREE_SIGNAL_PATTERN.test(text) && CONTRADICTORY_FREE_PLAN_PATTERN.test(text)) {
+    failures.push('contradictory_free_plan_claims');
+  }
+  if (NON_WEB_PLATFORM_PATTERN.test(text) && WEB_ONLY_PATTERN.test(text)) {
+    failures.push('contradictory_platform_claims');
   }
 
   return {
@@ -163,25 +205,46 @@ async function fetchText(url) {
 }
 
 async function discoverToolUrls(baseUrl) {
-  const sitemapCandidates = ['/sitemap-tools.xml', '/sitemap.xml'];
-  for (const pathname of sitemapCandidates) {
+  const sitemapCandidates = ['/sitemap-tools.xml', '/sitemap.xml', '/sitemap-index.xml'];
+  const discovered = new Set();
+  const seenSitemaps = new Set();
+
+  const collectFromSitemap = async (sitemapUrl) => {
+    if (seenSitemaps.has(sitemapUrl)) return;
+    seenSitemaps.add(sitemapUrl);
+
+    let xml = '';
     try {
-      const xml = await fetchText(`${baseUrl}${pathname}`);
-      const locs = extractLocsFromSitemap(xml)
-        .map((loc) => {
-          try {
-            return new URL(loc).pathname;
-          } catch {
-            return null;
-          }
-        })
-        .filter((loc) => typeof loc === 'string' && loc.startsWith('/tool/'));
-      if (locs.length > 0) return Array.from(new Set(locs));
+      xml = await fetchText(sitemapUrl);
     } catch {
-      // Try next sitemap candidate.
+      return;
     }
+
+    const locs = extractLocsFromSitemap(xml)
+      .map((loc) => {
+        try {
+          return new URL(loc).pathname;
+        } catch {
+          return null;
+        }
+      })
+      .filter((loc) => typeof loc === 'string' && loc.startsWith('/tool/'));
+    for (const loc of locs) {
+      discovered.add(loc);
+    }
+
+    const childSitemaps = extractSitemapUrlsFromIndex(xml);
+    for (const childSitemapUrl of childSitemaps) {
+      await collectFromSitemap(childSitemapUrl);
+    }
+  };
+
+  for (const pathname of sitemapCandidates) {
+    await collectFromSitemap(`${baseUrl}${pathname}`);
+    if (discovered.size > 0) break;
   }
-  return [];
+
+  return Array.from(discovered);
 }
 
 async function main() {
@@ -192,8 +255,16 @@ async function main() {
   const templateOnly = hasFlag('template-only');
   const skipBuild = hasFlag('skip-build');
   const externalServer = hasFlag('external-server');
-  const allowTemplateFallback = !hasFlag('no-template-fallback');
+  const allowTemplateFallback =
+    hasFlag('allow-template-fallback') || (!externalServer && !hasFlag('no-template-fallback'));
   const baseUrl = getArgValue('base-url', `http://127.0.0.1:${port}`);
+  const explicitPaths = parseCsvArg('paths').map((value) => {
+    if (value.startsWith('/tool/')) return value;
+    if (value.startsWith('tool/')) return `/${value}`;
+    return `/tool/${value.replace(/^\/+/, '')}`;
+  });
+  const explicitSlugs = parseCsvArg('slug');
+  const explicitSlugPaths = explicitSlugs.map((slug) => `/tool/${slug}`);
 
   if (templateOnly) {
     const fallbackFailures = runTemplateFallbackChecks({ maxNotConfirmed });
@@ -228,7 +299,12 @@ async function main() {
       previewServer = await startPreview(baseUrl, port, timeoutMs);
     }
 
-    const toolPaths = await discoverToolUrls(baseUrl);
+    const toolPaths =
+      explicitPaths.length > 0
+        ? explicitPaths
+        : explicitSlugPaths.length > 0
+          ? explicitSlugPaths
+          : await discoverToolUrls(baseUrl);
     if (toolPaths.length === 0) {
       throw new Error('No /tool/* URLs discovered from sitemap endpoints');
     }
@@ -322,6 +398,20 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   const tradeoffHits = (source.match(/\bTradeoff:\b/gi) || []).length;
   if (tradeoffHits > 1) {
     failures.push(`template_duplicate_tradeoff_label:${tradeoffHits}`);
+  }
+  const decisionHeadingHits = (source.match(/\bDecision in 60 Seconds\b/gi) || []).length;
+  if (decisionHeadingHits > 1) {
+    failures.push(`template_duplicate_decision_heading:${decisionHeadingHits}`);
+  }
+  const readerControlsHits = (
+    source.match(/<h[1-6][^>]*>\s*Reader controls\s*<\/h[1-6]>/gi) || []
+  ).length;
+  if (readerControlsHits > 1) {
+    failures.push(`template_duplicate_reader_controls_heading:${readerControlsHits}`);
+  }
+  const quickJumpHits = (source.match(/>\s*Quick jump\s*</gi) || []).length;
+  if (quickJumpHits > 1) {
+    failures.push(`template_duplicate_quick_jump_heading:${quickJumpHits}`);
   }
   const hardLimitsJumpHits = (
     source.match(/<a[^>]+href="#verdict"[\s\S]*?>\s*Hard limits\s*<\/a>/gi) || []

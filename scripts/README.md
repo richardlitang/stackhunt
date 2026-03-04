@@ -20,7 +20,7 @@ Minimal operational scripts for the live content pipeline.
 - `design-pass.mjs` — Frontend design pass (Playwright UI screenshots + Lighthouse CI)
 - `qa-autopilot.ts` — End-to-end QA loop (recompute gate snapshots, publish safe drafts, refresh volatile queue, process queue batch)
 - `queue-blocked-rehunt.ts` — Escalation lane: queue full re-hunts for latest blocked drafts
-- `backfill-decision-intro.ts` — Backfill `review_context.decision_intro` for existing items from latest review claims
+- `backfill-decision-intro.ts` — Backfill canonical `review_context` decision narrative fields (`decision_intro`, `decision_slots`, `decision_evidence`) for existing items from latest review claims
 
 ## Notes
 
@@ -63,10 +63,11 @@ Minimal operational scripts for the live content pipeline.
 - Queue pricing fallback re-hunts (apply): `npm run qa:queue-pricing-fallback-rehunt:apply`
 - Backfill canonical item fact packs (dry run): `npm run qa:backfill-item-fact-packs`
 - Backfill canonical item fact packs (apply): `npm run qa:backfill-item-fact-packs -- --apply --limit=1000`
-- Backfill decision intro (dry run): `npm run qa:backfill-decision-intro -- --limit=500`
-- Backfill decision intro (apply): `npm run qa:backfill-decision-intro -- --apply --limit=500`
-- Backfill decision intro (verbose diagnostics): `npm run qa:backfill-decision-intro -- --limit=500 --verbose`
+- Backfill decision intro + slots (dry run): `npm run qa:backfill-decision-intro -- --limit=500`
+- Backfill decision intro + slots (apply): `npm run qa:backfill-decision-intro -- --apply --limit=500`
+- Backfill decision intro + slots (verbose diagnostics): `npm run qa:backfill-decision-intro -- --limit=500 --verbose`
 - Tool page structure gate (template-only, CI-safe): `npm run qa:rendered-tool-pages -- --template-only --sample=15`
+- Tool page rendered gate against explicit slugs (bypasses sitemap discovery): `npm run qa:rendered-tool-pages -- --external-server --skip-build --base-url=https://stackhunt.io --slug=figma,mailchimp,zapier`
 - Live production smoke check (multi-slug): `npm run qa:smoke:live -- --slug=figma,mailchimp,zapier`
 - Runtime vs snapshot parity diff (best pages): `npm run qa:diff-runtime-snapshot -- --sample=50 --status=draft`
 - Runtime vs snapshot parity diff (compare pages): `npm run qa:diff-compare-snapshot -- --sample=50 --status=draft`

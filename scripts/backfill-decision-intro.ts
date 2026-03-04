@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import {
+  buildDecisionSlots,
   generateDecisionEvidence,
   generateDecisionIntro,
   type ClaimEvidenceLike,
@@ -49,6 +50,13 @@ function isMeaningfulDecisionLine(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   const trimmed = value.trim();
   if (trimmed.length < 24) return false;
+  return !GENERIC_NARRATIVE_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+function isMeaningfulSlotLine(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (trimmed.length < 12) return false;
   return !GENERIC_NARRATIVE_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
@@ -120,6 +128,30 @@ function hasDecisionEvidenceShapeConsistency(reviewContext: Record<string, unkno
   const hasSnake = Boolean(snake && typeof snake === 'object');
   if (!hasCamel || !hasSnake) return false;
   return stableStringify(camel) === stableStringify(snake);
+}
+
+function hasDecisionSlotsShapeConsistency(reviewContext: Record<string, unknown> | null): boolean {
+  if (!reviewContext) return false;
+  const camel = reviewContext.decisionSlots;
+  const snake = reviewContext.decision_slots;
+  const hasCamel = Boolean(camel && typeof camel === 'object');
+  const hasSnake = Boolean(snake && typeof snake === 'object');
+  if (!hasCamel || !hasSnake) return false;
+  return stableStringify(camel) === stableStringify(snake);
+}
+
+function hasDecisionSlotsCoverage(reviewContext: Record<string, unknown> | null): boolean {
+  if (!reviewContext) return false;
+  const current =
+    (reviewContext.decisionSlots as Record<string, unknown> | undefined) ||
+    (reviewContext.decision_slots as Record<string, unknown> | undefined);
+  if (!current) return false;
+  return (
+    isMeaningfulDecisionLine(current.what_it_is) &&
+    isMeaningfulSlotLine(current.best_fit) &&
+    isMeaningfulSlotLine(current.weak_fit) &&
+    isMeaningfulSlotLine(current.tradeoff)
+  );
 }
 
 function isDecisionEvidenceMeaningful(value: unknown): boolean {
@@ -233,9 +265,11 @@ async function main() {
     content: 0,
     intro_shape: 0,
     evidence_shape: 0,
+    slots_content: 0,
+    slots_shape: 0,
   };
 
-  console.log('\nDecision Intro Backfill');
+  console.log('\nDecision Intro + Slots Backfill');
   console.log(`Mode: ${apply ? 'APPLY' : 'DRY RUN'}`);
   console.log(`Statuses: ${statuses.join(', ')}`);
   console.log(`Candidate items scanned: ${candidates.length}`);
@@ -250,10 +284,13 @@ async function main() {
     const hasCoverage = hasDecisionIntroCoverage(existingContext);
     const hasIntroShape = hasDecisionIntroShapeConsistency(existingContext);
     const hasEvidenceShape = hasDecisionEvidenceShapeConsistency(existingContext);
+    const hasSlotsCoverage = hasDecisionSlotsCoverage(existingContext);
+    const hasSlotsShape = hasDecisionSlotsShapeConsistency(existingContext);
     const needsContentBackfill = !hasCoverage;
-    const needsShapeBackfill = !hasIntroShape || !hasEvidenceShape;
+    const needsShapeBackfill = !hasIntroShape || !hasEvidenceShape || !hasSlotsShape;
+    const needsSlotsContentBackfill = !hasSlotsCoverage;
 
-    if (!needsContentBackfill && !needsShapeBackfill) continue;
+    if (!needsContentBackfill && !needsShapeBackfill && !needsSlotsContentBackfill) continue;
 
     const reasons: string[] = [];
     if (needsContentBackfill) {
@@ -267,6 +304,14 @@ async function main() {
     if (!hasEvidenceShape) {
       reasons.push('evidence_shape');
       reasonCounts.evidence_shape += 1;
+    }
+    if (needsSlotsContentBackfill) {
+      reasons.push('slots_content');
+      reasonCounts.slots_content += 1;
+    }
+    if (!hasSlotsShape) {
+      reasons.push('slots_shape');
+      reasonCounts.slots_shape += 1;
     }
 
     const pros = extractClaimTexts(row.pros);
@@ -295,6 +340,28 @@ async function main() {
       isDecisionEvidenceMeaningful(existingDecisionEvidence)
         ? existingDecisionEvidence
         : generatedDecisionEvidence;
+    const existingDecisionSlots =
+      (existingContext.decisionSlots as Record<string, unknown> | undefined) ||
+      (existingContext.decision_slots as Record<string, unknown> | undefined);
+    const generatedDecisionSlots = buildDecisionSlots({
+      toolName: row.item.name,
+      shortDescription: row.item.short_description,
+      pros,
+      cons,
+      proClaims,
+      conClaims,
+      decisionIntro: canonicalDecisionIntro as {
+        what_it_is?: string;
+        best_for?: string;
+        not_for?: string;
+        main_tradeoff?: string;
+        summary?: string;
+      },
+    });
+    const canonicalDecisionSlots =
+      hasDecisionSlotsCoverage(existingContext) && existingDecisionSlots
+        ? existingDecisionSlots
+        : generatedDecisionSlots;
 
     const mergedContext = {
       ...existingContext,
@@ -302,11 +369,13 @@ async function main() {
       decision_intro: canonicalDecisionIntro,
       decisionEvidence: canonicalDecisionEvidence,
       decision_evidence: canonicalDecisionEvidence,
+      decisionSlots: canonicalDecisionSlots,
+      decision_slots: canonicalDecisionSlots,
     };
 
     needsBackfill += 1;
     if (verbose) {
-      console.log(`- ${row.item.slug || row.item.name}: ${reasons.join(', ')}`);
+      console.log(`- ${row.item.name}: ${reasons.join(', ')}`);
     }
 
     if (!apply) continue;
@@ -327,7 +396,7 @@ async function main() {
 
   console.log(`Needs backfill: ${needsBackfill}`);
   console.log(
-    `Reasons: content=${reasonCounts.content}, intro_shape=${reasonCounts.intro_shape}, evidence_shape=${reasonCounts.evidence_shape}`
+    `Reasons: content=${reasonCounts.content}, intro_shape=${reasonCounts.intro_shape}, evidence_shape=${reasonCounts.evidence_shape}, slots_content=${reasonCounts.slots_content}, slots_shape=${reasonCounts.slots_shape}`
   );
   if (apply) {
     console.log(`Applied: ${applied}`);

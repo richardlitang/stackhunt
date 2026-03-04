@@ -22,6 +22,8 @@ import FeaturesShowcase from '@/components/FeaturesShowcase.astro';
 import GettingStarted from '@/components/GettingStarted.astro';
 import PricingPlansGrid from '@/components/PricingPlansGrid.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
+import ReviewFocusSwitch from '@/components/ReviewFocusSwitch.astro';
+import ReviewLensSwitch from '@/components/ReviewLensSwitch.astro';
 import TribalKnowledge from '@/components/TribalKnowledge.astro';
 import TrustBar from '@/components/TrustBar.astro';
 import PriceVerification from '@/components/PriceVerification';
@@ -54,6 +56,12 @@ import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
 export const prerender = false;
 
 const { slug } = Astro.params;
+type ReviewLens = 'general' | 'personal' | 'startup' | 'enterprise';
+const REVIEW_LENSES: ReadonlyArray<ReviewLens> = ['general', 'personal', 'startup', 'enterprise'];
+const lensParam = (Astro.url.searchParams.get('lens') || '').toLowerCase();
+const activeReviewLens: ReviewLens = REVIEW_LENSES.includes(lensParam as ReviewLens)
+  ? (lensParam as ReviewLens)
+  : 'general';
 const hasVersionBypassParam = Astro.url.searchParams.has('v');
 if (hasVersionBypassParam) {
   // Cache-bust requests like ?v=34 should always skip CDN/page cache.
@@ -152,6 +160,10 @@ const budgetAnalyst = (reviewContext?.budgetAnalyst || reviewContext?.budget_ana
   unknown
 > | null;
 const humanVerdict = (reviewContext?.humanVerdict || reviewContext?.human_verdict) as string | null;
+const decisionSlotsRaw = (reviewContext?.decisionSlots || reviewContext?.decision_slots) as Record<
+  string,
+  unknown
+> | null;
 const decisionIntroRaw = (reviewContext?.decisionIntro || reviewContext?.decision_intro) as Record<
   string,
   unknown
@@ -585,7 +597,6 @@ const hasAbout = (() => {
       .trim();
   return normalize(longDescription) !== normalize(shortDescription);
 })();
-const hasVerdict = Boolean(renderVerdict && sectionStatus.verdict === 'show');
 const hasFeatures = Boolean(
   knowledgeCard?.features?.core?.length > 0 || knowledgeCard?.features?.unique?.length > 0
 );
@@ -668,6 +679,25 @@ const normalizedPlatformLabels = new Set(
 const hasNonWebPlatformSignal = Array.from(normalizedPlatformLabels).some((platform) =>
   /\b(android|ios|mobile|desktop|mac|windows|linux)\b/.test(platform)
 );
+const renderVerdictSafe = (() => {
+  if (!renderVerdict) return renderVerdict;
+  let next = renderVerdict;
+  if (hasFreePlanSignal) {
+    next = next.replace(
+      /\b(?:no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan|trial)\b[^.\n]*(?:[.\n]|$)/gi,
+      ''
+    );
+  }
+  if (hasNonWebPlatformSignal) {
+    next = next.replace(
+      /\bplatform access is limited to web-based environments\b[^.\n]*(?:[.\n]|$)/gi,
+      ''
+    );
+  }
+  next = next.replace(/\n{3,}/g, '\n\n').trim();
+  return next || renderVerdict;
+})();
+const hasVerdict = Boolean(renderVerdictSafe && sectionStatus.verdict === 'show');
 const hasPlatformRaw = Boolean(knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations);
 const hasAlternatives = Boolean(orderedAlternatives && orderedAlternatives.length > 0);
 const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
@@ -803,6 +833,8 @@ const cleanDecisionText = (value: unknown): string | null => {
       .trim()
       .replace(/^[-\u2022]\s*/, '')
       .replace(/^avoid if\s*/i, '')
+      .replace(/^not for\s*/i, '')
+      .replace(/^weak fit:\s*/i, '')
       .replace(/^best fit:\s*/i, '')
       .replace(/^best when\s*/i, '')
       .replace(/\s+/g, ' ')
@@ -819,6 +851,28 @@ const cleanNarrativeText = (value: unknown): string | null => {
       .replace(/\s+/g, ' ')
   );
   if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+};
+const cleanDecisionSlotText = (
+  value: unknown,
+  slot: 'best_fit' | 'weak_fit' | 'tradeoff'
+): string | null => {
+  if (typeof value !== 'string') return null;
+  const stripped = value
+    .trim()
+    .replace(/^[-\u2022]\s*/, '')
+    .replace(/^best fit:\s*/i, '')
+    .replace(/^weak fit:\s*/i, '')
+    .replace(/^tradeoff:\s*/i, '')
+    .replace(/^best for(?:\s+teams?)?(?:\s+where)?\s*/i, '')
+    .replace(/^not for(?:\s+teams?)?(?:\s+where)?\s*/i, '')
+    .replace(/^avoid if\s*/i, '')
+    .replace(/^main tradeoff:\s*/i, '')
+    .replace(/\s+/g, ' ');
+  const cleaned = stripControlChars(stripped);
+  if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
+  if (slot === 'tradeoff' && cleaned.length < 10) return null;
+  if (slot !== 'tradeoff' && cleaned.length < 8) return null;
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 };
 const countClaimBullets = (raw: unknown): number => {
@@ -852,10 +906,21 @@ const hasToolNameSignal = (value: string): boolean => {
   const lower = value.toLowerCase();
   return toolNameTokens.length > 0 && toolNameTokens.some((token) => lower.includes(token));
 };
-const decisionIntroWhatItIs = cleanNarrativeText(decisionIntroRaw?.what_it_is);
-const decisionIntroBestFor = cleanDecisionText(decisionIntroRaw?.best_for);
-const decisionIntroNotFor = cleanDecisionText(decisionIntroRaw?.not_for);
-const decisionIntroTradeoff = cleanNarrativeText(decisionIntroRaw?.main_tradeoff);
+const decisionIntroWhatItIs = cleanNarrativeText(
+  (decisionSlotsRaw?.what_it_is as string | undefined) ?? decisionIntroRaw?.what_it_is
+);
+const decisionIntroBestFor = cleanDecisionSlotText(
+  (decisionSlotsRaw?.best_fit as string | undefined) ?? decisionIntroRaw?.best_for,
+  'best_fit'
+);
+const decisionIntroNotFor = cleanDecisionSlotText(
+  (decisionSlotsRaw?.weak_fit as string | undefined) ?? decisionIntroRaw?.not_for,
+  'weak_fit'
+);
+const decisionIntroTradeoff = cleanDecisionSlotText(
+  (decisionSlotsRaw?.tradeoff as string | undefined) ?? decisionIntroRaw?.main_tradeoff,
+  'tradeoff'
+);
 const fallbackDecisionSummary =
   tool.short_description ||
   knowledgeCard?.tagline ||
@@ -1114,15 +1179,18 @@ const globalEvidenceCons = (Array.isArray(globalCons) ? globalCons : [])
   .filter((item): item is EvidenceBullet => Boolean(item));
 const effectiveEvidencePros =
   contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros;
-const CONTRADICTORY_FREE_TIER_PATTERN =
-  /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan|trial)\b/i;
 const WEB_ONLY_CLAIM_PATTERN =
-  /\b(web[-\s]*only|limited to web|web-based environments only|platform access.*web)\b/i;
+  /\b(web[-\s]*only|limited to web|limited to web[-\s]*based environments|web-based environments only|platform access.*web)\b/i;
+const CONTRADICTORY_FREE_PLAN_PATTERN = /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan)\b/i;
+const isContradictoryConClaim = (text: string): boolean => {
+  if (!text) return false;
+  if (hasFreePlanSignal && CONTRADICTORY_FREE_PLAN_PATTERN.test(text)) return true;
+  if (hasNonWebPlatformSignal && WEB_ONLY_CLAIM_PATTERN.test(text)) return true;
+  return false;
+};
 const rawEvidenceCons = contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
 const effectiveEvidenceCons = rawEvidenceCons.filter(
-  (item) =>
-    !(hasFreePlanSignal && CONTRADICTORY_FREE_TIER_PATTERN.test(item.text)) &&
-    !(hasNonWebPlatformSignal && WEB_ONLY_CLAIM_PATTERN.test(item.text))
+  (item) => !isContradictoryConClaim(item.text)
 );
 const hasStrengths =
   effectiveEvidencePros.length +
@@ -1156,6 +1224,7 @@ const hardLimitFromConstraints = Array.isArray(constraints?.hard_limits)
           typeof limit?.plan_name_match === 'string' ? ` (${limit.plan_name_match})` : '';
         const text = `${metric}: ${value}${unit}${plan}`.trim();
         if (!text || text === 'Limit:') return null;
+        if (isContradictoryConClaim(text)) return null;
         return { text, sourceUrl } as EvidenceBullet;
       })
       .filter((item): item is EvidenceBullet => Boolean(item))
@@ -1275,6 +1344,77 @@ const showPricingSection = Boolean(
   sectionStatus.pricing !== 'hide' &&
   (hasPricing || officialPricingSource || pricingEvidenceLinks.length > 0 || canonicalHardLimits.length > 0)
 );
+const focusSwitchOptions = {
+  verdict: hasVerdict || showProceduralVerdict,
+  pricing: showPricingSection,
+  setup: hasGettingStarted,
+  capabilities: hasFeatures || hasSpecs || showProceduralSpecs,
+  integrations: hasPlatform,
+  trust: true,
+};
+const lensDefaultFocusByLens: Record<ReviewLens, keyof typeof focusSwitchOptions | 'all'> = {
+  general: 'all',
+  personal: hasGettingStarted ? 'setup' : showPricingSection ? 'pricing' : 'verdict',
+  startup: showPricingSection ? 'pricing' : hasPlatform ? 'integrations' : 'verdict',
+  enterprise: 'trust',
+};
+const lensDefaultFocus = lensDefaultFocusByLens[activeReviewLens];
+const enabledFocusOptionCount = Object.values(focusSwitchOptions).filter(Boolean).length;
+const showFocusSwitch = enabledFocusOptionCount >= 2;
+const buildLensHref = (lens: ReviewLens): string => {
+  const params = new URLSearchParams(Astro.url.searchParams);
+  if (lens === 'general') {
+    params.delete('lens');
+  } else {
+    params.set('lens', lens);
+  }
+  const query = params.toString();
+  return query ? `${Astro.url.pathname}?${query}` : Astro.url.pathname;
+};
+const lensHrefs: Record<ReviewLens, string> = {
+  general: buildLensHref('general'),
+  personal: buildLensHref('personal'),
+  startup: buildLensHref('startup'),
+  enterprise: buildLensHref('enterprise'),
+};
+const lensPriorityCatalog = {
+  verdict: { href: '#verdict', label: 'Verdict', visible: hasVerdict || showProceduralVerdict },
+  setup: { href: '#getting-started', label: 'Getting started', visible: hasGettingStarted },
+  pricing: { href: '#pricing-plans', label: 'Pricing', visible: showPricingSection },
+  capabilities: {
+    href: hasFeatures ? '#features' : hasSpecs ? '#specs' : '#platform-integrations',
+    label: hasFeatures ? 'Capabilities' : hasSpecs ? 'Specs' : 'Platform',
+    visible: hasFeatures || hasSpecs || hasPlatform,
+  },
+  integrations: {
+    href: '#platform-integrations',
+    label: 'Integrations',
+    visible: hasPlatform,
+  },
+  trust: {
+    href: '#how-we-evaluate',
+    label: 'Trust details',
+    visible: true,
+  },
+  alternatives: {
+    href: '#alternatives',
+    label: 'Alternatives',
+    visible: hasAlternatives,
+  },
+} as const;
+const lensPriorityOrder: Record<
+  ReviewLens,
+  Array<keyof typeof lensPriorityCatalog>
+> = {
+  general: ['verdict', 'pricing', 'capabilities', 'alternatives'],
+  personal: ['setup', 'pricing', 'verdict', 'alternatives'],
+  startup: ['pricing', 'integrations', 'verdict', 'setup'],
+  enterprise: ['trust', 'pricing', 'integrations', 'verdict'],
+};
+const lensPriorityLinks = lensPriorityOrder[activeReviewLens]
+  .map((key) => lensPriorityCatalog[key])
+  .filter((item) => item.visible)
+  .slice(0, 4);
 const decisionProofPoints = [
   buildEvidenceBulletV2({
     text: `Pricing references reviewed from official pages (checked ${pricingVerifiedLabel || 'latest available date'}).`,
@@ -1329,13 +1469,72 @@ const _verdictDisplayLabel =
 let verdictLabelRationale =
   verdictLabel === 'Choose'
     ? hasCollectedSources
-      ? `${tool.name} has clear strengths for a specific workflow, with fewer unresolved constraints than peers in this category.`
+      ? `${tool.name} is a strong fit when its confirmed strengths match your day-to-day workflow.`
       : `${tool.name} appears promising, but core sourcing is still being completed.`
     : verdictLabel === 'Consider'
-      ? `${tool.name} can be a fit, but the decision usually depends on plan limits, integrations, and rollout constraints.`
+      ? `${tool.name} could fit, but the decision usually depends on plan limits, integration fit, and rollout constraints.`
       : hasCollectedSources
         ? `${tool.name} is not a confident recommendation yet based on currently verified evidence.`
         : `${tool.name} is not a confident recommendation yet because source-backed evidence is still limited.`;
+const lensLabelMap: Record<ReviewLens, string> = {
+  general: 'General',
+  personal: 'Personal',
+  startup: 'Startup',
+  enterprise: 'Enterprise',
+};
+const reviewDekByLens: Record<ReviewLens, string> = {
+  general: 'Pricing, tradeoffs, best for, and alternatives.',
+  personal: 'Quick setup, free-tier reality, and first-use fit.',
+  startup: 'Team workflow fit, pricing growth, and rollout constraints.',
+  enterprise: 'Controls, trust posture, and procurement-critical tradeoffs.',
+};
+const reviewDek = reviewDekByLens[activeReviewLens];
+const readerFocusNoteByLens: Partial<Record<ReviewLens, string>> = {
+  personal: 'Prioritizes setup speed, free-tier clarity, and early usability.',
+  startup: 'Prioritizes team workflow fit and how costs scale as seats or usage grow.',
+  enterprise: 'Prioritizes controls, risk, and procurement-facing constraints.',
+};
+const readerFocusNote = readerFocusNoteByLens[activeReviewLens] || null;
+const lensBestFitLine: string = (() => {
+  if (activeReviewLens === 'personal') {
+    return hasGettingStarted
+      ? 'People who want a fast self-serve start and clear day-one workflow.'
+      : decisionSnapshotBestWhen[0] || 'Not confirmed';
+  }
+  if (activeReviewLens === 'startup') {
+    return showPricingSection
+      ? 'Teams balancing capability gains against seat or usage growth.'
+      : decisionSnapshotBestWhen[0] || 'Not confirmed';
+  }
+  if (activeReviewLens === 'enterprise') {
+    return hasSecurity
+      ? 'Teams requiring admin controls, governance clarity, and source-backed rollout planning.'
+      : decisionSnapshotBestWhen[0] || 'Not confirmed';
+  }
+  return decisionSnapshotBestWhen[0] || 'Not confirmed';
+})();
+const lensWeakFitLine: string = (() => {
+  if (activeReviewLens === 'personal') {
+    return decisionSnapshotWatchOuts[0] || 'Buyers who need contract-heavy enterprise controls.';
+  }
+  if (activeReviewLens === 'startup') {
+    return (
+      decisionSnapshotWatchOuts[0] ||
+      'Teams without clear ownership of plan limits, usage growth, and budget controls.'
+    );
+  }
+  if (activeReviewLens === 'enterprise') {
+    return (
+      decisionSnapshotWatchOuts[0] ||
+      'Organizations that require contract/security terms not yet confirmed in cited sources.'
+    );
+  }
+  return decisionSnapshotWatchOuts[0] || 'Not confirmed';
+})();
+const lensTradeoffLine: string =
+  activeReviewLens === 'enterprise' && canonicalHardLimits[0]
+    ? canonicalHardLimits[0].text
+    : decisionTradeoffSummary;
 const normalizeNarrativeSentence = (value: string): string =>
   stripControlChars(value).replace(/\s+/g, ' ').replace(/[.]+$/, '').trim();
 const joinNarrativeItems = (items: string[]): string => {
@@ -1343,6 +1542,17 @@ const joinNarrativeItems = (items: string[]): string => {
   if (items.length === 1) return items[0];
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
   return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+};
+const PRICING_SUBJECTIVE_ROI_PATTERN = /\b(justified|productivity|best value|worth it|excellent|great)\b/i;
+const PRICING_OBJECTIVE_ROI_PATTERN =
+  /\b(\d+|team|seat|user|plan|tier|enterprise|business|sso|api|compliance|usage|volume|monthly|annual)\b/i;
+const sanitizeRoiThresholdForPricingLead = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  const normalized = normalizeNarrativeSentence(value);
+  if (!normalized) return '';
+  if (!PRICING_OBJECTIVE_ROI_PATTERN.test(normalized)) return '';
+  if (PRICING_SUBJECTIVE_ROI_PATTERN.test(normalized)) return '';
+  return normalized;
 };
 const pricingNarrativeLead = (() => {
   const sentences: string[] = [];
@@ -1358,8 +1568,7 @@ const pricingNarrativeLead = (() => {
     typeof budgetCommitmentTerms === 'string'
       ? normalizeNarrativeSentence(budgetCommitmentTerms)
       : '';
-  const normalizedRoiThreshold =
-    typeof budgetRoiThreshold === 'string' ? normalizeNarrativeSentence(budgetRoiThreshold) : '';
+  const normalizedRoiThreshold = sanitizeRoiThresholdForPricingLead(budgetRoiThreshold);
 
   if (normalizedCostDrivers.length > 0) {
     sentences.push(`Your bill is mostly driven by ${joinNarrativeItems(normalizedCostDrivers)}.`);
@@ -1371,7 +1580,7 @@ const pricingNarrativeLead = (() => {
     sentences.push(`Contract terms: ${normalizedCommitmentTerms}.`);
   }
   if (normalizedRoiThreshold.length > 0) {
-    sentences.push(`Best value threshold: ${normalizedRoiThreshold}.`);
+    sentences.push(`Editorial upgrade trigger: ${normalizedRoiThreshold}.`);
   }
 
   if (sentences.length === 0 && pricingSnapshotBullets.length > 0) {
@@ -1389,6 +1598,8 @@ const pricingNarrativeLead = (() => {
 
   return sentences.slice(0, 3).join(' ');
 })();
+const pricingNarrativeLabel =
+  'Pricing summary is editorial synthesis from source-backed references. Numeric plan details remain source-backed below.';
 const scoreDrivers = uniqueDecisionText([
   ...decisionSnapshotDifferentiators,
   ...decisionSnapshotBestWhen,
@@ -1422,12 +1633,18 @@ const trustStatus: 'Source-backed' | 'Needs confirmation' =
   !hasCollectedSources || isVerificationMode || pendingVerificationCount > 0
     ? 'Needs confirmation'
     : 'Source-backed';
-const trustConfidenceLabel: 'High' | 'Medium' | 'Low' =
+const trustConfidenceLabelBase: 'High' | 'Medium' | 'Low' =
   contentConfidenceLevel === 'high'
     ? 'High'
     : contentConfidenceLevel === 'medium'
       ? 'Medium'
       : 'Low';
+const trustConfidenceLabel: 'High' | 'Medium' | 'Low' =
+  !hasCollectedSources || pendingVerificationCount > 0 || isVerificationMode
+    ? trustConfidenceLabelBase === 'High'
+      ? 'Medium'
+      : trustConfidenceLabelBase
+    : trustConfidenceLabelBase;
 const updateHistoryEntries = [
   hasPricingCheckedProof
     ? {
@@ -1459,7 +1676,7 @@ const toolPageQaGate = evaluateToolPageQaGate({
   title: `${tool.name} Review | StackHunt`,
   h1: toolReviewHeading,
   intro: stripControlChars(decisionSnapshotSummary || ''),
-  verdict: stripControlChars(renderVerdict || tool.verdict || ''),
+  verdict: stripControlChars(renderVerdictSafe || tool.verdict || ''),
   evaluationDepth: evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
   pricingSectionVisible: showPricingSection,
   hasPricingCheckedProof,
@@ -1572,7 +1789,7 @@ const schemas = [
                 }
               </div>
               <p class="mt-1 text-sm text-zinc-400">
-                Pricing, tradeoffs, best for, and alternatives.
+                {reviewDek}
               </p>
               {
                 decisionSnapshotSummary && (
@@ -1657,31 +1874,31 @@ const schemas = [
 
         <aside class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner">
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-            At A Glance
+            Research Status
           </p>
-          <div class="mt-3 grid gap-1 text-xs text-zinc-400">
+          <div class="mt-3 space-y-1 text-xs text-zinc-400">
             <p>
-              Evaluation depth:{' '}
-              <span class="text-zinc-300">
-                {evaluationDepth}
-              </span>
+              <span class="text-zinc-300">{evaluationDepth}</span> evaluation depth
             </p>
             <p>
-              Confidence:{' '}
-              <span class="text-zinc-300">
-                {trustConfidenceLabel}
-              </span>
+              <span class="text-zinc-300">{collectedSourcesTotal}</span>{' '}
+              linked sources ({trustConfidenceLabel} confidence)
             </p>
-            <p>
-              Sources collected:{' '}
+            {
+              pendingVerificationCount > 0 && (
+                <p>
+                  <span class="text-amber-300">{pendingVerificationCount}</span> claims still pending
+                  confirmation
+                </p>
+              )
+            }
+            <p class="text-zinc-500">
+              Last checked{' '}
               <span class="text-zinc-300">
-                {collectedSourcesTotal}
+                {communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'unknown'}
               </span>
             </p>
           </div>
-          <p class="mt-3 text-xs text-zinc-500">
-            Last checked {communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'unknown'}
-          </p>
           <div class="mt-4 space-y-2">
             {
               tool.website && (
@@ -1715,20 +1932,22 @@ const schemas = [
 
     <section
       class="mb-8 rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-5 shadow-sm"
+      data-focus-target
+      data-focus-groups="all verdict"
     >
       <h2 class="text-lg font-semibold text-zinc-100">Decision in 60 Seconds</h2>
       <p class="mt-1 text-sm leading-relaxed text-zinc-300">{verdictLabelRationale}</p>
       <ul class="mt-3 space-y-2 text-sm text-zinc-300">
         <li>
           <span class="font-medium text-zinc-100">Best fit:</span>{' '}
-          {decisionSnapshotBestWhen[0] || 'Not confirmed'}
+          {lensBestFitLine}
         </li>
         <li>
           <span class="font-medium text-zinc-100">Weak fit:</span>{' '}
-          {decisionSnapshotWatchOuts[0] || 'Not confirmed'}
+          {lensWeakFitLine}
         </li>
         <li>
-          <span class="font-medium text-zinc-100">Tradeoff:</span> {decisionTradeoffSummary}
+          <span class="font-medium text-zinc-100">Tradeoff:</span> {lensTradeoffLine}
         </li>
       </ul>
       <p class="mt-4 text-xs text-zinc-500">
@@ -1738,15 +1957,66 @@ const schemas = [
         </a>
         .
       </p>
+      <p class="mt-1 text-xs text-zinc-500">
+        Best fit, weak fit, and tradeoff are editorial synthesis from source-backed claims.
+      </p>
     </section>
 
-    {/* Table of Contents */}
-    <nav
-      class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
-      aria-label="On this page"
-    >
-      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Quick jump</h2>
-      <div class="mb-3 flex flex-wrap items-center gap-2">
+    <section class="mb-6 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm" aria-label="Reader controls">
+      <h3 class="text-sm font-semibold text-zinc-100">Reader controls</h3>
+      {
+        readerFocusNote && (
+          <p class="mt-1 text-xs text-zinc-500">
+            {readerFocusNote}
+          </p>
+        )
+      }
+      <div class="mt-3 space-y-3">
+        <ReviewLensSwitch activeLens={activeReviewLens} hrefs={lensHrefs} compact showNote={false} />
+        {
+          showFocusSwitch && (
+            <ReviewFocusSwitch
+              options={focusSwitchOptions}
+              defaultFocus={lensDefaultFocus}
+              storageScope={activeReviewLens}
+              compact
+              showNote={false}
+            />
+          )
+        }
+      </div>
+      {
+        lensPriorityLinks.length > 0 && (
+          <div class="mt-3 border-t border-zinc-800 pt-3">
+            <p class="text-xs text-zinc-500">
+              {activeReviewLens === 'general'
+                ? 'Start with these sections:'
+                : `For ${lensLabelMap[activeReviewLens]} teams, start here:`}
+            </p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              {lensPriorityLinks.map((item) => (
+                <a
+                  href={item.href}
+                  class="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )
+      }
+      <p class="mt-3 text-xs text-zinc-500">
+        This changes emphasis and reading order, not the underlying facts.
+      </p>
+    </section>
+
+    {/* Quick jump links (collapsed by default) */}
+    <details class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm" aria-label="On this page">
+      <summary class="cursor-pointer list-none">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400 inline">Quick jump</h2>
+      </summary>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
         {
           tool.website && (
             <a
@@ -1774,7 +2044,7 @@ const schemas = [
             ))
         }
       </div>
-      <div class="flex flex-wrap gap-2 text-sm">
+      <div class="mt-3 flex flex-wrap gap-2 text-sm">
         {
           (hasVerdict || showProceduralVerdict) && (
             <a
@@ -1888,7 +2158,7 @@ const schemas = [
           Disclosures
         </a>
       </div>
-    </nav>
+    </details>
 
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
@@ -1899,6 +2169,8 @@ const schemas = [
             <section
               id="verdict"
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              data-focus-target
+              data-focus-groups="all verdict"
             >
               <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
               <p class="text-sm text-zinc-400">
@@ -1912,7 +2184,7 @@ const schemas = [
               <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
                 <div
                   class="prose prose-slate prose-sm max-w-none text-zinc-200 leading-7"
-                  set:html={simpleMarkdown(renderVerdict)}
+                  set:html={simpleMarkdown(renderVerdictSafe || '')}
                 />
               </div>
               {canonicalHardLimits.length > 0 && (
@@ -1971,6 +2243,8 @@ const schemas = [
             <section
               id="verdict-conditions"
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+              data-focus-target
+              data-focus-groups="all verdict"
             >
               <h2 class="text-lg font-semibold text-zinc-100">Decision Conditions</h2>
               <p class="mt-2 text-sm text-zinc-400">
@@ -1993,6 +2267,8 @@ const schemas = [
               id="pricing-plans"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
               open={hasPricing}
+              data-focus-target
+              data-focus-groups="all pricing"
             >
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
@@ -2023,6 +2299,7 @@ const schemas = [
               </summary>
               <div class="mt-4">
                 <p class="mb-4 text-sm leading-relaxed text-zinc-200">{pricingNarrativeLead}</p>
+                <p class="mb-3 text-xs text-zinc-500">{pricingNarrativeLabel}</p>
                 <p class="mb-4 text-xs text-zinc-500">
                   {pricingCheckedLabel
                     ? `Pricing changes frequently; confirm on the vendor site. Shown as of ${pricingCheckedLabel}.`
@@ -2145,7 +2422,7 @@ const schemas = [
         {/* Getting Started - Setup guide with friction score and actual steps */}
         {
           hasGettingStarted && (
-            <div id="getting-started">
+            <div id="getting-started" data-focus-target data-focus-groups="all setup">
               <GettingStarted
                 setupComplexity={knowledgeCard?.setup_complexity}
                 toolName={tool.name}
@@ -2165,6 +2442,8 @@ const schemas = [
               id="strengths"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
               open
+              data-focus-target
+              data-focus-groups="all verdict capabilities"
             >
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
@@ -2215,19 +2494,21 @@ const schemas = [
         {
           (knowledgeCard?.features?.core?.length > 0 ||
             knowledgeCard?.features?.unique?.length > 0) && (
-            <FeaturesShowcase
-              features={knowledgeCard.features}
-              toolName={tool.name}
-              sectionId="features"
-              peerCount={comparativeFeaturePeerCount}
-            />
+            <div data-focus-target data-focus-groups="all capabilities">
+              <FeaturesShowcase
+                features={knowledgeCard.features}
+                toolName={tool.name}
+                sectionId="features"
+                peerCount={comparativeFeaturePeerCount}
+              />
+            </div>
           )
         }
 
         {/* Technical Specs - Category-specific and VIP tool details */}
         {
           hasSpecs && (
-            <section id="specs">
+            <section id="specs" data-focus-target data-focus-groups="all capabilities">
               {specsVerifiedLabel && (
                 <p class="mb-3 text-xs text-zinc-500">Specs checked {specsVerifiedLabel}</p>
               )}
@@ -2242,7 +2523,12 @@ const schemas = [
         }
         {
           showProceduralSpecs && (
-            <section id="specs" class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+            <section
+              id="specs"
+              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+              data-focus-target
+              data-focus-groups="all capabilities"
+            >
               <h2 class="text-lg font-semibold text-zinc-100">Technical Validation Steps</h2>
               <ul class="mt-4 space-y-2 text-sm text-zinc-300">
                 <li>- Confirm API limits and throttling behavior using your expected peak load.</li>
@@ -2260,34 +2546,38 @@ const schemas = [
         {/* Field Notes (source-backed user signal summary) */}
         {
           hasCommunity && (userAdvocate || guardedHumanVerdict) && (
-            <TribalKnowledge
-              userAdvocate={
-                userAdvocate
-                  ? {
-                      vibe,
-                      originStory,
-                      idealFor,
-                      avoidIf: guardedAvoidIf,
-                      powerTip,
-                      delighters,
-                      frustrations,
-                    }
-                  : undefined
-              }
-              humanVerdict={guardedHumanVerdict}
-            />
+            <div data-focus-target data-focus-groups="all verdict capabilities">
+              <TribalKnowledge
+                userAdvocate={
+                  userAdvocate
+                    ? {
+                        vibe,
+                        originStory,
+                        idealFor,
+                        avoidIf: guardedAvoidIf,
+                        powerTip,
+                        delighters,
+                        frustrations,
+                      }
+                    : undefined
+                }
+                humanVerdict={guardedHumanVerdict}
+              />
+            </div>
           )
         }
 
         {/* Platform Support & Integrations */}
         {
           (knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
-            <PlatformIntegrations
-              platforms={knowledgeCard.platforms || []}
-              integrations={knowledgeCard.integrations}
-              toolName={tool.name}
-              sectionId="platform-integrations"
-            />
+            <div data-focus-target data-focus-groups="all integrations capabilities">
+              <PlatformIntegrations
+                platforms={knowledgeCard.platforms || []}
+                integrations={knowledgeCard.integrations}
+                toolName={tool.name}
+                sectionId="platform-integrations"
+              />
+            </div>
           )
         }
 
@@ -2297,6 +2587,8 @@ const schemas = [
             <details
               id="about"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              data-focus-target
+              data-focus-groups="all capabilities"
             >
               <summary class="flex items-center justify-between cursor-pointer">
                 <h2 class="text-lg font-semibold text-zinc-100">About {tool.name}</h2>
@@ -2329,7 +2621,7 @@ const schemas = [
         {/* Video Embed - Bottom of content for better UX */}
         {
           tool.video_id && (
-            <section id="video">
+            <section id="video" data-focus-target data-focus-groups="all capabilities">
               <h2 class="mb-4 text-lg font-semibold text-zinc-100">Watch {tool.name} in Action</h2>
               <VideoEmbed
                 client:visible
@@ -2348,7 +2640,11 @@ const schemas = [
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
         {
           hasOperationalDetails && (
-            <details class="group rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+            <details
+              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+              data-focus-target
+              data-focus-groups="all capabilities integrations trust"
+            >
               <summary class="flex cursor-pointer list-none items-center justify-between">
                 <h3 class="font-semibold text-zinc-100">Operational details</h3>
                 <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
@@ -2444,7 +2740,12 @@ const schemas = [
     {/* FAQ - Visible content to match FAQ schema */}
     {
       hasFAQ && (
-        <section id="faq" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <section
+          id="faq"
+          class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
+          data-focus-target
+          data-focus-groups="all capabilities trust"
+        >
           <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
           <div class="space-y-4">
             {faqItems.map((item) => (
@@ -2500,7 +2801,7 @@ const schemas = [
     {/* Alternatives Section - Hybrid Search Strategy */}
     {
       orderedAlternatives && orderedAlternatives.length > 0 && (
-        <section id="alternatives" class="mt-16">
+        <section id="alternatives" class="mt-16" data-focus-target data-focus-groups="all verdict">
           <header class="mb-6">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -2562,6 +2863,8 @@ const schemas = [
     <section
       id="how-we-evaluate"
       class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+      data-focus-target
+      data-focus-groups="all trust"
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="text-lg font-semibold text-zinc-100">How We Evaluated</h2>
@@ -2610,6 +2913,8 @@ const schemas = [
         <section
           id="we-tested-it"
           class="mt-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+          data-focus-target
+          data-focus-groups="all trust"
         >
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg font-semibold text-zinc-100">We tested it</h2>
@@ -2653,6 +2958,8 @@ const schemas = [
         <section
           id="sources"
           class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+          data-focus-target
+          data-focus-groups="all trust"
         >
           <details class="group mb-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
             <summary class="flex cursor-pointer list-none items-center justify-between">
@@ -2728,6 +3035,8 @@ const schemas = [
         <details
           id="update-history"
           class="group mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+          data-focus-target
+          data-focus-groups="all trust"
         >
           <summary class="flex cursor-pointer list-none items-center justify-between">
             <div>
@@ -2769,7 +3078,12 @@ const schemas = [
     {/* Community Feedback - Compact consolidated section */}
     {
       hasCommunity && (
-        <section id="community" class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <section
+          id="community"
+          class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
+          data-focus-target
+          data-focus-groups="all trust verdict"
+        >
           {communityVerifiedLabel && (
             <p class="mb-3 text-xs text-zinc-500">
               Community signals checked {communityVerifiedLabel}
