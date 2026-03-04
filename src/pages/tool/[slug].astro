@@ -69,10 +69,15 @@ import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page-constraints';
 import { buildToolPageLensHrefs } from '@/lib/tool-page-lens-hrefs';
 import { buildToolPageEvidenceLinks } from '@/lib/tool-page-evidence-links';
 import {
+  buildToolPageEvidenceBulletV2,
+  toToolPageEvidenceBullet,
+  type ToolPageEvidenceBullet as EvidenceBullet,
+  type ToolPageEvidenceBulletV2 as EvidenceBulletV2,
+} from '@/lib/tool-page-evidence-bullets';
+import {
   cleanToolPageDecisionSlotText,
   cleanToolPageNarrativeText,
   extractToolPageClaimText,
-  isLikelyIncompleteToolPageClause,
   stripToolPageControlChars,
   uniqueToolPageDecisionText,
 } from '@/lib/tool-page-text';
@@ -369,40 +374,8 @@ const sanitizeStructuredClaimMarkdown = (value: string | null): string | null =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 };
-const isLikelyIncompleteClause = isLikelyIncompleteToolPageClause;
-type EvidenceBullet = { text: string; sourceUrl: string };
-type EvidenceSource = { url: string; label?: string; retrievedAt?: string };
-type EvidenceBulletV2 = {
-  text: string;
-  sources: EvidenceSource[];
-  confidence?: 'high' | 'medium' | 'low';
-  kind: 'pro' | 'con' | 'tradeoff' | 'limit' | 'claim';
-  requiredSourcing: boolean;
-  unverified?: boolean;
-};
-const toEvidenceBullet = (claim: unknown): EvidenceBullet | null => {
-  if (!claim || typeof claim !== 'object') return null;
-  const value = claim as Record<string, unknown>;
-  const rawText = typeof value.text === 'string' ? value.text : '';
-  let text = rawText ? stripControlChars(rawText) : '';
-  let sourceUrl = typeof value.source_url === 'string' ? value.source_url.trim() : '';
-  if (rawText && rawText.includes('"text"')) {
-    try {
-      const nested = JSON.parse(rawText) as Record<string, unknown>;
-      if (typeof nested.text === 'string') {
-        text = stripControlChars(nested.text);
-      }
-      if (!sourceUrl && typeof nested.source_url === 'string') {
-        sourceUrl = nested.source_url.trim();
-      }
-    } catch {
-      // Keep original text/source fallback when nested payload is not valid JSON.
-    }
-  }
-  if (!text || isLikelyIncompleteClause(text) || !sourceUrl || !isEligibleEvidenceUrl(sourceUrl))
-    return null;
-  return { text, sourceUrl };
-};
+const toEvidenceBullet = (claim: unknown): EvidenceBullet | null =>
+  toToolPageEvidenceBullet(claim, isEligibleEvidenceUrl);
 const buildEvidenceBulletV2 = ({
   text,
   kind,
@@ -417,33 +390,16 @@ const buildEvidenceBulletV2 = ({
   sourceLabel?: string;
   retrievedAt?: string;
   requiredSourcing: boolean;
-}): EvidenceBulletV2 | null => {
-  const cleaned = stripControlChars(text);
-  if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
-  const sources: EvidenceSource[] =
-    sourceUrl && isEligibleEvidenceUrl(sourceUrl)
-      ? [{ url: sourceUrl, label: sourceLabel, retrievedAt }]
-      : [];
-  if (requiredSourcing && sources.length === 0) {
-    const checkedAt = retrievedAt || 'the latest verification date';
-    return {
-      text: `We couldn't confirm this claim in official docs as of ${checkedAt}. Verify with the vendor before purchase.`,
-      sources: [],
-      confidence: 'low',
-      kind,
-      requiredSourcing,
-      unverified: true,
-    };
-  }
-  return {
-    text: cleaned,
-    sources,
-    confidence: sources.length > 0 ? 'high' : 'medium',
+}): EvidenceBulletV2 | null =>
+  buildToolPageEvidenceBulletV2({
+    text,
     kind,
+    sourceUrl,
+    sourceLabel,
+    retrievedAt,
     requiredSourcing,
-    unverified: false,
-  };
-};
+    isEligibleEvidenceUrl,
+  });
 const BLOCKED_EVIDENCE_DOMAINS = new Set([
   'g2.com',
   'capterra.com',
