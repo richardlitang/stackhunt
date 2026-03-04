@@ -30,6 +30,7 @@ import PriceVerification from '@/components/PriceVerification';
 import SuiteNavigation from '@/components/SuiteNavigation.astro';
 import DynamicSpecs from '@/components/DynamicSpecs.astro';
 import IncludedTools from '@/components/IncludedTools.astro';
+import TwoColumnChecklistCards from '@/components/TwoColumnChecklistCards.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
@@ -88,6 +89,7 @@ import { buildToolPageTradeoffEvidence } from '@/lib/tool-page/tradeoff-evidence
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 import { buildToolPageRuntime } from '@/lib/tool-page/runtime';
 import { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
+import { buildToolPageAlternativesStateInput } from '@/lib/tool-page/alternatives-input';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -206,17 +208,6 @@ const orderedAlternatives = (() => {
     .map((id) => alternativeById.get(id))
     .filter((item): item is (typeof alternatives)[number] => Boolean(item));
 })();
-
-type ItemCategoryLink = {
-  category?: {
-    id?: string | null;
-  } | null;
-} | null;
-
-const toItemCategoryLinks = (value: unknown): ItemCategoryLink[] | null => {
-  if (!Array.isArray(value)) return null;
-  return value.filter((entry): entry is ItemCategoryLink => Boolean(entry && typeof entry === 'object'));
-};
 
 // Track whether these are true "alternatives" or just "related tools"
 const alternativesLabel =
@@ -481,21 +472,21 @@ const hasFeatures = sectionSignals.hasFeatures;
 const hasSpecsRaw = sectionSignals.hasSpecsRaw;
 const hasPlatformRaw = sectionSignals.hasPlatformRaw;
 const hasAlternatives = sectionSignals.hasAlternatives;
-const alternativesState = buildToolPageAlternativesState(
-  {
+const alternativesStateInput = buildToolPageAlternativesStateInput({
+  tool: {
     slug: tool.slug,
-    category: tool.category as { id?: string | null } | null | undefined,
-    item_category_links: toItemCategoryLinks((tool as { item_category_links?: unknown }).item_category_links),
+    item_category_links: (tool as { item_category_links?: unknown }).item_category_links,
     metadata: tool.metadata,
   },
-  (orderedAlternatives || []).map((alt) => ({
+  orderedAlternatives: (orderedAlternatives || []).map((alt) => ({
     slug: alt.slug,
-    category: null,
-    item_category_links: toItemCategoryLinks(
-      (alt as { item_category_links?: unknown }).item_category_links
-    ),
+    item_category_links: (alt as { item_category_links?: unknown }).item_category_links,
     metadata: alt.metadata,
-  }))
+  })),
+});
+const alternativesState = buildToolPageAlternativesState(
+  alternativesStateInput.primaryTool,
+  alternativesStateInput.alternatives
 );
 const comparableAlternatives = alternativesState.comparableAlternatives;
 const hasComparableAlternatives = alternativesState.hasComparableAlternatives;
@@ -2101,24 +2092,10 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
           ? 'Verified against linked sources means each claim appears in a linked source on the date checked. Vendors can update details after that date.'
           : 'No qualifying sources collected yet. Some claims remain in verification mode until section-level sources are attached.'}
       </p>
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-          <h3 class="text-sm font-semibold text-zinc-200">What we tested for this review</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {testedItems.map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
-        </div>
-        <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-          <h3 class="text-sm font-semibold text-zinc-200">Not tested</h3>
-          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-            {notTestedItems.map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      <TwoColumnChecklistCards
+        left={{ title: 'What we tested for this review', items: testedItems }}
+        right={{ title: 'Not tested', items: notTestedItems }}
+      />
       <p class="mt-4 text-xs text-zinc-500">
         See{' '}
         <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">
@@ -2151,28 +2128,12 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
           {handsOnTestEnvironment && (
             <p class="mt-2 text-sm text-zinc-300">Environment: {handsOnTestEnvironment}</p>
           )}
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
-            {handsOnTestSteps.length > 0 && (
-              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <h3 class="text-sm font-semibold text-zinc-200">Steps run</h3>
-                <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-                  {handsOnTestSteps.map((step) => (
-                    <li>- {step}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {handsOnTestFindings.length > 0 && (
-              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <h3 class="text-sm font-semibold text-zinc-200">Findings</h3>
-                <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-                  {handsOnTestFindings.map((finding) => (
-                    <li>- {finding}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <TwoColumnChecklistCards
+            left={handsOnTestSteps.length > 0 ? { title: 'Steps run', items: handsOnTestSteps } : undefined}
+            right={handsOnTestFindings.length > 0
+              ? { title: 'Findings', items: handsOnTestFindings }
+              : undefined}
+          />
         </section>
       )
     }
