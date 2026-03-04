@@ -46,8 +46,6 @@ import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
-import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
-import { evaluateToolPageIndexPolicy } from '@/lib/tool-page-index-policy';
 import {
   buildToolPagePricingViewModel,
   deriveToolPagePricingSignals,
@@ -88,6 +86,7 @@ import { deriveToolPageVerdictPolicy } from '@/lib/tool-page-verdict-policy';
 import { buildToolPageLensRuntime } from '@/lib/tool-page-lens-runtime';
 import { deriveToolPageReviewSignals } from '@/lib/tool-page-review-signals';
 import { buildToolPageTrustRuntime } from '@/lib/tool-page-trust-runtime';
+import { buildToolPageMetaRuntime } from '@/lib/tool-page-meta-runtime';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -939,39 +938,42 @@ const trustRuntime = buildToolPageTrustRuntime({
 pendingVerificationCount = trustRuntime.pendingVerificationCount;
 const { trustStatus, trustConfidenceLabel, updateHistoryEntries } = trustRuntime;
 const toolReviewHeading = `${tool.name} Review`;
-const toolPageQaGate = evaluateToolPageQaGate({
-  title: `${tool.name} Review | StackHunt`,
-  h1: toolReviewHeading,
-  intro: stripControlChars(decisionSnapshotSummary || ''),
-  verdict: stripControlChars(renderVerdictSafe || tool.verdict || ''),
-  evaluationDepth: evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
-  pricingSectionVisible: showPricingSection,
-  hasPricingCheckedProof,
-  schemaMatchesVisibleContent: Boolean(!hasFAQ || faqSchema),
-  hasBestForSignal: decisionSnapshotBestWhen.length > 0,
-  hasNotForSignal: decisionSnapshotWatchOuts.length > 0,
-  hasTradeoffSignal: decisionTradeoffSummary !== 'Tradeoff not confirmed yet.',
-  hasDecisionSummaryBlock: true,
-  introLooksSpecSheet,
-});
 const toolMeta = generateToolMeta(tool, tool.review_count);
-const indexPolicy = evaluateToolPageIndexPolicy({
-  gateShouldIndex,
-  isDraftPage,
-  pendingVerificationCount,
-  toolPageQaPass: toolPageQaGate.pass,
-  showReviewInProgressBanner,
-  toolCanonicalUrl: toolMeta.canonical,
-  fallbackCanonicalUrl: getCanonicalUrl('/tools'),
-  defaultDescription: toolMeta.description,
-  draftDescription: safeDraftDescription,
+const metaRuntime = buildToolPageMetaRuntime({
+  qaInput: {
+    title: `${tool.name} Review | StackHunt`,
+    h1: toolReviewHeading,
+    intro: stripControlChars(decisionSnapshotSummary || ''),
+    verdict: stripControlChars(renderVerdictSafe || tool.verdict || ''),
+    evaluationDepth: evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
+    pricingSectionVisible: showPricingSection,
+    hasPricingCheckedProof,
+    schemaMatchesVisibleContent: Boolean(!hasFAQ || faqSchema),
+    hasBestForSignal: decisionSnapshotBestWhen.length > 0,
+    hasNotForSignal: decisionSnapshotWatchOuts.length > 0,
+    hasTradeoffSignal: decisionTradeoffSummary !== 'Tradeoff not confirmed yet.',
+    hasDecisionSummaryBlock: true,
+    introLooksSpecSheet,
+  },
+  indexInput: {
+    gateShouldIndex,
+    isDraftPage,
+    pendingVerificationCount,
+    showReviewInProgressBanner,
+    toolCanonicalUrl: toolMeta.canonical,
+    fallbackCanonicalUrl: getCanonicalUrl('/tools'),
+    defaultDescription: toolMeta.description,
+    draftDescription: safeDraftDescription,
+  },
+  baseMeta: {
+    description: toolMeta.description,
+    canonical: toolMeta.canonical,
+  },
 });
-const shouldNoindex = indexPolicy.shouldNoindex;
+const { indexPolicy } = metaRuntime;
 const meta = {
   ...toolMeta,
-  description: indexPolicy.description,
-  canonical: indexPolicy.canonicalUrl,
-  noindex: shouldNoindex,
+  ...metaRuntime.meta,
 };
 Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
 const schemas = [
