@@ -69,6 +69,14 @@ import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page-constraints';
 import { buildToolPageLensHrefs } from '@/lib/tool-page-lens-hrefs';
 import { buildToolPageEvidenceLinks } from '@/lib/tool-page-evidence-links';
 import {
+  cleanToolPageDecisionSlotText,
+  cleanToolPageNarrativeText,
+  extractToolPageClaimText,
+  isLikelyIncompleteToolPageClause,
+  stripToolPageControlChars,
+  uniqueToolPageDecisionText,
+} from '@/lib/tool-page-text';
+import {
   buildToolPageSourceAriaLabel,
   formatToolPageVerifiedDate,
 } from '@/lib/tool-page-source-labels';
@@ -335,10 +343,7 @@ const isEligibleEvidenceUrl = (url?: string | null): boolean => {
     return false;
   }
 };
-const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
-const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
-const stripControlChars = (value: string): string =>
-  value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
+const stripControlChars = stripToolPageControlChars;
 const extractJsonClaimText = (snippet: string): string | null => {
   try {
     const parsed = JSON.parse(snippet) as Record<string, unknown>;
@@ -364,19 +369,7 @@ const sanitizeStructuredClaimMarkdown = (value: string | null): string | null =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 };
-const isLikelyIncompleteClause = (value: string): boolean => {
-  const text = stripControlChars(value).replace(TERMINAL_PUNCTUATION, '').trim();
-  if (!text) return true;
-  const lower = text.toLowerCase();
-  if (lower.length < 12) return false;
-  if (/\b(price increase|cost increase)\b/.test(lower) && !/\d/.test(lower)) return true;
-  if (/\b(approximately|about|around)\b/.test(lower) && !/\b(approximately|about|around)\s*(?:\$|€|£)?\d/.test(lower)) {
-    return true;
-  }
-  return /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/.test(
-    lower
-  );
-};
+const isLikelyIncompleteClause = isLikelyIncompleteToolPageClause;
 type EvidenceBullet = { text: string; sourceUrl: string };
 type EvidenceSource = { url: string; label?: string; retrievedAt?: string };
 type EvidenceBulletV2 = {
@@ -806,21 +799,7 @@ const taxonomyPrimary =
 const categoryHint = `${tool.category?.slug || ''} ${taxonomyPrimary}`.toLowerCase();
 const isPaymentsCategory =
   /\b(payment|payments|bank|banking|finance|accounting|treasury|billing)\b/.test(categoryHint);
-const extractClaimText = (claim: unknown): string => {
-  if (typeof claim === 'string') {
-    const cleaned = stripControlChars(claim);
-    return isLikelyIncompleteClause(cleaned) ? '' : cleaned;
-  }
-  if (
-    claim &&
-    typeof claim === 'object' &&
-    typeof (claim as Record<string, unknown>).text === 'string'
-  ) {
-    const cleaned = stripControlChars((claim as Record<string, unknown>).text as string);
-    return isLikelyIncompleteClause(cleaned) ? '' : cleaned;
-  }
-  return '';
-};
+const extractClaimText = extractToolPageClaimText;
 const fallbackConsText = (Array.isArray(globalCons) ? globalCons : [])
   .map(extractClaimText)
   .filter((text) => text.length > 0);
@@ -830,67 +809,9 @@ const paymentTriggerCons = fallbackConsText.filter((text) =>
   )
 );
 
-const cleanDecisionText = (value: unknown): string | null => {
-  if (typeof value !== 'string') return null;
-  const cleaned = stripControlChars(
-    value
-      .trim()
-      .replace(/^[-\u2022]\s*/, '')
-      .replace(/^avoid if\s*/i, '')
-      .replace(/^not for\s*/i, '')
-      .replace(/^weak fit:\s*/i, '')
-      .replace(/^best fit:\s*/i, '')
-      .replace(/^best when\s*/i, '')
-      .replace(/\s+/g, ' ')
-  );
-  if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-};
-const cleanNarrativeText = (value: unknown): string | null => {
-  if (typeof value !== 'string') return null;
-  const cleaned = stripControlChars(
-    value
-      .trim()
-      .replace(/^[-\u2022]\s*/, '')
-      .replace(/\s+/g, ' ')
-  );
-  if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-};
-const cleanDecisionSlotText = (
-  value: unknown,
-  slot: 'best_fit' | 'weak_fit' | 'tradeoff'
-): string | null => {
-  if (typeof value !== 'string') return null;
-  const stripped = value
-    .trim()
-    .replace(/^[-\u2022]\s*/, '')
-    .replace(/^best fit:\s*/i, '')
-    .replace(/^weak fit:\s*/i, '')
-    .replace(/^tradeoff:\s*/i, '')
-    .replace(/^best for(?:\s+teams?)?(?:\s+where)?\s*/i, '')
-    .replace(/^not for(?:\s+teams?)?(?:\s+where)?\s*/i, '')
-    .replace(/^avoid if\s*/i, '')
-    .replace(/^main tradeoff:\s*/i, '')
-    .replace(/\s+/g, ' ');
-  const cleaned = stripControlChars(stripped);
-  if (!cleaned || isLikelyIncompleteClause(cleaned)) return null;
-  if (slot === 'tradeoff' && cleaned.length < 10) return null;
-  if (slot !== 'tradeoff' && cleaned.length < 8) return null;
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-};
-const uniqueDecisionText = (items: Array<unknown>): string[] => {
-  const seen = new Set<string>();
-  return items
-    .map((item) => cleanDecisionText(item))
-    .filter((item): item is string => Boolean(item))
-    .filter((item) => {
-      const key = item.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-};
+const cleanNarrativeText = cleanToolPageNarrativeText;
+const cleanDecisionSlotText = cleanToolPageDecisionSlotText;
+const uniqueDecisionText = uniqueToolPageDecisionText;
 const fallbackDecisionSummary =
   tool.short_description ||
   knowledgeCard?.tagline ||
