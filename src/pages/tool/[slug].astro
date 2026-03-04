@@ -253,6 +253,17 @@ const orderedAlternatives = (() => {
     .filter((item): item is (typeof alternatives)[number] => Boolean(item));
 })();
 
+type ItemCategoryLink = {
+  category?: {
+    id?: string | null;
+  } | null;
+} | null;
+
+const toItemCategoryLinks = (value: unknown): ItemCategoryLink[] | null => {
+  if (!Array.isArray(value)) return null;
+  return value.filter((entry): entry is ItemCategoryLink => Boolean(entry && typeof entry === 'object'));
+};
+
 // Track whether these are true "alternatives" or just "related tools"
 const alternativesLabel =
   alternativesResponse.type === 'alternatives' ? 'Alternatives' : 'Related Tools';
@@ -440,10 +451,10 @@ const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
 const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
 const strictGateBlockers = firstReview
-  ? evaluateStrictPublishGate(tool as any, firstReview as any).blockers
+  ? evaluateStrictPublishGate(tool, firstReview).blockers
   : [];
 const provisionalIndexEligibility = evaluateToolPageProvisionalIndexEligibility({
-  firstReview: firstReview as any,
+  firstReview,
   gateReasons,
   strictBlockers: strictGateBlockers,
 });
@@ -537,13 +548,15 @@ const alternativesState = buildToolPageAlternativesState(
   {
     slug: tool.slug,
     category: tool.category as { id?: string | null } | null | undefined,
-    item_category_links: (tool as any).item_category_links || null,
+    item_category_links: toItemCategoryLinks((tool as { item_category_links?: unknown }).item_category_links),
     metadata: tool.metadata,
   },
   (orderedAlternatives || []).map((alt) => ({
     slug: alt.slug,
-    category: (alt as any).category || null,
-    item_category_links: (alt as any).item_category_links || null,
+    category: null,
+    item_category_links: toItemCategoryLinks(
+      (alt as { item_category_links?: unknown }).item_category_links
+    ),
     metadata: alt.metadata,
   }))
 );
