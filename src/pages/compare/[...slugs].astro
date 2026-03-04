@@ -9,7 +9,6 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import InfoCardsGrid from '@/components/InfoCardsGrid.astro';
 import Logo from '@/components/Logo.astro';
 import ScoreBadge from '@/components/ScoreBadge.astro';
 import PricingBadge from '@/components/PricingBadge.astro';
@@ -26,6 +25,7 @@ import ChooseIfCards from '@/components/ChooseIfCards.astro';
 import ComparePricingCrossoverSection from '@/components/ComparePricingCrossoverSection.astro';
 import CompareFeatureComparisonSection from '@/components/CompareFeatureComparisonSection.astro';
 import CompareQuickLinks from '@/components/CompareQuickLinks.astro';
+import CompareVerdictSection from '@/components/CompareVerdictSection.astro';
 import { supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {
@@ -604,23 +604,13 @@ const schemas = [
       </div>
     </header>
 
-    <section id="verdict" class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Decision</p>
-      <h2 class="mt-2 text-lg font-semibold text-zinc-100">{comparisonDecisionText}</h2>
-      <InfoCardsGrid
-        className="mt-4 grid gap-3 md:grid-cols-2"
-        cards={[
-          { title: 'Best for', body: comparisonBestFor },
-          { title: 'Tradeoff', body: comparisonTradeoff },
-        ]}
-        titleClassName="text-xs font-semibold uppercase tracking-wide text-zinc-400"
-        bodyClassName="mt-2 text-sm text-zinc-200"
-      />
-      <p class="mt-3 text-xs text-zinc-500">
-        {isCurated ? 'Curated editorial comparison' : 'Editorial comparison'} • Last checked{' '}
-        {compareCheckedLabel || 'unknown'}
-      </p>
-    </section>
+    <CompareVerdictSection
+      decisionText={comparisonDecisionText}
+      bestFor={comparisonBestFor}
+      tradeoff={comparisonTradeoff}
+      isCurated={isCurated}
+      checkedLabel={compareCheckedLabel}
+    />
 
     <!-- Side-by-Side Comparison -->
     <div id="detailed-comparison" class="grid gap-8 lg:grid-cols-2">
