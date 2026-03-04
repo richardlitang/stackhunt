@@ -19,6 +19,7 @@ import SmartComparisonTable from '@/components/SmartComparisonTable';
 import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import ProsCons from '@/components/ProsCons.astro';
 import TrustBar from '@/components/TrustBar.astro';
+import AudienceFitTable from '@/components/AudienceFitTable.astro';
 import MigrationDirectionCards from '@/components/MigrationDirectionCards.astro';
 import SwitchReasonsCards from '@/components/SwitchReasonsCards.astro';
 import { supabase } from '@/lib/supabase';
@@ -998,54 +999,7 @@ const schemas = [
       audienceFits.length > 0 && (
         <section class="mt-12">
           <h2 class="mb-6 text-xl font-semibold text-zinc-100">Best For Different Audiences</h2>
-          <div class="overflow-hidden rounded-xl border border-zinc-700 shadow-sm">
-            <table class="w-full">
-              <thead class="bg-zinc-900">
-                <tr>
-                  <th class="px-6 py-3 text-left text-sm font-semibold text-zinc-300">Audience</th>
-                  <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">
-                    Better Choice
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-zinc-700">
-                {audienceFits
-                  .filter((fit) => fit.better_for !== 'unknown')
-                  .map((fit) => (
-                    <tr>
-                      <td class="px-6 py-4 text-sm text-zinc-300 capitalize">{fit.audience}</td>
-                      <td class="px-6 py-4 text-center">
-                        {fit.better_for === 'a' && (
-                          <span class="inline-flex items-center gap-1 text-green-400 text-sm">
-                            <Logo
-                              domain={toolA.logo_url}
-                              name={toolA.name}
-                              size="xs"
-                              class="rounded"
-                            />
-                            {toolA.name}
-                          </span>
-                        )}
-                        {fit.better_for === 'b' && (
-                          <span class="inline-flex items-center gap-1 text-blue-400 text-sm">
-                            <Logo
-                              domain={toolB.logo_url}
-                              name={toolB.name}
-                              size="xs"
-                              class="rounded"
-                            />
-                            {toolB.name}
-                          </span>
-                        )}
-                        {fit.better_for === 'tie' && (
-                          <span class="text-zinc-400 text-sm">Both work well</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+          <AudienceFitTable audienceFits={audienceFits} toolA={toolA} toolB={toolB} />
         </section>
       )
     }

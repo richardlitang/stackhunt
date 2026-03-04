@@ -1,0 +1,63 @@
+---
+import Logo from '@/components/Logo.astro';
+
+interface AudienceFit {
+  audience: string;
+  better_for: 'a' | 'b' | 'tie' | 'unknown';
+}
+
+interface ToolSummary {
+  name: string;
+  logo_url?: string | null;
+}
+
+interface Props {
+  audienceFits: AudienceFit[];
+  toolA: ToolSummary;
+  toolB: ToolSummary;
+}
+
+const { audienceFits, toolA, toolB } = Astro.props as Props;
+const visibleFits = (Array.isArray(audienceFits) ? audienceFits : []).filter(
+  (fit) => fit && fit.better_for !== 'unknown'
+);
+
+if (visibleFits.length === 0) {
+  return null;
+}
+---
+
+<div class="overflow-hidden rounded-xl border border-zinc-700 shadow-sm">
+  <table class="w-full">
+    <thead class="bg-zinc-900">
+      <tr>
+        <th class="px-6 py-3 text-left text-sm font-semibold text-zinc-300">Audience</th>
+        <th class="px-6 py-3 text-center text-sm font-semibold text-zinc-300">Better Choice</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-zinc-700">
+      {
+        visibleFits.map((fit) => (
+          <tr>
+            <td class="px-6 py-4 text-sm capitalize text-zinc-300">{fit.audience}</td>
+            <td class="px-6 py-4 text-center">
+              {fit.better_for === 'a' && (
+                <span class="inline-flex items-center gap-1 text-sm text-green-400">
+                  <Logo domain={toolA.logo_url} name={toolA.name} size="xs" class="rounded" />
+                  {toolA.name}
+                </span>
+              )}
+              {fit.better_for === 'b' && (
+                <span class="inline-flex items-center gap-1 text-sm text-blue-400">
+                  <Logo domain={toolB.logo_url} name={toolB.name} size="xs" class="rounded" />
+                  {toolB.name}
+                </span>
+              )}
+              {fit.better_for === 'tie' && <span class="text-sm text-zinc-400">Both work well</span>}
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
