@@ -78,10 +78,7 @@ import { deriveToolPageSectionSignals } from '@/lib/tool-page/section-signals';
 import { buildToolPageSectionState } from '@/lib/tool-page/section-state';
 import { buildToolPageAlternativesState } from '@/lib/tool-page/alternatives-state';
 import { deriveToolPageVerdictPolicy } from '@/lib/tool-page/verdict-policy';
-import { buildToolPageLensRuntime } from '@/lib/tool-page/lens-runtime';
 import { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
-import { buildToolPageTrustRuntime } from '@/lib/tool-page/trust-runtime';
-import { buildToolPageMetaRuntime } from '@/lib/tool-page/meta-runtime';
 import {
   deriveToolPageReviewContentLists,
   deriveToolPageSourceEvidenceDomains,
@@ -89,8 +86,7 @@ import {
 import { deriveToolPageReviewProgress } from '@/lib/tool-page/review-progress';
 import { buildToolPageTradeoffEvidence } from '@/lib/tool-page/tradeoff-evidence';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
-import { buildToolPageSchemas } from '@/lib/tool-page/schemas';
-import { deriveToolPageUpdateHistoryLabels } from '@/lib/tool-page/update-labels';
+import { buildToolPageRuntime } from '@/lib/tool-page/runtime';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -820,35 +816,103 @@ const lensLabelMap: Record<ReviewLens, string> = {
   startup: 'Startup',
   enterprise: 'Enterprise',
 };
-const lensRuntime = buildToolPageLensRuntime({
-  pathname: Astro.url.pathname,
-  searchParams: Astro.url.searchParams,
-  activeReviewLens,
-  viewModelInput: {
-    hasVerdict,
-    showProceduralVerdict,
-    showPricingSection,
-    hasGettingStarted,
-    hasFeatures,
-    hasSpecs,
-    showProceduralSpecs,
-    hasPlatform,
-    hasAlternatives,
+const toolReviewHeading = `${tool.name} Review`;
+const toolMeta = generateToolMeta(tool, tool.review_count);
+const runtime = buildToolPageRuntime({
+  lensInput: {
+    pathname: Astro.url.pathname,
+    searchParams: Astro.url.searchParams,
+    activeReviewLens,
+    viewModelInput: {
+      hasVerdict,
+      showProceduralVerdict,
+      showPricingSection,
+      hasGettingStarted,
+      hasFeatures,
+      hasSpecs,
+      showProceduralSpecs,
+      hasPlatform,
+      hasAlternatives,
+    },
+    lensContentInput: {
+      toolName: tool.name,
+      hasCollectedSources,
+      hasGettingStarted,
+      showPricingSection,
+      hasSecurity,
+      decisionSnapshotBestWhen,
+      decisionSnapshotWatchOuts,
+      decisionSnapshotDifferentiators,
+      decisionTradeoffSummary,
+      enterpriseTradeoffOverride: canonicalHardLimits[0]?.text || null,
+      hardLimitCount: canonicalHardLimits.length,
+    },
   },
-  lensContentInput: {
-    toolName: tool.name,
+  trustInput: {
+    baseEvidenceGrade,
+    verificationItems: [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints],
     hasCollectedSources,
-    hasGettingStarted,
-    showPricingSection,
-    hasSecurity,
-    decisionSnapshotBestWhen,
-    decisionSnapshotWatchOuts,
-    decisionSnapshotDifferentiators,
-    decisionTradeoffSummary,
-    enterpriseTradeoffOverride: canonicalHardLimits[0]?.text || null,
-    hardLimitCount: canonicalHardLimits.length,
+    contentConfidenceLevel,
+    hasPricingCheckedProof,
+    pricingCheckedLabel,
+    pricingSourceUrl,
+    specsVerifiedLabel,
+    officialDocsSourceUrl: officialDocsSource?.url || null,
+    communityVerifiedLabel,
+    officialPricingSourceUrl: officialPricingSource?.url || null,
+  },
+  metaInput: {
+    qaInput: {
+      title: `${tool.name} Review | StackHunt`,
+      h1: toolReviewHeading,
+      intro: stripControlChars(decisionSnapshotSummary || ''),
+      verdict: stripControlChars(renderVerdictSafe || tool.verdict || ''),
+      evaluationDepth: evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
+      pricingSectionVisible: showPricingSection,
+      hasPricingCheckedProof,
+      schemaMatchesVisibleContent: Boolean(!hasFAQ || faqSchema),
+      hasBestForSignal: decisionSnapshotBestWhen.length > 0,
+      hasNotForSignal: decisionSnapshotWatchOuts.length > 0,
+      hasTradeoffSignal: decisionTradeoffSummary !== 'Tradeoff not confirmed yet.',
+      hasDecisionSummaryBlock: true,
+      introLooksSpecSheet,
+    },
+    indexInput: {
+      gateShouldIndex,
+      isDraftPage,
+      pendingVerificationCount,
+      showReviewInProgressBanner,
+      toolCanonicalUrl: toolMeta.canonical,
+      fallbackCanonicalUrl: getCanonicalUrl('/tools'),
+      defaultDescription: toolMeta.description,
+      draftDescription: safeDraftDescription,
+    },
+    baseMeta: {
+      description: toolMeta.description,
+      canonical: toolMeta.canonical,
+    },
+  },
+  schemasInput: {
+    tool,
+    primaryOffer,
+    reviewCount: tool.review_count,
+    faqSchema,
+  },
+  updateHistoryLabelsInput: {
+    communityVerifiedLabel,
+    specsVerifiedLabel,
+    pricingCheckedLabel,
   },
 });
+const {
+  lensRuntime,
+  trustRuntime,
+  metaRuntime,
+  schemas,
+  updateHistoryLabels,
+} = runtime;
+pendingVerificationCount = trustRuntime.pendingVerificationCount;
+const { trustStatus, trustConfidenceLabel, updateHistoryEntries } = trustRuntime;
 const {
   lensHrefs,
   focusSwitchOptions,
@@ -865,71 +929,12 @@ const {
   workflowFitHighlights,
   workflowFitCards,
 } = lensRuntime;
-const trustRuntime = buildToolPageTrustRuntime({
-  baseEvidenceGrade,
-  verificationItems: [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints],
-  hasCollectedSources,
-  contentConfidenceLevel,
-  hasPricingCheckedProof,
-  pricingCheckedLabel,
-  pricingSourceUrl,
-  specsVerifiedLabel,
-  officialDocsSourceUrl: officialDocsSource?.url || null,
-  communityVerifiedLabel,
-  officialPricingSourceUrl: officialPricingSource?.url || null,
-});
-pendingVerificationCount = trustRuntime.pendingVerificationCount;
-const { trustStatus, trustConfidenceLabel, updateHistoryEntries } = trustRuntime;
-const toolReviewHeading = `${tool.name} Review`;
-const toolMeta = generateToolMeta(tool, tool.review_count);
-const metaRuntime = buildToolPageMetaRuntime({
-  qaInput: {
-    title: `${tool.name} Review | StackHunt`,
-    h1: toolReviewHeading,
-    intro: stripControlChars(decisionSnapshotSummary || ''),
-    verdict: stripControlChars(renderVerdictSafe || tool.verdict || ''),
-    evaluationDepth: evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
-    pricingSectionVisible: showPricingSection,
-    hasPricingCheckedProof,
-    schemaMatchesVisibleContent: Boolean(!hasFAQ || faqSchema),
-    hasBestForSignal: decisionSnapshotBestWhen.length > 0,
-    hasNotForSignal: decisionSnapshotWatchOuts.length > 0,
-    hasTradeoffSignal: decisionTradeoffSummary !== 'Tradeoff not confirmed yet.',
-    hasDecisionSummaryBlock: true,
-    introLooksSpecSheet,
-  },
-  indexInput: {
-    gateShouldIndex,
-    isDraftPage,
-    pendingVerificationCount,
-    showReviewInProgressBanner,
-    toolCanonicalUrl: toolMeta.canonical,
-    fallbackCanonicalUrl: getCanonicalUrl('/tools'),
-    defaultDescription: toolMeta.description,
-    draftDescription: safeDraftDescription,
-  },
-  baseMeta: {
-    description: toolMeta.description,
-    canonical: toolMeta.canonical,
-  },
-});
 const { indexPolicy } = metaRuntime;
 const meta = {
   ...toolMeta,
   ...metaRuntime.meta,
 };
 Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
-const schemas = buildToolPageSchemas({
-  tool,
-  primaryOffer,
-  reviewCount: tool.review_count,
-  faqSchema,
-});
-const updateHistoryLabels = deriveToolPageUpdateHistoryLabels({
-  communityVerifiedLabel,
-  specsVerifiedLabel,
-  pricingCheckedLabel,
-});
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
