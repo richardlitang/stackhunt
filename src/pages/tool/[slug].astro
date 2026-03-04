@@ -1287,7 +1287,7 @@ const pricingViewModel = buildToolPagePricingViewModel({
 const {
   officialPricingSource,
   pricingSourceUrl,
-  pricingSnapshotBullets,
+  pricingSnapshotBullets: _pricingSnapshotBullets,
   pricingEvidenceLinks,
   hasPricingCheckedProof,
   pricingCheckedLabel,
@@ -1459,6 +1459,7 @@ const evidenceState = deriveToolPageEvidenceState({
 });
 evidenceGrade = evidenceState.evidenceGrade;
 isVerificationMode = evidenceState.isVerificationMode;
+const _evidenceGrade = evidenceGrade;
 const toolPageTrustViewModel = buildToolPageTrustViewModel({
   hasCollectedSources,
   isVerificationMode,
