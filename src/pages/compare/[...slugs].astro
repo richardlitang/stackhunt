@@ -19,6 +19,7 @@ import SmartComparisonTable from '@/components/SmartComparisonTable';
 import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import ProsCons from '@/components/ProsCons.astro';
 import TrustBar from '@/components/TrustBar.astro';
+import MigrationDirectionCards from '@/components/MigrationDirectionCards.astro';
 import SwitchReasonsCards from '@/components/SwitchReasonsCards.astro';
 import { supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
@@ -972,95 +973,22 @@ const schemas = [
       computed && (migrationAToB || migrationBToA) && (
         <section class="mt-12">
           <h2 class="mb-6 text-xl font-semibold text-zinc-100">Can You Switch?</h2>
-          <div class="grid gap-6 lg:grid-cols-2">
-            <div
-              class={`rounded-xl border p-5 ${migrationAToB ? 'border-green-700 bg-green-900/20' : 'border-zinc-700 bg-zinc-900'}`}
-            >
-              <h3 class="text-sm font-medium text-zinc-300 mb-3">
-                {toolA.name} → {toolB.name}
-              </h3>
-              {migrationAToB ? (
-                <div class="flex items-center gap-2 text-green-400">
-                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <span class="text-sm">
-                    {toolB.name} can import from {toolA.name}
-                  </span>
-                </div>
-              ) : (
-                <div class="flex items-center gap-2 text-zinc-500">
-                  <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span class="text-sm">Manual migration may be required</span>
-                </div>
-              )}
-              {computed.migration.difficulty_leaving_a && (
-                <p class="mt-2 text-xs text-zinc-500">
-                  Difficulty leaving {toolA.name}: {computed.migration.difficulty_leaving_a}/5
-                </p>
-              )}
-            </div>
-
-            <div
-              class={`rounded-xl border p-5 ${migrationBToA ? 'border-green-700 bg-green-900/20' : 'border-zinc-700 bg-zinc-900'}`}
-            >
-              <h3 class="text-sm font-medium text-zinc-300 mb-3">
-                {toolB.name} → {toolA.name}
-              </h3>
-              {migrationBToA ? (
-                <div class="flex items-center gap-2 text-green-400">
-                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <span class="text-sm">
-                    {toolA.name} can import from {toolB.name}
-                  </span>
-                </div>
-              ) : (
-                <div class="flex items-center gap-2 text-zinc-500">
-                  <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span class="text-sm">Manual migration may be required</span>
-                </div>
-              )}
-              {computed.migration.difficulty_leaving_b && (
-                <p class="mt-2 text-xs text-zinc-500">
-                  Difficulty leaving {toolB.name}: {computed.migration.difficulty_leaving_b}/5
-                </p>
-              )}
-            </div>
-          </div>
+          <MigrationDirectionCards
+            directions={[
+              {
+                fromLabel: toolA.name,
+                toLabel: toolB.name,
+                canImport: migrationAToB,
+                difficultyLeaving: computed.migration.difficulty_leaving_a,
+              },
+              {
+                fromLabel: toolB.name,
+                toLabel: toolA.name,
+                canImport: migrationBToA,
+                difficultyLeaving: computed.migration.difficulty_leaving_b,
+              },
+            ]}
+          />
         </section>
       )
     }
