@@ -15,18 +15,61 @@ interface Props {
     commitmentTerms?: string | null;
     roiThreshold?: string | null;
   };
+  summaryLead?: string;
+  summaryLabel?: string;
   variant?: 'full' | 'compact';
 }
 
-const { budgetAnalyst, variant = 'compact' } = Astro.props;
+const { budgetAnalyst, summaryLead, summaryLabel, variant = 'compact' } = Astro.props;
+const normalizedSummaryLead = typeof summaryLead === 'string' ? summaryLead.trim() : '';
+const normalizedSummaryLabel = typeof summaryLabel === 'string' ? summaryLabel.trim() : '';
 
-// Don't render if no budget analyst data
-if (!budgetAnalyst) return null;
+const { costDrivers = [], oneTimeFees = [], commitmentTerms, roiThreshold } = budgetAnalyst || {};
 
-const { costDrivers = [], oneTimeFees = [], commitmentTerms, roiThreshold } = budgetAnalyst;
+const normalize = (value: string): string => value.replace(/\s+/g, ' ').trim();
+const dedupe = (items: string[]): string[] => {
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const item of items) {
+    if (typeof item !== 'string') continue;
+    const normalized = normalize(item);
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(normalized);
+  }
+  return cleaned;
+};
 
-// Don't render if all fields are empty
-if (costDrivers.length === 0 && oneTimeFees.length === 0 && !commitmentTerms && !roiThreshold) {
+const factualCostDrivers = dedupe(costDrivers).slice(0, 5);
+const factualOneTimeFees = dedupe(oneTimeFees).slice(0, 4);
+const normalizedCommitmentTerms =
+  typeof commitmentTerms === 'string' ? normalize(commitmentTerms) : '';
+const normalizedRoiThreshold = typeof roiThreshold === 'string' ? normalize(roiThreshold) : '';
+const subjectiveRoiPattern = /\b(justified|productivity|best value|worth it|excellent|great)\b/i;
+const objectiveRoiPattern =
+  /\b(\d+|team|seat|user|plan|tier|enterprise|business|sso|api|compliance|usage|volume|monthly|annual)\b/i;
+const safeRoiThreshold =
+  normalizedRoiThreshold &&
+  objectiveRoiPattern.test(normalizedRoiThreshold) &&
+  !subjectiveRoiPattern.test(normalizedRoiThreshold)
+    ? normalizedRoiThreshold
+    : '';
+
+const hasMechanicsData = Boolean(
+  factualCostDrivers.length > 0 ||
+    factualOneTimeFees.length > 0 ||
+    normalizedCommitmentTerms ||
+    safeRoiThreshold
+);
+
+// Don't render if both summary and mechanics are empty
+if (
+  !normalizedSummaryLead &&
+  !normalizedSummaryLabel &&
+  !hasMechanicsData
+) {
   return null;
 }
 ---
@@ -50,18 +93,29 @@ if (costDrivers.length === 0 && oneTimeFees.length === 0 && !commitmentTerms && 
         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
     </svg>
     <div class="flex-1">
-      <h4 class="text-sm font-medium text-blue-300">💡 Price Mechanics</h4>
-      <p class="mt-0.5 text-xs text-zinc-400">What affects your bill</p>
+      <h4 class="text-sm font-medium text-blue-300">Pricing summary & mechanics</h4>
+      <p class="mt-0.5 text-xs text-zinc-400">What affects your bill and how costs scale</p>
     </div>
   </div>
 
   <div class="space-y-2.5">
+    {
+      normalizedSummaryLead && (
+        <p class="text-sm leading-relaxed text-zinc-200">{normalizedSummaryLead}</p>
+      )
+    }
+    {
+      normalizedSummaryLabel && (
+        <p class="text-xs text-zinc-500">{normalizedSummaryLabel}</p>
+      )
+    }
+
     {/* Cost Drivers */}
     {
-      costDrivers.length > 0 && (
+      factualCostDrivers.length > 0 && (
         <div>
           <ul class="space-y-1">
-            {costDrivers.map((driver) => (
+            {factualCostDrivers.map((driver) => (
               <li class="flex items-start gap-1.5 text-xs text-zinc-300">
                 <span class="text-blue-400">•</span>
                 <span>{driver}</span>
@@ -74,11 +128,11 @@ if (costDrivers.length === 0 && oneTimeFees.length === 0 && !commitmentTerms && 
 
     {/* One-Time Fees */}
     {
-      oneTimeFees.length > 0 && (
+      factualOneTimeFees.length > 0 && (
         <div class="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
           <p class="text-xs font-medium text-amber-300 mb-1">⚠️ Setup Costs</p>
           <ul class="space-y-0.5">
-            {oneTimeFees.map((fee) => (
+            {factualOneTimeFees.map((fee) => (
               <li class="text-xs text-amber-200/90">{fee}</li>
             ))}
           </ul>
@@ -88,21 +142,21 @@ if (costDrivers.length === 0 && oneTimeFees.length === 0 && !commitmentTerms && 
 
     {/* Commitment & ROI (compact inline) */}
     {
-      (commitmentTerms || roiThreshold) && (
+      (normalizedCommitmentTerms || safeRoiThreshold) && (
         <div class="space-y-1.5 text-xs">
-          {commitmentTerms && (
+          {normalizedCommitmentTerms && (
             <div class="flex items-start gap-1.5">
               <span class="text-zinc-500">📅</span>
               <span class="text-zinc-300">
-                <strong class="text-zinc-200">Contract:</strong> {commitmentTerms}
+                <strong class="text-zinc-200">Contract:</strong> {normalizedCommitmentTerms}
               </span>
             </div>
           )}
-          {roiThreshold && (
+          {safeRoiThreshold && (
             <div class="flex items-start gap-1.5">
               <span class="text-zinc-500">📈</span>
               <span class="text-zinc-300">
-                <strong class="text-zinc-200">Worth it when:</strong> {roiThreshold}
+                <strong class="text-zinc-200">Upgrade threshold (editorial):</strong> {safeRoiThreshold}
               </span>
             </div>
           )}
