@@ -46,6 +46,7 @@ import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import {
   buildToolPageAlternativesState,
   buildToolPageAlternativesStateInput,
+  orderToolPageAlternativesByIds,
   deriveToolPageBaseEvidenceGrade,
   deriveToolPageCanonicalHardLimits,
   deriveToolPageCoreState,
@@ -187,13 +188,7 @@ const { data: alternatives } =
     : { data: [] };
 
 // Preserve similarity order from hybrid search
-const orderedAlternatives = (() => {
-  if (!alternatives) return [];
-  const alternativeById = new Map(alternatives.map((item) => [item.id, item]));
-  return alternativeIds
-    .map((id) => alternativeById.get(id))
-    .filter((item): item is (typeof alternatives)[number] => Boolean(item));
-})();
+const orderedAlternatives = orderToolPageAlternativesByIds(alternatives, alternativeIds);
 
 // Track whether these are true "alternatives" or just "related tools"
 const alternativesLabel =

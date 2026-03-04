@@ -1,5 +1,6 @@
 export { buildToolPageAlternativesState } from '@/lib/tool-page/alternatives-state';
 export { buildToolPageAlternativesStateInput } from '@/lib/tool-page/alternatives-input';
+export { orderToolPageAlternativesByIds } from '@/lib/tool-page/alternatives-order';
 export { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
 export { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
 export { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';
