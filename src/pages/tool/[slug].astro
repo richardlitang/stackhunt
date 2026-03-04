@@ -63,6 +63,7 @@ import {
 } from '@/lib/tool-page-pricing';
 import { buildToolPageEvaluationViewModel } from '@/lib/tool-page-evaluation';
 import { buildToolPageSourcesViewModel } from '@/lib/tool-page-sources';
+import { buildToolPageDecisionSnapshot } from '@/lib/tool-page-decision';
 import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
 import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
@@ -890,64 +891,35 @@ const hasToolNameSignal = (value: string): boolean => {
   const lower = value.toLowerCase();
   return toolNameTokens.length > 0 && toolNameTokens.some((token) => lower.includes(token));
 };
-const decisionIntroWhatItIs = cleanNarrativeText(
-  (decisionSlotsRaw?.what_it_is as string | undefined) ?? decisionIntroRaw?.what_it_is
-);
-const decisionIntroBestFor = cleanDecisionSlotText(
-  (decisionSlotsRaw?.best_fit as string | undefined) ?? decisionIntroRaw?.best_for,
-  'best_fit'
-);
-const decisionIntroNotForRaw = cleanDecisionSlotText(
-  (decisionSlotsRaw?.weak_fit as string | undefined) ?? decisionIntroRaw?.not_for,
-  'weak_fit'
-);
-const decisionIntroNotFor =
-  decisionIntroNotForRaw && !isDisallowedConClaim(decisionIntroNotForRaw)
-    ? decisionIntroNotForRaw
-    : '';
-const decisionIntroTradeoffRaw = cleanDecisionSlotText(
-  (decisionSlotsRaw?.tradeoff as string | undefined) ?? decisionIntroRaw?.main_tradeoff,
-  'tradeoff'
-);
-const decisionIntroTradeoff =
-  decisionIntroTradeoffRaw && !isDisallowedConClaim(decisionIntroTradeoffRaw)
-    ? decisionIntroTradeoffRaw
-    : '';
 const fallbackDecisionSummary =
   tool.short_description ||
   knowledgeCard?.tagline ||
   `${tool.name} can work well for some teams, but fit depends on your workflow and plan constraints.`;
-const decisionSnapshotSummaryCandidate = decisionIntroWhatItIs || fallbackDecisionSummary;
-const introLooksSpecSheet = /\bacross pricing,\s*fit,\s*and rollout risk\b/i.test(
-  decisionSnapshotSummaryCandidate
-);
-const decisionSnapshotSummary = introLooksSpecSheet
-  ? fallbackDecisionSummary
-  : decisionSnapshotSummaryCandidate;
-const decisionSnapshotBestWhen = uniqueDecisionText(
-  decisionIntroBestFor
-    ? [decisionIntroBestFor, ...idealFor]
-    : idealFor.length > 0
-    ? idealFor
-    : tags.audiences.length > 0
-      ? tags.audiences.map((tag) => tag.name)
-      : firstReview?.pros || []
-).slice(0, 3);
-const decisionSnapshotWatchOutCandidates = uniqueDecisionText(
-  decisionIntroNotFor
-    ? [decisionIntroNotFor, ...guardedAvoidIf]
-    : guardedAvoidIf.length > 0
-    ? guardedAvoidIf.slice(0, 2)
-    : isPaymentsCategory && paymentTriggerCons.length > 0
-      ? paymentTriggerCons.slice(0, 2)
-      : fallbackConsText.length > 0
-        ? fallbackConsText.slice(0, 2)
-        : (firstReview?.cons || []).slice(0, 2)
-);
-const decisionSnapshotWatchOuts = decisionSnapshotWatchOutCandidates
-  .filter((item) => !isDisallowedConClaim(item))
-  .slice(0, 3);
-let decisionTradeoffSummary = decisionIntroTradeoff || '';
+const decisionSnapshot = buildToolPageDecisionSnapshot({
+  decisionSlotsRaw,
+  decisionIntroRaw,
+  fallbackDecisionSummary,
+  idealFor,
+  guardedAvoidIf,
+  isPaymentsCategory,
+  paymentTriggerCons,
+  fallbackConsText,
+  firstReviewPros: firstReview?.pros || [],
+  firstReviewCons: firstReview?.cons || [],
+  tagAudienceNames: tags.audiences.map((tag) => tag.name),
+  isDisallowedConClaim,
+  cleanNarrativeText,
+  cleanDecisionSlotText,
+  uniqueDecisionText,
+});
+const {
+  decisionSnapshotSummary,
+  introLooksSpecSheet,
+  decisionSnapshotBestWhen,
+  decisionSnapshotWatchOuts,
+  decisionTradeoffSummaryInitial,
+} = decisionSnapshot;
+let decisionTradeoffSummary = decisionTradeoffSummaryInitial;
 const toolPageEvaluationViewModel = buildToolPageEvaluationViewModel({
   canonicalFacts: canonicalFacts as Record<string, unknown> | undefined,
 });
