@@ -1539,6 +1539,19 @@ const lensTradeoffLine: string =
     : decisionTradeoffSummary;
 const normalizeNarrativeSentence = (value: string): string =>
   stripControlChars(value).replace(/\s+/g, ' ').replace(/[.]+$/, '').trim();
+const dedupeNarrativeItems = (items: string[]): string[] => {
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const item of items) {
+    const normalized = normalizeNarrativeSentence(item);
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(normalized);
+  }
+  return cleaned;
+};
 const joinNarrativeItems = (items: string[]): string => {
   if (items.length === 0) return '';
   if (items.length === 1) return items[0];
@@ -1556,33 +1569,42 @@ const sanitizeRoiThresholdForPricingLead = (value: unknown): string => {
   if (PRICING_SUBJECTIVE_ROI_PATTERN.test(normalized)) return '';
   return normalized;
 };
+const normalizedBudgetCostDrivers = dedupeNarrativeItems(budgetCostDrivers).slice(0, 3);
+const normalizedBudgetOneTimeFees = dedupeNarrativeItems(budgetOneTimeFees).slice(0, 2);
+const normalizedBudgetCommitmentTerms =
+  typeof budgetCommitmentTerms === 'string'
+    ? normalizeNarrativeSentence(budgetCommitmentTerms)
+    : '';
+const normalizedBudgetRoiThreshold = sanitizeRoiThresholdForPricingLead(budgetRoiThreshold);
+const showPricingMechanicsCallout = Boolean(
+  hasPricing &&
+    (normalizedBudgetCostDrivers.length > 0 ||
+      normalizedBudgetOneTimeFees.length > 0 ||
+      normalizedBudgetCommitmentTerms.length > 0 ||
+      normalizedBudgetRoiThreshold.length > 0)
+);
 const pricingNarrativeLead = (() => {
   const sentences: string[] = [];
-  const normalizedCostDrivers = budgetCostDrivers
-    .map(normalizeNarrativeSentence)
-    .filter((item) => item.length > 0)
-    .slice(0, 3);
-  const normalizedOneTimeFees = budgetOneTimeFees
-    .map(normalizeNarrativeSentence)
-    .filter((item) => item.length > 0)
-    .slice(0, 2);
-  const normalizedCommitmentTerms =
-    typeof budgetCommitmentTerms === 'string'
-      ? normalizeNarrativeSentence(budgetCommitmentTerms)
-      : '';
-  const normalizedRoiThreshold = sanitizeRoiThresholdForPricingLead(budgetRoiThreshold);
 
-  if (normalizedCostDrivers.length > 0) {
-    sentences.push(`Your bill is mostly driven by ${joinNarrativeItems(normalizedCostDrivers)}.`);
-  }
-  if (normalizedOneTimeFees.length > 0) {
-    sentences.push(`Expect one-time costs around ${joinNarrativeItems(normalizedOneTimeFees)}.`);
-  }
-  if (normalizedCommitmentTerms.length > 0) {
-    sentences.push(`Contract terms: ${normalizedCommitmentTerms}.`);
-  }
-  if (normalizedRoiThreshold.length > 0) {
-    sentences.push(`Editorial upgrade trigger: ${normalizedRoiThreshold}.`);
+  if (showPricingMechanicsCallout) {
+    sentences.push(
+      'Pricing depends on plan, seats, and usage. See Price mechanics below for concrete bill drivers and contract terms.'
+    );
+  } else {
+    if (normalizedBudgetCostDrivers.length > 0) {
+      sentences.push(
+        `Your bill is mostly driven by ${joinNarrativeItems(normalizedBudgetCostDrivers)}.`
+      );
+    }
+    if (normalizedBudgetOneTimeFees.length > 0) {
+      sentences.push(`Expect one-time costs around ${joinNarrativeItems(normalizedBudgetOneTimeFees)}.`);
+    }
+    if (normalizedBudgetCommitmentTerms.length > 0) {
+      sentences.push(`Contract terms: ${normalizedBudgetCommitmentTerms}.`);
+    }
+    if (normalizedBudgetRoiThreshold.length > 0) {
+      sentences.push(`Editorial upgrade trigger: ${normalizedBudgetRoiThreshold}.`);
+    }
   }
 
   if (sentences.length === 0 && pricingSnapshotBullets.length > 0) {
@@ -1600,8 +1622,9 @@ const pricingNarrativeLead = (() => {
 
   return sentences.slice(0, 3).join(' ');
 })();
-const pricingNarrativeLabel =
-  'Pricing summary is editorial synthesis from source-backed references. Numeric plan details remain source-backed below.';
+const pricingNarrativeLabel = showPricingMechanicsCallout
+  ? 'Pricing summary is editorial synthesis from source-backed references. Detailed mechanics and numeric plan details remain source-backed below.'
+  : 'Pricing summary is editorial synthesis from source-backed references. Numeric plan details remain source-backed below.';
 const scoreDrivers = uniqueDecisionText([
   ...decisionSnapshotDifferentiators,
   ...decisionSnapshotBestWhen,
@@ -2309,29 +2332,31 @@ const schemas = [
                 </p>
                 {hasPricing ? (
                   <>
-                    <PricingInsights
-                      variant="compact"
-                      budgetAnalyst={
-                        budgetAnalyst
-                          ? {
-                              costDrivers: Array.isArray(
-                                budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
-                              )
-                                ? budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
-                                : [],
-                              oneTimeFees: Array.isArray(
-                                budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
-                              )
-                                ? budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
-                                : [],
-                              commitmentTerms: (budgetAnalyst.commitmentTerms ||
-                                budgetAnalyst.commitment_terms) as string | null | undefined,
-                              roiThreshold: (budgetAnalyst.roiThreshold ||
-                                budgetAnalyst.roi_threshold) as string | null | undefined,
-                            }
-                          : undefined
-                      }
-                    />
+                    {showPricingMechanicsCallout && (
+                      <PricingInsights
+                        variant="compact"
+                        budgetAnalyst={
+                          budgetAnalyst
+                            ? {
+                                costDrivers: Array.isArray(
+                                  budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
+                                )
+                                  ? budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
+                                  : [],
+                                oneTimeFees: Array.isArray(
+                                  budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
+                                )
+                                  ? budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
+                                  : [],
+                                commitmentTerms: (budgetAnalyst.commitmentTerms ||
+                                  budgetAnalyst.commitment_terms) as string | null | undefined,
+                                roiThreshold: (budgetAnalyst.roiThreshold ||
+                                  budgetAnalyst.roi_threshold) as string | null | undefined,
+                              }
+                            : undefined
+                        }
+                      />
+                    )}
 
                     <PricingPlansGrid
                       smp_pricing={knowledgeCard?.smp_pricing}
