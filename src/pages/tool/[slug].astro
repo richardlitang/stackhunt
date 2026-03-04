@@ -48,6 +48,19 @@ import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence'
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
+import { evaluateToolPageIndexPolicy } from '@/lib/tool-page-index-policy';
+import { buildToolPageViewModel } from '@/lib/tool-page-view-model';
+import {
+  buildToolPageTrustViewModel,
+  countPendingVerifications,
+  deriveToolPageEvidenceState,
+  type ToolPageEvidenceGrade,
+} from '@/lib/tool-page-trust';
+import { buildToolPageLensContent } from '@/lib/tool-page-lens';
+import {
+  buildToolPagePricingViewModel,
+  deriveToolPagePricingSignals,
+} from '@/lib/tool-page-pricing';
 import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
 import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
@@ -513,9 +526,20 @@ const gateBlocksFoundations =
   gateReasons.includes('missing_required_sections') || gateReasons.includes('mvup_incomplete');
 const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
 const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
-let shouldNoindex = !gateShouldIndex || isDraftPage;
-let isVerificationMode = shouldNoindex;
+const baseShouldNoindex = !gateShouldIndex || isDraftPage;
+let isVerificationMode = baseShouldNoindex;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
+const countClaimBullets = (raw: unknown): number => {
+  if (!Array.isArray(raw)) return 0;
+  return raw.filter((entry) => {
+    if (typeof entry === 'string') return entry.trim().length > 0;
+    if (entry && typeof entry === 'object') {
+      const text = (entry as { text?: string }).text;
+      return typeof text === 'string' && text.trim().length > 0;
+    }
+    return false;
+  }).length;
+};
 const provisionalIndexEligibility = (() => {
   if (!firstReview) return { allowed: false, reasons: ['missing_review'] as string[] };
   const status = String((firstReview as any).status || '').toLowerCase();
@@ -629,48 +653,18 @@ const comparativeFeaturePeerCount =
         .comparative_feature_peer_count as number)
     : 0;
 const hasSpecsRaw = Boolean((categorySpecificData || vipSpecifics) && sectionStatus.specs === 'show');
-const hasMeaningfulPricingPlanName = (name?: string): boolean => {
-  if (!name || !name.trim()) return false;
-  const normalized = name.trim().toLowerCase();
-  if (/^plan\s+\d+$/i.test(normalized)) return false;
-  if (/^product\s+\d+$/i.test(normalized)) return false;
-  return true;
-};
-const hasRenderablePlanPrice = (value: unknown): boolean =>
-  typeof value === 'number' && Number.isFinite(value) && value >= 0;
-const hasRenderablePricingPlan = (plan: unknown): boolean => {
-  if (!plan || typeof plan !== 'object') return false;
-  const planRecord = plan as Record<string, unknown>;
-  const planName = typeof planRecord.name === 'string' ? planRecord.name : '';
-  const hasNamedTier = planName.trim().length > 0;
-  const hasPriceSignal =
-    hasRenderablePlanPrice(planRecord.price_monthly) ||
-    hasRenderablePlanPrice(planRecord.price_annual) ||
-    hasRenderablePlanPrice(planRecord.price_per_unit);
-  const isEnterprise = planRecord.is_enterprise === true;
-  return (
-    hasMeaningfulPricingPlanName(planName) || (hasNamedTier && (hasPriceSignal || isEnterprise))
-  );
-};
-const hasRenderableSmpPlans = Boolean(
-  knowledgeCard?.smp_pricing?.plans?.some((plan) => hasRenderablePricingPlan(plan))
-);
-const hasPricing = Boolean(
-  (hasRenderableSmpPlans || knowledgeCard?.pricing?.tiers?.length > 0) &&
-  sectionStatus.pricing === 'show'
-);
-const hasFreePlanSignal = Boolean(
-  String(tool.pricing_type || '').toLowerCase() === 'freemium' ||
-    (typeof knowledgeCard?.pricing?.starting_price === 'string' &&
-      /\bfree\b/i.test(knowledgeCard.pricing.starting_price)) ||
-    (Array.isArray(knowledgeCard?.smp_pricing?.plans) &&
-      knowledgeCard.smp_pricing.plans.some((plan) => {
-        const monthly = typeof plan?.price_monthly === 'number' ? plan.price_monthly : null;
-        const annual = typeof plan?.price_annual === 'number' ? plan.price_annual : null;
-        const name = typeof plan?.name === 'string' ? plan.name : '';
-        return monthly === 0 || annual === 0 || /\bfree\b/i.test(name);
-      }))
-);
+const pricingSignals = deriveToolPagePricingSignals({
+  toolPricingType: tool.pricing_type,
+  pricingStartingPrice:
+    typeof knowledgeCard?.pricing?.starting_price === 'string'
+      ? knowledgeCard.pricing.starting_price
+      : null,
+  smpPlans: knowledgeCard?.smp_pricing?.plans,
+  legacyPricingTiers: knowledgeCard?.pricing?.tiers,
+  pricingSectionStatus: sectionStatus.pricing,
+});
+const hasPricing = pricingSignals.hasPricing;
+const hasFreePlanSignal = pricingSignals.hasFreePlanSignal;
 const WEB_ONLY_CLAIM_PATTERN =
   /\b(platform access is limited to web(?:[-\s]*based)? environments|web[-\s]*only|limited to web[-\s]*based environments|web-based environments only)\b/i;
 const CONTRADICTORY_FREE_PLAN_PATTERN = /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan)\b/i;
@@ -873,17 +867,6 @@ const cleanDecisionSlotText = (
   if (slot === 'tradeoff' && cleaned.length < 10) return null;
   if (slot !== 'tradeoff' && cleaned.length < 8) return null;
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-};
-const countClaimBullets = (raw: unknown): number => {
-  if (!Array.isArray(raw)) return 0;
-  return raw.filter((entry) => {
-    if (typeof entry === 'string') return entry.trim().length > 0;
-    if (entry && typeof entry === 'object') {
-      const text = (entry as { text?: string }).text;
-      return typeof text === 'string' && text.trim().length > 0;
-    }
-    return false;
-  }).length;
 };
 const uniqueDecisionText = (items: Array<unknown>): string[] => {
   const seen = new Set<string>();
@@ -1262,8 +1245,7 @@ const hasOfficialDocOrHelpSource = officialEvidenceLinks.some((entry) =>
   )
 );
 const hasSourcedCoreClaims = canonicalHardLimits.length > 0 || evidenceLinks.length >= 3;
-type EvidenceGrade = 'A' | 'B' | 'C';
-const baseEvidenceGrade: EvidenceGrade =
+const baseEvidenceGrade: ToolPageEvidenceGrade =
   officialDomains.size >= 2 &&
   hasOfficialPricingSource &&
   hasOfficialDocOrHelpSource &&
@@ -1272,37 +1254,47 @@ const baseEvidenceGrade: EvidenceGrade =
     : officialDomains.size >= 1 && (canonicalHardLimits.length > 0 || hasOfficialDocOrHelpSource)
       ? 'B'
       : 'C';
-let evidenceGrade: EvidenceGrade = baseEvidenceGrade;
+let evidenceGrade: ToolPageEvidenceGrade = baseEvidenceGrade;
 let pendingVerificationCount = 0;
 isVerificationMode = baseEvidenceGrade === 'C';
-const officialPricingSource = officialEvidenceLinks.find(
-  (entry) => entry.basis === 'Official pricing pages'
-);
 const directPricingPageSource =
   typeof knowledgeCard?.smp_pricing?.pricing_page_url === 'string'
     ? knowledgeCard.smp_pricing.pricing_page_url
     : null;
-const pricingSourceUrl =
-  normalizeSourceUrl(officialPricingSource?.url) ||
-  normalizeSourceUrl(isEligibleEvidenceUrl(directPricingPageSource) ? directPricingPageSource : null);
 const officialDocsSource = officialEvidenceLinks.find(
   (entry) =>
     entry.basis === 'Official docs/help center' ||
     entry.basis === 'Official changelogs' ||
     entry.basis === 'Official status pages'
 );
-const pricingSnapshotBullets = withUniqueText(
-  [...hardLimitFromConstraints, ...effectiveEvidenceCons, ...hiddenCostBullets].filter((item) =>
-    /\$|\/\s*(mo|month|yr|year)|\b(price|pricing|plan|tier|seat|monthly|annual|enterprise|max)\b/i.test(
-      item.text
-    )
-  )
-).slice(0, 5);
-const pricingEvidenceLinks = withUniqueText(
-  pricingSnapshotBullets.filter((item) => Boolean(item.sourceUrl))
-).slice(0, 3);
-const hasPricingCheckedProof = Boolean(pricingVerifiedLabel && pricingSourceUrl);
-const pricingCheckedLabel = hasPricingCheckedProof ? pricingVerifiedLabel : null;
+const pricingViewModel = buildToolPagePricingViewModel({
+  hasPricing,
+  pricingVerifiedLabel,
+  officialEvidenceLinks,
+  directPricingPageSource: isEligibleEvidenceUrl(directPricingPageSource)
+    ? directPricingPageSource
+    : null,
+  hardLimitFromConstraints,
+  effectiveEvidenceCons,
+  hiddenCostBullets,
+  canonicalHardLimitsCount: canonicalHardLimits.length,
+  sectionPricingStatus: sectionStatus.pricing,
+  budgetCostDrivers,
+  budgetOneTimeFees,
+  budgetCommitmentTerms,
+  budgetRoiThreshold,
+});
+const {
+  officialPricingSource,
+  pricingSourceUrl,
+  pricingSnapshotBullets,
+  pricingEvidenceLinks,
+  hasPricingCheckedProof,
+  pricingCheckedLabel,
+  showPricingSection,
+  pricingNarrativeLead,
+  pricingNarrativeLabel,
+} = pricingViewModel;
 const prosConsSourceUrls = new Set(
   [...effectiveEvidencePros, ...effectiveEvidenceCons]
     .map((entry) => normalizeSourceUrl(entry.sourceUrl))
@@ -1342,27 +1334,20 @@ const collectedSourcesBySection = {
 };
 const collectedSourcesTotal = collectedSourceUrlSet.size;
 const hasCollectedSources = collectedSourcesTotal > 0;
-const showPricingSection = Boolean(
-  sectionStatus.pricing !== 'hide' &&
-  (hasPricing || officialPricingSource || pricingEvidenceLinks.length > 0 || canonicalHardLimits.length > 0)
-);
-const focusSwitchOptions = {
-  verdict: hasVerdict || showProceduralVerdict,
-  pricing: showPricingSection,
-  setup: hasGettingStarted,
-  capabilities: hasFeatures || hasSpecs || showProceduralSpecs,
-  integrations: hasPlatform,
-  trust: true,
-};
-const lensDefaultFocusByLens: Record<ReviewLens, keyof typeof focusSwitchOptions | 'all'> = {
-  general: 'all',
-  personal: hasGettingStarted ? 'setup' : showPricingSection ? 'pricing' : 'verdict',
-  startup: showPricingSection ? 'pricing' : hasPlatform ? 'integrations' : 'verdict',
-  enterprise: 'trust',
-};
-const lensDefaultFocus = lensDefaultFocusByLens[activeReviewLens];
-const enabledFocusOptionCount = Object.values(focusSwitchOptions).filter(Boolean).length;
-const showFocusSwitch = enabledFocusOptionCount >= 2;
+const toolPageViewModel = buildToolPageViewModel({
+  activeReviewLens,
+  hasVerdict,
+  showProceduralVerdict,
+  showPricingSection,
+  hasGettingStarted,
+  hasFeatures,
+  hasSpecs,
+  showProceduralSpecs,
+  hasPlatform,
+  hasAlternatives,
+});
+const { focusSwitchOptions, lensDefaultFocus, showFocusSwitch, lensPriorityLinks } =
+  toolPageViewModel;
 const buildLensHref = (lens: ReviewLens): string => {
   const params = new URLSearchParams(Astro.url.searchParams);
   if (lens === 'general') {
@@ -1379,44 +1364,6 @@ const lensHrefs: Record<ReviewLens, string> = {
   startup: buildLensHref('startup'),
   enterprise: buildLensHref('enterprise'),
 };
-const lensPriorityCatalog = {
-  verdict: { href: '#verdict', label: 'Verdict', visible: hasVerdict || showProceduralVerdict },
-  setup: { href: '#getting-started', label: 'Getting started', visible: hasGettingStarted },
-  pricing: { href: '#pricing-plans', label: 'Pricing', visible: showPricingSection },
-  capabilities: {
-    href: hasFeatures ? '#features' : hasSpecs ? '#specs' : '#platform-integrations',
-    label: hasFeatures ? 'Capabilities' : hasSpecs ? 'Specs' : 'Platform',
-    visible: hasFeatures || hasSpecs || hasPlatform,
-  },
-  integrations: {
-    href: '#platform-integrations',
-    label: 'Integrations',
-    visible: hasPlatform,
-  },
-  trust: {
-    href: '#how-we-evaluate',
-    label: 'Trust details',
-    visible: true,
-  },
-  alternatives: {
-    href: '#alternatives',
-    label: 'Alternatives',
-    visible: hasAlternatives,
-  },
-} as const;
-const lensPriorityOrder: Record<
-  ReviewLens,
-  Array<keyof typeof lensPriorityCatalog>
-> = {
-  general: ['verdict', 'pricing', 'capabilities', 'alternatives'],
-  personal: ['setup', 'pricing', 'verdict', 'alternatives'],
-  startup: ['pricing', 'integrations', 'verdict', 'setup'],
-  enterprise: ['trust', 'pricing', 'integrations', 'verdict'],
-};
-const lensPriorityLinks = lensPriorityOrder[activeReviewLens]
-  .map((key) => lensPriorityCatalog[key])
-  .filter((item) => item.visible)
-  .slice(0, 4);
 const decisionProofPoints = [
   buildEvidenceBulletV2({
     text: `Pricing references reviewed from official pages (checked ${pricingVerifiedLabel || 'latest available date'}).`,
@@ -1456,132 +1403,37 @@ const decisionSnapshotDifferentiators = uniqueDecisionText([
   ...(Array.isArray(knowledgeCard?.features?.unique) ? knowledgeCard.features.unique : []),
   ...(Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core : []),
 ]).slice(0, 2);
-const verdictLabel =
-  decisionSnapshotWatchOuts.length === 0 && canonicalHardLimits.length <= 1
-    ? 'Choose'
-    : decisionSnapshotBestWhen.length > 0
-      ? 'Consider'
-      : 'Avoid';
-const _verdictDisplayLabel =
-  verdictLabel === 'Choose'
-    ? 'Good fit'
-    : verdictLabel === 'Consider'
-      ? 'Fit with caveats'
-      : 'Not recommended yet';
-let verdictLabelRationale =
-  verdictLabel === 'Choose'
-    ? hasCollectedSources
-      ? `${tool.name} is a strong fit when its confirmed strengths match your day-to-day workflow.`
-      : `${tool.name} appears promising, but core sourcing is still being completed.`
-    : verdictLabel === 'Consider'
-      ? `${tool.name} could fit, but the decision usually depends on plan limits, integration fit, and rollout constraints.`
-      : hasCollectedSources
-        ? `${tool.name} is not a confident recommendation yet based on currently verified evidence.`
-        : `${tool.name} is not a confident recommendation yet because source-backed evidence is still limited.`;
 const lensLabelMap: Record<ReviewLens, string> = {
   general: 'General',
   personal: 'Personal',
   startup: 'Startup',
   enterprise: 'Enterprise',
 };
-const reviewDekByLens: Record<ReviewLens, string> = {
-  general: 'Pricing, tradeoffs, best for, and alternatives.',
-  personal: 'Quick setup, free-tier reality, and first-use fit.',
-  startup: 'Team workflow fit, pricing growth, and rollout constraints.',
-  enterprise: 'Controls, trust posture, and procurement-critical tradeoffs.',
-};
-const reviewDek = reviewDekByLens[activeReviewLens];
-const readerFocusNoteByLens: Partial<Record<ReviewLens, string>> = {
-  personal: 'Prioritizes setup speed, free-tier clarity, and early usability.',
-  startup: 'Prioritizes team workflow fit and how costs scale as seats or usage grow.',
-  enterprise: 'Prioritizes controls, risk, and procurement-facing constraints.',
-};
-const readerFocusNote = readerFocusNoteByLens[activeReviewLens] || null;
-const lensBestFitLine: string = (() => {
-  if (activeReviewLens === 'personal') {
-    return hasGettingStarted
-      ? 'People who want a fast self-serve start and clear day-one workflow.'
-      : decisionSnapshotBestWhen[0] || 'Not confirmed';
-  }
-  if (activeReviewLens === 'startup') {
-    return showPricingSection
-      ? 'Teams balancing capability gains against seat or usage growth.'
-      : decisionSnapshotBestWhen[0] || 'Not confirmed';
-  }
-  if (activeReviewLens === 'enterprise') {
-    return hasSecurity
-      ? 'Teams requiring admin controls, governance clarity, and source-backed rollout planning.'
-      : decisionSnapshotBestWhen[0] || 'Not confirmed';
-  }
-  return decisionSnapshotBestWhen[0] || 'Not confirmed';
-})();
-const lensWeakFitLine: string = (() => {
-  if (activeReviewLens === 'personal') {
-    return decisionSnapshotWatchOuts[0] || 'Buyers who need contract-heavy enterprise controls.';
-  }
-  if (activeReviewLens === 'startup') {
-    return (
-      decisionSnapshotWatchOuts[0] ||
-      'Teams without clear ownership of plan limits, usage growth, and budget controls.'
-    );
-  }
-  if (activeReviewLens === 'enterprise') {
-    return (
-      decisionSnapshotWatchOuts[0] ||
-      'Organizations that require contract/security terms not yet confirmed in cited sources.'
-    );
-  }
-  return decisionSnapshotWatchOuts[0] || 'Not confirmed';
-})();
-const lensTradeoffLine: string =
-  activeReviewLens === 'enterprise' && canonicalHardLimits[0]
-    ? canonicalHardLimits[0].text
-    : decisionTradeoffSummary;
-const normalizeNarrativeSentence = (value: string): string =>
-  stripControlChars(value).replace(/\s+/g, ' ').replace(/[.]+$/, '').trim();
-const PRICING_SUBJECTIVE_ROI_PATTERN = /\b(justified|productivity|best value|worth it|excellent|great)\b/i;
-const PRICING_OBJECTIVE_ROI_PATTERN =
-  /\b(\d+|team|seat|user|plan|tier|enterprise|business|sso|api|compliance|usage|volume|monthly|annual)\b/i;
-const sanitizeRoiThresholdForPricingLead = (value: unknown): string => {
-  if (typeof value !== 'string') return '';
-  const normalized = normalizeNarrativeSentence(value);
-  if (!normalized) return '';
-  if (!PRICING_OBJECTIVE_ROI_PATTERN.test(normalized)) return '';
-  if (PRICING_SUBJECTIVE_ROI_PATTERN.test(normalized)) return '';
-  return normalized;
-};
-const budgetMechanicsSignals = [
-  ...budgetCostDrivers,
-  ...budgetOneTimeFees,
-  typeof budgetCommitmentTerms === 'string' ? budgetCommitmentTerms : '',
-  sanitizeRoiThresholdForPricingLead(budgetRoiThreshold),
-]
-  .map(normalizeNarrativeSentence)
-  .filter((item) => item.length > 0);
-const hasBudgetMechanicsSignal = budgetMechanicsSignals.length > 0;
-const pricingNarrativeLead = (() => {
-  if (hasPricing) {
-    if (hasBudgetMechanicsSignal) {
-      return 'Pricing depends on plan, seats, and usage. Use this section to evaluate budget drivers, contract terms, and published plan pricing together.';
-    }
-    return 'Pricing scales with plan and usage, so model your real team shape before committing.';
-  }
-
-  if (pricingSnapshotBullets.length > 0) {
-    const firstPricingSignal = normalizeNarrativeSentence(pricingSnapshotBullets[0].text);
-    if (firstPricingSignal.length > 0) {
-      return `${firstPricingSignal}.`;
-    }
-  }
-
-  return 'Published pricing details are still incomplete; verify budget assumptions on the official pricing page.';
-})();
-const pricingNarrativeLabel =
-  'This pricing section combines editorial context with source-backed mechanics and numeric plan details.';
-const scoreDrivers = uniqueDecisionText([
-  ...decisionSnapshotDifferentiators,
-  ...decisionSnapshotBestWhen,
-]).slice(0, 5);
+const toolPageLensContent = buildToolPageLensContent({
+  activeReviewLens,
+  toolName: tool.name,
+  hasCollectedSources,
+  hasGettingStarted,
+  showPricingSection,
+  hasSecurity,
+  decisionSnapshotBestWhen,
+  decisionSnapshotWatchOuts,
+  decisionSnapshotDifferentiators,
+  decisionTradeoffSummary,
+  enterpriseTradeoffOverride: canonicalHardLimits[0]?.text || null,
+  hardLimitCount: canonicalHardLimits.length,
+});
+const {
+  verdictLabelRationale,
+  reviewDek,
+  readerFocusNote,
+  lensBestFitLine,
+  lensWeakFitLine,
+  lensTradeoffLine,
+  scoreDrivers,
+  workflowFitHighlights,
+  workflowFitCards,
+} = toolPageLensContent;
 const tradeoffCons = uniqueDecisionText([
   ...decisionSnapshotWatchOuts,
   ...canonicalHardLimits.map((item) => item.text),
@@ -1600,55 +1452,27 @@ const tradeoffCons = uniqueDecisionText([
   )
   .filter((item): item is EvidenceBulletV2 => Boolean(item));
 const _hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
-pendingVerificationCount = [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints].filter(
-  (item) => item?.unverified
-).length;
-if (baseEvidenceGrade === 'A' && pendingVerificationCount > 0) {
-  evidenceGrade = 'B';
-}
-isVerificationMode = evidenceGrade === 'C' || pendingVerificationCount > 0;
-const trustStatus: 'Source-backed' | 'Needs confirmation' =
-  !hasCollectedSources || isVerificationMode || pendingVerificationCount > 0
-    ? 'Needs confirmation'
-    : 'Source-backed';
-const trustConfidenceLabelBase: 'High' | 'Medium' | 'Low' =
-  contentConfidenceLevel === 'high'
-    ? 'High'
-    : contentConfidenceLevel === 'medium'
-      ? 'Medium'
-      : 'Low';
-const trustConfidenceLabel: 'High' | 'Medium' | 'Low' =
-  !hasCollectedSources || pendingVerificationCount > 0 || isVerificationMode
-    ? trustConfidenceLabelBase === 'High'
-      ? 'Medium'
-      : trustConfidenceLabelBase
-    : trustConfidenceLabelBase;
-const updateHistoryEntries = [
-  hasPricingCheckedProof
-    ? {
-        date: pricingCheckedLabel as string,
-        what: 'Pricing references rechecked',
-        why: 'Pricing is volatile and can change frequently',
-        source: pricingSourceUrl || null,
-      }
-    : null,
-  specsVerifiedLabel
-    ? {
-        date: specsVerifiedLabel,
-        what: 'Product docs and specs refreshed',
-        why: 'Feature and setup claims require current docs',
-        source: officialDocsSource?.url || null,
-      }
-    : null,
-  communityVerifiedLabel
-    ? {
-        date: communityVerifiedLabel,
-        what: 'Editorial verdict and tradeoffs updated',
-        why: 'Recommendation language aligned to latest source-backed claims',
-        source: officialDocsSource?.url || officialPricingSource?.url || null,
-      }
-    : null,
-].filter((entry): entry is { date: string; what: string; why: string; source: string | null } => Boolean(entry));
+pendingVerificationCount = countPendingVerifications([avoidIfBullet, ...tradeoffCons, ...decisionProofPoints]);
+const evidenceState = deriveToolPageEvidenceState({
+  baseEvidenceGrade,
+  pendingVerificationCount,
+});
+evidenceGrade = evidenceState.evidenceGrade;
+isVerificationMode = evidenceState.isVerificationMode;
+const toolPageTrustViewModel = buildToolPageTrustViewModel({
+  hasCollectedSources,
+  isVerificationMode,
+  pendingVerificationCount,
+  contentConfidenceLevel,
+  hasPricingCheckedProof,
+  pricingCheckedLabel,
+  pricingSourceUrl,
+  specsVerifiedLabel,
+  officialDocsSourceUrl: officialDocsSource?.url || null,
+  communityVerifiedLabel,
+  officialPricingSourceUrl: officialPricingSource?.url || null,
+});
+const { trustStatus, trustConfidenceLabel, updateHistoryEntries } = toolPageTrustViewModel;
 const toolReviewHeading = `${tool.name} Review`;
 const toolPageQaGate = evaluateToolPageQaGate({
   title: `${tool.name} Review | StackHunt`,
@@ -1665,11 +1489,14 @@ const toolPageQaGate = evaluateToolPageQaGate({
   hasDecisionSummaryBlock: true,
   introLooksSpecSheet,
 });
-shouldNoindex = shouldNoindex || pendingVerificationCount > 0;
-shouldNoindex = shouldNoindex || !toolPageQaGate.pass;
-if (showReviewInProgressBanner) {
-  shouldNoindex = false;
-}
+const indexPolicy = evaluateToolPageIndexPolicy({
+  gateShouldIndex,
+  isDraftPage,
+  pendingVerificationCount,
+  toolPageQaPass: toolPageQaGate.pass,
+  showReviewInProgressBanner,
+});
+const shouldNoindex = indexPolicy.shouldNoindex;
 const toolMeta = generateToolMeta(tool, tool.review_count);
 const meta = {
   ...toolMeta,
@@ -1761,7 +1588,7 @@ const schemas = [
                           clip-rule="evenodd"
                         />
                       </svg>
-                      {hasCollectedSources ? 'Source-backed' : 'Verified'}
+                      {hasCollectedSources ? 'Verified sources' : 'Verified'}
                     </span>
                   )
                 }
@@ -1856,7 +1683,7 @@ const schemas = [
           </p>
           <div class="mt-3 space-y-1 text-xs text-zinc-400">
             <p>
-              <span class="text-zinc-300">{evaluationDepth}</span> evaluation depth
+              <span class="text-zinc-300">{evaluationDepth}</span> review method
             </p>
             <p>
               <span class="text-zinc-300">{collectedSourcesTotal}</span>{' '}
@@ -1929,14 +1756,14 @@ const schemas = [
         </li>
       </ul>
       <p class="mt-4 text-xs text-zinc-500">
-        Full source-backed detail lives in{' '}
+        Full evidence detail lives in{' '}
         <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
           Why This Verdict
         </a>
         .
       </p>
       <p class="mt-1 text-xs text-zinc-500">
-        Best fit, weak fit, and tradeoff are editorial synthesis from source-backed claims.
+        Best fit, weak fit, and tradeoff summarize the linked evidence.
       </p>
     </section>
 
@@ -2033,6 +1860,12 @@ const schemas = [
             </a>
           )
         }
+        <a
+          href="#workflow-fit"
+          class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+        >
+          Workflow fit
+        </a>
         <a
           href="#how-we-evaluate"
           class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -2237,6 +2070,36 @@ const schemas = [
             </section>
           )
         }
+        <section
+          id="workflow-fit"
+          class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+          data-focus-target
+          data-focus-groups="all verdict setup pricing trust"
+        >
+          <h2 class="text-lg font-semibold text-zinc-100">How This Fits Real Workflows</h2>
+          <p class="mt-2 text-sm text-zinc-300">
+            Use this section to pressure-test adoption before committing budget or migration effort.
+            It translates the verdict into practical rollout checkpoints.
+          </p>
+          <div class="mt-4 grid gap-3 md:grid-cols-3">
+            {workflowFitCards.map((card) => (
+              <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <h3 class="text-sm font-semibold text-zinc-100">{card.title}</h3>
+                <p class="mt-2 text-sm text-zinc-300">{card.body}</p>
+              </div>
+            ))}
+          </div>
+          {workflowFitHighlights.length > 0 && (
+            <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+              <h3 class="text-sm font-semibold text-zinc-200">Workflow Signals from Current Evidence</h3>
+              <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+                {workflowFitHighlights.map((item) => (
+                  <li>- {item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
 
         {/* Pricing Plans */}
         {
@@ -2849,8 +2712,8 @@ const schemas = [
       </div>
       <p class="mt-2 text-sm text-zinc-400">
         {hasCollectedSources
-          ? 'Source-backed means a claim is present in a linked source on the date checked. Vendors can update details after that date.'
-          : 'No qualifying sources collected yet. Claims remain in verification mode until section-level sources are attached.'}
+          ? 'Verified against linked sources means each claim appears in a linked source on the date checked. Vendors can update details after that date.'
+          : 'No qualifying sources collected yet. Some claims remain in verification mode until section-level sources are attached.'}
       </p>
       <div class="mt-4 grid gap-4 md:grid-cols-2">
         <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
@@ -3206,7 +3069,7 @@ const schemas = [
   <script is:inline>
     const pageRoot = document.querySelector('main') || document.body;
 
-    const trackOutboundClick = (link: HTMLAnchorElement) => {
+    const trackOutboundClick = (link) => {
       const href = link.getAttribute('href') || '';
       const isExternal = /^https?:\/\//i.test(href);
       if (!isExternal) return;
