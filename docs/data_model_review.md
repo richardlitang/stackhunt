@@ -1,5 +1,7 @@
 # Data Model Snapshot (2026-02-06, historical)
 
+Last verified: 2026-03-05
+
 ## Tables (Public)
 - `categories` (10 fields)
 - `items` (38 fields)

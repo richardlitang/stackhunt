@@ -54,12 +54,10 @@ function resolveOmissionReason({
   enabled,
   hasData,
   checkedDateReady,
-  confidenceReady,
 }: {
   enabled: boolean;
   hasData: boolean;
   checkedDateReady: boolean;
-  confidenceReady: boolean;
 }): ToolPageOmissionReason {
   if (!enabled) return 'omitted_due_to_contract_disabled';
   if (!hasData) return 'omitted_due_to_missing_data';
@@ -82,7 +80,6 @@ export function computeToolPageSectionContract(
       enabled: faqAllowedByContract,
       hasData: input.hasFaqData,
       checkedDateReady,
-      confidenceReady,
     });
   }
 
@@ -93,7 +90,6 @@ export function computeToolPageSectionContract(
       enabled: specsEnabled,
       hasData: input.hasSpecsData,
       checkedDateReady,
-      confidenceReady,
     });
   }
 
@@ -104,7 +100,6 @@ export function computeToolPageSectionContract(
       enabled: communityEnabled,
       hasData: input.hasCommunityData,
       checkedDateReady,
-      confidenceReady,
     });
   }
 

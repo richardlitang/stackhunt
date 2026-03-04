@@ -1,17 +1,47 @@
+export { buildToolPageAboutContent } from '@/lib/tool-page/about-content';
+export { buildToolPageAffiliateOffersView } from '@/lib/tool-page/affiliate-offers';
+export { buildToolPageAddToStackProps } from '@/lib/tool-page/add-to-stack-props';
+export { buildToolPageCategoryBreadcrumb } from '@/lib/tool-page/breadcrumbs';
+export { buildToolPageAlternativesSectionState } from '@/lib/tool-page/alternatives-section';
+export { buildToolPageAlternativeCardsView } from '@/lib/tool-page/alternatives-cards';
 export { buildToolPageAlternativesState } from '@/lib/tool-page/alternatives-state';
 export { buildToolPageAlternativesStateInput } from '@/lib/tool-page/alternatives-input';
+export {
+  buildToolPageAlternativesRuntime,
+  buildToolPageAlternativesRuntimeFromItems,
+} from '@/lib/tool-page/alternatives-runtime';
+export { buildToolPageAlternativesIntroText } from '@/lib/tool-page/alternatives-intro';
+export { buildToolPageAlternativesViewFields } from '@/lib/tool-page/alternatives-view-fields';
 export { orderToolPageAlternativesByIds } from '@/lib/tool-page/alternatives-order';
+export { isToolPagePaymentsCategoryHint } from '@/lib/tool-page/category-hints';
+export { buildToolPageConstraintEvidence } from '@/lib/tool-page/constraint-evidence';
+export { buildToolPageCompareTeaserLinks } from '@/lib/tool-page/compare-teasers';
+export { buildToolPageCompareButtonProps } from '@/lib/tool-page/compare-button-props';
+export { buildToolPageConstraintEvidenceView } from '@/lib/tool-page/constraint-evidence-view';
+export { buildToolPageCtaMediaState } from '@/lib/tool-page/cta-media-state';
 export { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
 export { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
+export { getToolPageData } from '@/lib/tool-page/data';
 export { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';
+export { buildToolPageDecisionRuntime } from '@/lib/tool-page/decision-runtime';
+export { buildToolPageDecisionRuntimeInput } from '@/lib/tool-page/decision-runtime-input';
+export { buildToolPageDisplaySignals } from '@/lib/tool-page/display-signals';
+export {
+  buildToolPageFallbackDecisionSummary,
+  deriveToolPageDecisionDifferentiators,
+} from '@/lib/tool-page/decision';
 export {
   buildToolPageEvidenceBulletV2,
   toToolPageEvidenceBullet,
   type ToolPageEvidenceBullet,
   type ToolPageEvidenceBulletV2,
 } from '@/lib/tool-page/evidence-bullets';
+export { createToolPageEvidenceBulletAdapters } from '@/lib/tool-page/evidence-bullet-adapters';
 export { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page/evidence-grade';
 export { buildToolPageEvidenceLinks } from '@/lib/tool-page/evidence-links';
+export { buildToolPageEvidenceBasisChips } from '@/lib/tool-page/evidence-basis-chips';
+export { buildToolPageEvidenceRuntime } from '@/lib/tool-page/evidence-runtime';
+export { buildToolPageEvidenceRuntimeInput } from '@/lib/tool-page/evidence-runtime-input';
 export { countEligibleEvidenceDomains, isEligibleEvidenceUrl } from '@/lib/tool-page/evidence-policy';
 export { buildToolPageEvaluationViewModel } from '@/lib/tool-page/evaluation';
 export { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
@@ -20,22 +50,81 @@ export {
   deriveToolPageSourceEvidenceDomains,
 } from '@/lib/tool-page/review-content';
 export { deriveToolPageReviewProgress } from '@/lib/tool-page/review-progress';
+export { buildToolPageReviewBannerText } from '@/lib/tool-page/review-banner';
+export { buildToolPageReviewArtifacts } from '@/lib/tool-page/review-artifacts';
+export { buildToolPageResearchStatusView } from '@/lib/tool-page/research-status';
 export { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
+export { buildToolPageReviewSignalsInput } from '@/lib/tool-page/review-signals-input';
+export { buildToolPageReviewSignalsView } from '@/lib/tool-page/review-signals-view';
+export { buildToolPagePriceVerificationProps } from '@/lib/tool-page/price-verification-props';
+export { buildToolPagePresentationGates } from '@/lib/tool-page/presentation-gates';
+export { buildToolPagePricingInsightsBudgetAnalyst } from '@/lib/tool-page/pricing-insights-input';
+export { buildToolPagePricingSectionState } from '@/lib/tool-page/pricing-section';
+export { buildToolPagePricingEvidenceState } from '@/lib/tool-page/pricing-evidence-state';
+export { buildToolPagePricingLinkText } from '@/lib/tool-page/pricing-link-text';
+export { buildToolPagePricingNotice } from '@/lib/tool-page/pricing-notice';
+export { buildToolPagePlatformSectionState } from '@/lib/tool-page/platform-section';
+export { buildToolPageProsConsView } from '@/lib/tool-page/pros-cons-view';
+export { buildToolPageFaqState, filterToolPageFaqItems } from '@/lib/tool-page/faq';
+export { buildToolPageFaqSchema } from '@/lib/tool-page/faq-schema';
+export { buildToolPageFaqItemsView } from '@/lib/tool-page/faq-items-view';
+export { buildToolPageFreshnessLabels } from '@/lib/tool-page/freshness-labels';
+export { buildToolPageGettingStartedProps } from '@/lib/tool-page/getting-started-props';
+export { buildToolPageQuickJumpLinks } from '@/lib/tool-page/quick-jump-links';
+export { buildToolPageOperationalDetailsState } from '@/lib/tool-page/operational-details';
+export { buildToolPageQualityState } from '@/lib/tool-page/quality-state';
+export { buildToolPageQualityStateInput } from '@/lib/tool-page/quality-state-input';
 export { buildToolPageRuntime } from '@/lib/tool-page/runtime';
+export { buildToolPageRuntimeAssembly } from '@/lib/tool-page/runtime-assembly';
+export { buildToolPageRuntimeContext } from '@/lib/tool-page/runtime-context';
+export { buildToolPageRuntimeInput } from '@/lib/tool-page/runtime-input';
+export { buildToolPageRuntimeInputParams } from '@/lib/tool-page/runtime-params';
+export { buildToolPageRuntimeParamsContext } from '@/lib/tool-page/runtime-params-context';
+export { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
+export { buildToolPageChromeState } from '@/lib/tool-page/page-chrome-state';
+export { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
+export { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
+export { buildToolPageLensPriorityLead } from '@/lib/tool-page/lens-priority-copy';
+export { buildToolPageLowConfidenceSourcesState } from '@/lib/tool-page/low-confidence-sources';
+export { buildToolPageSectionRuntime } from '@/lib/tool-page/section-runtime';
+export { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
+export { buildToolPageSectionRuntimeInput } from '@/lib/tool-page/section-runtime-input';
+export { buildToolPageVideoState } from '@/lib/tool-page/video-state';
+export { buildToolPageVideoProps } from '@/lib/tool-page/video-props';
+export { buildToolPageViewRuntime } from '@/lib/tool-page/view-runtime';
+export { buildToolPageWebsiteState } from '@/lib/tool-page/website';
+export { buildToolPageWebsiteLabel } from '@/lib/tool-page/website-label';
 export { deriveToolPageRequestState } from '@/lib/tool-page/request-state';
+export { applyToolPageVersionBypassCacheHeaders } from '@/lib/tool-page/request-cache';
+export { applyToolPageRobotsHeader } from '@/lib/tool-page/response-headers';
 export { deriveToolPageSectionSignals } from '@/lib/tool-page/section-signals';
 export { buildToolPageSectionState } from '@/lib/tool-page/section-state';
+export { buildToolPageStrengthsSubtitle } from '@/lib/tool-page/strengths-subtitle';
+export { buildToolPageSpecsProps } from '@/lib/tool-page/specs-props';
+export { buildToolPageSpecsSectionState } from '@/lib/tool-page/specs-section';
 export { deriveToolPageSetupSignals } from '@/lib/tool-page/setup';
+export { buildToolPagePrimaryFunction } from '@/lib/tool-page/taxonomy';
 export { buildToolPageSourceAriaLabel } from '@/lib/tool-page/source-labels';
+export { buildToolPageSourceListsView } from '@/lib/tool-page/source-lists';
 export { buildToolPageSourcesViewModel } from '@/lib/tool-page/sources';
+export { buildToolPageSourcesSectionState } from '@/lib/tool-page/sources-section-state';
 export {
   cleanToolPageDecisionSlotText,
   cleanToolPageNarrativeText,
+  deriveToolPageFallbackConsText,
+  deriveToolPagePaymentTriggerCons,
   extractToolPageClaimText,
+  hasToolPageDistinctAbout,
+  sanitizeToolPageStructuredClaimMarkdown,
   stripToolPageControlChars,
   uniqueToolPageDecisionText,
 } from '@/lib/tool-page/text';
+export { buildToolPageTribalKnowledgeProps } from '@/lib/tool-page/tribal-knowledge-props';
 export { buildToolPageTradeoffEvidence } from '@/lib/tool-page/tradeoff-evidence';
+export { buildToolPageTrustBarProps } from '@/lib/tool-page/trust-bar-props';
+export { buildToolPageUpdateHistoryState } from '@/lib/tool-page/update-history-state';
+export { buildToolPageVerificationBadgeLabel } from '@/lib/tool-page/verification-badge';
+export { buildToolPageVerdictContent } from '@/lib/tool-page/verdict-content';
 export { deriveToolPageVerdictPolicy } from '@/lib/tool-page/verdict-policy';
 export {
   buildToolPagePricingViewModel,

@@ -1,5 +1,7 @@
 # Content Queue Workflow
 
+Last verified: 2026-03-05
+
 ## Overview
 
 Content ideas flow through two tables:

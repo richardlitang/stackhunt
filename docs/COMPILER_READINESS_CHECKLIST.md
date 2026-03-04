@@ -1,5 +1,7 @@
 # Compiler Readiness Checklist
 
+Last verified: 2026-03-05
+
 Purpose: hard Go/No-Go gate before enabling `/best` and `/compare` snapshot serving.
 
 ## Go/No-Go Rule

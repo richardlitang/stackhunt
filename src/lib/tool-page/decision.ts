@@ -24,6 +24,29 @@ export interface ToolPageDecisionSnapshot {
   decisionTradeoffSummaryInitial: string;
 }
 
+export function buildToolPageFallbackDecisionSummary(
+  toolName: string,
+  shortDescription: string | null | undefined,
+  tagline: string | null | undefined
+): string {
+  return (
+    shortDescription ||
+    tagline ||
+    `${toolName} can work well for some teams, but fit depends on your workflow and plan constraints.`
+  );
+}
+
+export function deriveToolPageDecisionDifferentiators(
+  uniqueFeatures: unknown[] | null | undefined,
+  coreFeatures: unknown[] | null | undefined,
+  uniqueDecisionText: (items: Array<unknown>) => string[]
+): string[] {
+  return uniqueDecisionText([
+    ...(Array.isArray(uniqueFeatures) ? uniqueFeatures : []),
+    ...(Array.isArray(coreFeatures) ? coreFeatures : []),
+  ]).slice(0, 2);
+}
+
 export function buildToolPageDecisionSnapshot(
   input: BuildToolPageDecisionSnapshotInput
 ): ToolPageDecisionSnapshot {

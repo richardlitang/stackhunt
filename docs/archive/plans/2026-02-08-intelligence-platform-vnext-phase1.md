@@ -1,5 +1,7 @@
 # Feature: Intelligence Platform vNext (Phase 1)
 
+Last verified: 2026-03-05
+
 ## Goal
 Ship a stop-harm quality/legal pass so new hunts produce evidence-backed editorial pages, while thin or risky pages stay draft/noindex.
 

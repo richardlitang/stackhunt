@@ -1,5 +1,7 @@
 # Shadow Snapshot Runbook
 
+Last verified: 2026-03-05
+
 Purpose: run `/best` + `/compare` snapshot compilers in shadow mode before public cutover.
 
 ## 0) Feature Flags

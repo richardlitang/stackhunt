@@ -1,5 +1,7 @@
 # StackHunt Flow Diagrams
 
+Last verified: 2026-03-05
+
 This file maps the current end-to-end flows in StackHunt from code entrypoints.
 
 ## 1) System-Wide Flow (All Major Flows)

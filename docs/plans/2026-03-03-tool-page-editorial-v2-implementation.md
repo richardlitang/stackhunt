@@ -1,5 +1,7 @@
 # Feature: Tool Page Editorial v2 Implementation
 
+Last verified: 2026-03-05
+
 ## Goal
 
 Ship a narrative-first `/tool/[slug]` page that is buyer-helpful, source-safe, and materially less template-heavy than v1.

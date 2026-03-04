@@ -1,5 +1,7 @@
 # Feature: Snapshot Readiness Hardening (Prereq Program)
 
+Last verified: 2026-03-05
+
 ## Goal
 Remove key technical debt and operational risk before implementing `/best` and `/compare` snapshot compilers.
 

@@ -1,5 +1,7 @@
 # Non-Tool Workflows Audit
 
+Last verified: 2026-03-05
+
 **Date:** 2026-01-31
 **Focus:** Review workflows beyond basic tool hunting
 

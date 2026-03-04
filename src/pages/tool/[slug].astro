@@ -30,127 +30,118 @@ import PriceVerification from '@/components/PriceVerification';
 import SuiteNavigation from '@/components/SuiteNavigation.astro';
 import DynamicSpecs from '@/components/DynamicSpecs.astro';
 import IncludedTools from '@/components/IncludedTools.astro';
-import InfoCardsGrid from '@/components/InfoCardsGrid.astro';
-import TwoColumnChecklistCards from '@/components/TwoColumnChecklistCards.astro';
+import ToolHowWeEvaluateSection from '@/components/ToolHowWeEvaluateSection.astro';
+import ToolWeTestedSection from '@/components/ToolWeTestedSection.astro';
+import ToolDecisionConditionsSection from '@/components/ToolDecisionConditionsSection.astro';
+import ToolWorkflowFitSection from '@/components/ToolWorkflowFitSection.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
-import type { KnowledgeCard } from '@/lib/knowledge-card';
-import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
-import { getToolBySlugAndType, getToolTags, supabase } from '@/lib/supabase';
 import {
   generateToolMeta,
-  generateToolFAQSchema,
 } from '@/lib/seo';
-import { formatPricingType, getCanonicalUrl, simpleMarkdown } from '@/lib/utils';
-import { getAlternatives } from '@/lib/analysis/alternatives';
-import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
-import { evaluateIndexReadiness } from '@/lib/quality-gate';
+import { simpleMarkdown } from '@/lib/utils';
 import {
-  buildToolPageAlternativesState,
-  buildToolPageAlternativesStateInput,
-  orderToolPageAlternativesByIds,
-  deriveToolPageBaseEvidenceGrade,
-  deriveToolPageCanonicalHardLimits,
-  deriveToolPageCoreState,
-  buildToolPageDecisionSnapshot,
-  buildToolPageEvidenceBulletV2,
-  toToolPageEvidenceBullet,
-  type ToolPageEvidenceBullet as EvidenceBullet,
-  type ToolPageEvidenceBulletV2 as EvidenceBulletV2,
-  buildToolPageEvidenceLinks,
+  buildToolPageAlternativesRuntimeFromItems,
+  buildToolPageAboutContent,
+  buildToolPageAffiliateOffersView,
+  buildToolPageAlternativesIntroText,
+  buildToolPageAlternativesSectionState,
+  buildToolPageAlternativeCardsView,
+  buildToolPageAlternativesViewFields,
+  buildToolPageChromeState,
+  buildToolPageCtaMediaState,
+  buildToolPageDecisionRuntime,
+  buildToolPageDecisionRuntimeInput,
+  buildToolPageDisplaySignals,
+  buildToolPagePricingInsightsBudgetAnalyst,
+  buildToolPagePricingSectionState,
+  buildToolPagePricingLinkText,
+  buildToolPagePricingNotice,
+  buildToolPagePricingEvidenceState,
+  buildToolPagePlatformSectionState,
+  buildToolPageProsConsView,
+  buildToolPageConstraintEvidence,
+  buildToolPageCompareTeaserLinks,
+  buildToolPageConstraintEvidenceView,
+  getToolPageData,
+  createToolPageEvidenceBulletAdapters,
   countEligibleEvidenceDomains,
   isEligibleEvidenceUrl,
-  buildToolPageEvaluationViewModel,
-  buildToolPagePricingViewModel,
+  buildToolPageEvidenceRuntime,
+  buildToolPageEvidenceRuntimeInput,
+  buildToolPageFaqState,
+  buildToolPageFaqSchema,
+  buildToolPageGettingStartedProps,
+  buildToolPageQualityStateInput,
+  buildToolPageQualityState,
+  buildToolPageOperationalDetailsState,
   deriveToolPageReviewContextSignals,
-  deriveToolPageReviewContentLists,
-  deriveToolPageReviewProgress,
+  buildToolPageReviewArtifacts,
+  buildToolPageReviewSignalsInput,
   deriveToolPageReviewSignals,
+  buildToolPageReviewSignalsView,
+  buildToolPagePresentationGates,
   deriveToolPageRequestState,
-  deriveToolPageSectionSignals,
-  buildToolPageSectionState,
-  deriveToolPageSetupSignals,
-  buildToolPageSourceAriaLabel,
-  buildToolPageSourcesViewModel,
-  cleanToolPageDecisionSlotText,
-  cleanToolPageNarrativeText,
-  extractToolPageClaimText,
-  stripToolPageControlChars,
-  uniqueToolPageDecisionText,
+  applyToolPageVersionBypassCacheHeaders,
+  applyToolPageRobotsHeader,
+  buildToolPageSectionRuntime,
+  buildToolPageSectionFlags,
+  buildToolPageSectionRuntimeInput,
+  buildToolPageStrengthsSubtitle,
+  buildToolPagePrimaryFunction,
   deriveToolPageSourceEvidenceDomains,
-  buildToolPageTradeoffEvidence,
-  deriveToolPageVerdictPolicy,
-  buildToolPageRuntime,
-  deriveToolPagePricingSignals,
+  buildToolPageEvidenceBasisChips,
+  buildToolPageSourceListsView,
+  buildToolPageSpecsProps,
+  buildToolPageSpecsSectionState,
+  buildToolPageTribalKnowledgeProps,
+  buildToolPageRuntimeAssembly,
+  buildToolPageLensViewFields,
+  buildToolPageNavigationState,
 } from '@/lib/tool-page';
-import type { ReviewLens } from '@/lib/tool-page/view-model';
-import { selectToolPageReview } from '@/lib/reviews/select-review';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
 
 const { slug } = Astro.params;
 const { activeReviewLens, hasVersionBypassParam } = deriveToolPageRequestState(Astro.url.searchParams);
-if (hasVersionBypassParam) {
-  // Cache-bust requests like ?v=34 should always skip CDN/page cache.
-  const noStore = 'no-store, max-age=0';
-  Astro.response.headers.set('Cache-Control', noStore);
-  Astro.response.headers.set('CDN-Cache-Control', noStore);
-  Astro.response.headers.set('Vercel-CDN-Cache-Control', noStore);
-}
+// Cache-bust requests like ?v=34 should always skip CDN/page cache.
+applyToolPageVersionBypassCacheHeaders(Astro.response, hasVersionBypassParam);
 
-const tool = await getToolBySlugAndType(slug, 'tool');
-
-if (!tool) {
+const toolPageData = await getToolPageData(slug);
+if (!toolPageData || !toolPageData.tool) {
   return Astro.redirect('/404');
 }
-
-// Fetch parent tool info if this tool is part of a suite
-let parentTool = null;
-if (tool.parent_id) {
-  const { data } = await supabase
-    .from('items')
-    .select('id, name, slug')
-    .eq('id', tool.parent_id)
-    .single();
-  parentTool = data;
-}
-
-const tags = await getToolTags(tool.id);
-
-const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
-const reviews = Array.isArray(tool.reviews) ? tool.reviews : [];
-const reviewSelection = selectToolPageReview(reviews);
-const firstReview = reviewSelection.firstPublished;
-const hasNewerUnpublishedReview = reviewSelection.hasNewerUnpublishedThanPublished;
-const reviewContentLists = deriveToolPageReviewContentLists(firstReview);
-
-const coreState = deriveToolPageCoreState({
+const {
   tool,
-  hasNewerUnpublishedReview,
-});
+  parentTool,
+  tags,
+  primaryOffer,
+  reviewSelection,
+  firstReview,
+  reviewContentLists,
+  coreState,
+  orderedAlternatives,
+  alternativesLabel,
+  microDiffs,
+  curatedVerdicts,
+} = toolPageData;
 const {
   knowledgeCard,
-  toolSpecs,
   globalPros,
   globalCons,
   constraints,
   canonicalFacts,
   setupTracks,
   categorySpecificData,
-  canonicalLatestModels,
   displayCategorySpecificData,
   websiteHostLabel,
   vipSpecifics,
   reviewContext,
 } = coreState;
-const pricingTypeLabel = formatPricingType(tool.pricing_type || 'paid');
 const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
 const {
   userAdvocate,
-  budgetAnalyst,
   humanVerdict,
-  decisionSlotsRaw,
-  decisionIntroRaw,
   delighters,
   frustrations,
   powerTip,
@@ -164,424 +155,167 @@ const {
   budgetRoiThreshold,
 } = reviewContextSignals;
 
-// Fetch alternatives using hybrid search (vector similarity + category guardrails)
-// Strategy: Compute live, cache at edge - no DB storage of computed relationships
-const alternativesResponse = await getAlternatives(tool, { matchThreshold: 0.4, matchCount: 6 });
-const alternativeIds = alternativesResponse.items.map((a) => a.id);
-
-// Fetch full data for alternatives (needed for micro-diffs, display, and comparison validation)
-const { data: alternatives } =
-  alternativeIds.length > 0
-    ? await supabase
-        .from('items')
-        .select(
-          `
-          id, name, slug, logo_url, short_description, avg_score, pricing_type, learning_curve,
-          base_score, specs, metadata,
-          item_category_links(
-            relevance_score,
-            category:categories(id, slug, name)
-          )
-        `
-        )
-        .in('id', alternativeIds)
-        .eq('type', 'tool')
-    : { data: [] };
-
-// Preserve similarity order from hybrid search
-const orderedAlternatives = orderToolPageAlternativesByIds(alternatives, alternativeIds);
-
-// Track whether these are true "alternatives" or just "related tools"
-const alternativesLabel =
-  alternativesResponse.type === 'alternatives' ? 'Alternatives' : 'Related Tools';
-
-// Compute micro-diffs for alternatives (Layer 2 - Computed)
-const microDiffs = orderedAlternatives?.length
-  ? computeMicroDiffs(
-      {
-        slug: tool.slug,
-        name: tool.name,
-        pricing_type: tool.pricing_type,
-        learning_curve: tool.learning_curve,
-        base_score: tool.base_score,
-        specs: tool.specs,
-      },
-      orderedAlternatives.map((alt) => ({
-        slug: alt.slug,
-        name: alt.name,
-        pricing_type: alt.pricing_type,
-        learning_curve: alt.learning_curve,
-        base_score: alt.base_score,
-        specs: alt.specs,
-      }))
-    )
-  : new Map();
-
-// Fetch curated verdicts for alternatives (Layer 1 - Human Intelligence)
-const altSlugs = orderedAlternatives?.map((a) => a.slug) || [];
-const curatedVerdicts = new Map<string, string>();
-
-if (altSlugs.length > 0) {
-  // Query comparison_insights where either slug is our tool
-  const { data: insights } = await supabase
-    .from('comparison_insights')
-    .select('item_a_slug, item_b_slug, verdict')
-    .or(`item_a_slug.eq.${tool.slug},item_b_slug.eq.${tool.slug}`)
-    .not('verdict', 'is', null);
-
-  for (const insight of insights || []) {
-    // Determine which slug is the alternative
-    const altSlug = insight.item_a_slug === tool.slug ? insight.item_b_slug : insight.item_a_slug;
-    if (altSlugs.includes(altSlug) && insight.verdict) {
-      curatedVerdicts.set(altSlug, insight.verdict);
-    }
-  }
-}
-
 const sourceEvidenceDomains = deriveToolPageSourceEvidenceDomains(reviewContentLists.sources);
-const stripControlChars = stripToolPageControlChars;
-const extractJsonClaimText = (snippet: string): string | null => {
-  try {
-    const parsed = JSON.parse(snippet) as Record<string, unknown>;
-    if (typeof parsed.text !== 'string') return null;
-    const cleaned = stripControlChars(parsed.text);
-    return cleaned || null;
-  } catch {
-    return null;
-  }
-};
-const sanitizeStructuredClaimMarkdown = (value: string | null): string | null => {
-  if (!value || typeof value !== 'string') return value;
-  const decoded = value.replace(/\{[^{}\n]*"text"[^{}\n]*\}/g, (snippet) => {
-    const claimText = extractJsonClaimText(snippet);
-    return claimText || snippet;
-  });
-  const legacyVerdictHeadingPattern = new RegExp(
-    String.raw`^\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:t(?:l;dr|ldr)|community\s+insights)\s*(?:\*\*)?\s*:?\s*$`,
-    'gim'
-  );
-  return decoded
-    .replace(legacyVerdictHeadingPattern, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-};
-const toEvidenceBullet = (claim: unknown): EvidenceBullet | null =>
-  toToolPageEvidenceBullet(claim, isEligibleEvidenceUrl);
-const buildEvidenceBulletV2 = ({
-  text,
-  kind,
-  sourceUrl,
-  sourceLabel,
-  retrievedAt,
-  requiredSourcing,
-}: {
-  text: string;
-  kind: EvidenceBulletV2['kind'];
-  sourceUrl?: string | null;
-  sourceLabel?: string;
-  retrievedAt?: string;
-  requiredSourcing: boolean;
-}): EvidenceBulletV2 | null =>
-  buildToolPageEvidenceBulletV2({
-    text,
-    kind,
-    sourceUrl,
-    sourceLabel,
-    retrievedAt,
-    requiredSourcing,
-    isEligibleEvidenceUrl,
-  });
+const { toEvidenceBullet, buildEvidenceBulletV2 } = createToolPageEvidenceBulletAdapters({
+  isEligibleEvidenceUrl,
+});
 const eligibleSignalEvidenceCount = countEligibleEvidenceDomains(sourceEvidenceDomains);
-
-// SEO: quality/index gate (with confidence retained for trust signal display)
-const confidence = evaluateContentConfidence(tool, firstReview);
-const contentConfidenceLevelRaw = getConfidenceLevel(confidence.score);
-const indexReadiness = evaluateIndexReadiness(tool, firstReview);
-const persistedQuality =
-  (canonicalFacts?.quality as
-    | {
-        should_index?: boolean;
-        noindex_reasons?: string[];
-        section_publishability?: Record<string, boolean>;
-        section_status?: Record<string, 'show' | 'hide' | 'procedural'>;
-        evidence_counts?: Record<string, number>;
-      }
-    | undefined) || undefined;
-const sectionPublishability = {
-  ...indexReadiness.signals.section_publishability,
-  ...(persistedQuality?.section_publishability || {}),
-};
-const sectionStatus = {
-  ...indexReadiness.signals.section_status,
-  ...(persistedQuality?.section_status || {}),
-};
-const hasProceduralSignals =
-  sectionStatus.verdict === 'procedural' ||
-  sectionStatus.pricing === 'procedural' ||
-  sectionStatus.community === 'procedural' ||
-  sectionStatus.specs === 'procedural';
-const isDraftPage = !reviewSelection.hasPublishedReview && reviewSelection.hasDraftReview;
-
-const VOLATILE_FAQ_TERMS =
-  /\b(model|version|pricing|price|plan|quota|limit|token|tokens|rate limit|context window|deprecated|deprecation|gpt|claude|opus|sonnet|haiku|o[1-9])\b/i;
-const filteredFaqItems = (Array.isArray(knowledgeCard?.faqs) ? knowledgeCard.faqs : []).filter(
-  (item) => {
-    if (!item?.question || !item?.answer) return false;
-    if (!item.answer_source_url) return false;
-    if (
-      VOLATILE_FAQ_TERMS.test(`${item.question} ${item.answer}`) &&
-      item.answer_source_type !== 'official'
-    ) {
-      return false;
-    }
-    if (
-      /\b(price|pricing|plan|tier|monthly|annual|enterprise|max plan|models? available|what models?)\b/i.test(
-        `${item.question} ${item.answer}`
-      )
-    ) {
-      return false;
-    }
-    return true;
-  }
-);
-const knowledgeCardForSeo =
-  knowledgeCard && filteredFaqItems.length !== (knowledgeCard.faqs?.length || 0)
-    ? { ...knowledgeCard, faqs: filteredFaqItems }
-    : knowledgeCard;
-const faqItems = filteredFaqItems;
-
-const gateShouldIndex =
-  typeof persistedQuality?.should_index === 'boolean'
-    ? persistedQuality.should_index
-    : indexReadiness.shouldIndex;
-const gateReasons =
-  Array.isArray(persistedQuality?.noindex_reasons) && persistedQuality.noindex_reasons.length > 0
-    ? persistedQuality.noindex_reasons
-    : indexReadiness.reasons;
-const gateBlocksFoundations =
-  gateReasons.includes('missing_required_sections') || gateReasons.includes('mvup_incomplete');
-const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
-const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
-const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
-const reviewProgress = deriveToolPageReviewProgress({
+const qualityStateInput = buildToolPageQualityStateInput({
   tool,
   firstReview,
-  gateReasons,
+  reviewSelection,
+  canonicalFacts,
 });
-const showReviewInProgressBanner = reviewProgress.showReviewInProgressBanner;
+const qualityState = buildToolPageQualityState(qualityStateInput);
+const {
+  contentConfidenceLevel,
+  sectionPublishability,
+  sectionStatus,
+  gateShouldIndex,
+  gateReasons: _gateReasons,
+  hasProceduralGuidance,
+  isDraftPage,
+  safeDraftDescription,
+  showReviewInProgressBanner,
+} = qualityState;
+const faqState = buildToolPageFaqState(knowledgeCard);
+const { faqItems, knowledgeCardForSeo } = faqState;
 const hasEligibleNegativeEvidence = eligibleSignalEvidenceCount >= 2;
-const renderVerdict = sanitizeStructuredClaimMarkdown(
-  firstReview?.summary_markdown || tool.verdict || humanVerdict
-);
-
-const hasAbout = (() => {
-  const longDescription =
-    typeof tool.long_description === 'string' ? tool.long_description.trim() : '';
-  if (!longDescription) return false;
-  const shortDescription =
-    typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
-  const normalize = (value: string) =>
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim();
-  return normalize(longDescription) !== normalize(shortDescription);
-})();
-const setupSignals = deriveToolPageSetupSignals({
-  knowledgeCard,
-  setupTracks: setupTracks || null,
-  website: tool.website,
-});
-const hasGettingStartedRaw = setupSignals.hasGettingStarted;
-const comparativeFeaturePeerCount =
-  typeof (knowledgeCard?.meta as Record<string, unknown> | undefined)?.comparative_feature_peer_count ===
-  'number'
-    ? ((knowledgeCard?.meta as Record<string, unknown>)
-        .comparative_feature_peer_count as number)
-    : 0;
-const pricingSignals = deriveToolPagePricingSignals({
+const displaySignals = buildToolPageDisplaySignals({
   toolPricingType: tool.pricing_type,
-  pricingStartingPrice:
-    typeof knowledgeCard?.pricing?.starting_price === 'string'
-      ? knowledgeCard.pricing.starting_price
-      : null,
-  smpPlans: knowledgeCard?.smp_pricing?.plans,
-  legacyPricingTiers: knowledgeCard?.pricing?.tiers,
-  pricingSectionStatus: sectionStatus.pricing,
-});
-const hasPricing = pricingSignals.hasPricing;
-const hasFreePlanSignal = pricingSignals.hasFreePlanSignal;
-const verdictPolicy = deriveToolPageVerdictPolicy({
-  firstReviewSummaryMarkdown: firstReview?.summary_markdown || null,
+  reviewSummaryMarkdown: firstReview?.summary_markdown || null,
   toolVerdict: tool.verdict || null,
-  humanVerdict: humanVerdict || null,
-  avoidIf: Array.isArray(avoidIf) ? avoidIf : [],
+  humanVerdict,
+});
+const { pricingTypeLabel, renderVerdict } = displaySignals;
+const decisionRuntimeInput = buildToolPageDecisionRuntimeInput({
+  tool: {
+    name: tool.name,
+    short_description: tool.short_description,
+    long_description: tool.long_description,
+    pricing_type: tool.pricing_type,
+    verdict: tool.verdict,
+    website: tool.website,
+    category: { slug: tool.category?.slug || null },
+  },
+  knowledgeCard: knowledgeCard as Record<string, unknown> | null,
+  setupTracks,
+  firstReviewSummaryMarkdown: firstReview?.summary_markdown || null,
+  reviewPros: reviewContentLists.pros,
+  reviewCons: reviewContentLists.cons,
+  audiences: tags.audiences,
+  reviewContextSignals,
+  sectionStatus: {
+    pricing: sectionStatus.pricing,
+    verdict: sectionStatus.verdict,
+  },
+  globalCons,
   hasEligibleNegativeEvidence,
-  hasFreePlanSignal,
   renderVerdict,
 });
-const { guardedHumanVerdict, guardedAvoidIf, renderVerdictSafe, isDisallowedConClaim } =
-  verdictPolicy;
-const hasVerdict = Boolean(renderVerdictSafe && sectionStatus.verdict === 'show');
-const sectionSignals = deriveToolPageSectionSignals({
-  faqCount: faqItems.length,
-  faqPublishable: sectionPublishability.faq,
-  featureCoreCount: Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core.length : 0,
-  featureUniqueCount: Array.isArray(knowledgeCard?.features?.unique)
-    ? knowledgeCard.features.unique.length
-    : 0,
-  hasCategorySpecificData: Boolean(categorySpecificData),
-  hasVipSpecifics: Boolean(vipSpecifics),
-  specsSectionStatus: sectionStatus.specs,
-  hasPlatforms: Array.isArray(knowledgeCard?.platforms) && knowledgeCard.platforms.length > 0,
-  hasIntegrations: Boolean(knowledgeCard?.integrations),
-  alternativesCount: orderedAlternatives?.length || 0,
-  communitySectionStatus: sectionStatus.community,
-  eligibleSignalEvidenceCount,
-  idealFor: Array.isArray(idealFor) ? idealFor.filter((item): item is string => typeof item === 'string') : [],
-  avoidIf: Array.isArray(avoidIf) ? avoidIf.filter((item): item is string => typeof item === 'string') : [],
-  delighters: Array.isArray(delighters)
-    ? delighters.filter((item): item is string => typeof item === 'string')
-    : [],
-  frustrations: Array.isArray(frustrations)
-    ? frustrations.filter((item): item is string => typeof item === 'string')
-    : [],
-  powerTip: typeof powerTip === 'string' ? powerTip : null,
-  humanVerdict: typeof humanVerdict === 'string' ? humanVerdict : null,
-});
-const hasFAQRaw = sectionSignals.hasFAQRaw;
-const hasFeatures = sectionSignals.hasFeatures;
-const hasSpecsRaw = sectionSignals.hasSpecsRaw;
-const hasPlatformRaw = sectionSignals.hasPlatformRaw;
-const hasAlternatives = sectionSignals.hasAlternatives;
-const alternativesStateInput = buildToolPageAlternativesStateInput({
-  tool: {
-    slug: tool.slug,
-    item_category_links: (tool as { item_category_links?: unknown }).item_category_links,
-    metadata: tool.metadata,
-  },
-  orderedAlternatives: (orderedAlternatives || []).map((alt) => ({
-    slug: alt.slug,
-    item_category_links: (alt as { item_category_links?: unknown }).item_category_links,
-    metadata: alt.metadata,
-  })),
-});
-const alternativesState = buildToolPageAlternativesState(
-  alternativesStateInput.primaryTool,
-  alternativesStateInput.alternatives
-);
-const comparableAlternatives = alternativesState.comparableAlternatives;
-const hasComparableAlternatives = alternativesState.hasComparableAlternatives;
-const canCompareByAlternativeSlug = alternativesState.canCompareBySlug;
-const hasCommunityRaw = sectionSignals.hasCommunityRaw;
-const sectionState = buildToolPageSectionState({
-  contentConfidenceLevel,
-  hasAlternatives,
-  firstReviewUpdatedAt: firstReview?.updated_at || null,
-  firstReviewCreatedAt: firstReview?.created_at || null,
-  toolLastVerifiedAt: tool.last_verified_at || null,
-  toolPricingVerifiedAt: tool.pricing_verified_at || null,
-  toolUpdatedAt: tool.updated_at || null,
-  sectionStatus: {
-    specs: sectionStatus.specs,
-    community: sectionStatus.community,
-  },
-  sectionPublishability: {
-    faq: sectionPublishability.faq,
-  },
-  hasFaqData: hasFAQRaw,
-  hasGettingStartedData: hasGettingStartedRaw,
-  hasSpecsData: hasSpecsRaw,
-  hasCommunityData: hasCommunityRaw,
-  hasPlatformData: hasPlatformRaw,
-  hasSecurityData: Boolean(knowledgeCard?.security),
-  hasPortabilityData: Boolean(knowledgeCard?.smp_portability),
-  hasKnowledgeCard: Boolean(knowledgeCard),
-  hasParentTool: Boolean(parentTool),
-  hasSupportData: Boolean(knowledgeCard?.support),
-  now: new Date(),
-});
-const hasFAQ = sectionState.hasFAQ;
-const hasGettingStarted = sectionState.hasGettingStarted;
-const hasSpecs = sectionState.hasSpecs;
-const hasCommunity = sectionState.hasCommunity;
-const hasPlatform = sectionState.hasPlatform;
-const hasSecurity = sectionState.hasSecurity;
-const hasPortability = sectionState.hasPortability;
-const hasOperationalDetails = sectionState.hasOperationalDetails;
-const showProceduralVerdict =
-  hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
-const showProceduralSpecs =
-  hasProceduralGuidance && sectionStatus.specs === 'procedural' && !hasSpecs;
-const faqSchema = hasFAQ ? generateToolFAQSchema(tool, knowledgeCardForSeo) : null;
-const taxonomyPrimary =
-  typeof knowledgeCard?.smp_taxonomy?.primary_function === 'string'
-    ? knowledgeCard.smp_taxonomy.primary_function.toLowerCase()
-    : '';
-const categoryHint = `${tool.category?.slug || ''} ${taxonomyPrimary}`.toLowerCase();
-const isPaymentsCategory =
-  /\b(payment|payments|bank|banking|finance|accounting|treasury|billing)\b/.test(categoryHint);
-const extractClaimText = extractToolPageClaimText;
-const fallbackConsText = (Array.isArray(globalCons) ? globalCons : [])
-  .map(extractClaimText)
-  .filter((text) => text.length > 0);
-const paymentTriggerCons = fallbackConsText.filter((text) =>
-  /\b(fee|fees|fx|foreign exchange|gateway|merchant|kyb|kyc|verification|card|transfer|settlement)\b/i.test(
-    text
-  )
-);
-
-const cleanNarrativeText = cleanToolPageNarrativeText;
-const cleanDecisionSlotText = cleanToolPageDecisionSlotText;
-const uniqueDecisionText = uniqueToolPageDecisionText;
-const fallbackDecisionSummary =
-  tool.short_description ||
-  knowledgeCard?.tagline ||
-  `${tool.name} can work well for some teams, but fit depends on your workflow and plan constraints.`;
-const decisionSnapshot = buildToolPageDecisionSnapshot({
-  decisionSlotsRaw,
-  decisionIntroRaw,
-  fallbackDecisionSummary,
-  idealFor,
-  guardedAvoidIf,
-  isPaymentsCategory,
-  paymentTriggerCons,
-  fallbackConsText,
-  firstReviewPros: reviewContentLists.pros,
-  firstReviewCons: reviewContentLists.cons,
-  tagAudienceNames: tags.audiences.map((tag) => tag.name),
-  isDisallowedConClaim,
-  cleanNarrativeText,
-  cleanDecisionSlotText,
-  uniqueDecisionText,
-});
+const decisionRuntime = buildToolPageDecisionRuntime(decisionRuntimeInput);
 const {
+  hasAbout,
+  setupSignals,
+  hasGettingStartedRaw,
+  comparativeFeaturePeerCount,
+  hasPricing,
+  guardedHumanVerdict,
+  guardedAvoidIf,
+  renderVerdictSafe,
+  isDisallowedConClaim,
+  hasVerdict,
   decisionSnapshotSummary,
   introLooksSpecSheet,
   decisionSnapshotBestWhen,
   decisionSnapshotWatchOuts,
   decisionTradeoffSummaryInitial,
-} = decisionSnapshot;
-let decisionTradeoffSummary = decisionTradeoffSummaryInitial;
-const toolPageEvaluationViewModel = buildToolPageEvaluationViewModel({
-  canonicalFacts: canonicalFacts as Record<string, unknown> | undefined,
+  decisionSnapshotDifferentiators,
+} = decisionRuntime;
+const sectionRuntimeInput = buildToolPageSectionRuntimeInput({
+  faqItems,
+  sectionPublishabilityFaq: sectionPublishability.faq,
+  knowledgeCard,
+  categorySpecificData,
+  vipSpecifics,
+  sectionStatus: {
+    specs: sectionStatus.specs,
+    community: sectionStatus.community,
+  },
+  orderedAlternativesCount: orderedAlternatives?.length || 0,
+  eligibleSignalEvidenceCount,
+  idealFor,
+  avoidIf,
+  delighters,
+  frustrations,
+  powerTip,
+  humanVerdict,
+  contentConfidenceLevel,
+  firstReviewUpdatedAt: firstReview?.updated_at || null,
+  firstReviewCreatedAt: firstReview?.created_at || null,
+  toolLastVerifiedAt: tool.last_verified_at || null,
+  toolPricingVerifiedAt: tool.pricing_verified_at || null,
+  toolUpdatedAt: tool.updated_at || null,
+  hasGettingStartedData: hasGettingStartedRaw,
+  hasParentTool: Boolean(parentTool),
+  hasSupportData: Boolean(knowledgeCard?.support),
+  now: new Date(),
 });
+const sectionRuntime = buildToolPageSectionRuntime(sectionRuntimeInput);
+const sectionFlags = buildToolPageSectionFlags(sectionRuntime);
 const {
-  handsOnChecks: _handsOnChecks,
+  hasFAQRaw: _hasFAQRaw,
+  hasFeatures,
+  hasSpecsRaw: _hasSpecsRaw,
+  hasPlatformRaw: _hasPlatformRaw,
+  hasAlternatives,
+  hasCommunityRaw: _hasCommunityRaw,
+  hasFAQ,
+  hasGettingStarted,
+  hasSpecs,
+  hasCommunity,
+  hasPlatform,
+  hasSecurity,
+  hasPortability,
+  hasOperationalDetails,
+} = sectionFlags;
+const alternativesState = buildToolPageAlternativesRuntimeFromItems(tool, orderedAlternatives || []);
+const alternativesViewFields = buildToolPageAlternativesViewFields(alternativesState);
+const { comparableAlternatives, hasComparableAlternatives, canCompareByAlternativeSlug } =
+  alternativesViewFields;
+const presentationGates = buildToolPagePresentationGates({
+  hasProceduralGuidance,
+  sectionStatus: {
+    verdict: sectionStatus.verdict,
+    specs: sectionStatus.specs,
+  },
+  hasVerdict,
+  hasSpecs,
+});
+const { showProceduralVerdict, showProceduralSpecs } = presentationGates;
+const faqSchema = buildToolPageFaqSchema({
+  hasFAQ,
+  tool,
+  knowledgeCardForSeo,
+});
+let decisionTradeoffSummary = decisionTradeoffSummaryInitial;
+const reviewArtifacts = buildToolPageReviewArtifacts({
+  canonicalFacts: canonicalFacts as Record<string, unknown> | undefined,
+  reviewSources: reviewContentLists.sources as Array<Record<string, unknown> | null | undefined>,
+  toolName: tool.name,
+});
+const toolPageEvaluationViewModel = reviewArtifacts.evaluationViewModel;
+const {
   handsOnTestEnvironment,
   handsOnTestSteps,
   handsOnTestFindings,
   handsOnTestedAtLabel,
-  hasHandsOnTestNotes: _hasHandsOnTestNotes,
   evaluationDepth,
   testedItems,
   notTestedItems,
   showWeTestedIt,
 } = toolPageEvaluationViewModel;
-const toolPageEvidenceLinks = buildToolPageEvidenceLinks(
-  reviewContentLists.sources as Array<Record<string, unknown> | null | undefined>,
-  tool.name
-);
+const toolPageEvidenceLinks = reviewArtifacts.evidenceLinksViewModel;
 const {
   evidenceLinksAll,
   evidenceLinks,
@@ -589,224 +323,113 @@ const {
   evidenceBasis,
   officialEvidenceLinks,
 } = toolPageEvidenceLinks;
-const sourceAriaLabel = (context: string): string =>
-  buildToolPageSourceAriaLabel(stripControlChars(context));
-const reviewSignals = deriveToolPageReviewSignals({
+const reviewSignalsInput = buildToolPageReviewSignalsInput({
   firstReview,
   toolLastVerifiedAt: tool.last_verified_at || null,
   toolPricingVerifiedAt: tool.pricing_verified_at || null,
   extractionDate: (knowledgeCard?.meta?.extraction_date as string | undefined) || null,
 });
+const reviewSignals = deriveToolPageReviewSignals(reviewSignalsInput);
+const reviewSignalsView = buildToolPageReviewSignalsView(reviewSignals);
 const {
   pricingVerifiedLabel,
   specsVerifiedLabel,
   communityVerifiedLabel,
-} = reviewSignals;
-const contextualEvidenceCons = reviewContentLists.cons
-  .map(toEvidenceBullet)
-  .filter((item): item is EvidenceBullet => Boolean(item));
-const contextualEvidencePros = reviewContentLists.pros
-  .map(toEvidenceBullet)
-  .filter((item): item is EvidenceBullet => Boolean(item));
-const globalEvidencePros = (Array.isArray(globalPros) ? globalPros : [])
-  .map(toEvidenceBullet)
-  .filter((item): item is EvidenceBullet => Boolean(item));
-const globalEvidenceCons = (Array.isArray(globalCons) ? globalCons : [])
-  .map(toEvidenceBullet)
-  .filter((item): item is EvidenceBullet => Boolean(item));
-const effectiveEvidencePros =
-  contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros;
-const rawEvidenceCons = contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
-const effectiveEvidenceCons = rawEvidenceCons.filter(
-  (item) => !isDisallowedConClaim(item.text)
-);
-const hasStrengths =
-  effectiveEvidencePros.length +
-    effectiveEvidenceCons.length >=
-  2;
-const hiddenCostBullets = Array.isArray(constraints?.hidden_costs)
-  ? constraints.hidden_costs
-      .map((cost: any) => {
-        const sourceUrl = typeof cost?.source_url === 'string' ? cost.source_url.trim() : '';
-        if (!isEligibleEvidenceUrl(sourceUrl)) return null;
-        const name = typeof cost?.name === 'string' ? cost.name.trim() : 'Hidden cost';
-        const amount = typeof cost?.amount === 'string' ? ` (${cost.amount})` : '';
-        const whenCharged = typeof cost?.when_charged === 'string' ? ` — ${cost.when_charged}` : '';
-        return { text: `${name}${amount}${whenCharged}`, sourceUrl } as EvidenceBullet;
-      })
-      .filter((item): item is EvidenceBullet => Boolean(item))
-  : [];
-const hardLimitFromConstraints = Array.isArray(constraints?.hard_limits)
-  ? constraints.hard_limits
-      .map((limit: any) => {
-        const sourceUrl = typeof limit?.source_url === 'string' ? limit.source_url : '';
-        if (!isEligibleEvidenceUrl(sourceUrl)) return null;
-        const metric =
-          typeof limit?.metric === 'string' ? limit.metric.replace(/_/g, ' ') : 'Limit';
-        const value =
-          typeof limit?.value === 'number' || typeof limit?.value === 'string'
-            ? String(limit.value)
-            : '';
-        const unit = typeof limit?.unit === 'string' ? ` ${limit.unit}` : '';
-        const plan =
-          typeof limit?.plan_name_match === 'string' ? ` (${limit.plan_name_match})` : '';
-        const text = `${metric}: ${value}${unit}${plan}`.trim();
-        if (!text || text === 'Limit:') return null;
-        if (isDisallowedConClaim(text)) return null;
-        return { text, sourceUrl } as EvidenceBullet;
-      })
-      .filter((item): item is EvidenceBullet => Boolean(item))
-  : [];
-const toolPageCanonicalHardLimits = deriveToolPageCanonicalHardLimits({
-  hardLimitFromConstraints,
-  effectiveEvidenceCons,
-  hiddenCostBullets,
+} = reviewSignalsView;
+const constraintEvidence = buildToolPageConstraintEvidence({
+  constraints,
+  isEligibleEvidenceUrl,
+  isDisallowedConClaim,
 });
-const { hardLimitBullets: _hardLimitBullets, canonicalHardLimits, topHardLimit } =
-  toolPageCanonicalHardLimits;
-decisionTradeoffSummary =
-  decisionTradeoffSummary ||
-  cleanNarrativeText(topHardLimit?.text) ||
-  cleanNarrativeText(decisionSnapshotWatchOuts[0]) ||
-  'Tradeoff not confirmed yet.';
+const { hiddenCostBullets, hardLimitFromConstraints } =
+  buildToolPageConstraintEvidenceView(constraintEvidence);
 const gettingStartedCtaUrl = setupSignals.gettingStartedCtaUrl;
-const baseEvidenceGrade = deriveToolPageBaseEvidenceGrade({
+const evidenceRuntimeInput = buildToolPageEvidenceRuntimeInput({
+  reviewPros: reviewContentLists.pros,
+  reviewCons: reviewContentLists.cons,
+  globalPros: Array.isArray(globalPros) ? globalPros : [],
+  globalCons: Array.isArray(globalCons) ? globalCons : [],
+  toEvidenceBullet,
+  isDisallowedConClaim,
+  hiddenCostBullets,
+  hardLimitFromConstraints,
+  decisionSnapshotWatchOuts,
+  decisionTradeoffSummaryInitial,
   officialEvidenceLinks,
-  canonicalHardLimitCount: canonicalHardLimits.length,
-  evidenceLinkCount: evidenceLinks.length,
-});
-let pendingVerificationCount = 0;
-const directPricingPageSource =
-  typeof knowledgeCard?.smp_pricing?.pricing_page_url === 'string'
-    ? knowledgeCard.smp_pricing.pricing_page_url
-    : null;
-const officialDocsSource = officialEvidenceLinks.find(
-  (entry) =>
-    entry.basis === 'Official docs/help center' ||
-    entry.basis === 'Official changelogs' ||
-    entry.basis === 'Official status pages'
-);
-const pricingViewModel = buildToolPagePricingViewModel({
+  evidenceLinksAll,
+  evidenceLinks,
   hasPricing,
   pricingVerifiedLabel,
-  officialEvidenceLinks,
-  directPricingPageSource: isEligibleEvidenceUrl(directPricingPageSource)
-    ? directPricingPageSource
-    : null,
-  hardLimitFromConstraints,
-  effectiveEvidenceCons,
-  hiddenCostBullets,
-  canonicalHardLimitsCount: canonicalHardLimits.length,
+  knowledgeCard,
   sectionPricingStatus: sectionStatus.pricing,
   budgetCostDrivers,
   budgetOneTimeFees,
   budgetCommitmentTerms,
   budgetRoiThreshold,
+  faqItems,
+  specsVerifiedLabel,
+  communityVerifiedLabel,
+  buildEvidenceBulletV2,
+  isEligibleEvidenceUrl,
 });
+const evidenceRuntime = buildToolPageEvidenceRuntime(evidenceRuntimeInput);
 const {
+  effectiveEvidencePros,
+  effectiveEvidenceCons,
+  hasStrengths,
+  canonicalHardLimits,
+  decisionTradeoffSummary: decisionTradeoffSummaryResolved,
+  baseEvidenceGrade,
+  officialDocsSource,
   officialPricingSource,
   pricingSourceUrl,
-  pricingSnapshotBullets: _pricingSnapshotBullets,
   pricingEvidenceLinks,
   hasPricingCheckedProof,
   pricingCheckedLabel,
   showPricingSection,
   pricingNarrativeLead,
   pricingNarrativeLabel,
-} = pricingViewModel;
-const toolPageSourcesViewModel = buildToolPageSourcesViewModel({
-  evidenceLinksAll,
-  effectiveEvidencePros,
-  effectiveEvidenceCons,
-  pricingSourceUrl,
-  pricingEvidenceLinks,
-  faqItems,
-  officialDocsSourceUrl: officialDocsSource?.url || null,
-  canonicalHardLimits,
-});
-const { collectedSourcesBySection, collectedSourcesTotal, hasCollectedSources } =
-  toolPageSourcesViewModel;
-const decisionProofPoints = [
-  buildEvidenceBulletV2({
-    text: `Pricing references reviewed from official pages (checked ${pricingVerifiedLabel || 'latest available date'}).`,
-    kind: 'claim',
-    sourceUrl: pricingSourceUrl,
-    sourceLabel: 'Official pricing',
-    retrievedAt: pricingVerifiedLabel || undefined,
-    requiredSourcing: true,
-  }),
-  buildEvidenceBulletV2({
-    text: `Documentation and product references reviewed from official docs/help sources (checked ${specsVerifiedLabel || 'latest available date'}).`,
-    kind: 'claim',
-    sourceUrl: officialDocsSource?.url,
-    sourceLabel: 'Official docs',
-    retrievedAt: specsVerifiedLabel || undefined,
-    requiredSourcing: true,
-  }),
-  buildEvidenceBulletV2({
-    text: `Plan-gating and limitations were extracted from source-linked evidence for this page (checked ${communityVerifiedLabel || 'latest available date'}).`,
-    kind: 'limit',
-    sourceUrl:
-      topHardLimit?.sourceUrl || officialPricingSource?.url || officialDocsSource?.url || null,
-    sourceLabel: 'Constraint evidence',
-    retrievedAt: communityVerifiedLabel || undefined,
-    requiredSourcing: true,
-  }),
-].filter((item): item is EvidenceBulletV2 => Boolean(item));
-const tradeoffEvidence = buildToolPageTradeoffEvidence({
-  decisionSnapshotWatchOuts,
-  canonicalHardLimits,
-  topHardLimit: topHardLimit || null,
-  communityVerifiedLabel,
-  specsVerifiedLabel,
-  pricingVerifiedLabel,
-});
-const { avoidIfBullet, tradeoffCons } = tradeoffEvidence;
-const decisionSnapshotDifferentiators = uniqueDecisionText([
-  ...(Array.isArray(knowledgeCard?.features?.unique) ? knowledgeCard.features.unique : []),
-  ...(Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core : []),
-]).slice(0, 2);
-const lensLabelMap: Record<ReviewLens, string> = {
-  general: 'General',
-  personal: 'Personal',
-  startup: 'Startup',
-  enterprise: 'Enterprise',
-};
-const toolReviewHeading = `${tool.name} Review`;
+  collectedSourcesBySection,
+  collectedSourcesTotal,
+  hasCollectedSources,
+  decisionProofPoints,
+  avoidIfBullet,
+  tradeoffCons,
+} = evidenceRuntime;
+decisionTradeoffSummary = decisionTradeoffSummaryResolved;
 const toolMeta = generateToolMeta(tool, tool.review_count);
-const runtime = buildToolPageRuntime({
-  lensInput: {
-    pathname: Astro.url.pathname,
-    searchParams: Astro.url.searchParams,
-    activeReviewLens,
-    viewModelInput: {
-      hasVerdict,
-      showProceduralVerdict,
-      showPricingSection,
-      hasGettingStarted,
-      hasFeatures,
-      hasSpecs,
-      showProceduralSpecs,
-      hasPlatform,
-      hasAlternatives,
-    },
-    lensContentInput: {
-      toolName: tool.name,
-      hasCollectedSources,
-      hasGettingStarted,
-      showPricingSection,
-      hasSecurity,
-      decisionSnapshotBestWhen,
-      decisionSnapshotWatchOuts,
-      decisionSnapshotDifferentiators,
-      decisionTradeoffSummary,
-      enterpriseTradeoffOverride: canonicalHardLimits[0]?.text || null,
-      hardLimitCount: canonicalHardLimits.length,
-    },
+const { runtimeViewBundle } = buildToolPageRuntimeAssembly({
+  pathname: Astro.url.pathname,
+  searchParams: Astro.url.searchParams,
+  activeReviewLens,
+  viewModelInput: {
+    hasVerdict,
+    showProceduralVerdict,
+    showPricingSection,
+    hasGettingStarted,
+    hasFeatures,
+    hasSpecs,
+    showProceduralSpecs,
+    hasPlatform,
+    hasAlternatives,
   },
-  trustInput: {
+  lensContentInput: {
+    toolName: tool.name,
+    hasCollectedSources,
+    hasGettingStarted,
+    showPricingSection,
+    hasSecurity,
+    decisionSnapshotBestWhen,
+    decisionSnapshotWatchOuts,
+    decisionSnapshotDifferentiators,
+    decisionTradeoffSummary,
+  },
+  canonicalHardLimits,
+  trust: {
     baseEvidenceGrade,
-    verificationItems: [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints],
+    avoidIfBullet,
+    tradeoffCons,
+    decisionProofPoints,
     hasCollectedSources,
     contentConfidenceLevel,
     hasPricingCheckedProof,
@@ -817,58 +440,57 @@ const runtime = buildToolPageRuntime({
     communityVerifiedLabel,
     officialPricingSourceUrl: officialPricingSource?.url || null,
   },
-  metaInput: {
-    qaInput: {
-      title: `${tool.name} Review | StackHunt`,
-      h1: toolReviewHeading,
-      intro: stripControlChars(decisionSnapshotSummary || ''),
-      verdict: stripControlChars(renderVerdictSafe || tool.verdict || ''),
-      evaluationDepth: evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
-      pricingSectionVisible: showPricingSection,
-      hasPricingCheckedProof,
-      schemaMatchesVisibleContent: Boolean(!hasFAQ || faqSchema),
-      hasBestForSignal: decisionSnapshotBestWhen.length > 0,
-      hasNotForSignal: decisionSnapshotWatchOuts.length > 0,
-      hasTradeoffSignal: decisionTradeoffSummary !== 'Tradeoff not confirmed yet.',
-      hasDecisionSummaryBlock: true,
-      introLooksSpecSheet,
-    },
-    indexInput: {
-      gateShouldIndex,
-      isDraftPage,
-      pendingVerificationCount,
-      showReviewInProgressBanner,
-      toolCanonicalUrl: toolMeta.canonical,
-      fallbackCanonicalUrl: getCanonicalUrl('/tools'),
-      defaultDescription: toolMeta.description,
-      draftDescription: safeDraftDescription,
-    },
-    baseMeta: {
-      description: toolMeta.description,
-      canonical: toolMeta.canonical,
-    },
+  meta: {
+    toolName: tool.name,
+    toolVerdict: tool.verdict || null,
+    toolMeta,
+    gateShouldIndex,
+    isDraftPage,
+    showReviewInProgressBanner,
+    safeDraftDescription,
+    decisionSnapshotSummary,
+    renderVerdictSafe,
+    evaluationDepth,
+    showPricingSection,
+    hasPricingCheckedProof,
+    hasFAQ,
+    faqSchema,
+    decisionSnapshotBestWhen,
+    decisionSnapshotWatchOuts,
+    decisionTradeoffSummary,
+    introLooksSpecSheet,
   },
-  schemasInput: {
+  schemas: {
     tool,
     primaryOffer,
     reviewCount: tool.review_count,
     faqSchema,
   },
-  updateHistoryLabelsInput: {
+  updateHistory: {
     communityVerifiedLabel,
     specsVerifiedLabel,
     pricingCheckedLabel,
   },
+  runtimeView: {
+    toolName: tool.name,
+    toolMeta,
+  },
 });
 const {
-  lensRuntime,
-  trustRuntime,
-  metaRuntime,
   schemas,
   updateHistoryLabels,
-} = runtime;
-pendingVerificationCount = trustRuntime.pendingVerificationCount;
-const { trustStatus, trustConfidenceLabel, updateHistoryEntries } = trustRuntime;
+  meta,
+  indexPolicy,
+  pendingVerificationCount,
+  trustStatus,
+  trustConfidenceLabel,
+  updateHistoryEntries,
+  toolReviewHeading,
+  lensLabelMap,
+  sourceAriaLabel,
+  lensRuntime,
+} = runtimeViewBundle;
+const lensViewFields = buildToolPageLensViewFields(lensRuntime);
 const {
   lensHrefs,
   focusSwitchOptions,
@@ -884,13 +506,194 @@ const {
   scoreDrivers,
   workflowFitHighlights,
   workflowFitCards,
-} = lensRuntime;
-const { indexPolicy } = metaRuntime;
-const meta = {
-  ...toolMeta,
-  ...metaRuntime.meta,
-};
-Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
+} = lensViewFields;
+const toolChromeState = buildToolPageChromeState({
+  toolCategory: tool.category
+    ? {
+        slug: tool.category.slug,
+        name: tool.category.name,
+      }
+    : null,
+  hasCollectedSources,
+  evaluationDepth,
+  collectedSourcesTotal,
+  trustConfidenceLabel,
+  pendingVerificationCount,
+  communityVerifiedLabel,
+  specsVerifiedLabel,
+  pricingCheckedLabel,
+  pricingVerifiedLabel,
+  trustStatus,
+  website: tool.website || null,
+  websiteHostLabel,
+  activeReviewLens,
+  lensLabelMap,
+});
+const {
+  reviewInProgressBannerText,
+  researchStatusView,
+  categoryBreadcrumb,
+  trustBarProps,
+  verificationBadgeLabel,
+  websiteState,
+  websiteDisplayLabel,
+  lensPriorityLead,
+  freshnessLabels,
+} = toolChromeState;
+const pricingInsightsBudgetAnalyst = buildToolPagePricingInsightsBudgetAnalyst({
+  budgetCostDrivers,
+  budgetOneTimeFees,
+  budgetCommitmentTerms,
+  budgetRoiThreshold,
+});
+const primaryFunction = buildToolPagePrimaryFunction({
+  specs: tool.specs,
+});
+const alternativesIntroText = buildToolPageAlternativesIntroText({
+  alternativesLabel,
+  primaryFunction,
+  categoryName: tool.category?.name || null,
+});
+const compareTeaserLinks = buildToolPageCompareTeaserLinks({
+  toolSlug: tool.slug,
+  alternatives: comparableAlternatives,
+});
+const alternativesSectionState = buildToolPageAlternativesSectionState({
+  category: tool.category
+    ? { slug: tool.category.slug, name: tool.category.name }
+    : null,
+});
+const alternativeCardsView = buildToolPageAlternativeCardsView({
+  alternatives: orderedAlternatives,
+  canCompareByAlternativeSlug,
+});
+const sourceListsView = buildToolPageSourceListsView({
+  evidenceLinks,
+  lowConfidenceEvidenceLinks,
+});
+const prosConsView = buildToolPageProsConsView({
+  pros: effectiveEvidencePros,
+  cons: effectiveEvidenceCons,
+});
+const gettingStartedProps = buildToolPageGettingStartedProps({
+  setupComplexity: knowledgeCard?.setup_complexity,
+  hasApi: Boolean(knowledgeCard?.integrations?.has_api),
+  websiteUrl: knowledgeCard?.website_url || null,
+  fallbackWebsiteUrl: tool.website || null,
+  setupTracks,
+  setupUrl: gettingStartedCtaUrl,
+  toolName: tool.name,
+});
+const strengthsSubtitle = buildToolPageStrengthsSubtitle({
+  prosConsSourcesCount: collectedSourcesBySection.pros_cons,
+});
+const affiliateOffersView = buildToolPageAffiliateOffersView({
+  offers: tool.affiliate_offers || [],
+});
+const evidenceBasisChips = buildToolPageEvidenceBasisChips({
+  evidenceBasis,
+});
+const tribalKnowledgeProps = buildToolPageTribalKnowledgeProps({
+  hasCommunity,
+  userAdvocate,
+  guardedHumanVerdict,
+  vibe,
+  originStory,
+  idealFor,
+  guardedAvoidIf,
+  powerTip,
+  delighters,
+  frustrations,
+});
+const platformSectionState = buildToolPagePlatformSectionState({
+  platforms: knowledgeCard?.platforms || [],
+  integrations: knowledgeCard?.integrations || null,
+});
+const specsProps = buildToolPageSpecsProps({
+  displayCategorySpecificData,
+  vipSpecifics,
+  toolName: tool.name,
+  categoryName: tool.category?.name || null,
+});
+const specsSectionState = buildToolPageSpecsSectionState({
+  specsVerifiedLabel,
+});
+const aboutContent = buildToolPageAboutContent({
+  longDescription: tool.long_description,
+});
+const pricingSectionState = buildToolPagePricingSectionState({
+  pricingCheckedLabel,
+});
+const pricingEvidenceState = buildToolPagePricingEvidenceState({
+  hasOfficialPricingSource: Boolean(officialPricingSource),
+  pricingEvidenceCount: pricingEvidenceLinks.length,
+});
+const pricingNotice = buildToolPagePricingNotice({
+  pricingCheckedLabel,
+});
+const operationalDetailsState = buildToolPageOperationalDetailsState({
+  hasSecurity,
+  hasPortability,
+  hasKnowledgeCard: Boolean(knowledgeCard),
+  hasParentTool: Boolean(parentTool),
+  hasSupport: Boolean(knowledgeCard?.support),
+  hasSecurityData: Boolean(knowledgeCard?.security),
+  hasPortabilityData: Boolean(knowledgeCard?.smp_portability),
+});
+const navigationState = buildToolPageNavigationState({
+  showVerdict: hasVerdict || showProceduralVerdict,
+  hasGettingStarted,
+  showPricingSection,
+  hasFeatures,
+  showSpecs: hasSpecs || showProceduralSpecs,
+  hasPlatform,
+  hasFaq: hasFAQ,
+  hasAlternatives,
+  evidenceBasisCount: evidenceBasis.length,
+  lowConfidenceCount: lowConfidenceEvidenceLinks.length,
+  faqItems,
+  updateHistoryEntriesCount: updateHistoryEntries.length,
+});
+const {
+  sourcesSectionState,
+  lowConfidenceSourcesState,
+  faqItemsView,
+  updateHistoryState,
+  quickJumpLinks,
+} = navigationState;
+const ctaMediaState = buildToolPageCtaMediaState({
+  tool: {
+    id: tool.id,
+    slug: tool.slug,
+    name: tool.name,
+    logo_url: tool.logo_url,
+    pricing_type: tool.pricing_type,
+    user_verifications_this_week: tool.user_verifications_this_week,
+    video_id: tool.video_id,
+    video_title: tool.video_title,
+    category: tool.category
+      ? { slug: tool.category.slug, name: tool.category.name }
+      : null,
+  },
+  knowledgeCardPricing: {
+    startingPrice: knowledgeCard?.pricing?.starting_price ?? null,
+    model: knowledgeCard?.smp_pricing?.model ?? null,
+    plans: knowledgeCard?.smp_pricing?.plans,
+  },
+  renderVerdictSafe,
+});
+const {
+  compareButtonProps,
+  addToStackProps,
+  priceVerificationProps,
+  videoState,
+  videoProps,
+  verdictContent,
+} = ctaMediaState;
+applyToolPageRobotsHeader({
+  response: Astro.response,
+  robotsTag: indexPolicy.robotsTag,
+});
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>
@@ -903,11 +706,11 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
       <span>/</span>
       <a href="/tools" class="hover:text-hunt-500">Tools</a>
       {
-        tool.category && (
+        categoryBreadcrumb && (
           <>
             <span>/</span>
-            <a href={`/categories/${tool.category.slug}`} class="hover:text-hunt-500">
-              {tool.category.name}
+            <a href={categoryBreadcrumb.href} class="hover:text-hunt-500">
+              {categoryBreadcrumb.label}
             </a>
           </>
         )
@@ -923,9 +726,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
       {
         showReviewInProgressBanner && (
           <div class="mb-4 rounded-lg border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm text-sky-100">
-            {hasCollectedSources
-              ? 'This page is being reviewed. Claims are source-backed, but final editorial verification is still in progress.'
-              : 'This page is being reviewed. Source collection is still in progress before final editorial verification.'}
+            {reviewInProgressBannerText}
           </div>
         )
       }
@@ -958,7 +759,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                           clip-rule="evenodd"
                         />
                       </svg>
-                      {hasCollectedSources ? 'Verified sources' : 'Verified'}
+                      {verificationBadgeLabel}
                     </span>
                   )
                 }
@@ -995,7 +796,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
               )
             }
             {
-              tool.website && (
+              websiteState.hasWebsite && (
                 <a
                   href={tool.website}
                   target="_blank"
@@ -1007,7 +808,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                 >
                   <span>
                     <span class="text-xs uppercase tracking-wide text-zinc-500">Website</span>
-                    <span class="mt-1 block font-medium">{websiteHostLabel || 'Official site'}</span>
+                    <span class="mt-1 block font-medium">{websiteDisplayLabel}</span>
                   </span>
                   <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
@@ -1026,22 +827,19 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
             {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />}
             <CompareButton
               client:load
-              toolSlug={tool.slug}
-              toolName={tool.name}
-              toolLogo={tool.logo_url}
-              categorySlug={tool.category?.slug}
-              categoryName={tool.category?.name}
+              toolSlug={compareButtonProps.toolSlug}
+              toolName={compareButtonProps.toolName}
+              toolLogo={compareButtonProps.toolLogo}
+              categorySlug={compareButtonProps.categorySlug}
+              categoryName={compareButtonProps.categoryName}
             />
             <AddToStackButton
               client:load
-              toolSlug={tool.slug}
-              toolName={tool.name}
-              toolLogo={tool.logo_url}
-              pricing={{
-                starting_price: knowledgeCard?.pricing?.starting_price ?? null,
-                model: knowledgeCard?.smp_pricing?.model ?? tool.pricing_type,
-              }}
-              plans={knowledgeCard?.smp_pricing?.plans}
+              toolSlug={addToStackProps.toolSlug}
+              toolName={addToStackProps.toolName}
+              toolLogo={addToStackProps.toolLogo}
+              pricing={addToStackProps.pricing}
+              plans={addToStackProps.plans}
             />
           </div>
 
@@ -1053,30 +851,28 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
           </p>
           <div class="mt-3 space-y-1 text-xs text-zinc-400">
             <p>
-              <span class="text-zinc-300">{evaluationDepth}</span> review method
+              <span class="text-zinc-300">{researchStatusView.reviewMethodLabel}</span>
             </p>
             <p>
-              <span class="text-zinc-300">{collectedSourcesTotal}</span>{' '}
-              linked sources ({trustConfidenceLabel} confidence)
+              <span class="text-zinc-300">{researchStatusView.linkedSourcesLabel}</span>
             </p>
             {
-              pendingVerificationCount > 0 && (
+              researchStatusView.pendingConfirmationLabel && (
                 <p>
-                  <span class="text-amber-300">{pendingVerificationCount}</span> claims still pending
-                  confirmation
+                  <span class="text-amber-300">{researchStatusView.pendingConfirmationLabel}</span>
                 </p>
               )
             }
             <p class="text-zinc-500">
               Last checked{' '}
               <span class="text-zinc-300">
-                {communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'unknown'}
+                {researchStatusView.lastCheckedLabel}
               </span>
             </p>
           </div>
           <div class="mt-4 space-y-2">
             {
-              tool.website && (
+              websiteState.hasWebsite && (
                 <a
                   href={tool.website}
                   target="_blank"
@@ -1164,9 +960,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
         lensPriorityLinks.length > 0 && (
           <div class="mt-3 border-t border-zinc-800 pt-3">
             <p class="text-xs text-zinc-500">
-              {activeReviewLens === 'general'
-                ? 'Start with these sections:'
-                : `For ${lensLabelMap[activeReviewLens]} teams, start here:`}
+              {lensPriorityLead}
             </p>
             <div class="mt-2 flex flex-wrap gap-2">
               {lensPriorityLinks.map((item) => (
@@ -1193,7 +987,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
       </summary>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         {
-          tool.website && (
+          websiteState.hasWebsite && (
             <a
               href={tool.website}
               target="_blank"
@@ -1209,135 +1003,25 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
         }
         {
           hasComparableAlternatives &&
-            comparableAlternatives.slice(0, 3).map((alt) => (
+            compareTeaserLinks.map((link) => (
               <a
-                href={`/compare/${tool.slug}-vs-${alt.slug}`}
+                href={link.href}
                 class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
               >
-                Compare {alt.name}
+                {link.label}
               </a>
             ))
         }
       </div>
       <div class="mt-3 flex flex-wrap gap-2 text-sm">
-        {
-          (hasVerdict || showProceduralVerdict) && (
-            <a
-              href="#verdict"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Verdict
-            </a>
-          )
-        }
-        <a
-          href="#workflow-fit"
-          class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-        >
-          Workflow fit
-        </a>
-        <a
-          href="#how-we-evaluate"
-          class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-        >
-          How we evaluated
-        </a>
-        {
-          hasGettingStarted && (
-            <a
-              href="#getting-started"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Getting started
-            </a>
-          )
-        }
-        {
-          showPricingSection && (
-            <a
-              href="#pricing-plans"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Pricing
-            </a>
-          )
-        }
-        {
-          hasFeatures && (
-            <a
-              href="#features"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Features
-            </a>
-          )
-        }
-        {
-          (hasSpecs || showProceduralSpecs) && (
-            <a
-              href="#specs"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Specs
-            </a>
-          )
-        }
-        {
-          hasPlatform && (
-            <a
-              href="#platform-integrations"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Platforms
-            </a>
-          )
-        }
-        {
-          hasFAQ && (
-            <a
-              href="#faq"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              FAQ
-            </a>
-          )
-        }
-        {
-          hasAlternatives && (
-            <a
-              href="#alternatives"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Alternatives
-            </a>
-          )
-        }
-        {
-          evidenceBasis.length > 0 && (
-            <a
-              href="#sources"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Sources
-            </a>
-          )
-        }
-        {
-          updateHistoryEntries.length > 0 && (
-            <a
-              href="#update-history"
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              Updates
-            </a>
-          )
-        }
-        <a
-          href="/disclosure"
-          class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-        >
-          Disclosures
-        </a>
+        {quickJumpLinks.map((link) => (
+          <a
+            href={link.href}
+            class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+          >
+            {link.label}
+          </a>
+        ))}
       </div>
     </details>
 
@@ -1356,16 +1040,13 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
               <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
               <p class="text-sm text-zinc-400">
                 As of{' '}
-                {communityVerifiedLabel ||
-                  specsVerifiedLabel ||
-                  pricingVerifiedLabel ||
-                  'the latest review'}
+                {freshnessLabels.verdictAsOfLabel}
                 .
               </p>
               <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
                 <div
                   class="prose prose-slate prose-sm max-w-none text-zinc-200 leading-7"
-                  set:html={simpleMarkdown(renderVerdictSafe || '')}
+                  set:html={simpleMarkdown(verdictContent.body)}
                 />
               </div>
               {canonicalHardLimits.length > 0 && (
@@ -1421,50 +1102,10 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
         }
         {
           showProceduralVerdict && (
-            <section
-              id="verdict-conditions"
-              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
-              data-focus-target
-              data-focus-groups="all verdict"
-            >
-              <h2 class="text-lg font-semibold text-zinc-100">Decision Conditions</h2>
-              <p class="mt-2 text-sm text-zinc-400">
-                Evidence is not strong enough for a publishable verdict yet. Use these checks:
-              </p>
-              <ul class="mt-4 space-y-2 text-sm text-zinc-300">
-                <li>- Run one real workflow and capture where the tool fails first.</li>
-                <li>- Validate migration and rollback paths before replacing incumbents.</li>
-                <li>- Confirm your must-have integrations are supported in current plans.</li>
-                <li>- Re-check this page after new evidence is source-backed.</li>
-              </ul>
-            </section>
+            <ToolDecisionConditionsSection />
           )
         }
-        <section
-          id="workflow-fit"
-          class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
-          data-focus-target
-          data-focus-groups="all verdict setup pricing trust"
-        >
-          <h2 class="text-lg font-semibold text-zinc-100">How This Fits Real Workflows</h2>
-          <p class="mt-2 text-sm text-zinc-300">
-            Use this section to pressure-test adoption before committing budget or migration effort.
-            It translates the verdict into practical rollout checkpoints.
-          </p>
-          <InfoCardsGrid
-            cards={workflowFitCards.map((card) => ({ title: card.title, body: card.body }))}
-          />
-          {workflowFitHighlights.length > 0 && (
-            <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-              <h3 class="text-sm font-semibold text-zinc-200">Workflow Signals from Current Evidence</h3>
-              <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-                {workflowFitHighlights.map((item) => (
-                  <li>- {item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
+        <ToolWorkflowFitSection cards={workflowFitCards} highlights={workflowFitHighlights} />
 
         {/* Pricing Plans */}
         {
@@ -1479,9 +1120,9 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
-                  {pricingCheckedLabel && (
+                  {pricingSectionState.checkedLead && (
                     <p class="mt-1 text-xs text-zinc-500">
-                      Pricing checked {pricingCheckedLabel}
+                      {pricingSectionState.checkedLead}
                     </p>
                   )}
                 </div>
@@ -1508,29 +1149,10 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                   variant="compact"
                   summaryLead={pricingNarrativeLead}
                   summaryLabel={pricingNarrativeLabel}
-                  budgetAnalyst={
-                    budgetAnalyst
-                      ? {
-                          costDrivers: Array.isArray(budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers)
-                            ? budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
-                            : [],
-                          oneTimeFees: Array.isArray(
-                            budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
-                          )
-                            ? budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
-                            : [],
-                          commitmentTerms: (budgetAnalyst.commitmentTerms ||
-                            budgetAnalyst.commitment_terms) as string | null | undefined,
-                          roiThreshold: (budgetAnalyst.roiThreshold ||
-                            budgetAnalyst.roi_threshold) as string | null | undefined,
-                        }
-                      : undefined
-                  }
+                  budgetAnalyst={pricingInsightsBudgetAnalyst}
                 />
                 <p class="mb-4 text-xs text-zinc-500">
-                  {pricingCheckedLabel
-                    ? `Pricing changes frequently; confirm on the vendor site. Shown as of ${pricingCheckedLabel}.`
-                    : 'Pricing changes frequently. Pricing check is pending until a pricing source URL and retrieved date are both captured.'}
+                  {pricingNotice}
                 </p>
                 {hasPricing ? (
                   <>
@@ -1542,12 +1164,12 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                       <PriceVerification
                         slot="verification"
                         client:visible
-                        toolId={tool.id}
-                        toolName={tool.name}
-                        currentPrice={knowledgeCard?.pricing?.starting_price}
-                        pricingType={tool.pricing_type}
-                        verificationCount={tool.user_verifications_this_week || 0}
-                        variant="inline"
+                        toolId={priceVerificationProps.toolId}
+                        toolName={priceVerificationProps.toolName}
+                        currentPrice={priceVerificationProps.currentPrice}
+                        pricingType={priceVerificationProps.pricingType}
+                        verificationCount={priceVerificationProps.verificationCount}
+                        variant={priceVerificationProps.variant}
                       />
                     </PricingPlansGrid>
                   </>
@@ -1558,7 +1180,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                       We found pricing references, but not enough source-backed plan detail to
                       publish a reliable numeric table yet.
                     </p>
-                    {(officialPricingSource || pricingEvidenceLinks.length > 0) && (
+                    {pricingEvidenceState.hasEvidencePanel && (
                       <div class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
                         <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                           Relevant pricing sources
@@ -1594,9 +1216,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                                 data-tool={tool.slug}
                                 class="underline underline-offset-2 hover:text-hunt-500"
                               >
-                                {entry.text.length > 120
-                                  ? `${entry.text.slice(0, 117)}...`
-                                  : entry.text}
+                                {buildToolPagePricingLinkText({ text: entry.text })}
                               </a>
                             </li>
                           ))}
@@ -1604,7 +1224,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                       </div>
                     )}
                     <p class="text-xs text-zinc-500">
-                      Last checked {pricingCheckedLabel || 'unknown'}.
+                      Last checked {freshnessLabels.pricingSectionLastCheckedLabel}.
                     </p>
                   </div>
                 )}
@@ -1627,12 +1247,12 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
           hasGettingStarted && (
             <div id="getting-started" data-focus-target data-focus-groups="all setup">
               <GettingStarted
-                setupComplexity={knowledgeCard?.setup_complexity}
-                toolName={tool.name}
-                hasApi={Boolean(knowledgeCard?.integrations?.has_api)}
-                websiteUrl={knowledgeCard?.website_url || tool.website}
-                setupTracks={setupTracks}
-                setupUrl={gettingStartedCtaUrl}
+                setupComplexity={gettingStartedProps.setupComplexity}
+                toolName={gettingStartedProps.toolName}
+                hasApi={gettingStartedProps.hasApi}
+                websiteUrl={gettingStartedProps.websiteUrl}
+                setupTracks={gettingStartedProps.setupTracks}
+                setupUrl={gettingStartedProps.setupUrl}
               />
             </div>
           )
@@ -1652,9 +1272,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
                   <p class="mt-1 text-sm text-zinc-400">
-                    {collectedSourcesBySection.pros_cons > 0
-                      ? 'Evidence-backed pros and cons only.'
-                      : 'Pros and cons will appear after source-backed claims are collected.'}
+                    {strengthsSubtitle}
                   </p>
                 </div>
                 <span class="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-400">
@@ -1677,17 +1295,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
               </summary>
 
               <div class="mt-4">
-                <ProsCons
-                  pros={effectiveEvidencePros.map((entry) => ({
-                    text: entry.text,
-                    source_url: entry.sourceUrl,
-                  }))}
-                  cons={effectiveEvidenceCons.map((entry) => ({
-                    text: entry.text,
-                    source_url: entry.sourceUrl,
-                  }))}
-                  sourceDisplay="block"
-                />
+                <ProsCons pros={prosConsView.pros} cons={prosConsView.cons} sourceDisplay="block" />
               </div>
             </details>
           )
@@ -1695,8 +1303,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
 
         {/* Features Showcase */}
         {
-          (knowledgeCard?.features?.core?.length > 0 ||
-            knowledgeCard?.features?.unique?.length > 0) && (
+          hasFeatures && (
             <div data-focus-target data-focus-groups="all capabilities">
               <FeaturesShowcase
                 features={knowledgeCard.features}
@@ -1712,14 +1319,14 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
         {
           hasSpecs && (
             <section id="specs" data-focus-target data-focus-groups="all capabilities">
-              {specsVerifiedLabel && (
-                <p class="mb-3 text-xs text-zinc-500">Specs checked {specsVerifiedLabel}</p>
+              {specsSectionState.checkedLead && (
+                <p class="mb-3 text-xs text-zinc-500">{specsSectionState.checkedLead}</p>
               )}
               <DynamicSpecs
-                categorySpecificData={displayCategorySpecificData}
-                specifics={vipSpecifics}
-                toolName={tool.name}
-                categoryName={tool.category?.name}
+                categorySpecificData={specsProps.categorySpecificData}
+                specifics={specsProps.specifics}
+                toolName={specsProps.toolName}
+                categoryName={specsProps.categoryName}
               />
             </section>
           )
@@ -1748,23 +1355,11 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
         }
         {/* Field Notes (source-backed user signal summary) */}
         {
-          hasCommunity && (userAdvocate || guardedHumanVerdict) && (
+          tribalKnowledgeProps.shouldShow && (
             <div data-focus-target data-focus-groups="all verdict capabilities">
               <TribalKnowledge
-                userAdvocate={
-                  userAdvocate
-                    ? {
-                        vibe,
-                        originStory,
-                        idealFor,
-                        avoidIf: guardedAvoidIf,
-                        powerTip,
-                        delighters,
-                        frustrations,
-                      }
-                    : undefined
-                }
-                humanVerdict={guardedHumanVerdict}
+                userAdvocate={tribalKnowledgeProps.userAdvocate}
+                humanVerdict={tribalKnowledgeProps.humanVerdict}
               />
             </div>
           )
@@ -1772,11 +1367,11 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
 
         {/* Platform Support & Integrations */}
         {
-          (knowledgeCard?.platforms?.length > 0 || knowledgeCard?.integrations) && (
+          platformSectionState.shouldShow && (
             <div data-focus-target data-focus-groups="all integrations capabilities">
               <PlatformIntegrations
-                platforms={knowledgeCard.platforms || []}
-                integrations={knowledgeCard.integrations}
+                platforms={platformSectionState.platforms}
+                integrations={platformSectionState.integrations}
                 toolName={tool.name}
                 sectionId="platform-integrations"
               />
@@ -1815,7 +1410,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
               </summary>
               <div
                 class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed"
-                set:html={simpleMarkdown(tool.long_description || '')}
+                set:html={simpleMarkdown(aboutContent.body)}
               />
             </details>
           )
@@ -1823,13 +1418,13 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
 
         {/* Video Embed - Bottom of content for better UX */}
         {
-          tool.video_id && (
+          videoState.hasVideo && (
             <section id="video" data-focus-target data-focus-groups="all capabilities">
               <h2 class="mb-4 text-lg font-semibold text-zinc-100">Watch {tool.name} in Action</h2>
               <VideoEmbed
                 client:visible
                 id={tool.video_id}
-                title={tool.video_title || `${tool.name} Overview`}
+                title={videoProps.title}
               />
             </section>
           )
@@ -1858,7 +1453,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
               <div class="mt-4 space-y-6">
                 {/* Company Info */}
                 {
-                  knowledgeCard && (
+                  operationalDetailsState.showCompanyInfo && (
                     <CompanyInfo
                       company={knowledgeCard.company}
                       audience={knowledgeCard.audience}
@@ -1869,7 +1464,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
 
                 {/* Suite Navigation (if part of a bundle) */}
                 {
-                  parentTool && (
+                  operationalDetailsState.showSuiteNavigation && (
                     <SuiteNavigation
                       currentToolId={tool.id}
                       parentId={parentTool.id}
@@ -1880,16 +1475,15 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
 
                 {/* Security & Compliance */}
                 {
-                  hasSecurity &&
-                    knowledgeCard?.security && <SecurityCompliance security={knowledgeCard.security} />
+                  operationalDetailsState.showSecurity && <SecurityCompliance security={knowledgeCard.security} />
                 }
 
                 {/* Support Options */}
-                {knowledgeCard?.support && <SupportOptions support={knowledgeCard.support} />}
+                {operationalDetailsState.showSupport && <SupportOptions support={knowledgeCard.support} />}
 
                 {/* Portability */}
                 {
-                  hasPortability && knowledgeCard?.smp_portability && (
+                  operationalDetailsState.showPortability && (
                     <PortabilityCard portability={knowledgeCard.smp_portability} toolName={tool.name} />
                   )
                 }
@@ -1899,25 +1493,21 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
         }
 
         {
-          tool.affiliate_offers && tool.affiliate_offers.length > 1 && (
+          affiliateOffersView.shouldShow && (
             <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
               <h3 class="mb-4 font-semibold text-zinc-100">Get {tool.name}</h3>
               <div class="space-y-3">
-                {tool.affiliate_offers.map((offer) => (
+                {affiliateOffersView.offers.map((offer) => (
                   <a
                     href={offer.url}
                     target="_blank"
-                    rel={
-                      offer.is_affiliate
-                        ? 'nofollow sponsored noopener noreferrer'
-                        : 'noopener noreferrer'
-                    }
+                    rel={offer.rel}
                     data-outbound="vendor"
                     data-location="sidebar-offers"
                     data-tool={tool.slug}
                     class="flex items-center justify-between rounded-lg border border-zinc-800 p-3 transition hover:border-hunt-200 hover:bg-hunt-50"
                   >
-                    <span class="text-sm font-medium text-zinc-300">{offer.cta_text}</span>
+                    <span class="text-sm font-medium text-zinc-300">{offer.ctaText}</span>
                     <svg
                       class="h-4 w-4 text-zinc-500"
                       fill="none"
@@ -1951,7 +1541,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
         >
           <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
           <div class="space-y-4">
-            {faqItems.map((item) => (
+            {faqItemsView.map((item) => (
               <details class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4">
                 <summary class="flex items-center justify-between cursor-pointer">
                   <h3 class="text-sm font-semibold text-zinc-100">{item.question}</h3>
@@ -1971,7 +1561,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                 </summary>
                 <div class="mt-2 space-y-2">
                   <p class="text-sm text-zinc-300">{item.answer}</p>
-                  {item.answer_source_url && (
+                  {item.hasSourceLink && (
                     <a
                       href={item.answer_source_url}
                       target="_blank"
@@ -2003,7 +1593,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
 
     {/* Alternatives Section - Hybrid Search Strategy */}
     {
-      orderedAlternatives && orderedAlternatives.length > 0 && (
+      hasAlternatives && (
         <section id="alternatives" class="mt-16" data-focus-target data-focus-groups="all verdict">
           <header class="mb-6">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -2012,14 +1602,12 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                   {alternativesLabel} to {tool.name}
                 </h2>
                 <p class="mt-1 text-sm text-zinc-400">
-                  {alternativesResponse.type === 'alternatives'
-                    ? `Other ${tool.specs?.taxonomy?.primary_function?.toLowerCase() || tool.category?.name?.toLowerCase() || ''} tools to consider`
-                    : 'Similar tools you might find useful'}
+                  {alternativesIntroText}
                 </p>
               </div>
-              {tool.category && (
+              {alternativesSectionState.viewAllHref && (
                 <a
-                  href={`/categories/${tool.category.slug}`}
+                  href={alternativesSectionState.viewAllHref}
                   class="text-sm text-hunt-500 hover:text-hunt-400 transition shrink-0"
                 >
                   View all →
@@ -2029,94 +1617,46 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
           </header>
 
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {orderedAlternatives.map((alt) => {
-              const canCompare = Boolean(canCompareByAlternativeSlug[alt.slug]);
-              return (
-                <AlternativeCard
-                  main={{
-                    slug: tool.slug,
-                    name: tool.name,
-                    pricing_type: tool.pricing_type,
-                    learning_curve: tool.learning_curve,
-                    base_score: tool.base_score,
-                  }}
-                  alt={alt}
-                  curatedVerdict={curatedVerdicts.get(alt.slug)}
-                  computedDiff={microDiffs.get(alt.slug)}
-                  showCompareLink={canCompare}
-                />
-              );
-            })}
+            {alternativeCardsView.map((entry) => (
+              <AlternativeCard
+                main={{
+                  slug: tool.slug,
+                  name: tool.name,
+                  pricing_type: tool.pricing_type,
+                  learning_curve: tool.learning_curve,
+                  base_score: tool.base_score,
+                }}
+                alt={entry.alt}
+                curatedVerdict={curatedVerdicts.get(entry.alt.slug)}
+                computedDiff={microDiffs.get(entry.alt.slug)}
+                showCompareLink={entry.showCompareLink}
+              />
+            ))}
           </div>
         </section>
       )
     }
 
-    <section
-      id="how-we-evaluate"
-      class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
-      data-focus-target
-      data-focus-groups="all trust"
-    >
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-lg font-semibold text-zinc-100">How We Evaluated</h2>
-        <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-          Evaluation depth: {evaluationDepth}
-        </span>
-      </div>
-      <p class="mt-2 text-sm text-zinc-400">
-        {hasCollectedSources
-          ? 'Verified against linked sources means each claim appears in a linked source on the date checked. Vendors can update details after that date.'
-          : 'No qualifying sources collected yet. Some claims remain in verification mode until section-level sources are attached.'}
-      </p>
-      <TwoColumnChecklistCards
-        left={{ title: 'What we tested for this review', items: testedItems }}
-        right={{ title: 'Not tested', items: notTestedItems }}
-      />
-      <p class="mt-4 text-xs text-zinc-500">
-        See{' '}
-        <a href="/methodology" class="text-hunt-500 hover:text-hunt-400">
-          methodology
-        </a>{' '}
-        and{' '}
-        <a href="/disclosure" class="text-hunt-500 hover:text-hunt-400">
-          disclosures
-        </a>
-        .
-      </p>
-    </section>
+    <ToolHowWeEvaluateSection
+      evaluationDepth={evaluationDepth}
+      hasCollectedSources={hasCollectedSources}
+      testedItems={testedItems}
+      notTestedItems={notTestedItems}
+    />
 
     {
       showWeTestedIt && (
-        <section
-          id="we-tested-it"
-          class="mt-8 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
-          data-focus-target
-          data-focus-groups="all trust"
-        >
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-zinc-100">We tested it</h2>
-            {handsOnTestedAtLabel && (
-              <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-                Tested on {handsOnTestedAtLabel}
-              </span>
-            )}
-          </div>
-          {handsOnTestEnvironment && (
-            <p class="mt-2 text-sm text-zinc-300">Environment: {handsOnTestEnvironment}</p>
-          )}
-          <TwoColumnChecklistCards
-            left={handsOnTestSteps.length > 0 ? { title: 'Steps run', items: handsOnTestSteps } : undefined}
-            right={handsOnTestFindings.length > 0
-              ? { title: 'Findings', items: handsOnTestFindings }
-              : undefined}
-          />
-        </section>
+        <ToolWeTestedSection
+          testedAtLabel={handsOnTestedAtLabel}
+          testEnvironment={handsOnTestEnvironment}
+          testSteps={handsOnTestSteps}
+          testFindings={handsOnTestFindings}
+        />
       )
     }
 
     {
-      evidenceBasis.length > 0 && (
+      sourcesSectionState.hasSources && (
         <section
           id="sources"
           class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
@@ -2133,27 +1673,27 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
             </summary>
             <div class="mt-3">
               <TrustBar
-                status={trustStatus}
-                pendingCount={pendingVerificationCount}
-                evaluationDepth={evaluationDepth}
-                lastChecked={communityVerifiedLabel || specsVerifiedLabel || pricingCheckedLabel || 'Unknown'}
-                confidence={trustConfidenceLabel}
-                sourcesCount={collectedSourcesTotal}
+                status={trustBarProps.status}
+                pendingCount={trustBarProps.pendingCount}
+                evaluationDepth={trustBarProps.evaluationDepth}
+                lastChecked={trustBarProps.lastChecked}
+                confidence={trustBarProps.confidence}
+                sourcesCount={trustBarProps.sourcesCount}
               />
             </div>
           </details>
           <h2 class="text-lg font-semibold text-zinc-100">Methodology & Sources</h2>
           <div class="mt-3 flex flex-wrap gap-2">
-            {evidenceBasis.map((chip) => (
+            {evidenceBasisChips.map((chip) => (
               <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
-                {chip.label} ({chip.count})
+                {chip.text}
               </span>
             ))}
           </div>
           <details class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
             <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
             <ul class="mt-3 space-y-2 text-sm">
-              {evidenceLinks.slice(0, 12).map((source) => (
+              {sourceListsView.methodologyLinks.map((source) => (
                 <li>
                   <a
                     href={source.url}
@@ -2173,13 +1713,13 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
                 </li>
               ))}
             </ul>
-            {lowConfidenceEvidenceLinks.length > 0 && (
+            {lowConfidenceSourcesState.show && (
               <div class="mt-4 rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-amber-300">
-                  Low-confidence secondary sources ({lowConfidenceEvidenceLinks.length})
+                  {lowConfidenceSourcesState.title}
                 </p>
                 <ul class="mt-2 space-y-1 text-xs text-zinc-400">
-                  {lowConfidenceEvidenceLinks.slice(0, 6).map((source) => (
+                  {sourceListsView.lowConfidenceLinks.map((source) => (
                     <li>
                       {source.domain} · {source.inclusionReason}
                     </li>
@@ -2193,7 +1733,7 @@ Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
     }
 
     {
-      updateHistoryEntries.length > 0 && (
+      updateHistoryState.hasUpdates && (
         <details
           id="update-history"
           class="group mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"

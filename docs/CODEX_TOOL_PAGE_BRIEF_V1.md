@@ -1,5 +1,7 @@
 # Codex Build Brief: Tool Pages v1
 
+Last verified: 2026-03-05
+
 Status: Draft
 Scope: implementation contract for `/tool/[slug]`
 

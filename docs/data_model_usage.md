@@ -1,5 +1,7 @@
 # Data Model Field Usage (code + migrations)
 
+Last verified: 2026-03-05
+
 ## items
 Fields: 38
 Field -> occurrences

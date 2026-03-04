@@ -1,5 +1,7 @@
 # Feature: Best/Compare Snapshot Compiler
 
+Last verified: 2026-03-05
+
 ## Goal
 Build deterministic, evidence-backed `/best` and `/compare` pages that scale to large page counts while improving trust, maintainability, and operational control.
 

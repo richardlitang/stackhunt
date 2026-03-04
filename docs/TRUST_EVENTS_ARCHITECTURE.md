@@ -1,5 +1,7 @@
 # Trust Events Architecture (End-to-End)
 
+Last verified: 2026-03-05
+
 Last updated: February 20, 2026
 
 This document summarizes StackHunt's public trust-event system:

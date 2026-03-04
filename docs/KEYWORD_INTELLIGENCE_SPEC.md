@@ -1,5 +1,7 @@
 # Keyword Intelligence Spec
 
+Last verified: 2026-03-05
+
 **Problem:** Content ideas are imported as-is without understanding keyword intent. This leads to missed opportunities and incomplete content generation.
 
 ---

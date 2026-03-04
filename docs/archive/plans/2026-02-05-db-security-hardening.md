@@ -1,5 +1,7 @@
 # Feature: DB Security Hardening
 
+Last verified: 2026-03-05
+
 ## Goal
 Eliminate high‑risk security lints (SECURITY DEFINER views, mutable search_path) and reduce exposure in public schema while preserving app behavior.
 

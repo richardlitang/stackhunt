@@ -1,5 +1,7 @@
 # Tool Page Editorial Blueprint v2
 
+Last verified: 2026-03-05
+
 Status: Proposed  
 Scope: `/tool/[slug]` only  
 Primary Goal: make pages read like buyer guidance, not product spec sheets.

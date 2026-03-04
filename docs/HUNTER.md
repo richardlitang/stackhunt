@@ -1,5 +1,7 @@
 # Hunter Implementation Guide
 
+Last verified: 2026-03-05
+
 ## Quick Start
 
 ```typescript

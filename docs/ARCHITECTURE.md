@@ -1,5 +1,7 @@
 # StackHunt Hunter Architecture
 
+Last verified: 2026-03-05
+
 ## Overview
 
 The Hunter is StackHunt's AI-powered research and review generation system. It orchestrates a 3-phase pipeline to research tools, generate contextual reviews, and publish them with full legal protection.

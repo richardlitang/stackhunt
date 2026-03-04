@@ -102,3 +102,57 @@ export function uniqueToolPageDecisionText(items: Array<unknown>): string[] {
       return true;
     });
 }
+
+export function sanitizeToolPageStructuredClaimMarkdown(value: string | null): string | null {
+  if (!value || typeof value !== 'string') return value;
+
+  const decoded = value.replace(/\{[^{}\n]*"text"[^{}\n]*\}/g, (snippet) => {
+    try {
+      const parsed = JSON.parse(snippet) as Record<string, unknown>;
+      if (typeof parsed.text !== 'string') return snippet;
+      const cleaned = stripToolPageControlChars(parsed.text);
+      return cleaned || snippet;
+    } catch {
+      return snippet;
+    }
+  });
+
+  const legacyVerdictHeadingPattern = new RegExp(
+    String.raw`^\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:t(?:l;dr|ldr)|community\s+insights)\s*(?:\*\*)?\s*:?\s*$`,
+    'gim'
+  );
+
+  return decoded
+    .replace(legacyVerdictHeadingPattern, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+export function hasToolPageDistinctAbout(
+  longDescription: string | null | undefined,
+  shortDescription: string | null | undefined
+): boolean {
+  const normalizedLong = typeof longDescription === 'string' ? longDescription.trim() : '';
+  if (!normalizedLong) return false;
+  const normalizedShort = typeof shortDescription === 'string' ? shortDescription.trim() : '';
+  const normalize = (value: string): string =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  return normalize(normalizedLong) !== normalize(normalizedShort);
+}
+
+export function deriveToolPageFallbackConsText(globalCons: unknown[]): string[] {
+  return globalCons
+    .map((claim) => extractToolPageClaimText(claim))
+    .filter((text) => text.length > 0);
+}
+
+export function deriveToolPagePaymentTriggerCons(consItems: string[]): string[] {
+  return consItems.filter((text) =>
+    /\b(fee|fees|fx|foreign exchange|gateway|merchant|kyb|kyc|verification|card|transfer|settlement)\b/i.test(
+      text
+    )
+  );
+}

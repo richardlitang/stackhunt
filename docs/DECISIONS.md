@@ -1,5 +1,7 @@
 # Decision Log
 
+Last verified: 2026-03-05
+
 Purpose: capture short, durable decisions so we don’t re-debate them later.
 
 Format (newest first):

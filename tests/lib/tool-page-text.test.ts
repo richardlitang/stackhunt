@@ -3,8 +3,12 @@ import {
   cleanToolPageDecisionSlotText,
   cleanToolPageDecisionText,
   cleanToolPageNarrativeText,
+  deriveToolPageFallbackConsText,
+  deriveToolPagePaymentTriggerCons,
   extractToolPageClaimText,
+  hasToolPageDistinctAbout,
   isLikelyIncompleteToolPageClause,
+  sanitizeToolPageStructuredClaimMarkdown,
   stripToolPageControlChars,
   uniqueToolPageDecisionText,
 } from '@/lib/tool-page/text';
@@ -39,5 +43,25 @@ describe('tool page text helpers', () => {
       'Fast onboarding',
       'Clear controls',
     ]);
+  });
+
+  it('sanitizes structured markdown and strips legacy headings', () => {
+    const value =
+      '## Community Insights\n{"text":"\\u200BFast setup"}\n\n\nReal-world notes remain.';
+    expect(sanitizeToolPageStructuredClaimMarkdown(value)).toBe('Fast setup\n\nReal-world notes remain.');
+  });
+
+  it('detects distinct about text', () => {
+    expect(hasToolPageDistinctAbout('Long form product summary', 'Short summary')).toBe(true);
+    expect(hasToolPageDistinctAbout('Same sentence', 'same sentence')).toBe(false);
+  });
+
+  it('derives fallback and payment-trigger cons', () => {
+    const fallbackCons = deriveToolPageFallbackConsText([
+      { text: 'Gateway fee adds cost' },
+      { text: 'Needs onboarding support' },
+    ]);
+    expect(fallbackCons).toEqual(['Gateway fee adds cost', 'Needs onboarding support']);
+    expect(deriveToolPagePaymentTriggerCons(fallbackCons)).toEqual(['Gateway fee adds cost']);
   });
 });

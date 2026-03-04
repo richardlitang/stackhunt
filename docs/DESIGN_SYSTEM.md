@@ -1,5 +1,7 @@
 # Design System
 
+Last verified: 2026-03-05
+
 StackHunt uses **shadcn/ui** as its component library, built on Tailwind CSS and Radix UI primitives.
 
 ## Overview

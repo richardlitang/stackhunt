@@ -1,5 +1,7 @@
 # StackHunt Ops Playbook
 
+Last verified: 2026-03-05
+
 ## Purpose
 Operational checklist for cron jobs, queue processing, and data maintenance.
 

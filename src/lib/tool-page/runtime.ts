@@ -4,10 +4,12 @@ import { buildToolPageSchemas } from '@/lib/tool-page/schemas';
 import { buildToolPageTrustRuntime } from '@/lib/tool-page/trust-runtime';
 import { deriveToolPageUpdateHistoryLabels } from '@/lib/tool-page/update-labels';
 
-interface BuildToolPageRuntimeInput {
+export interface BuildToolPageRuntimeInput {
   lensInput: Parameters<typeof buildToolPageLensRuntime>[0];
   trustInput: Parameters<typeof buildToolPageTrustRuntime>[0];
-  metaInput: Parameters<typeof buildToolPageMetaRuntime>[0];
+  metaInput: Omit<Parameters<typeof buildToolPageMetaRuntime>[0], 'indexInput'> & {
+    indexInput: Omit<Parameters<typeof buildToolPageMetaRuntime>[0]['indexInput'], 'pendingVerificationCount'>;
+  };
   schemasInput: Parameters<typeof buildToolPageSchemas>[0];
   updateHistoryLabelsInput: Parameters<typeof deriveToolPageUpdateHistoryLabels>[0];
 }

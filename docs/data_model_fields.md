@@ -1,5 +1,7 @@
 # Data Model Fields (from src/types/database.ts)
 
+Last verified: 2026-03-05
+
 ## categories
 Fields (10):
 - `id`: string

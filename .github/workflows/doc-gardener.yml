@@ -1,0 +1,44 @@
+name: Doc Gardener
+
+on:
+  schedule:
+    - cron: '45 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  garden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run doc gardener scan
+        run: ./scripts/agent_loop.sh --autofix
+
+      - name: Upload doc gardener artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-gardener-artifacts
+          path: |
+            docs/generated/doc-gardener-report.md
+            docs/plans/active/doc-gardening.md
+            docs/QUALITY_SCORE.md
+          retention-days: 14
+
+      - name: Create pull request for doc fixes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(docs): run weekly doc gardener"
+          title: "chore(docs): weekly doc gardener updates"
+          body: |
+            Automated weekly docs maintenance.
+
+            Changes include:
+            - docs/generated/doc-gardener-report.md refresh
+            - docs/plans/active/doc-gardening.md sync based on findings
+            - missing Last verified markers autofixed when safe
+          branch: "chore/doc-gardener"
+          delete-branch: true

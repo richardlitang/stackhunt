@@ -19,21 +19,22 @@ Prefer boring, explicit, testable code over clever code.
 
 ## Quick Reference
 
-| Doc | Location |
-|-----|----------|
-| Full architecture | `PRODUCT_SUMMARY.md` |
-| Hunter CLI usage | `scripts/README.md` |
-| DB schema | `supabase/migrations/001_foundation.sql` |
-| Queue system | `supabase/migrations/010_strategic_architecture.sql` |
-| Domain types | `src/types/database.ts` |
-| Generated Supabase types | `src/types/supabase.ts` |
-| Roadmap V1 | `.claude/docs/ROADMAP_V1.md` |
-| Hunter Extension | `.claude/docs/HUNTER_EXTENSION.md` |
-| Quick Context | `.claude/docs/QUICK_CONTEXT.md` |
-| Supabase Project ID | `.claude/SUPABASE_PROJECT_ID.md` |
-| Legal Compliance | `.claude/docs/LEGAL_COMPLIANCE.md` |
-| Durable decisions | `docs/DECISIONS.md` |
-| Test quickstart | `docs/TESTING_QUICKSTART.md` |
+| Doc                      | Location                                             |
+| ------------------------ | ---------------------------------------------------- |
+| Full architecture        | `PRODUCT_SUMMARY.md`                                 |
+| Hunter CLI usage         | `scripts/README.md`                                  |
+| DB schema                | `supabase/migrations/001_foundation.sql`             |
+| Queue system             | `supabase/migrations/010_strategic_architecture.sql` |
+| Domain types             | `src/types/database.ts`                              |
+| Generated Supabase types | `src/types/supabase.ts`                              |
+| Docs knowledge index     | `docs/index.md`                                      |
+| Roadmap V1               | `.claude/docs/ROADMAP_V1.md`                         |
+| Hunter Extension         | `.claude/docs/HUNTER_EXTENSION.md`                   |
+| Quick Context            | `.claude/docs/QUICK_CONTEXT.md`                      |
+| Supabase Project ID      | `.claude/SUPABASE_PROJECT_ID.md`                     |
+| Legal Compliance         | `.claude/docs/LEGAL_COMPLIANCE.md`                   |
+| Durable decisions        | `docs/DECISIONS.md`                                  |
+| Test quickstart          | `docs/TESTING_QUICKSTART.md`                         |
 
 **Supabase Project ID:** `vhelpqzbtzwiddoebnyy`
 
@@ -65,6 +66,21 @@ When touching these files, leave them better than found.
 - Do not edit or move `.claude/` artifacts unless explicitly requested.
 - If tests, typecheck, or build are not run, say so explicitly.
 - For all rewriting in this repository, do not use em dashes. Use commas, periods, or parentheses instead.
+- When remaining context is 30% or lower, run `/compact` before continuing substantial work.
+
+## Agent-First Harness Rules
+
+Apply these rules to keep agent throughput high without quality drift.
+
+- Keep `AGENTS.md` short and navigational, not encyclopedic. Put durable detail in versioned docs.
+- Treat repository artifacts as source of truth. If guidance lives in chat or memory, move it into repo docs.
+- Use progressive disclosure for context. Start from index docs, then follow links to specific domains.
+- Treat plans as first-class artifacts. Keep active/completed execution plans and technical debt logs in-repo.
+- Enforce architecture and style mechanically through linters, structural tests, and CI, not prompt-only reminders.
+- Encode recurring review feedback into rules, checks, or scripts so the same issue is auto-prevented next time.
+- Prefer strict boundaries with local implementation freedom. Enforce dependency direction, not stylistic micromanagement.
+- Keep PRs small and short-lived. Favor fast correction loops over long-lived blocked branches when risk is controlled.
+- Run recurring cleanup passes for drift and duplication. Open small targeted fix PRs instead of periodic large rewrites.
 
 ## Project Structure
 
@@ -266,7 +282,17 @@ Run after changes unless environment prevents it:
 
 Before push:
 
-- `npm run qa:prepush`
+- `npm run qa:prepush` (required)
+- Do not push if `qa:prepush` fails.
+- Optional local enforcement: `npm run hooks:install` to install a git pre-push hook.
+- `qa:prepush` enforces:
+  - `qa:rpc`
+  - `qa:tool-page-imports` (fails on missing `buildToolPage*` imports in `src/pages/tool/[slug].astro`)
+  - `format:check:changed` (Prettier check for files changed in the branch)
+  - `lint:changed` (`eslint --max-warnings=0` for files changed in the branch)
+  - `typecheck`
+  - `build`
+  - rendered tool-page QA sample
 
 ### Critical Modules Require Regression Tests
 
@@ -359,7 +385,7 @@ Default behavior in personal projects is autonomous execution.
 - Do not pause after each small extraction or commit.
 - On a user `go` instruction, execute multiple consecutive work slices in the same turn before replying.
 - Minimum autonomous batch target per `go` turn:
-  - 6 logical code slices
+  - 10 logical code slices
 - Intermediate updates should be brief and only when they materially affect direction, risk, or blocker status.
 - Stop only for critical blockers:
   - missing or conflicting requirements that materially change behavior
@@ -382,10 +408,10 @@ The coding interface is turn-based.
 
 Use `go` as the default autonomy trigger in this repository.
 
-- When the user says `go`, execute a 6-slice autonomous batch.
+- When the user says `go`, execute a 10-slice autonomous batch.
 - A slice is one logical, shippable unit, for example extract one cohesive policy module plus route wiring plus tests.
 - For each slice: implement, verify (`typecheck`, relevant tests, build as needed), commit, and push.
-- After 6 slices, send one concise checkpoint and immediately queue the next batch unless a critical blocker is hit.
+- After 10 slices, send one concise checkpoint and immediately queue the next batch unless a critical blocker is hit.
 
 ### Production Push Safety
 

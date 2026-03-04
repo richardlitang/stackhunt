@@ -1,5 +1,7 @@
 # Unclassified Source Domains (Needs Policy)
 
+Last verified: 2026-03-05
+
 Generated from current data sources without a matching entry in `source_policy_registry`.
 
 ```

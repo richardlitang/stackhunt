@@ -1,5 +1,7 @@
 # SEO + Helpfulness Content Workflow Plan
 
+Last verified: 2026-03-05
+
 Date: 2026-03-02
 Owner: Content + SEO + Engineering
 

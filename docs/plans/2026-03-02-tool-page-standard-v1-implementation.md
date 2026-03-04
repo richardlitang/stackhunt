@@ -1,5 +1,7 @@
 # Feature: Tool Page Standard v1 Implementation
 
+Last verified: 2026-03-05
+
 ## Goal
 Implement Tool Page Standard v1 on `/tool/[slug]` so pages are decision-first, evidence-safe, and pass a strict publish/index gate.
 

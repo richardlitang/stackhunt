@@ -1,5 +1,7 @@
 # Feature: LLM-Curated FAQs
 
+Last verified: 2026-03-05
+
 ## Goal
 Curate up to 5 “important” FAQs using the LLM’s synthesis context, rather than blindly using raw PAA/forum/Reddit questions.
 

@@ -1231,12 +1231,12 @@ export class SerperService {
     const escapedTool = toolName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const replaced = query.replace(new RegExp(escapedTool, 'ig'), this.buildScopedToolQuery(toolName, scope));
 
-    if (scope === 'core') return `${replaced} -copilot -GHES -\"GitHub Enterprise Server\"`.trim();
-    if (scope === 'copilot') return `${replaced} \"GitHub Copilot\" -\"GitHub Actions\" -GHES`.trim();
+    if (scope === 'core') return `${replaced} -copilot -GHES -"GitHub Enterprise Server"`.trim();
+    if (scope === 'copilot') return `${replaced} "GitHub Copilot" -"GitHub Actions" -GHES`.trim();
     if (scope === 'actions')
-      return `${replaced} \"GitHub Actions\" runners workflow CI/CD -copilot -GHES`.trim();
+      return `${replaced} "GitHub Actions" runners workflow CI/CD -copilot -GHES`.trim();
     if (scope === 'enterprise_server')
-      return `${replaced} \"GitHub Enterprise Server\" self-hosted on-prem -copilot`.trim();
+      return `${replaced} "GitHub Enterprise Server" self-hosted on-prem -copilot`.trim();
     if (scope === 'enterprise_cloud')
       return `${replaced} cloud SSO SCIM audit compliance -copilot -GHES`.trim();
     return replaced;

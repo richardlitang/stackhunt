@@ -1,0 +1,39 @@
+---
+import InfoCardsGrid from '@/components/InfoCardsGrid.astro';
+
+interface WorkflowFitCard {
+  title: string;
+  body: string;
+}
+
+interface Props {
+  cards: WorkflowFitCard[];
+  highlights: string[];
+}
+
+const { cards, highlights } = Astro.props as Props;
+---
+
+<section
+  id="workflow-fit"
+  class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+  data-focus-target
+  data-focus-groups="all verdict setup pricing trust"
+>
+  <h2 class="text-lg font-semibold text-zinc-100">How This Fits Real Workflows</h2>
+  <p class="mt-2 text-sm text-zinc-300">
+    Use this section to pressure-test adoption before committing budget or migration effort.
+    It translates the verdict into practical rollout checkpoints.
+  </p>
+  <InfoCardsGrid cards={cards.map((card) => ({ title: card.title, body: card.body }))} />
+  {highlights.length > 0 && (
+    <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+      <h3 class="text-sm font-semibold text-zinc-200">Workflow Signals from Current Evidence</h3>
+      <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+        {highlights.map((item) => (
+          <li>- {item}</li>
+        ))}
+      </ul>
+    </div>
+  )}
+</section>

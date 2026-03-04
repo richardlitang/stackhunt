@@ -406,18 +406,34 @@ async function main() {
 
 function runTemplateFallbackChecks({ maxNotConfirmed }) {
   const root = process.cwd();
-  const toolPagePath = path.join(root, 'src/pages/tool/[slug].astro');
+  const sourcePaths = [
+    path.join(root, 'src/pages/tool/[slug].astro'),
+    path.join(root, 'src/lib/tool-page/lens.ts'),
+    path.join(root, 'src/lib/tool-page/decision.ts'),
+  ];
   const failures = [];
-  if (!fs.existsSync(toolPagePath)) {
+  if (!fs.existsSync(sourcePaths[0])) {
     return ['missing_tool_page_source'];
   }
-  const source = fs.readFileSync(toolPagePath, 'utf8');
+  const source = sourcePaths
+    .filter((candidate) => fs.existsSync(candidate))
+    .map((candidate) => fs.readFileSync(candidate, 'utf8'))
+    .join('\n');
   const requiredMarkers = [
-    { label: 'qa_gate_wired', pattern: /\bevaluateToolPageQaGate\(/ },
-    { label: 'how_we_evaluated_heading', pattern: /How We Evaluated/ },
+    {
+      label: 'qa_gate_wired',
+      pattern: /\b(buildToolPageRuntimeAssembly|buildToolPageRuntimeContext|evaluateToolPageQaGate)\(/,
+    },
+    {
+      label: 'how_we_evaluated_heading',
+      pattern: /(How We Evaluated|ToolHowWeEvaluateSection|buildToolPageHowWeEvaluatedTitle)/,
+    },
     { label: 'verdict_heading', pattern: /(Decision in 60 Seconds|Should You Shortlist|Verdict:)/ },
-    { label: 'review_dek', pattern: /Pricing, tradeoffs, best for, and alternatives/ },
-    { label: 'decision_intro_tradeoff', pattern: /decisionIntroTradeoff/ },
+    { label: 'review_dek', pattern: /Pricing,\s*tradeoffs,\s*best for,\s*and alternatives\.?/i },
+    {
+      label: 'decision_intro_tradeoff',
+      pattern: /(decisionIntroTradeoff|decisionTradeoffSummary(?:Initial|Resolved)?)/,
+    },
   ];
   for (const marker of requiredMarkers) {
     if (!marker.pattern.test(source)) failures.push(`missing_marker:${marker.label}`);

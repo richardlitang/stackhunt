@@ -1,5 +1,7 @@
 # Feature: Operational Specs (Non-Pricing) + Spec Packs
 
+Last verified: 2026-03-05
+
 ## Goal
 Rename “Technical Specs” to “Operational Specs” and populate it with structured, non‑pricing operational facts (interfaces, security, data handling, limits). Add ETL routing rules to keep pricing and feature fluff out of specs. Render via category-based spec packs.
 

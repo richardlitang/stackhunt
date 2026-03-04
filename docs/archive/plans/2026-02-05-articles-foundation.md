@@ -1,5 +1,7 @@
 # Feature: Articles Foundation + Insight Capture
 
+Last verified: 2026-03-05
+
 ## Goal
 Create a clean, scalable foundation for `/articles` without polluting `/tool` data, while capturing reusable insight points during hunts for future semi-auto articles.
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';
+import {
+  buildToolPageDecisionSnapshot,
+  buildToolPageFallbackDecisionSummary,
+  deriveToolPageDecisionDifferentiators,
+} from '@/lib/tool-page/decision';
 
 const cleanNarrativeText = (value: unknown): string | null =>
   typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
@@ -69,5 +73,24 @@ describe('tool page decision snapshot', () => {
     expect(result.decisionSnapshotBestWhen).toEqual(['Startups']);
     expect(result.decisionSnapshotWatchOuts).toEqual(['Needs onboarding help']);
     expect(result.decisionTradeoffSummaryInitial).toBe('Needs enterprise plan');
+  });
+
+  it('builds fallback summary from short description, tagline, or generic fallback', () => {
+    expect(buildToolPageFallbackDecisionSummary('Acme', 'Short description', 'Tagline')).toBe(
+      'Short description'
+    );
+    expect(buildToolPageFallbackDecisionSummary('Acme', null, 'Tagline')).toBe('Tagline');
+    expect(buildToolPageFallbackDecisionSummary('Acme', null, null)).toContain(
+      'Acme can work well for some teams'
+    );
+  });
+
+  it('derives differentiators from unique and core features with dedupe', () => {
+    const differentiators = deriveToolPageDecisionDifferentiators(
+      ['Fast setup', 'SOC 2'],
+      ['SOC 2', 'Audit logs'],
+      uniqueDecisionText
+    );
+    expect(differentiators).toEqual(['Fast setup', 'SOC 2']);
   });
 });

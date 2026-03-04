@@ -1,5 +1,7 @@
 # Full SEO Audit Report - StackHunt
 
+Last verified: 2026-03-05
+
 Date: 2026-03-04
 Site: https://stackhunt.io
 Audit mode: `seo-audit` skill (inline)

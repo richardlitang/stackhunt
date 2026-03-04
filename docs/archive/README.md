@@ -1,5 +1,7 @@
 # Docs Archive
 
+Last verified: 2026-03-05
+
 This folder stores historical, time-bound documentation that is no longer part of the active docs set.
 
 Archived here:

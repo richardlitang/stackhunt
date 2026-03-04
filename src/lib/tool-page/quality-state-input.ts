@@ -1,0 +1,31 @@
+import type { buildToolPageQualityState } from '@/lib/tool-page/quality-state';
+import type { Tool } from '@/types/database';
+
+interface BuildToolPageQualityStateInputContext {
+  tool: Tool;
+  firstReview: Parameters<typeof buildToolPageQualityState>[0]['firstReview'];
+  reviewSelection: Parameters<typeof buildToolPageQualityState>[0]['reviewSelection'];
+  canonicalFacts: Record<string, unknown> | null | undefined;
+}
+
+export function buildToolPageQualityStateInput(
+  input: BuildToolPageQualityStateInputContext
+): Parameters<typeof buildToolPageQualityState>[0] {
+  const persistedQuality =
+    (input.canonicalFacts?.quality as
+      | {
+          should_index?: boolean;
+          noindex_reasons?: string[];
+          section_publishability?: Record<string, boolean>;
+          section_status?: Record<string, 'show' | 'hide' | 'procedural'>;
+          evidence_counts?: Record<string, number>;
+        }
+      | undefined) || undefined;
+
+  return {
+    tool: input.tool,
+    firstReview: input.firstReview,
+    reviewSelection: input.reviewSelection,
+    persistedQuality,
+  };
+}

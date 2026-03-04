@@ -1,0 +1,43 @@
+#!/usr/bin/env node
+
+import { execFileSync, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+
+function git(args) {
+  return execFileSync('git', args, { encoding: 'utf8' }).trim();
+}
+
+function resolveBaseRef() {
+  const fallback = 'origin/main';
+  let upstream = fallback;
+  try {
+    upstream = git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
+  } catch {
+    upstream = fallback;
+  }
+  try {
+    return git(['merge-base', 'HEAD', upstream]);
+  } catch {
+    return git(['rev-parse', 'HEAD~1']);
+  }
+}
+
+const baseRef = resolveBaseRef();
+const changed = git(['diff', '--name-only', '--diff-filter=ACMR', `${baseRef}..HEAD`])
+  .split('\n')
+  .map((line) => line.trim())
+  .filter(Boolean);
+
+const eslintExt = /\.(astro|[cm]?[jt]sx?)$/i;
+const targets = changed.filter((file) => eslintExt.test(file) && fs.existsSync(file));
+
+if (targets.length === 0) {
+  console.log('No changed files require ESLint checks.');
+  process.exit(0);
+}
+
+const run = spawnSync('npx', ['eslint', '--max-warnings=0', ...targets], {
+  stdio: 'inherit',
+});
+
+process.exit(run.status ?? 1);

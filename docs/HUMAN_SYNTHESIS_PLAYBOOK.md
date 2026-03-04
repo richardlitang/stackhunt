@@ -1,5 +1,7 @@
 # Human Synthesis Playbook
 
+Last verified: 2026-03-05
+
 ## When To Use This
 
 Use this workflow when a tool is marked `HUMAN_REQUIRED` because automated synthesis is blocked by source policy (for example: vendor domain is `LINK_ONLY` with `llm_ingestion_allowed=NO`).

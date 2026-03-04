@@ -1,5 +1,7 @@
 # Content Quality Hardening Plan (Handoff)
 
+Last verified: 2026-03-05
+
 Date: 2026-02-07
 Scope: tool-page quality, volatile facts freshness, model/pricing correctness, indexing safety.
 

@@ -1,5 +1,7 @@
 # Tool Page QA Gate v1
 
+Last verified: 2026-03-05
+
 Status: Draft
 Scope: publish gate for `/tool/[slug]`
 Mode: pass/fail only

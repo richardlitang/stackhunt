@@ -1,5 +1,7 @@
 # Deployment Workflow
 
+Last verified: 2026-03-05
+
 ## ⚠️ CRITICAL: Always Deploy to Main Branch
 
 **All changes must be deployed directly to the `main` branch.**

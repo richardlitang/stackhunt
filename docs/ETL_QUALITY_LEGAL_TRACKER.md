@@ -1,5 +1,7 @@
 # ETL Quality + Legal Risk Tracker
 
+Last verified: 2026-03-05
+
 Last updated: 2026-02-16
 
 ## Rollout Status

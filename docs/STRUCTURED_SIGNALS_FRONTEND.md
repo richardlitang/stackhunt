@@ -1,5 +1,7 @@
 ## Structured Signals Frontend Guide
 
+Last verified: 2026-03-05
+
 This guide describes the UX changes needed to implement “Structured Signal Reports”
 instead of free‑form reviews. The goal is to capture high‑signal user input without
 moderation overhead and to create first‑hand experience signals for SEO.

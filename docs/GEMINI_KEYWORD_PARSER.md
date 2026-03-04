@@ -1,5 +1,7 @@
 # Gemini-Powered Keyword Parser
 
+Last verified: 2026-03-05
+
 **Why Gemini Flash > Regex:**
 - ✅ Handles variations: "X vs Y", "X versus Y", "compare X and Y"
 - ✅ Understands context: "best X for Y" vs "best X in Y" vs "top X for Y"

@@ -1,5 +1,7 @@
 # StackHunt Content Strategy Guide
 
+Last verified: 2026-03-05
+
 ## The Content Strategy Brief (CSB)
 
 A CSB is the input that drives the Hunter agent. It's a structured way to tell the system what content to create.

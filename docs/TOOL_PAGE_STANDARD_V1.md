@@ -1,5 +1,7 @@
 # Tool Page Standard v1
 
+Last verified: 2026-03-05
+
 Status: Draft
 Owner: StackHunt Editorial + Product
 Scope: `/tool/[slug]` pages only (v1). Built to extend to `/best` and `/compare`.

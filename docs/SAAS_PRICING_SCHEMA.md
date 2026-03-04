@@ -1,5 +1,7 @@
 ## SaaS Pricing & Bundle Schema (Catalog + Org Instance)
 
+Last verified: 2026-03-05
+
 This document defines the exact tables and JSON schemas needed to make pricing
 and bundle logic usable for a subscription‑management SaaS. It builds on the
 existing `items` catalog, `items.specs.pricing_data`, and `items.parent_id`.

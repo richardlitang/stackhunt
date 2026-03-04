@@ -28,7 +28,10 @@ jobs:
         run: npm run typecheck
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint:strict
+
+      - name: Tool page helper imports
+        run: npm run qa:tool-page-imports
 
       - name: Unit tests
         run: npm run test

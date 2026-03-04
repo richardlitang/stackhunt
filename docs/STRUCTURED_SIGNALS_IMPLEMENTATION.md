@@ -1,5 +1,7 @@
 # Structured Signals Implementation Summary
 
+Last verified: 2026-03-05
+
 ## Overview
 
 Implemented Phase 1 of the Structured Signals system as described in `STRUCTURED_SIGNALS_FRONTEND.md`. This replaces free-form reviews with structured, high-signal user input that captures first-hand experience without moderation overhead.

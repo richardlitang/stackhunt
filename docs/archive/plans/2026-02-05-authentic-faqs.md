@@ -1,5 +1,7 @@
 # Feature: Authentic FAQs From Reddit/Forums/PAA
 
+Last verified: 2026-03-05
+
 ## Goal
 Replace synthetic FAQ content with “actually asked” questions sourced during ETL and render them on /tool pages with matching FAQ schema.
 
