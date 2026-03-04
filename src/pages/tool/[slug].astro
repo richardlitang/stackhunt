@@ -33,7 +33,6 @@ import IncludedTools from '@/components/IncludedTools.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import type { KnowledgeCard, ToolConstraints } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
-import { areToolsComparable } from '@/lib/analysis/comparator';
 import { getToolBySlugAndType, getToolContexts, getToolTags, supabase } from '@/lib/supabase';
 import {
   generateToolMeta,
@@ -49,14 +48,12 @@ import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
 import { evaluateToolPageIndexPolicy } from '@/lib/tool-page-index-policy';
-import { buildToolPageViewModel } from '@/lib/tool-page-view-model';
 import {
   buildToolPageTrustViewModel,
   countPendingVerifications,
   deriveToolPageEvidenceState,
   type ToolPageEvidenceGrade,
 } from '@/lib/tool-page-trust';
-import { buildToolPageLensContent } from '@/lib/tool-page-lens';
 import {
   buildToolPagePricingViewModel,
   deriveToolPagePricingSignals,
@@ -66,7 +63,6 @@ import { buildToolPageSourcesViewModel } from '@/lib/tool-page-sources';
 import { buildToolPageDecisionSnapshot } from '@/lib/tool-page-decision';
 import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page-evidence-grade';
 import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page-constraints';
-import { buildToolPageLensHrefs } from '@/lib/tool-page-lens-hrefs';
 import { buildToolPageEvidenceLinks } from '@/lib/tool-page-evidence-links';
 import {
   buildToolPageEvidenceBulletV2,
@@ -94,6 +90,9 @@ import { selectToolPageReview } from '@/lib/reviews/select-review';
 import { deriveToolPageSetupSignals } from '@/lib/tool-page-setup';
 import { deriveToolPageSectionSignals } from '@/lib/tool-page-section-signals';
 import { buildToolPageSectionState } from '@/lib/tool-page-section-state';
+import { buildToolPageAlternativesState } from '@/lib/tool-page-alternatives-state';
+import { deriveToolPageVerdictPolicy } from '@/lib/tool-page-verdict-policy';
+import { buildToolPageLensRuntime } from '@/lib/tool-page-lens-runtime';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -307,9 +306,6 @@ if (altSlugs.length > 0) {
   }
 }
 
-const getPrimaryCategoryId = (item: any) =>
-  item?.category?.id || item?.item_category_links?.[0]?.category?.id || null;
-
 const sourceEvidenceDomains = new Set(
   firstReview?.sources
     ? (firstReview.sources as Array<{ domain?: string; url?: string }>)
@@ -460,26 +456,10 @@ const provisionalIndexEligibility = evaluateToolPageProvisionalIndexEligibility(
   strictBlockers: strictGateBlockers,
 });
 const showReviewInProgressBanner = provisionalIndexEligibility.allowed;
-const NEGATIVE_CLAIM_GUARD =
-  /\b(no|not|lacks|lack|cannot|can't|won't|avoid|veto|problem|risk|limit|limited|slow|expensive|broken|fails|failure)\b/i;
 const hasEligibleNegativeEvidence = eligibleSignalEvidenceCount >= 2;
-const guardedVerdict = firstReview?.summary_markdown
-  ? !NEGATIVE_CLAIM_GUARD.test(firstReview.summary_markdown) || hasEligibleNegativeEvidence
-    ? firstReview.summary_markdown
-    : null
-  : null;
-const guardedHumanVerdict =
-  humanVerdict && (!NEGATIVE_CLAIM_GUARD.test(humanVerdict) || hasEligibleNegativeEvidence)
-    ? humanVerdict
-    : null;
-const guardedToolVerdict =
-  tool.verdict && (!NEGATIVE_CLAIM_GUARD.test(tool.verdict) || hasEligibleNegativeEvidence)
-    ? tool.verdict
-    : null;
 const renderVerdict = sanitizeStructuredClaimMarkdown(
-  guardedVerdict || guardedToolVerdict || guardedHumanVerdict
+  firstReview?.summary_markdown || tool.verdict || humanVerdict
 );
-const guardedAvoidIf = hasEligibleNegativeEvidence ? avoidIf : [];
 
 const _turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 
@@ -520,31 +500,17 @@ const pricingSignals = deriveToolPagePricingSignals({
 });
 const hasPricing = pricingSignals.hasPricing;
 const hasFreePlanSignal = pricingSignals.hasFreePlanSignal;
-const WEB_ONLY_CLAIM_PATTERN =
-  /\b(platform access is limited to web(?:[-\s]*based)? environments|web[-\s]*only|limited to web[-\s]*based environments|web-based environments only)\b/i;
-const CONTRADICTORY_FREE_PLAN_PATTERN = /\b(no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan)\b/i;
-const isDisallowedConClaim = (text: string): boolean => {
-  if (!text) return false;
-  if (WEB_ONLY_CLAIM_PATTERN.test(text)) return true;
-  if (hasFreePlanSignal && CONTRADICTORY_FREE_PLAN_PATTERN.test(text)) return true;
-  return false;
-};
-const renderVerdictSafe = (() => {
-  if (!renderVerdict) return renderVerdict;
-  let next = renderVerdict;
-  if (hasFreePlanSignal) {
-    next = next.replace(
-      /\b(?:no|lack(?:s| of)?)\s+(?:a\s+)?free\s+(?:tier|plan|trial)\b[^.\n]*(?:[.\n]|$)/gi,
-      ''
-    );
-  }
-  next = next.replace(
-    /\b(?:web[-\s]*only|limited to web(?:[-\s]*based environments)?|platform access is limited to web(?:[-\s]*based)? environments)\b[^.\n]*(?:[.\n]|$)/gi,
-    ''
-  );
-  next = next.replace(/\n{3,}/g, '\n\n').trim();
-  return next || renderVerdict;
-})();
+const verdictPolicy = deriveToolPageVerdictPolicy({
+  firstReviewSummaryMarkdown: firstReview?.summary_markdown || null,
+  toolVerdict: tool.verdict || null,
+  humanVerdict: humanVerdict || null,
+  avoidIf: Array.isArray(avoidIf) ? avoidIf : [],
+  hasEligibleNegativeEvidence,
+  hasFreePlanSignal,
+  renderVerdict,
+});
+const { guardedHumanVerdict, guardedAvoidIf, renderVerdictSafe, isDisallowedConClaim } =
+  verdictPolicy;
 const hasVerdict = Boolean(renderVerdictSafe && sectionStatus.verdict === 'show');
 const sectionSignals = deriveToolPageSectionSignals({
   faqCount: faqItems.length,
@@ -577,21 +543,23 @@ const hasFeatures = sectionSignals.hasFeatures;
 const hasSpecsRaw = sectionSignals.hasSpecsRaw;
 const hasPlatformRaw = sectionSignals.hasPlatformRaw;
 const hasAlternatives = sectionSignals.hasAlternatives;
-const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
-  areToolsComparable(
-    {
-      slug: tool.slug,
-      category_id: getPrimaryCategoryId(tool),
-      metadata: tool.metadata as any,
-    },
-    {
-      slug: alt.slug,
-      category_id: getPrimaryCategoryId(alt),
-      metadata: alt.metadata as any,
-    }
-  )
+const alternativesState = buildToolPageAlternativesState(
+  {
+    slug: tool.slug,
+    category: tool.category as { id?: string | null } | null | undefined,
+    item_category_links: (tool as any).item_category_links || null,
+    metadata: tool.metadata,
+  },
+  (orderedAlternatives || []).map((alt) => ({
+    slug: alt.slug,
+    category: (alt as any).category || null,
+    item_category_links: (alt as any).item_category_links || null,
+    metadata: alt.metadata,
+  }))
 );
-const hasComparableAlternatives = comparableAlternatives.length > 0;
+const comparableAlternatives = alternativesState.comparableAlternatives;
+const hasComparableAlternatives = alternativesState.hasComparableAlternatives;
+const canCompareByAlternativeSlug = alternativesState.canCompareBySlug;
 const hasCommunityRaw = sectionSignals.hasCommunityRaw;
 const sectionState = buildToolPageSectionState({
   contentConfidenceLevel,
@@ -857,24 +825,6 @@ const toolPageSourcesViewModel = buildToolPageSourcesViewModel({
 });
 const { collectedSourcesBySection, collectedSourcesTotal, hasCollectedSources } =
   toolPageSourcesViewModel;
-const toolPageViewModel = buildToolPageViewModel({
-  activeReviewLens,
-  hasVerdict,
-  showProceduralVerdict,
-  showPricingSection,
-  hasGettingStarted,
-  hasFeatures,
-  hasSpecs,
-  showProceduralSpecs,
-  hasPlatform,
-  hasAlternatives,
-});
-const { focusSwitchOptions, lensDefaultFocus, showFocusSwitch, lensPriorityLinks } =
-  toolPageViewModel;
-const lensHrefs: Record<ReviewLens, string> = buildToolPageLensHrefs(
-  Astro.url.pathname,
-  Astro.url.searchParams
-);
 const decisionProofPoints = [
   buildEvidenceBulletV2({
     text: `Pricing references reviewed from official pages (checked ${pricingVerifiedLabel || 'latest available date'}).`,
@@ -920,21 +870,41 @@ const lensLabelMap: Record<ReviewLens, string> = {
   startup: 'Startup',
   enterprise: 'Enterprise',
 };
-const toolPageLensContent = buildToolPageLensContent({
+const lensRuntime = buildToolPageLensRuntime({
+  pathname: Astro.url.pathname,
+  searchParams: Astro.url.searchParams,
   activeReviewLens,
-  toolName: tool.name,
-  hasCollectedSources,
-  hasGettingStarted,
-  showPricingSection,
-  hasSecurity,
-  decisionSnapshotBestWhen,
-  decisionSnapshotWatchOuts,
-  decisionSnapshotDifferentiators,
-  decisionTradeoffSummary,
-  enterpriseTradeoffOverride: canonicalHardLimits[0]?.text || null,
-  hardLimitCount: canonicalHardLimits.length,
+  viewModelInput: {
+    hasVerdict,
+    showProceduralVerdict,
+    showPricingSection,
+    hasGettingStarted,
+    hasFeatures,
+    hasSpecs,
+    showProceduralSpecs,
+    hasPlatform,
+    hasAlternatives,
+  },
+  lensContentInput: {
+    toolName: tool.name,
+    hasCollectedSources,
+    hasGettingStarted,
+    showPricingSection,
+    hasSecurity,
+    decisionSnapshotBestWhen,
+    decisionSnapshotWatchOuts,
+    decisionSnapshotDifferentiators,
+    decisionTradeoffSummary,
+    enterpriseTradeoffOverride: canonicalHardLimits[0]?.text || null,
+    hardLimitCount: canonicalHardLimits.length,
+  },
 });
 const {
+  lensHrefs,
+  focusSwitchOptions,
+  lensDefaultFocus,
+  showFocusSwitch,
+  lensPriorityLinks,
   verdictLabelRationale,
   reviewDek,
   readerFocusNote,
@@ -944,7 +914,7 @@ const {
   scoreDrivers,
   workflowFitHighlights,
   workflowFitCards,
-} = toolPageLensContent;
+} = lensRuntime;
 const tradeoffCons = uniqueDecisionText([
   ...decisionSnapshotWatchOuts,
   ...canonicalHardLimits.map((item) => item.text),
@@ -2180,18 +2150,7 @@ const schemas = [
 
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {orderedAlternatives.map((alt) => {
-              const canCompare = areToolsComparable(
-                {
-                  slug: tool.slug,
-                  category_id: getPrimaryCategoryId(tool),
-                  metadata: tool.metadata as any,
-                },
-                {
-                  slug: alt.slug,
-                  category_id: getPrimaryCategoryId(alt),
-                  metadata: alt.metadata as any,
-                }
-              );
+              const canCompare = Boolean(canCompareByAlternativeSlug[alt.slug]);
               return (
                 <AlternativeCard
                   main={{
