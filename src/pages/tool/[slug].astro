@@ -80,7 +80,6 @@ import {
 } from '@/lib/tool-page-text';
 import {
   buildToolPageSourceAriaLabel,
-  formatToolPageVerifiedDate,
 } from '@/lib/tool-page-source-labels';
 import {
   countEligibleEvidenceDomains,
@@ -93,6 +92,7 @@ import { buildToolPageSectionState } from '@/lib/tool-page-section-state';
 import { buildToolPageAlternativesState } from '@/lib/tool-page-alternatives-state';
 import { deriveToolPageVerdictPolicy } from '@/lib/tool-page-verdict-policy';
 import { buildToolPageLensRuntime } from '@/lib/tool-page-lens-runtime';
+import { deriveToolPageReviewSignals } from '@/lib/tool-page-review-signals';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -564,12 +564,8 @@ const hasCommunityRaw = sectionSignals.hasCommunityRaw;
 const sectionState = buildToolPageSectionState({
   contentConfidenceLevel,
   hasAlternatives,
-  firstReviewUpdatedAt:
-    (firstReview as { updated_at?: string | null; created_at?: string | null } | null)?.updated_at ||
-    null,
-  firstReviewCreatedAt:
-    (firstReview as { updated_at?: string | null; created_at?: string | null } | null)?.created_at ||
-    null,
+  firstReviewUpdatedAt: firstReview?.updated_at || null,
+  firstReviewCreatedAt: firstReview?.created_at || null,
   toolLastVerifiedAt: tool.last_verified_at || null,
   toolPricingVerifiedAt: tool.pricing_verified_at || null,
   toolUpdatedAt: tool.updated_at || null,
@@ -688,17 +684,17 @@ const _communityEvidenceLinks = evidenceLinks.filter(
 );
 const sourceAriaLabel = (context: string): string =>
   buildToolPageSourceAriaLabel(stripControlChars(context));
-const pricingVerifiedLabel = formatToolPageVerifiedDate(
-  tool.pricing_verified_at || tool.last_verified_at
-);
-const specsVerifiedLabel = formatToolPageVerifiedDate(
-  (knowledgeCard?.meta?.extraction_date as string | undefined) || tool.last_verified_at
-);
-const communityVerifiedLabel = formatToolPageVerifiedDate(
-  ((firstReview as any)?.updated_at as string | undefined) ||
-    ((firstReview as any)?.created_at as string | undefined) ||
-    tool.last_verified_at
-);
+const reviewSignals = deriveToolPageReviewSignals({
+  firstReview,
+  toolLastVerifiedAt: tool.last_verified_at || null,
+  toolPricingVerifiedAt: tool.pricing_verified_at || null,
+  extractionDate: (knowledgeCard?.meta?.extraction_date as string | undefined) || null,
+});
+const {
+  pricingVerifiedLabel,
+  specsVerifiedLabel,
+  communityVerifiedLabel,
+} = reviewSignals;
 const contextualEvidenceCons = (Array.isArray(firstReview?.cons) ? firstReview.cons : [])
   .map(toEvidenceBullet)
   .filter((item): item is EvidenceBullet => Boolean(item));
