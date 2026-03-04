@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveToolPageReviewSignals } from '@/lib/tool-page-review-signals';
+import { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
 
 describe('tool page review signals', () => {
   it('derives labels and timestamps from review and tool dates', () => {

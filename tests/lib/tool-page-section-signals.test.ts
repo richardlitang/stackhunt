@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveToolPageSectionSignals } from '@/lib/tool-page-section-signals';
+import { deriveToolPageSectionSignals } from '@/lib/tool-page/section-signals';
 
 describe('tool page section signals', () => {
   it('derives raw section visibility signals from content and policy inputs', () => {

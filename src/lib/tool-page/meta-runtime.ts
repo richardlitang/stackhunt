@@ -2,12 +2,12 @@ import {
   evaluateToolPageQaGate,
   type ToolPageQaGateInput,
   type ToolPageQaGateResult,
-} from '@/lib/tool-page-qa-gate';
+} from '@/lib/tool-page/qa-gate';
 import {
   evaluateToolPageIndexPolicy,
   type ToolPageIndexPolicyInput,
   type ToolPageIndexPolicyResult,
-} from '@/lib/tool-page-index-policy';
+} from '@/lib/tool-page/index-policy';
 
 export interface BuildToolPageMetaRuntimeInput {
   qaInput: ToolPageQaGateInput;

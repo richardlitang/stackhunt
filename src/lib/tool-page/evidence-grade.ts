@@ -1,4 +1,4 @@
-import type { ToolPageEvidenceGrade } from '@/lib/tool-page-trust';
+import type { ToolPageEvidenceGrade } from '@/lib/tool-page/trust';
 
 export interface ToolPageEvidenceLinkLike {
   basis: string;

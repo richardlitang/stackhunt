@@ -6,7 +6,7 @@ import {
   hasScopeQualifier,
   isClaimStale,
 } from '@/lib/claim-policy';
-import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
+import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
 import type { Review, Tool } from '@/types/database';
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);

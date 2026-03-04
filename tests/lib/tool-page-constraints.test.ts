@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page-constraints';
+import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
 
 describe('tool page constraints', () => {
   it('derives canonical hard limits with filtering and deduplication', () => {

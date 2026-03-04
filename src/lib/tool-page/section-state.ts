@@ -1,16 +1,16 @@
 import {
   createToolPageEvidenceContract,
   type ToolPageFieldConfidence,
-} from '@/lib/tool-page-evidence-contract';
+} from '@/lib/tool-page/evidence-contract';
 import {
   applyToolPageFreshnessPolicy,
   type ToolPageFreshnessPolicyResult,
-} from '@/lib/tool-page-freshness-policy';
+} from '@/lib/tool-page/freshness-policy';
 import {
   computeToolPageSectionContract,
   type ToolPageSectionContractResult,
   type ToolPageSectionMode,
-} from '@/lib/tool-page-standard';
+} from '@/lib/tool-page/standard';
 
 interface BuildToolPageSectionStateInput {
   contentConfidenceLevel: ToolPageFieldConfidence;

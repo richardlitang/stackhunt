@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildToolPageEvidenceBulletV2,
   toToolPageEvidenceBullet,
-} from '@/lib/tool-page-evidence-bullets';
+} from '@/lib/tool-page/evidence-bullets';
 
 const isEligibleEvidenceUrl = (url?: string | null): boolean => {
   if (!url) return false;

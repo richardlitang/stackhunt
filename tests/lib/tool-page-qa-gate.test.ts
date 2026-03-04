@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
+import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
 
 describe('tool page qa gate', () => {
   it('passes for valid review page input', () => {

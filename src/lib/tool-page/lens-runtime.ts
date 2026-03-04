@@ -2,12 +2,12 @@ import {
   buildToolPageViewModel,
   type ReviewLens,
   type ToolPageViewModelInput,
-} from '@/lib/tool-page-view-model';
-import { buildToolPageLensHrefs, type ToolPageReviewLens } from '@/lib/tool-page-lens-hrefs';
+} from '@/lib/tool-page/view-model';
+import { buildToolPageLensHrefs, type ToolPageReviewLens } from '@/lib/tool-page/lens-hrefs';
 import {
   buildToolPageLensContent,
   type BuildToolPageLensContentInput,
-} from '@/lib/tool-page-lens';
+} from '@/lib/tool-page/lens';
 
 export interface BuildToolPageLensRuntimeInput {
   pathname: string;

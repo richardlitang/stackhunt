@@ -7,7 +7,7 @@ import {
   isLikelyIncompleteToolPageClause,
   stripToolPageControlChars,
   uniqueToolPageDecisionText,
-} from '@/lib/tool-page-text';
+} from '@/lib/tool-page/text';
 
 describe('tool page text helpers', () => {
   it('normalizes control chars and whitespace', () => {

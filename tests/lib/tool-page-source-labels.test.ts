@@ -3,7 +3,7 @@ import {
   buildToolPageSourceAriaLabel,
   clampToolPageSourceContext,
   formatToolPageVerifiedDate,
-} from '@/lib/tool-page-source-labels';
+} from '@/lib/tool-page/source-labels';
 
 describe('tool page source labels', () => {
   it('formats valid dates and returns null for invalid values', () => {

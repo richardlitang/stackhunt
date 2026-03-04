@@ -1,4 +1,4 @@
-import { formatToolPageVerifiedDate } from '@/lib/tool-page-source-labels';
+import { formatToolPageVerifiedDate } from '@/lib/tool-page/source-labels';
 
 export interface ToolPageReviewLike {
   updated_at?: string | null;

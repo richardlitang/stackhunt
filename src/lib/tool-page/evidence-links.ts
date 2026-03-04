@@ -1,4 +1,4 @@
-import { isBlockedEvidenceDomain } from '@/lib/tool-page-evidence-policy';
+import { isBlockedEvidenceDomain } from '@/lib/tool-page/evidence-policy';
 
 export interface ToolPageEvidenceLinkEntry {
   url: string;

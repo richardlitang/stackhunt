@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveToolPageVerdictPolicy } from '@/lib/tool-page-verdict-policy';
+import { deriveToolPageVerdictPolicy } from '@/lib/tool-page/verdict-policy';
 
 describe('tool page verdict policy', () => {
   it('suppresses negative verdict claims when evidence is insufficient', () => {

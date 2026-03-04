@@ -5,7 +5,7 @@ import {
   type ToolPageContentConfidence,
   type ToolPageEvidenceGrade,
   type ToolPageUpdateHistoryEntry,
-} from '@/lib/tool-page-trust';
+} from '@/lib/tool-page/trust';
 
 interface BuildToolPageTrustRuntimeInput {
   baseEvidenceGrade: ToolPageEvidenceGrade;

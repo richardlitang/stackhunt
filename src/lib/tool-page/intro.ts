@@ -15,6 +15,18 @@ export interface DecisionIntro {
   summary: string;
 }
 
+export interface DecisionSlots {
+  what_it_is: string;
+  best_fit: string;
+  weak_fit: string;
+  tradeoff: string;
+  summary: string;
+}
+
+interface BuildDecisionSlotsInput extends DecisionIntroInput {
+  decisionIntro?: Partial<DecisionIntro> | null;
+}
+
 export interface DecisionEvidenceClaim {
   text: string;
   source_url: string;
@@ -44,6 +56,9 @@ const GENERIC_DECISION_PATTERNS = [
   /\bgreat for teams?\b/gi,
   /\bmodern teams?\b/gi,
   /\bsoftware buying decision\b/gi,
+  /\bbest value threshold\b/gi,
+  /\bworth it when\b/gi,
+  /\bplatform access is limited to web-based environments\b/gi,
 ];
 
 function removeGenericPhrases(value: string): string {
@@ -62,6 +77,47 @@ function cleanText(value: string): string {
     .replace(/[.:;!?]+$/, '')
     .trim()
   );
+}
+
+function stripSlotPrefix(value: string, slot: 'best_fit' | 'weak_fit' | 'tradeoff'): string {
+  const normalized = value.trim().replace(/^[-\u2022]\s*/, '');
+  if (slot === 'best_fit') {
+    return normalized
+      .replace(/^best\s*fit:\s*/i, '')
+      .replace(/^best\s*for(?:\s+teams?)?(?:\s+where)?\s*/i, '')
+      .trim();
+  }
+  if (slot === 'weak_fit') {
+    return normalized
+      .replace(/^weak\s*fit:\s*/i, '')
+      .replace(/^not\s*for(?:\s+teams?)?(?:\s+where)?\s*/i, '')
+      .replace(/^avoid\s*if\s*/i, '')
+      .trim();
+  }
+  return normalized
+    .replace(/^main\s*tradeoff:\s*/i, '')
+    .replace(/^tradeoff:\s*/i, '')
+    .trim();
+}
+
+function isIncompleteClause(text: string): boolean {
+  return /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/i.test(
+    text
+  );
+}
+
+function normalizeSlotText(
+  value: unknown,
+  slot: 'best_fit' | 'weak_fit' | 'tradeoff',
+  minLength = 8
+): string | null {
+  if (typeof value !== 'string') return null;
+  const cleaned = cleanText(stripSlotPrefix(value, slot))
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned || cleaned.length < minLength) return null;
+  if (isIncompleteClause(cleaned)) return null;
+  return cleaned;
 }
 
 function toSentence(value: string, fallback: string): string {
@@ -191,5 +247,39 @@ export function generateDecisionIntro(input: DecisionIntroInput): DecisionIntro 
     not_for,
     main_tradeoff,
     summary: `${what_it_is} ${best_for} ${not_for} ${main_tradeoff}`.trim(),
+  };
+}
+
+export function buildDecisionSlots(input: BuildDecisionSlotsInput): DecisionSlots {
+  const generated = generateDecisionIntro(input);
+  const raw = input.decisionIntro || {};
+
+  const whatItIs = toSentence(
+    typeof raw.what_it_is === 'string' ? raw.what_it_is : generated.what_it_is,
+    generated.what_it_is
+  );
+  const bestFit =
+    normalizeSlotText(raw.best_for, 'best_fit') ||
+    normalizeSlotText(generated.best_for, 'best_fit') ||
+    'Teams whose day-to-day workflow matches the current source-backed strengths.';
+  const weakFit =
+    normalizeSlotText(raw.not_for, 'weak_fit') ||
+    normalizeSlotText(generated.not_for, 'weak_fit') ||
+    'Teams that depend on capabilities not confirmed in current sources.';
+  const tradeoff =
+    normalizeSlotText(raw.main_tradeoff, 'tradeoff') ||
+    normalizeSlotText(generated.main_tradeoff, 'tradeoff') ||
+    'Strengths are clear, but constraints need to be weighed before rollout.';
+
+  const summary = `${whatItIs} Best fit: ${bestFit}. Weak fit: ${weakFit}. Tradeoff: ${tradeoff}.`
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return {
+    what_it_is: whatItIs,
+    best_fit: bestFit,
+    weak_fit: weakFit,
+    tradeoff,
+    summary,
   };
 }

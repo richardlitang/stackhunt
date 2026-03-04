@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateToolPageIndexPolicy } from '@/lib/tool-page-index-policy';
+import { evaluateToolPageIndexPolicy } from '@/lib/tool-page/index-policy';
 
 describe('tool page index policy', () => {
   it('indexes when all blockers are clear', () => {

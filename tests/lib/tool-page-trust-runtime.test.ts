@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageTrustRuntime } from '@/lib/tool-page-trust-runtime';
+import { buildToolPageTrustRuntime } from '@/lib/tool-page/trust-runtime';
 
 describe('tool page trust runtime', () => {
   it('derives pending verification and trust labels consistently', () => {

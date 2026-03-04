@@ -25,6 +25,9 @@ const GENERIC_COPY_PATTERNS = [
   /\bbest-in-class capabilities?\b/i,
   /\bgreat for teams?\b/i,
   /\bclear tool guidance\b/i,
+  /\bbest value threshold\b/i,
+  /\bworth it when\b/i,
+  /\bplatform access is limited to web-based environments\b/i,
 ];
 
 function isReviewTitle(title: string): boolean {

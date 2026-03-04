@@ -23,7 +23,7 @@ import {
   getPersonaContext,
   buildAdaptiveSpecificsPrompt,
 } from '../services/prompts';
-import { generateDecisionEvidence, generateDecisionIntro } from '@/lib/tool-page-intro';
+import { buildDecisionSlots, generateDecisionEvidence, generateDecisionIntro } from '@/lib/tool-page/intro';
 import { getCategoryDefinition } from '../schemas';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import { resolveDetectedCategory } from '../category-resolver';
@@ -283,6 +283,30 @@ export async function executeAnalysisPhase(
     analysis.reviewContext.decision_evidence = generatedDecisionEvidence;
     deps.log('[Pass 2] Decision evidence generated from sourced claims');
   }
+  const decisionIntroForSlots =
+    (analysis.reviewContext.decisionIntro as Record<string, unknown> | undefined) ||
+    (analysis.reviewContext.decision_intro as Record<string, unknown> | undefined) ||
+    undefined;
+  const decisionSlots = buildDecisionSlots({
+    toolName: ctx.toolName,
+    shortDescription: analysis.shortDescription,
+    pros: extractClaimTexts(analysis.pros),
+    cons: extractClaimTexts(analysis.cons),
+    proClaims: extractClaimEvidence(analysis.pros),
+    conClaims: extractClaimEvidence(analysis.cons),
+    decisionIntro: decisionIntroForSlots as
+      | {
+          what_it_is?: string;
+          best_for?: string;
+          not_for?: string;
+          main_tradeoff?: string;
+          summary?: string;
+        }
+      | null
+      | undefined,
+  });
+  analysis.reviewContext.decisionSlots = decisionSlots;
+  analysis.reviewContext.decision_slots = decisionSlots;
   if (analysis.faqs && analysis.faqs.length > 0) {
     const mappedFaqs = analysis.faqs
       .filter((faq: any) => !!faq.answer_source_url)
@@ -443,6 +467,9 @@ const GENERIC_NARRATIVE_PATTERNS = [
   /\bbest-in-class capabilities\b/i,
   /\bstrong option(?: based on)?(?: the)? current source-backed evidence\b/i,
   /\bsolid choice for modern teams\b/i,
+  /\bbest value threshold\b/i,
+  /\bworth it when\b/i,
+  /\bplatform access is limited to web-based environments\b/i,
 ];
 
 function extractClaimTexts(claims: unknown): string[] {
@@ -546,6 +573,23 @@ function repairNarrativeQuality(
     .trim();
   analysis.reviewContext.decisionIntro = repairedDecisionIntro;
   analysis.reviewContext.decision_intro = repairedDecisionIntro;
+  const repairedDecisionSlots = buildDecisionSlots({
+    toolName,
+    shortDescription: analysis.shortDescription,
+    pros,
+    cons,
+    proClaims: prosEvidence,
+    conClaims: consEvidence,
+    decisionIntro: repairedDecisionIntro as {
+      what_it_is?: string;
+      best_for?: string;
+      not_for?: string;
+      main_tradeoff?: string;
+      summary?: string;
+    },
+  });
+  analysis.reviewContext.decisionSlots = repairedDecisionSlots;
+  analysis.reviewContext.decision_slots = repairedDecisionSlots;
   const generatedDecisionEvidence = generateDecisionEvidence(prosEvidence, consEvidence);
   if (Object.keys(generatedDecisionEvidence).length > 0) {
     analysis.reviewContext.decisionEvidence = generatedDecisionEvidence;

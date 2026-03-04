@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageDecisionSnapshot } from '@/lib/tool-page-decision';
+import { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';
 
 const cleanNarrativeText = (value: unknown): string | null =>
   typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;

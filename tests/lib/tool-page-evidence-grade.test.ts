@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page-evidence-grade';
+import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page/evidence-grade';
 
 describe('tool page base evidence grade', () => {
   it('returns A with strong official coverage and core claim support', () => {

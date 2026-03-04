@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageMetaRuntime } from '@/lib/tool-page-meta-runtime';
+import { buildToolPageMetaRuntime } from '@/lib/tool-page/meta-runtime';
 
 describe('tool page meta runtime', () => {
   it('composes qa and index policy into final meta state', () => {

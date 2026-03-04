@@ -1,7 +1,7 @@
 import {
   isLikelyIncompleteToolPageClause,
   stripToolPageControlChars,
-} from '@/lib/tool-page-text';
+} from '@/lib/tool-page/text';
 
 export type ToolPageEvidenceBullet = { text: string; sourceUrl: string };
 

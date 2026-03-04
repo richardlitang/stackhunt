@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageEvidenceLinks } from '@/lib/tool-page-evidence-links';
+import { buildToolPageEvidenceLinks } from '@/lib/tool-page/evidence-links';
 
 describe('tool page evidence links', () => {
   it('filters blocked domains and classifies official pricing as high quality', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveToolPageReviewContextSignals } from '@/lib/tool-page-review-context';
+import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 
 describe('tool page review context signals', () => {
   it('extracts normalized narrative and budget fields from review context payload', () => {

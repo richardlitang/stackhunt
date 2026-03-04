@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageLensHrefs } from '@/lib/tool-page-lens-hrefs';
+import { buildToolPageLensHrefs } from '@/lib/tool-page/lens-hrefs';
 
 describe('tool page lens hrefs', () => {
   it('preserves existing query params and removes lens for general', () => {

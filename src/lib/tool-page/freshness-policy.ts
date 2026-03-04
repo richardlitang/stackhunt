@@ -1,4 +1,4 @@
-import type { ToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
+import type { ToolPageEvidenceContract } from '@/lib/tool-page/evidence-contract';
 
 export interface ToolPageFreshnessPolicyResult {
   contract: ToolPageEvidenceContract;

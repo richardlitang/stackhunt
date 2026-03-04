@@ -39,11 +39,12 @@ import {
   resolvePopularityTier,
   type PopularityTier,
 } from '@/lib/quality-gate';
-import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
-import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
-import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
-import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
+import { createToolPageEvidenceContract } from '@/lib/tool-page/evidence-contract';
+import { applyToolPageFreshnessPolicy } from '@/lib/tool-page/freshness-policy';
+import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
+import { computeToolPageSectionContract } from '@/lib/tool-page/standard';
 import { sanitizeUrl } from '@/lib/utils/url';
+import { buildDecisionSlots } from '@/lib/tool-page/intro';
 import { normalizeCategorySlug, resolveCategoryFromPrimaryFunction } from '../category-resolver';
 
 export interface DatabaseTypes {
@@ -1147,14 +1148,14 @@ function buildDerivedSummary(
 
   const lines: string[] = [];
   if (summaryPros.length > 0) {
-    lines.push('**Choose if**');
+    lines.push('**Best fit**');
     for (const claim of summaryPros.slice(0, 2)) {
       lines.push(`- ${claim.text}`);
     }
   }
   if (summaryCons.length > 0) {
     if (lines.length > 0) lines.push('');
-    lines.push('**Avoid if**');
+    lines.push('**Weak fit**');
     for (const claim of summaryCons.slice(0, 2)) {
       lines.push(`- ${claim.text}`);
     }
@@ -1775,7 +1776,17 @@ export async function executePersistencePhase(
   if (!derivedVerdict) {
     deps.log('[Guardrail] Derived verdict unavailable (insufficient vetted claims)');
   }
-  const sanitizedReviewContext = sanitizeReviewContext(analysis.reviewContext, validCons, deps);
+  const sanitizedReviewContext = sanitizeReviewContext(
+    analysis.reviewContext,
+    validCons,
+    {
+      toolName: ctx.toolName,
+      shortDescription: analysis.shortDescription,
+      pros: normalizedPros,
+      cons: validCons,
+    },
+    deps
+  );
 
   const itemData: Record<string, unknown> = {
     name: ctx.toolName,
@@ -3797,6 +3808,9 @@ const DECISION_INTRO_GENERIC_PATTERNS = [
   /\bworth shortlisting\b/i,
   /\bbest-in-class capabilities?\b/i,
   /\bclear tool guidance\b/i,
+  /\bbest value threshold\b/i,
+  /\bworth it when\b/i,
+  /\bplatform access is limited to web-based environments\b/i,
 ];
 
 function sanitizeDecisionIntroField(value: unknown, minLength = 12): string | null {
@@ -3835,9 +3849,17 @@ function sanitizeDecisionIntro(
   return sanitizedIntro as Record<string, string>;
 }
 
+type DecisionSlotSeed = {
+  toolName: string;
+  shortDescription?: string | null;
+  pros: ClaimWithSource[];
+  cons: ClaimWithSource[];
+};
+
 function sanitizeReviewContext(
   reviewContext: any,
   validCons: ClaimWithSource[],
+  decisionSlotSeed: DecisionSlotSeed,
   deps: HunterDependencies
 ): any | null {
   if (!reviewContext) return null;
@@ -3883,13 +3905,44 @@ function sanitizeReviewContext(
     (sanitized.decision_intro as Record<string, unknown> | undefined) ||
     (sanitized.decisionIntro as Record<string, unknown> | undefined);
   const sanitizedDecisionIntro = sanitizeDecisionIntro(decisionIntroRaw, deps);
-  if (sanitizedDecisionIntro) {
-    sanitized.decision_intro = sanitizedDecisionIntro;
-    sanitized.decisionIntro = sanitizedDecisionIntro;
-  } else {
-    delete sanitized.decision_intro;
-    delete sanitized.decisionIntro;
-  }
+  const decisionSlots = buildDecisionSlots({
+    toolName: decisionSlotSeed.toolName,
+    shortDescription: decisionSlotSeed.shortDescription,
+    pros: decisionSlotSeed.pros.map((claim) => claim.text).filter((text) => text.length > 0),
+    cons: decisionSlotSeed.cons.map((claim) => claim.text).filter((text) => text.length > 0),
+    proClaims: decisionSlotSeed.pros.map((claim) => ({
+      text: claim.text,
+      source_url: claim.source_url,
+      source_type: claim.source_type,
+      claim_type: claim.claim_type,
+    })),
+    conClaims: decisionSlotSeed.cons.map((claim) => ({
+      text: claim.text,
+      source_url: claim.source_url,
+      source_type: claim.source_type,
+      claim_type: claim.claim_type,
+    })),
+    decisionIntro: (sanitizedDecisionIntro || undefined) as
+      | {
+          what_it_is?: string;
+          best_for?: string;
+          not_for?: string;
+          main_tradeoff?: string;
+          summary?: string;
+        }
+      | undefined,
+  });
+  const canonicalDecisionIntro = {
+    what_it_is: decisionSlots.what_it_is,
+    best_for: `Best for teams where ${decisionSlots.best_fit}`,
+    not_for: `Not for teams where ${decisionSlots.weak_fit}`,
+    main_tradeoff: `Main tradeoff: ${decisionSlots.tradeoff}`,
+    summary: decisionSlots.summary,
+  };
+  sanitized.decision_intro = canonicalDecisionIntro;
+  sanitized.decisionIntro = canonicalDecisionIntro;
+  sanitized.decision_slots = decisionSlots;
+  sanitized.decisionSlots = decisionSlots;
 
   return sanitized;
 }

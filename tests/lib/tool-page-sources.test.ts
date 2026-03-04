@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageSourcesViewModel } from '@/lib/tool-page-sources';
+import { buildToolPageSourcesViewModel } from '@/lib/tool-page/sources';
 
 describe('tool page sources', () => {
   it('returns zero counts when no valid source URLs exist', () => {

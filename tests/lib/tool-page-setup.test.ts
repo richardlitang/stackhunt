@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveToolPageSetupSignals } from '@/lib/tool-page-setup';
+import { deriveToolPageSetupSignals } from '@/lib/tool-page/setup';
 
 describe('tool page setup signals', () => {
   it('detects meaningful getting started signals from setup complexity and tracks', () => {

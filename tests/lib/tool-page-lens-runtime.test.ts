@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageLensRuntime } from '@/lib/tool-page-lens-runtime';
+import { buildToolPageLensRuntime } from '@/lib/tool-page/lens-runtime';
 
 describe('tool page lens runtime', () => {
   it('assembles lens hrefs, focus options, and lens content in one object', () => {

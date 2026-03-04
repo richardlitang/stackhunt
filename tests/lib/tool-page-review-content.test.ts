@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   deriveToolPageReviewContentLists,
   deriveToolPageSourceEvidenceDomains,
-} from '@/lib/tool-page-review-content';
+} from '@/lib/tool-page/review-content';
 
 describe('tool page review content', () => {
   it('normalizes review pros/cons/sources into arrays', () => {

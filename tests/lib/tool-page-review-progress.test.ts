@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveToolPageReviewProgress } from '@/lib/tool-page-review-progress';
+import { deriveToolPageReviewProgress } from '@/lib/tool-page/review-progress';
 import type { Tool } from '@/types/database';
 
 describe('tool page review progress', () => {

@@ -3,7 +3,7 @@ import {
   countEligibleEvidenceDomains,
   isBlockedEvidenceDomain,
   isEligibleEvidenceUrl,
-} from '@/lib/tool-page-evidence-policy';
+} from '@/lib/tool-page/evidence-policy';
 
 describe('tool page evidence policy', () => {
   it('blocks known low-trust evidence domains including subdomains', () => {

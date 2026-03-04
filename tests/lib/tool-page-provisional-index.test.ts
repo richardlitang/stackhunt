@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   countToolPageClaimBullets,
   evaluateToolPageProvisionalIndexEligibility,
-} from '@/lib/tool-page-provisional-index';
+} from '@/lib/tool-page/provisional-index';
 
 describe('tool page provisional index', () => {
   it('counts claim bullets from strings and objects', () => {

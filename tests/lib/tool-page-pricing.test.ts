@@ -3,7 +3,7 @@ import {
   buildToolPagePricingViewModel,
   deriveToolPagePricingSignals,
   type BuildToolPagePricingViewModelInput,
-} from '@/lib/tool-page-pricing';
+} from '@/lib/tool-page/pricing';
 
 describe('tool page pricing', () => {
   it('detects pricing availability and free-plan signal from plans', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageEvaluationViewModel } from '@/lib/tool-page-evaluation';
+import { buildToolPageEvaluationViewModel } from '@/lib/tool-page/evaluation';
 
 describe('tool page evaluation', () => {
   it('returns docs-only defaults without hands-on evidence', () => {

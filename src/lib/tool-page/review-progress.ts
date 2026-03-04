@@ -2,7 +2,7 @@ import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 import {
   evaluateToolPageProvisionalIndexEligibility,
   type ToolPageProvisionalReviewLike,
-} from '@/lib/tool-page-provisional-index';
+} from '@/lib/tool-page/provisional-index';
 import type { Review, Tool } from '@/types/database';
 
 interface ToolPageReviewProgressInput {

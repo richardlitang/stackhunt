@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageTradeoffEvidence } from '@/lib/tool-page-tradeoff-evidence';
+import { buildToolPageTradeoffEvidence } from '@/lib/tool-page/tradeoff-evidence';
 
 describe('tool page tradeoff evidence', () => {
   it('builds avoid-if and tradeoff bullets with canonical source mapping', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageSectionState } from '@/lib/tool-page-section-state';
+import { buildToolPageSectionState } from '@/lib/tool-page/section-state';
 
 describe('tool page section state', () => {
   it('computes allowed sections and operational details from evidence contract inputs', () => {

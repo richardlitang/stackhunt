@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageAlternativesState } from '@/lib/tool-page-alternatives-state';
+import { buildToolPageAlternativesState } from '@/lib/tool-page/alternatives-state';
 
 describe('tool page alternatives state', () => {
   it('computes comparable alternatives and per-slug compare flags', () => {

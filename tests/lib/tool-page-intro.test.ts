@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateDecisionEvidence, generateDecisionIntro } from '@/lib/tool-page-intro';
+import { buildDecisionSlots, generateDecisionEvidence, generateDecisionIntro } from '@/lib/tool-page/intro';
 
 describe('tool page intro generator', () => {
   it('creates decision-first intro from specific pros/cons', () => {
@@ -95,5 +95,44 @@ describe('tool page intro generator', () => {
 
     expect(intro.best_for).toContain('200k token context windows');
     expect(intro.not_for).toContain('60 requests/min');
+  });
+
+  it('normalizes decision slots from prefixed intro fields', () => {
+    const slots = buildDecisionSlots({
+      toolName: 'SlotTool',
+      shortDescription: 'SlotTool helps product teams ship experiments faster.',
+      pros: ['Fast setup in under 10 minutes'],
+      cons: ['Advanced governance is only on enterprise tiers'],
+      decisionIntro: {
+        best_for: 'Best for teams where setup takes under 10 minutes',
+        not_for: 'Not for teams where strict governance is required',
+        main_tradeoff: 'Main tradeoff: faster setup versus enterprise-only controls',
+      },
+    });
+
+    expect(slots.best_fit).toBe('setup takes under 10 minutes');
+    expect(slots.weak_fit).toBe('strict governance is required');
+    expect(slots.tradeoff).toBe('faster setup versus enterprise-only controls');
+  });
+
+  it('rejects incomplete decision slot clauses and falls back to generated content', () => {
+    const slots = buildDecisionSlots({
+      toolName: 'FallbackSlots',
+      shortDescription: 'FallbackSlots helps teams coordinate marketing launches.',
+      pros: ['Includes campaign templates with shared approvals'],
+      cons: ['Usage caps apply on lower plans'],
+      decisionIntro: {
+        best_for: 'Best for teams where',
+        not_for: 'Not for teams with',
+        main_tradeoff: 'Tradeoff: because',
+      },
+    });
+
+    expect(slots.best_fit.toLowerCase()).not.toBe('teams where');
+    expect(slots.weak_fit.toLowerCase()).not.toBe('teams with');
+    expect(slots.tradeoff.toLowerCase()).not.toBe('because');
+    expect(slots.summary).toContain('Best fit:');
+    expect(slots.summary).toContain('Weak fit:');
+    expect(slots.summary).toContain('Tradeoff:');
   });
 });

@@ -1,8 +1,8 @@
 import {
   buildToolPageEvidenceBulletV2,
   type ToolPageEvidenceBulletV2,
-} from '@/lib/tool-page-evidence-bullets';
-import { isEligibleEvidenceUrl } from '@/lib/tool-page-evidence-policy';
+} from '@/lib/tool-page/evidence-bullets';
+import { isEligibleEvidenceUrl } from '@/lib/tool-page/evidence-policy';
 
 export interface ToolPageHardLimitLike {
   text: string;
