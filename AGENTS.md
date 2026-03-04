@@ -355,10 +355,9 @@ Default behavior in personal projects is autonomous execution.
 - Execute tasks end-to-end without waiting for step-by-step confirmation.
 - Continue through implementation, verification, and cleanup by default.
 - Do not pause after each small extraction or commit.
-- On a user `continue` instruction, execute multiple consecutive work slices in the same turn before replying.
-- Minimum autonomous batch target per `continue` turn:
-  - at least 2 logical code slices, or
-  - at least 1 slice plus full verification and push, then immediately start the next slice
+- On a user `go` instruction, execute multiple consecutive work slices in the same turn before replying.
+- Minimum autonomous batch target per `go` turn:
+  - 3 logical code slices
 - Intermediate updates should be brief and only when they materially affect direction, risk, or blocker status.
 - Stop only for critical blockers:
   - missing or conflicting requirements that materially change behavior
