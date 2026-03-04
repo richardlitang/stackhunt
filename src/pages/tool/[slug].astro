@@ -87,6 +87,10 @@ import { buildToolPageLensRuntime } from '@/lib/tool-page-lens-runtime';
 import { deriveToolPageReviewSignals } from '@/lib/tool-page-review-signals';
 import { buildToolPageTrustRuntime } from '@/lib/tool-page-trust-runtime';
 import { buildToolPageMetaRuntime } from '@/lib/tool-page-meta-runtime';
+import {
+  deriveToolPageReviewContentLists,
+  deriveToolPageSourceEvidenceDomains,
+} from '@/lib/tool-page-review-content';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -131,6 +135,7 @@ const reviews = Array.isArray(tool.reviews) ? tool.reviews : [];
 const reviewSelection = selectToolPageReview(reviews);
 const firstReview = reviewSelection.firstPublished;
 const hasNewerUnpublishedReview = reviewSelection.hasNewerUnpublishedThanPublished;
+const reviewContentLists = deriveToolPageReviewContentLists(firstReview);
 
 // Extract Knowledge Card data for new components
 const knowledgeCard = tool.metadata as KnowledgeCard | null;
@@ -310,21 +315,7 @@ if (altSlugs.length > 0) {
   }
 }
 
-const sourceEvidenceDomains = new Set(
-  firstReview?.sources
-    ? (firstReview.sources as Array<{ domain?: string; url?: string }>)
-        .map((source) => {
-          if (source.domain) return source.domain.replace(/^www\./, '').toLowerCase();
-          if (!source.url) return null;
-          try {
-            return new URL(source.url).hostname.replace(/^www\./, '').toLowerCase();
-          } catch {
-            return null;
-          }
-        })
-        .filter((domain): domain is string => Boolean(domain))
-    : []
-);
+const sourceEvidenceDomains = deriveToolPageSourceEvidenceDomains(reviewContentLists.sources);
 const stripControlChars = stripToolPageControlChars;
 const extractJsonClaimText = (snippet: string): string | null => {
   try {
@@ -636,8 +627,8 @@ const decisionSnapshot = buildToolPageDecisionSnapshot({
   isPaymentsCategory,
   paymentTriggerCons,
   fallbackConsText,
-  firstReviewPros: firstReview?.pros || [],
-  firstReviewCons: firstReview?.cons || [],
+  firstReviewPros: reviewContentLists.pros,
+  firstReviewCons: reviewContentLists.cons,
   tagAudienceNames: tags.audiences.map((tag) => tag.name),
   isDisallowedConClaim,
   cleanNarrativeText,
@@ -668,7 +659,7 @@ const {
   showWeTestedIt,
 } = toolPageEvaluationViewModel;
 const toolPageEvidenceLinks = buildToolPageEvidenceLinks(
-  ((firstReview?.sources as Array<Record<string, unknown> | null | undefined>) || []),
+  reviewContentLists.sources as Array<Record<string, unknown> | null | undefined>,
   tool.name
 );
 const {
@@ -691,10 +682,10 @@ const {
   specsVerifiedLabel,
   communityVerifiedLabel,
 } = reviewSignals;
-const contextualEvidenceCons = (Array.isArray(firstReview?.cons) ? firstReview.cons : [])
+const contextualEvidenceCons = reviewContentLists.cons
   .map(toEvidenceBullet)
   .filter((item): item is EvidenceBullet => Boolean(item));
-const contextualEvidencePros = (Array.isArray(firstReview?.pros) ? firstReview.pros : [])
+const contextualEvidencePros = reviewContentLists.pros
   .map(toEvidenceBullet)
   .filter((item): item is EvidenceBullet => Boolean(item));
 const globalEvidencePros = (Array.isArray(globalPros) ? globalPros : [])
