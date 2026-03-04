@@ -67,6 +67,10 @@ import { buildToolPageDecisionSnapshot } from '@/lib/tool-page-decision';
 import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page-evidence-grade';
 import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page-constraints';
 import { buildToolPageLensHrefs } from '@/lib/tool-page-lens-hrefs';
+import {
+  buildToolPageSourceAriaLabel,
+  formatToolPageVerifiedDate,
+} from '@/lib/tool-page-source-labels';
 import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
 import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
@@ -1080,24 +1084,15 @@ const _independentEvidenceLinks = evidenceLinks.filter(
 const _communityEvidenceLinks = evidenceLinks.filter(
   (entry) => entry.basis === 'Community discussions' || entry.basis === 'GitHub issues'
 );
-const formatVerifiedDate = (value?: string | null): string | null => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
-const clampSourceContext = (value: string): string => {
-  const normalized = stripControlChars(value).replace(/\s+/g, ' ').trim();
-  if (!normalized) return 'this claim';
-  return normalized.length > 90 ? `${normalized.slice(0, 87)}...` : normalized;
-};
 const sourceAriaLabel = (context: string): string =>
-  `Open source evidence for ${clampSourceContext(context)}`;
-const pricingVerifiedLabel = formatVerifiedDate(tool.pricing_verified_at || tool.last_verified_at);
-const specsVerifiedLabel = formatVerifiedDate(
+  buildToolPageSourceAriaLabel(stripControlChars(context));
+const pricingVerifiedLabel = formatToolPageVerifiedDate(
+  tool.pricing_verified_at || tool.last_verified_at
+);
+const specsVerifiedLabel = formatToolPageVerifiedDate(
   (knowledgeCard?.meta?.extraction_date as string | undefined) || tool.last_verified_at
 );
-const communityVerifiedLabel = formatVerifiedDate(
+const communityVerifiedLabel = formatToolPageVerifiedDate(
   ((firstReview as any)?.updated_at as string | undefined) ||
     ((firstReview as any)?.created_at as string | undefined) ||
     tool.last_verified_at
