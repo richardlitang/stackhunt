@@ -4,6 +4,7 @@ import {
   filterGenericStrengths,
   normalizeTextContent,
 } from '../lib/utils/content-sanitizer';
+import TwoColumnChecklistCards from './TwoColumnChecklistCards.astro';
 
 interface Props {
   userAdvocate?: {
@@ -81,28 +82,13 @@ if (
   )}
 
   {(strengths.length > 0 || concerns.length > 0) && (
-    <div class="grid gap-4 md:grid-cols-2">
-      {strengths.length > 0 && (
-        <div>
-          <h3 class="text-sm font-semibold text-zinc-100">What Users Praise</h3>
-          <ul class="mt-2 space-y-1.5 text-sm text-zinc-300">
-            {strengths.map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {concerns.length > 0 && (
-        <div>
-          <h3 class="text-sm font-semibold text-zinc-100">Common Friction</h3>
-          <ul class="mt-2 space-y-1.5 text-sm text-zinc-300">
-            {concerns.map((item) => (
-              <li>- {item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+    <TwoColumnChecklistCards
+      className=""
+      headingClassName="text-sm font-semibold text-zinc-100"
+      listClassName="mt-2 space-y-1.5 text-sm text-zinc-300"
+      left={strengths.length > 0 ? { title: 'What Users Praise', items: strengths } : undefined}
+      right={concerns.length > 0 ? { title: 'Common Friction', items: concerns } : undefined}
+    />
   )}
 
   {practicalTip && (

@@ -9,6 +9,7 @@ interface Props {
   right?: ChecklistCard;
   className?: string;
   headingClassName?: string;
+  listClassName?: string;
 }
 
 const {
@@ -16,6 +17,7 @@ const {
   right,
   className = 'mt-4',
   headingClassName = 'text-sm font-semibold text-zinc-200',
+  listClassName = 'mt-2 space-y-1 text-sm text-zinc-300',
 } = Astro.props as Props;
 
 const cards = [left, right].filter((card): card is ChecklistCard => Boolean(card));
@@ -30,7 +32,7 @@ if (cards.length === 0) {
     cards.map((card) => (
       <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
         <h3 class={headingClassName}>{card.title}</h3>
-        <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+        <ul class={listClassName}>
           {card.items.map((item) => (
             <li>- {item}</li>
           ))}
