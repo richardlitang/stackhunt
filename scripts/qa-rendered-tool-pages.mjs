@@ -23,6 +23,24 @@ function parseCsvArg(name) {
     .filter((value) => value.length > 0);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function formatFetchError(error) {
+  if (!error) return 'unknown fetch error';
+  const parts = [];
+  let current = error;
+  while (current && typeof current === 'object') {
+    if (typeof current.message === 'string' && current.message.trim().length > 0) {
+      parts.push(current.message.trim());
+    }
+    current = current.cause;
+  }
+  if (parts.length > 0) return parts.join(' | cause: ');
+  return String(error);
+}
+
 function runCommand(command, label, extraEnv = {}) {
   return new Promise((resolve, reject) => {
     const [cmd, ...args] = command;
@@ -196,15 +214,37 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   };
 }
 
-async function fetchText(url) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Request failed (${response.status}) for ${url}`);
+async function fetchText(url, options = {}) {
+  const retries = Math.max(0, Number.isFinite(options.retries) ? options.retries : 2);
+  const timeoutMs = Math.max(1000, Number.isFinite(options.timeoutMs) ? options.timeoutMs : 15000);
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+          'User-Agent': 'stackhunt-qa-rendered/1.0',
+        },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status}) for ${url}`);
+      }
+      return response.text();
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await sleep(250 * (attempt + 1));
+      }
+    }
   }
-  return response.text();
+
+  throw new Error(`Fetch failed for ${url}: ${formatFetchError(lastError)}`);
 }
 
-async function discoverToolUrls(baseUrl) {
+async function discoverToolUrls(baseUrl, fetchOptions) {
   const sitemapCandidates = ['/sitemap-tools.xml', '/sitemap.xml', '/sitemap-index.xml'];
   const discovered = new Set();
   const seenSitemaps = new Set();
@@ -215,7 +255,7 @@ async function discoverToolUrls(baseUrl) {
 
     let xml = '';
     try {
-      xml = await fetchText(sitemapUrl);
+      xml = await fetchText(sitemapUrl, fetchOptions);
     } catch {
       return;
     }
@@ -252,6 +292,8 @@ async function main() {
   const port = Number(getArgValue('port', '4324')) || 4324;
   const timeoutMs = Number(getArgValue('timeout-ms', '90000')) || 90000;
   const maxNotConfirmed = Number(getArgValue('max-not-confirmed', '8')) || 8;
+  const fetchTimeoutMs = Number(getArgValue('fetch-timeout-ms', '15000')) || 15000;
+  const fetchRetries = Number(getArgValue('fetch-retries', '2')) || 2;
   const templateOnly = hasFlag('template-only');
   const skipBuild = hasFlag('skip-build');
   const externalServer = hasFlag('external-server');
@@ -265,6 +307,7 @@ async function main() {
   });
   const explicitSlugs = parseCsvArg('slug');
   const explicitSlugPaths = explicitSlugs.map((slug) => `/tool/${slug}`);
+  const fetchOptions = { timeoutMs: fetchTimeoutMs, retries: fetchRetries };
 
   if (templateOnly) {
     const fallbackFailures = runTemplateFallbackChecks({ maxNotConfirmed });
@@ -304,7 +347,7 @@ async function main() {
         ? explicitPaths
         : explicitSlugPaths.length > 0
           ? explicitSlugPaths
-          : await discoverToolUrls(baseUrl);
+          : await discoverToolUrls(baseUrl, fetchOptions);
     if (toolPaths.length === 0) {
       throw new Error('No /tool/* URLs discovered from sitemap endpoints');
     }
@@ -314,10 +357,18 @@ async function main() {
     const failures = [];
     for (const toolPath of samplePaths) {
       const url = `${baseUrl}${toolPath}`;
-      const html = await fetchText(url);
-      const audited = auditRenderedPage({ url, html, maxNotConfirmed });
-      if (audited.failures.length > 0) {
-        failures.push(audited);
+      try {
+        const html = await fetchText(url, fetchOptions);
+        const audited = auditRenderedPage({ url, html, maxNotConfirmed });
+        if (audited.failures.length > 0) {
+          failures.push(audited);
+        }
+      } catch (error) {
+        failures.push({
+          url,
+          failures: [`fetch_error:${formatFetchError(error)}`],
+          notConfirmedHits: 0,
+        });
       }
     }
 

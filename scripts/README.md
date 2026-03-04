@@ -68,6 +68,7 @@ Minimal operational scripts for the live content pipeline.
 - Backfill decision intro + slots (verbose diagnostics): `npm run qa:backfill-decision-intro -- --limit=500 --verbose`
 - Tool page structure gate (template-only, CI-safe): `npm run qa:rendered-tool-pages -- --template-only --sample=15`
 - Tool page rendered gate against explicit slugs (bypasses sitemap discovery): `npm run qa:rendered-tool-pages -- --external-server --skip-build --base-url=https://stackhunt.io --slug=figma,mailchimp,zapier`
+- Rendered gate retry tuning (optional): add `--fetch-timeout-ms=20000 --fetch-retries=3`
 - Live production smoke check (multi-slug): `npm run qa:smoke:live -- --slug=figma,mailchimp,zapier`
 - Runtime vs snapshot parity diff (best pages): `npm run qa:diff-runtime-snapshot -- --sample=50 --status=draft`
 - Runtime vs snapshot parity diff (compare pages): `npm run qa:diff-compare-snapshot -- --sample=50 --status=draft`
