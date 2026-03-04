@@ -86,9 +86,6 @@ import {
   buildToolPageSourceAriaLabel,
   formatToolPageVerifiedDate,
 } from '@/lib/tool-page-source-labels';
-import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
-import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
-import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
 import {
   countEligibleEvidenceDomains,
   isEligibleEvidenceUrl,
@@ -96,6 +93,7 @@ import {
 import { selectToolPageReview } from '@/lib/reviews/select-review';
 import { deriveToolPageSetupSignals } from '@/lib/tool-page-setup';
 import { deriveToolPageSectionSignals } from '@/lib/tool-page-section-signals';
+import { buildToolPageSectionState } from '@/lib/tool-page-section-state';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -595,29 +593,18 @@ const comparableAlternatives = (orderedAlternatives || []).filter((alt) =>
 );
 const hasComparableAlternatives = comparableAlternatives.length > 0;
 const hasCommunityRaw = sectionSignals.hasCommunityRaw;
-const evidenceContract = createToolPageEvidenceContract({
-  factFields: ['evidence', 'pricing', 'alternatives'],
-  evaluationDepth: 'docs_only',
-  confidenceByField: {
-    evidence: contentConfidenceLevel,
-    pricing: tool.pricing_verified_at ? 'high' : 'unknown',
-    alternatives: hasAlternatives ? 'medium' : 'unknown',
-  },
-  lastCheckedByField: {
-    evidence:
-      ((firstReview as { updated_at?: string | null; created_at?: string | null } | null)
-        ?.updated_at ||
-        (firstReview as { updated_at?: string | null; created_at?: string | null } | null)
-          ?.created_at ||
-        tool.last_verified_at) ??
-      null,
-    pricing: tool.pricing_verified_at || tool.last_verified_at || null,
-    alternatives: tool.updated_at || tool.last_verified_at || null,
-  },
-});
-const freshnessPolicy = applyToolPageFreshnessPolicy(evidenceContract, new Date());
-const sectionContract = computeToolPageSectionContract({
-  evidenceContract: freshnessPolicy.contract,
+const sectionState = buildToolPageSectionState({
+  contentConfidenceLevel,
+  hasAlternatives,
+  firstReviewUpdatedAt:
+    (firstReview as { updated_at?: string | null; created_at?: string | null } | null)?.updated_at ||
+    null,
+  firstReviewCreatedAt:
+    (firstReview as { updated_at?: string | null; created_at?: string | null } | null)?.created_at ||
+    null,
+  toolLastVerifiedAt: tool.last_verified_at || null,
+  toolPricingVerifiedAt: tool.pricing_verified_at || null,
+  toolUpdatedAt: tool.updated_at || null,
   sectionStatus: {
     specs: sectionStatus.specs,
     community: sectionStatus.community,
@@ -632,29 +619,19 @@ const sectionContract = computeToolPageSectionContract({
   hasPlatformData: hasPlatformRaw,
   hasSecurityData: Boolean(knowledgeCard?.security),
   hasPortabilityData: Boolean(knowledgeCard?.smp_portability),
+  hasKnowledgeCard: Boolean(knowledgeCard),
+  hasParentTool: Boolean(parentTool),
+  hasSupportData: Boolean(knowledgeCard?.support),
+  now: new Date(),
 });
-const hasFAQ = sectionContract.allowedSections.faq;
-const hasGettingStarted = sectionContract.allowedSections.getting_started;
-const hasSpecs = sectionContract.allowedSections.specs;
-const hasCommunity = sectionContract.allowedSections.community;
-const hasPlatform = sectionContract.allowedSections.platform;
-const hasSecurity = sectionContract.allowedSections.security;
-const hasPortability = sectionContract.allowedSections.portability;
-const hasOperationalDetails = Boolean(
-  knowledgeCard ||
-    parentTool ||
-    (hasSecurity && knowledgeCard?.security) ||
-    knowledgeCard?.support ||
-    (hasPortability && knowledgeCard?.smp_portability)
-);
-// Runtime safety aliases for section contract wiring.
-const _hasFaqData = hasFAQRaw;
-const _hasGettingStartedData = hasGettingStartedRaw;
-const _hasSpecsData = hasSpecsRaw;
-const _hasCommunityData = hasCommunityRaw;
-const _hasPlatformData = hasPlatformRaw;
-const _hasSecurityData = Boolean(knowledgeCard?.security);
-const _hasPortabilityData = Boolean(knowledgeCard?.smp_portability);
+const hasFAQ = sectionState.hasFAQ;
+const hasGettingStarted = sectionState.hasGettingStarted;
+const hasSpecs = sectionState.hasSpecs;
+const hasCommunity = sectionState.hasCommunity;
+const hasPlatform = sectionState.hasPlatform;
+const hasSecurity = sectionState.hasSecurity;
+const hasPortability = sectionState.hasPortability;
+const hasOperationalDetails = sectionState.hasOperationalDetails;
 const showProceduralVerdict =
   hasProceduralGuidance && sectionStatus.verdict === 'procedural' && !hasVerdict;
 const showProceduralSpecs =
