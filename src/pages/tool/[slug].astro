@@ -1013,23 +1013,26 @@ const toolPageQaGate = evaluateToolPageQaGate({
   hasDecisionSummaryBlock: true,
   introLooksSpecSheet,
 });
+const toolMeta = generateToolMeta(tool, tool.review_count);
 const indexPolicy = evaluateToolPageIndexPolicy({
   gateShouldIndex,
   isDraftPage,
   pendingVerificationCount,
   toolPageQaPass: toolPageQaGate.pass,
   showReviewInProgressBanner,
+  toolCanonicalUrl: toolMeta.canonical,
+  fallbackCanonicalUrl: getCanonicalUrl('/tools'),
+  defaultDescription: toolMeta.description,
+  draftDescription: safeDraftDescription,
 });
 const shouldNoindex = indexPolicy.shouldNoindex;
-const toolMeta = generateToolMeta(tool, tool.review_count);
 const meta = {
   ...toolMeta,
-  description:
-    shouldNoindex && !showReviewInProgressBanner ? safeDraftDescription : toolMeta.description,
-  canonical: shouldNoindex ? getCanonicalUrl('/tools') : toolMeta.canonical,
+  description: indexPolicy.description,
+  canonical: indexPolicy.canonicalUrl,
   noindex: shouldNoindex,
 };
-Astro.response.headers.set('X-Robots-Tag', meta.noindex ? 'noindex,follow' : 'index,follow');
+Astro.response.headers.set('X-Robots-Tag', indexPolicy.robotsTag);
 const schemas = [
   generateToolSchema(tool, primaryOffer, tool.review_count),
   generateBreadcrumbSchema([
