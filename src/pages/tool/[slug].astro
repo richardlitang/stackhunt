@@ -31,7 +31,7 @@ import SuiteNavigation from '@/components/SuiteNavigation.astro';
 import DynamicSpecs from '@/components/DynamicSpecs.astro';
 import IncludedTools from '@/components/IncludedTools.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
-import type { KnowledgeCard, ToolConstraints } from '@/lib/knowledge-card';
+import type { KnowledgeCard } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
 import { getToolBySlugAndType, getToolTags, supabase } from '@/lib/supabase';
 import {
@@ -87,6 +87,7 @@ import { deriveToolPageReviewProgress } from '@/lib/tool-page/review-progress';
 import { buildToolPageTradeoffEvidence } from '@/lib/tool-page/tradeoff-evidence';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 import { buildToolPageRuntime } from '@/lib/tool-page/runtime';
+import { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -133,44 +134,26 @@ const firstReview = reviewSelection.firstPublished;
 const hasNewerUnpublishedReview = reviewSelection.hasNewerUnpublishedThanPublished;
 const reviewContentLists = deriveToolPageReviewContentLists(firstReview);
 
-// Extract Knowledge Card data for new components
-const knowledgeCard = tool.metadata as KnowledgeCard | null;
-const toolSpecs = tool.specs as Record<string, unknown> | null;
-const globalPros = Array.isArray(toolSpecs?.pros) ? toolSpecs?.pros : [];
-const globalCons = Array.isArray(toolSpecs?.cons) ? toolSpecs?.cons : [];
-const constraints = toolSpecs?.constraints as ToolConstraints | null;
-const canonicalFacts = toolSpecs?.canonical as Record<string, unknown> | undefined;
-const setupTracks = canonicalFacts?.setup_tracks as
-  | { dev?: Array<Record<string, unknown>>; non_dev?: Array<Record<string, unknown>> }
-  | undefined;
-// V4: Smart Schema - Category-specific and VIP tool-specific data
-const categorySpecificData = toolSpecs?.categorySpecificData as Record<string, unknown> | undefined;
-const canonicalLatestModels = Array.isArray(canonicalFacts?.latest_models_comparison)
-  ? canonicalFacts.latest_models_comparison.filter(
-      (entry): entry is string => typeof entry === 'string'
-    )
-  : [];
-const displayCategorySpecificData =
-  categorySpecificData && canonicalLatestModels.length > 0
-    ? {
-        ...categorySpecificData,
-        latest_model: canonicalLatestModels[0],
-        model_options: canonicalLatestModels,
-      }
-    : categorySpecificData;
+const coreState = deriveToolPageCoreState({
+  tool,
+  hasNewerUnpublishedReview,
+});
+const {
+  knowledgeCard,
+  toolSpecs,
+  globalPros,
+  globalCons,
+  constraints,
+  canonicalFacts,
+  setupTracks,
+  categorySpecificData,
+  canonicalLatestModels,
+  displayCategorySpecificData,
+  websiteHostLabel,
+  vipSpecifics,
+  reviewContext,
+} = coreState;
 const pricingTypeLabel = formatPricingType(tool.pricing_type || 'paid');
-const websiteHostLabel = (() => {
-  if (!tool.website) return null;
-  try {
-    return new URL(tool.website).hostname.replace(/^www\./, '');
-  } catch {
-    return tool.website.replace(/^https?:\/\//i, '').split('/')[0] || tool.website;
-  }
-})();
-const vipSpecifics = toolSpecs?.specifics as Record<string, unknown> | undefined;
-const reviewContext = hasNewerUnpublishedReview
-  ? null
-  : (tool.review_context as Record<string, unknown> | null);
 const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
 const {
   userAdvocate,
