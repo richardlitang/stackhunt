@@ -377,6 +377,15 @@ The coding interface is turn-based.
 - That checkpoint should include completed slices, verification status, push status, and the next slice already queued.
 - Do not wait for user confirmation unless a critical blocker from the list above is hit.
 
+### Batch Trigger Keyword
+
+Use `go` as the default autonomy trigger in this repository.
+
+- When the user says `go`, execute a 3-slice autonomous batch.
+- A slice is one logical, shippable unit, for example extract one cohesive policy module plus route wiring plus tests.
+- For each slice: implement, verify (`typecheck`, relevant tests, build as needed), commit, and push.
+- After 3 slices, send one concise checkpoint and immediately queue the next batch unless a critical blocker is hit.
+
 ### Production Push Safety
 
 If a push could affect production behavior, pause and ask before pushing.
