@@ -49,12 +49,6 @@ import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 import { evaluateToolPageQaGate } from '@/lib/tool-page-qa-gate';
 import { evaluateToolPageIndexPolicy } from '@/lib/tool-page-index-policy';
 import {
-  buildToolPageTrustViewModel,
-  countPendingVerifications,
-  deriveToolPageEvidenceState,
-  type ToolPageEvidenceGrade,
-} from '@/lib/tool-page-trust';
-import {
   buildToolPagePricingViewModel,
   deriveToolPagePricingSignals,
 } from '@/lib/tool-page-pricing';
@@ -93,6 +87,7 @@ import { buildToolPageAlternativesState } from '@/lib/tool-page-alternatives-sta
 import { deriveToolPageVerdictPolicy } from '@/lib/tool-page-verdict-policy';
 import { buildToolPageLensRuntime } from '@/lib/tool-page-lens-runtime';
 import { deriveToolPageReviewSignals } from '@/lib/tool-page-review-signals';
+import { buildToolPageTrustRuntime } from '@/lib/tool-page-trust-runtime';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -444,8 +439,6 @@ const gateBlocksFoundations =
   gateReasons.includes('missing_required_sections') || gateReasons.includes('mvup_incomplete');
 const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
 const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
-const baseShouldNoindex = !gateShouldIndex || isDraftPage;
-let isVerificationMode = baseShouldNoindex;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
 const strictGateBlockers = firstReview
   ? evaluateStrictPublishGate(tool as any, firstReview as any).blockers
@@ -763,14 +756,12 @@ decisionTradeoffSummary =
   cleanNarrativeText(decisionSnapshotWatchOuts[0]) ||
   'Tradeoff not confirmed yet.';
 const gettingStartedCtaUrl = setupSignals.gettingStartedCtaUrl;
-const baseEvidenceGrade: ToolPageEvidenceGrade = deriveToolPageBaseEvidenceGrade({
+const baseEvidenceGrade = deriveToolPageBaseEvidenceGrade({
   officialEvidenceLinks,
   canonicalHardLimitCount: canonicalHardLimits.length,
   evidenceLinkCount: evidenceLinks.length,
 });
-let evidenceGrade: ToolPageEvidenceGrade = baseEvidenceGrade;
 let pendingVerificationCount = 0;
-isVerificationMode = baseEvidenceGrade === 'C';
 const directPricingPageSource =
   typeof knowledgeCard?.smp_pricing?.pricing_page_url === 'string'
     ? knowledgeCard.smp_pricing.pricing_page_url
@@ -928,19 +919,10 @@ const tradeoffCons = uniqueDecisionText([
     })
   )
   .filter((item): item is EvidenceBulletV2 => Boolean(item));
-const _hasVerifiedAvoidIf = Boolean(avoidIfBullet && !avoidIfBullet.unverified);
-pendingVerificationCount = countPendingVerifications([avoidIfBullet, ...tradeoffCons, ...decisionProofPoints]);
-const evidenceState = deriveToolPageEvidenceState({
+const trustRuntime = buildToolPageTrustRuntime({
   baseEvidenceGrade,
-  pendingVerificationCount,
-});
-evidenceGrade = evidenceState.evidenceGrade;
-isVerificationMode = evidenceState.isVerificationMode;
-const _evidenceGrade = evidenceGrade;
-const toolPageTrustViewModel = buildToolPageTrustViewModel({
+  verificationItems: [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints],
   hasCollectedSources,
-  isVerificationMode,
-  pendingVerificationCount,
   contentConfidenceLevel,
   hasPricingCheckedProof,
   pricingCheckedLabel,
@@ -950,7 +932,8 @@ const toolPageTrustViewModel = buildToolPageTrustViewModel({
   communityVerifiedLabel,
   officialPricingSourceUrl: officialPricingSource?.url || null,
 });
-const { trustStatus, trustConfidenceLabel, updateHistoryEntries } = toolPageTrustViewModel;
+pendingVerificationCount = trustRuntime.pendingVerificationCount;
+const { trustStatus, trustConfidenceLabel, updateHistoryEntries } = trustRuntime;
 const toolReviewHeading = `${tool.name} Review`;
 const toolPageQaGate = evaluateToolPageQaGate({
   title: `${tool.name} Review | StackHunt`,
