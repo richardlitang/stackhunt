@@ -17,7 +17,6 @@ import CompareKeyDifferencesTable from '@/components/CompareKeyDifferencesTable.
 import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import SmartComparisonTable from '@/components/SmartComparisonTable';
-import PricingCrossoverChart from '@/components/PricingCrossoverChart';
 import ProsCons from '@/components/ProsCons.astro';
 import TrustBar from '@/components/TrustBar.astro';
 import AudienceFitTable from '@/components/AudienceFitTable.astro';
@@ -25,6 +24,7 @@ import MigrationDirectionCards from '@/components/MigrationDirectionCards.astro'
 import SwitchReasonsCards from '@/components/SwitchReasonsCards.astro';
 import CompareSuggestionsGrid from '@/components/CompareSuggestionsGrid.astro';
 import ChooseIfCards from '@/components/ChooseIfCards.astro';
+import ComparePricingCrossoverSection from '@/components/ComparePricingCrossoverSection.astro';
 import { supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {
@@ -878,26 +878,20 @@ const schemas = [
     }
 
     <!-- Pricing Crossover Chart - THE KILLER FEATURE -->
-    <section class="mt-12">
-      <p class="mb-3 text-xs text-zinc-500">
-        Pricing can change frequently; confirm current plans on vendor pricing pages.
-      </p>
-      <PricingCrossoverChart
-        client:load
-        tools={[
-          {
-            name: toolA.name,
-            slug: toolA.slug,
-            pricingData: (toolA.specs?.pricing_data as SMPPricingData | undefined) || null,
-          },
-          {
-            name: toolB.name,
-            slug: toolB.slug,
-            pricingData: (toolB.specs?.pricing_data as SMPPricingData | undefined) || null,
-          },
-        ]}
-      />
-    </section>
+    <ComparePricingCrossoverSection
+      tools={[
+        {
+          name: toolA.name,
+          slug: toolA.slug,
+          pricingData: (toolA.specs?.pricing_data as SMPPricingData | undefined) || null,
+        },
+        {
+          name: toolB.name,
+          slug: toolB.slug,
+          pricingData: (toolB.specs?.pricing_data as SMPPricingData | undefined) || null,
+        },
+      ]}
+    />
 
     <!-- Smart Feature Comparison (using Knowledge Cards) -->
     <section class="mt-12">
