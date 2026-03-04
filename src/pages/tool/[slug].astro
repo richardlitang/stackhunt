@@ -64,6 +64,7 @@ import {
 import { buildToolPageEvaluationViewModel } from '@/lib/tool-page-evaluation';
 import { buildToolPageSourcesViewModel } from '@/lib/tool-page-sources';
 import { buildToolPageDecisionSnapshot } from '@/lib/tool-page-decision';
+import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page-evidence-grade';
 import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
 import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
@@ -1180,25 +1181,11 @@ decisionTradeoffSummary =
   cleanNarrativeText(decisionSnapshotWatchOuts[0]) ||
   'Tradeoff not confirmed yet.';
 const gettingStartedCtaUrl = knowledgeCard?.setup_complexity?.setup_url || tool.website || null;
-const officialDomains = new Set(officialEvidenceLinks.map((entry) => entry.domain));
-const hasOfficialPricingSource = officialEvidenceLinks.some(
-  (entry) => entry.basis === 'Official pricing pages'
-);
-const hasOfficialDocOrHelpSource = officialEvidenceLinks.some((entry) =>
-  ['Official docs/help center', 'Official changelogs', 'Official status pages'].includes(
-    entry.basis
-  )
-);
-const hasSourcedCoreClaims = canonicalHardLimits.length > 0 || evidenceLinks.length >= 3;
-const baseEvidenceGrade: ToolPageEvidenceGrade =
-  officialDomains.size >= 2 &&
-  hasOfficialPricingSource &&
-  hasOfficialDocOrHelpSource &&
-  hasSourcedCoreClaims
-    ? 'A'
-    : officialDomains.size >= 1 && (canonicalHardLimits.length > 0 || hasOfficialDocOrHelpSource)
-      ? 'B'
-      : 'C';
+const baseEvidenceGrade: ToolPageEvidenceGrade = deriveToolPageBaseEvidenceGrade({
+  officialEvidenceLinks,
+  canonicalHardLimitCount: canonicalHardLimits.length,
+  evidenceLinkCount: evidenceLinks.length,
+});
 let evidenceGrade: ToolPageEvidenceGrade = baseEvidenceGrade;
 let pendingVerificationCount = 0;
 isVerificationMode = baseEvidenceGrade === 'C';
