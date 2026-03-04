@@ -1,6 +1,21 @@
-# StackHunt (Codex Guide)
+# StackHunt (Agent Operating Guide)
 
-AI-powered programmatic SEO platform. Researches tools via web search, generates contextual reviews using Gemini, publishes to Astro site.
+AI-powered programmatic SEO platform. StackHunt researches software tools via web search, generates contextual reviews using Gemini, and publishes buyer-oriented content to an Astro site.
+
+This file is the repo-level operating contract for AI coding agents. Follow it as the source of truth for architecture, code quality, maintainability, and scalability.
+
+## Core Objective
+
+Optimize for the following, in this order:
+
+1. Correctness
+2. Trustworthiness of content and data
+3. Maintainability
+4. Simplicity
+5. Performance
+6. Speed of implementation
+
+Prefer boring, explicit, testable code over clever code.
 
 ## Quick Reference
 
@@ -10,206 +25,378 @@ AI-powered programmatic SEO platform. Researches tools via web search, generates
 | Hunter CLI usage | `scripts/README.md` |
 | DB schema | `supabase/migrations/001_foundation.sql` |
 | Queue system | `supabase/migrations/010_strategic_architecture.sql` |
-| Type definitions | `src/types/database.ts` |
-| **Roadmap V1** | `.claude/docs/ROADMAP_V1.md` |
-| **Hunter Extension** | `.claude/docs/HUNTER_EXTENSION.md` |
-| **Quick Context** | `.claude/docs/QUICK_CONTEXT.md` |
-| **Supabase Project ID** | `.claude/SUPABASE_PROJECT_ID.md` |
-| **Legal Compliance** | `.claude/docs/LEGAL_COMPLIANCE.md` |
+| Domain types | `src/types/database.ts` |
+| Generated Supabase types | `src/types/supabase.ts` |
+| Roadmap V1 | `.claude/docs/ROADMAP_V1.md` |
+| Hunter Extension | `.claude/docs/HUNTER_EXTENSION.md` |
+| Quick Context | `.claude/docs/QUICK_CONTEXT.md` |
+| Supabase Project ID | `.claude/SUPABASE_PROJECT_ID.md` |
+| Legal Compliance | `.claude/docs/LEGAL_COMPLIANCE.md` |
+| Durable decisions | `docs/DECISIONS.md` |
+| Test quickstart | `docs/TESTING_QUICKSTART.md` |
+
+**Supabase Project ID:** `vhelpqzbtzwiddoebnyy`
 
 ## Tech Stack
 
 Astro 5 (Islands) | React 18 | Tailwind | Supabase (Postgres + pgvector) | Gemini 2.0 Flash | Serper API | Vercel
 
-**Supabase Project ID:** `vhelpqzbtzwiddoebnyy` (see `.claude/SUPABASE_PROJECT_ID.md`)
+## Current Hotspots (Do Not Worsen)
+
+These files are currently large and should not grow without extraction:
+
+- `src/pages/tool/[slug].astro` (~3381 lines)
+- `src/pages/compare/[...slugs].astro` (~1352 lines)
+- `src/pages/best/[slug].astro` (~981 lines)
+- `src/lib/hunter/phases/persistence.ts` (~4452 lines)
+- `src/lib/supabase.ts` (~701 lines)
+
+When touching these files, leave them better than found.
+
+## Non-Negotiable Rules
+
+- Do not break published behavior unless the task explicitly requires it.
+- Do not bypass trust, review, or publish gates.
+- Do not duplicate business rules across pages, components, scripts, and APIs.
+- Do not put core business logic in page templates when it can live in `src/lib/`.
+- Do not put data fetching and policy logic inside presentational components.
+- Do not introduce new dependencies unless explicitly requested or clearly justified.
+- Do not hand-edit generated files.
+- Do not edit or move `.claude/` artifacts unless explicitly requested.
+- If tests, typecheck, or build are not run, say so explicitly.
+- For all rewriting in this repository, do not use em dashes. Use commas, periods, or parentheses instead.
 
 ## Project Structure
 
-```
+```text
 src/
-├── components/     # *.astro (static) | *.tsx (React islands)
-├── layouts/        # BaseLayout, AdminLayout
+├── components/       # UI only, Astro or React islands
+├── layouts/          # Page shells only
 ├── lib/
-│   ├── hunter/     # 3-phase pipeline (research→analysis→persistence)
-│   │   ├── orchestrator.ts    # Main coordinator
-│   │   ├── phases/            # Research, Analysis, Persistence
-│   │   └── services/          # Gemini, Serper, Logo, Queue
-│   ├── supabase.ts            # DB client
-│   └── auth.ts                # Admin auth
+│   ├── hunter/       # Pipeline logic (research → analysis → persistence)
+│   ├── supabase.ts   # DB clients + query helpers
+│   └── auth.ts       # Auth helpers
 ├── pages/
-│   ├── api/cron/   # Vercel cron endpoints
-│   ├── admin/      # Dashboard pages
-│   ├── best/       # Context pages (/best/[slug])
-│   ├── tool/       # Tool pages (/tool/[slug])
-│   └── compare/    # Comparison pages
-└── types/          # TypeScript definitions
+│   ├── api/cron/     # Cron/API entry points
+│   ├── admin/        # Admin pages
+│   ├── best/         # Context pages
+│   ├── tool/         # Tool pages
+│   └── compare/      # Comparison pages
+└── types/            # TypeScript types
 
-scripts/            # CLI tools (hunter.ts, queue-worker.ts, etc.)
-supabase/migrations/ # 21 SQL migration files
+scripts/              # CLI tools
+supabase/migrations/  # SQL migrations
 ```
 
-## Commands
+## Architecture Principles
 
-```bash
-npm run dev          # Astro dev (port 4321)
-npm run build        # Production build
-npm run hunt -- [args]  # Hunter CLI (see scripts/README.md)
-npm run queue:worker    # Continuous queue processor
-npm run types:db        # Regenerate Supabase types -> src/types/supabase.ts
-npm run typecheck    # TypeScript check
-npm run test         # Vitest tests
-```
+### 1) Keep Layer Boundaries Clear
 
-## Database Core Tables
+- Pages: route params, request context, composition, SEO wiring.
+- Components: rendering and minimal view behavior.
+- `src/lib`: domain logic, policy, scoring, validation, transformations.
+- Services: Supabase, Gemini, Serper, scraping, queue mechanics.
+- Scripts/workers: operational entry points, not canonical business rule owners.
 
-| Table | Purpose |
-|-------|---------|
-| tools | Software products with metadata, Knowledge Card |
-| contexts | Use-case contexts ("Best X for Y") |
-| reviews | Contextual analysis with score, pros, cons |
-| categories | Taxonomy (function/audience/platform) |
-| hunt_queue | Job queue with priority, status, heartbeat |
-| content_ideas | Strategy staging (pre-hunt ROI gating) |
+If logic is reused or non-trivial, it belongs in `src/lib`, not in a route template.
 
-## Hunter Pipeline (3-Phase)
+### 2) One Canonical Home per Rule
 
-1. **Research** - Serper search (12 parallel queries + deep scrape) → Knowledge Card extraction
-2. **Analysis** - Gemini (two-pass: facts → synthesis) → Score, Pros/Cons, Tribal Knowledge
-3. **Persistence** - Upsert tool → Upsert context → Create review (draft)
+Each important rule has one owner module.
 
-The 12 queries cover: reviews, pricing, alternatives, company info, technical/API, hidden costs, Reddit opinions, power tips, and "is it worth it" discussions.
+Examples:
 
-## Codex Notes
+- Publish gate in one gate module.
+- Index/noindex policy in one policy module.
+- Freshness policy in one freshness module.
+- Query shape in one data access function.
 
-- This file (`AGENTS.md`) is the Codex source of truth for repo-level instructions.
-- Claude artifacts in `.claude/` are referenced for context only. Do not edit or move them unless explicitly requested.
-- Prefer `rg` for search and `apply_patch` for small edits. Avoid introducing new dependencies unless explicitly requested.
-- Keep edits minimal and aligned to existing patterns; avoid refactors unless asked.
-- If tests aren't run, say so explicitly.
-- Use `docs/DECISIONS.md` for durable architectural or workflow decisions.
-- Use `docs/TESTING_QUICKSTART.md` for minimal verification guidance.
-- MCP usage: prefer `mcp__supabase__*` for DB ops to avoid shell prompts. Ensure MCP servers are registered via `codex mcp add` and auth tokens are present in the shell (`SUPABASE_ACCESS_TOKEN`, `GITHUB_PERSONAL_ACCESS_TOKEN`). Verify with `codex mcp list`.
-- Brandfetch usage: only hotlink via `https://cdn.brandfetch.io/{domain}?c={clientId}` in `<img>` tags; do not download, cache, or proxy images; keep `Referrer-Policy` at `strict-origin-when-cross-origin` (not `no-referrer`).
+Do not re-implement the same policy in multiple files.
 
-## Patterns & Conventions
+### 3) Keep Routes Thin
 
-### Prefer
-- Read files before modifying (understand existing patterns)
-- Use existing components in `src/components/`
-- Draft-first workflow (reviews created as drafts, human approves)
-- Atomic queue operations via Supabase RPCs
-- Error classification in hunter (`src/lib/hunter/errors.ts`)
+Astro route files should orchestrate and render, not become policy engines.
 
-### Avoid
-- Skipping the strategy gatekeeper (ROI scoring) for bulk content
-- Direct publish without review gate
-- Hardcoding IDs in migrations (use references)
-- Adding dependencies without checking `package.json` first
+For complex pages, use dedicated builders:
 
-## Backend/Frontend Best Practices
+- `buildToolPageViewModel(...)`
+- `buildComparePageViewModel(...)`
+- `buildContextPageViewModel(...)`
 
-### Database Query Limits (Security & Performance)
+### 4) Reduce Complexity Early
 
-**ALWAYS enforce limits at the backend, not just frontend.**
+Avoid adding one more conditional to overloaded files.
 
-✅ **Good:**
-```typescript
-// Backend: Limit at source
-export async function getItemContexts(itemId: string, limit = 50) {
-  return await supabase
-    .from('reviews')
-    .select('...')
-    .limit(limit);  // ✅ Backend protection
-}
+If a touched file crosses a trigger, extract before adding logic:
 
-// Frontend: Display subset if needed
-const contexts = await getItemContexts(tool.id);
-const displayed = contexts.slice(0, 3);
-```
+- Route file > 1200 lines.
+- Domain/service file > 800 lines.
+- More than 12 top-level derived booleans in one route.
+- More than 3 policy decisions inlined in one route.
 
-❌ **Bad:**
-```typescript
-// Backend: No limit (fetches everything!)
-export async function getItemContexts(itemId: string) {
-  return await supabase
-    .from('reviews')
-    .select('...');  // ⚠️ Could fetch 1000+ rows
-}
+When triggers fire, extract at least one cohesive helper/module in the same change.
 
-// Frontend: Slice wastes bandwidth/memory
-const contexts = await getItemContexts(tool.id);
-const displayed = contexts.slice(0, 3);  // Too late!
-```
+### 5) No Silent Policy Drift
 
-### Query Pattern Rules
+- Prefer one `policyResult` object over mutable boolean chains.
+- Avoid reassignment-based precedence (`x = x || ...` repeatedly).
+- Encode precedence once in a named policy function and unit test it.
 
-1. **All Supabase queries MUST have `.limit()`** unless fetching a single item
-2. **Use parameters for configurable limits** (e.g., `limit = 50`)
-3. **Nested queries need `foreignTable` limits:**
-   ```typescript
-   .limit(10, { foreignTable: 'reviews' })
-   ```
-4. **Frontend `.slice()` is OK** for display logic, but backend must limit first
-5. **Default limits should be conservative** (10-50 rows)
+## Repo Invariants
 
-### When to Use What
+- Draft-first workflow is mandatory for generated reviews.
+- Human approval is required before publish.
+- Queue operations must be atomic and idempotent.
+- Public-facing code must not use service-role credentials.
+- Generated Supabase types must be regenerated after schema changes.
+- Brandfetch assets must only be hotlinked, never downloaded, cached, or proxied.
+- External claims must remain traceable to sources.
+- Trust and review gates are product features, not optional implementation details.
 
-| Scenario | Backend | Frontend |
-|----------|---------|----------|
-| Fetch all contexts | `.limit(50)` | Display all |
-| Show top 3 contexts | `.limit(50)` | `.slice(0, 3)` |
-| Paginated lists | `.limit(20)` per page | Show current page |
-| Single tool | `.maybeSingle()` | Display it |
-| User input search | `.limit(10)` | Display all results |
+## TypeScript Standards
 
-### Security Checklist
+- Prefer strict explicit types.
+- Avoid `any`. If unavoidable, isolate and narrow immediately.
+- Avoid `as any` unless no practical alternative exists.
+- Avoid non-null assertions unless invariant is guaranteed.
+- Add explicit return types for exported functions.
+- Prefer discriminated unions over boolean soup.
 
-- [ ] All public queries use `supabase` client (RLS enforced)
-- [ ] Admin operations use `supabaseAdmin` (service role)
-- [ ] Every list query has `.limit()`
-- [ ] Nested queries use `foreignTable` limits
-- [ ] User input is sanitized (Supabase client handles this)
-- [ ] No raw SQL with user input
+### Supabase Types Rule
 
-### Supabase MCP
-Use `mcp__supabase__*` tools for database operations:
-- `execute_sql` for queries
-- `apply_migration` for DDL changes
-- `list_tables` to explore schema
-- `get_advisors` after DDL to check for security issues
+- `src/types/supabase.ts` is generated, never hand-edit it.
+- `src/types/database.ts` is for domain-level types, not a fallback for `Database = any`.
+- New Supabase client typing should prefer `@/types/supabase`.
+- Do not introduce new code that depends on `Database = any`.
 
-### Supabase Types Sync
-- `src/types/supabase.ts` is generated (do not hand-edit).
-- After any DB migration or RPC change, run `npm run types:db`.
-- Requires `SUPABASE_ACCESS_TOKEN` to be set (or `supabase login`).
+## Database Rules
 
-### Testing Changes
-After code changes:
-1. `npm run typecheck` - Type errors
-2. `npm run build` - Build succeeds
-3. `npm run test` - Tests pass
+### Query Safety and Performance
 
-### Before Push
-- Run `npm run qa:prepush` before pushing.
-- `qa:prepush` runs `typecheck + lint + build` to catch import/export and build-time failures before CI/Vercel.
+- Every list query must include `.limit(...)` unless the data set is intentionally bounded.
+- If intentionally unbounded, add a one-line comment stating why.
+- Add explicit `.order(...)` whenever order matters.
+- Never rely on frontend slicing as primary protection.
+- Use foreign table limits where supported.
+- Avoid `select('*')` on hot paths.
+- Prefer dedicated data access functions for repeated query shapes.
+
+### Security
+
+- Public queries use the RLS-safe client.
+- Admin operations use `supabaseAdmin`.
+- No raw SQL with unsanitized user input.
+- No service-role use in browser-exposed code.
+- After DDL changes, run Supabase advisors.
+
+### Migrations and Types
+
+- Migrations are forward-only, do not rewrite historical migrations.
+- Add indexes when new query patterns are introduced.
+- After schema or RPC changes, run `npm run types:db`.
+
+## Frontend Rules
+
+### General
+
+- Default to server-rendered Astro.
+- Use React islands only when interactivity is required.
+- Keep components presentational by default.
+- Do not fetch primary page data in leaf components without strong reason.
+
+### Client Scripts
+
+- Avoid inline scripts except for small isolated behavior.
+- Do not use TypeScript syntax inside browser-delivered inline scripts.
+- If behavior grows beyond a small utility, move it into a dedicated client module/component.
+
+### UX Bias
+
+Prefer:
+
+- Fast comprehension.
+- Clear decision support.
+- Trust signals that help the reader.
+
+Avoid:
+
+- Excessive meta-UI.
+- Overexposing internal editorial machinery.
+- Clutter above the fold.
+
+## Hunter Pipeline Standards
+
+Three phases:
+
+1. Research
+2. Analysis
+3. Persistence
+
+Rules:
+
+- Keep strict phase boundaries.
+- Keep phase outputs serializable and inspectable.
+- Avoid hidden coupling between phases.
+- Preserve source traceability from research to final artifacts.
+- Keep queue/worker operations retry-safe and observable.
+
+## Error Handling and Observability
+
+- Classify expected operational failures.
+- Do not swallow errors silently.
+- Include context in logs when relevant:
+  - tool slug / tool ID
+  - context ID
+  - review ID
+  - queue job ID
+  - phase name
+  - retry count
+  - duration
+- Never log secrets or tokens.
+
+## Testing and Verification
+
+Run after changes unless environment prevents it:
+
+1. `npm run typecheck`
+2. `npm run build`
+3. `npm run test`
+
+Before push:
+
+- `npm run qa:prepush`
+
+### Critical Modules Require Regression Tests
+
+Any change in these areas must include or update tests:
+
+- Trust/evidence logic
+- Publish/review/index gates
+- Scoring and confidence policy
+- Queue claim/retry/idempotency behavior
+- View-model builders for complex pages
+
+## Refactoring Policy
+
+Refactor when it materially improves:
+
+- Correctness
+- Maintainability
+- Testability
+- Architecture clarity
+- Known hot-path performance
+
+Do not do broad drive-by rewrites. Prefer targeted extraction with behavior parity.
+
+If a file is clearly overloaded, extraction is preferred over adding more branching.
+
+## Documentation Policy
+
+Use `docs/DECISIONS.md` for durable decisions when:
+
+- Introducing a new architectural pattern.
+- Changing canonical workflows.
+- Changing queue semantics.
+- Changing trust/review/publish policy.
+- Adding a major integration boundary.
+
+Keep docs concise and durable.
+
+## MCP and External Service Notes
+
+- Prefer `mcp__supabase__*` tools for DB operations when available (`execute_sql`, `apply_migration`, `list_tables`, `get_advisors`).
+- Verify MCP setup when needed with `codex mcp list`.
+- Brandfetch: hotlink only via `https://cdn.brandfetch.io/{domain}?c={clientId}`.
 
 ## Environment Variables
 
-Required: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `SERPER_API_KEY`, `ADMIN_SECRET`
+Required:
 
-Optional: `DISCORD_WEBHOOK_URL`, `SLACK_WEBHOOK_URL`, `REPLICATE_API_TOKEN`, `PUBLIC_BRANDFETCH_CLIENT_ID`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GEMINI_API_KEY`
+- `SERPER_API_KEY`
+- `ADMIN_SECRET`
 
-Note: CLI scripts load `.env` via `dotenv`. Before assuming missing keys, check that `.env` exists and is populated.
+Optional:
 
-## Common Tasks
+- `DISCORD_WEBHOOK_URL`
+- `SLACK_WEBHOOK_URL`
+- `REPLICATE_API_TOKEN`
+- `PUBLIC_BRANDFETCH_CLIENT_ID`
 
-### Add a new tool manually
+CLI scripts load `.env` via `dotenv`. Check `.env` before assuming missing keys.
+
+## Common Commands
+
+```bash
+npm run dev
+npm run build
+npm run hunt -- [args]
+npm run queue:worker
+npm run queue:worker -- --once
+npm run queue:worker -- --batch 5
+npm run types:db
+npm run typecheck
+npm run test
+npm run qa:prepush
+```
+
+Add a tool manually:
+
 ```bash
 npm run hunt -- --tool="ToolName" --context="Best for X"
 ```
 
-### Process queue
-```bash
-npm run queue:worker -- --once           # Single item
-npm run queue:worker -- --batch 5        # 5 items
-```
+## Autonomy Mode
+
+Default behavior in personal projects is autonomous execution.
+
+- Execute tasks end-to-end without waiting for step-by-step confirmation.
+- Continue through implementation, verification, and cleanup by default.
+- Do not pause after each small extraction or commit.
+- On a user `continue` instruction, execute multiple consecutive work slices in the same turn before replying.
+- Minimum autonomous batch target per `continue` turn:
+  - at least 2 logical code slices, or
+  - at least 1 slice plus full verification and push, then immediately start the next slice
+- Intermediate updates should be brief and only when they materially affect direction, risk, or blocker status.
+- Stop only for critical blockers:
+  - missing or conflicting requirements that materially change behavior
+  - destructive actions not explicitly requested
+  - security/privacy risk
+  - permissions/escalation required
+  - reproducible failing checks that cannot be resolved safely
+  - unexpected repo state that risks overwriting unrelated work
+
+### Turn Boundary Reality
+
+The coding interface is turn-based.
+
+- Agent rules cannot force infinite continuation across turns without any assistant reply.
+- Therefore, the agent should maximize useful autonomous work within each turn, then send one concise checkpoint.
+- That checkpoint should include completed slices, verification status, push status, and the next slice already queued.
+- Do not wait for user confirmation unless a critical blocker from the list above is hit.
+
+### Production Push Safety
+
+If a push could affect production behavior, pause and ask before pushing.
+
+- Do not auto-push risky changes to `main`/production branches without explicit confirmation.
+- For low-risk or clearly requested pushes, proceed normally.
+- When unsure about production risk, ask.
+
+## Definition of Done
+
+A change is done when all are true:
+
+- Behavior is correct and understandable.
+- Architectural boundaries are preserved or improved.
+- Trust and query-safety constraints are preserved.
+- Types are sound for touched code.
+- Verification commands were run, or explicitly skipped with reason.
+- No unnecessary complexity was added.
+- Durable architectural decisions are documented when needed.
+
+## Final Bias
+
+When in doubt, choose the option that makes the system easier to reason about six months from now.
