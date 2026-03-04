@@ -10,6 +10,7 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCanonicalUrl } from '@/lib/utils';
 ---
 
 <BaseLayout
@@ -17,7 +18,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
     title: 'Research Methodology | StackHunt',
     description:
       'Learn how StackHunt builds evidence-backed software intelligence reports with source policy controls, quality gates, and human oversight.',
-    canonical: 'https://stackhunt.co/methodology',
+    canonical: getCanonicalUrl('/methodology'),
   }}
 >
   <main class="min-h-screen bg-gradient-to-b from-zinc-950 to-zinc-900">

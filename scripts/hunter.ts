@@ -548,6 +548,17 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
     if (result.contextId) console.log(`   Context ID: ${result.contextId}`);
     if (result.reviewId) console.log(`   Review ID: ${result.reviewId}`);
     console.log(`   Tokens used: ${result.tokensUsed}`);
+    if (result.telemetry) {
+      const t = result.telemetry;
+      console.log('   Token breakdown:');
+      console.log(`     - Research: ${t.tokens.research.toLocaleString()}`);
+      console.log(`     - Analysis: ${t.tokens.analysis.toLocaleString()}`);
+      console.log(`     - Other: ${t.tokens.other.toLocaleString()}`);
+      console.log(
+        `   Retry telemetry: retries=${t.retries.retries}, timeout_failures=${t.retries.timeoutFailures}, timeout_fallbacks=${t.retries.timeoutFallbackInvocations}`
+      );
+      console.log(`   Estimated LLM cost: $${t.cost.estimatedUsd.toFixed(4)}`);
+    }
 
     if (researchOnly) {
       console.log('\n🔬 Research phase complete');

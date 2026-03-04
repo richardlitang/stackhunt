@@ -19,6 +19,9 @@ interface ItemRow {
 interface QueueRow {
   tool_name: string;
 }
+interface RecentQueueRow {
+  tool_name: string;
+}
 
 function hasFlag(name: string): boolean {
   return process.argv.includes(`--${name}`);
@@ -96,6 +99,7 @@ async function main() {
   const limitArg = Number(getArgValue('limit') || 100);
   const priorityMissingArg = Number(getArgValue('priority-missing-url') || 96);
   const priorityOtherArg = Number(getArgValue('priority-other') || 92);
+  const cooldownHoursArg = Number(getArgValue('cooldown-hours') || 168);
   const huntType = (getArgValue('hunt-type') || 'full').toLowerCase();
 
   const limit = Number.isFinite(limitArg) ? Math.max(1, Math.min(limitArg, 500)) : 100;
@@ -105,6 +109,9 @@ async function main() {
   const priorityOther = Number.isFinite(priorityOtherArg)
     ? Math.max(0, Math.min(priorityOtherArg, 100))
     : 92;
+  const cooldownHours = Number.isFinite(cooldownHoursArg)
+    ? Math.max(0, Math.min(cooldownHoursArg, 24 * 90))
+    : 168;
 
   if (!['full', 'refresh', 'price_only'].includes(huntType)) {
     console.error(`Invalid --hunt-type=${huntType}. Use full, refresh, or price_only.`);
@@ -180,7 +187,24 @@ async function main() {
   }
 
   const existingNames = new Set(((existing || []) as QueueRow[]).map((row) => row.tool_name));
-  const toEnqueue = selected.filter((entry) => !existingNames.has(entry.toolName));
+  const cooldownSinceIso = new Date(Date.now() - cooldownHours * 60 * 60 * 1000).toISOString();
+  const { data: recent, error: recentError } = await supabase
+    .from('hunt_queue')
+    .select('tool_name')
+    .in('tool_name', names)
+    .eq('source', 'scheduled')
+    .eq('hunt_type', huntType as 'full' | 'refresh' | 'price_only')
+    .gte('created_at', cooldownSinceIso)
+    .limit(Math.min(names.length, 500));
+  if (recentError) {
+    console.error(`Failed to check recent cooldown window: ${recentError.message}`);
+    process.exit(1);
+  }
+
+  const recentNames = new Set(((recent || []) as RecentQueueRow[]).map((row) => row.tool_name));
+  const toEnqueue = selected.filter(
+    (entry) => !existingNames.has(entry.toolName) && !recentNames.has(entry.toolName)
+  );
 
   const missingUrlCount = selected.filter((entry) => !entry.hasOfficialPricingUrl).length;
   const withUrlCount = selected.length - missingUrlCount;
@@ -191,6 +215,7 @@ async function main() {
   console.log(`Missing pricing URL (high priority): ${missingUrlCount}`);
   console.log(`Has pricing URL (normal priority): ${withUrlCount}`);
   console.log(`Already queued: ${existingNames.size}`);
+  console.log(`Blocked by cooldown (${cooldownHours}h): ${recentNames.size}`);
   console.log(`To enqueue: ${toEnqueue.length}`);
   console.log(`Hunt type: ${huntType}`);
   console.log(`Priority (missing URL): ${priorityMissing}`);

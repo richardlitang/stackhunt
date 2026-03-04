@@ -50,9 +50,6 @@ export const POST: APIRoute = async ({ request }) => {
 };
 
 export const GET: APIRoute = async ({ request }) => {
-  if (import.meta.env.PROD) {
-    return ApiResponse.forbidden('GET not allowed in production');
-  }
-
+  // Vercel cron executes GET requests.
   return POST({ request } as any);
 };

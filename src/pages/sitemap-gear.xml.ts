@@ -25,7 +25,8 @@ export const GET: APIRoute = async () => {
       .from('items')
       .select('slug, updated_at')
       .eq('type', 'gear')
-      .order('updated_at', { ascending: false });
+      .order('updated_at', { ascending: false })
+      .limit(2000);
 
     if (gear) {
       for (const item of gear) {

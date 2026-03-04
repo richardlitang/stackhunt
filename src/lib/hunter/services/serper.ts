@@ -9,6 +9,7 @@
 import axios from 'axios';
 import type {
   CuratedSources,
+  HunterEntityScope,
   RawSource,
   ScoutFacts,
   ScoutQuality,
@@ -326,7 +327,8 @@ export class SerperService {
     toolName: string,
     contextTitle?: string,
     withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
-    dossierQueries?: string[] // NEW: Pre-generated queries from Classifier's Research Dossier
+    dossierQueries?: string[], // NEW: Pre-generated queries from Classifier's Research Dossier
+    entityScope?: HunterEntityScope
   ): Promise<SearchResult> {
     const classifyDossierQuery = (query: string): QueryType => {
       const q = query.toLowerCase();
@@ -384,66 +386,193 @@ export class SerperService {
         const core: Array<{ type: QueryType; query: string }> = [
           ...dossierQueries.map((query) => ({
             type: classifyDossierQuery(query) as QueryType,
-            query,
+            query: this.applyEntityScopeToQuery(query, toolName, entityScope),
           })),
           {
             type: 'tribal_reddit_hate',
-            query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues"`,
+            query: this.applyEntityScopeToQuery(
+              `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues"`,
+              toolName,
+              entityScope
+            ),
           },
         ];
         const supplemental: Array<{ type: QueryType; query: string }> = [
           {
             type: 'tribal_hn_pricing',
-            query: `site:news.ycombinator.com "${toolName}" pricing OR limits`,
+            query: this.applyEntityScopeToQuery(
+              `site:news.ycombinator.com "${toolName}" pricing OR limits`,
+              toolName,
+              entityScope
+            ),
           },
           {
             type: 'tribal_reddit_gotchas',
-            query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha"`,
+            query: this.applyEntityScopeToQuery(
+              `site:reddit.com "${toolName}" "wish I knew" OR "gotcha"`,
+              toolName,
+              entityScope
+            ),
           },
-          { type: 'forums', query: `"${toolName}" (forum OR community OR discourse OR boards)` },
+          {
+            type: 'forums',
+            query: this.applyEntityScopeToQuery(
+              `"${toolName}" (forum OR community OR discourse OR boards)`,
+              toolName,
+              entityScope
+            ),
+          },
           {
             type: 'corp_profiler',
-            query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+            query: this.applyEntityScopeToQuery(
+              `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+              toolName,
+              entityScope
+            ),
           },
-          { type: 'release_notes', query: `"${toolName}" release notes OR changelog OR updates` },
+          {
+            type: 'release_notes',
+            query: this.applyEntityScopeToQuery(
+              `"${toolName}" release notes OR changelog OR updates`,
+              toolName,
+              entityScope
+            ),
+          },
         ];
         return { core, supplemental };
       }
 
+      const scopedTool = this.buildScopedToolQuery(toolName, entityScope);
+      const scopedLabel =
+        this.normalizeEntityScope(entityScope) === 'enterprise_server'
+          ? 'GitHub Enterprise Server'
+          : this.normalizeEntityScope(entityScope) === 'enterprise_cloud'
+            ? 'GitHub Enterprise Cloud'
+            : this.normalizeEntityScope(entityScope) === 'actions'
+              ? 'GitHub Actions'
+              : this.normalizeEntityScope(entityScope) === 'copilot'
+                ? 'GitHub Copilot'
+                : toolName;
       const core: Array<{ type: QueryType; query: string }> = [
-        { type: 'reviews', query: `${toolName} reviews ${contextTitle || ''}`.trim() },
-        { type: 'pricing', query: `${toolName} pricing plans features` },
-        { type: 'pricing_compare', query: `${toolName} pricing annual vs monthly cost` },
-        { type: 'alternatives', query: `${toolName} alternatives competitors vs` },
-        { type: 'company', query: `${toolName} company founded funding headquarters` },
-        { type: 'technical', query: `${toolName} API integrations data export import` },
+        {
+          type: 'reviews',
+          query: this.applyEntityScopeToQuery(
+            `${scopedLabel} reviews ${contextTitle || ''}`.trim(),
+            toolName,
+            entityScope
+          ),
+        },
+        {
+          type: 'pricing',
+          query: this.applyEntityScopeToQuery(`${scopedTool} pricing plans features`, toolName, entityScope),
+        },
+        {
+          type: 'pricing_compare',
+          query: this.applyEntityScopeToQuery(
+            `${scopedTool} pricing annual vs monthly cost`,
+            toolName,
+            entityScope
+          ),
+        },
+        {
+          type: 'alternatives',
+          query: this.applyEntityScopeToQuery(
+            `${scopedLabel} alternatives competitors vs`,
+            toolName,
+            entityScope
+          ),
+        },
+        {
+          type: 'company',
+          query: this.applyEntityScopeToQuery(
+            `${scopedLabel} company founded funding headquarters`,
+            toolName,
+            entityScope
+          ),
+        },
+        {
+          type: 'technical',
+          query: this.applyEntityScopeToQuery(
+            `${scopedLabel} API integrations data export import`,
+            toolName,
+            entityScope
+          ),
+        },
       ];
 
       const supplemental: Array<{ type: QueryType; query: string }> = [
-        { type: 'budget_hidden', query: `${toolName} hidden costs billing logic` },
-        { type: 'budget_setup', query: `${toolName} implementation fees setup cost minimum seats` },
+        {
+          type: 'budget_hidden',
+          query: this.applyEntityScopeToQuery(
+            `${scopedLabel} hidden costs billing logic`,
+            toolName,
+            entityScope
+          ),
+        },
+        {
+          type: 'budget_setup',
+          query: this.applyEntityScopeToQuery(
+            `${scopedLabel} implementation fees setup cost minimum seats`,
+            toolName,
+            entityScope
+          ),
+        },
         {
           type: 'tribal_reddit_hate',
-          query: `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues" -intitle:"alternatives"`,
+          query: this.applyEntityScopeToQuery(
+            `site:reddit.com "${toolName}" "sucks" OR "slow" OR "broken" OR "issues" -intitle:"alternatives"`,
+            toolName,
+            entityScope
+          ),
         },
         {
           type: 'tribal_hn_pricing',
-          query: `site:news.ycombinator.com "${toolName}" pricing OR limits OR "rate limit"`,
+          query: this.applyEntityScopeToQuery(
+            `site:news.ycombinator.com "${toolName}" pricing OR limits OR "rate limit"`,
+            toolName,
+            entityScope
+          ),
         },
         {
           type: 'tribal_reddit_vs',
-          query: `site:reddit.com "${toolName} vs" OR "switched from" OR "switched to"`,
+          query: this.applyEntityScopeToQuery(
+            `site:reddit.com "${toolName} vs" OR "switched from" OR "switched to"`,
+            toolName,
+            entityScope
+          ),
         },
         {
           type: 'tribal_reddit_gotchas',
-          query: `site:reddit.com "${toolName}" "wish I knew" OR "gotcha" OR "warning"`,
+          query: this.applyEntityScopeToQuery(
+            `site:reddit.com "${toolName}" "wish I knew" OR "gotcha" OR "warning"`,
+            toolName,
+            entityScope
+          ),
         },
-        { type: 'forums', query: `"${toolName}" (forum OR community OR discourse OR boards)` },
+        {
+          type: 'forums',
+          query: this.applyEntityScopeToQuery(
+            `"${toolName}" (forum OR community OR discourse OR boards)`,
+            toolName,
+            entityScope
+          ),
+        },
         {
           type: 'corp_profiler',
-          query: `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+          query: this.applyEntityScopeToQuery(
+            `"${toolName}" company employees revenue headquarters stock ticker Crunchbase LinkedIn`,
+            toolName,
+            entityScope
+          ),
         },
-        { type: 'release_notes', query: `"${toolName}" release notes OR changelog OR updates` },
+        {
+          type: 'release_notes',
+          query: this.applyEntityScopeToQuery(
+            `"${toolName}" release notes OR changelog OR updates`,
+            toolName,
+            entityScope
+          ),
+        },
       ];
       return { core, supplemental };
     };
@@ -502,8 +631,152 @@ export class SerperService {
     }
 
     // Include URL in snippets so AI can cite sources
-    const results = [...coreResults, ...supplementalResults];
-    const queryPlan = [...successfulCorePlan, ...successfulSupplementalPlan];
+    let results = [...coreResults, ...supplementalResults];
+    let queryPlan = [...successfulCorePlan, ...successfulSupplementalPlan];
+
+    const assessSourceBuckets = (
+      responses: SerperResponse[]
+    ): {
+      hasOfficial: boolean;
+      hasIndependent: boolean;
+      hasCommunity: boolean;
+    } => {
+      const provisionalSources: RawSource[] = [];
+      const seen = new Set<string>();
+      for (const response of responses) {
+        for (const entry of response.organic?.slice(0, 5) || []) {
+          if (!entry.link || seen.has(entry.link)) continue;
+          seen.add(entry.link);
+          try {
+            const domain = new URL(entry.link).hostname.replace(/^www\./, '').toLowerCase();
+            provisionalSources.push({
+              url: entry.link,
+              title: entry.title,
+              snippet: entry.snippet,
+              domain,
+              retrieved_at: new Date().toISOString(),
+              published_at: (entry as any).date || (entry as any).dateString || undefined,
+              canonical_url: canonicalizeUrl(entry.link),
+              source_type: 'editorial',
+              intent_tags: [],
+              policy: {
+                acquisition_mode: 'LINK_ONLY',
+                llm_ingestion_allowed: 'NO',
+                display_mode: 'LINK_ONLY',
+              },
+            });
+          } catch {
+            // Skip invalid URLs
+          }
+        }
+      }
+
+      const hostHint = detectToolHostHint(provisionalSources, toolName) || undefined;
+      let hasOfficial = false;
+      let hasIndependent = false;
+      let hasCommunity = false;
+
+      for (const source of provisionalSources) {
+        const sourceType = classifyScoutSourceType(source.url, hostHint);
+        if (sourceType === 'official' || sourceType === 'docs' || sourceType === 'support') {
+          hasOfficial = true;
+        } else if (sourceType === 'community') {
+          hasCommunity = true;
+        } else {
+          hasIndependent = true;
+        }
+      }
+
+      return { hasOfficial, hasIndependent, hasCommunity };
+    };
+
+    const bucketCoverage = assessSourceBuckets(results);
+    const followupPlan: Array<{ type: QueryType; query: string }> = [];
+    const seenFollowupQueries = new Set<string>();
+    const addFollowup = (type: QueryType, query: string) => {
+      const trimmed = query.trim();
+      if (!trimmed || seenFollowupQueries.has(trimmed)) return;
+      if (queryPlan.some((entry) => entry.query === trimmed)) return;
+      seenFollowupQueries.add(trimmed);
+      followupPlan.push({ type, query: trimmed });
+    };
+
+    if (!bucketCoverage.hasOfficial) {
+      addFollowup(
+        'pricing',
+        this.applyEntityScopeToQuery(
+          `${this.buildScopedToolQuery(toolName, entityScope)} official pricing plans`,
+          toolName,
+          entityScope
+        )
+      );
+      addFollowup(
+        'technical',
+        this.applyEntityScopeToQuery(
+          `${this.buildScopedToolQuery(toolName, entityScope)} official docs API`,
+          toolName,
+          entityScope
+        )
+      );
+    }
+
+    if (!bucketCoverage.hasIndependent) {
+      addFollowup(
+        'reviews',
+        this.applyEntityScopeToQuery(
+          `"${toolName}" review g2 OR capterra OR trustradius`,
+          toolName,
+          entityScope
+        )
+      );
+      addFollowup(
+        'alternatives',
+        this.applyEntityScopeToQuery(
+          `"${toolName}" independent review alternatives`,
+          toolName,
+          entityScope
+        )
+      );
+    }
+
+    if (!bucketCoverage.hasCommunity) {
+      addFollowup(
+        'tribal_reddit_vs',
+        this.applyEntityScopeToQuery(
+          `site:reddit.com "${toolName}" review OR experience OR "switched from"`,
+          toolName,
+          entityScope
+        )
+      );
+      addFollowup(
+        'forums',
+        this.applyEntityScopeToQuery(
+          `"${toolName}" user forum community discussion`,
+          toolName,
+          entityScope
+        )
+      );
+    }
+
+    if (followupPlan.length > 0) {
+      console.log(
+        `[Serper] Running ${followupPlan.length} source-mix top-up queries (official=${bucketCoverage.hasOfficial}, independent=${bucketCoverage.hasIndependent}, community=${bucketCoverage.hasCommunity})`
+      );
+      const followupExecution = await this.executePlanResilient(
+        followupPlan,
+        withRetry,
+        recencyTbsForType
+      );
+      if (followupExecution.failed.length > 0) {
+        console.warn(
+          `[Serper] Source-mix top-up query failures: ${followupExecution.failed.length}/${followupPlan.length}`
+        );
+      }
+      if (followupExecution.results.length > 0) {
+        results = [...results, ...followupExecution.results];
+        queryPlan = [...queryPlan, ...followupExecution.successfulPlan];
+      }
+    }
 
     // Extract sources for storage (deduplicated by URL)
     const retrievedAt = new Date().toISOString();
@@ -917,16 +1190,80 @@ export class SerperService {
     }
   }
 
+  private normalizeEntityScope(scope?: string): HunterEntityScope | undefined {
+    if (!scope) return undefined;
+    const normalized = scope.trim().toLowerCase();
+    if (normalized === 'ghes') return 'enterprise_server';
+    if (normalized === 'enterprise') return 'enterprise_cloud';
+    if (
+      normalized === 'core' ||
+      normalized === 'copilot' ||
+      normalized === 'actions' ||
+      normalized === 'enterprise_cloud' ||
+      normalized === 'enterprise_server'
+    ) {
+      return normalized;
+    }
+    return undefined;
+  }
+
+  private isGitHubFamily(toolName: string): boolean {
+    return /\bgithub\b/i.test(toolName);
+  }
+
+  private buildScopedToolQuery(toolName: string, entityScope?: string): string {
+    const scope = this.normalizeEntityScope(entityScope);
+    if (!scope || !this.isGitHubFamily(toolName)) return toolName;
+    if (scope === 'core') {
+      return `"GitHub" -"GitHub Copilot" -"GitHub Actions" -"GitHub Enterprise Server" -"GitHub Advanced Security"`;
+    }
+    if (scope === 'copilot') return `"GitHub Copilot"`;
+    if (scope === 'actions') return `"GitHub Actions"`;
+    if (scope === 'enterprise_cloud') return `"GitHub Enterprise Cloud" OR "GitHub Enterprise"`;
+    if (scope === 'enterprise_server') return `"GitHub Enterprise Server" OR GHES`;
+    return toolName;
+  }
+
+  private applyEntityScopeToQuery(query: string, toolName: string, entityScope?: string): string {
+    const scope = this.normalizeEntityScope(entityScope);
+    if (!scope || !this.isGitHubFamily(toolName)) return query;
+
+    const escapedTool = toolName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const replaced = query.replace(new RegExp(escapedTool, 'ig'), this.buildScopedToolQuery(toolName, scope));
+
+    if (scope === 'core') return `${replaced} -copilot -GHES -\"GitHub Enterprise Server\"`.trim();
+    if (scope === 'copilot') return `${replaced} \"GitHub Copilot\" -\"GitHub Actions\" -GHES`.trim();
+    if (scope === 'actions')
+      return `${replaced} \"GitHub Actions\" runners workflow CI/CD -copilot -GHES`.trim();
+    if (scope === 'enterprise_server')
+      return `${replaced} \"GitHub Enterprise Server\" self-hosted on-prem -copilot`.trim();
+    if (scope === 'enterprise_cloud')
+      return `${replaced} cloud SSO SCIM audit compliance -copilot -GHES`.trim();
+    return replaced;
+  }
+
   /**
    * Scout for pricing-only refreshes (minimal query set + deep pricing scrape)
    */
   async scoutPricingOnly(
     toolName: string,
-    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>
+    withRetry?: <T>(fn: () => Promise<T>, operation: string) => Promise<T>,
+    entityScope?: HunterEntityScope
   ): Promise<SearchResult> {
+    const scopedTool = this.buildScopedToolQuery(toolName, entityScope);
     const queryPlan: Array<{ type: QueryType; query: string }> = [
-      { type: 'pricing', query: `${toolName} pricing plans features` },
-      { type: 'pricing_compare', query: `${toolName} pricing annual vs monthly cost` },
+      {
+        type: 'pricing',
+        query: this.applyEntityScopeToQuery(`${scopedTool} pricing plans features`, toolName, entityScope),
+      },
+      {
+        type: 'pricing_compare',
+        query: this.applyEntityScopeToQuery(
+          `${scopedTool} pricing annual vs monthly cost`,
+          toolName,
+          entityScope
+        ),
+      },
     ];
 
     const pricingExecution = await this.executePlanResilient(queryPlan, withRetry, () => 'qdr:y');

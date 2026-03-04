@@ -16,6 +16,16 @@ const INCOMPLETE_CLAUSE_ENDING =
   /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/i;
 const COMMUNITY_HEDGING_PREFIX =
   /^(users report(?: that)?|community (?:reports|mentions|consensus (?:is|suggests)|feedback)|according to (?:reddit|hn|community)|based on user discussions)/i;
+const GENERIC_NARRATIVE_PATTERNS = [
+  /\bworth shortlisting\b/i,
+  /\brobust and powerful solution\b/i,
+  /\bbest-in-class capabilities\b/i,
+  /\bstrong option(?: based on)?(?: the)? current source-backed evidence\b/i,
+  /\bsolid choice for modern teams\b/i,
+  /\bbest value threshold\b/i,
+  /\bworth it when\b/i,
+  /\bplatform access is limited to web-based environments\b/i,
+];
 
 function normalizeClaimText(text: string): string {
   return text
@@ -277,6 +287,51 @@ export function validateAnalysis(analysis: {
   pros: Array<{ text: string; source?: string; source_type?: string; claim_type?: string }>;
   cons: Array<{ text: string; source?: string; source_type?: string; claim_type?: string }>;
   summary: string;
+  verdict?: string | null;
+  reviewContext?: {
+    decisionIntro?: {
+      what_it_is?: string | null;
+      best_for?: string | null;
+      not_for?: string | null;
+      main_tradeoff?: string | null;
+      summary?: string | null;
+    } | null;
+    decision_intro?: {
+      what_it_is?: string | null;
+      best_for?: string | null;
+      not_for?: string | null;
+      main_tradeoff?: string | null;
+      summary?: string | null;
+    } | null;
+    decisionEvidence?: {
+      best_for_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+      } | null;
+      not_for_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+      } | null;
+      tradeoff_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+      } | null;
+    } | null;
+    decision_evidence?: {
+      best_for_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+      } | null;
+      not_for_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+      } | null;
+      tradeoff_reason?: {
+        text?: string | null;
+        source_url?: string | null;
+      } | null;
+    } | null;
+  } | null;
   graphTags: {
     functions: string[];
     audiences: string[];
@@ -388,6 +443,99 @@ export function validateAnalysis(analysis: {
     errorCount++;
   }
 
+  const decisionIntro =
+    analysis.reviewContext?.decisionIntro || analysis.reviewContext?.decision_intro || null;
+  const decisionEvidence =
+    analysis.reviewContext?.decisionEvidence || analysis.reviewContext?.decision_evidence || null;
+  const decisionFields = [
+    'what_it_is',
+    'best_for',
+    'not_for',
+    'main_tradeoff',
+  ] as const;
+  let decisionIntroBlockingIssues = 0;
+  let decisionIntroWarnings = 0;
+  let decisionIntroQualityPasses = 0;
+
+  if (!decisionIntro || typeof decisionIntro !== 'object') {
+    validations.push({
+      field: 'reviewContext.decisionIntro',
+      severity: 'error',
+      message: 'Missing decision intro block (what_it_is, best_for, not_for, main_tradeoff)',
+    });
+    errorCount++;
+    decisionIntroBlockingIssues++;
+  } else {
+    for (const field of decisionFields) {
+      const value = typeof decisionIntro[field] === 'string' ? decisionIntro[field]!.trim() : '';
+      if (value.length < 24) {
+        validations.push({
+          field: `reviewContext.decisionIntro.${field}`,
+          severity: 'error',
+          message: `Decision intro field "${field}" is missing or too short`,
+          value: decisionIntro[field] ?? null,
+        });
+        errorCount++;
+        decisionIntroBlockingIssues++;
+        continue;
+      }
+      if (GENERIC_NARRATIVE_PATTERNS.some((pattern) => pattern.test(value))) {
+        validations.push({
+          field: `reviewContext.decisionIntro.${field}`,
+          severity: 'warning',
+          message: `Decision intro field "${field}" contains generic language`,
+          value,
+        });
+        decisionIntroWarnings++;
+        continue;
+      }
+      decisionIntroQualityPasses += 1;
+    }
+  }
+
+  if (analysis.verdict && analysis.verdict.trim().length > 0) {
+    if (GENERIC_NARRATIVE_PATTERNS.some((pattern) => pattern.test(analysis.verdict || ''))) {
+      validations.push({
+        field: 'verdict',
+        severity: 'warning',
+        message: 'Verdict contains generic language',
+        value: analysis.verdict,
+      });
+      decisionIntroWarnings++;
+    }
+  }
+  let decisionEvidenceBlockingIssues = 0;
+  let decisionEvidenceQualityPasses = 0;
+  if (!decisionEvidence || typeof decisionEvidence !== 'object') {
+    validations.push({
+      field: 'reviewContext.decisionEvidence',
+      severity: 'warning',
+      message: 'Missing decision evidence block for best-for/not-for/tradeoff source mapping',
+    });
+    decisionEvidenceBlockingIssues++;
+  } else {
+    const evidenceFields = ['best_for_reason', 'not_for_reason', 'tradeoff_reason'] as const;
+    for (const field of evidenceFields) {
+      const reason = decisionEvidence[field];
+      if (!reason || typeof reason !== 'object') continue;
+      const text = typeof reason.text === 'string' ? reason.text.trim() : '';
+      const sourceUrl = typeof reason.source_url === 'string' ? reason.source_url.trim() : '';
+      if (text.length >= 12 && sourceUrl.length >= 10) {
+        decisionEvidenceQualityPasses += 1;
+      } else {
+        validations.push({
+          field: `reviewContext.decisionEvidence.${field}`,
+          severity: 'warning',
+          message: `Decision evidence "${field}" is missing text or source_url`,
+          value: reason,
+        });
+      }
+    }
+    if (decisionEvidenceQualityPasses === 0) {
+      decisionEvidenceBlockingIssues++;
+    }
+  }
+
   // 6. Quality score
   const qualityChecks = [
     { check: analysis.score >= 0 && analysis.score <= 100, weight: 20 },
@@ -400,6 +548,11 @@ export function validateAnalysis(analysis: {
     { check: consWithoutSources === 0, weight: 5 },
     { check: malformedClaimCount === 0, weight: 10 },
     { check: officialCommunityHedgingCount === 0, weight: 5 },
+    { check: decisionIntroBlockingIssues === 0, weight: 15 },
+    { check: decisionIntroWarnings === 0, weight: 5 },
+    { check: decisionIntroQualityPasses === decisionFields.length, weight: 5 },
+    { check: decisionEvidenceBlockingIssues === 0, weight: 8 },
+    { check: decisionEvidenceQualityPasses >= 2, weight: 5 },
   ];
 
   const maxScore = qualityChecks.reduce((sum, { weight }) => sum + weight, 0);
@@ -407,7 +560,12 @@ export function validateAnalysis(analysis: {
     .filter(({ check }) => check)
     .reduce((sum, { weight }) => sum + weight, 0);
   const score = Math.round((actualScore / maxScore) * 100);
-  const hasBlockingClaimIssues = malformedClaimCount > 0 || officialCommunityHedgingCount > 0;
+  const hasBlockingClaimIssues =
+    malformedClaimCount > 0 ||
+    officialCommunityHedgingCount > 0 ||
+    decisionIntroBlockingIssues > 0 ||
+    decisionIntroWarnings > 0 ||
+    decisionEvidenceBlockingIssues > 0;
 
   return {
     isValid: errorCount === 0,

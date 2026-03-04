@@ -7,6 +7,10 @@ import type { APIRoute } from 'astro';
 import { supabase } from '@/lib/supabase';
 
 const SITE_URL = import.meta.env.PUBLIC_SITE_URL || 'https://stackhunt.io';
+const EXCLUDED_ALIAS_SLUGS = new Set([
+  'lightweight-crm-for-startup-sales-teams',
+  'crm-platform-for-startup-revenue-teams',
+]);
 
 export const prerender = false;
 
@@ -16,11 +20,14 @@ export const GET: APIRoute = async () => {
   try {
     const { data: contexts } = await supabase
       .from('contexts')
-      .select('slug, updated_at')
-      .order('updated_at', { ascending: false });
+      .select('slug, updated_at, tool_count')
+      .order('updated_at', { ascending: false })
+      .limit(2000);
 
     if (contexts) {
       for (const ctx of contexts) {
+        if (EXCLUDED_ALIAS_SLUGS.has(ctx.slug)) continue;
+        if (Number(ctx.tool_count || 0) < 2) continue;
         urls.push({
           loc: `${SITE_URL}/best/${ctx.slug}`,
           lastmod: ctx.updated_at?.split('T')[0],

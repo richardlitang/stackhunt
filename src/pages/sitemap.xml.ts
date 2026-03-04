@@ -17,6 +17,7 @@ export const GET: APIRoute = async () => {
 
   const sitemaps = [
     { loc: `${SITE_URL}/sitemap-static.xml`, lastmod: today },
+    { loc: `${SITE_URL}/sitemap-articles.xml`, lastmod: today },
     { loc: `${SITE_URL}/sitemap-tools.xml`, lastmod: today },
     { loc: `${SITE_URL}/sitemap-best.xml`, lastmod: today },
     { loc: `${SITE_URL}/sitemap-categories.xml`, lastmod: today },

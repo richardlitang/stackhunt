@@ -45,6 +45,26 @@ const difficultyLabels = {
   hard: 'Hard',
   locked: 'Vendor Lock-in',
 };
+
+const FILE_FORMAT_PATTERN = /^(csv|tsv|txt|json|xml|yaml|yml|xlsx?|parquet|pdf|md|html)$/i;
+const splitEntries = (items: string[] | undefined) => {
+  const source = Array.isArray(items) ? items : [];
+  const formats: string[] = [];
+  const tools: string[] = [];
+  for (const entry of source) {
+    if (typeof entry !== 'string' || entry.trim().length === 0) continue;
+    const trimmed = entry.trim();
+    if (FILE_FORMAT_PATTERN.test(trimmed)) {
+      formats.push(trimmed.toUpperCase());
+    } else {
+      tools.push(trimmed);
+    }
+  }
+  return { formats, tools };
+};
+
+const importEntries = splitEntries(portability.import_from);
+const exportEntries = splitEntries(portability.export_to);
 ---
 
 <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
@@ -118,19 +138,34 @@ const difficultyLabels = {
       ((portability.import_from && portability.import_from.length > 0) ||
         (portability.export_to && portability.export_to.length > 0)) && (
         <div>
-          <h4 class="mb-2 text-sm font-medium text-zinc-300">Migration Wizards</h4>
-          {portability.import_from && portability.import_from.length > 0 && (
+          <h4 class="mb-2 text-sm font-medium text-zinc-300">Import / Export Paths</h4>
+          {importEntries.formats.length > 0 && (
             <div class="mb-2">
-              <p class="text-xs text-zinc-400 mb-1">Import from:</p>
-              <p class="text-xs text-zinc-300">{portability.import_from.join(', ')}</p>
+              <p class="text-xs text-zinc-400 mb-1">Import formats:</p>
+              <p class="text-xs text-zinc-300">{importEntries.formats.join(', ')}</p>
             </div>
           )}
-          {portability.export_to && portability.export_to.length > 0 && (
+          {exportEntries.formats.length > 0 && (
             <div>
-              <p class="text-xs text-zinc-400 mb-1">Export to:</p>
-              <p class="text-xs text-zinc-300">{portability.export_to.join(', ')}</p>
+              <p class="text-xs text-zinc-400 mb-1">Export formats:</p>
+              <p class="text-xs text-zinc-300">{exportEntries.formats.join(', ')}</p>
             </div>
           )}
+          {importEntries.tools.length > 0 && (
+            <div class="mt-2">
+              <p class="text-xs text-zinc-400 mb-1">Connected tools (import path):</p>
+              <p class="text-xs text-zinc-300">{importEntries.tools.join(', ')}</p>
+            </div>
+          )}
+          {exportEntries.tools.length > 0 && (
+            <div class="mt-2">
+              <p class="text-xs text-zinc-400 mb-1">Connected tools (export path):</p>
+              <p class="text-xs text-zinc-300">{exportEntries.tools.join(', ')}</p>
+            </div>
+          )}
+          <p class="mt-2 text-[11px] text-zinc-500">
+            Paths shown from current source-backed docs. Integration-specific flows may vary by plan.
+          </p>
         </div>
       )
     }

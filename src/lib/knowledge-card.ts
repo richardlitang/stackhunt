@@ -104,7 +104,12 @@ export const SMPPricingDataSchema = z.object({
     .nullable()
     .describe("Parent suite name (e.g., 'Google Workspace', 'Microsoft 365')")
     .optional(),
-  currency: z.enum(['USD', 'EUR', 'GBP']).default('USD'),
+  currency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/, 'Currency must be a 3-letter ISO code')
+    .default('USD'),
   billing_cycles: z.array(z.enum(['monthly', 'annual', 'quarterly'])).default(['monthly']),
   annual_discount_pct: z.number().nullable().optional(),
   plans: z.array(SMPPlanSchema).default([]),
@@ -283,7 +288,7 @@ export const BudgetAnalystSchema = z.object({
     .string()
     .nullable()
     .describe(
-      "At what scale does the paid plan become worth it? e.g., 'Team of 20+', 'Need Audit Logs'"
+      "At what objective threshold does upgrading usually happen? e.g., 'Team of 20+', 'Need Audit Logs'"
     )
     .optional(),
 });
@@ -335,6 +340,28 @@ export const UserAdvocateSchema = z.object({
 });
 export type UserAdvocate = z.infer<typeof UserAdvocateSchema>;
 
+export const DecisionIntroSchema = z.object({
+  what_it_is: z.string().nullable().optional(),
+  best_for: z.string().nullable().optional(),
+  not_for: z.string().nullable().optional(),
+  main_tradeoff: z.string().nullable().optional(),
+  summary: z.string().nullable().optional(),
+});
+export type DecisionIntro = z.infer<typeof DecisionIntroSchema>;
+
+export const DecisionEvidenceReasonSchema = z.object({
+  text: z.string().nullable().optional(),
+  source_url: z.string().url().nullable().optional(),
+  source_type: z.enum(['official', 'editorial', 'community']).nullable().optional(),
+  claim_type: z.enum(['fact', 'opinion']).nullable().optional(),
+});
+export const DecisionEvidenceSchema = z.object({
+  best_for_reason: DecisionEvidenceReasonSchema.nullable().optional(),
+  not_for_reason: DecisionEvidenceReasonSchema.nullable().optional(),
+  tradeoff_reason: DecisionEvidenceReasonSchema.nullable().optional(),
+});
+export type DecisionEvidence = z.infer<typeof DecisionEvidenceSchema>;
+
 // --- Main Context Schema ---
 export const ReviewContextSchema = z.object({
   human_verdict: z
@@ -346,6 +373,8 @@ export const ReviewContextSchema = z.object({
     .optional(),
   budget_analyst: BudgetAnalystSchema.default({}),
   user_advocate: UserAdvocateSchema.default({}),
+  decision_intro: DecisionIntroSchema.default({}),
+  decision_evidence: DecisionEvidenceSchema.default({}),
 });
 export type ReviewContext = z.infer<typeof ReviewContextSchema>;
 
@@ -400,7 +429,7 @@ export type FAQItem = z.infer<typeof FAQItemSchema>;
 
 export const KnowledgeCardSchema = z.object({
   // === IDENTITY ===
-  official_name: z.string(),
+  official_name: z.string().optional(),
   tagline: z.string().nullable().optional(), // Official tagline if found
   website_url: z.string().url().nullable().optional(),
   logo_url: z.string().url().nullable().optional(),
@@ -568,8 +597,6 @@ export const KnowledgeCardSchema = z.object({
   // === V3.1: REVIEW CONTEXT (The "Human Touch" Layer) ===
   review_context: ReviewContextSchema.optional(),
 
-  // === CHAIN OF THOUGHT: Reasoning logs for QA ===
-  pricing_analysis_log: z.string().optional(), // LLM's reasoning about pricing extraction
 });
 
 export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>;
@@ -582,7 +609,7 @@ export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>;
 export const GeminiKnowledgeCardSchema = {
   type: 'object',
   properties: {
-    official_name: { type: 'string' },
+    official_name: { type: 'string', nullable: true },
     tagline: { type: 'string', nullable: true },
     website_url: { type: 'string', nullable: true },
     logo_url: { type: 'string', nullable: true },
@@ -785,7 +812,12 @@ export const GeminiKnowledgeCardSchema = {
           description:
             'Parent suite name if bundled (e.g., "Google Workspace", "Microsoft 365"). null for standalone tools.',
         },
-        currency: { type: 'string', enum: ['USD', 'EUR', 'GBP'], default: 'USD' },
+        currency: {
+          type: 'string',
+          pattern: '^[A-Z]{3}$',
+          description: '3-letter ISO currency code (e.g., USD, EUR, GBP, SGD, INR)',
+          default: 'USD',
+        },
         billing_cycles: {
           type: 'array',
           items: { type: 'string', enum: ['monthly', 'annual', 'quarterly'] },
@@ -1023,7 +1055,7 @@ export const GeminiKnowledgeCardSchema = {
               type: 'string',
               nullable: true,
               description:
-                'When does premium become worth it? Examples: "Worth it at 20+ team members", "Only if you need audit logs", "Makes sense if you use webhooks heavily"',
+                'Objective upgrade trigger. Examples: "Team exceeds 20 members", "Need audit logs", "Requires webhooks at scale"',
             },
           },
         },
@@ -1078,15 +1110,8 @@ export const GeminiKnowledgeCardSchema = {
         },
       },
     },
-    // Chain of Thought: LLM reasoning about pricing extraction
-    pricing_analysis_log: {
-      type: 'string',
-      nullable: true,
-      description:
-        'Your step-by-step reasoning about pricing extraction. Format: "1. Found monthly: $X 2. Found annual: $Y or CALCULATED X*12=Z 3. Scaling: per user/seat/flat 4. Model: [type]"',
-    },
   },
-  required: ['official_name', 'pricing', 'meta'],
+  required: ['pricing', 'meta'],
 };
 
 // =============================================================================

@@ -183,7 +183,7 @@ Extract into review_context.budget_analyst:
 - cost_drivers: What increases TCO? ("SSO requires Enterprise", "Guests are billable", "Storage overage fees")
 - one_time_fees: Setup/implementation costs ("$500 onboarding fee")
 - commitment_terms: "Annual only", "30-day cancellation notice", "Auto-renews"
-- roi_threshold: When is paid worth it? ("Team > 10", "Need audit logs", "High-volume senders")
+- roi_threshold: Objective upgrade trigger ("Team > 10", "Need audit logs", "High-volume senders")
 
 === STEP 4: USER ADVOCATE (Tribal Knowledge) ===
 Extract into review_context.user_advocate:
@@ -195,6 +195,18 @@ Extract into review_context.user_advocate:
 - delighters: Features users rave about ["Command palette", "Dark mode", "Real-time collab"]
 - frustrations: Specific UX complaints (NOT pricing) ["Search slow after 10k messages", "Mobile app buggy"]
 - human_verdict: Opinionated 2-3 sentence verdict with reviewer's voice. Include: (1) who it's perfect for, (2) who should avoid it, (3) one specific limitation. Example: "Airtable is strong for teams moving past spreadsheets but not ready for full CRM complexity. If you need multi-million row logging, its record ceilings become a blocker." AVOID neutral Wikipedia style.
+- decision_intro: Decision-first 4-line block:
+  * what_it_is: One sentence describing what it is
+  * best_for: One sentence naming exact best-fit user/team
+  * not_for: One sentence naming exact weak-fit user/team
+  * main_tradeoff: One sentence naming the core tradeoff
+  * summary: One paragraph combining the four lines
+  * DO NOT use generic phrases like "worth shortlisting", "robust and powerful", "best-in-class"
+- decision_evidence: Source-backed reasons for decision_intro lines
+  * best_for_reason: { text, source_url, source_type, claim_type }
+  * not_for_reason: { text, source_url, source_type, claim_type }
+  * tradeoff_reason: { text, source_url, source_type, claim_type }
+  * Use only URLs from extracted evidence; do not invent links.
 
 === STEP 5: TAXONOMY PRECISION ===
 Extract into smp_taxonomy:
@@ -370,10 +382,7 @@ ${sourceData}
 Return valid JSON matching KnowledgeCard schema with all sections:
 - company, features, competitive, pricing, platforms
 - smp_pricing (with plans array), smp_taxonomy, smp_portability
-- integrations, review_context (budget_analyst + user_advocate)
+- integrations, review_context (budget_analyst + user_advocate + decision_intro + decision_evidence)
 - meta.data_quality
-
-REQUIRED: Fill "pricing_analysis_log" with your reasoning:
-"MODEL: [type]. EVIDENCE: [keywords found]. BUNDLE: [yes/no]. PLANS: [list]. CONFIDENCE: [level]"
 `;
 }

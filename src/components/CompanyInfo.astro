@@ -17,7 +17,7 @@ const { company, audience, learningCurve } = Astro.props;
 
 // Check if we have any data to display
 const hasData =
-  (company && (company.founded_year || company.headquarters || company.employee_count)) ||
+  (company && (company.founded_year || company.headquarters)) ||
   (audience && audience.team_size) ||
   learningCurve;
 
@@ -60,15 +60,6 @@ const learningCurveLabels: Record<string, string> = {
         <div class="flex justify-between">
           <dt class="text-sm text-zinc-400">Headquarters</dt>
           <dd class="text-sm font-medium text-zinc-100">{company.headquarters}</dd>
-        </div>
-      )
-    }
-
-    {
-      company?.employee_count && (
-        <div class="flex justify-between">
-          <dt class="text-sm text-zinc-400">Company Size</dt>
-          <dd class="text-sm font-medium text-zinc-100">{company.employee_count} employees</dd>
         </div>
       )
     }

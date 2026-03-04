@@ -10,6 +10,7 @@
 
 import { supabase } from '@/lib/supabase';
 import Logo from '@/components/Logo.astro';
+import { getDisplayDescription } from '@/lib/display-description';
 
 interface Props {
   currentToolId: string;
@@ -74,9 +75,15 @@ if (!siblingTools || siblingTools.length === 0) return null;
               Suite
             </span>
           </div>
-          {parentTool.short_description && (
-            <p class="mt-1 text-xs text-zinc-400 truncate">{parentTool.short_description}</p>
-          )}
+          <p class="mt-1 text-xs text-zinc-400 truncate">
+            {
+              getDisplayDescription({
+                shortDescription: parentTool.short_description,
+                pricingType: parentTool.pricing_type,
+                itemType: 'tool',
+              })
+            }
+          </p>
         </div>
         <svg
           class="h-4 w-4 flex-shrink-0 text-zinc-500"
@@ -101,9 +108,15 @@ if (!siblingTools || siblingTools.length === 0) return null;
           <Logo domain={tool.logo_url} name={tool.name} size="sm" />
           <div class="flex-1 min-w-0">
             <div class="font-medium text-zinc-200">{tool.name}</div>
-            {tool.short_description && (
-              <p class="mt-0.5 text-xs text-zinc-400 truncate">{tool.short_description}</p>
-            )}
+            <p class="mt-0.5 text-xs text-zinc-400 truncate">
+              {
+                getDisplayDescription({
+                  shortDescription: tool.short_description,
+                  pricingType: tool.pricing_type,
+                  itemType: 'tool',
+                })
+              }
+            </p>
           </div>
           <svg
             class="h-4 w-4 flex-shrink-0 text-zinc-500"

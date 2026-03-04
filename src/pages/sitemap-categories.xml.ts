@@ -17,7 +17,8 @@ export const GET: APIRoute = async () => {
     const { data: categories } = await supabase
       .from('categories')
       .select('slug, updated_at')
-      .order('updated_at', { ascending: false });
+      .order('updated_at', { ascending: false })
+      .limit(2000);
 
     if (categories) {
       for (const cat of categories) {

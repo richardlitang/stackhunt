@@ -30,6 +30,9 @@ type ReviewRow = {
     specs: Record<string, unknown> | null;
   } | null;
 };
+type RecentQueueRow = {
+  tool_name: string;
+};
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
 const PROFILE_RULES: Record<
@@ -149,8 +152,12 @@ async function main() {
   const apply = hasFlag('apply');
   const limitArg = Number(getArgValue('limit') || 20);
   const priorityArg = Number(getArgValue('priority') || 92);
+  const cooldownHoursArg = Number(getArgValue('cooldown-hours') || 168);
   const limit = Number.isFinite(limitArg) ? Math.max(1, Math.min(limitArg, 200)) : 20;
   const priority = Number.isFinite(priorityArg) ? Math.max(0, Math.min(priorityArg, 100)) : 92;
+  const cooldownHours = Number.isFinite(cooldownHoursArg)
+    ? Math.max(0, Math.min(cooldownHoursArg, 24 * 90))
+    : 168;
   const reasonFilterRaw =
     getArgValue('reasons') ||
     'missing_required_sections,mvup_incomplete,authoritative_sources_low,authoritative_domains_low';
@@ -233,12 +240,32 @@ async function main() {
   }
 
   const existingNames = new Set(((existing || []) as Array<{ tool_name: string }>).map((row) => row.tool_name));
-  const toQueue = selected.filter((row) => !existingNames.has(row.toolName));
+  const cooldownSinceIso = new Date(Date.now() - cooldownHours * 60 * 60 * 1000).toISOString();
+  const { data: recentlyQueued, error: recentError } = await supabase
+    .from('hunt_queue')
+    .select('tool_name')
+    .eq('source', 'scheduled')
+    .eq('hunt_type', 'full')
+    .in('tool_name', names)
+    .gte('created_at', cooldownSinceIso)
+    .limit(Math.min(names.length, 500));
+  if (recentError) {
+    console.error(`Failed to check recent cooldown window: ${recentError.message}`);
+    process.exit(1);
+  }
+
+  const recentlyQueuedNames = new Set(
+    ((recentlyQueued || []) as RecentQueueRow[]).map((row) => row.tool_name)
+  );
+  const toQueue = selected.filter(
+    (row) => !existingNames.has(row.toolName) && !recentlyQueuedNames.has(row.toolName)
+  );
 
   console.log('\nBlocked Re-hunt Queue');
   console.log(`Mode: ${apply ? 'APPLY' : 'DRY RUN'}`);
   console.log(`Matched latest blocked drafts: ${selected.length}`);
   console.log(`Already queued: ${existingNames.size}`);
+  console.log(`Blocked by cooldown (${cooldownHours}h): ${recentlyQueuedNames.size}`);
   console.log(`To enqueue: ${toQueue.length}`);
   console.log(`Reason filter: ${Array.from(reasonFilter).join(', ')}`);
 

@@ -9,6 +9,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ToolCard from '@/components/ToolCard.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
+import Logo from '@/components/Logo.astro';
 import { Icon } from 'astro-icon/components';
 import {
   getToolsByCategory,
@@ -16,6 +17,7 @@ import {
   getCategories,
   getAllCategorySlugs,
 } from '@/lib/supabase';
+import { getDisplayDescription } from '@/lib/display-description';
 import { generateCategoryMeta, generateBreadcrumbSchema } from '@/lib/seo';
 
 // Prerender for sitemap inclusion and performance
@@ -52,6 +54,41 @@ const schemas = [
 
 const topTools = tools.slice(0, 6);
 const featuredLists = contexts.slice(0, 6);
+const sampleToolNames = topTools.slice(0, 3).map((tool) => tool.name);
+const hasAnyTools = tools.length > 0;
+
+const pricingLabel = (value: string | null | undefined): string => {
+  const key = (value || '').toLowerCase();
+  if (key === 'freemium') return 'Freemium';
+  if (key === 'free') return 'Free';
+  if (key === 'paid') return 'Paid';
+  if (key === 'enterprise') return 'Enterprise';
+  if (key === 'open_source') return 'Open source';
+  return 'Other';
+};
+
+const pricingMix = tools.reduce<Record<string, number>>((acc, tool) => {
+  const label = pricingLabel(tool.pricing_type);
+  acc[label] = (acc[label] || 0) + 1;
+  return acc;
+}, {});
+
+const pricingMixRows = Object.entries(pricingMix)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 3)
+  .map(([label, count]) => `${label}: ${count}`);
+
+const highlightStrengths = Array.from(
+  new Set(
+    topTools.flatMap((tool) => extractHighlights(tool.specs, 2).pros).filter((value) => value.length > 0)
+  )
+).slice(0, 3);
+
+const highlightWatchouts = Array.from(
+  new Set(
+    topTools.flatMap((tool) => extractHighlights(tool.specs, 2).cons).filter((value) => value.length > 0)
+  )
+).slice(0, 3);
 
 // Build related links for internal linking (SEO)
 const relatedLinks: Array<{
@@ -136,6 +173,67 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
       </div>
     </header>
 
+    <section class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+      <h2 class="text-xl font-semibold text-zinc-100">How to Evaluate {category.name} Tools</h2>
+      <p class="mt-2 text-sm text-zinc-300">
+        Use this hub as a shortlist builder, not just a directory. Start with your single most frequent
+        workflow, then test whether each candidate handles that flow cleanly before comparing edge-case features.
+      </p>
+      <p class="mt-2 text-sm text-zinc-400">
+        {hasAnyTools
+          ? sampleToolNames.length > 0
+            ? `${sampleToolNames.join(', ')} are current examples in this category, but fit still depends on rollout constraints and plan limits.`
+            : 'We track tools in this category with source-backed reviews and list-level context pages.'
+          : 'This category is active, but enough source-backed tool profiles have not been published yet.'}
+      </p>
+      <div class="mt-5 grid gap-4 md:grid-cols-3">
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+          <h3 class="text-sm font-semibold text-zinc-100">Where Teams Usually See Value</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {(highlightStrengths.length > 0
+              ? highlightStrengths
+              : [
+                  'Faster execution of a repeated workflow',
+                  'Cleaner collaboration handoffs',
+                  'Lower operational friction after onboarding',
+                ]
+            ).map((line) => (
+              <li>- {line}</li>
+            ))}
+          </ul>
+        </div>
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+          <h3 class="text-sm font-semibold text-zinc-100">Where Rollouts Usually Break</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {(highlightWatchouts.length > 0
+              ? highlightWatchouts
+              : [
+                  'Plan-gated features discovered late in rollout',
+                  'Migration work under-scoped during trial',
+                  'Integration assumptions not validated early',
+                ]
+            ).map((line) => (
+              <li>- {line}</li>
+            ))}
+          </ul>
+        </div>
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+          <h3 class="text-sm font-semibold text-zinc-100">Current Category Pricing Shape</h3>
+          <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+            {(pricingMixRows.length > 0
+              ? pricingMixRows
+              : ['Pricing data is still being collected for this category.']
+            ).map((line) => (
+              <li>- {line}</li>
+            ))}
+          </ul>
+          <p class="mt-2 text-xs text-zinc-500">
+            Validate cancellation terms, seat mechanics, and usage thresholds before committing.
+          </p>
+        </div>
+      </div>
+    </section>
+
     <!-- Content Grid -->
     <div class="grid gap-8 lg:grid-cols-3">
       <!-- Main: Tools -->
@@ -203,18 +301,7 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
                       class="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition hover:border-zinc-700 hover:bg-zinc-900"
                     >
                       <div class="flex items-start gap-3">
-                        {tool.logo_url ? (
-                          <img
-                            src={tool.logo_url}
-                            alt=""
-                            class="h-10 w-10 rounded-lg object-contain bg-zinc-900 p-1 border border-zinc-800"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-800 text-sm font-semibold text-zinc-300">
-                            {tool.name.charAt(0)}
-                          </div>
-                        )}
+                        <Logo domain={tool.logo_url} name={tool.name} size="sm" class="h-10 w-10" />
                         <div class="min-w-0 flex-1">
                           <div class="flex items-center justify-between gap-2">
                             <h3 class="truncate font-medium text-zinc-100">{tool.name}</h3>
@@ -224,11 +311,16 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
                               </span>
                             )}
                           </div>
-                          {tool.short_description && (
-                            <p class="mt-1 text-sm text-zinc-400 line-clamp-2">
-                              {tool.short_description}
-                            </p>
-                          )}
+                          <p class="mt-1 text-sm text-zinc-400 line-clamp-2">
+                            {
+                              getDisplayDescription({
+                                shortDescription: tool.short_description,
+                                categoryName: category.name,
+                                pricingType: tool.pricing_type,
+                                itemType: tool.type || 'tool',
+                              })
+                            }
+                          </p>
                         </div>
                       </div>
 

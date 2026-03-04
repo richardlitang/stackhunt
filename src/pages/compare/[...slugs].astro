@@ -30,6 +30,7 @@ import {
   areToolsComparable,
   type ToolComparison,
 } from '@/lib/analysis/comparator';
+import { getDisplayDescription } from '@/lib/display-description';
 import { generateBreadcrumbSchema } from '@/lib/seo';
 import type { SMPPricingData } from '@/types/database';
 
@@ -667,14 +668,19 @@ const schemas = [
         </div>
 
         <!-- About -->
-        {
-          toolA.short_description && (
-            <div class="mt-6">
-              <h3 class="font-semibold text-zinc-100">About</h3>
-              <p class="mt-2 text-sm text-zinc-400">{toolA.short_description}</p>
-            </div>
-          )
-        }
+        <div class="mt-6">
+          <h3 class="font-semibold text-zinc-100">About</h3>
+          <p class="mt-2 text-sm text-zinc-400">
+            {
+              getDisplayDescription({
+                shortDescription: toolA.short_description,
+                categoryName: toolA.category?.name || null,
+                pricingType: toolA.pricing_type,
+                itemType: 'tool',
+              })
+            }
+          </p>
+        </div>
 
         {/* Pros & Cons from Reviews */}
         <div class="mt-6">
@@ -742,14 +748,19 @@ const schemas = [
         </div>
 
         <!-- About -->
-        {
-          toolB.short_description && (
-            <div class="mt-6">
-              <h3 class="font-semibold text-zinc-100">About</h3>
-              <p class="mt-2 text-sm text-zinc-400">{toolB.short_description}</p>
-            </div>
-          )
-        }
+        <div class="mt-6">
+          <h3 class="font-semibold text-zinc-100">About</h3>
+          <p class="mt-2 text-sm text-zinc-400">
+            {
+              getDisplayDescription({
+                shortDescription: toolB.short_description,
+                categoryName: toolB.category?.name || null,
+                pricingType: toolB.pricing_type,
+                itemType: 'tool',
+              })
+            }
+          </p>
+        </div>
 
         {/* Pros & Cons from Reviews */}
         <div class="mt-6">

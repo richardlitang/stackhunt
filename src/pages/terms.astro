@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCanonicalUrl } from '@/lib/utils';
 ---
 
 <BaseLayout
@@ -7,7 +8,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
     title: 'Terms of Use | StackHunt',
     description:
       'Terms governing access to StackHunt, including permitted use, content limitations, and liability boundaries.',
-    canonical: 'https://stackhunt.co/terms',
+    canonical: getCanonicalUrl('/terms'),
   }}
 >
   <main class="min-h-screen bg-gradient-to-b from-zinc-950 to-zinc-900">

@@ -21,6 +21,7 @@ import VoteWidget from '@/components/VoteWidget';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import RelatedContent from '@/components/RelatedContent.astro';
 import TrustBar from '@/components/TrustBar.astro';
+import TwoColumnChecklistCards from '@/components/TwoColumnChecklistCards.astro';
 import { getContextBySlug, getProvisionalReviewsForContext, supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {
@@ -28,7 +29,8 @@ import {
   getLatestPublishedBestSnapshot,
 } from '@/lib/compiler/snapshot-store';
 import { generateContextMeta, generateListSchema, generateBreadcrumbSchema } from '@/lib/seo';
-import { simpleMarkdown, getScoreColor } from '@/lib/utils';
+import { getDisplayDescription } from '@/lib/display-description';
+import { getCanonicalUrl, simpleMarkdown, getScoreColor } from '@/lib/utils';
 import { areToolsComparable } from '@/lib/analysis/comparator';
 
 // Server-render for fresh data (switch to prerender = true for production if needed)
@@ -388,8 +390,8 @@ for (const review of sortedReviews.slice(0, 2)) {
   });
 }
 
-// Generate SEO
-const meta = generateContextMeta(contextForMeta, context.category?.name);
+// Generate SEO (base; quality gate applied below after trust metrics are computed)
+const contextMeta = generateContextMeta(contextForMeta, context.category?.name);
 const schemas = [
   generateListSchema(
     contextForMeta,
@@ -441,6 +443,48 @@ const listTrustStatus: 'Source-backed' | 'Needs confirmation' = contextCheckedLa
   : 'Needs confirmation';
 const listConfidence: 'High' | 'Medium' | 'Low' =
   sortedReviews.length >= 5 ? 'High' : sortedReviews.length >= 2 ? 'Medium' : 'Low';
+
+const hasMinimumComparisons = sortedReviews.length >= 2;
+const hasSourceCoverage = effectiveSourceCount >= 5;
+const hasFreshnessSignal = Boolean(contextCheckedLabel);
+const hasReadableSummaryCoverage = sortedReviews.some((review) => !isSparseSummary(review.summary_markdown));
+const topPickNames = sortedReviews.slice(0, 3).map((review) => review.item.name);
+const sourceBackedPickCount = sortedReviews.filter(
+  (review) => getReviewDataQuality(review) === 'high' || getReviewDataQuality(review) === 'medium'
+).length;
+const listStateSummary =
+  sortedReviews.length > 0
+    ? `This list currently includes ${sortedReviews.length} ranked picks, with ${sourceBackedPickCount} showing medium-to-high data quality signals.`
+    : 'No ranked picks are published yet, so this page should be used as a buying checklist until source-backed picks are added.';
+const shortlistChecklist = [
+  'Confirm your must-have workflow can be completed without paid add-ons.',
+  'Validate migration, import/export, and rollback constraints before rollout.',
+  'Model price changes at your expected seat or usage volume, not just day-one pricing.',
+];
+const shortlistSignals = [
+  context.category
+    ? `Most options in this list compete in the ${context.category.name} workflow family.`
+    : 'Most options in this list compete for a similar primary workflow.',
+  topPickNames.length > 0
+    ? `Current leading picks include ${topPickNames.join(', ')}.`
+    : 'The shortlist is still being assembled from verified review evidence.',
+  hasFreshnessSignal
+    ? `Latest source-backed check: ${contextCheckedLabel}.`
+    : 'Freshness checks are still pending before full publication confidence.',
+];
+const shouldNoindex =
+  !selectedSnapshot &&
+  (!hasMinimumComparisons || !hasSourceCoverage || !hasFreshnessSignal || !hasReadableSummaryCoverage);
+
+const safeDraftDescription =
+  'This list is still in editorial verification and may be incomplete. See finalized software comparisons on StackHunt.';
+const meta = {
+  ...contextMeta,
+  description: shouldNoindex ? safeDraftDescription : contextMeta.description,
+  canonical: shouldNoindex ? getCanonicalUrl('/best') : contextMeta.canonical,
+  noindex: shouldNoindex,
+};
+Astro.response.headers.set('X-Robots-Tag', meta.noindex ? 'noindex,follow' : 'index,follow');
 
 // Check if any tools have affiliate links
 const hasAffiliateLinks = sortedReviews.some((review) =>
@@ -606,6 +650,23 @@ function isSparseSummary(summary: unknown): boolean {
       </details>
     </section>
 
+    <section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+      <h2 class="text-lg font-semibold text-zinc-100">How to Shortlist from This List</h2>
+      <p class="mt-2 text-sm text-zinc-300">
+        {listStateSummary}
+      </p>
+      <TwoColumnChecklistCards
+        className="mt-5"
+        headingClassName="text-sm font-semibold text-zinc-100"
+        left={{ title: 'What to Validate First', items: shortlistChecklist }}
+        right={{ title: 'Current Evidence Context', items: shortlistSignals }}
+      />
+      <p class="mt-4 text-xs text-zinc-500">
+        Use this list to narrow candidates, then open each tool profile to review hard limits,
+        setup friction, and source-linked proof.
+      </p>
+    </section>
+
     <!-- Ranked Tool List -->
     <section id="tool-list">
       <div class="mb-6 flex items-center justify-between">
@@ -691,11 +752,17 @@ function isSparseSummary(summary: unknown): boolean {
                           >
                             {review.item.name}
                           </a>
-                          {review.item.short_description && (
-                            <p class="mt-1 text-sm text-zinc-300 line-clamp-2">
-                              {review.item.short_description}
-                            </p>
-                          )}
+                          <p class="mt-1 text-sm text-zinc-300 line-clamp-2">
+                            {
+                              getDisplayDescription({
+                                shortDescription: review.item.short_description,
+                                summaryMarkdown: review.summary_markdown,
+                                categoryName: review.item.category?.name || context.category?.name || null,
+                                pricingType: review.item.pricing_type,
+                                itemType: review.item.type || 'tool',
+                              })
+                            }
+                          </p>
                         </div>
 
                         {/* CTA Button */}
@@ -882,6 +949,11 @@ function isSparseSummary(summary: unknown): boolean {
           <p class="mt-2 text-sm text-zinc-400">
             We're still researching tools for this category. Check back soon!
           </p>
+          <ul class="mx-auto mt-4 max-w-xl space-y-1 text-left text-sm text-zinc-400">
+            <li>- Start with 2-3 incumbents you already know, then compare against this page when picks publish.</li>
+            <li>- Prioritize sources that show plan limits, migration constraints, and support boundaries.</li>
+            <li>- Revisit after the next source refresh to avoid committing on stale pricing or feature assumptions.</li>
+          </ul>
         </div>
       )
     }

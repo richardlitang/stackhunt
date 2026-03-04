@@ -1,5 +1,11 @@
 {
   "mcpServers": {
+    "stackhuntGates": {
+      "type": "stdio",
+      "command": "npm",
+      "args": ["run", "mcp:stackhunt"],
+      "cwd": "/Users/richardlitang/code/personal/stackhunt"
+    },
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp"
@@ -22,7 +28,7 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/Users/richardlitang/Desktop/dreams/stackhunt"
+        "/Users/richardlitang/code/personal/stackhunt"
       ]
     },
     "playwright": {

@@ -203,6 +203,8 @@ When triggers fire, extract at least one cohesive helper/module in the same chan
 - Use React islands only when interactivity is required.
 - Keep components presentational by default.
 - Do not fetch primary page data in leaf components without strong reason.
+- When a Tailwind-heavy markup block is repeated 2 or more times across route files, extract it into a reusable component in `src/components/` before adding more variants.
+- Prefer section-level reuse first (for example shared cards, checklists, evidence panels), then smaller primitives only when reuse is proven.
 
 ### Client Scripts
 
@@ -357,7 +359,7 @@ Default behavior in personal projects is autonomous execution.
 - Do not pause after each small extraction or commit.
 - On a user `go` instruction, execute multiple consecutive work slices in the same turn before replying.
 - Minimum autonomous batch target per `go` turn:
-  - 3 logical code slices
+  - 6 logical code slices
 - Intermediate updates should be brief and only when they materially affect direction, risk, or blocker status.
 - Stop only for critical blockers:
   - missing or conflicting requirements that materially change behavior
@@ -380,10 +382,10 @@ The coding interface is turn-based.
 
 Use `go` as the default autonomy trigger in this repository.
 
-- When the user says `go`, execute a 3-slice autonomous batch.
+- When the user says `go`, execute a 6-slice autonomous batch.
 - A slice is one logical, shippable unit, for example extract one cohesive policy module plus route wiring plus tests.
 - For each slice: implement, verify (`typecheck`, relevant tests, build as needed), commit, and push.
-- After 3 slices, send one concise checkpoint and immediately queue the next batch unless a critical blocker is hit.
+- After 6 slices, send one concise checkpoint and immediately queue the next batch unless a critical blocker is hit.
 
 ### Production Push Safety
 

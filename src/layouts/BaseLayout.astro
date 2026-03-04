@@ -24,7 +24,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
     <title>{meta.title}</title>
     <meta name="title" content={meta.title} />
     <meta name="description" content={meta.description} />
-    <meta name="robots" content={meta.noindex ? 'noindex,nofollow' : 'index,follow'} />
+    <meta name="robots" content={meta.noindex ? 'noindex,follow' : 'index,follow'} />
 
     <!-- Canonical -->
     <link rel="canonical" href={meta.canonical} />

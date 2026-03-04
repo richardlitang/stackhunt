@@ -1,0 +1,74 @@
+---
+type ReviewLens = 'general' | 'personal' | 'startup' | 'enterprise';
+
+interface Props {
+  activeLens: ReviewLens;
+  hrefs: Record<ReviewLens, string>;
+  compact?: boolean;
+  showNote?: boolean;
+}
+
+const { activeLens, hrefs, compact = false, showNote = true } = Astro.props;
+
+const lensItems: Array<{
+  key: ReviewLens;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: 'general',
+    label: 'General',
+    description: 'Balanced review view',
+  },
+  {
+    key: 'personal',
+    label: 'Personal',
+    description: 'Fast setup and free-tier emphasis',
+  },
+  {
+    key: 'startup',
+    label: 'Startup',
+    description: 'Cost growth and workflow fit emphasis',
+  },
+  {
+    key: 'enterprise',
+    label: 'Enterprise',
+    description: 'Controls, trust, and rollout emphasis',
+  },
+];
+---
+
+<div
+  class={compact ? 'space-y-2' : 'mb-4 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm'}
+  aria-label="Review lens"
+>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="text-xs font-semibold uppercase tracking-wide text-zinc-400">View this review as</span>
+    {
+      lensItems.map((item) => {
+        const isActive = activeLens === item.key;
+        return (
+          <a
+            href={hrefs[item.key]}
+            aria-current={isActive ? 'true' : undefined}
+            class={`rounded-full border px-3 py-1 text-xs transition ${
+              isActive
+                ? 'border-zinc-600 bg-zinc-800 text-zinc-100'
+                : 'border-zinc-700 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400'
+            }`}
+            title={item.description}
+          >
+            {item.label}
+          </a>
+        );
+      })
+    }
+  </div>
+  {
+    showNote && (
+      <p class="text-xs text-zinc-500">
+        This changes emphasis and reading order, not the underlying facts.
+      </p>
+    )
+  }
+</div>

@@ -50,8 +50,10 @@ function calculateQAScore(tool: Tool): number {
   if (pricing) score++;
 
   // 4. Has platforms
-  const platforms = knowledgeCard.platforms as Record<string, unknown> | null;
-  if (platforms?.web || platforms?.mobile || platforms?.desktop) score++;
+  const platforms = Array.isArray(knowledgeCard.platforms)
+    ? (knowledgeCard.platforms as Array<{ available?: boolean }>)
+    : [];
+  if (platforms.some((platform) => platform?.available === true)) score++;
 
   // 5. Has integrations
   const integrations = knowledgeCard.integrations as Record<string, unknown> | null;

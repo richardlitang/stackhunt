@@ -5,7 +5,7 @@
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { supabase } from '@/lib/supabase';
-import { simpleMarkdown } from '@/lib/utils';
+import { getCanonicalUrl, simpleMarkdown } from '@/lib/utils';
 
 export const prerender = false;
 
@@ -32,7 +32,15 @@ if (!article) {
 }
 ---
 
-<BaseLayout title={article.title} description={article.summary_markdown || undefined}>
+<BaseLayout
+  meta={{
+    title: `${article.title} | StackHunt`,
+    description:
+      (article.summary_markdown || 'Longform analysis and guidance from StackHunt.').slice(0, 160),
+    canonical: getCanonicalUrl(`/articles/${article.slug}`),
+    ogType: 'article',
+  }}
+>
   <article class="mx-auto max-w-3xl px-6 py-10">
     <div class="mb-6">
       <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500">

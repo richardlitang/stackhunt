@@ -457,6 +457,8 @@ For reviewContext.decisionIntro, NEVER use generic phrases:
 - "robust and powerful"
 - "best-in-class"
 - "strong option"
+- "best value threshold"
+- "worth it when"
 If evidence is weak, say "Not confirmed" with the specific unknown.
 For reviewContext.decisionEvidence, include source-backed reasons:
 - best_for_reason, not_for_reason, tradeoff_reason
@@ -561,7 +563,7 @@ Output ONLY valid JSON matching this exact schema:
       "costDrivers": [<0-5 factual TCO factors like "SSO requires Enterprise", "Guests are billable". Extract from Budget Analyst snippets. If insufficient data, use empty array []>],
       "oneTimeFees": [<implementation/setup fees, or empty array if none>],
       "commitmentTerms": "<contract constraints like 'Annual only', '30-day notice', or null if unknown>",
-      "roiThreshold": "<when premium becomes worth it, e.g., 'Team of 20+', or null if unclear>"
+      "roiThreshold": "<objective upgrade trigger, e.g., 'Team of 20+' or 'Need audit logs', or null if unclear>"
     },
     "userAdvocate": {
       "vibe": "<Ecosystem maturity & build style (2-3 words). Examples: 'No-Code Modular', 'Enterprise Rigid', 'Developer-First', 'Builder-Focused', 'API-Centric'. AVOID vague descriptors. If insufficient data, use 'Unknown' as placeholder>",
@@ -741,7 +743,7 @@ Minimum narrative components:
 - decisionIntro.best_for: specific team/profile + why.
 - decisionIntro.not_for: specific team/profile + blocker.
 - decisionIntro.main_tradeoff: one explicit trade-off sentence.
-- decisionIntro.summary: "choose if / avoid if" style synthesis.
+- decisionIntro.summary: "best fit / weak fit / tradeoff" style synthesis.
 
 ## CONTRADICTION BAN (Hard Rule)
 

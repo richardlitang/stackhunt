@@ -3,6 +3,7 @@ import ScoreBadge from './ScoreBadge.astro';
 import PricingBadge from './PricingBadge.astro';
 import Logo from './Logo.astro';
 import type { Tool, ItemType } from '@/types/database';
+import { getDisplayDescription } from '@/lib/display-description';
 
 interface Props {
   tool: Pick<
@@ -17,6 +18,12 @@ interface Props {
 const { tool, category, score, rank } = Astro.props;
 const displayScore = score ?? tool.avg_score;
 const basePath = tool.type === 'gear' ? '/gear' : '/tool';
+const displayDescription = getDisplayDescription({
+  shortDescription: tool.short_description,
+  categoryName: category?.name || null,
+  pricingType: tool.pricing_type,
+  itemType: tool.type || 'tool',
+});
 ---
 
 <a
@@ -46,11 +53,7 @@ const basePath = tool.type === 'gear' ? '/gear' : '/tool';
     {displayScore > 0 && <ScoreBadge score={displayScore} size="sm" />}
   </div>
 
-  {
-    tool.short_description && (
-      <p class="mt-3 line-clamp-2 text-sm text-zinc-400">{tool.short_description}</p>
-    )
-  }
+  <p class="mt-3 line-clamp-2 text-sm text-zinc-400">{displayDescription}</p>
 
   <div class="mt-3 flex items-center justify-between">
     <PricingBadge type={tool.pricing_type} size="sm" />

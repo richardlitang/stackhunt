@@ -30,6 +30,7 @@ export async function executeResearchPhase(
   deps: HunterDependencies
 ): Promise<ResearchOutput> {
   deps.log(`[Phase 1: Research] Starting for: ${ctx.toolName}`);
+  if (ctx.entityScope) deps.log(`[Scope] Entity scope: ${ctx.entityScope}`);
 
   // If we have a Research Dossier from the Classifier, use its normalized name
   const toolName = ctx.researchDossier?.normalized_tool_name || ctx.toolName;
@@ -50,12 +51,13 @@ export async function executeResearchPhase(
   // Step 1: Scout for information (use dossier queries if available)
   const scoutResult =
     ctx.huntType === 'price_only'
-      ? await deps.serper.scoutPricingOnly(toolName, deps.withRetry)
+      ? await deps.serper.scoutPricingOnly(toolName, deps.withRetry, ctx.entityScope)
       : await deps.serper.scout(
           toolName,
           ctx.contextTitle,
           deps.withRetry,
-          ctx.researchDossier?.scout_queries // Pass dossier queries to Serper
+          ctx.researchDossier?.scout_queries, // Pass dossier queries to Serper
+          ctx.entityScope
         );
 
   deps.log(`Scout completed: ${scoutResult.raw_sources.length} sources found`);
@@ -496,7 +498,7 @@ export async function executeResearchPhase(
   }
 
   // Step 3: Check for duplicate tools (Gatekeeper)
-  const existingTool = await checkForDuplicateTool(ctx.toolName, knowledgeCard, deps);
+  const existingTool = await checkForDuplicateTool(ctx.toolName, knowledgeCard, deps, ctx.entityScope);
 
   if (existingTool) {
     deps.log(`⚠️ Duplicate detected: "${ctx.toolName}" already exists (id: ${existingTool.id})`);
@@ -559,7 +561,8 @@ export async function executeResearchPhase(
 async function checkForDuplicateTool(
   toolName: string,
   knowledgeCard: KnowledgeCard,
-  deps: HunterDependencies
+  deps: HunterDependencies,
+  entityScope?: string
 ): Promise<{ id: string; name: string } | null> {
   const normalizedInputDomain = extractDomain(knowledgeCard.website_url);
 
@@ -592,10 +595,57 @@ async function checkForDuplicateTool(
 
     const similarityPct = (match.similarity_score * 100).toFixed(1);
     deps.log(`Duplicate found: "${match.name}" (similarity: ${similarityPct}%)`);
+
+    if (entityScope) {
+      const sameScopeExists = await hasExistingReviewForEntityScope(match.id, entityScope, deps);
+      if (!sameScopeExists) {
+        deps.log(
+          `Duplicate bypassed: existing item has no persisted review evidence for scope "${entityScope}" yet`
+        );
+        return null;
+      }
+      deps.log(`Duplicate confirmed for matching scope "${entityScope}"`);
+    }
+
     return { id: match.id, name: match.name };
   }
 
   return null;
+}
+
+function reviewHasEntityScope(review: { sources?: unknown }, targetScope: string): boolean {
+  const normalizedTarget = targetScope.trim().toLowerCase();
+  if (!normalizedTarget) return false;
+
+  const sources = review.sources;
+  if (!Array.isArray(sources)) return false;
+  return sources.some((source) => {
+    if (!source || typeof source !== 'object') return false;
+    const entityScope = (source as Record<string, unknown>).entity_scope;
+    return typeof entityScope === 'string' && entityScope.trim().toLowerCase() === normalizedTarget;
+  });
+}
+
+async function hasExistingReviewForEntityScope(
+  itemId: string,
+  entityScope: string,
+  deps: HunterDependencies
+): Promise<boolean> {
+  const { data, error } = await deps.supabase
+    .from('reviews')
+    .select('id, sources')
+    .eq('item_id', itemId)
+    .order('updated_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    deps.log(`⚠️  Scoped duplicate check failed for reviews: ${error.message}`);
+    return false;
+  }
+
+  return (data || []).some((review: { sources?: unknown }) =>
+    reviewHasEntityScope(review as { sources?: unknown }, entityScope)
+  );
 }
 
 function extractDomain(url?: string | null): string | null {

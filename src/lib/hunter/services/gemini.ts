@@ -902,6 +902,8 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       }
       return false;
     };
+    const lowercaseFirst = (text: string): string =>
+      text.length > 0 ? `${text.charAt(0).toLowerCase()}${text.slice(1)}` : text;
     const isGenericClaim = (text: string): boolean => {
       const normalized = text.trim();
       if (normalized.length < 18) return true;
@@ -922,6 +924,34 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         return 'Users report workflow friction and practical limits; verify documented constraints before rollout.';
       }
       return 'Reports indicate constraints or workflow limits that should be validated against source documentation.';
+    };
+    const DECISION_SCENARIO_SIGNAL_REGEX =
+      /\b(best for|not for|avoid if|switch (?:when|if)|if|when|unless|team|teams|startup|enterprise|small business|solo|agency|developer|marketer|ops|compliance|budget|rollout|migration)\b/i;
+    const DECISION_CONSEQUENCE_SIGNAL_REGEX =
+      /\b(block|blocker|risk|trade[- ]?off|means|impact|forces|requires|cannot|can't|only on|tier|plan|overage|limit|limited)\b/i;
+    const enforceDecisionUsefulClaim = (
+      text: string,
+      label: 'pros' | 'cons',
+      sourceType: 'official' | 'editorial' | 'community'
+    ): string => {
+      let next = text.trim().replace(/\s+/g, ' ');
+      if (!next) return next;
+      if (!DECISION_SCENARIO_SIGNAL_REGEX.test(next)) {
+        next =
+          label === 'pros'
+            ? `Best for teams that need ${lowercaseFirst(next)}`
+            : sourceType === 'community'
+              ? `Users report this can block teams that require ${lowercaseFirst(next)}`
+              : `Can block teams that require ${lowercaseFirst(next)}`;
+      }
+      if (label === 'cons' && !DECISION_CONSEQUENCE_SIGNAL_REGEX.test(next)) {
+        next =
+          sourceType === 'community'
+            ? `Users report rollout risk: ${lowercaseFirst(next)}`
+            : `Rollout risk: ${lowercaseFirst(next)}`;
+      }
+      if (!/[.!?]$/.test(next)) next = `${next}.`;
+      return next;
     };
     const CONSTRAINT_SIGNAL_REGEX =
       /\b(no|not|without|only|limit|limited|limits|requires?|supports?|lacks?|max|minimum|quota|overage|tier|plan|api|sso|sla|gdpr|soc ?2|hipaa|export|import|linux|windows|ios|android)\b/i;
@@ -1315,7 +1345,8 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
           typeof c.text === 'string'
             ? rewriteLowSpecificityClaim(c.text, label, c.source_type)
             : String(c.text || '');
-        if (!hasSpecificitySignal(rewrittenText)) {
+        const decisionUsefulText = enforceDecisionUsefulClaim(rewrittenText, label, c.source_type);
+        if (!hasSpecificitySignal(decisionUsefulText)) {
           throw new Error(
             `Evidence packet invalid: ${label}.text must be specific and decision-useful (avoid generic marketing claims)`
           );
@@ -1340,7 +1371,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
           throw new Error(`Evidence packet invalid: ${label}.confidence must be between 0 and 1`);
         }
         validated.push({
-          text: rewrittenText,
+          text: decisionUsefulText,
           source_url: c.source_url,
           source_type: c.source_type,
           claim_type: normalizedClaimType,
@@ -1657,7 +1688,7 @@ Use the evidence packet below as immutable source-of-truth.
 - Keep pros/cons aligned to this packet.
 - Expand only narrative fields (summary, verdict, shortDescription, reviewContext, faqs).
 - If EVIDENCE_PACKET.abstentions contains a field, return that field as null/omitted in Stage 2.
-- Narrative must be scenario-led ("best for / avoid if / trade-off") and readable for non-technical buyers.
+- Narrative must be scenario-led ("best fit / weak fit / tradeoff") and readable for non-technical buyers.
 - Do not emit contradictory claims. If evidence conflicts, scope it by plan/tier/team profile.
 
 EVIDENCE_PACKET:

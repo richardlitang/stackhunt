@@ -1,3 +1,4 @@
 [mcp_servers.stackhuntGates]
 command = "npm"
 args = ["run", "mcp:stackhunt"]
+cwd = "/Users/richardlitang/code/personal/stackhunt"

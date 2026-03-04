@@ -80,7 +80,7 @@ function checkRequiredToolPageMarkers() {
   const toolPage = path.join(root, 'src/pages/tool/[slug].astro');
   const text = fs.readFileSync(toolPage, 'utf8');
   const requiredMarkers = [
-    { marker: 'How We Evaluate', reason: 'missing "How We Evaluate" section on tool page' },
+    { marker: 'How We Evaluated', reason: 'missing "How We Evaluated" section on tool page' },
     { marker: 'Evaluation depth:', reason: 'missing evaluation depth label on tool page' },
     { marker: 'href="/disclosure"', reason: 'missing disclosure link on tool page' },
   ];

@@ -1,0 +1,41 @@
+---
+interface ChecklistCard {
+  title: string;
+  items: string[];
+}
+
+interface Props {
+  left?: ChecklistCard;
+  right?: ChecklistCard;
+  className?: string;
+  headingClassName?: string;
+}
+
+const {
+  left,
+  right,
+  className = 'mt-4',
+  headingClassName = 'text-sm font-semibold text-zinc-200',
+} = Astro.props as Props;
+
+const cards = [left, right].filter((card): card is ChecklistCard => Boolean(card));
+
+if (cards.length === 0) {
+  return null;
+}
+---
+
+<div class:list={[className, 'grid gap-4 md:grid-cols-2']}>
+  {
+    cards.map((card) => (
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+        <h3 class={headingClassName}>{card.title}</h3>
+        <ul class="mt-2 space-y-1 text-sm text-zinc-300">
+          {card.items.map((item) => (
+            <li>- {item}</li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+</div>

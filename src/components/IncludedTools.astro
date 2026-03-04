@@ -11,6 +11,7 @@
 import { supabase } from '@/lib/supabase';
 import Logo from '@/components/Logo.astro';
 import PricingBadge from '@/components/PricingBadge.astro';
+import { getDisplayDescription } from '@/lib/display-description';
 
 interface Props {
   toolId: string;
@@ -71,9 +72,15 @@ if (!includedTools || includedTools.length === 0) return null;
                 </span>
               )}
             </div>
-            {tool.short_description && (
-              <p class="mt-1 text-xs text-zinc-400 line-clamp-2">{tool.short_description}</p>
-            )}
+            <p class="mt-1 text-xs text-zinc-400 line-clamp-2">
+              {
+                getDisplayDescription({
+                  shortDescription: tool.short_description,
+                  pricingType: tool.pricing_type,
+                  itemType: 'tool',
+                })
+              }
+            </p>
             <div class="mt-2">
               <PricingBadge type={tool.pricing_type} size="sm" />
             </div>

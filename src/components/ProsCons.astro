@@ -49,6 +49,17 @@ const isLikelyIncompleteClause = (value: string): boolean => {
     lower
   );
 };
+const normalizeSourceUrl = (value?: string | null): string | null => {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
 
 // Hedging prefixes for different source types
 const HEDGING_PREFIXES: Record<SourceType, string[]> = {
@@ -110,14 +121,22 @@ const normalizedPros = pros
 const normalizedCons = cons
   .map((item, i) => normalizeClaim(item, i))
   .filter((item) => item.displayText && !isLikelyIncompleteClause(item.displayText));
-const evidenceBackedPros = normalizedPros.filter((item) => Boolean(item.source_url));
-const evidenceBackedCons = normalizedCons.filter((item) => Boolean(item.source_url));
+const evidenceBackedPros = normalizedPros
+  .map((item) => {
+    const sourceUrl = normalizeSourceUrl(item.source_url);
+    return sourceUrl ? { ...item, source_url: sourceUrl } : null;
+  })
+  .filter((item): item is (typeof normalizedPros)[number] => Boolean(item));
+const evidenceBackedCons = normalizedCons
+  .map((item) => {
+    const sourceUrl = normalizeSourceUrl(item.source_url);
+    return sourceUrl ? { ...item, source_url: sourceUrl } : null;
+  })
+  .filter((item): item is (typeof normalizedCons)[number] => Boolean(item));
 const hasEvidenceBackedClaims = evidenceBackedPros.length > 0 || evidenceBackedCons.length > 0;
 
 const sourceEntries = (() => {
-  const entries = [...evidenceBackedPros, ...evidenceBackedCons]
-    .filter((item) => item.source_url)
-    .map((item) => ({
+  const entries = [...evidenceBackedPros, ...evidenceBackedCons].map((item) => ({
       url: item.source_url as string,
       domain: getDomain(item.source_url as string),
       source_type: item.source_type,
@@ -134,6 +153,7 @@ const sourceEntries = (() => {
   return unique;
 })();
 const sourceDomains = sourceEntries.map((entry) => entry.domain);
+const collectedSourcesTotal = sourceEntries.length;
 
 // Extract domain from URL for display
 function getDomain(url: string): string {
@@ -339,7 +359,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
   {
     !hasEvidenceBackedClaims && (
       <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3 text-xs text-zinc-500">
-        Strength and weakness bullets are hidden until source-backed evidence is available.
+        Strength and weakness bullets are hidden until sources are collected.
       </div>
     )
   }
@@ -347,7 +367,9 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
   {
     resolvedSourceDisplay === 'block' && sourceEntries.length > 0 && (
       <div class="mt-6 border-t border-zinc-800 pt-4">
-        <div class="text-xs text-zinc-500">Sources: {sourceDomains.join(' • ')}</div>
+        <div class="text-xs text-zinc-500">
+          Sources collected: {collectedSourcesTotal} ({sourceDomains.join(' • ')})
+        </div>
         <details class="mt-2">
           <summary class="cursor-pointer text-xs text-zinc-400 hover:text-hunt-400">
             View sources

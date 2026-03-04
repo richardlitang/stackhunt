@@ -4,25 +4,63 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, Package } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import {
+  Bot,
+  BookOpen,
+  Briefcase,
+  ChartBar,
+  ChevronRight,
+  Cpu,
+  Database,
+  DollarSign,
+  FileText,
+  GraduationCap,
+  HeartPulse,
+  LineChart,
+  Megaphone,
+  MessageSquare,
+  Package,
+  Palette,
+  PenSquare,
+  Search,
+  Settings,
+  Shield,
+  UserRound,
+  Users,
+  Wrench,
+  type LucideIcon,
+  X,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
-// Convert kebab-case icon name to PascalCase component name
+const ICON_MAP: Record<string, LucideIcon> = {
+  bot: Bot,
+  'book-open': BookOpen,
+  briefcase: Briefcase,
+  'chart-bar': ChartBar,
+  cpu: Cpu,
+  database: Database,
+  'dollar-sign': DollarSign,
+  'file-text': FileText,
+  'graduation-cap': GraduationCap,
+  'heart-pulse': HeartPulse,
+  'line-chart': LineChart,
+  megaphone: Megaphone,
+  'message-square': MessageSquare,
+  package: Package,
+  palette: Palette,
+  'pen-square': PenSquare,
+  settings: Settings,
+  shield: Shield,
+  'user-round': UserRound,
+  users: Users,
+  wrench: Wrench,
+};
+
 function getIconComponent(iconName: string | undefined) {
   if (!iconName) return Package;
-
-  // Convert "message-circle" to "MessageCircle"
-  const pascalCase = iconName
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
-
-  const IconComponent = (LucideIcons as unknown as Record<string, React.ComponentType<any>>)[
-    pascalCase
-  ];
-  return IconComponent || Package;
+  return ICON_MAP[iconName] || Package;
 }
 
 interface Category {

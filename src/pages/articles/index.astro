@@ -6,7 +6,7 @@
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { supabase } from '@/lib/supabase';
-import { simpleMarkdown } from '@/lib/utils';
+import { getCanonicalUrl, simpleMarkdown } from '@/lib/utils';
 
 export const prerender = false;
 
@@ -27,7 +27,14 @@ if (error) {
 }
 ---
 
-<BaseLayout title="Articles" description="Longform analysis and guidance from StackHunt">
+<BaseLayout
+  meta={{
+    title: 'Articles | StackHunt',
+    description: 'Longform analysis and guidance from StackHunt.',
+    canonical: getCanonicalUrl('/articles'),
+    ogType: 'article',
+  }}
+>
   <section class="mx-auto max-w-4xl px-6 py-10">
     <div class="mb-6">
       <h1 class="text-3xl font-bold text-zinc-100">Articles</h1>

@@ -20,10 +20,10 @@ export interface MetaProps {
 }
 
 export function generateToolMeta(tool: Tool, _reviewCount?: number): MetaProps {
-  const title = `${tool.name} Review: Pricing, Features, Pros & Cons (${new Date().getFullYear()}) | StackHunt`;
+  const title = `${tool.name} Review (${new Date().getFullYear()}): Pricing, Best For, Tradeoffs & Alternatives | StackHunt`;
   const description = tool.short_description
-    ? `${tool.short_description} See who ${tool.name} is best for, pricing details, constraints, and alternatives.`
-    : `Evaluate ${tool.name} with pricing, feature coverage, operational constraints, and alternatives.`;
+    ? `${tool.short_description} See who ${tool.name} is best for, key tradeoffs, pricing details, and alternatives.`
+    : `Evaluate ${tool.name} with best-fit guidance, pricing details, core tradeoffs, and alternatives.`;
 
   return {
     title,
@@ -49,11 +49,18 @@ export function generateContextMeta(context: Context, _categoryName?: string): M
 }
 
 export function generateCategoryMeta(name: string, slug: string, description?: string): MetaProps {
+  const fallbackDescription = `Discover the best ${name.toLowerCase()} tools. Compare features, pricing, and reviews to find the perfect solution.`;
+  const normalizedDescription = (description || '').trim();
+  const resolvedDescription =
+    normalizedDescription.length >= 70
+      ? normalizedDescription
+      : normalizedDescription.length > 0
+        ? `${normalizedDescription}. Compare top ${name.toLowerCase()} tools, pricing, and fit.`
+        : fallbackDescription;
+
   return {
     title: `Best ${name} Software & Tools (${new Date().getFullYear()}) | StackHunt`,
-    description:
-      description ||
-      `Discover the best ${name.toLowerCase()} tools. Compare features, pricing, and reviews to find the perfect solution.`,
+    description: resolvedDescription.slice(0, 160),
     canonical: getCanonicalUrl(`/categories/${slug}`),
     ogType: 'website',
   };

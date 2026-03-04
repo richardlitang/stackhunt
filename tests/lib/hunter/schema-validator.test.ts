@@ -34,6 +34,32 @@ function baseAnalysis() {
     ],
     summary:
       'This tool is strongest when teams need structured automation and API control, but requires technical setup for self-hosted and enterprise governance workflows.',
+    reviewContext: {
+      decisionIntro: {
+        what_it_is:
+          'This review explains where the product fits for software teams evaluating AI-assisted development workflows.',
+        best_for:
+          'Best for teams that need source-backed automation with documented API and export controls.',
+        not_for:
+          'Not for teams that need enterprise governance features without paying for higher tiers.',
+        main_tradeoff:
+          'Main tradeoff is stronger API flexibility versus higher setup effort for advanced deployment paths.',
+      },
+      decisionEvidence: {
+        best_for_reason: {
+          text: 'API access is documented with authentication examples',
+          source_url: 'https://example.com/docs/api',
+        },
+        not_for_reason: {
+          text: 'Enterprise SSO is only available on higher tiers',
+          source_url: 'https://example.com/pricing',
+        },
+        tradeoff_reason: {
+          text: 'Teams may need engineering support to maintain self-hosted deployments',
+          source_url: 'https://example.com/docs/self-hosting',
+        },
+      },
+    },
     graphTags: {
       functions: ['Database'],
       audiences: ['Startups'],
@@ -75,5 +101,42 @@ describe('validateAnalysis claim hygiene', () => {
     expect(report.isValid).toBe(true);
     expect(report.shouldPublish).toBe(true);
     expect(report.humanReviewRequired).toBe(false);
+  });
+
+  it('blocks publish when decision intro is missing', () => {
+    const analysis = baseAnalysis();
+    delete (analysis as any).reviewContext;
+
+    const report = validateAnalysis(analysis);
+
+    expect(report.shouldPublish).toBe(false);
+    expect(report.validations.some((v) => v.field === 'reviewContext.decisionIntro')).toBe(true);
+  });
+
+  it('blocks publish when decision evidence is missing', () => {
+    const analysis = baseAnalysis();
+    delete (analysis.reviewContext as any).decisionEvidence;
+
+    const report = validateAnalysis(analysis);
+
+    expect(report.shouldPublish).toBe(false);
+    expect(report.validations.some((v) => v.field === 'reviewContext.decisionEvidence')).toBe(true);
+  });
+
+  it('blocks publish when decision intro uses generic language', () => {
+    const analysis = baseAnalysis();
+    analysis.reviewContext!.decisionIntro!.main_tradeoff =
+      'This is a robust and powerful solution for modern teams.';
+
+    const report = validateAnalysis(analysis);
+
+    expect(report.shouldPublish).toBe(false);
+    expect(
+      report.validations.some(
+        (v) =>
+          v.field === 'reviewContext.decisionIntro.main_tradeoff' &&
+          v.message.includes('generic language')
+      )
+    ).toBe(true);
   });
 });

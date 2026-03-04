@@ -1,0 +1,142 @@
+---
+interface FocusOptions {
+  verdict?: boolean;
+  pricing?: boolean;
+  setup?: boolean;
+  capabilities?: boolean;
+  integrations?: boolean;
+  trust?: boolean;
+}
+
+interface Props {
+  options?: FocusOptions;
+  defaultFocus?: 'all' | 'verdict' | 'pricing' | 'setup' | 'capabilities' | 'integrations' | 'trust';
+  storageScope?: string;
+  compact?: boolean;
+  showNote?: boolean;
+}
+
+const {
+  options = {},
+  defaultFocus = 'all',
+  storageScope = 'global',
+  compact = false,
+  showNote = true,
+} = Astro.props;
+
+const focusItems = [
+  { key: 'verdict', label: 'Verdict', enabled: options.verdict !== false },
+  { key: 'pricing', label: 'Pricing', enabled: options.pricing !== false },
+  { key: 'setup', label: 'Setup', enabled: options.setup !== false },
+  { key: 'capabilities', label: 'Capabilities', enabled: options.capabilities !== false },
+  { key: 'integrations', label: 'Integrations', enabled: options.integrations !== false },
+  { key: 'trust', label: 'Trust', enabled: options.trust !== false },
+].filter((item) => item.enabled);
+---
+
+<section
+  class={compact
+    ? 'rounded-lg border border-zinc-800 bg-zinc-950/40 p-3'
+    : 'mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm'}
+  data-review-focus-root
+  data-default-focus={defaultFocus}
+  data-storage-scope={storageScope}
+  aria-label="Filter review sections by focus area"
+>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Focus view</span>
+    <button
+      type="button"
+      class="rounded-full border border-zinc-600 bg-zinc-800 px-3 py-1 text-xs text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
+      data-focus-key="all"
+      aria-pressed="true"
+    >
+      All
+    </button>
+    {focusItems.map((item) => (
+      <button
+        type="button"
+        class="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+        data-focus-key={item.key}
+        aria-pressed="false"
+      >
+        {item.label}
+      </button>
+    ))}
+  </div>
+  {
+    showNote && (
+      <p class="mt-2 text-xs text-zinc-500">
+        Changes emphasis only. Underlying facts and sources stay the same.
+      </p>
+    )
+  }
+</section>
+
+<script>
+  (() => {
+    const root = document.querySelector('[data-review-focus-root]');
+    if (!root) return;
+    const defaultFocus = root.getAttribute('data-default-focus') || 'all';
+    const storageScope = root.getAttribute('data-storage-scope') || 'global';
+    const STORAGE_KEY = `stackhunt:tool-focus:v1:${storageScope}`;
+
+    const buttons = Array.from(root.querySelectorAll('[data-focus-key]'));
+    const targets = Array.from(document.querySelectorAll('[data-focus-target]'));
+    if (buttons.length === 0 || targets.length === 0) return;
+
+    const validKeys = new Set(buttons.map((button) => button.getAttribute('data-focus-key') || ''));
+
+    const setButtonState = (selected) => {
+      buttons.forEach((button) => {
+        const key = button.getAttribute('data-focus-key') || '';
+        const isActive = key === selected;
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        button.classList.toggle('bg-zinc-800', isActive);
+        button.classList.toggle('border-zinc-600', isActive);
+        button.classList.toggle('text-zinc-200', isActive);
+      });
+    };
+
+    const setTargetVisibility = (selected) => {
+      targets.forEach((target) => {
+        const groupsAttr = target.getAttribute('data-focus-groups') || '';
+        const groups = groupsAttr
+          .split(/\s+/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const shouldShow = selected === 'all' || groups.includes('all') || groups.includes(selected);
+        target.classList.toggle('hidden', !shouldShow);
+      });
+    };
+
+    const applyFocus = (selected) => {
+      const key = validKeys.has(selected) ? selected : 'all';
+      setButtonState(key);
+      setTargetVisibility(key);
+      try {
+        localStorage.setItem(STORAGE_KEY, key);
+      } catch {
+        // Ignore storage write failures.
+      }
+    };
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const key = button.getAttribute('data-focus-key') || 'all';
+        applyFocus(key);
+      });
+    });
+
+    const fromQuery = new URLSearchParams(window.location.search).get('focus') || '';
+    let initial = fromQuery;
+    if (!validKeys.has(initial)) {
+      try {
+        initial = localStorage.getItem(STORAGE_KEY) || defaultFocus || 'all';
+      } catch {
+        initial = defaultFocus || 'all';
+      }
+    }
+    applyFocus(initial);
+  })();
+</script>

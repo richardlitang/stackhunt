@@ -15,6 +15,9 @@ type CandidateRow = {
 type QueueRow = {
   tool_name: string;
 };
+type RecentQueueRow = {
+  tool_name: string;
+};
 
 function hasFlag(name: string): boolean {
   return process.argv.includes(`--${name}`);
@@ -30,8 +33,12 @@ async function main() {
   const apply = hasFlag('apply');
   const limitArg = Number(getArgValue('limit') || 50);
   const priorityArg = Number(getArgValue('priority') || 95);
+  const cooldownHoursArg = Number(getArgValue('cooldown-hours') || 168);
   const limit = Number.isFinite(limitArg) ? Math.max(1, Math.min(limitArg, 500)) : 50;
   const priority = Number.isFinite(priorityArg) ? Math.max(0, Math.min(priorityArg, 100)) : 95;
+  const cooldownHours = Number.isFinite(cooldownHoursArg)
+    ? Math.max(0, Math.min(cooldownHoursArg, 24 * 90))
+    : 168;
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -109,12 +116,28 @@ async function enqueue(
   }
 
   const existingSet = new Set(((existing || []) as QueueRow[]).map((q) => q.tool_name));
-  const toInsert = candidates.filter((c) => !existingSet.has(c.name));
+  const cooldownSinceIso = new Date(Date.now() - cooldownHours * 60 * 60 * 1000).toISOString();
+  const { data: recent, error: recentError } = await supabase
+    .from('hunt_queue')
+    .select('tool_name')
+    .eq('hunt_type', 'price_only')
+    .in('source', ['admin', 'scheduled'])
+    .in('tool_name', names)
+    .gte('created_at', cooldownSinceIso)
+    .limit(Math.min(names.length, 500));
+  if (recentError) {
+    console.error(`Failed to check recent cooldown window: ${recentError.message}`);
+    process.exit(1);
+  }
+
+  const recentSet = new Set(((recent || []) as RecentQueueRow[]).map((q) => q.tool_name));
+  const toInsert = candidates.filter((c) => !existingSet.has(c.name) && !recentSet.has(c.name));
 
   console.log('\nVolatile Refresh Queue');
   console.log(`Mode: ${apply ? 'APPLY' : 'DRY RUN'}`);
   console.log(`Candidates: ${candidates.length}`);
   console.log(`Already queued: ${existingSet.size}`);
+  console.log(`Blocked by cooldown (${cooldownHours}h): ${recentSet.size}`);
   console.log(`To enqueue: ${toInsert.length}`);
 
   if (toInsert.length > 0) {
@@ -137,16 +160,16 @@ async function enqueue(
   }));
 
   const sourceCap = parseQueueCap(process.env.HUNT_QUEUE_SOURCE_PENDING_CAP, 400);
-  const { current, remaining } = await getAvailableSourceSlots(supabase as any, 'scheduled', sourceCap);
+  const { current, remaining } = await getAvailableSourceSlots(supabase as any, 'admin', sourceCap);
   if (remaining <= 0) {
     console.log(
-      `\nQueue source cap reached for "scheduled" (${current}/${sourceCap}). Skipping enqueue.`
+      `\nQueue source cap reached for "admin" (${current}/${sourceCap}). Skipping enqueue.`
     );
     return;
   }
   if (rows.length > remaining) {
     console.log(
-      `\nQueue guardrail trimming rows from ${rows.length} to ${remaining} (scheduled pending ${current}/${sourceCap}).`
+      `\nQueue guardrail trimming rows from ${rows.length} to ${remaining} (admin pending ${current}/${sourceCap}).`
     );
     rows.length = remaining;
   }
