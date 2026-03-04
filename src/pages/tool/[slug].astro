@@ -66,6 +66,7 @@ import { buildToolPageSourcesViewModel } from '@/lib/tool-page-sources';
 import { buildToolPageDecisionSnapshot } from '@/lib/tool-page-decision';
 import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page-evidence-grade';
 import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page-constraints';
+import { buildToolPageLensHrefs } from '@/lib/tool-page-lens-hrefs';
 import { createToolPageEvidenceContract } from '@/lib/tool-page-evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page-freshness-policy';
 import { computeToolPageSectionContract } from '@/lib/tool-page-standard';
@@ -1241,22 +1242,10 @@ const toolPageViewModel = buildToolPageViewModel({
 });
 const { focusSwitchOptions, lensDefaultFocus, showFocusSwitch, lensPriorityLinks } =
   toolPageViewModel;
-const buildLensHref = (lens: ReviewLens): string => {
-  const params = new URLSearchParams(Astro.url.searchParams);
-  if (lens === 'general') {
-    params.delete('lens');
-  } else {
-    params.set('lens', lens);
-  }
-  const query = params.toString();
-  return query ? `${Astro.url.pathname}?${query}` : Astro.url.pathname;
-};
-const lensHrefs: Record<ReviewLens, string> = {
-  general: buildLensHref('general'),
-  personal: buildLensHref('personal'),
-  startup: buildLensHref('startup'),
-  enterprise: buildLensHref('enterprise'),
-};
+const lensHrefs: Record<ReviewLens, string> = buildToolPageLensHrefs(
+  Astro.url.pathname,
+  Astro.url.searchParams
+);
 const decisionProofPoints = [
   buildEvidenceBulletV2({
     text: `Pricing references reviewed from official pages (checked ${pricingVerifiedLabel || 'latest available date'}).`,
