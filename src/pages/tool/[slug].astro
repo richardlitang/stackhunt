@@ -63,6 +63,7 @@ import {
   deriveToolPageReviewContentLists,
   deriveToolPageReviewProgress,
   deriveToolPageReviewSignals,
+  deriveToolPageRequestState,
   deriveToolPageSectionSignals,
   buildToolPageSectionState,
   deriveToolPageSetupSignals,
@@ -79,19 +80,14 @@ import {
   buildToolPageRuntime,
   deriveToolPagePricingSignals,
 } from '@/lib/tool-page';
+import type { ReviewLens } from '@/lib/tool-page/view-model';
 import { selectToolPageReview } from '@/lib/reviews/select-review';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
 
 const { slug } = Astro.params;
-type ReviewLens = 'general' | 'personal' | 'startup' | 'enterprise';
-const REVIEW_LENSES: ReadonlyArray<ReviewLens> = ['general', 'personal', 'startup', 'enterprise'];
-const lensParam = (Astro.url.searchParams.get('lens') || '').toLowerCase();
-const activeReviewLens: ReviewLens = REVIEW_LENSES.includes(lensParam as ReviewLens)
-  ? (lensParam as ReviewLens)
-  : 'general';
-const hasVersionBypassParam = Astro.url.searchParams.has('v');
+const { activeReviewLens, hasVersionBypassParam } = deriveToolPageRequestState(Astro.url.searchParams);
 if (hasVersionBypassParam) {
   // Cache-bust requests like ?v=34 should always skip CDN/page cache.
   const noStore = 'no-store, max-age=0';

@@ -21,6 +21,7 @@ export {
 export { deriveToolPageReviewProgress } from '@/lib/tool-page/review-progress';
 export { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
 export { buildToolPageRuntime } from '@/lib/tool-page/runtime';
+export { deriveToolPageRequestState } from '@/lib/tool-page/request-state';
 export { deriveToolPageSectionSignals } from '@/lib/tool-page/section-signals';
 export { buildToolPageSectionState } from '@/lib/tool-page/section-state';
 export { deriveToolPageSetupSignals } from '@/lib/tool-page/setup';
