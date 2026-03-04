@@ -33,7 +33,7 @@ import IncludedTools from '@/components/IncludedTools.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import type { KnowledgeCard, ToolConstraints } from '@/lib/knowledge-card';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
-import { getToolBySlugAndType, getToolContexts, getToolTags, supabase } from '@/lib/supabase';
+import { getToolBySlugAndType, getToolTags, supabase } from '@/lib/supabase';
 import {
   generateToolMeta,
   generateToolSchema,
@@ -125,7 +125,6 @@ if (tool.parent_id) {
   parentTool = data;
 }
 
-const _contextLinks = await getToolContexts(tool.id);
 const tags = await getToolTags(tool.id);
 
 const primaryOffer = tool.affiliate_offers?.find((o) => o.is_primary) || tool.affiliate_offers?.[0];
@@ -454,8 +453,6 @@ const renderVerdict = sanitizeStructuredClaimMarkdown(
   firstReview?.summary_markdown || tool.verdict || humanVerdict
 );
 
-const _turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
-
 const hasAbout = (() => {
   const longDescription =
     typeof tool.long_description === 'string' ? tool.long_description.trim() : '';
@@ -669,12 +666,6 @@ const {
   evidenceBasis,
   officialEvidenceLinks,
 } = toolPageEvidenceLinks;
-const _independentEvidenceLinks = evidenceLinks.filter(
-  (entry) => entry.basis === 'Independent reviews'
-);
-const _communityEvidenceLinks = evidenceLinks.filter(
-  (entry) => entry.basis === 'Community discussions' || entry.basis === 'GitHub issues'
-);
 const sourceAriaLabel = (context: string): string =>
   buildToolPageSourceAriaLabel(stripControlChars(context));
 const reviewSignals = deriveToolPageReviewSignals({
