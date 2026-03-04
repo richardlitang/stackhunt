@@ -67,6 +67,7 @@ import { buildToolPageDecisionSnapshot } from '@/lib/tool-page-decision';
 import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page-evidence-grade';
 import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page-constraints';
 import { buildToolPageLensHrefs } from '@/lib/tool-page-lens-hrefs';
+import { buildToolPageEvidenceLinks } from '@/lib/tool-page-evidence-links';
 import {
   buildToolPageSourceAriaLabel,
   formatToolPageVerifiedDate,
@@ -890,14 +891,6 @@ const uniqueDecisionText = (items: Array<unknown>): string[] => {
       return true;
     });
 };
-const toolNameTokens = tool.name
-  .toLowerCase()
-  .split(/[^a-z0-9]+/g)
-  .filter((token) => token.length >= 3);
-const hasToolNameSignal = (value: string): boolean => {
-  const lower = value.toLowerCase();
-  return toolNameTokens.length > 0 && toolNameTokens.some((token) => lower.includes(token));
-};
 const fallbackDecisionSummary =
   tool.short_description ||
   knowledgeCard?.tagline ||
@@ -942,142 +935,17 @@ const {
   notTestedItems,
   showWeTestedIt,
 } = toolPageEvaluationViewModel;
-type EvidenceLinkEntry = {
-  url: string;
-  title: string;
-  domain: string;
-  basis: string;
-  quality: 'high' | 'medium' | 'low';
-  inclusionReason: string;
-  sourceType: string;
-};
-const TRUSTED_INDEPENDENT_DOMAINS = new Set([
-  'techcrunch.com',
-  'theverge.com',
-  'wired.com',
-  'bloomberg.com',
-  'wsj.com',
-  'ft.com',
-  'reuters.com',
-  'forbes.com',
-  'crunchbase.com',
-  'github.com',
-]);
-const evidenceLinksAll = (firstReview?.sources || [])
-  .map((source) => {
-    const url = typeof source?.url === 'string' ? source.url : null;
-    if (!url) return null;
-    let hostname = '';
-    try {
-      hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
-    } catch {
-      return null;
-    }
-    const path = (() => {
-      try {
-        return new URL(url).pathname.toLowerCase();
-      } catch {
-        return '';
-      }
-    })();
-    const blocked =
-      hostname.includes('reddit.com') ||
-      hostname.includes('ycombinator.com') ||
-      hostname.includes('g2.com') ||
-      hostname.includes('capterra.com') ||
-      hostname.includes('trustpilot.com') ||
-      hostname.includes('stackexchange.com') ||
-      hostname.includes('stackoverflow.com');
-    if (blocked) return null;
-    const sourceType = String(
-      (source as Record<string, unknown>)?.source_type || source?.type || ''
-    ).toLowerCase();
-    const basis =
-      sourceType === 'official'
-        ? hostname.startsWith('status.') || path.includes('/status')
-          ? 'Official status pages'
-          : path.includes('/pricing') || path.includes('/plans') || path.includes('/subscription')
-            ? 'Official pricing pages'
-            : path.includes('/changelog') || path.includes('/release') || path.includes('/updates')
-              ? 'Official changelogs'
-              : 'Official docs/help center'
-        : sourceType === 'community'
-          ? 'Community discussions'
-          : hostname.includes('github.com') && path.includes('/issues')
-            ? 'GitHub issues'
-            : 'Independent reviews';
-    const title =
-      typeof source?.title === 'string' && source.title.trim().length > 0
-        ? source.title.trim()
-        : hostname;
-    const hasToolSignal = hasToolNameSignal(`${title} ${hostname} ${path}`);
-    const isLikelyOffTopicOfficial =
-      sourceType === 'official' && path.includes('/blog/') && !hasToolSignal;
-    let quality: EvidenceLinkEntry['quality'] = 'medium';
-    let inclusionReason = 'Secondary source';
-    if (sourceType === 'official') {
-      if (isLikelyOffTopicOfficial) {
-        quality = 'low';
-        inclusionReason = 'Official domain but page appears unrelated to this tool';
-      } else if (
-        path.includes('/pricing') ||
-        path.includes('/plans') ||
-        path.includes('/docs') ||
-        path.includes('/help') ||
-        path.includes('/developers') ||
-        path.includes('/api')
-      ) {
-        quality = 'high';
-        inclusionReason = 'Official product documentation or pricing page';
-      } else {
-        quality = hasToolSignal ? 'high' : 'medium';
-        inclusionReason = hasToolSignal
-          ? 'Official source with tool-specific signal'
-          : 'Official source with weak tool-specific signal';
-      }
-    } else if (basis === 'Community discussions' || hostname.includes('youtube.com')) {
-      quality = 'low';
-      inclusionReason = 'Community or user-generated source (anecdotal)';
-    } else if (
-      TRUSTED_INDEPENDENT_DOMAINS.has(hostname) ||
-      Array.from(TRUSTED_INDEPENDENT_DOMAINS).some((domain) => hostname.endsWith(`.${domain}`))
-    ) {
-      quality = 'medium';
-      inclusionReason = 'Independent source from a higher-trust publication';
-    } else {
-      quality = 'low';
-      inclusionReason = 'Low-confidence independent source';
-    }
-    return {
-      url,
-      title,
-      domain: hostname,
-      basis,
-      quality,
-      inclusionReason,
-      sourceType,
-    };
-  })
-  .filter((entry): entry is EvidenceLinkEntry => Boolean(entry));
-const evidenceLinks = evidenceLinksAll.filter((entry) => entry.quality !== 'low');
-const lowConfidenceEvidenceLinks = evidenceLinksAll.filter((entry) => entry.quality === 'low');
-const evidenceBasis = [
-  'Official docs/help center',
-  'Official pricing pages',
-  'Official changelogs',
-  'Official status pages',
-  'Independent reviews',
-  'Community discussions',
-  'GitHub issues',
-]
-  .map((label) => {
-    const domains = new Set(
-      evidenceLinks.filter((entry) => entry.basis === label).map((entry) => entry.domain)
-    );
-    return { label, count: domains.size };
-  })
-  .filter((entry) => entry.count > 0);
-const officialEvidenceLinks = evidenceLinks.filter((entry) => entry.basis.startsWith('Official'));
+const toolPageEvidenceLinks = buildToolPageEvidenceLinks(
+  ((firstReview?.sources as Array<Record<string, unknown> | null | undefined>) || []),
+  tool.name
+);
+const {
+  evidenceLinksAll,
+  evidenceLinks,
+  lowConfidenceEvidenceLinks,
+  evidenceBasis,
+  officialEvidenceLinks,
+} = toolPageEvidenceLinks;
 const _independentEvidenceLinks = evidenceLinks.filter(
   (entry) => entry.basis === 'Independent reviews'
 );
