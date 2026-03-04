@@ -45,7 +45,6 @@ import { formatPricingType, getCanonicalUrl, simpleMarkdown } from '@/lib/utils'
 import { getAlternatives } from '@/lib/analysis/alternatives';
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
-import { evaluateStrictPublishGate } from '@/lib/review-publish-gate';
 import {
   buildToolPagePricingViewModel,
   deriveToolPagePricingSignals,
@@ -62,7 +61,6 @@ import {
   type ToolPageEvidenceBullet as EvidenceBullet,
   type ToolPageEvidenceBulletV2 as EvidenceBulletV2,
 } from '@/lib/tool-page-evidence-bullets';
-import { evaluateToolPageProvisionalIndexEligibility } from '@/lib/tool-page-provisional-index';
 import {
   cleanToolPageDecisionSlotText,
   cleanToolPageNarrativeText,
@@ -91,6 +89,9 @@ import {
   deriveToolPageReviewContentLists,
   deriveToolPageSourceEvidenceDomains,
 } from '@/lib/tool-page-review-content';
+import { deriveToolPageReviewProgress } from '@/lib/tool-page-review-progress';
+import { buildToolPageTradeoffEvidence } from '@/lib/tool-page-tradeoff-evidence';
+import { deriveToolPageReviewContextSignals } from '@/lib/tool-page-review-context';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
@@ -175,54 +176,25 @@ const vipSpecifics = toolSpecs?.specifics as Record<string, unknown> | undefined
 const reviewContext = hasNewerUnpublishedReview
   ? null
   : (tool.review_context as Record<string, unknown> | null);
-const userAdvocate = (reviewContext?.userAdvocate || reviewContext?.user_advocate) as Record<
-  string,
-  unknown
-> | null;
-const budgetAnalyst = (reviewContext?.budgetAnalyst || reviewContext?.budget_analyst) as Record<
-  string,
-  unknown
-> | null;
-const humanVerdict = (reviewContext?.humanVerdict || reviewContext?.human_verdict) as string | null;
-const decisionSlotsRaw = (reviewContext?.decisionSlots || reviewContext?.decision_slots) as Record<
-  string,
-  unknown
-> | null;
-const decisionIntroRaw = (reviewContext?.decisionIntro || reviewContext?.decision_intro) as Record<
-  string,
-  unknown
-> | null;
-const delighters = Array.isArray(userAdvocate?.delighters) ? userAdvocate?.delighters : [];
-const frustrations = Array.isArray(userAdvocate?.frustrations) ? userAdvocate?.frustrations : [];
-const powerTip = (userAdvocate?.powerTip || userAdvocate?.power_tip) as string | null;
-const vibe = userAdvocate?.vibe as string | null;
-const originStory = (userAdvocate?.originStory || userAdvocate?.origin_story) as string | null;
-const idealFor = Array.isArray(userAdvocate?.idealFor || userAdvocate?.ideal_for)
-  ? userAdvocate?.idealFor || userAdvocate?.ideal_for
-  : [];
-const avoidIf = Array.isArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if)
-  ? userAdvocate?.avoidIf || userAdvocate?.avoid_if
-  : [];
-const budgetCostDriversRaw = budgetAnalyst
-  ? budgetAnalyst.costDrivers || budgetAnalyst.cost_drivers
-  : null;
-const budgetCostDrivers = Array.isArray(budgetCostDriversRaw)
-  ? budgetCostDriversRaw
-      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-      .map((item) => item.trim())
-  : [];
-const budgetOneTimeFeesRaw = budgetAnalyst
-  ? budgetAnalyst.oneTimeFees || budgetAnalyst.one_time_fees
-  : null;
-const budgetOneTimeFees = Array.isArray(budgetOneTimeFeesRaw)
-  ? budgetOneTimeFeesRaw
-      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-      .map((item) => item.trim())
-  : [];
-const budgetCommitmentTerms = (budgetAnalyst?.commitmentTerms ||
-  budgetAnalyst?.commitment_terms) as string | null | undefined;
-const budgetRoiThreshold = (budgetAnalyst?.roiThreshold ||
-  budgetAnalyst?.roi_threshold) as string | null | undefined;
+const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
+const {
+  userAdvocate,
+  budgetAnalyst,
+  humanVerdict,
+  decisionSlotsRaw,
+  decisionIntroRaw,
+  delighters,
+  frustrations,
+  powerTip,
+  vibe,
+  originStory,
+  idealFor,
+  avoidIf,
+  budgetCostDrivers,
+  budgetOneTimeFees,
+  budgetCommitmentTerms,
+  budgetRoiThreshold,
+} = reviewContextSignals;
 
 // Fetch alternatives using hybrid search (vector similarity + category guardrails)
 // Strategy: Compute live, cache at edge - no DB storage of computed relationships
@@ -440,15 +412,12 @@ const gateBlocksFoundations =
 const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
 const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
 const safeDraftDescription = `${tool.name} is currently in editorial verification. This page is not finalized yet.`;
-const strictGateBlockers = firstReview
-  ? evaluateStrictPublishGate(tool, firstReview).blockers
-  : [];
-const provisionalIndexEligibility = evaluateToolPageProvisionalIndexEligibility({
+const reviewProgress = deriveToolPageReviewProgress({
+  tool,
   firstReview,
   gateReasons,
-  strictBlockers: strictGateBlockers,
 });
-const showReviewInProgressBanner = provisionalIndexEligibility.allowed;
+const showReviewInProgressBanner = reviewProgress.showReviewInProgressBanner;
 const hasEligibleNegativeEvidence = eligibleSignalEvidenceCount >= 2;
 const renderVerdict = sanitizeStructuredClaimMarkdown(
   firstReview?.summary_markdown || tool.verdict || humanVerdict
@@ -833,14 +802,15 @@ const decisionProofPoints = [
     requiredSourcing: true,
   }),
 ].filter((item): item is EvidenceBulletV2 => Boolean(item));
-const avoidIfBullet = buildEvidenceBulletV2({
-  text: decisionSnapshotWatchOuts[0] || 'Your workflow cannot tolerate unresolved constraints.',
-  kind: 'tradeoff',
-  requiredSourcing: true,
-  sourceUrl: topHardLimit?.sourceUrl || null,
-  sourceLabel: topHardLimit ? 'Hard limit source' : undefined,
-  retrievedAt: communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || undefined,
+const tradeoffEvidence = buildToolPageTradeoffEvidence({
+  decisionSnapshotWatchOuts,
+  canonicalHardLimits,
+  topHardLimit: topHardLimit || null,
+  communityVerifiedLabel,
+  specsVerifiedLabel,
+  pricingVerifiedLabel,
 });
+const { avoidIfBullet, tradeoffCons } = tradeoffEvidence;
 const decisionSnapshotDifferentiators = uniqueDecisionText([
   ...(Array.isArray(knowledgeCard?.features?.unique) ? knowledgeCard.features.unique : []),
   ...(Array.isArray(knowledgeCard?.features?.core) ? knowledgeCard.features.core : []),
@@ -896,23 +866,6 @@ const {
   workflowFitHighlights,
   workflowFitCards,
 } = lensRuntime;
-const tradeoffCons = uniqueDecisionText([
-  ...decisionSnapshotWatchOuts,
-  ...canonicalHardLimits.map((item) => item.text),
-])
-  .slice(0, 2)
-  .map((text) =>
-    buildEvidenceBulletV2({
-      text,
-      kind: 'tradeoff',
-      requiredSourcing: true,
-      sourceUrl: canonicalHardLimits.find((item) => item.text === text)?.sourceUrl || null,
-      sourceLabel: canonicalHardLimits.find((item) => item.text === text) ? 'Source' : undefined,
-      retrievedAt:
-        communityVerifiedLabel || specsVerifiedLabel || pricingVerifiedLabel || undefined,
-    })
-  )
-  .filter((item): item is EvidenceBulletV2 => Boolean(item));
 const trustRuntime = buildToolPageTrustRuntime({
   baseEvidenceGrade,
   verificationItems: [avoidIfBullet, ...tradeoffCons, ...decisionProofPoints],
