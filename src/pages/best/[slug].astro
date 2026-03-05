@@ -21,7 +21,7 @@ import VoteWidget from '@/components/VoteWidget';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import RelatedContent from '@/components/RelatedContent.astro';
 import TrustBar from '@/components/TrustBar.astro';
-import TwoColumnChecklistCards from '@/components/TwoColumnChecklistCards.astro';
+import BestShortlistSection from '@/components/BestShortlistSection.astro';
 import { getContextBySlug, getProvisionalReviewsForContext, supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {
@@ -83,7 +83,9 @@ function getSourceStats(rawSources: unknown) {
 
   for (const source of sources) {
     if (!source || typeof source !== 'object') continue;
-    const sourceType = String((source as any).source_type || (source as any).type || '').toLowerCase();
+    const sourceType = String(
+      (source as any).source_type || (source as any).type || ''
+    ).toLowerCase();
     if (!AUTHORITATIVE_SOURCE_TYPES.has(sourceType)) continue;
     authoritativeSources += 1;
 
@@ -99,7 +101,10 @@ function getSourceStats(rawSources: unknown) {
               }
             })()
           : '';
-    const normalizedDomain = rawDomain.replace(/^www\./i, '').toLowerCase().trim();
+    const normalizedDomain = rawDomain
+      .replace(/^www\./i, '')
+      .toLowerCase()
+      .trim();
     if (normalizedDomain) authoritativeDomains.add(normalizedDomain);
   }
 
@@ -129,11 +134,17 @@ function getConfidenceScore(quality: 'high' | 'medium' | 'low' | 'unknown'): num
   return 35;
 }
 
-function getEvidenceScore(sourceCount: number, authoritativeSources: number, authoritativeDomains: number) {
+function getEvidenceScore(
+  sourceCount: number,
+  authoritativeSources: number,
+  authoritativeDomains: number
+) {
   const sourceScore = Math.min(100, sourceCount * 14);
   const authoritativeSourceScore = Math.min(100, authoritativeSources * 35);
   const authoritativeDomainScore = Math.min(100, authoritativeDomains * 50);
-  return Math.round(sourceScore * 0.4 + authoritativeSourceScore * 0.4 + authoritativeDomainScore * 0.2);
+  return Math.round(
+    sourceScore * 0.4 + authoritativeSourceScore * 0.4 + authoritativeDomainScore * 0.2
+  );
 }
 
 function getFreshnessScore(review: any): number {
@@ -153,8 +164,11 @@ function scoreProvisionalReview(review: any) {
 
   const prosCount = countClaimBullets(review?.pros);
   const consCount = countClaimBullets(review?.cons);
-  const summaryLength = typeof review?.summary_markdown === 'string' ? review.summary_markdown.trim().length : 0;
-  const { sourceCount, authoritativeSources, authoritativeDomains } = getSourceStats(review?.sources);
+  const summaryLength =
+    typeof review?.summary_markdown === 'string' ? review.summary_markdown.trim().length : 0;
+  const { sourceCount, authoritativeSources, authoritativeDomains } = getSourceStats(
+    review?.sources
+  );
 
   if (
     summaryLength < 120 ||
@@ -179,7 +193,10 @@ function scoreProvisionalReview(review: any) {
 
   const total = Math.max(
     0,
-    Math.min(100, Math.round(0.55 * score + 0.2 * confidence + 0.15 * evidence + 0.1 * freshness - penalty))
+    Math.min(
+      100,
+      Math.round(0.55 * score + 0.2 * confidence + 0.15 * evidence + 0.1 * freshness - penalty)
+    )
   );
 
   return {
@@ -197,11 +214,14 @@ if (!context) {
   return Astro.redirect('/404');
 }
 
-const publishedReviews = [...(context.reviews || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+const publishedReviews = [...(context.reviews || [])].sort(
+  (a, b) => (b.score || 0) - (a.score || 0)
+);
 let provisionalReviews: any[] = [];
 const wantsAdminPreview = Astro.url.searchParams.get('preview') === 'admin';
 const canUseAdminPreview = wantsAdminPreview ? await validateAdminAuth(Astro.cookies) : false;
-const snapshotReadEnabled = String(import.meta.env.BEST_SNAPSHOT_READ_ENABLED || 'false').toLowerCase() === 'true';
+const snapshotReadEnabled =
+  String(import.meta.env.BEST_SNAPSHOT_READ_ENABLED || 'false').toLowerCase() === 'true';
 const snapshotDraftPreviewEnabled =
   String(import.meta.env.BEST_SNAPSHOT_DRAFT_PREVIEW_ENABLED || 'false').toLowerCase() === 'true';
 
@@ -257,7 +277,9 @@ const provisionalCandidates = provisionalReviews
   .sort((a, b) => (b._rankScore || 0) - (a._rankScore || 0));
 
 const provisionalSlots =
-  publishedReviews.length < PROVISIONAL_TARGET_PICKS ? PROVISIONAL_TARGET_PICKS - publishedReviews.length : 0;
+  publishedReviews.length < PROVISIONAL_TARGET_PICKS
+    ? PROVISIONAL_TARGET_PICKS - publishedReviews.length
+    : 0;
 const selectedProvisionalReviews =
   canUseAdminPreview && provisionalSlots > 0 && !selectedSnapshot
     ? provisionalCandidates.slice(0, Math.min(MAX_PROVISIONAL_PICKS, provisionalSlots))
@@ -273,7 +295,11 @@ const runtimeSortedReviews = [
 ].sort((a, b) => (b._rankScore || 0) - (a._rankScore || 0));
 
 const snapshotRanked = Array.isArray(selectedSnapshot?.snapshot_json?.ranked)
-  ? (selectedSnapshot.snapshot_json.ranked as Array<{ item_id?: string; tool_id?: string; score?: number }>)
+  ? (selectedSnapshot.snapshot_json.ranked as Array<{
+      item_id?: string;
+      tool_id?: string;
+      score?: number;
+    }>)
   : [];
 const runtimeReviewByItemId = new Map(
   runtimeSortedReviews
@@ -447,7 +473,9 @@ const listConfidence: 'High' | 'Medium' | 'Low' =
 const hasMinimumComparisons = sortedReviews.length >= 2;
 const hasSourceCoverage = effectiveSourceCount >= 5;
 const hasFreshnessSignal = Boolean(contextCheckedLabel);
-const hasReadableSummaryCoverage = sortedReviews.some((review) => !isSparseSummary(review.summary_markdown));
+const hasReadableSummaryCoverage = sortedReviews.some(
+  (review) => !isSparseSummary(review.summary_markdown)
+);
 const topPickNames = sortedReviews.slice(0, 3).map((review) => review.item.name);
 const sourceBackedPickCount = sortedReviews.filter(
   (review) => getReviewDataQuality(review) === 'high' || getReviewDataQuality(review) === 'medium'
@@ -474,7 +502,10 @@ const shortlistSignals = [
 ];
 const shouldNoindex =
   !selectedSnapshot &&
-  (!hasMinimumComparisons || !hasSourceCoverage || !hasFreshnessSignal || !hasReadableSummaryCoverage);
+  (!hasMinimumComparisons ||
+    !hasSourceCoverage ||
+    !hasFreshnessSignal ||
+    !hasReadableSummaryCoverage);
 
 const safeDraftDescription =
   'This list is still in editorial verification and may be incomplete. See finalized software comparisons on StackHunt.';
@@ -580,7 +611,11 @@ function isSparseSummary(summary: unknown): boolean {
         <div class="shrink-0 text-right">
           <div class="text-3xl font-bold text-hunt-500">{displayToolCount}</div>
           <div class="text-sm text-zinc-400">
-            {selectedProvisionalReviews.length > 0 ? 'tools compared + early picks' : 'tools compared'}
+            {
+              selectedProvisionalReviews.length > 0
+                ? 'tools compared + early picks'
+                : 'tools compared'
+            }
           </div>
         </div>
       </div>
@@ -636,7 +671,9 @@ function isSparseSummary(summary: unknown): boolean {
         <li>- Run one real workflow trial before committing.</li>
       </ul>
       <details class="group mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-        <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-200">
+        <summary
+          class="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-200"
+        >
           Team / IT checks
           <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
             <span class="group-open:hidden">Expand</span>
@@ -650,22 +687,11 @@ function isSparseSummary(summary: unknown): boolean {
       </details>
     </section>
 
-    <section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
-      <h2 class="text-lg font-semibold text-zinc-100">How to Shortlist from This List</h2>
-      <p class="mt-2 text-sm text-zinc-300">
-        {listStateSummary}
-      </p>
-      <TwoColumnChecklistCards
-        className="mt-5"
-        headingClassName="text-sm font-semibold text-zinc-100"
-        left={{ title: 'What to Validate First', items: shortlistChecklist }}
-        right={{ title: 'Current Evidence Context', items: shortlistSignals }}
-      />
-      <p class="mt-4 text-xs text-zinc-500">
-        Use this list to narrow candidates, then open each tool profile to review hard limits,
-        setup friction, and source-linked proof.
-      </p>
-    </section>
+    <BestShortlistSection
+      summary={listStateSummary}
+      checklist={shortlistChecklist}
+      signals={shortlistSignals}
+    />
 
     <!-- Ranked Tool List -->
     <section id="tool-list">
@@ -680,11 +706,13 @@ function isSparseSummary(summary: unknown): boolean {
           }
         </h2>
         <span class="text-sm text-zinc-400">
-          {selectedSnapshot
-            ? 'Sorted by snapshot compiler'
-            : selectedProvisionalReviews.length > 0
-            ? 'Sorted by contextual + provisional rank'
-            : 'Sorted by contextual score'}
+          {
+            selectedSnapshot
+              ? 'Sorted by snapshot compiler'
+              : selectedProvisionalReviews.length > 0
+                ? 'Sorted by contextual + provisional rank'
+                : 'Sorted by contextual score'
+          }
         </span>
       </div>
 
@@ -723,7 +751,9 @@ function isSparseSummary(summary: unknown): boolean {
 
                   <div class="flex items-center gap-3">
                     <span class={`text-sm font-medium ${scoreColors.text}`}>
-                      {isProvisional ? `Provisional: ${displayScore}/100` : `Score: ${displayScore}/100`}
+                      {isProvisional
+                        ? `Provisional: ${displayScore}/100`
+                        : `Score: ${displayScore}/100`}
                     </span>
                     <div class={`h-2 w-16 rounded-full ${scoreColors.bg}`}>
                       <div
@@ -753,15 +783,14 @@ function isSparseSummary(summary: unknown): boolean {
                             {review.item.name}
                           </a>
                           <p class="mt-1 text-sm text-zinc-300 line-clamp-2">
-                            {
-                              getDisplayDescription({
-                                shortDescription: review.item.short_description,
-                                summaryMarkdown: review.summary_markdown,
-                                categoryName: review.item.category?.name || context.category?.name || null,
-                                pricingType: review.item.pricing_type,
-                                itemType: review.item.type || 'tool',
-                              })
-                            }
+                            {getDisplayDescription({
+                              shortDescription: review.item.short_description,
+                              summaryMarkdown: review.summary_markdown,
+                              categoryName:
+                                review.item.category?.name || context.category?.name || null,
+                              pricingType: review.item.pricing_type,
+                              itemType: review.item.type || 'tool',
+                            })}
                           </p>
                         </div>
 
@@ -829,8 +858,8 @@ function isSparseSummary(summary: unknown): boolean {
 
                       {isProvisional && (
                         <p class="mt-3 rounded-md border border-sky-500/20 bg-sky-500/5 px-3 py-2 text-xs text-sky-200">
-                          Early pick: this entry meets minimum evidence thresholds and is shown before full
-                          publication checks are complete.
+                          Early pick: this entry meets minimum evidence thresholds and is shown
+                          before full publication checks are complete.
                         </p>
                       )}
                     </div>
@@ -950,9 +979,18 @@ function isSparseSummary(summary: unknown): boolean {
             We're still researching tools for this category. Check back soon!
           </p>
           <ul class="mx-auto mt-4 max-w-xl space-y-1 text-left text-sm text-zinc-400">
-            <li>- Start with 2-3 incumbents you already know, then compare against this page when picks publish.</li>
-            <li>- Prioritize sources that show plan limits, migration constraints, and support boundaries.</li>
-            <li>- Revisit after the next source refresh to avoid committing on stale pricing or feature assumptions.</li>
+            <li>
+              - Start with 2-3 incumbents you already know, then compare against this page when
+              picks publish.
+            </li>
+            <li>
+              - Prioritize sources that show plan limits, migration constraints, and support
+              boundaries.
+            </li>
+            <li>
+              - Revisit after the next source refresh to avoid committing on stale pricing or
+              feature assumptions.
+            </li>
           </ul>
         </div>
       )

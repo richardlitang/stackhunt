@@ -7,5 +7,5 @@ export function buildToolPagePricingNotice(input: BuildToolPagePricingNoticeInpu
     return `Pricing changes frequently; confirm on the vendor site. Shown as of ${input.pricingCheckedLabel}.`;
   }
 
-  return 'Pricing changes frequently. Pricing check is pending until a pricing source URL and retrieved date are both captured.';
+  return "Pricing varies and may change. We're re-verifying published pricing, meanwhile the most reliable cost drivers are seats, workspace count, and plan tier.";
 }

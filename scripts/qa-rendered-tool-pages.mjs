@@ -90,7 +90,9 @@ function extractLocsFromSitemap(xml) {
 }
 
 function extractSitemapUrlsFromIndex(xml) {
-  return Array.from(xml.matchAll(/<sitemap>\s*<loc>([^<]+)<\/loc>\s*<\/sitemap>/g)).map((m) => m[1]);
+  return Array.from(xml.matchAll(/<sitemap>\s*<loc>([^<]+)<\/loc>\s*<\/sitemap>/g)).map(
+    (m) => m[1]
+  );
 }
 
 function stripHtml(input) {
@@ -136,19 +138,19 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   const weakFitHits = (text.match(/\bWeak fit:\b/gi) || []).length;
   const tradeoffHits = (text.match(/\bTradeoff:\b/gi) || []).length;
   const decisionHeadingHits = (text.match(/\bDecision in 60 Seconds\b/gi) || []).length;
-  const readerControlsHits = (
-    html.match(/<h[1-6][^>]*>\s*Reader controls\s*<\/h[1-6]>/gi) || []
-  ).length;
+  const readerControlsHits = (html.match(/<h[1-6][^>]*>\s*Reader controls\s*<\/h[1-6]>/gi) || [])
+    .length;
   const quickJumpHits = (html.match(/>\s*Quick jump\s*</gi) || []).length;
-  const canonicalVerdictPointerHits =
-    (text.match(/\bCanonical constraints live in\s+Why This Verdict\b/gi) || []).length;
+  const canonicalVerdictPointerHits = (
+    text.match(/\bCanonical constraints live in\s+Why This Verdict\b/gi) || []
+  ).length;
   const decisionSectionMatch = html.match(
     /<section[^>]*>[\s\S]*?<h2[^>]*>\s*Decision in 60 Seconds\s*<\/h2>[\s\S]*?<\/section>/i
   );
   if (decisionSectionMatch) {
-    const hrefMatches = Array.from(
-      decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)
-    ).map((match) => match[1]);
+    const hrefMatches = Array.from(decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)).map(
+      (match) => match[1]
+    );
     const disallowedDecisionLinks = hrefMatches.filter((href) => href !== '#verdict');
     if (disallowedDecisionLinks.length > 0) {
       failures.push(
@@ -352,7 +354,9 @@ async function main() {
       throw new Error('No /tool/* URLs discovered from sitemap endpoints');
     }
     const samplePaths = toolPaths.slice(0, Math.max(1, sampleSize));
-    console.log(`\nAuditing ${samplePaths.length} rendered tool page(s) from ${toolPaths.length} discovered`);
+    console.log(
+      `\nAuditing ${samplePaths.length} rendered tool page(s) from ${toolPaths.length} discovered`
+    );
 
     const failures = [];
     for (const toolPath of samplePaths) {
@@ -422,7 +426,8 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   const requiredMarkers = [
     {
       label: 'qa_gate_wired',
-      pattern: /\b(buildToolPageRuntimeAssembly|buildToolPageRuntimeContext|evaluateToolPageQaGate)\(/,
+      pattern:
+        /\b(buildToolPageRuntimeNavigationStateFromDecisionContext|buildToolPageRuntimeViewBundleFromDecisionContext|buildToolPageRuntimeViewBundleFromPageContext|buildToolPageRuntimeAssemblyFromRoute|buildToolPageRuntimeAssembly|buildToolPageRuntimeContext|evaluateToolPageQaGate)\(/,
     },
     {
       label: 'how_we_evaluated_heading',
@@ -470,9 +475,8 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   if (decisionHeadingHits > 1) {
     failures.push(`template_duplicate_decision_heading:${decisionHeadingHits}`);
   }
-  const readerControlsHits = (
-    source.match(/<h[1-6][^>]*>\s*Reader controls\s*<\/h[1-6]>/gi) || []
-  ).length;
+  const readerControlsHits = (source.match(/<h[1-6][^>]*>\s*Reader controls\s*<\/h[1-6]>/gi) || [])
+    .length;
   if (readerControlsHits > 1) {
     failures.push(`template_duplicate_reader_controls_heading:${readerControlsHits}`);
   }
@@ -496,9 +500,9 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
     /<section[\s\S]*?<h2[^>]*>\s*Decision in 60 Seconds\s*<\/h2>[\s\S]*?<\/section>/i
   );
   if (decisionSectionMatch) {
-    const hrefMatches = Array.from(
-      decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)
-    ).map((match) => match[1]);
+    const hrefMatches = Array.from(decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)).map(
+      (match) => match[1]
+    );
     const disallowedDecisionLinks = hrefMatches.filter((href) => href !== '#verdict');
     if (disallowedDecisionLinks.length > 0) {
       failures.push(

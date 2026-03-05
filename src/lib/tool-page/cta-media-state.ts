@@ -1,11 +1,12 @@
 import { buildToolPageAddToStackProps } from '@/lib/tool-page/add-to-stack-props';
 import { buildToolPageCompareButtonProps } from '@/lib/tool-page/compare-button-props';
+import { buildToolPageCtaMediaStateInputFromTool } from '@/lib/tool-page/cta-media-input';
 import { buildToolPagePriceVerificationProps } from '@/lib/tool-page/price-verification-props';
 import { buildToolPageVerdictContent } from '@/lib/tool-page/verdict-content';
 import { buildToolPageVideoProps } from '@/lib/tool-page/video-props';
 import { buildToolPageVideoState } from '@/lib/tool-page/video-state';
 
-interface BuildToolPageCtaMediaStateInput {
+export interface BuildToolPageCtaMediaStateInput {
   tool: {
     id: string;
     slug: string;
@@ -74,4 +75,10 @@ export function buildToolPageCtaMediaState(input: BuildToolPageCtaMediaStateInpu
     videoProps,
     verdictContent,
   };
+}
+
+export function buildToolPageCtaMediaStateFromRoute(
+  input: Parameters<typeof buildToolPageCtaMediaStateInputFromTool>[0]
+): ReturnType<typeof buildToolPageCtaMediaState> {
+  return buildToolPageCtaMediaState(buildToolPageCtaMediaStateInputFromTool(input));
 }

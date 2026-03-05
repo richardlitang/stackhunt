@@ -40,6 +40,13 @@ const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
 const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
 const stripControlChars = (value: string): string =>
   value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
+const normalizeClaimKey = (value: string): string =>
+  stripControlChars(value)
+    .replace(TERMINAL_PUNCTUATION, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 const isLikelyIncompleteClause = (value: string): boolean => {
   const text = stripControlChars(value).replace(TERMINAL_PUNCTUATION, '').trim();
   if (!text) return true;
@@ -115,6 +122,50 @@ function normalizeClaim(
   };
 }
 
+const LOW_SIGNAL_PATTERNS = [
+  /\bsupports?\s+core\s+workflows?\b/i,
+  /\bhelps?\s+teams?\s+work\s+better\b/i,
+  /\bimproves?\s+productivity\b/i,
+  /\beasy\s+to\s+use\b/i,
+  /\bmodern\s+interface\b/i,
+];
+
+function isLowSignalClaim(text: string): boolean {
+  const normalized = normalizeClaimKey(text);
+  if (!normalized) return true;
+  return LOW_SIGNAL_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function finalizeClaims<T extends { displayText: string }>(
+  items: T[]
+): {
+  items: T[];
+  droppedDuplicates: number;
+  droppedLowSignal: number;
+} {
+  const seen = new Set<string>();
+  const unique: T[] = [];
+  let droppedDuplicates = 0;
+  let droppedLowSignal = 0;
+
+  for (const item of items) {
+    const key = normalizeClaimKey(item.displayText);
+    if (!key) continue;
+    if (seen.has(key)) {
+      droppedDuplicates++;
+      continue;
+    }
+    seen.add(key);
+    if (isLowSignalClaim(item.displayText)) {
+      droppedLowSignal++;
+      continue;
+    }
+    unique.push(item);
+  }
+
+  return { items: unique, droppedDuplicates, droppedLowSignal };
+}
+
 const normalizedPros = pros
   .map((item, i) => normalizeClaim(item, i))
   .filter((item) => item.displayText && !isLikelyIncompleteClause(item.displayText));
@@ -133,15 +184,25 @@ const evidenceBackedCons = normalizedCons
     return sourceUrl ? { ...item, source_url: sourceUrl } : null;
   })
   .filter((item): item is (typeof normalizedCons)[number] => Boolean(item));
-const hasEvidenceBackedClaims = evidenceBackedPros.length > 0 || evidenceBackedCons.length > 0;
+const finalizedPros = finalizeClaims(evidenceBackedPros);
+const finalizedCons = finalizeClaims(evidenceBackedCons);
+const droppedClaimsForQuality =
+  finalizedPros.droppedDuplicates +
+  finalizedPros.droppedLowSignal +
+  finalizedCons.droppedDuplicates +
+  finalizedCons.droppedLowSignal;
+const hasEvidenceBackedClaims = finalizedPros.items.length > 0 || finalizedCons.items.length > 0;
+const hasMinimumUniqueEvidenceClaims = finalizedPros.items.length + finalizedCons.items.length >= 2;
+const showInsufficientUniqueClaimsNotice =
+  !hasMinimumUniqueEvidenceClaims && droppedClaimsForQuality > 0;
 
 const sourceEntries = (() => {
-  const entries = [...evidenceBackedPros, ...evidenceBackedCons].map((item) => ({
-      url: item.source_url as string,
-      domain: getDomain(item.source_url as string),
-      source_type: item.source_type,
-      formattedDate: item.formattedDate,
-    }));
+  const entries = [...finalizedPros.items, ...finalizedCons.items].map((item) => ({
+    url: item.source_url as string,
+    domain: getDomain(item.source_url as string),
+    source_type: item.source_type,
+    formattedDate: item.formattedDate,
+  }));
 
   const seenDomains = new Set<string>();
   const unique: typeof entries = [];
@@ -246,6 +307,26 @@ function getSourceIcon(url?: string): string | null {
   }
 }
 
+function deriveWhyItMatters(text: string, kind: 'pro' | 'con'): string {
+  const lower = text.toLowerCase();
+  if (/\b(api|sdk|integration|automation)\b/.test(lower)) {
+    return kind === 'pro'
+      ? 'Reduces integration glue work for teams with custom workflow requirements.'
+      : 'Can create workflow gaps if your stack depends on unsupported integrations.';
+  }
+  if (/\b(seat|user|limit|cap|quota|plan)\b/.test(lower)) {
+    return kind === 'pro'
+      ? 'Helps forecast upgrade timing and budget before team growth creates surprises.'
+      : 'Can force an earlier upgrade once your team or usage crosses thresholds.';
+  }
+  if (/\b(report|analytics|dashboard|forecast)\b/.test(lower)) {
+    return 'Directly affects planning quality, KPI visibility, and operating cadence.';
+  }
+  return kind === 'pro'
+    ? 'Improves day-to-day execution when this aligns with your highest-frequency workflow.'
+    : 'Adds rollout or operating risk if this conflicts with your required workflow.';
+}
+
 import CheckIcon from '@/components/icons/Check.astro';
 import MinusIcon from '@/components/icons/Minus.astro';
 import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
@@ -268,12 +349,26 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
 
       <ul class="space-y-3">
         {
-          evidenceBackedPros.map((pro) => (
+          finalizedPros.items.map((pro) => (
             <li class="text-sm text-zinc-300">
               <div class="flex items-start gap-3">
                 <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
                 <div class="flex-1">
-                  <span>{pro.displayText}</span>
+                  <p>{pro.displayText}</p>
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Evidence:{' '}
+                    <a
+                      href={pro.source_url}
+                      target="_blank"
+                      rel={getSourceRelAttribute(pro.source_type)}
+                      class="text-zinc-400 underline underline-offset-2 hover:text-hunt-400"
+                    >
+                      {getDomain(pro.source_url)}
+                    </a>
+                  </p>
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Why it matters: {deriveWhyItMatters(pro.displayText, 'pro')}
+                  </p>
                   {resolvedSourceDisplay === 'inline' && pro.source_url && (
                     <span class="inline-flex items-center gap-1 ml-2">
                       {pro.source_type && (
@@ -317,12 +412,26 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
 
       <ul class="space-y-3">
         {
-          evidenceBackedCons.map((con) => (
+          finalizedCons.items.map((con) => (
             <li class="text-sm text-zinc-300">
               <div class="flex items-start gap-3">
                 <MinusIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
                 <div class="flex-1">
-                  <span>{con.displayText}</span>
+                  <p>{con.displayText}</p>
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Evidence:{' '}
+                    <a
+                      href={con.source_url}
+                      target="_blank"
+                      rel={getSourceRelAttribute(con.source_type)}
+                      class="text-zinc-400 underline underline-offset-2 hover:text-hunt-400"
+                    >
+                      {getDomain(con.source_url)}
+                    </a>
+                  </p>
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Why it matters: {deriveWhyItMatters(con.displayText, 'con')}
+                  </p>
                   {resolvedSourceDisplay === 'inline' && con.source_url && (
                     <span class="inline-flex items-center gap-1 ml-2">
                       {con.source_type && (
@@ -360,6 +469,13 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
     !hasEvidenceBackedClaims && (
       <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3 text-xs text-zinc-500">
         Strength and weakness bullets are hidden until sources are collected.
+      </div>
+    )
+  }
+  {
+    showInsufficientUniqueClaimsNotice && (
+      <div class="mt-4 rounded-lg border border-amber-700/40 bg-amber-950/20 p-3 text-xs text-amber-200">
+        Not enough unique source-backed pros found yet (pending verification).
       </div>
     )
   }

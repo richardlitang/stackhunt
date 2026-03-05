@@ -284,12 +284,15 @@ Before push:
 
 - `npm run qa:prepush` (required)
 - Do not push if `qa:prepush` fails.
-- Optional local enforcement: `npm run hooks:install` to install a git pre-push hook.
+- `prepare` auto-installs git hooks on dependency install, and running `npm run hooks:install` remains available for manual re-install.
 - `qa:prepush` enforces:
   - `qa:rpc`
-  - `qa:tool-page-imports` (fails on missing `buildToolPage*` imports in `src/pages/tool/[slug].astro`)
-  - `format:check:changed` (Prettier check for files changed in the branch)
-  - `lint:changed` (`eslint --max-warnings=0` for files changed in the branch)
+  - `qa:tool-page-imports` (fails on missing imports or unbound calls for `build/derive/apply/get/is/has ToolPage*` helpers in `src/pages/tool/[slug].astro`)
+  - `qa:tool-page-call-shapes` (fails on malformed `buildToolPage*FromRoute({ buildToolPage*... })` wrapper calls in `src/pages/tool/[slug].astro`)
+  - `qa:tool-page-tdz` (fails when `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` receives late-bound runtime identifiers in `reviewEvidence.evidenceContext`)
+  - `qa:tool-page-map` (fails if `docs/TOOL_PAGE_ORCHESTRATION_MAP.md` is stale versus route composition)
+  - `format:check:changed` (Prettier check for files changed in the branch, working tree, or index)
+  - `lint:strict` (`eslint src --max-warnings=0`)
   - `typecheck`
   - `build`
   - rendered tool-page QA sample
@@ -386,6 +389,7 @@ Default behavior in personal projects is autonomous execution.
 - On a user `go` instruction, execute multiple consecutive work slices in the same turn before replying.
 - Minimum autonomous batch target per `go` turn:
   - 10 logical code slices
+- If the user explicitly requests a larger batch (for example `go x20`), increase the same-turn target up to 20 slices when checks remain green.
 - Intermediate updates should be brief and only when they materially affect direction, risk, or blocker status.
 - Stop only for critical blockers:
   - missing or conflicting requirements that materially change behavior
@@ -409,6 +413,7 @@ The coding interface is turn-based.
 Use `go` as the default autonomy trigger in this repository.
 
 - When the user says `go`, execute a 10-slice autonomous batch.
+- If the user asks for a larger batch, run up to 20 slices in the turn.
 - A slice is one logical, shippable unit, for example extract one cohesive policy module plus route wiring plus tests.
 - For each slice: implement, verify (`typecheck`, relevant tests, build as needed), commit, and push.
 - After 10 slices, send one concise checkpoint and immediately queue the next batch unless a critical blocker is hit.

@@ -106,32 +106,6 @@ export const ApiResponse = {
 };
 
 /**
- * Wrap an API handler with error catching
- */
-export function withErrorHandling<T extends (...args: any[]) => Promise<Response>>(handler: T): T {
-  return (async (...args: Parameters<T>): Promise<Response> => {
-    try {
-      return await handler(...args);
-    } catch (error) {
-      console.error('API Error:', error);
-
-      if (error instanceof ApiError) {
-        return errorResponse(
-          { code: error.code, message: error.message, details: error.details },
-          error.status
-        );
-      }
-
-      return ApiResponse.internalError(
-        process.env.NODE_ENV === 'development'
-          ? (error as Error).message
-          : 'An unexpected error occurred'
-      );
-    }
-  }) as T;
-}
-
-/**
  * Custom API Error class for throwing structured errors
  */
 export class ApiError extends Error {
@@ -164,4 +138,30 @@ export class ApiError extends Error {
   static internal(message = 'Internal server error') {
     return new ApiError(ErrorCodes.INTERNAL_ERROR, message, 500);
   }
+}
+
+/**
+ * Wrap an API handler with error catching
+ */
+export function withErrorHandling<T extends (...args: any[]) => Promise<Response>>(handler: T): T {
+  return (async (...args: Parameters<T>): Promise<Response> => {
+    try {
+      return await handler(...args);
+    } catch (error) {
+      console.error('API Error:', error);
+
+      if (error instanceof ApiError) {
+        return errorResponse(
+          { code: error.code, message: error.message, details: error.details },
+          error.status
+        );
+      }
+
+      return ApiResponse.internalError(
+        process.env.NODE_ENV === 'development'
+          ? (error as Error).message
+          : 'An unexpected error occurred'
+      );
+    }
+  }) as T;
 }

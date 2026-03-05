@@ -23,10 +23,30 @@ function resolveBaseRef() {
 }
 
 const baseRef = resolveBaseRef();
-const changed = git(['diff', '--name-only', '--diff-filter=ACMR', `${baseRef}..HEAD`])
-  .split('\n')
-  .map((line) => line.trim())
-  .filter(Boolean);
+
+function collectGitPaths(args) {
+  try {
+    return git(args)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+const changedSinceBase = collectGitPaths([
+  'diff',
+  '--name-only',
+  '--diff-filter=ACMR',
+  `${baseRef}..HEAD`,
+]);
+const changedInWorkingTree = collectGitPaths(['diff', '--name-only', '--diff-filter=ACMR']);
+const changedInIndex = collectGitPaths(['diff', '--cached', '--name-only', '--diff-filter=ACMR']);
+const untracked = collectGitPaths(['ls-files', '--others', '--exclude-standard']);
+const changed = Array.from(
+  new Set([...changedSinceBase, ...changedInWorkingTree, ...changedInIndex, ...untracked])
+);
 
 const prettierExt = /\.(astro|css|json|md|ya?ml|[cm]?[jt]sx?)$/i;
 const targets = changed.filter((file) => prettierExt.test(file) && fs.existsSync(file));

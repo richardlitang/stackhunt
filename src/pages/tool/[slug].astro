@@ -13,6 +13,7 @@ import CompareButton from '@/components/CompareButton';
 import AddToStackButton from '@/components/AddToStackButton';
 import VideoEmbed from '@/components/VideoEmbed';
 import AlternativeCard from '@/components/AlternativeCard.astro';
+import AlternativesCompareGrid from '@/components/AlternativesCompareGrid.astro';
 import CompanyInfo from '@/components/CompanyInfo.astro';
 import SecurityCompliance from '@/components/SecurityCompliance.astro';
 import SupportOptions from '@/components/SupportOptions.astro';
@@ -34,76 +35,34 @@ import ToolHowWeEvaluateSection from '@/components/ToolHowWeEvaluateSection.astr
 import ToolWeTestedSection from '@/components/ToolWeTestedSection.astro';
 import ToolDecisionConditionsSection from '@/components/ToolDecisionConditionsSection.astro';
 import ToolWorkflowFitSection from '@/components/ToolWorkflowFitSection.astro';
+import ToolDecisionUtilitySection from '@/components/ToolDecisionUtilitySection.astro';
+import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
-import {
-  generateToolMeta,
-} from '@/lib/seo';
+import { generateReviewSchema, generateToolMeta } from '@/lib/seo';
 import { simpleMarkdown } from '@/lib/utils';
 import {
-  buildToolPageAlternativesRuntimeFromItems,
-  buildToolPageAboutContent,
-  buildToolPageAffiliateOffersView,
-  buildToolPageAlternativesIntroText,
-  buildToolPageAlternativesSectionState,
-  buildToolPageAlternativeCardsView,
-  buildToolPageAlternativesViewFields,
-  buildToolPageChromeState,
-  buildToolPageCtaMediaState,
-  buildToolPageDecisionRuntime,
-  buildToolPageDecisionRuntimeInput,
-  buildToolPageDisplaySignals,
-  buildToolPagePricingInsightsBudgetAnalyst,
-  buildToolPagePricingSectionState,
+  buildToolPageCategoryRef,
   buildToolPagePricingLinkText,
-  buildToolPagePricingNotice,
-  buildToolPagePricingEvidenceState,
-  buildToolPagePlatformSectionState,
-  buildToolPageProsConsView,
-  buildToolPageConstraintEvidence,
-  buildToolPageCompareTeaserLinks,
-  buildToolPageConstraintEvidenceView,
   getToolPageData,
-  createToolPageEvidenceBulletAdapters,
-  countEligibleEvidenceDomains,
   isEligibleEvidenceUrl,
-  buildToolPageEvidenceRuntime,
-  buildToolPageEvidenceRuntimeInput,
-  buildToolPageFaqState,
-  buildToolPageFaqSchema,
-  buildToolPageGettingStartedProps,
-  buildToolPageQualityStateInput,
-  buildToolPageQualityState,
-  buildToolPageOperationalDetailsState,
   deriveToolPageReviewContextSignals,
-  buildToolPageReviewArtifacts,
-  buildToolPageReviewSignalsInput,
-  deriveToolPageReviewSignals,
-  buildToolPageReviewSignalsView,
-  buildToolPagePresentationGates,
   deriveToolPageRequestState,
   applyToolPageVersionBypassCacheHeaders,
   applyToolPageRobotsHeader,
-  buildToolPageSectionRuntime,
-  buildToolPageSectionFlags,
-  buildToolPageSectionRuntimeInput,
-  buildToolPageStrengthsSubtitle,
-  buildToolPagePrimaryFunction,
-  deriveToolPageSourceEvidenceDomains,
-  buildToolPageEvidenceBasisChips,
-  buildToolPageSourceListsView,
-  buildToolPageSpecsProps,
-  buildToolPageSpecsSectionState,
-  buildToolPageTribalKnowledgeProps,
-  buildToolPageRuntimeAssembly,
-  buildToolPageLensViewFields,
-  buildToolPageNavigationState,
+  buildToolPageRuntimeNavigationStateFromDecisionContext,
+  buildToolPageChromeContentStateFromDecisionContext,
+  buildToolPagePrepReviewEvidenceStateFromDecisionContext,
+  buildToolPageDecisionUtilityState,
+  buildToolPagePricingScenarioState,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
 export const prerender = false;
 
 const { slug } = Astro.params;
-const { activeReviewLens, hasVersionBypassParam } = deriveToolPageRequestState(Astro.url.searchParams);
+const { activeReviewLens, hasVersionBypassParam } = deriveToolPageRequestState(
+  Astro.url.searchParams
+);
 // Cache-bust requests like ?v=34 should always skip CDN/page cache.
 applyToolPageVersionBypassCacheHeaders(Astro.response, hasVersionBypassParam);
 
@@ -139,130 +98,87 @@ const {
   reviewContext,
 } = coreState;
 const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
+const { prepState, decisionSectionState, reviewArtifactsState, evidenceSignalsState } =
+  buildToolPagePrepReviewEvidenceStateFromDecisionContext({
+    prepDecision: {
+      prep: {
+        reviewSources: reviewContentLists.sources,
+        isEligibleEvidenceUrl,
+        tool,
+        orderedAlternatives,
+      },
+      decision: {
+        tool,
+        firstReview,
+        reviewSelection,
+        canonicalFacts,
+        knowledgeCard,
+        setupTracks,
+        reviewContentLists,
+        audiences: tags.audiences,
+        reviewContextSignals,
+        globalCons,
+        categorySpecificData,
+        vipSpecifics,
+        hasParentTool: Boolean(parentTool),
+        now: new Date(),
+        orderedAlternativesCount: orderedAlternatives?.length || 0,
+      },
+    },
+    reviewEvidence: {
+      reviewArtifacts: {
+        canonicalFacts,
+        reviewSources: reviewContentLists.sources,
+        tool,
+      },
+      evidenceContext: {
+        firstReview,
+        toolLastVerifiedAt: tool.last_verified_at || null,
+        toolPricingVerifiedAt: tool.pricing_verified_at || null,
+        extractionDate: knowledgeCard?.meta?.extraction_date,
+        constraints,
+        isEligibleEvidenceUrl,
+        reviewPros: reviewContentLists.pros,
+        reviewCons: reviewContentLists.cons,
+        globalPros: Array.isArray(globalPros) ? globalPros : [],
+        globalCons: Array.isArray(globalCons) ? globalCons : [],
+        knowledgeCard,
+      },
+      reviewContextSignals,
+    },
+  });
 const {
-  userAdvocate,
-  humanVerdict,
-  delighters,
-  frustrations,
-  powerTip,
-  vibe,
-  originStory,
-  idealFor,
-  avoidIf,
-  budgetCostDrivers,
-  budgetOneTimeFees,
-  budgetCommitmentTerms,
-  budgetRoiThreshold,
-} = reviewContextSignals;
-
-const sourceEvidenceDomains = deriveToolPageSourceEvidenceDomains(reviewContentLists.sources);
-const { toEvidenceBullet, buildEvidenceBulletV2 } = createToolPageEvidenceBulletAdapters({
-  isEligibleEvidenceUrl,
-});
-const eligibleSignalEvidenceCount = countEligibleEvidenceDomains(sourceEvidenceDomains);
-const qualityStateInput = buildToolPageQualityStateInput({
-  tool,
-  firstReview,
-  reviewSelection,
-  canonicalFacts,
-});
-const qualityState = buildToolPageQualityState(qualityStateInput);
+  sourceEvidenceDomains: _sourceEvidenceDomains,
+  toEvidenceBullet: _toEvidenceBullet,
+  comparableAlternatives,
+  hasComparableAlternatives,
+  canCompareByAlternativeSlug,
+} = prepState;
 const {
-  contentConfidenceLevel,
-  sectionPublishability,
-  sectionStatus,
-  gateShouldIndex,
+  qualityState,
+  faqState,
+  displaySignals,
+  decisionRuntime,
+  sectionFlags,
+  presentationGates,
+  faqSchema,
+} = decisionSectionState;
+const {
+  sectionStatus: _sectionStatus,
   gateReasons: _gateReasons,
-  hasProceduralGuidance,
-  isDraftPage,
-  safeDraftDescription,
   showReviewInProgressBanner,
 } = qualityState;
-const faqState = buildToolPageFaqState(knowledgeCard);
-const { faqItems, knowledgeCardForSeo } = faqState;
-const hasEligibleNegativeEvidence = eligibleSignalEvidenceCount >= 2;
-const displaySignals = buildToolPageDisplaySignals({
-  toolPricingType: tool.pricing_type,
-  reviewSummaryMarkdown: firstReview?.summary_markdown || null,
-  toolVerdict: tool.verdict || null,
-  humanVerdict,
-});
-const { pricingTypeLabel, renderVerdict } = displaySignals;
-const decisionRuntimeInput = buildToolPageDecisionRuntimeInput({
-  tool: {
-    name: tool.name,
-    short_description: tool.short_description,
-    long_description: tool.long_description,
-    pricing_type: tool.pricing_type,
-    verdict: tool.verdict,
-    website: tool.website,
-    category: { slug: tool.category?.slug || null },
-  },
-  knowledgeCard: knowledgeCard as Record<string, unknown> | null,
-  setupTracks,
-  firstReviewSummaryMarkdown: firstReview?.summary_markdown || null,
-  reviewPros: reviewContentLists.pros,
-  reviewCons: reviewContentLists.cons,
-  audiences: tags.audiences,
-  reviewContextSignals,
-  sectionStatus: {
-    pricing: sectionStatus.pricing,
-    verdict: sectionStatus.verdict,
-  },
-  globalCons,
-  hasEligibleNegativeEvidence,
-  renderVerdict,
-});
-const decisionRuntime = buildToolPageDecisionRuntime(decisionRuntimeInput);
+const { faqItems } = faqState;
+const { pricingTypeLabel } = displaySignals;
 const {
   hasAbout,
-  setupSignals,
-  hasGettingStartedRaw,
   comparativeFeaturePeerCount,
   hasPricing,
-  guardedHumanVerdict,
-  guardedAvoidIf,
   renderVerdictSafe,
-  isDisallowedConClaim,
+  isDisallowedConClaim: _isDisallowedConClaim,
   hasVerdict,
   decisionSnapshotSummary,
-  introLooksSpecSheet,
-  decisionSnapshotBestWhen,
-  decisionSnapshotWatchOuts,
-  decisionTradeoffSummaryInitial,
-  decisionSnapshotDifferentiators,
 } = decisionRuntime;
-const sectionRuntimeInput = buildToolPageSectionRuntimeInput({
-  faqItems,
-  sectionPublishabilityFaq: sectionPublishability.faq,
-  knowledgeCard,
-  categorySpecificData,
-  vipSpecifics,
-  sectionStatus: {
-    specs: sectionStatus.specs,
-    community: sectionStatus.community,
-  },
-  orderedAlternativesCount: orderedAlternatives?.length || 0,
-  eligibleSignalEvidenceCount,
-  idealFor,
-  avoidIf,
-  delighters,
-  frustrations,
-  powerTip,
-  humanVerdict,
-  contentConfidenceLevel,
-  firstReviewUpdatedAt: firstReview?.updated_at || null,
-  firstReviewCreatedAt: firstReview?.created_at || null,
-  toolLastVerifiedAt: tool.last_verified_at || null,
-  toolPricingVerifiedAt: tool.pricing_verified_at || null,
-  toolUpdatedAt: tool.updated_at || null,
-  hasGettingStartedData: hasGettingStartedRaw,
-  hasParentTool: Boolean(parentTool),
-  hasSupportData: Boolean(knowledgeCard?.support),
-  now: new Date(),
-});
-const sectionRuntime = buildToolPageSectionRuntime(sectionRuntimeInput);
-const sectionFlags = buildToolPageSectionFlags(sectionRuntime);
 const {
   hasFAQRaw: _hasFAQRaw,
   hasFeatures,
@@ -274,37 +190,12 @@ const {
   hasGettingStarted,
   hasSpecs,
   hasCommunity,
-  hasPlatform,
-  hasSecurity,
-  hasPortability,
+  hasPlatform: _hasPlatform,
+  hasSecurity: _hasSecurity,
+  hasPortability: _hasPortability,
   hasOperationalDetails,
 } = sectionFlags;
-const alternativesState = buildToolPageAlternativesRuntimeFromItems(tool, orderedAlternatives || []);
-const alternativesViewFields = buildToolPageAlternativesViewFields(alternativesState);
-const { comparableAlternatives, hasComparableAlternatives, canCompareByAlternativeSlug } =
-  alternativesViewFields;
-const presentationGates = buildToolPagePresentationGates({
-  hasProceduralGuidance,
-  sectionStatus: {
-    verdict: sectionStatus.verdict,
-    specs: sectionStatus.specs,
-  },
-  hasVerdict,
-  hasSpecs,
-});
 const { showProceduralVerdict, showProceduralSpecs } = presentationGates;
-const faqSchema = buildToolPageFaqSchema({
-  hasFAQ,
-  tool,
-  knowledgeCardForSeo,
-});
-let decisionTradeoffSummary = decisionTradeoffSummaryInitial;
-const reviewArtifacts = buildToolPageReviewArtifacts({
-  canonicalFacts: canonicalFacts as Record<string, unknown> | undefined,
-  reviewSources: reviewContentLists.sources as Array<Record<string, unknown> | null | undefined>,
-  toolName: tool.name,
-});
-const toolPageEvaluationViewModel = reviewArtifacts.evaluationViewModel;
 const {
   handsOnTestEnvironment,
   handsOnTestSteps,
@@ -314,183 +205,113 @@ const {
   testedItems,
   notTestedItems,
   showWeTestedIt,
-} = toolPageEvaluationViewModel;
-const toolPageEvidenceLinks = reviewArtifacts.evidenceLinksViewModel;
+} = reviewArtifactsState;
+const { reviewSignalsView, evidenceRuntime } = evidenceSignalsState;
+const { communityVerifiedLabel } = reviewSignalsView;
 const {
-  evidenceLinksAll,
-  evidenceLinks,
-  lowConfidenceEvidenceLinks,
-  evidenceBasis,
-  officialEvidenceLinks,
-} = toolPageEvidenceLinks;
-const reviewSignalsInput = buildToolPageReviewSignalsInput({
-  firstReview,
-  toolLastVerifiedAt: tool.last_verified_at || null,
-  toolPricingVerifiedAt: tool.pricing_verified_at || null,
-  extractionDate: (knowledgeCard?.meta?.extraction_date as string | undefined) || null,
-});
-const reviewSignals = deriveToolPageReviewSignals(reviewSignalsInput);
-const reviewSignalsView = buildToolPageReviewSignalsView(reviewSignals);
-const {
-  pricingVerifiedLabel,
-  specsVerifiedLabel,
-  communityVerifiedLabel,
-} = reviewSignalsView;
-const constraintEvidence = buildToolPageConstraintEvidence({
-  constraints,
-  isEligibleEvidenceUrl,
-  isDisallowedConClaim,
-});
-const { hiddenCostBullets, hardLimitFromConstraints } =
-  buildToolPageConstraintEvidenceView(constraintEvidence);
-const gettingStartedCtaUrl = setupSignals.gettingStartedCtaUrl;
-const evidenceRuntimeInput = buildToolPageEvidenceRuntimeInput({
-  reviewPros: reviewContentLists.pros,
-  reviewCons: reviewContentLists.cons,
-  globalPros: Array.isArray(globalPros) ? globalPros : [],
-  globalCons: Array.isArray(globalCons) ? globalCons : [],
-  toEvidenceBullet,
-  isDisallowedConClaim,
-  hiddenCostBullets,
-  hardLimitFromConstraints,
-  decisionSnapshotWatchOuts,
-  decisionTradeoffSummaryInitial,
-  officialEvidenceLinks,
-  evidenceLinksAll,
-  evidenceLinks,
-  hasPricing,
-  pricingVerifiedLabel,
-  knowledgeCard,
-  sectionPricingStatus: sectionStatus.pricing,
-  budgetCostDrivers,
-  budgetOneTimeFees,
-  budgetCommitmentTerms,
-  budgetRoiThreshold,
-  faqItems,
-  specsVerifiedLabel,
-  communityVerifiedLabel,
-  buildEvidenceBulletV2,
-  isEligibleEvidenceUrl,
-});
-const evidenceRuntime = buildToolPageEvidenceRuntime(evidenceRuntimeInput);
-const {
-  effectiveEvidencePros,
-  effectiveEvidenceCons,
+  effectiveEvidencePros: _effectiveEvidencePros,
+  effectiveEvidenceCons: _effectiveEvidenceCons,
   hasStrengths,
   canonicalHardLimits,
-  decisionTradeoffSummary: decisionTradeoffSummaryResolved,
-  baseEvidenceGrade,
-  officialDocsSource,
+  decisionTradeoffSummary: _decisionTradeoffSummaryResolved,
   officialPricingSource,
-  pricingSourceUrl,
   pricingEvidenceLinks,
-  hasPricingCheckedProof,
-  pricingCheckedLabel,
   showPricingSection,
   pricingNarrativeLead,
   pricingNarrativeLabel,
-  collectedSourcesBySection,
-  collectedSourcesTotal,
+  collectedSourcesBySection: _collectedSourcesBySection,
   hasCollectedSources,
-  decisionProofPoints,
-  avoidIfBullet,
-  tradeoffCons,
 } = evidenceRuntime;
-decisionTradeoffSummary = decisionTradeoffSummaryResolved;
 const toolMeta = generateToolMeta(tool, tool.review_count);
-const { runtimeViewBundle } = buildToolPageRuntimeAssembly({
-  pathname: Astro.url.pathname,
-  searchParams: Astro.url.searchParams,
-  activeReviewLens,
-  viewModelInput: {
-    hasVerdict,
-    showProceduralVerdict,
-    showPricingSection,
-    hasGettingStarted,
-    hasFeatures,
-    hasSpecs,
-    showProceduralSpecs,
-    hasPlatform,
-    hasAlternatives,
-  },
-  lensContentInput: {
-    toolName: tool.name,
-    hasCollectedSources,
-    hasGettingStarted,
-    showPricingSection,
-    hasSecurity,
-    decisionSnapshotBestWhen,
-    decisionSnapshotWatchOuts,
-    decisionSnapshotDifferentiators,
-    decisionTradeoffSummary,
-  },
-  canonicalHardLimits,
-  trust: {
-    baseEvidenceGrade,
-    avoidIfBullet,
-    tradeoffCons,
-    decisionProofPoints,
-    hasCollectedSources,
-    contentConfidenceLevel,
-    hasPricingCheckedProof,
-    pricingCheckedLabel,
-    pricingSourceUrl,
-    specsVerifiedLabel,
-    officialDocsSourceUrl: officialDocsSource?.url || null,
-    communityVerifiedLabel,
-    officialPricingSourceUrl: officialPricingSource?.url || null,
-  },
-  meta: {
-    toolName: tool.name,
-    toolVerdict: tool.verdict || null,
-    toolMeta,
-    gateShouldIndex,
-    isDraftPage,
-    showReviewInProgressBanner,
-    safeDraftDescription,
-    decisionSnapshotSummary,
-    renderVerdictSafe,
-    evaluationDepth,
-    showPricingSection,
-    hasPricingCheckedProof,
-    hasFAQ,
-    faqSchema,
-    decisionSnapshotBestWhen,
-    decisionSnapshotWatchOuts,
-    decisionTradeoffSummary,
-    introLooksSpecSheet,
-  },
-  schemas: {
-    tool,
-    primaryOffer,
-    reviewCount: tool.review_count,
-    faqSchema,
-  },
-  updateHistory: {
-    communityVerifiedLabel,
-    specsVerifiedLabel,
-    pricingCheckedLabel,
-  },
-  runtimeView: {
-    toolName: tool.name,
-    toolMeta,
-  },
-});
+const toolCategoryRef = buildToolPageCategoryRef(tool.category);
+const { runtimeViewBundle, navigationState, ctaMediaState } =
+  buildToolPageRuntimeNavigationStateFromDecisionContext({
+    runtime: {
+      pathname: Astro.url.pathname,
+      searchParams: Astro.url.searchParams,
+      activeReviewLens,
+      tool,
+      primaryOffer,
+      faqSchema,
+      toolMeta,
+      canonicalHardLimits,
+      decisionRuntime,
+      sectionFlags,
+      evidenceRuntime,
+      qualityState,
+      reviewSignalsView,
+      presentationGates: {
+        showProceduralVerdict,
+        showProceduralSpecs,
+      },
+      evaluationDepth,
+    },
+    navigation: {
+      decisionRuntime,
+      sectionFlags,
+      presentationGates: {
+        showProceduralVerdict,
+        showProceduralSpecs,
+      },
+      evidenceSignals: {
+        showPricingSection,
+      },
+      faqItems,
+      reviewArtifactsState,
+      media: {
+        tool,
+        category: toolCategoryRef,
+        knowledgeCard,
+        renderVerdictSafe,
+      },
+    },
+  });
 const {
   schemas,
   updateHistoryLabels,
   meta,
   indexPolicy,
-  pendingVerificationCount,
-  trustStatus,
-  trustConfidenceLabel,
   updateHistoryEntries,
   toolReviewHeading,
-  lensLabelMap,
   sourceAriaLabel,
   lensRuntime,
 } = runtimeViewBundle;
-const lensViewFields = buildToolPageLensViewFields(lensRuntime);
+const pageSchemas = firstReview
+  ? [...schemas, generateReviewSchema(tool, firstReview, tool.category?.name || 'General software')]
+  : schemas;
+const { lensViewFields, toolChromeState, alternativesPricingState, contentSectionsState } =
+  buildToolPageChromeContentStateFromDecisionContext({
+    chromeLens: {
+      lensRuntime,
+      activeReviewLens,
+      toolCategory: toolCategoryRef,
+      tool,
+      websiteHostLabel,
+      runtimeViewBundle,
+      evidenceRuntime,
+      reviewSignalsView,
+      evaluationDepth,
+    },
+    contentAlternatives: {
+      alternativesLabel: alternativesLabel as 'Alternatives' | 'Related Tools',
+      toolCategoryRef,
+      orderedAlternatives,
+      comparableAlternatives,
+      canCompareByAlternativeSlug,
+      tool,
+      knowledgeCard,
+      parentTool,
+      setupTracks,
+      displayCategorySpecificData,
+      vipSpecifics,
+      decisionRuntime,
+      sectionFlags,
+      evidenceRuntime,
+      reviewArtifactsState,
+      reviewSignalsView,
+      reviewContextSignals,
+    },
+  });
 const {
   lensHrefs,
   focusSwitchOptions,
@@ -507,27 +328,18 @@ const {
   workflowFitHighlights,
   workflowFitCards,
 } = lensViewFields;
-const toolChromeState = buildToolPageChromeState({
-  toolCategory: tool.category
-    ? {
-        slug: tool.category.slug,
-        name: tool.category.name,
-      }
-    : null,
-  hasCollectedSources,
-  evaluationDepth,
-  collectedSourcesTotal,
-  trustConfidenceLabel,
-  pendingVerificationCount,
-  communityVerifiedLabel,
-  specsVerifiedLabel,
-  pricingCheckedLabel,
-  pricingVerifiedLabel,
-  trustStatus,
-  website: tool.website || null,
-  websiteHostLabel,
+const decisionUtilityState = buildToolPageDecisionUtilityState({
+  toolName: tool.name,
+  categorySlug: tool.category?.slug || null,
   activeReviewLens,
-  lensLabelMap,
+  lensBestFitLine,
+  lensWeakFitLine,
+  lensTradeoffLine,
+  hardLimitText: canonicalHardLimits[0]?.text || null,
+});
+const pricingScenarioState = buildToolPagePricingScenarioState({
+  toolName: tool.name,
+  hardLimitText: canonicalHardLimits[0]?.text || null,
 });
 const {
   reviewInProgressBannerText,
@@ -540,120 +352,32 @@ const {
   lensPriorityLead,
   freshnessLabels,
 } = toolChromeState;
-const pricingInsightsBudgetAnalyst = buildToolPagePricingInsightsBudgetAnalyst({
-  budgetCostDrivers,
-  budgetOneTimeFees,
-  budgetCommitmentTerms,
-  budgetRoiThreshold,
-});
-const primaryFunction = buildToolPagePrimaryFunction({
-  specs: tool.specs,
-});
-const alternativesIntroText = buildToolPageAlternativesIntroText({
-  alternativesLabel,
-  primaryFunction,
-  categoryName: tool.category?.name || null,
-});
-const compareTeaserLinks = buildToolPageCompareTeaserLinks({
-  toolSlug: tool.slug,
-  alternatives: comparableAlternatives,
-});
-const alternativesSectionState = buildToolPageAlternativesSectionState({
-  category: tool.category
-    ? { slug: tool.category.slug, name: tool.category.name }
-    : null,
-});
-const alternativeCardsView = buildToolPageAlternativeCardsView({
-  alternatives: orderedAlternatives,
-  canCompareByAlternativeSlug,
-});
-const sourceListsView = buildToolPageSourceListsView({
-  evidenceLinks,
-  lowConfidenceEvidenceLinks,
-});
-const prosConsView = buildToolPageProsConsView({
-  pros: effectiveEvidencePros,
-  cons: effectiveEvidenceCons,
-});
-const gettingStartedProps = buildToolPageGettingStartedProps({
-  setupComplexity: knowledgeCard?.setup_complexity,
-  hasApi: Boolean(knowledgeCard?.integrations?.has_api),
-  websiteUrl: knowledgeCard?.website_url || null,
-  fallbackWebsiteUrl: tool.website || null,
-  setupTracks,
-  setupUrl: gettingStartedCtaUrl,
-  toolName: tool.name,
-});
-const strengthsSubtitle = buildToolPageStrengthsSubtitle({
-  prosConsSourcesCount: collectedSourcesBySection.pros_cons,
-});
-const affiliateOffersView = buildToolPageAffiliateOffersView({
-  offers: tool.affiliate_offers || [],
-});
-const evidenceBasisChips = buildToolPageEvidenceBasisChips({
-  evidenceBasis,
-});
-const tribalKnowledgeProps = buildToolPageTribalKnowledgeProps({
-  hasCommunity,
-  userAdvocate,
-  guardedHumanVerdict,
-  vibe,
-  originStory,
-  idealFor,
-  guardedAvoidIf,
-  powerTip,
-  delighters,
-  frustrations,
-});
-const platformSectionState = buildToolPagePlatformSectionState({
-  platforms: knowledgeCard?.platforms || [],
-  integrations: knowledgeCard?.integrations || null,
-});
-const specsProps = buildToolPageSpecsProps({
-  displayCategorySpecificData,
-  vipSpecifics,
-  toolName: tool.name,
-  categoryName: tool.category?.name || null,
-});
-const specsSectionState = buildToolPageSpecsSectionState({
-  specsVerifiedLabel,
-});
-const aboutContent = buildToolPageAboutContent({
-  longDescription: tool.long_description,
-});
-const pricingSectionState = buildToolPagePricingSectionState({
-  pricingCheckedLabel,
-});
-const pricingEvidenceState = buildToolPagePricingEvidenceState({
-  hasOfficialPricingSource: Boolean(officialPricingSource),
-  pricingEvidenceCount: pricingEvidenceLinks.length,
-});
-const pricingNotice = buildToolPagePricingNotice({
-  pricingCheckedLabel,
-});
-const operationalDetailsState = buildToolPageOperationalDetailsState({
-  hasSecurity,
-  hasPortability,
-  hasKnowledgeCard: Boolean(knowledgeCard),
-  hasParentTool: Boolean(parentTool),
-  hasSupport: Boolean(knowledgeCard?.support),
-  hasSecurityData: Boolean(knowledgeCard?.security),
-  hasPortabilityData: Boolean(knowledgeCard?.smp_portability),
-});
-const navigationState = buildToolPageNavigationState({
-  showVerdict: hasVerdict || showProceduralVerdict,
-  hasGettingStarted,
-  showPricingSection,
-  hasFeatures,
-  showSpecs: hasSpecs || showProceduralSpecs,
-  hasPlatform,
-  hasFaq: hasFAQ,
-  hasAlternatives,
-  evidenceBasisCount: evidenceBasis.length,
-  lowConfidenceCount: lowConfidenceEvidenceLinks.length,
-  faqItems,
-  updateHistoryEntriesCount: updateHistoryEntries.length,
-});
+const showEarlySnapshotToneBanner =
+  trustBarProps.confidence === 'Low' || trustBarProps.pendingCount > 0;
+const {
+  pricingInsightsBudgetAnalyst,
+  alternativesIntroText,
+  compareTeaserLinks,
+  alternativesSectionState,
+  alternativeCardsView,
+} = alternativesPricingState;
+const {
+  sourceListsView,
+  prosConsView,
+  gettingStartedProps,
+  strengthsSubtitle,
+  affiliateOffersView,
+  evidenceBasisChips,
+  tribalKnowledgeProps,
+  platformSectionState,
+  specsProps,
+  specsSectionState,
+  aboutContent,
+  pricingSectionState,
+  pricingEvidenceState,
+  pricingNotice,
+  operationalDetailsState,
+} = contentSectionsState;
 const {
   sourcesSectionState,
   lowConfidenceSourcesState,
@@ -661,27 +385,6 @@ const {
   updateHistoryState,
   quickJumpLinks,
 } = navigationState;
-const ctaMediaState = buildToolPageCtaMediaState({
-  tool: {
-    id: tool.id,
-    slug: tool.slug,
-    name: tool.name,
-    logo_url: tool.logo_url,
-    pricing_type: tool.pricing_type,
-    user_verifications_this_week: tool.user_verifications_this_week,
-    video_id: tool.video_id,
-    video_title: tool.video_title,
-    category: tool.category
-      ? { slug: tool.category.slug, name: tool.category.name }
-      : null,
-  },
-  knowledgeCardPricing: {
-    startingPrice: knowledgeCard?.pricing?.starting_price ?? null,
-    model: knowledgeCard?.smp_pricing?.model ?? null,
-    plans: knowledgeCard?.smp_pricing?.plans,
-  },
-  renderVerdictSafe,
-});
 const {
   compareButtonProps,
   addToStackProps,
@@ -696,7 +399,7 @@ applyToolPageRobotsHeader({
 });
 ---
 
-<BaseLayout meta={meta} schemas={schemas}>
+<BaseLayout meta={meta} schemas={pageSchemas}>
   <AffiliateDisclosure variant="banner" hasAffiliateLinks={primaryOffer?.is_affiliate || false} />
 
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
@@ -722,7 +425,9 @@ applyToolPageRobotsHeader({
     </nav>
 
     <!-- Hero Section -->
-    <header class="relative mb-12 overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg sm:p-8">
+    <header
+      class="relative mb-12 overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg sm:p-8"
+    >
       {
         showReviewInProgressBanner && (
           <div class="mb-4 rounded-lg border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm text-sky-100">
@@ -730,21 +435,25 @@ applyToolPageRobotsHeader({
           </div>
         )
       }
-      <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-hunt-500/20 blur-3xl">
+      <div
+        class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-hunt-500/20 blur-3xl"
+      >
       </div>
-      <div class="pointer-events-none absolute -bottom-20 left-4 h-52 w-52 rounded-full bg-cyan-500/15 blur-3xl">
+      <div
+        class="pointer-events-none absolute -bottom-20 left-4 h-52 w-52 rounded-full bg-cyan-500/15 blur-3xl"
+      >
       </div>
 
       <div class="relative grid gap-8 xl:grid-cols-[1.6fr_1fr]">
         <div class="space-y-5">
           <div class="flex items-start gap-5">
-          <Logo
-            domain={tool.logo_url}
-            name={tool.name}
-            size="xl"
-            priority={true}
-            class="shrink-0 rounded-2xl border border-zinc-700/80 shadow-md"
-          />
+            <Logo
+              domain={tool.logo_url}
+              name={tool.name}
+              size="xl"
+              priority={true}
+              class="shrink-0 rounded-2xl border border-zinc-700/80 shadow-md"
+            />
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">Review</p>
               <div class="mt-1 flex items-center gap-3">
@@ -768,6 +477,14 @@ applyToolPageRobotsHeader({
                 {reviewDek}
               </p>
               {
+                showEarlySnapshotToneBanner && (
+                  <p class="mt-2 rounded-lg border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-sm text-amber-100">
+                    This is an early, docs-only snapshot. Some claims are pending confirmation. Use
+                    this page to shortlist, then verify in a demo.
+                  </p>
+                )
+              }
+              {
                 decisionSnapshotSummary && (
                   <div class="mt-2 space-y-1">
                     <p class="text-zinc-200">{decisionSnapshotSummary}</p>
@@ -777,7 +494,9 @@ applyToolPageRobotsHeader({
             </div>
           </div>
 
-          <div class="grid gap-2 rounded-xl border border-zinc-700/80 bg-zinc-800/40 p-3 text-sm text-zinc-300 sm:grid-cols-3">
+          <div
+            class="grid gap-2 rounded-xl border border-zinc-700/80 bg-zinc-800/40 p-3 text-sm text-zinc-300 sm:grid-cols-3"
+          >
             <div>
               <span class="text-xs uppercase tracking-wide text-zinc-500">Pricing</span>
               <p class="mt-1 font-medium text-zinc-100">{pricingTypeLabel}</p>
@@ -810,7 +529,12 @@ applyToolPageRobotsHeader({
                     <span class="text-xs uppercase tracking-wide text-zinc-500">Website</span>
                     <span class="mt-1 block font-medium">{websiteDisplayLabel}</span>
                   </span>
-                  <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    class="h-3.5 w-3.5 shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -824,7 +548,11 @@ applyToolPageRobotsHeader({
           </div>
 
           <div class="flex flex-wrap gap-3">
-            {primaryOffer && <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />}
+            {
+              primaryOffer && (
+                <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />
+              )
+            }
             <CompareButton
               client:load
               toolSlug={compareButtonProps.toolSlug}
@@ -842,10 +570,11 @@ applyToolPageRobotsHeader({
               plans={addToStackProps.plans}
             />
           </div>
-
         </div>
 
-        <aside class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner">
+        <aside
+          class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner"
+        >
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
             Research Status
           </p>
@@ -908,42 +637,59 @@ applyToolPageRobotsHeader({
     >
       <h2 class="text-lg font-semibold text-zinc-100">Decision in 60 Seconds</h2>
       <p class="mt-1 text-sm leading-relaxed text-zinc-300">{verdictLabelRationale}</p>
+      {
+        showEarlySnapshotToneBanner && (
+          <p class="mt-2 text-xs text-zinc-500">
+            Summary of linked sources as of {freshnessLabels.verdictAsOfLabel}.
+          </p>
+        )
+      }
       <ul class="mt-3 space-y-2 text-sm text-zinc-300">
         <li>
-          <span class="font-medium text-zinc-100">Best fit:</span>{' '}
-          {lensBestFitLine}
+          <span class="font-medium text-zinc-100">Use if:</span>{' '}
+          {decisionUtilityState.decisionUseIf}{' '}
+          <span class="text-xs text-zinc-500">(Evidence: Sources section)</span>
         </li>
         <li>
-          <span class="font-medium text-zinc-100">Weak fit:</span>{' '}
-          {lensWeakFitLine}
+          <span class="font-medium text-zinc-100">Avoid if:</span>{' '}
+          {decisionUtilityState.decisionAvoidIf}{' '}
+          <span class="text-xs text-zinc-500">(Evidence: Sources section)</span>
         </li>
         <li>
-          <span class="font-medium text-zinc-100">Tradeoff:</span> {lensTradeoffLine}
+          <span class="font-medium text-zinc-100">Watch out:</span>{' '}
+          {decisionUtilityState.decisionWatchOut}{' '}
+          <span class="text-xs text-zinc-500">(Evidence: Sources section)</span>
         </li>
       </ul>
       <p class="mt-4 text-xs text-zinc-500">
         Full evidence detail lives in{' '}
-        <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
-          Why This Verdict
-        </a>
+        <a href="#verdict" class="text-hunt-500 hover:text-hunt-400"> Why This Verdict </a>
         .
       </p>
       <p class="mt-1 text-xs text-zinc-500">
-        Best fit, weak fit, and tradeoff summarize the linked evidence.
+        Use-if, avoid-if, and watch-out summarize the linked evidence.
       </p>
     </section>
+    <ToolDecisionUtilitySection
+      checklistTitle={decisionUtilityState.testChecklistTitle}
+      checklistItems={decisionUtilityState.testChecklistItems}
+      commonSetupsTitle={decisionUtilityState.commonSetupsTitle}
+      commonSetups={decisionUtilityState.commonSetups}
+    />
 
-    <section class="mb-6 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm" aria-label="Reader controls">
+    <section
+      class="mb-6 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm"
+      aria-label="Reader controls"
+    >
       <h3 class="text-sm font-semibold text-zinc-100">Reader controls</h3>
-      {
-        readerFocusNote && (
-          <p class="mt-1 text-xs text-zinc-500">
-            {readerFocusNote}
-          </p>
-        )
-      }
+      {readerFocusNote && <p class="mt-1 text-xs text-zinc-500">{readerFocusNote}</p>}
       <div class="mt-3 space-y-3">
-        <ReviewLensSwitch activeLens={activeReviewLens} hrefs={lensHrefs} compact showNote={false} />
+        <ReviewLensSwitch
+          activeLens={activeReviewLens}
+          hrefs={lensHrefs}
+          compact
+          showNote={false}
+        />
         {
           showFocusSwitch && (
             <ReviewFocusSwitch
@@ -959,9 +705,7 @@ applyToolPageRobotsHeader({
       {
         lensPriorityLinks.length > 0 && (
           <div class="mt-3 border-t border-zinc-800 pt-3">
-            <p class="text-xs text-zinc-500">
-              {lensPriorityLead}
-            </p>
+            <p class="text-xs text-zinc-500">{lensPriorityLead}</p>
             <div class="mt-2 flex flex-wrap gap-2">
               {lensPriorityLinks.map((item) => (
                 <a
@@ -976,14 +720,20 @@ applyToolPageRobotsHeader({
         )
       }
       <p class="mt-3 text-xs text-zinc-500">
-        This changes emphasis and reading order, not the underlying facts.
+        This changes decision framing, rollout checklist emphasis, and pricing interpretation, not
+        the underlying facts.
       </p>
     </section>
 
     {/* Quick jump links (collapsed by default) */}
-    <details class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm" aria-label="On this page">
+    <details
+      class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+      aria-label="On this page"
+    >
       <summary class="cursor-pointer list-none">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400 inline">Quick jump</h2>
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400 inline">
+          Quick jump
+        </h2>
       </summary>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         {
@@ -1014,14 +764,16 @@ applyToolPageRobotsHeader({
         }
       </div>
       <div class="mt-3 flex flex-wrap gap-2 text-sm">
-        {quickJumpLinks.map((link) => (
-          <a
-            href={link.href}
-            class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-          >
-            {link.label}
-          </a>
-        ))}
+        {
+          quickJumpLinks.map((link) => (
+            <a
+              href={link.href}
+              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
+            >
+              {link.label}
+            </a>
+          ))
+        }
       </div>
     </details>
 
@@ -1038,11 +790,8 @@ applyToolPageRobotsHeader({
               data-focus-groups="all verdict"
             >
               <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
-              <p class="text-sm text-zinc-400">
-                As of{' '}
-                {freshnessLabels.verdictAsOfLabel}
-                .
-              </p>
+              <p class="text-sm text-zinc-300">{decisionUtilityState.verdictLeadOverride}</p>
+              <p class="text-sm text-zinc-400">As of {freshnessLabels.verdictAsOfLabel}.</p>
               <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
                 <div
                   class="prose prose-slate prose-sm max-w-none text-zinc-200 leading-7"
@@ -1092,7 +841,12 @@ applyToolPageRobotsHeader({
                   <h3 class="text-sm font-semibold text-zinc-200">Recommendation drivers</h3>
                   <ul class="mt-2 space-y-1 text-sm text-zinc-300">
                     {scoreDrivers.map((item) => (
-                      <li>- {item}</li>
+                      <li>
+                        - {item}{' '}
+                        <a href="#sources" class="text-xs text-hunt-500 hover:text-hunt-400">
+                          Evidence
+                        </a>
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -1100,11 +854,7 @@ applyToolPageRobotsHeader({
             </section>
           )
         }
-        {
-          showProceduralVerdict && (
-            <ToolDecisionConditionsSection />
-          )
-        }
+        {showProceduralVerdict && <ToolDecisionConditionsSection />}
         <ToolWorkflowFitSection cards={workflowFitCards} highlights={workflowFitHighlights} />
 
         {/* Pricing Plans */}
@@ -1119,11 +869,11 @@ applyToolPageRobotsHeader({
             >
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
-                  <h2 class="text-lg font-semibold text-zinc-100">Pricing Plans</h2>
+                  <h2 class="text-lg font-semibold text-zinc-100">
+                    {tool.name} pricing, how seats work
+                  </h2>
                   {pricingSectionState.checkedLead && (
-                    <p class="mt-1 text-xs text-zinc-500">
-                      {pricingSectionState.checkedLead}
-                    </p>
+                    <p class="mt-1 text-xs text-zinc-500">{pricingSectionState.checkedLead}</p>
                   )}
                 </div>
                 <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
@@ -1151,9 +901,50 @@ applyToolPageRobotsHeader({
                   summaryLabel={pricingNarrativeLabel}
                   budgetAnalyst={pricingInsightsBudgetAnalyst}
                 />
-                <p class="mb-4 text-xs text-zinc-500">
-                  {pricingNotice}
-                </p>
+                <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Pricing mental model
+                  </h3>
+                  <ul class="mt-2 space-y-1 text-xs text-zinc-300">
+                    {decisionUtilityState.pricingMentalModelItems.map((item) => (
+                      <li>- {item}</li>
+                    ))}
+                  </ul>
+                  {pricingScenarioState.examples.length > 0 && (
+                    <div class="mt-3 border-t border-zinc-800 pt-3">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                        Cost model examples
+                      </p>
+                      <ul class="mt-2 space-y-1 text-xs text-zinc-300">
+                        {pricingScenarioState.examples.map((item) => (
+                          <li>- {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+                {canonicalHardLimits[0] && (
+                  <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                      {tool.name} free plan limits and hard constraints
+                    </h3>
+                    <p class="mt-2 text-xs text-zinc-300">
+                      {canonicalHardLimits[0].text}{' '}
+                      <a
+                        href={canonicalHardLimits[0].sourceUrl}
+                        target="_blank"
+                        rel="noopener"
+                        data-outbound="source"
+                        data-location="pricing-hard-limit"
+                        data-tool={tool.slug}
+                        class="text-hunt-500 hover:text-hunt-400"
+                      >
+                        Evidence
+                      </a>
+                    </p>
+                  </div>
+                )}
+                <p class="mb-4 text-xs text-zinc-500">{pricingNotice}</p>
                 {hasPricing ? (
                   <>
                     <PricingPlansGrid
@@ -1271,9 +1062,7 @@ applyToolPageRobotsHeader({
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
-                  <p class="mt-1 text-sm text-zinc-400">
-                    {strengthsSubtitle}
-                  </p>
+                  <p class="mt-1 text-sm text-zinc-400">{strengthsSubtitle}</p>
                 </div>
                 <span class="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-400">
                   <span class="group-open:hidden">Expand</span>
@@ -1300,6 +1089,10 @@ applyToolPageRobotsHeader({
             </details>
           )
         }
+        <ToolPracticalOutcomesSection
+          title={decisionUtilityState.practicalOutcomesTitle}
+          outcomes={decisionUtilityState.practicalOutcomes}
+        />
 
         {/* Features Showcase */}
         {
@@ -1421,11 +1214,7 @@ applyToolPageRobotsHeader({
           videoState.hasVideo && (
             <section id="video" data-focus-target data-focus-groups="all capabilities">
               <h2 class="mb-4 text-lg font-semibold text-zinc-100">Watch {tool.name} in Action</h2>
-              <VideoEmbed
-                client:visible
-                id={tool.video_id}
-                title={videoProps.title}
-              />
+              <VideoEmbed client:visible id={tool.video_id} title={videoProps.title} />
             </section>
           )
         }
@@ -1452,41 +1241,40 @@ applyToolPageRobotsHeader({
               </summary>
               <div class="mt-4 space-y-6">
                 {/* Company Info */}
-                {
-                  operationalDetailsState.showCompanyInfo && (
-                    <CompanyInfo
-                      company={knowledgeCard.company}
-                      audience={knowledgeCard.audience}
-                      learningCurve={tool.learning_curve}
-                    />
-                  )
-                }
+                {operationalDetailsState.showCompanyInfo && (
+                  <CompanyInfo
+                    company={knowledgeCard.company}
+                    audience={knowledgeCard.audience}
+                    learningCurve={tool.learning_curve}
+                  />
+                )}
 
                 {/* Suite Navigation (if part of a bundle) */}
-                {
-                  operationalDetailsState.showSuiteNavigation && (
-                    <SuiteNavigation
-                      currentToolId={tool.id}
-                      parentId={parentTool.id}
-                      parentName={parentTool.name}
-                    />
-                  )
-                }
+                {operationalDetailsState.showSuiteNavigation && (
+                  <SuiteNavigation
+                    currentToolId={tool.id}
+                    parentId={parentTool.id}
+                    parentName={parentTool.name}
+                  />
+                )}
 
                 {/* Security & Compliance */}
-                {
-                  operationalDetailsState.showSecurity && <SecurityCompliance security={knowledgeCard.security} />
-                }
+                {operationalDetailsState.showSecurity && (
+                  <SecurityCompliance security={knowledgeCard.security} />
+                )}
 
                 {/* Support Options */}
-                {operationalDetailsState.showSupport && <SupportOptions support={knowledgeCard.support} />}
+                {operationalDetailsState.showSupport && (
+                  <SupportOptions support={knowledgeCard.support} />
+                )}
 
                 {/* Portability */}
-                {
-                  operationalDetailsState.showPortability && (
-                    <PortabilityCard portability={knowledgeCard.smp_portability} toolName={tool.name} />
-                  )
-                }
+                {operationalDetailsState.showPortability && (
+                  <PortabilityCard
+                    portability={knowledgeCard.smp_portability}
+                    toolName={tool.name}
+                  />
+                )}
               </div>
             </details>
           )
@@ -1601,9 +1389,7 @@ applyToolPageRobotsHeader({
                 <h2 class="text-2xl font-semibold text-zinc-100">
                   {alternativesLabel} to {tool.name}
                 </h2>
-                <p class="mt-1 text-sm text-zinc-400">
-                  {alternativesIntroText}
-                </p>
+                <p class="mt-1 text-sm text-zinc-400">{alternativesIntroText}</p>
               </div>
               {alternativesSectionState.viewAllHref && (
                 <a
@@ -1616,6 +1402,18 @@ applyToolPageRobotsHeader({
             </div>
           </header>
 
+          <AlternativesCompareGrid
+            main={{
+              name: tool.name,
+              pricing_type: tool.pricing_type,
+              learning_curve: tool.learning_curve,
+            }}
+            alternatives={alternativeCardsView.map((entry) => ({
+              name: entry.alt.name,
+              pricing_type: entry.alt.pricing_type,
+              learning_curve: entry.alt.learning_curve,
+            }))}
+          />
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {alternativeCardsView.map((entry) => (
               <AlternativeCard
@@ -1744,7 +1542,8 @@ applyToolPageRobotsHeader({
             <div>
               <h2 class="text-lg font-semibold text-zinc-100">Update History</h2>
               <p class="mt-1 text-sm text-zinc-400">
-                Last update {updateHistoryLabels.lastUpdateLabel} • Last check {updateHistoryLabels.lastCheckLabel}
+                Last update {updateHistoryLabels.lastUpdateLabel} • Last check{' '}
+                {updateHistoryLabels.lastCheckLabel}
               </p>
             </div>
             <span class="inline-flex items-center gap-2 text-xs text-zinc-400">

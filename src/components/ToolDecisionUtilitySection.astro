@@ -1,0 +1,45 @@
+---
+interface SetupCard {
+  title: string;
+  body: string;
+  verificationLabel?: string;
+}
+
+interface Props {
+  checklistTitle: string;
+  checklistItems: string[];
+  commonSetupsTitle: string;
+  commonSetups: SetupCard[];
+}
+
+const { checklistTitle, checklistItems, commonSetupsTitle, commonSetups } = Astro.props as Props;
+---
+
+<section
+  id="decision-utility"
+  class="mb-6 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+  data-focus-target
+  data-focus-groups="all verdict setup pricing"
+>
+  <h3 class="text-base font-semibold text-zinc-100">{checklistTitle}</h3>
+  <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+    {checklistItems.map((item) => <li>- {item}</li>)}
+  </ul>
+
+  <div class="mt-5 border-t border-zinc-800 pt-4">
+    <h3 class="text-base font-semibold text-zinc-100">{commonSetupsTitle}</h3>
+    <div class="mt-3 grid gap-3 md:grid-cols-3">
+      {
+        commonSetups.map((setup) => (
+          <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+            <h4 class="text-sm font-semibold text-zinc-100">{setup.title}</h4>
+            <p class="mt-2 text-sm text-zinc-300">{setup.body}</p>
+            {setup.verificationLabel && (
+              <p class="mt-2 text-xs text-amber-300">{setup.verificationLabel}</p>
+            )}
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

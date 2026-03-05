@@ -10,6 +10,7 @@ This file is the entry point for repository knowledge. Start here, then open the
 - [Decisions](DECISIONS.md)
 - [Deployment](DEPLOYMENT.md)
 - [Ops Playbook](OPS_PLAYBOOK.md)
+- [Tool Page Orchestration Map](TOOL_PAGE_ORCHESTRATION_MAP.md)
 
 ## Content and Quality
 

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
+import {
+  buildToolPageNavigationState,
+  buildToolPageNavigationStateFromRoute,
+} from '@/lib/tool-page/navigation-state';
 
 describe('tool page navigation state', () => {
   it('derives quick jump links using sources and updates availability', () => {
@@ -44,5 +47,28 @@ describe('tool page navigation state', () => {
     expect(linksWithout).not.toContain('#update-history');
     expect(withoutSourcesOrUpdates.sourcesSectionState.hasSources).toBe(false);
     expect(withoutSourcesOrUpdates.updateHistoryState.hasUpdates).toBe(false);
+  });
+
+  it('builds navigation state directly from route signals', () => {
+    const result = buildToolPageNavigationStateFromRoute({
+      hasVerdict: true,
+      showProceduralVerdict: false,
+      hasGettingStarted: true,
+      showPricingSection: true,
+      hasFeatures: true,
+      hasSpecs: false,
+      showProceduralSpecs: true,
+      hasPlatform: true,
+      hasFAQ: true,
+      hasAlternatives: true,
+      evidenceBasisCount: 2,
+      lowConfidenceCount: 1,
+      faqItems: [{ question: 'Q', answer: 'A' }],
+      updateHistoryEntriesCount: 1,
+    });
+
+    expect(result.sourcesSectionState.hasSources).toBe(true);
+    expect(result.lowConfidenceSourcesState.show).toBe(true);
+    expect(result.quickJumpLinks.some((link) => link.href === '#sources')).toBe(true);
   });
 });

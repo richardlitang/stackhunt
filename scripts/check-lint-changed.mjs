@@ -2,6 +2,7 @@
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import { selectLintTargets } from './lib/lint-changed-targets.mjs';
 
 function git(args) {
   return execFileSync('git', args, { encoding: 'utf8' }).trim();
@@ -28,8 +29,7 @@ const changed = git(['diff', '--name-only', '--diff-filter=ACMR', `${baseRef}..H
   .map((line) => line.trim())
   .filter(Boolean);
 
-const eslintExt = /\.(astro|[cm]?[jt]sx?)$/i;
-const targets = changed.filter((file) => eslintExt.test(file) && fs.existsSync(file));
+const targets = selectLintTargets(changed, (file) => fs.existsSync(file));
 
 if (targets.length === 0) {
   console.log('No changed files require ESLint checks.');

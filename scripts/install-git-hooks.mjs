@@ -16,8 +16,8 @@ npm run qa:prepush
 `;
 
 if (!fs.existsSync(path.join(root, '.git'))) {
-  console.error('Not a git repository, cannot install hooks.');
-  process.exit(1);
+  console.log('No .git directory found, skipping hook installation.');
+  process.exit(0);
 }
 
 fs.mkdirSync(hooksDir, { recursive: true });

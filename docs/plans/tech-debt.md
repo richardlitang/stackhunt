@@ -10,6 +10,7 @@ Track architecture, pipeline, and SEO debt as small, agent-executable items.
   - Owner: platform
   - Target date: 2026-03-12
   - Next verification: `npm run typecheck && npm run test && npm run build`
+  - Troubleshooting aid: `docs/TOOL_PAGE_ORCHESTRATION_MAP.md` (regenerate via `npm run docs:tool-page-map`)
 - `tool-page-mega-namespace`: `@/lib/tool-page` barrel keeps growing, internal module boundaries need explicit grouping review (`data/`, `runtime/`, `policy/`, `view-models/`, `text/`).
   - Owner: platform
   - Target date: 2026-03-12
@@ -21,6 +22,9 @@ Track architecture, pipeline, and SEO debt as small, agent-executable items.
 
 ## Closed Items
 
+- `tool-page-helper-reference-regressions` (partially closed 2026-03-05): pre-push QA now detects malformed wrapper call shapes and missing/unbound tool-page helper symbols while ignoring comment/string noise.
+  - Evidence: `scripts/check-tool-page-route-call-shapes.mjs`, `scripts/lib/tool-page-route-call-shape-guard.mjs`, `scripts/check-tool-page-helper-imports.mjs`, `scripts/lib/tool-page-helper-import-guard.mjs`, `eslint.config.js` (`no-undef` for `*.astro`), `scripts/check-format-changed.mjs` (includes branch, working tree, index, and untracked files)
+  - Note: includes dedicated detection for invalid runtime assembly chaining (`buildToolPageRuntimeAssemblyFromRoute(buildToolPageRuntimeAssemblyInputBundleFromPageContext(...))`).
 - `tool-page-inline-template-transforms` (partially closed 2026-03-05): route no longer performs several inline mappings/fallbacks for compare chips, source list caps, pros/cons shape adaptation, strengths subtitle, affiliate offers rel policy, and trust-bar prop composition.
   - Evidence: `src/lib/tool-page/compare-teasers.ts`, `source-lists.ts`, `pros-cons-view.ts`, `strengths-subtitle.ts`, `affiliate-offers.ts`, `trust-bar-props.ts`
 - `tool-page-quick-jump-conditional-bloat` (partially closed 2026-03-05): quick-jump link branching and multiple section visibility checks moved into dedicated view/state helpers.
@@ -30,4 +34,4 @@ Track architecture, pipeline, and SEO debt as small, agent-executable items.
 - `runtime-meta-ordering-pending-verification` (closed 2026-03-05): meta runtime now consumes trust-derived `pendingVerificationCount` inside `buildToolPageRuntime`, preventing stale zero-count policy inputs.
   - Evidence: `src/lib/tool-page/runtime.ts`
 - `tool-page-inline-policy-assembly` (partially closed 2026-03-05): major route-level policy clusters moved into dedicated helpers (`decision-runtime`, `section-runtime-input`, `runtime-params-context`, `runtime-view-bundle`, etc.).
-  - Evidence: recent refactor commits on 2026-03-05
+  - Evidence: recent refactor commits on 2026-03-05, including composite helpers for `navigation+media`, `runtime+navigation`, `chrome+lens+content`, `prep+decision+review-evidence` (route and decision-context paths), and `runtime-view-bundle` context composition.

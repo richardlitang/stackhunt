@@ -1,0 +1,90 @@
+---
+interface ToolCompareLike {
+  name: string;
+  pricing_type?: string | null;
+  learning_curve?: string | null;
+}
+
+interface Props {
+  main: ToolCompareLike;
+  alternatives: ToolCompareLike[];
+}
+
+const { main, alternatives } = Astro.props as Props;
+const rows = [
+  'Setup time',
+  'Seat complexity',
+  'Customization depth',
+  'Integration approach',
+  'Best for',
+  'Evidence level',
+] as const;
+
+function normalizePricingType(type?: string | null): string {
+  const value = (type || '').toLowerCase();
+  if (!value) return 'Unknown';
+  if (value.includes('free')) return 'Lower seat friction';
+  if (value.includes('enterprise')) return 'Procurement-heavy';
+  if (value.includes('tier')) return 'Tier and seat dependent';
+  if (value.includes('usage')) return 'Usage-sensitive';
+  return 'Plan dependent';
+}
+
+function normalizeSetup(curve?: string | null): string {
+  const value = (curve || '').toLowerCase();
+  if (value.includes('easy') || value.includes('low')) return 'Faster';
+  if (value.includes('steep') || value.includes('high')) return 'Heavier';
+  return 'Medium';
+}
+
+function getValue(row: (typeof rows)[number], tool: ToolCompareLike): string {
+  switch (row) {
+    case 'Setup time':
+      return normalizeSetup(tool.learning_curve);
+    case 'Seat complexity':
+      return normalizePricingType(tool.pricing_type);
+    case 'Customization depth':
+      return 'Verify in product demo';
+    case 'Integration approach':
+      return 'Check native apps versus API-first fit';
+    case 'Best for':
+      return 'Teams aligned with this tool’s rollout profile';
+    case 'Evidence level':
+      return 'Heuristic summary, verify in docs';
+    default:
+      return 'Unknown';
+  }
+}
+---
+
+{
+  alternatives.length > 0 && (
+    <div class="mb-5 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+      <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        Quick compare grid
+      </p>
+      <table class="min-w-full text-left text-xs text-zinc-300">
+        <thead>
+          <tr class="border-b border-zinc-800 text-zinc-400">
+            <th class="px-2 py-2 font-medium">Dimension</th>
+            <th class="px-2 py-2 font-medium">{main.name}</th>
+            {alternatives.slice(0, 2).map((alt) => (
+              <th class="px-2 py-2 font-medium">{alt.name}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr class="border-b border-zinc-900/80 last:border-b-0">
+              <td class="px-2 py-2 text-zinc-400">{row}</td>
+              <td class="px-2 py-2">{getValue(row, main)}</td>
+              {alternatives.slice(0, 2).map((alt) => (
+                <td class="px-2 py-2">{getValue(row, alt)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}

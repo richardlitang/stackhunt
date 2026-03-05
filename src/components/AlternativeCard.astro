@@ -69,6 +69,24 @@ const fallbackDescription = getDisplayDescription({
 // Get a single most relevant micro-diff for compact display
 const microDiff =
   computedDiff?.priceDiff || computedDiff?.learningDiff || computedDiff?.featureDiff;
+const chooseInsteadLine = (() => {
+  if (showCurated && curatedVerdict) {
+    return `Choose ${alt.name} instead if: ${curatedVerdict}`;
+  }
+  if (computedDiff?.priceDiff) {
+    return `Choose ${alt.name} instead if: pricing model differences are your primary decision factor.`;
+  }
+  if (computedDiff?.learningDiff) {
+    return `Choose ${alt.name} instead if: setup speed and learning curve are the primary constraints.`;
+  }
+  if (computedDiff?.featureDiff) {
+    return `Choose ${alt.name} instead if: feature depth or integration fit matters more than migration simplicity.`;
+  }
+  return `Choose ${alt.name} instead if: its workflow and rollout profile fit your team better than ${main.name}.`;
+})();
+const recommendationEvidenceLabel = showCurated
+  ? 'Evidence-backed rationale'
+  : 'Needs confirmation';
 ---
 
 <div
@@ -135,6 +153,10 @@ const microDiff =
 
   {/* Layer 3: Fallback */}
   {showFallback && <p class="mb-3 text-xs text-zinc-400 line-clamp-2">{fallbackDescription}</p>}
+  <p class="mb-3 rounded border border-zinc-800 bg-zinc-950/40 px-2.5 py-2 text-xs text-zinc-300">
+    {chooseInsteadLine}
+  </p>
+  <p class="mb-3 text-[11px] text-zinc-500">{recommendationEvidenceLabel}</p>
 
   {/* Spacer to push footer to bottom */}
   <div class="flex-1"></div>

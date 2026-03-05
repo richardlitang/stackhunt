@@ -62,6 +62,42 @@ Last verified: 2026-03-05
 - [x] Extract alternatives card compare view (`npm run typecheck && npm run test -- tests/lib/tool-page-alternatives-cards.test.ts`)
 - [x] Extract sources/update-history visibility signals (`npm run typecheck && npm run test -- tests/lib/tool-page-sources-section-state.test.ts -- tests/lib/tool-page-update-history-state.test.ts`)
 - [x] Extract video section visibility signal (`npm run typecheck && npm run test -- tests/lib/tool-page-video-state.test.ts`)
+- [x] Extract decision-section route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-decision-section-route-input.test.ts`)
+- [x] Extract evidence-signals route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-evidence-signals-state.test.ts`)
+- [x] Extract runtime-assembly route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-runtime-assembly-route-input.test.ts`)
+- [x] Extract content-sections route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-content-sections-input.test.ts`)
+- [x] Extract chrome-state route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-chrome-input.test.ts`)
+- [x] Extract navigation-state route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-navigation-input.test.ts`)
+- [x] Extract alternatives-pricing route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-alternatives-pricing-input.test.ts`)
+- [x] Extract CTA-media route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-cta-media-input.test.ts`)
+- [x] Extract runtime-assembly page-context adapter (`npm run typecheck && npm run test -- tests/lib/tool-page-runtime-assembly-route-input.test.ts`)
+- [x] Normalize runtime-assembly page-context verdict fallback (`npm run typecheck && npm run test -- tests/lib/tool-page-runtime-assembly-route-input.test.ts`)
+- [x] Bound and order curated verdict query helper (`npm run typecheck && npm run test -- tests/lib/tool-page-curated-verdicts.test.ts`)
+- [x] Add tool-page route call-shape QA guard (`npm run qa:tool-page-call-shapes && npm run qa:prepush`)
+- [x] Harden tool-page helper import guard for comment/string noise (`npm run test -- tests/lib/tool-page-helper-import-guard.test.ts && npm run typecheck`)
+- [x] Extract route navigation+media composition helper (`npm run test -- tests/lib/tool-page-navigation-media-state.test.ts && npm run typecheck`)
+- [x] Extract route chrome+lens composition helper (`npm run test -- tests/lib/tool-page-chrome-lens-state.test.ts && npm run typecheck`)
+- [x] Extract route content+alternatives composition helper (`npm run test -- tests/lib/tool-page-content-alternatives-state.test.ts && npm run typecheck`)
+- [x] Extract route prep+decision composition helper (`npm run test -- tests/lib/tool-page-prep-decision-state.test.ts && npm run typecheck`)
+- [x] Extract route review-artifacts+evidence-signals composition helper (`npm run test -- tests/lib/tool-page-review-evidence-state.test.ts && npm run typecheck`)
+- [x] Extract runtime view-bundle page-context composition helper (`npm run test -- tests/lib/tool-page-runtime-view-bundle-context.test.ts && npm run typecheck`)
+- [x] Extract runtime view-bundle decision/evidence context helper (`npm run test -- tests/lib/tool-page-runtime-view-bundle-decision-context.test.ts && npm run typecheck`)
+- [x] Extract content/alternatives decision-context helper (`npm run test -- tests/lib/tool-page-content-alternatives-decision-context.test.ts && npm run typecheck`)
+- [x] Extract navigation/media decision-context helper (`npm run test -- tests/lib/tool-page-navigation-media-decision-context.test.ts && npm run typecheck`)
+- [x] Extract chrome/lens decision-context helper (`npm run test -- tests/lib/tool-page-chrome-lens-decision-context.test.ts && npm run typecheck`)
+- [x] Extract prep/decision decision-context helper (`npm run test -- tests/lib/tool-page-prep-decision-decision-context.test.ts && npm run typecheck`)
+- [x] Extract review-evidence decision-context helper (`npm run test -- tests/lib/tool-page-review-evidence-decision-context.test.ts && npm run typecheck`)
+- [x] Extract runtime+navigation decision-context composition helper (`npm run test -- tests/lib/tool-page-runtime-navigation-decision-context.test.ts && npm run typecheck`)
+- [x] Tighten Astro undefined-symbol lint gate (`npm run lint:strict`)
+- [x] Auto-install pre-push hook via `prepare` (`npm run hooks:install`)
+- [x] Expand changed-file format gate to include working tree/index/untracked files (`npm run format:check:changed && npm run qa:prepush`)
+- [x] Extract prep+review-evidence combined decision-context helper (`npm run test -- tests/lib/tool-page-prep-review-evidence-decision-context.test.ts && npm run typecheck`)
+- [x] Extract chrome+lens+content combined decision-context helper (`npm run test -- tests/lib/tool-page-chrome-content-decision-context.test.ts && npm run typecheck`)
+- [x] Add script-backed tool-page orchestration map for agent troubleshooting (`npm run docs:tool-page-map`)
+- [x] Guard invalid runtime assembly chaining in tool route QA (`npm run test -- tests/lib/tool-page-route-call-shape-guard.test.ts && npm run qa:tool-page-call-shapes`)
+- [x] Extract prep-state route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-prep-input.test.ts`)
+- [x] Extract review-artifacts route context input builder (`npm run typecheck && npm run test -- tests/lib/tool-page-review-artifacts-state.test.ts`)
+- [x] Extract runtime-assembly signal grouping helper (`npm run typecheck && npm run test -- tests/lib/tool-page-runtime-assembly-signals-input.test.ts`)
 - [ ] Continue thinning remaining route orchestration clusters (`npm run typecheck && npm run test && npm run build`)
 
 ## Decision Log
@@ -69,6 +105,9 @@ Last verified: 2026-03-05
 - 2026-03-05: Keep extraction slices small and behavior-preserving, each with local tests, to minimize regression risk in a hotspot route.
 - 2026-03-05: Track this stream in `docs/plans/active/` and reflect debt deltas in `docs/plans/tech-debt.md` per harness rules.
 - 2026-03-05: Prioritize low-risk route-thinning helpers (input builders and view projections) before larger runtime/data layer moves.
+- 2026-03-05: Prefer context-to-input adapter helpers over direct nested object literals in the route to reduce syntax/ordering regression risk.
+- 2026-03-05: Keep nullable normalization in adapter layers, so route orchestration passes raw records instead of mutating fields inline.
+- 2026-03-05: Convert recurring route-call regressions into pre-push structural checks to catch parser-level failures before deploy.
 
 ## Exit Criteria
 

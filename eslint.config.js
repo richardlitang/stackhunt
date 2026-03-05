@@ -77,6 +77,27 @@ export default [
       '@typescript-eslint/no-require-imports': 'off',
       'no-redeclare': 'off',
       'no-undef': 'off', // TypeScript handles this
+      'no-use-before-define': [
+        'error',
+        { functions: false, classes: true, variables: true, allowNamedExports: false },
+      ],
+    },
+  },
+
+  // Node scripts
+  {
+    files: ['scripts/**/*.mjs', 'scripts/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+      },
+    },
+    rules: {
+      'no-undef': 'error',
     },
   },
 
@@ -88,11 +109,16 @@ export default [
       'unused-imports': unusedImports,
     },
     rules: {
+      'no-undef': 'error',
       'no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+      'no-use-before-define': [
+        'error',
+        { functions: false, classes: true, variables: true, allowNamedExports: false },
       ],
     },
   },

@@ -1,0 +1,26 @@
+---
+import TwoColumnChecklistCards from '@/components/TwoColumnChecklistCards.astro';
+
+interface Props {
+  summary: string;
+  checklist: string[];
+  signals: string[];
+}
+
+const { summary, checklist, signals } = Astro.props as Props;
+---
+
+<section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+  <h2 class="text-lg font-semibold text-zinc-100">How to Shortlist from This List</h2>
+  <p class="mt-2 text-sm text-zinc-300">{summary}</p>
+  <TwoColumnChecklistCards
+    className="mt-5"
+    headingClassName="text-sm font-semibold text-zinc-100"
+    left={{ title: 'What to Validate First', items: checklist }}
+    right={{ title: 'Current Evidence Context', items: signals }}
+  />
+  <p class="mt-4 text-xs text-zinc-500">
+    Use this list to narrow candidates, then open each tool profile to review hard limits, setup
+    friction, and source-linked proof.
+  </p>
+</section>

@@ -22,8 +22,8 @@ const lensItems: Array<{
   },
   {
     key: 'personal',
-    label: 'Personal',
-    description: 'Fast setup and free-tier emphasis',
+    label: 'Solo / Freelancer',
+    description: 'Individual operator setup and free-tier emphasis',
   },
   {
     key: 'startup',
@@ -43,7 +43,9 @@ const lensItems: Array<{
   aria-label="Review lens"
 >
   <div class="flex flex-wrap items-center gap-2">
-    <span class="text-xs font-semibold uppercase tracking-wide text-zinc-400">View this review as</span>
+    <span class="text-xs font-semibold uppercase tracking-wide text-zinc-400"
+      >View this review as</span
+    >
     {
       lensItems.map((item) => {
         const isActive = activeLens === item.key;
@@ -67,7 +69,7 @@ const lensItems: Array<{
   {
     showNote && (
       <p class="text-xs text-zinc-500">
-        This changes emphasis and reading order, not the underlying facts.
+        This changes decision framing and section emphasis, not the underlying facts.
       </p>
     )
   }

@@ -1,7 +1,14 @@
 export { buildToolPageAboutContent } from '@/lib/tool-page/about-content';
+export {
+  buildToolPageAlternativesPricingState,
+  buildToolPageAlternativesPricingStateFromRoute,
+} from '@/lib/tool-page/alternatives-pricing-state';
+export { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-page/alternatives-pricing-input';
+export { buildToolPageAlternativesPricingStateInputFromRouteContext } from '@/lib/tool-page/alternatives-pricing-input';
 export { buildToolPageAffiliateOffersView } from '@/lib/tool-page/affiliate-offers';
 export { buildToolPageAddToStackProps } from '@/lib/tool-page/add-to-stack-props';
 export { buildToolPageCategoryBreadcrumb } from '@/lib/tool-page/breadcrumbs';
+export { buildToolPageCategoryRef } from '@/lib/tool-page/category-ref';
 export { buildToolPageAlternativesSectionState } from '@/lib/tool-page/alternatives-section';
 export { buildToolPageAlternativeCardsView } from '@/lib/tool-page/alternatives-cards';
 export { buildToolPageAlternativesState } from '@/lib/tool-page/alternatives-state';
@@ -18,10 +25,44 @@ export { buildToolPageConstraintEvidence } from '@/lib/tool-page/constraint-evid
 export { buildToolPageCompareTeaserLinks } from '@/lib/tool-page/compare-teasers';
 export { buildToolPageCompareButtonProps } from '@/lib/tool-page/compare-button-props';
 export { buildToolPageConstraintEvidenceView } from '@/lib/tool-page/constraint-evidence-view';
-export { buildToolPageCtaMediaState } from '@/lib/tool-page/cta-media-state';
+export {
+  buildToolPageCtaMediaStateInputFromTool,
+  buildToolPageCtaMediaStateInputFromRouteContext,
+  buildToolPageCtaMediaToolFromRouteTool,
+} from '@/lib/tool-page/cta-media-input';
+export {
+  buildToolPageCtaMediaState,
+  buildToolPageCtaMediaStateFromRoute,
+} from '@/lib/tool-page/cta-media-state';
+export {
+  buildToolPageContentSectionsState,
+  buildToolPageContentSectionsStateFromRoute,
+} from '@/lib/tool-page/content-sections-state';
+export { buildToolPageContentAlternativesStateFromRouteContext } from '@/lib/tool-page/content-alternatives-state';
+export { buildToolPageContentAlternativesStateFromDecisionContext } from '@/lib/tool-page/content-alternatives-decision-context';
+export { buildToolPageNavigationMediaStateFromDecisionContext } from '@/lib/tool-page/navigation-media-decision-context';
+export { buildToolPageChromeLensStateFromDecisionContext } from '@/lib/tool-page/chrome-lens-decision-context';
+export { buildToolPageChromeContentStateFromDecisionContext } from '@/lib/tool-page/chrome-content-decision-context';
+export {
+  buildToolPageContentSectionsStateInputFromRoute,
+  buildToolPageContentSectionsStateInputFromRouteContext,
+} from '@/lib/tool-page/content-sections-input';
+export {
+  buildToolPageChromeStateInputFromRoute,
+  buildToolPageChromeStateInputFromRouteContext,
+} from '@/lib/tool-page/chrome-input';
+export { buildToolPageChromeLensStateFromRouteContext } from '@/lib/tool-page/chrome-lens-state';
 export { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
 export { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
 export { getToolPageData } from '@/lib/tool-page/data';
+export {
+  buildToolPageDecisionSectionState,
+  buildToolPageDecisionSectionStateFromRoute,
+} from '@/lib/tool-page/decision-section-state';
+export {
+  buildToolPageDecisionSectionStateInputFromRoute,
+  buildToolPageDecisionSectionStateInputFromRouteContext,
+} from '@/lib/tool-page/decision-section-route-input';
 export { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';
 export { buildToolPageDecisionRuntime } from '@/lib/tool-page/decision-runtime';
 export { buildToolPageDecisionRuntimeInput } from '@/lib/tool-page/decision-runtime-input';
@@ -30,6 +71,7 @@ export {
   buildToolPageFallbackDecisionSummary,
   deriveToolPageDecisionDifferentiators,
 } from '@/lib/tool-page/decision';
+export { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision-utility';
 export {
   buildToolPageEvidenceBulletV2,
   toToolPageEvidenceBullet,
@@ -40,9 +82,20 @@ export { createToolPageEvidenceBulletAdapters } from '@/lib/tool-page/evidence-b
 export { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page/evidence-grade';
 export { buildToolPageEvidenceLinks } from '@/lib/tool-page/evidence-links';
 export { buildToolPageEvidenceBasisChips } from '@/lib/tool-page/evidence-basis-chips';
+export {
+  buildToolPageEvidenceSignalsState,
+  buildToolPageEvidenceSignalsStateFromRoute,
+} from '@/lib/tool-page/evidence-signals-state';
+export {
+  buildToolPageEvidenceSignalsStateInputFromRoute,
+  buildToolPageEvidenceSignalsStateInputFromRouteContext,
+} from '@/lib/tool-page/evidence-signals-route-input';
 export { buildToolPageEvidenceRuntime } from '@/lib/tool-page/evidence-runtime';
 export { buildToolPageEvidenceRuntimeInput } from '@/lib/tool-page/evidence-runtime-input';
-export { countEligibleEvidenceDomains, isEligibleEvidenceUrl } from '@/lib/tool-page/evidence-policy';
+export {
+  countEligibleEvidenceDomains,
+  isEligibleEvidenceUrl,
+} from '@/lib/tool-page/evidence-policy';
 export { buildToolPageEvaluationViewModel } from '@/lib/tool-page/evaluation';
 export { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 export {
@@ -52,6 +105,13 @@ export {
 export { deriveToolPageReviewProgress } from '@/lib/tool-page/review-progress';
 export { buildToolPageReviewBannerText } from '@/lib/tool-page/review-banner';
 export { buildToolPageReviewArtifacts } from '@/lib/tool-page/review-artifacts';
+export {
+  buildToolPageReviewArtifactsState,
+  buildToolPageReviewArtifactsStateFromRoute,
+  buildToolPageReviewArtifactsStateFromRouteContext,
+} from '@/lib/tool-page/review-artifacts-state';
+export { buildToolPageReviewEvidenceStateFromRouteContext } from '@/lib/tool-page/review-evidence-state';
+export { buildToolPageReviewEvidenceStateFromDecisionContext } from '@/lib/tool-page/review-evidence-decision-context';
 export { buildToolPageResearchStatusView } from '@/lib/tool-page/research-status';
 export { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
 export { buildToolPageReviewSignalsInput } from '@/lib/tool-page/review-signals-input';
@@ -63,6 +123,18 @@ export { buildToolPagePricingSectionState } from '@/lib/tool-page/pricing-sectio
 export { buildToolPagePricingEvidenceState } from '@/lib/tool-page/pricing-evidence-state';
 export { buildToolPagePricingLinkText } from '@/lib/tool-page/pricing-link-text';
 export { buildToolPagePricingNotice } from '@/lib/tool-page/pricing-notice';
+export { buildToolPagePricingScenarioState } from '@/lib/tool-page/pricing-scenarios';
+export {
+  buildToolPagePrepState,
+  buildToolPagePrepStateFromRoute,
+} from '@/lib/tool-page/prep-state';
+export { buildToolPagePrepDecisionStateFromRouteContext } from '@/lib/tool-page/prep-decision-state';
+export { buildToolPagePrepDecisionStateFromDecisionContext } from '@/lib/tool-page/prep-decision-decision-context';
+export { buildToolPagePrepReviewEvidenceStateFromDecisionContext } from '@/lib/tool-page/prep-review-evidence-decision-context';
+export {
+  buildToolPagePrepStateInputFromRoute,
+  buildToolPagePrepStateInputFromRouteContext,
+} from '@/lib/tool-page/prep-input';
 export { buildToolPagePlatformSectionState } from '@/lib/tool-page/platform-section';
 export { buildToolPageProsConsView } from '@/lib/tool-page/pros-cons-view';
 export { buildToolPageFaqState, filterToolPageFaqItems } from '@/lib/tool-page/faq';
@@ -75,14 +147,47 @@ export { buildToolPageOperationalDetailsState } from '@/lib/tool-page/operationa
 export { buildToolPageQualityState } from '@/lib/tool-page/quality-state';
 export { buildToolPageQualityStateInput } from '@/lib/tool-page/quality-state-input';
 export { buildToolPageRuntime } from '@/lib/tool-page/runtime';
-export { buildToolPageRuntimeAssembly } from '@/lib/tool-page/runtime-assembly';
+export {
+  buildToolPageRuntimeAssembly,
+  buildToolPageRuntimeAssemblyFromRoute,
+} from '@/lib/tool-page/runtime-assembly';
+export { buildToolPageRuntimeAssemblyBaseInputFromRoute } from '@/lib/tool-page/runtime-assembly-base-input';
+export { buildToolPageRuntimeAssemblyInputFromRoute } from '@/lib/tool-page/runtime-assembly-input';
+export {
+  buildToolPageRuntimeAssemblyInputBundleFromRoute,
+  buildToolPageRuntimeAssemblyInputBundleFromPageContext,
+  buildToolPageRuntimeAssemblyInputBundleFromRouteContext,
+} from '@/lib/tool-page/runtime-assembly-route-input';
+export { buildToolPageRuntimeLensContentInputFromRoute } from '@/lib/tool-page/runtime-lens-content-input';
+export { buildToolPageRuntimeMetaSignalsInputFromRoute } from '@/lib/tool-page/runtime-meta-signals-input';
+export { buildToolPageRuntimeAssemblySignalsInputFromRouteContext } from '@/lib/tool-page/runtime-assembly-signals-input';
+export {
+  buildToolPageRuntimeSchemasInputFromRoute,
+  buildToolPageRuntimeUpdateHistoryInputFromRoute,
+} from '@/lib/tool-page/runtime-schema-history-input';
+export { buildToolPageRuntimeTrustInputFromRoute } from '@/lib/tool-page/runtime-trust-input';
 export { buildToolPageRuntimeContext } from '@/lib/tool-page/runtime-context';
 export { buildToolPageRuntimeInput } from '@/lib/tool-page/runtime-input';
 export { buildToolPageRuntimeInputParams } from '@/lib/tool-page/runtime-params';
 export { buildToolPageRuntimeParamsContext } from '@/lib/tool-page/runtime-params-context';
+export { buildToolPageRuntimeViewModelInputFromRoute } from '@/lib/tool-page/runtime-viewmodel-input';
 export { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
-export { buildToolPageChromeState } from '@/lib/tool-page/page-chrome-state';
-export { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
+export { buildToolPageRuntimeViewBundleFromPageContext } from '@/lib/tool-page/runtime-view-bundle-context';
+export { buildToolPageRuntimeViewBundleFromDecisionContext } from '@/lib/tool-page/runtime-view-bundle-decision-context';
+export { buildToolPageRuntimeNavigationStateFromDecisionContext } from '@/lib/tool-page/runtime-navigation-decision-context';
+export {
+  buildToolPageChromeState,
+  buildToolPageChromeStateFromRoute,
+} from '@/lib/tool-page/page-chrome-state';
+export {
+  buildToolPageNavigationState,
+  buildToolPageNavigationStateFromRoute,
+} from '@/lib/tool-page/navigation-state';
+export { buildToolPageNavigationMediaStateFromRouteContext } from '@/lib/tool-page/navigation-media-state';
+export {
+  buildToolPageNavigationStateInputFromRoute,
+  buildToolPageNavigationStateInputFromRouteContext,
+} from '@/lib/tool-page/navigation-input';
 export { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
 export { buildToolPageLensPriorityLead } from '@/lib/tool-page/lens-priority-copy';
 export { buildToolPageLowConfidenceSourcesState } from '@/lib/tool-page/low-confidence-sources';
@@ -95,6 +200,15 @@ export { buildToolPageViewRuntime } from '@/lib/tool-page/view-runtime';
 export { buildToolPageWebsiteState } from '@/lib/tool-page/website';
 export { buildToolPageWebsiteLabel } from '@/lib/tool-page/website-label';
 export { deriveToolPageRequestState } from '@/lib/tool-page/request-state';
+export {
+  toToolPageOptionalRecord,
+  toToolPageComparableAlternatives,
+  toToolPageObjectArray,
+  toToolPageOrderedAlternatives,
+  toToolPageReviewSources,
+  toToolPageStringOrNull,
+  toToolPageSpecsRecord,
+} from '@/lib/tool-page/route-normalizers';
 export { applyToolPageVersionBypassCacheHeaders } from '@/lib/tool-page/request-cache';
 export { applyToolPageRobotsHeader } from '@/lib/tool-page/response-headers';
 export { deriveToolPageSectionSignals } from '@/lib/tool-page/section-signals';

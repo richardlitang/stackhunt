@@ -1,5 +1,6 @@
 import { buildToolPageFaqItemsView } from '@/lib/tool-page/faq-items-view';
 import { buildToolPageLowConfidenceSourcesState } from '@/lib/tool-page/low-confidence-sources';
+import { buildToolPageNavigationStateInputFromRoute } from '@/lib/tool-page/navigation-input';
 import { buildToolPageQuickJumpLinks } from '@/lib/tool-page/quick-jump-links';
 import { buildToolPageSourcesSectionState } from '@/lib/tool-page/sources-section-state';
 import { buildToolPageUpdateHistoryState } from '@/lib/tool-page/update-history-state';
@@ -56,4 +57,10 @@ export function buildToolPageNavigationState(input: BuildToolPageNavigationState
     updateHistoryState,
     quickJumpLinks,
   };
+}
+
+export function buildToolPageNavigationStateFromRoute(
+  input: Parameters<typeof buildToolPageNavigationStateInputFromRoute>[0]
+): ReturnType<typeof buildToolPageNavigationState> {
+  return buildToolPageNavigationState(buildToolPageNavigationStateInputFromRoute(input));
 }

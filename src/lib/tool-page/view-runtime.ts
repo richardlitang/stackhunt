@@ -32,12 +32,14 @@ export interface ToolPageViewRuntime {
   sourceAriaLabel: (context: string) => string;
 }
 
-export function buildToolPageViewRuntime(input: BuildToolPageViewRuntimeInput): ToolPageViewRuntime {
+export function buildToolPageViewRuntime(
+  input: BuildToolPageViewRuntimeInput
+): ToolPageViewRuntime {
   return {
     toolReviewHeading: `${input.toolName} Review`,
     lensLabelMap: {
       general: 'General',
-      personal: 'Personal',
+      personal: 'Solo / Freelancer',
       startup: 'Startup',
       enterprise: 'Enterprise',
     },

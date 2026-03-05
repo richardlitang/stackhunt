@@ -1,0 +1,40 @@
+---
+interface PracticalOutcome {
+  outcome: string;
+  verifyInDemo: string;
+  planDependency: string;
+}
+
+interface Props {
+  title: string;
+  outcomes: PracticalOutcome[];
+}
+
+const { title, outcomes } = Astro.props as Props;
+---
+
+{
+  outcomes.length > 0 && (
+    <section
+      id="practical-outcomes"
+      class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+      data-focus-target
+      data-focus-groups="all capabilities setup pricing"
+    >
+      <h2 class="text-lg font-semibold text-zinc-100">{title}</h2>
+      <div class="mt-4 space-y-3">
+        {outcomes.map((item) => (
+          <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+            <p class="text-sm font-medium text-zinc-100">{item.outcome}</p>
+            <p class="mt-2 text-sm text-zinc-300">
+              <span class="text-zinc-400">What to verify in a demo:</span> {item.verifyInDemo}
+            </p>
+            <p class="mt-1 text-xs text-zinc-400">
+              <span class="text-zinc-500">Plan dependency:</span> {item.planDependency}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
