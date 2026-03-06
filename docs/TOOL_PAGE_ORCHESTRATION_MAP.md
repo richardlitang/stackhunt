@@ -6,19 +6,19 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `deriveToolPageRequestState(...)` (frontmatter line 65)
-2. `applyToolPageVersionBypassCacheHeaders(...)` (frontmatter line 69)
-3. `getToolPageData(...)` (frontmatter line 71)
-4. `deriveToolPageReviewContextSignals(...)` (frontmatter line 102)
-5. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 104)
-6. `buildToolPageCategoryRef(...)` (frontmatter line 228)
-7. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 230)
-8. `buildToolPageChromeContentStateFromDecisionContext(...)` (frontmatter line 285)
-9. `buildToolPageDecisionUtilityState(...)` (frontmatter line 333)
-10. `buildToolPageWorkflowFitVisibility(...)` (frontmatter line 342)
-11. `buildToolPagePricingScenarioState(...)` (frontmatter line 348)
-12. `buildToolPageQuickJumpLinksView(...)` (frontmatter line 396)
-13. `applyToolPageRobotsHeader(...)` (frontmatter line 408)
+1. `deriveToolPageRequestState(...)` (frontmatter line 66)
+2. `applyToolPageVersionBypassCacheHeaders(...)` (frontmatter line 70)
+3. `getToolPageData(...)` (frontmatter line 72)
+4. `deriveToolPageReviewContextSignals(...)` (frontmatter line 103)
+5. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 105)
+6. `buildToolPageCategoryRef(...)` (frontmatter line 231)
+7. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 233)
+8. `buildToolPageChromeContentStateFromDecisionContext(...)` (frontmatter line 288)
+9. `buildToolPageDecisionUtilityState(...)` (frontmatter line 337)
+10. `buildToolPageWorkflowFitVisibility(...)` (frontmatter line 346)
+11. `buildToolPagePricingScenarioState(...)` (frontmatter line 352)
+12. `buildToolPageQuickJumpLinksView(...)` (frontmatter line 400)
+13. `applyToolPageRobotsHeader(...)` (frontmatter line 412)
 
 ## Tool-Page Imports Used by Route
 
