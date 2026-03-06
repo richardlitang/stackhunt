@@ -1976,6 +1976,22 @@ export async function executePersistencePhase(
       deps.log(
         '[User Signal] Coverage pending: community domains found but no user-reported claims'
       );
+      if (ctx.queueItemId) {
+        try {
+          await deps.supabase.rpc('log_metric', {
+            p_metric_type: 'user_signal_coverage_pending',
+            p_metric_value: 1,
+            p_tags: {
+              phase: 'persistence',
+              tool_name: ctx.toolName,
+              queue_item_id: ctx.queueItemId,
+              corroborating_community_domains: userSignalSummary.corroborating_community_domains,
+            },
+          });
+        } catch (error) {
+          deps.log(`[User Signal] Failed to log coverage metric: ${String(error)}`);
+        }
+      }
     }
   }
 
