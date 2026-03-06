@@ -252,6 +252,20 @@ const pricingLensCoverageRecord =
           ?.quality as Record<string, unknown> | undefined
       )?.pricing_lens_coverage
     : null;
+const constraintsLensCoverageRecord =
+  tool.specs && typeof tool.specs === 'object'
+    ? (
+        ((tool.specs as Record<string, unknown>).canonical as Record<string, unknown> | undefined)
+          ?.quality as Record<string, unknown> | undefined
+      )?.constraints_lens_coverage
+    : null;
+const integrationsLensCoverageRecord =
+  tool.specs && typeof tool.specs === 'object'
+    ? (
+        ((tool.specs as Record<string, unknown>).canonical as Record<string, unknown> | undefined)
+          ?.quality as Record<string, unknown> | undefined
+      )?.integrations_lens_coverage
+    : null;
 const pricingLensCoverage =
   pricingLensCoverageRecord && typeof pricingLensCoverageRecord === 'object'
     ? (pricingLensCoverageRecord as {
@@ -260,8 +274,28 @@ const pricingLensCoverage =
         enterprise?: number;
       })
     : null;
+const constraintsLensCoverage =
+  constraintsLensCoverageRecord && typeof constraintsLensCoverageRecord === 'object'
+    ? (constraintsLensCoverageRecord as {
+        personal?: number;
+        startup?: number;
+        enterprise?: number;
+      })
+    : null;
+const integrationsLensCoverage =
+  integrationsLensCoverageRecord && typeof integrationsLensCoverageRecord === 'object'
+    ? (integrationsLensCoverageRecord as {
+        personal?: number;
+        startup?: number;
+        enterprise?: number;
+      })
+    : null;
 const activeLensPricingPlanCount =
   activeReviewLens === 'general' ? null : Number(pricingLensCoverage?.[activeReviewLens] || 0);
+const activeLensConstraintCount =
+  activeReviewLens === 'general' ? null : Number(constraintsLensCoverage?.[activeReviewLens] || 0);
+const activeLensIntegrationCount =
+  activeReviewLens === 'general' ? null : Number(integrationsLensCoverage?.[activeReviewLens] || 0);
 const activeLensLabelMap: Record<'personal' | 'startup' | 'enterprise', string> = {
   personal: 'Solo / Freelancer',
   startup: 'Startup',
@@ -991,6 +1025,12 @@ applyToolPageRobotsHeader({
                       tagged.
                     </p>
                   )}
+                  {activeReviewLens !== 'general' && activeLensConstraintCount !== null && (
+                    <p class="mt-1 text-xs text-zinc-500">
+                      Constraint coverage, {activeLensConstraintCount} limit
+                      {activeLensConstraintCount === 1 ? '' : 's'} tagged for this lens.
+                    </p>
+                  )}
                 </div>
                 <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
                   <span class="group-open:hidden">Expand</span>
@@ -1337,6 +1377,12 @@ applyToolPageRobotsHeader({
         {
           platformSectionState.shouldShow && (
             <div data-focus-target data-focus-groups="all integrations capabilities">
+              {activeReviewLens !== 'general' && activeLensIntegrationCount !== null && (
+                <p class="mb-2 text-xs text-zinc-500">
+                  Lens coverage, {activeLensLabelMap[activeReviewLens]}: {activeLensIntegrationCount}{' '}
+                  integration{activeLensIntegrationCount === 1 ? '' : 's'} tagged.
+                </p>
+              )}
               <PlatformIntegrations
                 platforms={platformSectionState.platforms}
                 integrations={platformSectionState.integrations}
