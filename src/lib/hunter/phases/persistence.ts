@@ -27,6 +27,11 @@ import {
   enrichSmpPricingForLens,
   inferPlanTargetAudience,
 } from '@/lib/pricing/plan-lens';
+import {
+  deriveLensTagsForConstraintText,
+  deriveLensTagsForIntegration,
+  mergeLensTags,
+} from '@/lib/pricing/lens-tags';
 import { persistItemFactPack } from '../fact-pack';
 import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
@@ -966,6 +971,31 @@ function buildPricingLensCoverage(
   return coverage;
 }
 
+function enrichIntegrationsForLens(integrations: unknown): unknown {
+  if (!integrations || typeof integrations !== 'object') return integrations;
+  const value = integrations as Record<string, unknown>;
+  const notable = Array.isArray(value.notable) ? value.notable : [];
+  if (notable.length === 0) return integrations;
+
+  return {
+    ...value,
+    notable: notable.map((entry) => {
+      if (!entry || typeof entry !== 'object') return entry;
+      const integration = entry as Record<string, unknown>;
+      const inferredTags = deriveLensTagsForIntegration({
+        name: typeof integration.name === 'string' ? integration.name : null,
+        type: typeof integration.type === 'string' ? integration.type : null,
+        direction: typeof integration.direction === 'string' ? integration.direction : null,
+      });
+      const mergedTags = mergeLensTags(integration.works_for_lenses, inferredTags);
+      return {
+        ...integration,
+        ...(mergedTags.length > 0 ? { works_for_lenses: mergedTags } : {}),
+      };
+    }),
+  };
+}
+
 function sanitizeOperationalFields(
   data: Record<string, unknown> | undefined,
   label: string,
@@ -1342,10 +1372,11 @@ export async function executePersistencePhase(
   // Step 2: Upsert Item (with Knowledge Card + V2 fields)
 
   // Build V2/V3 specs from analysis + Knowledge Card
+  const lensAwareIntegrations = enrichIntegrationsForLens(knowledgeCard?.integrations);
   const specs: ToolSpecs = {
     pricing_model: analysis.pricingType,
     platforms: analysis.graphTags?.platforms || [],
-    integrations: (knowledgeCard?.integrations as any) || [],
+    integrations: (lensAwareIntegrations as any) || [],
   };
 
   // V3: Add SMP pricing data if extracted
@@ -1379,14 +1410,19 @@ export async function executePersistencePhase(
   // V4: Add constraints if extracted
   if (knowledgeCard?.constraints) {
     const constraints = knowledgeCard.constraints;
+    const plans = Array.isArray(knowledgeCard.smp_pricing?.plans) ? knowledgeCard.smp_pricing.plans : [];
+    const { resolvePlanId } = await import('@/lib/pricing/constraints.js');
 
-    // Resolve plan_name_match to plan_id
-    if (constraints.hard_limits && knowledgeCard.smp_pricing?.plans) {
-      const plans = knowledgeCard.smp_pricing.plans;
-      const { resolvePlanId } = await import('@/lib/pricing/constraints.js');
-
+    if (Array.isArray(constraints.hard_limits)) {
       constraints.hard_limits = constraints.hard_limits.map((limit) => {
-        const planId = resolvePlanId(limit.plan_name_match, plans);
+        const planId = plans.length > 0 ? resolvePlanId(limit.plan_name_match, plans) : undefined;
+        const inferredTags = deriveLensTagsForConstraintText({
+          description: typeof limit.description === 'string' ? limit.description : null,
+          type: typeof limit.type === 'string' ? limit.type : null,
+          planName: typeof limit.plan_name_match === 'string' ? limit.plan_name_match : null,
+          trigger: typeof limit.consequence === 'string' ? limit.consequence : null,
+        });
+        const mergedTags = mergeLensTags(limit.works_for_lenses, inferredTags);
 
         // Sanitize source_url or fall back to pricing_page_url
         let sourceUrl = limit.source_url;
@@ -1399,6 +1435,26 @@ export async function executePersistencePhase(
           ...limit,
           plan_id: planId, // Resolved ID
           source_url: sourceUrl,
+          ...(mergedTags.length > 0 ? { works_for_lenses: mergedTags } : {}),
+        };
+      });
+    }
+
+    if (Array.isArray(constraints.hidden_costs)) {
+      constraints.hidden_costs = constraints.hidden_costs.map((hiddenCost) => {
+        const inferredTags = deriveLensTagsForConstraintText({
+          description: typeof hiddenCost.description === 'string' ? hiddenCost.description : null,
+          trigger:
+            typeof hiddenCost.trigger === 'string'
+              ? hiddenCost.trigger
+              : null,
+          type: null,
+          planName: null,
+        });
+        const mergedTags = mergeLensTags(hiddenCost.works_for_lenses, inferredTags);
+        return {
+          ...hiddenCost,
+          ...(mergedTags.length > 0 ? { works_for_lenses: mergedTags } : {}),
         };
       });
     }
