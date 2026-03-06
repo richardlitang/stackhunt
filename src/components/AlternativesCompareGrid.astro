@@ -8,9 +8,10 @@ import {
 interface Props {
   main: ToolCompareGridLike;
   alternatives: ToolCompareGridLike[];
+  asOfLabel?: string | null;
 }
 
-const { main, alternatives } = Astro.props as Props;
+const { main, alternatives, asOfLabel = null } = Astro.props as Props;
 ---
 
 {
@@ -66,6 +67,7 @@ const { main, alternatives } = Astro.props as Props;
         Rows labeled needs confirmation or heuristic should be verified in product docs or a live
         demo.
       </p>
+      {asOfLabel && <p class="mt-1 text-[11px] text-zinc-500">Summary as of {asOfLabel}.</p>}
     </div>
   )
 }
