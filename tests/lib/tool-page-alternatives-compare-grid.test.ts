@@ -25,6 +25,7 @@ describe('resolveToolCompareGridValue', () => {
     expect(resolveToolCompareGridValue('Setup time', tool)).toBe('Needs confirmation');
     expect(resolveToolCompareGridValue('Seat complexity', tool)).toBe('Needs confirmation');
     expect(resolveToolCompareGridValue('Customization depth', tool)).toBe('Needs confirmation');
+    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toBe('Needs confirmation');
     expect(resolveToolCompareGridCell('Setup time', tool).evidenceTag).toBe('pending');
   });
 
@@ -40,8 +41,10 @@ describe('resolveToolCompareGridValue', () => {
     expect(resolveToolCompareGridValue('Best for', tool)).toBe(
       'Teams matching the comparison brief assumptions'
     );
+    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toContain('Choose');
     expect(resolveToolCompareGridValue('Rationale source', tool)).toBe('Comparison brief');
     expect(resolveToolCompareGridCell('Best for', tool).evidenceTag).toBe('source');
+    expect(resolveToolCompareGridCell('Choose this instead if', tool).evidenceTag).toBe('source');
   });
 
   it('uses computed diff as heuristic for integration approach and evidence level', () => {
@@ -64,7 +67,11 @@ describe('resolveToolCompareGridValue', () => {
     expect(resolveToolCompareGridValue('Best for', tool)).toBe(
       'Teams optimizing for feature and integration fit'
     );
+    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toContain('Choose');
     expect(resolveToolCompareGridValue('Evidence level', tool)).toBe('Heuristic');
     expect(resolveToolCompareGridCell('Setup time', tool).evidenceTag).toBe('heuristic');
+    expect(resolveToolCompareGridCell('Choose this instead if', tool).evidenceTag).toBe(
+      'heuristic'
+    );
   });
 });

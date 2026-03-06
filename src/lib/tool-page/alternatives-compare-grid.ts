@@ -2,7 +2,10 @@ import {
   labelAlternativeEvidenceLevelForGrid,
   resolveAlternativeEvidenceLevel,
 } from '@/lib/tool-page/alternative-evidence';
-import { buildAlternativeRationaleSourceLabel } from '@/lib/tool-page/alternative-rationale';
+import {
+  buildAlternativeChooseLine,
+  buildAlternativeRationaleSourceLabel,
+} from '@/lib/tool-page/alternative-rationale';
 
 export interface ToolCompareGridLike {
   name: string;
@@ -23,6 +26,7 @@ export const TOOL_COMPARE_GRID_ROWS = [
   'Customization depth',
   'Integration approach',
   'Best for',
+  'Choose this instead if',
   'Evidence level',
   'Rationale source',
 ] as const;
@@ -116,6 +120,20 @@ export function resolveToolCompareGridCell(
         return { value: 'Teams prioritizing setup speed', evidenceTag: 'heuristic' };
       }
       return { value: 'Needs confirmation', evidenceTag: 'pending' };
+    case 'Choose this instead if': {
+      if (tool.curatedVerdict || tool.computedDiff) {
+        return {
+          value: buildAlternativeChooseLine({
+            altName: tool.name,
+            mainName: 'the reviewed tool',
+            curatedVerdict: tool.curatedVerdict || null,
+            computedDiff: tool.computedDiff || null,
+          }),
+          evidenceTag: tool.curatedVerdict ? 'source' : 'heuristic',
+        };
+      }
+      return { value: 'Needs confirmation', evidenceTag: 'pending' };
+    }
     case 'Evidence level': {
       const level = resolveAlternativeEvidenceLevel({
         curatedVerdict: tool.curatedVerdict,
