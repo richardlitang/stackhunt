@@ -38,6 +38,9 @@ interface BuildToolPageChromeLensStateFromDecisionContextInput {
     'communityVerifiedLabel' | 'specsVerifiedLabel' | 'pricingVerifiedLabel'
   >;
   evaluationDepth: 'Docs-only' | 'Light hands-on' | 'Deep hands-on';
+  qualityState: {
+    communityCorroborationCount: number;
+  };
 }
 
 export function buildToolPageChromeLensStateFromDecisionContext(
@@ -52,6 +55,7 @@ export function buildToolPageChromeLensStateFromDecisionContext(
       collectedSourcesTotal: input.evidenceRuntime.collectedSourcesTotal,
       trustConfidenceLabel: input.runtimeViewBundle.trustConfidenceLabel,
       pendingVerificationCount: input.runtimeViewBundle.pendingVerificationCount,
+      communityCorroborationCount: input.qualityState.communityCorroborationCount,
       communityVerifiedLabel: input.reviewSignalsView.communityVerifiedLabel,
       specsVerifiedLabel: input.reviewSignalsView.specsVerifiedLabel,
       pricingCheckedLabel: input.evidenceRuntime.pricingCheckedLabel,

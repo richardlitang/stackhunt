@@ -10,6 +10,7 @@ interface PersistedQualityLike {
   noindex_reasons?: string[];
   section_publishability?: Record<string, boolean>;
   section_status?: Record<string, SectionStatus>;
+  evidence_counts?: Record<string, number>;
 }
 
 interface ReviewSelectionLike {
@@ -36,6 +37,7 @@ export interface ToolPageQualityState {
   isDraftPage: boolean;
   safeDraftDescription: string;
   showReviewInProgressBanner: boolean;
+  communityCorroborationCount: number;
 }
 
 export function buildToolPageQualityState(input: BuildToolPageQualityStateInput): ToolPageQualityState {
@@ -77,6 +79,14 @@ export function buildToolPageQualityState(input: BuildToolPageQualityStateInput)
     firstReview: input.firstReview,
     gateReasons,
   });
+  const communityCorroborationCount = Math.max(
+    0,
+    Number(
+      input.persistedQuality?.evidence_counts?.community_domains ??
+        indexReadiness.signals.evidence_counts.community_domains ??
+        0
+    ) || 0
+  );
 
   return {
     contentConfidenceLevel,
@@ -88,5 +98,6 @@ export function buildToolPageQualityState(input: BuildToolPageQualityStateInput)
     isDraftPage,
     safeDraftDescription,
     showReviewInProgressBanner: reviewProgress.showReviewInProgressBanner,
+    communityCorroborationCount,
   };
 }

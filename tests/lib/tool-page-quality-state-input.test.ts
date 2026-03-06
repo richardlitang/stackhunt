@@ -16,6 +16,7 @@ describe('tool page quality state input', () => {
           noindex_reasons: ['missing_required_sections'],
           section_publishability: { faq: false },
           section_status: { verdict: 'procedural' },
+          evidence_counts: { community_domains: 2 },
         },
       },
     });
@@ -23,5 +24,6 @@ describe('tool page quality state input', () => {
     expect(result.persistedQuality?.should_index).toBe(false);
     expect(result.persistedQuality?.section_publishability?.faq).toBe(false);
     expect(result.persistedQuality?.section_status?.verdict).toBe('procedural');
+    expect(result.persistedQuality?.evidence_counts?.community_domains).toBe(2);
   });
 });

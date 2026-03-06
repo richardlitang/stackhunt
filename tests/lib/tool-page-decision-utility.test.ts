@@ -63,4 +63,26 @@ describe('tool page decision utility', () => {
       result.pricingMentalModelItems.every((item) => item.status === 'Needs confirmation')
     ).toBe(true);
   });
+
+  it('marks pricing mental model items as source-backed when pricing evidence is available', () => {
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'Attio',
+      categorySlug: 'crm-sales',
+      activeReviewLens: 'startup',
+      lensBestFitLine: 'Startups that can own CRM ops.',
+      lensWeakFitLine: 'Teams needing preconfigured CRM setup.',
+      lensTradeoffLine: 'Flexibility vs setup overhead.',
+      hardLimitText: null,
+      pricingEvidenceSourceUrl: 'https://attio.com/pricing',
+      pricingEvidenceSummary: 'Pricing tiers vary by seats and plan capabilities.',
+    });
+
+    expect(result.pricingMentalModelItems[0]?.status).toBe('Source-backed');
+    expect(result.pricingMentalModelItems[0]?.evidenceHref).toBe('#pricing');
+    expect(
+      result.pricingMentalModelItems.some(
+        (item) => item.status === 'Source-backed' && item.text.includes('tiers vary')
+      )
+    ).toBe(true);
+  });
 });

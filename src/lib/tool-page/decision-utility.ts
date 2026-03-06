@@ -14,6 +14,8 @@ export interface BuildToolPageDecisionUtilityInput {
   lensWeakFitLine: string;
   lensTradeoffLine: string;
   hardLimitText: string | null;
+  pricingEvidenceSourceUrl?: string | null;
+  pricingEvidenceSummary?: string | null;
 }
 
 export interface ToolPageDecisionUtilityState {
@@ -127,9 +129,19 @@ export function buildToolPageDecisionUtilityState(
           },
         ]
       : []),
+    ...(input.pricingEvidenceSummary
+      ? [
+          {
+            text: input.pricingEvidenceSummary,
+            status: 'Source-backed' as const,
+            evidenceHref: '#pricing',
+          },
+        ]
+      : []),
     ...basePricingMentalModelItems.map((text) => ({
       text,
-      status: 'Needs confirmation' as const,
+      status: input.pricingEvidenceSourceUrl ? ('Source-backed' as const) : ('Needs confirmation' as const),
+      ...(input.pricingEvidenceSourceUrl ? { evidenceHref: '#pricing' } : {}),
     })),
   ];
 

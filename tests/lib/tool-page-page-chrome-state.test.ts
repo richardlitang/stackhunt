@@ -13,6 +13,7 @@ describe('tool page chrome state', () => {
       collectedSourcesTotal: 5,
       trustConfidenceLabel: 'High',
       pendingVerificationCount: 0,
+      communityCorroborationCount: 2,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-05',
       pricingCheckedLabel: '2026-03-05',
@@ -31,6 +32,9 @@ describe('tool page chrome state', () => {
 
     expect(state.categoryBreadcrumb.href).toBe('/categories/project-management');
     expect(state.trustBarProps.status).toBe('Source-backed');
+    expect(state.researchStatusView.communityCorroborationLabel).toContain(
+      '2 corroborating community domains'
+    );
   });
 
   it('builds chrome state from route-level fields', () => {
@@ -41,6 +45,7 @@ describe('tool page chrome state', () => {
       collectedSourcesTotal: 5,
       trustConfidenceLabel: 'High',
       pendingVerificationCount: 1,
+      communityCorroborationCount: 1,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-05',
       pricingCheckedLabel: '2026-03-05',

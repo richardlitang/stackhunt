@@ -46,6 +46,7 @@ describe('tool page chrome/lens decision context', () => {
       pricingVerifiedLabel: '2026-03-02',
     };
     const evaluationDepth = 'Light hands-on' as const;
+    const qualityState = { communityCorroborationCount: 2 };
 
     const result = buildToolPageChromeLensStateFromDecisionContext({
       lensRuntime: lensRuntime as never,
@@ -57,6 +58,7 @@ describe('tool page chrome/lens decision context', () => {
       evidenceRuntime: evidenceRuntime as never,
       reviewSignalsView: reviewSignalsView as never,
       evaluationDepth,
+      qualityState,
     });
 
     const expected = buildToolPageChromeLensStateFromRouteContext({
@@ -68,6 +70,7 @@ describe('tool page chrome/lens decision context', () => {
         collectedSourcesTotal: 12,
         trustConfidenceLabel: 'High',
         pendingVerificationCount: 1,
+        communityCorroborationCount: 2,
         communityVerifiedLabel: '2026-03-04',
         specsVerifiedLabel: '2026-03-03',
         pricingCheckedLabel: '2026-03-05',

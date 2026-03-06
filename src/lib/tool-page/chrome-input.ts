@@ -7,6 +7,7 @@ interface BuildToolPageChromeStateInputFromRouteInput {
   collectedSourcesTotal: number;
   trustConfidenceLabel: 'High' | 'Medium' | 'Low';
   pendingVerificationCount: number;
+  communityCorroborationCount?: number;
   communityVerifiedLabel: string | null;
   specsVerifiedLabel: string | null;
   pricingCheckedLabel: string | null;
@@ -25,6 +26,7 @@ interface BuildToolPageChromeStateInputFromRouteContextInput {
   collectedSourcesTotal: BuildToolPageChromeStateInputFromRouteInput['collectedSourcesTotal'];
   trustConfidenceLabel: BuildToolPageChromeStateInputFromRouteInput['trustConfidenceLabel'];
   pendingVerificationCount: BuildToolPageChromeStateInputFromRouteInput['pendingVerificationCount'];
+  communityCorroborationCount: BuildToolPageChromeStateInputFromRouteInput['communityCorroborationCount'];
   communityVerifiedLabel: BuildToolPageChromeStateInputFromRouteInput['communityVerifiedLabel'];
   specsVerifiedLabel: BuildToolPageChromeStateInputFromRouteInput['specsVerifiedLabel'];
   pricingCheckedLabel: BuildToolPageChromeStateInputFromRouteInput['pricingCheckedLabel'];
@@ -48,6 +50,7 @@ export function buildToolPageChromeStateInputFromRoute(
     collectedSourcesTotal: input.collectedSourcesTotal,
     trustConfidenceLabel: input.trustConfidenceLabel,
     pendingVerificationCount: input.pendingVerificationCount,
+    communityCorroborationCount: input.communityCorroborationCount || 0,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,
@@ -70,6 +73,7 @@ export function buildToolPageChromeStateInputFromRouteContext(
     collectedSourcesTotal: input.collectedSourcesTotal,
     trustConfidenceLabel: input.trustConfidenceLabel,
     pendingVerificationCount: input.pendingVerificationCount,
+    communityCorroborationCount: input.communityCorroborationCount || 0,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,

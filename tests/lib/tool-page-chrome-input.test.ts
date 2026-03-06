@@ -13,6 +13,7 @@ describe('tool page chrome input', () => {
       collectedSourcesTotal: 14,
       trustConfidenceLabel: 'High',
       pendingVerificationCount: 2,
+      communityCorroborationCount: 4,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-04',
       pricingCheckedLabel: '2026-03-03',
@@ -32,6 +33,7 @@ describe('tool page chrome input', () => {
     expect(result.toolCategory?.slug).toBe('project-management');
     expect(result.trustConfidenceLabel).toBe('High');
     expect(result.pendingVerificationCount).toBe(2);
+    expect(result.communityCorroborationCount).toBe(4);
     expect(result.activeReviewLens).toBe('general');
   });
 
@@ -43,6 +45,7 @@ describe('tool page chrome input', () => {
       collectedSourcesTotal: 14,
       trustConfidenceLabel: 'High',
       pendingVerificationCount: 2,
+      communityCorroborationCount: 3,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-04',
       pricingCheckedLabel: '2026-03-03',
@@ -61,6 +64,7 @@ describe('tool page chrome input', () => {
 
     expect(result.website).toBe('https://example.com');
     expect(result.pendingVerificationCount).toBe(2);
+    expect(result.communityCorroborationCount).toBe(3);
     expect(result.activeReviewLens).toBe('general');
   });
 });

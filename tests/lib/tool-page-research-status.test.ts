@@ -8,12 +8,14 @@ describe('tool page research status view', () => {
       collectedSourcesTotal: 7,
       trustConfidenceLabel: 'high',
       pendingVerificationCount: 2,
+      communityCorroborationCount: 3,
       communityVerifiedLabel: null,
       specsVerifiedLabel: '3 days ago',
       pricingCheckedLabel: null,
     });
 
     expect(result.pendingConfirmationLabel).toContain('2 claims still pending');
+    expect(result.communityCorroborationLabel).toContain('3 corroborating community domains');
     expect(result.lastCheckedLabel).toBe('3 days ago');
   });
 
@@ -23,12 +25,14 @@ describe('tool page research status view', () => {
       collectedSourcesTotal: 3,
       trustConfidenceLabel: 'medium',
       pendingVerificationCount: 0,
+      communityCorroborationCount: 0,
       communityVerifiedLabel: null,
       specsVerifiedLabel: null,
       pricingCheckedLabel: null,
     });
 
     expect(result.pendingConfirmationLabel).toBeNull();
+    expect(result.communityCorroborationLabel).toBeNull();
     expect(result.lastCheckedLabel).toBe('unknown');
   });
 });

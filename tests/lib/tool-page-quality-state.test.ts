@@ -34,6 +34,9 @@ describe('tool page quality state', () => {
       persistedQuality: {
         should_index: false,
         noindex_reasons: ['missing_required_sections'],
+        evidence_counts: {
+          community_domains: 4,
+        },
         section_status: {
           verdict: 'procedural',
         },
@@ -45,5 +48,6 @@ describe('tool page quality state', () => {
     expect(result.hasProceduralGuidance).toBe(false);
     expect(result.isDraftPage).toBe(false);
     expect(result.safeDraftDescription).toContain('Acme is currently in editorial verification');
+    expect(result.communityCorroborationCount).toBe(4);
   });
 });

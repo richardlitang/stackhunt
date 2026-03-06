@@ -18,6 +18,7 @@ interface BuildToolPageChromeStateInput {
   collectedSourcesTotal: number;
   trustConfidenceLabel: 'High' | 'Medium' | 'Low';
   pendingVerificationCount: number;
+  communityCorroborationCount?: number;
   communityVerifiedLabel: string | null;
   specsVerifiedLabel: string | null;
   pricingCheckedLabel: string | null;
@@ -48,6 +49,7 @@ export function buildToolPageChromeState(input: BuildToolPageChromeStateInput): 
     collectedSourcesTotal: input.collectedSourcesTotal,
     trustConfidenceLabel: input.trustConfidenceLabel,
     pendingVerificationCount: input.pendingVerificationCount,
+    communityCorroborationCount: input.communityCorroborationCount || 0,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,

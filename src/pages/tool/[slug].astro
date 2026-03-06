@@ -296,6 +296,7 @@ const { lensViewFields, toolChromeState, alternativesPricingState, contentSectio
       evidenceRuntime,
       reviewSignalsView,
       evaluationDepth,
+      qualityState,
     },
     contentAlternatives: {
       activeReviewLens,
@@ -342,6 +343,8 @@ const decisionUtilityState = buildToolPageDecisionUtilityState({
   lensWeakFitLine,
   lensTradeoffLine,
   hardLimitText: topLensHardLimit?.text || null,
+  pricingEvidenceSourceUrl: pricingEvidenceLinks[0]?.sourceUrl || officialPricingSource?.url || null,
+  pricingEvidenceSummary: pricingEvidenceLinks[0]?.text || null,
 });
 const { showWorkflowFitSection } = buildToolPageWorkflowFitVisibility({
   categorySlug: tool.category?.slug || null,
@@ -605,6 +608,15 @@ applyToolPageRobotsHeader({
               researchStatusView.pendingConfirmationLabel && (
                 <p>
                   <span class="text-amber-300">{researchStatusView.pendingConfirmationLabel}</span>
+                </p>
+              )
+            }
+            {
+              researchStatusView.communityCorroborationLabel && (
+                <p>
+                  <span class="text-zinc-300">
+                    {researchStatusView.communityCorroborationLabel}
+                  </span>
                 </p>
               )
             }
