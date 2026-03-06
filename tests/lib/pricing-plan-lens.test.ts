@@ -2,6 +2,7 @@ import {
   derivePlanLensTags,
   enrichSmpPricingForLens,
   filterPlansForLens,
+  filterPlansForLensWithMeta,
   inferPlanTargetAudience,
 } from '@/lib/pricing/plan-lens';
 
@@ -61,5 +62,13 @@ describe('pricing plan lens tagging', () => {
       'Enterprise',
     ]);
     expect(filterPlansForLens(plans, 'startup').map((plan) => plan.name)).toEqual(['Team']);
+  });
+
+  it('returns fallback metadata when lens has no explicit plan match', () => {
+    const plans = [{ name: 'Free', target_audience: 'individual' as const }];
+    const matched = filterPlansForLensWithMeta(plans, 'enterprise');
+
+    expect(matched.usedFallback).toBe(true);
+    expect(matched.plans).toHaveLength(1);
   });
 });

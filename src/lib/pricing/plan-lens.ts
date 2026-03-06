@@ -84,8 +84,15 @@ export function filterPlansForLens<T extends LensScopedPlanLike>(
   plans: T[],
   activeReviewLens: PricingReviewLens
 ): T[] {
-  if (activeReviewLens === 'general') return plans;
+  return filterPlansForLensWithMeta(plans, activeReviewLens).plans;
+}
+
+export function filterPlansForLensWithMeta<T extends LensScopedPlanLike>(
+  plans: T[],
+  activeReviewLens: PricingReviewLens
+): { plans: T[]; usedFallback: boolean } {
+  if (activeReviewLens === 'general') return { plans, usedFallback: false };
   const lensKey = activeReviewLens;
   const matched = plans.filter((plan) => derivePlanLensTags(plan).includes(lensKey));
-  return matched.length > 0 ? matched : plans;
+  return matched.length > 0 ? { plans: matched, usedFallback: false } : { plans, usedFallback: true };
 }
