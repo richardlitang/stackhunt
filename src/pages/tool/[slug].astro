@@ -239,6 +239,10 @@ const userSignalSummary =
         editorial_cons?: number;
         editorial_pros?: number;
         corroborating_community_domains?: number;
+        community_domains?: string[];
+        reddit_claims?: number;
+        forum_claims?: number;
+        hn_claims?: number;
       })
     : null;
 const toolMeta = generateToolMeta(tool, tool.review_count);
@@ -1179,6 +1183,30 @@ applyToolPageRobotsHeader({
                         Community-backed signals in this section:{' '}
                         {userSignalSummary.community_pros || 0} pros,{' '}
                         {userSignalSummary.community_cons || 0} cons.
+                      </p>
+                    )}
+                  {userSignalSummary &&
+                    ((userSignalSummary.reddit_claims || 0) +
+                      (userSignalSummary.forum_claims || 0) +
+                      (userSignalSummary.hn_claims || 0) >
+                      0 ||
+                      (userSignalSummary.community_domains || []).length > 0) && (
+                      <p class="mt-1 text-xs text-zinc-500">
+                        User-voice mix:{' '}
+                        {[
+                          userSignalSummary.reddit_claims
+                            ? `${userSignalSummary.reddit_claims} Reddit`
+                            : null,
+                          userSignalSummary.forum_claims
+                            ? `${userSignalSummary.forum_claims} forum`
+                            : null,
+                          userSignalSummary.hn_claims ? `${userSignalSummary.hn_claims} HN` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(', ') || 'community sources'}
+                        {(userSignalSummary.community_domains || []).length > 0
+                          ? ` across ${(userSignalSummary.community_domains || []).length} domains.`
+                          : '.'}
                       </p>
                     )}
                 </div>

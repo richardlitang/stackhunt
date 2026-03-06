@@ -562,6 +562,10 @@ export interface ToolSpecs {
     editorial_pros: number;
     editorial_cons: number;
     corroborating_community_domains: number;
+    community_domains: string[];
+    reddit_claims: number;
+    forum_claims: number;
+    hn_claims: number;
     top_user_reported_signals: string[];
   };
 

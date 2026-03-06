@@ -22,7 +22,11 @@ import { normalizeCategory } from '../../config/taxonomy';
 import { ensureParentSuite } from '../utils/suite-manager';
 import { updateNormalizedPricing } from '../../pricing/persist';
 import { mapSmpPricingToV2 } from '../../pricing';
-import { enrichSmpPricingForLens } from '@/lib/pricing/plan-lens';
+import {
+  derivePlanLensTags,
+  enrichSmpPricingForLens,
+  inferPlanTargetAudience,
+} from '@/lib/pricing/plan-lens';
 import { persistItemFactPack } from '../fact-pack';
 import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
@@ -886,21 +890,26 @@ function buildCanonicalPricingPlans(pricingData: any): {
   const currency: string | null =
     typeof pricingData?.currency === 'string' ? pricingData.currency : null;
 
-  const entities = plans.map((plan: any) => ({
-    plan_id: String(plan?.id || slugify(String(plan?.name || 'plan'))),
-    plan_name: String(plan?.name || 'Unknown'),
-    audience: typeof plan?.target_audience === 'string' ? plan.target_audience : null,
-    works_for_lenses: Array.isArray(plan?.works_for_lenses)
+  const entities = plans.map((plan: any) => {
+    const explicitLensTags = Array.isArray(plan?.works_for_lenses)
       ? plan.works_for_lenses.filter(
           (value: unknown) => value === 'personal' || value === 'startup' || value === 'enterprise'
         )
-      : null,
-    seat_type: typeof plan?.scaling_unit === 'string' ? plan.scaling_unit : null,
-    price_monthly: typeof plan?.price_monthly === 'number' ? plan.price_monthly : null,
-    price_annual: typeof plan?.price_annual === 'number' ? plan.price_annual : null,
-    source_url: sourceUrl,
-    currency,
-  }));
+      : [];
+    const inferredAudience = inferPlanTargetAudience(plan);
+    return {
+      plan_id: String(plan?.id || slugify(String(plan?.name || 'plan'))),
+      plan_name: String(plan?.name || 'Unknown'),
+      audience:
+        typeof plan?.target_audience === 'string' ? plan.target_audience : inferredAudience || null,
+      works_for_lenses: explicitLensTags.length > 0 ? explicitLensTags : derivePlanLensTags(plan),
+      seat_type: typeof plan?.scaling_unit === 'string' ? plan.scaling_unit : null,
+      price_monthly: typeof plan?.price_monthly === 'number' ? plan.price_monthly : null,
+      price_annual: typeof plan?.price_annual === 'number' ? plan.price_annual : null,
+      source_url: sourceUrl,
+      currency,
+    };
+  });
 
   const byCanonicalPlan = new Map<
     string,
@@ -2709,9 +2718,27 @@ async function updatePricingOnly(
 
   if (knowledgeCard?.smp_pricing) {
     const mappedPricingV2 = mapSmpPricingToV2(toolSlug, knowledgeCard.smp_pricing);
+    const pricingCanonical = buildCanonicalPricingPlans(knowledgeCard.smp_pricing);
+    const currentCanonical =
+      specs.canonical && typeof specs.canonical === 'object'
+        ? (specs.canonical as Record<string, unknown>)
+        : {};
+    const currentQuality =
+      currentCanonical.quality && typeof currentCanonical.quality === 'object'
+        ? (currentCanonical.quality as Record<string, unknown>)
+        : {};
     specs = mergeDefined(specs, {
       pricing_data: knowledgeCard.smp_pricing,
       pricing_v2: mappedPricingV2,
+      canonical: {
+        ...currentCanonical,
+        pricing_plan_entities: pricingCanonical.entities,
+        quality: {
+          ...currentQuality,
+          pricing_conflicts_count: pricingCanonical.conflicts.length,
+          pricing_conflicts: pricingCanonical.conflicts,
+        },
+      },
     });
   }
 
@@ -2876,6 +2903,24 @@ async function persistResearchOnly(
   if (knowledgeCard?.smp_pricing) {
     specs.pricing_data = knowledgeCard.smp_pricing;
     specs.pricing_v2 = mapSmpPricingToV2(toolSlug, knowledgeCard.smp_pricing) ?? undefined;
+    const pricingCanonical = buildCanonicalPricingPlans(knowledgeCard.smp_pricing);
+    const currentCanonical =
+      specs.canonical && typeof specs.canonical === 'object'
+        ? (specs.canonical as Record<string, unknown>)
+        : {};
+    const currentQuality =
+      currentCanonical.quality && typeof currentCanonical.quality === 'object'
+        ? (currentCanonical.quality as Record<string, unknown>)
+        : {};
+    specs.canonical = {
+      ...currentCanonical,
+      pricing_plan_entities: pricingCanonical.entities,
+      quality: {
+        ...currentQuality,
+        pricing_conflicts_count: pricingCanonical.conflicts.length,
+        pricing_conflicts: pricingCanonical.conflicts,
+      },
+    };
   }
 
   // Add taxonomy data if extracted
@@ -3738,6 +3783,10 @@ function buildUserSignalSummary(
   editorial_pros: number;
   editorial_cons: number;
   corroborating_community_domains: number;
+  community_domains: string[];
+  reddit_claims: number;
+  forum_claims: number;
+  hn_claims: number;
   top_user_reported_signals: string[];
 } | null {
   const all = [
@@ -3749,13 +3798,40 @@ function buildUserSignalSummary(
   if (community.length === 0 && editorial.length === 0) return null;
 
   const communityDomains = new Set<string>();
-  for (const claim of community) {
+  const normalizeDomain = (url: string): string | null => {
     try {
-      const hostname = new URL(claim.source_url).hostname.replace(/^www\./i, '').toLowerCase();
-      if (hostname) communityDomains.add(hostname);
+      const hostname = new URL(url).hostname.replace(/^www\./i, '').toLowerCase();
+      return hostname || null;
     } catch {
-      // Ignore invalid URLs, claims are already source-validated elsewhere.
+      return null;
     }
+  };
+
+  const inferCommunityBucket = (domain: string | null): 'reddit' | 'forum' | 'hn' | 'other' => {
+    if (!domain) return 'other';
+    if (domain === 'reddit.com' || domain.endsWith('.reddit.com')) return 'reddit';
+    if (domain === 'news.ycombinator.com' || domain === 'ycombinator.com') return 'hn';
+    if (
+      domain.includes('forum') ||
+      domain.includes('community') ||
+      domain.includes('discourse') ||
+      domain.endsWith('.stackexchange.com')
+    ) {
+      return 'forum';
+    }
+    return 'other';
+  };
+
+  let redditClaims = 0;
+  let forumClaims = 0;
+  let hnClaims = 0;
+  for (const claim of community) {
+    const domain = normalizeDomain(claim.source_url);
+    if (domain) communityDomains.add(domain);
+    const bucket = inferCommunityBucket(domain);
+    if (bucket === 'reddit') redditClaims += 1;
+    if (bucket === 'forum') forumClaims += 1;
+    if (bucket === 'hn') hnClaims += 1;
   }
 
   const candidateSignals = [...community, ...editorial]
@@ -3779,6 +3855,10 @@ function buildUserSignalSummary(
     editorial_pros: editorial.filter((claim) => claim.kind === 'pro').length,
     editorial_cons: editorial.filter((claim) => claim.kind === 'con').length,
     corroborating_community_domains: communityDomains.size,
+    community_domains: Array.from(communityDomains).sort().slice(0, 8),
+    reddit_claims: redditClaims,
+    forum_claims: forumClaims,
+    hn_claims: hnClaims,
     top_user_reported_signals: uniqueSignals,
   };
 }
