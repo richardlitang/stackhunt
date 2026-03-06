@@ -1342,13 +1342,12 @@ applyToolPageRobotsHeader({
                       {communityConsCount || 0} cons.
                     </p>
                   )}
-                  {(communityProsCount || 0) + (communityConsCount || 0) === 0 &&
-                    qualityState.communityCorroborationCount > 0 && (
-                      <p class="mt-1 text-xs text-amber-300">
-                        Community sources were found, but not enough source-backed user claims were
-                        extracted yet.
-                      </p>
-                    )}
+                  {qualityState.userSignalCoveragePending && (
+                    <p class="mt-1 text-xs text-amber-300">
+                      Community sources were found, but not enough source-backed user claims were
+                      extracted yet.
+                    </p>
+                  )}
                   {userSignalSummary &&
                     ((userSignalSummary.reddit_claims || 0) +
                       (userSignalSummary.forum_claims || 0) +

@@ -38,6 +38,8 @@ export interface ToolPageQualityState {
   safeDraftDescription: string;
   showReviewInProgressBanner: boolean;
   communityCorroborationCount: number;
+  userSignalClaimsCount: number;
+  userSignalCoveragePending: boolean;
 }
 
 export function buildToolPageQualityState(
@@ -96,6 +98,30 @@ export function buildToolPageQualityState(
         0
     ) || 0
   );
+  const userSignalSummary =
+    input.tool?.specs && typeof input.tool.specs === 'object'
+      ? ((input.tool.specs as Record<string, unknown>).user_signal_summary as
+          | {
+              top_user_reported_claims?: unknown[];
+            }
+          | undefined)
+      : undefined;
+  const explicitUserPros =
+    input.tool?.specs && typeof input.tool.specs === 'object'
+      ? (input.tool.specs as Record<string, unknown>).user_reported_pros
+      : undefined;
+  const explicitUserCons =
+    input.tool?.specs && typeof input.tool.specs === 'object'
+      ? (input.tool.specs as Record<string, unknown>).user_reported_cons
+      : undefined;
+  const explicitUserClaimsCount =
+    (Array.isArray(explicitUserPros) ? explicitUserPros.length : 0) +
+    (Array.isArray(explicitUserCons) ? explicitUserCons.length : 0);
+  const summarizedUserClaimsCount = Array.isArray(userSignalSummary?.top_user_reported_claims)
+    ? userSignalSummary.top_user_reported_claims.length
+    : 0;
+  const userSignalClaimsCount = Math.max(explicitUserClaimsCount, summarizedUserClaimsCount);
+  const userSignalCoveragePending = communityCorroborationCount > 0 && userSignalClaimsCount === 0;
 
   return {
     contentConfidenceLevel,
@@ -108,5 +134,7 @@ export function buildToolPageQualityState(
     safeDraftDescription,
     showReviewInProgressBanner: reviewProgress.showReviewInProgressBanner,
     communityCorroborationCount,
+    userSignalClaimsCount,
+    userSignalCoveragePending,
   };
 }

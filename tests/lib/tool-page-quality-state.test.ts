@@ -8,7 +8,10 @@ describe('tool page quality state', () => {
       short_description:
         'Acme helps teams automate workflows with clear controls and auditability.',
       metadata: { features: { core: ['Automation'] } },
-      specs: {},
+      specs: {
+        user_reported_pros: [{ text: 'Users report fast setup' }],
+        user_reported_cons: [{ text: 'Users report some onboarding friction' }],
+      },
       learning_curve: 'hours',
       avg_score: 80,
       review_count: 2,
@@ -50,5 +53,38 @@ describe('tool page quality state', () => {
     expect(result.isDraftPage).toBe(false);
     expect(result.safeDraftDescription).toContain('Acme is currently in editorial verification');
     expect(result.communityCorroborationCount).toBe(4);
+    expect(result.userSignalClaimsCount).toBe(2);
+    expect(result.userSignalCoveragePending).toBe(false);
+  });
+
+  it('flags pending user-signal coverage when community domains exist but claims are absent', () => {
+    const tool = {
+      name: 'Acme',
+      short_description: 'Acme helps teams automate workflows.',
+      metadata: {},
+      specs: {
+        user_signal_summary: {
+          top_user_reported_claims: [],
+        },
+      },
+    } as any;
+
+    const result = buildToolPageQualityState({
+      tool,
+      firstReview: null,
+      reviewSelection: {
+        hasPublishedReview: false,
+        hasDraftReview: true,
+      },
+      persistedQuality: {
+        evidence_counts: {
+          community_domains: 3,
+        },
+      },
+    });
+
+    expect(result.communityCorroborationCount).toBe(3);
+    expect(result.userSignalClaimsCount).toBe(0);
+    expect(result.userSignalCoveragePending).toBe(true);
   });
 });
