@@ -263,6 +263,7 @@ Examples:
   - "Audit logs: $100/user/mo"
 
 trigger: Describe when the cost kicks in (e.g., "When enabling SSO", "After 100GB storage")
+- hidden_costs[].works_for_lenses (optional): add ["personal" | "startup" | "enterprise"] only when source text explicitly maps the cost to that segment
 
 EVIDENCE REQUIREMENTS (CRITICAL):
 - Extract constraints only if you can cite evidence (source_url preferred)

@@ -262,6 +262,10 @@ export const HiddenCostSchema = z.object({
   cost: z.number().nullable().optional(),
   currency: z.string().default('USD'),
   trigger: z.string(), // When does this cost apply?
+  works_for_lenses: z
+    .array(z.enum(['personal', 'startup', 'enterprise']))
+    .optional()
+    .describe('Lens tags used to prioritize this hidden cost in lens-specific summaries'),
 });
 export type HiddenCost = z.infer<typeof HiddenCostSchema>;
 
