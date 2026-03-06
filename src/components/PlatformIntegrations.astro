@@ -6,6 +6,8 @@
  */
 
 import type { PlatformAvailability, KnowledgeCard } from '@/lib/knowledge-card';
+import { rankIntegrationsForLens } from '@/lib/tool-page/integrations-lens';
+import type { ReviewLens } from '@/lib/tool-page/view-model';
 import CheckIcon from '@/components/icons/Check.astro';
 
 interface Props {
@@ -13,9 +15,13 @@ interface Props {
   integrations: KnowledgeCard['integrations'];
   toolName: string;
   sectionId?: string;
+  activeReviewLens?: ReviewLens;
 }
 
-const { platforms, integrations, toolName, sectionId } = Astro.props;
+const { platforms, integrations, toolName, sectionId, activeReviewLens = 'general' } = Astro.props;
+const notableIntegrations = Array.isArray(integrations?.notable)
+  ? rankIntegrationsForLens(integrations.notable, activeReviewLens)
+  : [];
 
 // Check if we have any data to display
 const hasData =
@@ -108,9 +114,9 @@ const directionIcons = {
         )}
 
         {/* Notable integrations */}
-        {integrations.notable && integrations.notable.length > 0 && (
+        {notableIntegrations.length > 0 && (
           <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {integrations.notable.map(({ name, type, direction }) => {
+            {notableIntegrations.map(({ name, type, direction }) => {
               // Generate slug from integration name (lowercase, replace spaces with dashes)
               const slug = name
                 .toLowerCase()
