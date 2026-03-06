@@ -32,6 +32,9 @@ export function buildToolPageResearchStatusView(
         ? `${input.communityCorroborationCount} corroborating community domains`
         : null,
     lastCheckedLabel:
-      input.communityVerifiedLabel || input.specsVerifiedLabel || input.pricingCheckedLabel || 'unknown',
+      input.communityVerifiedLabel ||
+      input.specsVerifiedLabel ||
+      input.pricingCheckedLabel ||
+      'unknown',
   };
 }

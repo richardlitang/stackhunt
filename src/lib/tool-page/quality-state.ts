@@ -40,10 +40,18 @@ export interface ToolPageQualityState {
   communityCorroborationCount: number;
 }
 
-export function buildToolPageQualityState(input: BuildToolPageQualityStateInput): ToolPageQualityState {
-  const confidence = evaluateContentConfidence(input.tool, input.firstReview as Review | null | undefined);
+export function buildToolPageQualityState(
+  input: BuildToolPageQualityStateInput
+): ToolPageQualityState {
+  const confidence = evaluateContentConfidence(
+    input.tool,
+    input.firstReview as Review | null | undefined
+  );
   const contentConfidenceLevelRaw = getConfidenceLevel(confidence.score);
-  const indexReadiness = evaluateIndexReadiness(input.tool, input.firstReview as Review | null | undefined);
+  const indexReadiness = evaluateIndexReadiness(
+    input.tool,
+    input.firstReview as Review | null | undefined
+  );
 
   const sectionPublishability = {
     ...indexReadiness.signals.section_publishability,
@@ -59,21 +67,22 @@ export function buildToolPageQualityState(input: BuildToolPageQualityStateInput)
     sectionStatus.community === 'procedural' ||
     sectionStatus.specs === 'procedural';
 
-  const isDraftPage = !input.reviewSelection.hasPublishedReview && input.reviewSelection.hasDraftReview;
+  const isDraftPage =
+    !input.reviewSelection.hasPublishedReview && input.reviewSelection.hasDraftReview;
   const gateShouldIndex =
     typeof input.persistedQuality?.should_index === 'boolean'
       ? input.persistedQuality.should_index
       : indexReadiness.shouldIndex;
   const gateReasons =
-    Array.isArray(input.persistedQuality?.noindex_reasons) && input.persistedQuality.noindex_reasons.length > 0
+    Array.isArray(input.persistedQuality?.noindex_reasons) &&
+    input.persistedQuality.noindex_reasons.length > 0
       ? input.persistedQuality.noindex_reasons
       : indexReadiness.reasons;
   const gateBlocksFoundations =
     gateReasons.includes('missing_required_sections') || gateReasons.includes('mvup_incomplete');
   const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
   const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
-  const safeDraftDescription =
-    `${input.tool.name} is currently in editorial verification. This page is not finalized yet.`;
+  const safeDraftDescription = `${input.tool.name} is currently in editorial verification. This page is not finalized yet.`;
   const reviewProgress = deriveToolPageReviewProgress({
     tool: input.tool,
     firstReview: input.firstReview,

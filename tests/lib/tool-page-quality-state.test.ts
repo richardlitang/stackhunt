@@ -5,7 +5,8 @@ describe('tool page quality state', () => {
   it('merges persisted quality overrides and computes draft/index flags', () => {
     const tool = {
       name: 'Acme',
-      short_description: 'Acme helps teams automate workflows with clear controls and auditability.',
+      short_description:
+        'Acme helps teams automate workflows with clear controls and auditability.',
       metadata: { features: { core: ['Automation'] } },
       specs: {},
       learning_curve: 'hours',

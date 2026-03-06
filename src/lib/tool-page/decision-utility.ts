@@ -140,7 +140,9 @@ export function buildToolPageDecisionUtilityState(
       : []),
     ...basePricingMentalModelItems.map((text) => ({
       text,
-      status: input.pricingEvidenceSourceUrl ? ('Source-backed' as const) : ('Needs confirmation' as const),
+      status: input.pricingEvidenceSourceUrl
+        ? ('Source-backed' as const)
+        : ('Needs confirmation' as const),
       ...(input.pricingEvidenceSourceUrl ? { evidenceHref: '#pricing' } : {}),
     })),
   ];
