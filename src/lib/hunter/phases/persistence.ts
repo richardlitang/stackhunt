@@ -1956,6 +1956,25 @@ export async function executePersistencePhase(
   const userSignalSummary = buildUserSignalSummary(normalizedPros, validCons);
   if (userSignalSummary) {
     specs.user_signal_summary = userSignalSummary;
+    const userSignalCoveragePending =
+      userSignalSummary.corroborating_community_domains > 0 &&
+      userSignalSummary.top_user_reported_claims.length === 0;
+    specs.canonical = {
+      ...(specs.canonical || {}),
+      quality: {
+        ...((specs.canonical as any)?.quality || {}),
+        user_signal_coverage_pending: userSignalCoveragePending,
+        ...(userSignalCoveragePending
+          ? {
+              user_signal_coverage_reason:
+                'Community domains were found but no source-backed user-reported claims were extracted yet.',
+            }
+          : {}),
+      },
+    };
+    if (userSignalCoveragePending) {
+      deps.log('[User Signal] Coverage pending: community domains found but no user-reported claims');
+    }
   }
 
   // Prefer curated FAQs from analysis if present

@@ -416,6 +416,8 @@ export interface ToolCanonicalFacts {
       startup?: number;
       enterprise?: number;
     };
+    user_signal_coverage_pending?: boolean;
+    user_signal_coverage_reason?: string;
   };
   faq_locked?: Array<{
     question: string;
