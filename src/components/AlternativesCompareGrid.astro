@@ -1,85 +1,16 @@
 ---
 import {
-  labelAlternativeEvidenceLevelForGrid,
-  resolveAlternativeEvidenceLevel,
-} from '@/lib/tool-page/alternative-evidence';
-import { buildAlternativeRationaleSourceLabel } from '@/lib/tool-page/alternative-rationale';
-
-interface ToolCompareLike {
-  name: string;
-  slug?: string;
-  pricing_type?: string | null;
-  learning_curve?: string | null;
-  curatedVerdict?: string | null;
-  computedDiff?: {
-    priceDiff?: string;
-    learningDiff?: string;
-    featureDiff?: string;
-  } | null;
-}
+  resolveToolCompareGridValue,
+  TOOL_COMPARE_GRID_ROWS,
+  type ToolCompareGridLike,
+} from '@/lib/tool-page/alternatives-compare-grid';
 
 interface Props {
-  main: ToolCompareLike;
-  alternatives: ToolCompareLike[];
+  main: ToolCompareGridLike;
+  alternatives: ToolCompareGridLike[];
 }
 
 const { main, alternatives } = Astro.props as Props;
-const rows = [
-  'Setup time',
-  'Seat complexity',
-  'Customization depth',
-  'Integration approach',
-  'Best for',
-  'Evidence level',
-  'Rationale source',
-] as const;
-
-function normalizePricingType(type?: string | null): string {
-  const value = (type || '').toLowerCase();
-  if (!value) return 'Unknown';
-  if (value.includes('free')) return 'Lower seat friction';
-  if (value.includes('enterprise')) return 'Procurement-heavy';
-  if (value.includes('tier')) return 'Tier and seat dependent';
-  if (value.includes('usage')) return 'Usage-sensitive';
-  return 'Plan dependent';
-}
-
-function normalizeSetup(curve?: string | null): string {
-  const value = (curve || '').toLowerCase();
-  if (value.includes('easy') || value.includes('low')) return 'Faster';
-  if (value.includes('steep') || value.includes('high')) return 'Heavier';
-  return 'Medium';
-}
-
-function getValue(row: (typeof rows)[number], tool: ToolCompareLike): string {
-  switch (row) {
-    case 'Setup time':
-      return normalizeSetup(tool.learning_curve);
-    case 'Seat complexity':
-      return normalizePricingType(tool.pricing_type);
-    case 'Customization depth':
-      if (tool.curatedVerdict) return 'Comparison brief available';
-      if (tool.computedDiff?.featureDiff) return 'Model signal only, verify in docs';
-      return 'Not explicit in linked sources';
-    case 'Integration approach':
-      if (tool.computedDiff?.featureDiff) return tool.computedDiff.featureDiff;
-      return 'Not explicit in linked sources';
-    case 'Best for':
-      if (tool.curatedVerdict) return 'Teams matching the comparison brief assumptions';
-      return 'Requires team-specific validation';
-    case 'Evidence level': {
-      const level = resolveAlternativeEvidenceLevel({
-        curatedVerdict: tool.curatedVerdict,
-        computedDiff: tool.computedDiff,
-      });
-      return labelAlternativeEvidenceLevelForGrid(level);
-    }
-    case 'Rationale source':
-      return buildAlternativeRationaleSourceLabel(tool.curatedVerdict);
-    default:
-      return 'Unknown';
-  }
-}
 ---
 
 {
@@ -99,12 +30,12 @@ function getValue(row: (typeof rows)[number], tool: ToolCompareLike): string {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {TOOL_COMPARE_GRID_ROWS.map((row) => (
             <tr class="border-b border-zinc-900/80 last:border-b-0">
               <td class="px-2 py-2 text-zinc-400">{row}</td>
-              <td class="px-2 py-2">{getValue(row, main)}</td>
+              <td class="px-2 py-2">{resolveToolCompareGridValue(row, main)}</td>
               {alternatives.slice(0, 2).map((alt) => {
-                const value = getValue(row, alt);
+                const value = resolveToolCompareGridValue(row, alt);
                 const hasCompareLink =
                   row === 'Rationale source' &&
                   value === 'Comparison brief' &&
@@ -131,6 +62,10 @@ function getValue(row: (typeof rows)[number], tool: ToolCompareLike): string {
           ))}
         </tbody>
       </table>
+      <p class="mt-2 text-[11px] text-zinc-500">
+        Rows labeled needs confirmation or heuristic should be verified in product docs or a live
+        demo.
+      </p>
     </div>
   )
 }
