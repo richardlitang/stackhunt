@@ -1940,7 +1940,9 @@ export async function executePersistencePhase(
         source_url: claim.source_url,
         source_type: claim.source_type,
         claim_type: claim.claim_type,
-        ...(claim.claim_confidence_tier ? { claim_confidence_tier: claim.claim_confidence_tier } : {}),
+        ...(claim.claim_confidence_tier
+          ? { claim_confidence_tier: claim.claim_confidence_tier }
+          : {}),
         ...(claim.retrieved_at ? { retrieved_at: claim.retrieved_at } : {}),
       }));
   specs.user_reported_pros = toUserReportedClaims(

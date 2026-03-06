@@ -459,12 +459,7 @@ export function validateAnalysis(analysis: {
     analysis.reviewContext?.decisionIntro || analysis.reviewContext?.decision_intro || null;
   const decisionEvidence =
     analysis.reviewContext?.decisionEvidence || analysis.reviewContext?.decision_evidence || null;
-  const decisionFields = [
-    'what_it_is',
-    'best_for',
-    'not_for',
-    'main_tradeoff',
-  ] as const;
+  const decisionFields = ['what_it_is', 'best_for', 'not_for', 'main_tradeoff'] as const;
   let decisionIntroBlockingIssues = 0;
   let decisionIntroWarnings = 0;
   let decisionIntroQualityPasses = 0;

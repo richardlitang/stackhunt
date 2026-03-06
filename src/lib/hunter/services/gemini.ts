@@ -84,10 +84,7 @@ export class GeminiService {
     this.client = new GoogleGenAI({ apiKey: config.apiKey });
   }
 
-  private parseThinkingLevel(
-    rawValue: string | undefined,
-    fallback: ThinkingLevel
-  ): ThinkingLevel {
+  private parseThinkingLevel(rawValue: string | undefined, fallback: ThinkingLevel): ThinkingLevel {
     const normalized = (rawValue || '').trim().toUpperCase();
     if (normalized === 'LOW') return ThinkingLevel.LOW;
     if (normalized === 'MEDIUM') return ThinkingLevel.MEDIUM;
@@ -857,7 +854,8 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       ThinkingLevel.MEDIUM
     );
     const timeoutFallbackModel =
-      process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_FALLBACK_MODEL || getGeminiModelForTier('FAST_CHEAP');
+      process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_FALLBACK_MODEL ||
+      getGeminiModelForTier('FAST_CHEAP');
     const timeoutFallbackThinkingLevel = this.parseThinkingLevel(
       process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_FALLBACK_THINKING_LEVEL,
       ThinkingLevel.LOW
@@ -897,7 +895,11 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       ) {
         return true;
       }
-      if (/\b(api|sso|sla|gdpr|soc ?2|hipaa|oauth|export|import|linux|windows|ios|android)\b/.test(normalized)) {
+      if (
+        /\b(api|sso|sla|gdpr|soc ?2|hipaa|oauth|export|import|linux|windows|ios|android)\b/.test(
+          normalized
+        )
+      ) {
         return true;
       }
       return false;
@@ -972,9 +974,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       const numericRatio = claimTexts.filter((text) => hasNumericSignal(text)).length / totalClaims;
       const constraintRatio =
         claimTexts.filter((text) => CONSTRAINT_SIGNAL_REGEX.test(text)).length / totalClaims;
-      const diversityScore = options.distinctDomains
-        ? Math.min(options.distinctDomains, 4) / 4
-        : 0;
+      const diversityScore = options.distinctDomains ? Math.min(options.distinctDomains, 4) / 4 : 0;
       const rawScore =
         numericRatio * 35 +
         constraintRatio * 25 +
@@ -989,26 +989,26 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       /\b(if|when|unless|team|teams|startup|enterprise|small business|solo|agency|developer|marketer|ops|compliance|budget|rollout|migration|switch)\b/i;
     const CONSEQUENCE_SIGNAL_REGEX =
       /\b(blocker|risk|trade[- ]?off|means|impact|forces|requires|cannot|can't|only on|tier|plan|overage|limit)\b/i;
-    const computeReaderUtilityScore = (
-      options: {
-        claimTexts: string[];
-        decisionIntro?: {
-          best_for?: string | null;
-          not_for?: string | null;
-          main_tradeoff?: string | null;
-          summary?: string | null;
-        } | null;
-        userAdvocate?: {
-          avoidIf?: string[];
-          frustrations?: string[];
-          idealFor?: string[];
-        } | null;
-        vetoCount: number;
-        realityCheckCount: number;
-        abstainedCount: number;
-      }
-    ): number => {
-      const claimTexts = options.claimTexts.filter((text) => typeof text === 'string' && text.trim().length > 0);
+    const computeReaderUtilityScore = (options: {
+      claimTexts: string[];
+      decisionIntro?: {
+        best_for?: string | null;
+        not_for?: string | null;
+        main_tradeoff?: string | null;
+        summary?: string | null;
+      } | null;
+      userAdvocate?: {
+        avoidIf?: string[];
+        frustrations?: string[];
+        idealFor?: string[];
+      } | null;
+      vetoCount: number;
+      realityCheckCount: number;
+      abstainedCount: number;
+    }): number => {
+      const claimTexts = options.claimTexts.filter(
+        (text) => typeof text === 'string' && text.trim().length > 0
+      );
       const totalClaims = Math.max(1, claimTexts.length);
       const scenarioRatio =
         claimTexts.filter((text) => SCENARIO_SIGNAL_REGEX.test(text)).length / totalClaims;
@@ -1016,13 +1016,13 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         claimTexts.filter((text) => CONSEQUENCE_SIGNAL_REGEX.test(text)).length / totalClaims;
       const hasDecisionIntro = Boolean(
         options.decisionIntro?.best_for &&
-          options.decisionIntro?.not_for &&
-          options.decisionIntro?.main_tradeoff
+        options.decisionIntro?.not_for &&
+        options.decisionIntro?.main_tradeoff
       );
       const hasUserAdvocateSignals = Boolean(
         (options.userAdvocate?.avoidIf?.length || 0) > 0 ||
-          (options.userAdvocate?.frustrations?.length || 0) > 0 ||
-          (options.userAdvocate?.idealFor?.length || 0) > 0
+        (options.userAdvocate?.frustrations?.length || 0) > 0 ||
+        (options.userAdvocate?.idealFor?.length || 0) > 0
       );
       const rawScore =
         scenarioRatio * 30 +
@@ -1049,9 +1049,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       source_type?: 'official' | 'editorial' | 'community';
       claim_type?: 'fact' | 'opinion';
     };
-    const extractClaimEvidence = (
-      claims: unknown
-    ): ClaimEvidence[] => {
+    const extractClaimEvidence = (claims: unknown): ClaimEvidence[] => {
       if (!Array.isArray(claims)) return [];
       return claims
         .map((claim) => {
@@ -1182,7 +1180,8 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         {
           claim: 'Vendor messaging emphasizes broad capability across common workflows.',
           reality: hedgedReality,
-          impact: 'Teams with strict requirements should validate this area during trial before rollout.',
+          impact:
+            'Teams with strict requirements should validate this area during trial before rollout.',
           source_url: evidence.source_url,
         },
       ];
@@ -1280,9 +1279,7 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       };
     };
 
-    const buildEvidenceContradictionGuardrails = (
-      packet: EvidencePacket | null
-    ): string => {
+    const buildEvidenceContradictionGuardrails = (packet: EvidencePacket | null): string => {
       if (!packet) return '';
       const allClaims = [...packet.pros, ...packet.cons];
       if (allClaims.length === 0) return '';
@@ -1295,11 +1292,11 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       );
       const hasFreeTier = texts.some(
         (text) =>
-          /\bfree tier\b/.test(text) ||
-          /\bfree plan\b/.test(text) ||
-          /\bfree forever\b/.test(text)
+          /\bfree tier\b/.test(text) || /\bfree plan\b/.test(text) || /\bfree forever\b/.test(text)
       );
-      const hasAnyTeamSize = texts.some((text) => /\b(any team size|everyone|all teams)\b/.test(text));
+      const hasAnyTeamSize = texts.some((text) =>
+        /\b(any team size|everyone|all teams)\b/.test(text)
+      );
       const hasNarrowGate = texts.some((text) =>
         /\b(enterprise|minimum seats?|only on (?:pro|business|enterprise)|higher tier)\b/.test(text)
       );
@@ -1315,7 +1312,10 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       return `CONTRADICTION_GUARDRAILS:\n${contradictions.map((item) => `- ${item}`).join('\n')}\nUse scoped phrasing and avoid asserting both sides.`;
     };
 
-    const validateEvidenceClaimArray = (claims: unknown, label: 'pros' | 'cons'): EvidenceClaim[] => {
+    const validateEvidenceClaimArray = (
+      claims: unknown,
+      label: 'pros' | 'cons'
+    ): EvidenceClaim[] => {
       if (!Array.isArray(claims)) {
         throw new Error(`Evidence packet invalid: ${label} must be an array`);
       }
@@ -1336,7 +1336,9 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
           c.source_type !== 'editorial' &&
           c.source_type !== 'community'
         ) {
-          throw new Error(`Evidence packet invalid: ${label}.source_type must be official/editorial/community`);
+          throw new Error(
+            `Evidence packet invalid: ${label}.source_type must be official/editorial/community`
+          );
         }
         if (c.claim_type !== 'fact' && c.claim_type !== 'opinion') {
           throw new Error(`Evidence packet invalid: ${label}.claim_type must be fact/opinion`);
@@ -1366,7 +1368,9 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
                     ? 0.58
                     : 0.5;
         const confidence =
-          typeof c.confidence === 'number' && Number.isFinite(c.confidence) ? c.confidence : fallbackConfidence;
+          typeof c.confidence === 'number' && Number.isFinite(c.confidence)
+            ? c.confidence
+            : fallbackConfidence;
         if (confidence < 0 || confidence > 1) {
           throw new Error(`Evidence packet invalid: ${label}.confidence must be between 0 and 1`);
         }
@@ -1426,8 +1430,11 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         : [];
       const graphTags = packet.graphTags as Record<string, unknown>;
       const validateStringArray = (value: unknown, field: string) => {
-        if (!Array.isArray(value)) throw new Error(`Evidence packet invalid: graphTags.${field} must be array`);
-        return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+        if (!Array.isArray(value))
+          throw new Error(`Evidence packet invalid: graphTags.${field} must be array`);
+        return value.filter(
+          (entry): entry is string => typeof entry === 'string' && entry.trim().length > 0
+        );
       };
       const prosClaims = validateEvidenceClaimArray(packet.pros, 'pros');
       const consClaims = validateEvidenceClaimArray(packet.cons, 'cons');
@@ -1444,7 +1451,9 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
           const hostname = new URL(claim.source_url).hostname.toLowerCase().replace(/^www\./, '');
           domainCount.set(hostname, (domainCount.get(hostname) || 0) + 1);
         } catch {
-          throw new Error('Evidence packet invalid: source_url must be a valid URL for diversity checks');
+          throw new Error(
+            'Evidence packet invalid: source_url must be a valid URL for diversity checks'
+          );
         }
       }
       if (domainCount.size < 2) {
@@ -1453,10 +1462,15 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
       const maxDomainClaims = Math.max(...domainCount.values(), 0);
       const maxDomainShare = maxDomainClaims / Math.max(1, allClaims.length);
       if (maxDomainShare > 0.9) {
-        diversityIssues.push(`source concentration too high (${Math.round(maxDomainShare * 100)}% from one domain)`);
+        diversityIssues.push(
+          `source concentration too high (${Math.round(maxDomainShare * 100)}% from one domain)`
+        );
       }
       const isOfficialHeavyButDistributed =
-        officialClaims >= 1 && nonOfficialClaims === 0 && domainCount.size >= 2 && maxDomainShare <= 0.9;
+        officialClaims >= 1 &&
+        nonOfficialClaims === 0 &&
+        domainCount.size >= 2 &&
+        maxDomainShare <= 0.9;
       const meanConfidence =
         allClaims.reduce((sum, claim) => sum + claim.confidence, 0) / Math.max(1, allClaims.length);
       const lowConfidenceRatio =
@@ -1564,7 +1578,10 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
                         properties: {
                           text: { type: 'string' },
                           source_url: { type: 'string' },
-                          source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                          source_type: {
+                            type: 'string',
+                            enum: ['official', 'editorial', 'community'],
+                          },
                           claim_type: { type: 'string', enum: ['fact', 'opinion'] },
                           confidence: { type: 'number' },
                         },
@@ -1578,7 +1595,10 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
                         properties: {
                           text: { type: 'string' },
                           source_url: { type: 'string' },
-                          source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                          source_type: {
+                            type: 'string',
+                            enum: ['official', 'editorial', 'community'],
+                          },
                           claim_type: { type: 'string', enum: ['fact', 'opinion'] },
                           confidence: { type: 'number' },
                         },
@@ -1605,7 +1625,13 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
                         properties: {
                           field: {
                             type: 'string',
-                            enum: ['verdict', 'shortDescription', 'websiteUrl', 'faqs', 'reviewContext'],
+                            enum: [
+                              'verdict',
+                              'shortDescription',
+                              'websiteUrl',
+                              'faqs',
+                              'reviewContext',
+                            ],
                           },
                           reason: { type: 'string' },
                         },
@@ -1639,8 +1665,7 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
           if (!isTimeoutError(error)) throw error;
           response = withRetry
             ? await withRetry(
-                () =>
-                  generateEvidenceFn(timeoutFallbackModel, timeoutFallbackThinkingLevel, false),
+                () => generateEvidenceFn(timeoutFallbackModel, timeoutFallbackThinkingLevel, false),
                 `${operationLabel} timeout fallback`,
                 1
               )
@@ -1661,7 +1686,8 @@ Do NOT include summary, verdict, shortDescription, faqs, or reviewContext in Sta
         } catch (error) {
           lastSchemaError = error;
           if (attempt >= maxSchemaAttempts) break;
-          const issue = error instanceof Error ? error.message : 'unknown evidence validation error';
+          const issue =
+            error instanceof Error ? error.message : 'unknown evidence validation error';
           evidencePrompt = `${promptBase}
 
 STAGE 1 TASK - EVIDENCE PACKET ONLY:
@@ -1732,7 +1758,10 @@ ${buildEvidenceContradictionGuardrails(evidencePacket)}`
                       properties: {
                         text: { type: 'string' },
                         source_url: { type: 'string' },
-                        source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                        source_type: {
+                          type: 'string',
+                          enum: ['official', 'editorial', 'community'],
+                        },
                         claim_type: { type: 'string', enum: ['fact', 'opinion'] },
                       },
                     },
@@ -1745,7 +1774,10 @@ ${buildEvidenceContradictionGuardrails(evidencePacket)}`
                       properties: {
                         text: { type: 'string' },
                         source_url: { type: 'string' },
-                        source_type: { type: 'string', enum: ['official', 'editorial', 'community'] },
+                        source_type: {
+                          type: 'string',
+                          enum: ['official', 'editorial', 'community'],
+                        },
                         claim_type: { type: 'string', enum: ['fact', 'opinion'] },
                       },
                     },
@@ -1812,7 +1844,11 @@ ${buildEvidenceContradictionGuardrails(evidencePacket)}`
       let response;
       try {
         response = withRetry
-          ? await withRetry(() => generateFn(model, synthesisThinkingLevel, true), operationLabel, 1)
+          ? await withRetry(
+              () => generateFn(model, synthesisThinkingLevel, true),
+              operationLabel,
+              1
+            )
           : await generateFn(model, synthesisThinkingLevel, true);
       } catch (error) {
         if (!isTimeoutError(error)) throw error;
@@ -1880,15 +1916,19 @@ ${buildEvidenceContradictionGuardrails(evidencePacket)}`
                   : null,
             decisionIntro: {
               what_it_is:
-                typeof rawDecisionIntro.what_it_is === 'string' ? rawDecisionIntro.what_it_is : null,
+                typeof rawDecisionIntro.what_it_is === 'string'
+                  ? rawDecisionIntro.what_it_is
+                  : null,
               best_for:
                 typeof rawDecisionIntro.best_for === 'string' ? rawDecisionIntro.best_for : null,
-              not_for: typeof rawDecisionIntro.not_for === 'string' ? rawDecisionIntro.not_for : null,
+              not_for:
+                typeof rawDecisionIntro.not_for === 'string' ? rawDecisionIntro.not_for : null,
               main_tradeoff:
                 typeof rawDecisionIntro.main_tradeoff === 'string'
                   ? rawDecisionIntro.main_tradeoff
                   : null,
-              summary: typeof rawDecisionIntro.summary === 'string' ? rawDecisionIntro.summary : null,
+              summary:
+                typeof rawDecisionIntro.summary === 'string' ? rawDecisionIntro.summary : null,
             },
             decisionEvidence: {
               best_for_reason: normalizeDecisionSignal(rawDecisionEvidence.best_for_reason),
