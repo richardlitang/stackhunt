@@ -16,6 +16,7 @@ import {
   classifySourceType,
   buildSnippetBucketsFromScout,
   isLlmEligibleScoutSource,
+  buildBalancedSynthesisSources,
 } from '../utils';
 import {
   SYNTHESIS_PROMPT,
@@ -23,7 +24,11 @@ import {
   getPersonaContext,
   buildAdaptiveSpecificsPrompt,
 } from '../services/prompts';
-import { buildDecisionSlots, generateDecisionEvidence, generateDecisionIntro } from '@/lib/tool-page/intro';
+import {
+  buildDecisionSlots,
+  generateDecisionEvidence,
+  generateDecisionIntro,
+} from '@/lib/tool-page/intro';
 import { getCategoryDefinition } from '../schemas';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import { resolveDetectedCategory } from '../category-resolver';
@@ -116,18 +121,15 @@ export async function executeAnalysisPhase(
       .flat()
       .map((entry) => entry.url)
   );
-  const policyEligibleSources = (ctx.research.scoutResult.raw_sources || []).filter(
-    (source) => isLlmEligibleScoutSource(source)
+  const policyEligibleSources = (ctx.research.scoutResult.raw_sources || []).filter((source) =>
+    isLlmEligibleScoutSource(source)
   );
-  const synthesisSources = policyEligibleSources.filter((source) => curatedUrls.has(source.url));
-  const baselineSources = synthesisSources.length > 0 ? synthesisSources : policyEligibleSources;
-  const officialSupplement = policyEligibleSources.filter((source) =>
-    ['official', 'docs', 'support', 'legal'].includes(source.source_type)
-  );
-  const synthesisInputSources = Array.from(
-    new Map(
-      [...baselineSources, ...officialSupplement].map((source) => [source.url, source])
-    ).values()
+  const synthesisInputSources = buildBalancedSynthesisSources(policyEligibleSources, curatedUrls);
+  const userSignalSourceCount = synthesisInputSources.filter(
+    (source) => source.source_type === 'community' || source.source_type === 'editorial'
+  ).length;
+  deps.log(
+    `[Phase 2: Analysis] Synthesis source mix: total=${synthesisInputSources.length} user_signal=${userSignalSourceCount}`
   );
   const inventoryApiResult = await deps.inventory.fetchModelInventory({
     toolName: ctx.toolName,
@@ -173,7 +175,11 @@ export async function executeAnalysisPhase(
     : interpolatedPrompt;
 
   // Step 8: Synthesize analysis (Pass 2 - The Architect + Human Context Roles)
-  const { analysis, tokensUsed: synthesisTokens, generationQuality } = await deps.gemini.synthesize(
+  const {
+    analysis,
+    tokensUsed: synthesisTokens,
+    generationQuality,
+  } = await deps.gemini.synthesize(
     {
       toolName: ctx.toolName,
       contextTitle: ctx.contextTitle,
@@ -194,9 +200,7 @@ export async function executeAnalysisPhase(
       `[Pass 2] Generation quality: mean_confidence=${(generationQuality.meanConfidence ?? 0).toFixed(2)} low_conf_ratio=${(generationQuality.lowConfidenceRatio ?? 0).toFixed(2)} official=${generationQuality.officialClaims ?? 0} non_official=${generationQuality.nonOfficialClaims ?? 0} domains=${generationQuality.distinctDomains ?? 0} actionability=${generationQuality.actionabilityScore ?? 0} reader_utility=${generationQuality.readerUtilityScore ?? 0}`
     );
     if (generationQuality.abstainedFields.length > 0) {
-      deps.log(
-        `[Pass 2] Auto-abstained fields: ${generationQuality.abstainedFields.join(', ')}`
-      );
+      deps.log(`[Pass 2] Auto-abstained fields: ${generationQuality.abstainedFields.join(', ')}`);
     }
   }
 
@@ -232,12 +236,16 @@ export async function executeAnalysisPhase(
       pros: Array.isArray(analysis.pros)
         ? analysis.pros
             .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
-            .filter((text: unknown): text is string => typeof text === 'string' && text.trim().length > 0)
+            .filter(
+              (text: unknown): text is string => typeof text === 'string' && text.trim().length > 0
+            )
         : [],
       cons: Array.isArray(analysis.cons)
         ? analysis.cons
             .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
-            .filter((text: unknown): text is string => typeof text === 'string' && text.trim().length > 0)
+            .filter(
+              (text: unknown): text is string => typeof text === 'string' && text.trim().length > 0
+            )
         : [],
       proClaims,
       conClaims,
@@ -366,10 +374,7 @@ export async function executeAnalysisPhase(
 
   const hasNarrativeQualityBlockers = analysisValidation.validations.some((validation) => {
     if (validation.field.startsWith('reviewContext.decisionIntro')) return true;
-    if (
-      validation.field === 'verdict' &&
-      validation.message.toLowerCase().includes('generic')
-    ) {
+    if (validation.field === 'verdict' && validation.message.toLowerCase().includes('generic')) {
       return true;
     }
     return false;
@@ -546,17 +551,20 @@ function repairNarrativeQuality(
     analysis.reviewContext = {};
   }
 
-  const currentDecisionIntro =
-    ((analysis.reviewContext.decisionIntro as Record<string, unknown> | undefined) ||
-      (analysis.reviewContext.decision_intro as Record<string, unknown> | undefined) ||
-      {}) as Record<string, unknown>;
+  const currentDecisionIntro = ((analysis.reviewContext.decisionIntro as
+    | Record<string, unknown>
+    | undefined) ||
+    (analysis.reviewContext.decision_intro as Record<string, unknown> | undefined) ||
+    {}) as Record<string, unknown>;
   const decisionFields = ['what_it_is', 'best_for', 'not_for', 'main_tradeoff'] as const;
   let updated = false;
   const repairedDecisionIntro: Record<string, unknown> = { ...currentDecisionIntro };
 
   for (const field of decisionFields) {
     const currentValue =
-      typeof currentDecisionIntro[field] === 'string' ? String(currentDecisionIntro[field]).trim() : '';
+      typeof currentDecisionIntro[field] === 'string'
+        ? String(currentDecisionIntro[field]).trim()
+        : '';
     if (currentValue.length < 24 || hasGenericNarrative(currentValue)) {
       repairedDecisionIntro[field] = generatedDecisionIntro[field];
       updated = true;
@@ -868,8 +876,7 @@ async function buildExistingContentBaseline(
   if (reviewContext?.humanVerdict) {
     lines.push(`human_verdict: ${truncate(reviewContext.humanVerdict, 360)}`);
   }
-  const decisionIntro =
-    reviewContext?.decisionIntro || reviewContext?.decision_intro || undefined;
+  const decisionIntro = reviewContext?.decisionIntro || reviewContext?.decision_intro || undefined;
   if (decisionIntro?.what_it_is) {
     lines.push(`decision_what_it_is: ${truncate(decisionIntro.what_it_is, 240)}`);
   }

@@ -339,6 +339,9 @@ export type ScoutSnippetBuckets = {
 };
 
 const DEFAULT_SNIPPET_LIMIT = 8;
+const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
+const USER_SIGNAL_SOURCE_TYPES = new Set(['community', 'editorial']);
+const USER_SIGNAL_INTENT_TAGS = new Set(['reviews', 'alternatives', 'limits', 'pricing']);
 
 function formatSnippet(source: RawSource): string {
   return `[${source.url}] ${source.title}: ${source.snippet}`;
@@ -356,8 +359,37 @@ export function isLlmEligibleScoutSource(source: Pick<RawSource, 'policy'>): boo
   return mode === 'SCRAPE_ALLOWED' || mode === 'API_ONLY' || mode === 'LINK_ONLY';
 }
 
+function sourceHasUserSignalIntent(source: Pick<RawSource, 'intent_tags'>): boolean {
+  return source.intent_tags.some((tag) => USER_SIGNAL_INTENT_TAGS.has(tag));
+}
+
+export function buildBalancedSynthesisSources(
+  policyEligibleSources: RawSource[],
+  curatedUrls: Set<string>
+): RawSource[] {
+  const synthesisSources = policyEligibleSources.filter((source) => curatedUrls.has(source.url));
+  const baselineSources = synthesisSources.length > 0 ? synthesisSources : policyEligibleSources;
+  const officialSupplement = policyEligibleSources.filter((source) =>
+    AUTHORITATIVE_SOURCE_TYPES.has(source.source_type)
+  );
+  const userSignalSupplement = policyEligibleSources.filter(
+    (source) =>
+      USER_SIGNAL_SOURCE_TYPES.has(source.source_type) && sourceHasUserSignalIntent(source)
+  );
+
+  return Array.from(
+    new Map(
+      [...baselineSources, ...userSignalSupplement, ...officialSupplement].map((source) => [
+        source.url,
+        source,
+      ])
+    ).values()
+  );
+}
+
 export function buildSnippetBucketsFromScout(rawSources: RawSource[]): ScoutSnippetBuckets {
-  const reviews: string[] = [];
+  const reviewsUserSignal: string[] = [];
+  const reviewsOfficial: string[] = [];
   const pricing: string[] = [];
   const alternatives: string[] = [];
   const company: string[] = [];
@@ -379,7 +411,11 @@ export function buildSnippetBucketsFromScout(rawSources: RawSource[]): ScoutSnip
     const haystack = `${source.title} ${source.snippet} ${source.url}`;
 
     if (source.intent_tags.includes('reviews')) {
-      reviews.push(snippet);
+      if (USER_SIGNAL_SOURCE_TYPES.has(source.source_type)) {
+        reviewsUserSignal.push(snippet);
+      } else {
+        reviewsOfficial.push(snippet);
+      }
     }
 
     if (source.intent_tags.includes('pricing')) {
@@ -411,7 +447,7 @@ export function buildSnippetBucketsFromScout(rawSources: RawSource[]): ScoutSnip
   }
 
   return {
-    reviewsSnippets: capSnippets(reviews),
+    reviewsSnippets: capSnippets([...reviewsUserSignal, ...reviewsOfficial]),
     pricingSnippets: capSnippets(pricing),
     alternativesSnippets: capSnippets(alternatives),
     companySnippets: capSnippets(company),

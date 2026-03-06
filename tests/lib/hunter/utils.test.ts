@@ -11,7 +11,10 @@ import {
   buildFactSummary,
   classifySourceType,
   isLlmEligibleScoutSource,
+  buildBalancedSynthesisSources,
+  buildSnippetBucketsFromScout,
 } from '@/lib/hunter/utils';
+import type { RawSource } from '@/lib/hunter/types';
 import type { KnowledgeCard } from '@/lib/knowledge-card';
 
 describe('slugify', () => {
@@ -388,10 +391,7 @@ describe('buildFactSummary', () => {
 describe('classifySourceType', () => {
   it('classifies first-party community subdomains as community', () => {
     expect(
-      classifySourceType(
-        'https://community.baserow.io/t/example-thread',
-        'https://baserow.io'
-      )
+      classifySourceType('https://community.baserow.io/t/example-thread', 'https://baserow.io')
     ).toBe('community');
   });
 
@@ -436,5 +436,73 @@ describe('isLlmEligibleScoutSource', () => {
       } as any)
     ).toBe(false);
     expect(isLlmEligibleScoutSource({ policy: undefined as any } as any)).toBe(false);
+  });
+});
+
+function createSource(overrides: Partial<RawSource>): RawSource {
+  return {
+    url: 'https://example.com',
+    title: 'Source',
+    snippet: 'Snippet',
+    domain: 'example.com',
+    retrieved_at: '2026-03-06',
+    canonical_url: 'https://example.com',
+    source_type: 'editorial',
+    intent_tags: ['reviews'],
+    policy: {
+      acquisition_mode: 'SCRAPE_ALLOWED',
+      llm_ingestion_allowed: 'YES',
+      display_mode: 'ATTRIBUTED_EXCERPT',
+    },
+    ...overrides,
+  };
+}
+
+describe('buildBalancedSynthesisSources', () => {
+  it('includes user-signal sources even when curated set is docs-heavy', () => {
+    const official = createSource({
+      url: 'https://tool.com/docs',
+      source_type: 'official',
+      intent_tags: ['integrations'],
+    });
+    const reddit = createSource({
+      url: 'https://reddit.com/r/tool/comments/1',
+      source_type: 'community',
+      intent_tags: ['reviews'],
+    });
+    const g2 = createSource({
+      url: 'https://www.g2.com/products/tool/reviews',
+      source_type: 'editorial',
+      intent_tags: ['reviews'],
+    });
+
+    const result = buildBalancedSynthesisSources([official, reddit, g2], new Set([official.url]));
+    const urls = result.map((entry) => entry.url);
+
+    expect(urls).toContain(official.url);
+    expect(urls).toContain(reddit.url);
+    expect(urls).toContain(g2.url);
+  });
+});
+
+describe('buildSnippetBucketsFromScout', () => {
+  it('orders review snippets with user-signal before official docs', () => {
+    const officialReview = createSource({
+      url: 'https://tool.com/reviews',
+      source_type: 'official',
+      intent_tags: ['reviews'],
+      title: 'Official review page',
+    });
+    const redditReview = createSource({
+      url: 'https://reddit.com/r/tool/comments/1',
+      source_type: 'community',
+      intent_tags: ['reviews'],
+      title: 'Reddit thread',
+    });
+
+    const buckets = buildSnippetBucketsFromScout([officialReview, redditReview]);
+
+    expect(buckets.reviewsSnippets[0]).toContain('reddit.com');
+    expect(buckets.reviewsSnippets[1]).toContain('tool.com/reviews');
   });
 });
