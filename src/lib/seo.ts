@@ -121,6 +121,7 @@ export function generateToolSchema(tool: Tool, offer?: AffiliateOffer, reviewCou
     description: tool.short_description,
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web, iOS, Android',
+    dateModified: tool.updated_at || tool.created_at,
   };
 
   // Add more specific sub-category if available
@@ -283,6 +284,9 @@ export function generateFAQSchema(faqs: Array<{ question: string; answer: string
  * Includes both author and publisher for Review rich result eligibility
  */
 export function generateReviewSchema(tool: Tool, review: Review, contextTitle: string) {
+  const reviewDatePublished = review.created_at || tool.created_at;
+  const reviewDateModified = review.updated_at || reviewDatePublished;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Review',
@@ -304,13 +308,16 @@ export function generateReviewSchema(tool: Tool, review: Review, contextTitle: s
       name: 'StackHunt Editorial Team',
       url: getCanonicalUrl('/methodology'),
     },
+    mainEntityOfPage: getCanonicalUrl(`/tool/${tool.slug}`),
+    isBasedOn: getCanonicalUrl('/methodology'),
     publisher: {
       '@type': 'Organization',
       name: 'StackHunt',
       url: getCanonicalUrl('/'),
       logo: getCanonicalUrl('/logo.png'),
     },
-    datePublished: review.created_at,
+    datePublished: reviewDatePublished,
+    dateModified: reviewDateModified,
   };
 }
 
@@ -347,13 +354,16 @@ export function generateContextReviewSchemas(
       name: 'StackHunt Editorial Team',
       url: getCanonicalUrl('/methodology'),
     },
+    isBasedOn: getCanonicalUrl('/methodology'),
     publisher: {
       '@type': 'Organization',
       name: 'StackHunt',
       url: getCanonicalUrl('/'),
       logo: getCanonicalUrl('/logo.png'),
     },
-    datePublished: review.created_at || new Date().toISOString(),
+    ...(review.created_at
+      ? { datePublished: review.created_at, dateModified: review.created_at }
+      : {}),
   }));
 }
 

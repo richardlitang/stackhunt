@@ -337,6 +337,7 @@ const decisionUtilityState = buildToolPageDecisionUtilityState({
   lensTradeoffLine,
   hardLimitText: canonicalHardLimits[0]?.text || null,
 });
+const decisionHardLimitEvidence = canonicalHardLimits[0] || null;
 const pricingScenarioState = buildToolPagePricingScenarioState({
   toolName: tool.name,
   hardLimitText: canonicalHardLimits[0]?.text || null,
@@ -648,17 +649,38 @@ applyToolPageRobotsHeader({
         <li>
           <span class="font-medium text-zinc-100">Use if:</span>{' '}
           {decisionUtilityState.decisionUseIf}{' '}
-          <span class="text-xs text-zinc-500">(Evidence: Sources section)</span>
+          <span class="text-xs text-zinc-500">(Evidence: Why This Verdict)</span>
         </li>
         <li>
           <span class="font-medium text-zinc-100">Avoid if:</span>{' '}
           {decisionUtilityState.decisionAvoidIf}{' '}
-          <span class="text-xs text-zinc-500">(Evidence: Sources section)</span>
+          <span class="text-xs text-zinc-500">(Evidence: Why This Verdict)</span>
         </li>
         <li>
           <span class="font-medium text-zinc-100">Watch out:</span>{' '}
-          {decisionUtilityState.decisionWatchOut}{' '}
-          <span class="text-xs text-zinc-500">(Evidence: Sources section)</span>
+          {decisionUtilityState.decisionWatchOut}
+          {
+            decisionHardLimitEvidence ? (
+              <>
+                {' '}
+                <a
+                  href={decisionHardLimitEvidence.sourceUrl}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label={sourceAriaLabel(decisionHardLimitEvidence.text)}
+                  data-outbound="source"
+                  data-location="decision-watchout"
+                  data-tool={tool.slug}
+                  class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
+                  title="Open source"
+                >
+                  Source
+                </a>
+              </>
+            ) : (
+              <span class="text-xs text-zinc-500"> (Evidence: Why This Verdict)</span>
+            )
+          }
         </li>
       </ul>
       <p class="mt-4 text-xs text-zinc-500">
