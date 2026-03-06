@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  deriveVisibleToolCompareGridRows,
   resolveToolCompareGridCell,
   resolveToolCompareGridValue,
   type ToolCompareGridLike,
@@ -87,5 +88,57 @@ describe('resolveToolCompareGridValue', () => {
       'workflow'
     );
     expect(resolveToolCompareGridCell('Best for', tool, 'enterprise').evidenceTag).toBe('pending');
+  });
+
+  it('suppresses rows when all cells are pending', () => {
+    const main: ToolCompareGridLike = {
+      name: 'MainTool',
+      pricing_type: null,
+      learning_curve: null,
+      curatedVerdict: null,
+      computedDiff: null,
+    };
+    const alternatives: ToolCompareGridLike[] = [
+      {
+        name: 'AltA',
+        pricing_type: null,
+        learning_curve: null,
+        curatedVerdict: null,
+        computedDiff: null,
+      },
+      {
+        name: 'AltB',
+        pricing_type: null,
+        learning_curve: null,
+        curatedVerdict: null,
+        computedDiff: null,
+      },
+    ];
+
+    const rows = deriveVisibleToolCompareGridRows(main, alternatives, 'general');
+    expect(rows).toEqual([]);
+  });
+
+  it('retains source-backed rows when at least one cell has source evidence', () => {
+    const main: ToolCompareGridLike = {
+      name: 'MainTool',
+      pricing_type: 'freemium',
+      learning_curve: 'easy',
+      curatedVerdict: null,
+      computedDiff: null,
+    };
+    const alternatives: ToolCompareGridLike[] = [
+      {
+        name: 'AltA',
+        pricing_type: null,
+        learning_curve: null,
+        curatedVerdict: null,
+        computedDiff: null,
+      },
+    ];
+
+    const rows = deriveVisibleToolCompareGridRows(main, alternatives, 'general');
+    expect(rows).toContain('Setup time');
+    expect(rows).toContain('Seat complexity');
   });
 });

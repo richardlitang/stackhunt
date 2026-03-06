@@ -35,6 +35,8 @@ interface BuildToolPageContentSectionsStateInputFromRouteInput {
     claimConfidenceTier?: 'high' | 'medium' | 'low';
     claimConfidenceScore?: number;
   }>;
+  userReportedPros: Array<Record<string, unknown>>;
+  userReportedCons: Array<Record<string, unknown>>;
   knowledgeCard:
     | {
         setup_complexity?: string | null;
@@ -88,6 +90,8 @@ interface BuildToolPageContentSectionsStateInputFromRouteContextInput {
   lowConfidenceEvidenceLinks: BuildToolPageContentSectionsStateInputFromRouteInput['lowConfidenceEvidenceLinks'];
   effectiveEvidencePros: BuildToolPageContentSectionsStateInputFromRouteInput['effectiveEvidencePros'];
   effectiveEvidenceCons: BuildToolPageContentSectionsStateInputFromRouteInput['effectiveEvidenceCons'];
+  userReportedPros: BuildToolPageContentSectionsStateInputFromRouteInput['userReportedPros'];
+  userReportedCons: BuildToolPageContentSectionsStateInputFromRouteInput['userReportedCons'];
   knowledgeCard: BuildToolPageContentSectionsStateInputFromRouteInput['knowledgeCard'];
   setupTracks: BuildToolPageContentSectionsStateInputFromRouteInput['setupTracks'];
   gettingStartedCtaUrl: BuildToolPageContentSectionsStateInputFromRouteInput['gettingStartedCtaUrl'];
@@ -135,6 +139,8 @@ export function buildToolPageContentSectionsStateInputFromRoute(
     prosConsInput: {
       pros: input.effectiveEvidencePros,
       cons: input.effectiveEvidenceCons,
+      userReportedPros: input.userReportedPros,
+      userReportedCons: input.userReportedCons,
     },
     gettingStartedInput: {
       setupComplexity: input.knowledgeCard?.setup_complexity,
@@ -213,6 +219,8 @@ export function buildToolPageContentSectionsStateInputFromRouteContext(
     lowConfidenceEvidenceLinks: input.lowConfidenceEvidenceLinks,
     effectiveEvidencePros: input.effectiveEvidencePros,
     effectiveEvidenceCons: input.effectiveEvidenceCons,
+    userReportedPros: input.userReportedPros,
+    userReportedCons: input.userReportedCons,
     knowledgeCard: input.knowledgeCard,
     fallbackWebsiteUrl: input.tool.website || null,
     setupTracks: input.setupTracks,

@@ -29,6 +29,8 @@ export interface ToolPageCoreState {
   websiteHostLabel: string | null;
   vipSpecifics: Record<string, unknown> | undefined;
   reviewContext: Record<string, unknown> | null;
+  userReportedPros: Array<Record<string, unknown>>;
+  userReportedCons: Array<Record<string, unknown>>;
 }
 
 function deriveWebsiteHostLabel(website: string | null | undefined): string | null {
@@ -63,6 +65,16 @@ export function deriveToolPageCoreState(input: ToolPageCoreStateInput): ToolPage
       : categorySpecificData;
   const websiteHostLabel = deriveWebsiteHostLabel(input.tool.website || null);
   const vipSpecifics = toolSpecs?.specifics as Record<string, unknown> | undefined;
+  const userReportedPros = Array.isArray(
+    toolSpecs?.user_reported_pros || toolSpecs?.userReportedPros
+  )
+    ? ((toolSpecs?.user_reported_pros || toolSpecs?.userReportedPros) as Array<Record<string, unknown>>)
+    : [];
+  const userReportedCons = Array.isArray(
+    toolSpecs?.user_reported_cons || toolSpecs?.userReportedCons
+  )
+    ? ((toolSpecs?.user_reported_cons || toolSpecs?.userReportedCons) as Array<Record<string, unknown>>)
+    : [];
   const reviewContext = input.hasNewerUnpublishedReview
     ? null
     : (input.tool.review_context as Record<string, unknown> | null);
@@ -81,5 +93,7 @@ export function deriveToolPageCoreState(input: ToolPageCoreStateInput): ToolPage
     websiteHostLabel,
     vipSpecifics,
     reviewContext,
+    userReportedPros,
+    userReportedCons,
   };
 }

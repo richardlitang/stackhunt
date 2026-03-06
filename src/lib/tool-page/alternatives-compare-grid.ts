@@ -40,6 +40,11 @@ export interface ToolCompareGridCell {
   evidenceTag: ToolCompareGridEvidenceTag;
 }
 
+const ROWS_ALLOWING_HEURISTIC_ONLY = new Set<ToolCompareGridRow>([
+  'Choose this instead if',
+  'Evidence level',
+]);
+
 function toSentenceCase(text: string): string {
   const trimmed = text.trim();
   if (!trimmed) return trimmed;
@@ -180,4 +185,23 @@ export function resolveToolCompareGridCell(
     default:
       return { value: 'Needs confirmation', evidenceTag: 'pending' };
   }
+}
+
+export function deriveVisibleToolCompareGridRows(
+  main: ToolCompareGridLike,
+  alternatives: ToolCompareGridLike[],
+  activeReviewLens: ReviewLens = 'general'
+): ToolCompareGridRow[] {
+  const comparisonAlternatives = alternatives.slice(0, 2);
+  return TOOL_COMPARE_GRID_ROWS.filter((row) => {
+    const cells = [
+      resolveToolCompareGridCell(row, main, activeReviewLens),
+      ...comparisonAlternatives.map((alt) => resolveToolCompareGridCell(row, alt, activeReviewLens)),
+    ];
+    const hasSource = cells.some((cell) => cell.evidenceTag === 'source');
+    const hasNonPending = cells.some((cell) => cell.evidenceTag !== 'pending');
+    if (!hasNonPending) return false;
+    if (hasSource) return true;
+    return ROWS_ALLOWING_HEURISTIC_ONLY.has(row);
+  });
 }

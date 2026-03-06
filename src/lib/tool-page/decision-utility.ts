@@ -44,6 +44,7 @@ export interface ToolPageDecisionUtilityState {
     planDependency: string;
     planDependencyStatus: 'Source-backed' | 'Needs confirmation';
   }>;
+  hasEvidenceAnchoredUtility: boolean;
 }
 
 function isCrmCategory(categorySlug: string | null): boolean {
@@ -93,6 +94,9 @@ function buildGenericChecklist(toolName: string): string[] {
 export function buildToolPageDecisionUtilityState(
   input: BuildToolPageDecisionUtilityInput
 ): ToolPageDecisionUtilityState {
+  const hasEvidenceAnchoredUtility = Boolean(
+    input.hardLimitText || input.pricingEvidenceSourceUrl || input.pricingEvidenceSummary
+  );
   const useIf =
     input.lensBestFitLine || 'Use when source-backed capabilities match your daily workflow.';
   const avoidIf = input.lensWeakFitLine || 'Avoid when core rollout needs are still unconfirmed.';
@@ -102,9 +106,11 @@ export function buildToolPageDecisionUtilityState(
     'Watch out for plan limits and rollout dependencies.';
 
   const isCrm = isCrmCategory(input.categorySlug);
-  const testChecklistItems = isCrm
-    ? buildCrmChecklist(input.activeReviewLens)
-    : buildGenericChecklist(input.toolName);
+  const testChecklistItems = hasEvidenceAnchoredUtility
+    ? isCrm
+      ? buildCrmChecklist(input.activeReviewLens)
+      : buildGenericChecklist(input.toolName)
+    : [];
 
   const basePricingMentalModelItems =
     input.activeReviewLens === 'startup'
@@ -152,7 +158,8 @@ export function buildToolPageDecisionUtilityState(
     })),
   ];
 
-  const commonSetups = isCrm
+  const commonSetups = hasEvidenceAnchoredUtility
+    ? isCrm
     ? [
         {
           title: '2 to 3 person founder-led sales',
@@ -199,7 +206,8 @@ export function buildToolPageDecisionUtilityState(
           title: 'Cross-functional rollout',
           body: 'Confirm governance and support model first to avoid operational drift during scale.',
         },
-      ];
+      ]
+    : [];
 
   const verdictLeadOverride = (() => {
     if (input.activeReviewLens === 'startup') {
@@ -227,8 +235,9 @@ export function buildToolPageDecisionUtilityState(
     commonSetupsTitle: 'Common setups',
     commonSetups,
     practicalOutcomesTitle: 'What it does in practice',
-    practicalOutcomes: isCrm
-      ? [
+    practicalOutcomes: hasEvidenceAnchoredUtility
+      ? isCrm
+        ? [
           {
             outcome:
               'Capture leads, enrich records, route ownership, and start follow-up sequences.',
@@ -252,8 +261,8 @@ export function buildToolPageDecisionUtilityState(
             planDependency: 'Reporting scope and retention rules may vary by plan.',
             planDependencyStatus: 'Needs confirmation',
           },
-        ]
-      : [
+          ]
+        : [
           {
             outcome: `Turn ${input.toolName} into a repeatable core workflow for your team.`,
             verifyInDemo: 'Run one representative task from setup through output validation.',
@@ -266,6 +275,8 @@ export function buildToolPageDecisionUtilityState(
             planDependency: 'Admin and governance controls vary by plan.',
             planDependencyStatus: 'Needs confirmation',
           },
-        ],
+          ]
+      : [],
+    hasEvidenceAnchoredUtility,
   };
 }

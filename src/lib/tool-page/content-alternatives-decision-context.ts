@@ -32,6 +32,8 @@ interface BuildToolPageContentAlternativesStateFromDecisionContextInput {
   setupTracks: unknown;
   displayCategorySpecificData: Record<string, unknown> | null;
   vipSpecifics: Record<string, unknown> | null;
+  userReportedPros: Array<Record<string, unknown>>;
+  userReportedCons: Array<Record<string, unknown>>;
   decisionRuntime: ReturnType<typeof buildToolPageDecisionRuntime>;
   sectionFlags: ReturnType<typeof buildToolPageSectionFlags>;
   evidenceRuntime: ReturnType<typeof buildToolPageEvidenceRuntime>;
@@ -66,6 +68,8 @@ export function buildToolPageContentAlternativesStateFromDecisionContext(
       lowConfidenceEvidenceLinks: input.reviewArtifactsState.lowConfidenceEvidenceLinks,
       effectiveEvidencePros: input.evidenceRuntime.effectiveEvidencePros,
       effectiveEvidenceCons: input.evidenceRuntime.effectiveEvidenceCons,
+      userReportedPros: input.userReportedPros,
+      userReportedCons: input.userReportedCons,
       knowledgeCard: input.knowledgeCard,
       setupTracks: toToolPageObjectArray(input.setupTracks),
       gettingStartedCtaUrl: input.decisionRuntime.setupSignals.gettingStartedCtaUrl,

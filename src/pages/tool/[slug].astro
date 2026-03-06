@@ -99,6 +99,8 @@ const {
   websiteHostLabel,
   vipSpecifics,
   reviewContext,
+  userReportedPros,
+  userReportedCons,
 } = coreState;
 const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
 const { prepState, decisionSectionState, reviewArtifactsState, evidenceSignalsState } =
@@ -227,6 +229,28 @@ const {
 } = evidenceRuntime;
 const lensRankedHardLimits = rankConstraintsForLens(canonicalHardLimits, activeReviewLens);
 const topLensHardLimit = lensRankedHardLimits[0] || null;
+const normalizeUserReportedClaim = (
+  claim: Record<string, unknown>
+): { text: string; source_type?: 'community' | 'editorial'; source_domain?: string | null } | null => {
+  const textCandidate = claim.text || claim.claim;
+  if (typeof textCandidate !== 'string' || textCandidate.trim().length === 0) return null;
+  const sourceType =
+    claim.source_type === 'community' || claim.source_type === 'editorial'
+      ? claim.source_type
+      : claim.sourceType === 'community' || claim.sourceType === 'editorial'
+        ? claim.sourceType
+        : undefined;
+  const sourceDomainCandidate = claim.source_domain || claim.sourceDomain;
+  const sourceDomain =
+    typeof sourceDomainCandidate === 'string' && sourceDomainCandidate.trim().length > 0
+      ? sourceDomainCandidate.trim()
+      : null;
+  return {
+    text: textCandidate.trim(),
+    ...(sourceType ? { source_type: sourceType } : {}),
+    ...(sourceDomain ? { source_domain: sourceDomain } : {}),
+  };
+};
 const userSignalSummaryRecord =
   tool.specs && typeof tool.specs === 'object'
     ? (tool.specs as Record<string, unknown>).user_signal_summary
@@ -250,7 +274,19 @@ const userSignalSummary =
         }>;
       })
     : null;
-const topUserReportedClaims = Array.isArray(userSignalSummary?.top_user_reported_claims)
+const topUserReportedClaimsFromSpecs = [...userReportedPros, ...userReportedCons]
+  .map(normalizeUserReportedClaim)
+  .filter(
+    (
+      claim
+    ): claim is {
+      text: string;
+      source_type?: 'community' | 'editorial';
+      source_domain?: string | null;
+    } => Boolean(claim)
+  )
+  .slice(0, 2);
+const topUserReportedClaimsFromSummary = Array.isArray(userSignalSummary?.top_user_reported_claims)
   ? userSignalSummary.top_user_reported_claims
       .filter(
         (
@@ -263,6 +299,16 @@ const topUserReportedClaims = Array.isArray(userSignalSummary?.top_user_reported
       )
       .slice(0, 2)
   : [];
+const topUserReportedClaims =
+  topUserReportedClaimsFromSpecs.length > 0
+    ? topUserReportedClaimsFromSpecs
+    : topUserReportedClaimsFromSummary;
+const communityProsCount =
+  userReportedPros.filter((claim) => claim.source_type === 'community' || claim.sourceType === 'community')
+    .length || userSignalSummary?.community_pros || 0;
+const communityConsCount =
+  userReportedCons.filter((claim) => claim.source_type === 'community' || claim.sourceType === 'community')
+    .length || userSignalSummary?.community_cons || 0;
 const pricingLensCoverageRecord =
   tool.specs && typeof tool.specs === 'object'
     ? (
@@ -403,6 +449,8 @@ const { lensViewFields, toolChromeState, alternativesPricingState, contentSectio
       setupTracks,
       displayCategorySpecificData,
       vipSpecifics,
+      userReportedPros,
+      userReportedCons,
       decisionRuntime,
       sectionFlags,
       evidenceRuntime,
@@ -461,6 +509,10 @@ const {
   lensPriorityLead,
   freshnessLabels,
 } = toolChromeState;
+const shouldShowDecisionUtilitySection =
+  decisionUtilityState.hasEvidenceAnchoredUtility &&
+  (decisionUtilityState.testChecklistItems.length > 0 || decisionUtilityState.commonSetups.length > 0);
+const shouldShowPracticalOutcomes = decisionUtilityState.practicalOutcomes.length > 0 && !hasFeatures;
 const showEarlySnapshotToneBanner =
   trustBarProps.confidence === 'Low' || trustBarProps.pendingCount > 0;
 const {
@@ -827,12 +879,14 @@ applyToolPageRobotsHeader({
         Use-if, avoid-if, and watch-out summarize the linked evidence.
       </p>
     </section>
-    <ToolDecisionUtilitySection
-      checklistTitle={decisionUtilityState.testChecklistTitle}
-      checklistItems={decisionUtilityState.testChecklistItems}
-      commonSetupsTitle={decisionUtilityState.commonSetupsTitle}
-      commonSetups={decisionUtilityState.commonSetups}
-    />
+    {shouldShowDecisionUtilitySection && (
+      <ToolDecisionUtilitySection
+        checklistTitle={decisionUtilityState.testChecklistTitle}
+        checklistItems={decisionUtilityState.testChecklistItems}
+        commonSetupsTitle={decisionUtilityState.commonSetupsTitle}
+        commonSetups={decisionUtilityState.commonSetups}
+      />
+    )}
 
     <section
       class="mb-6 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm"
@@ -1262,14 +1316,10 @@ applyToolPageRobotsHeader({
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
                   <p class="mt-1 text-sm text-zinc-400">{strengthsSubtitle}</p>
-                  {userSignalSummary &&
-                    (userSignalSummary.community_pros || 0) +
-                      (userSignalSummary.community_cons || 0) >
-                      0 && (
+                  {(communityProsCount || 0) + (communityConsCount || 0) > 0 && (
                       <p class="mt-1 text-xs text-zinc-500">
                         Community-backed signals in this section:{' '}
-                        {userSignalSummary.community_pros || 0} pros,{' '}
-                        {userSignalSummary.community_cons || 0} cons.
+                        {communityProsCount || 0} pros, {communityConsCount || 0} cons.
                       </p>
                     )}
                   {userSignalSummary &&
@@ -1332,10 +1382,12 @@ applyToolPageRobotsHeader({
             </details>
           )
         }
-        <ToolPracticalOutcomesSection
-          title={decisionUtilityState.practicalOutcomesTitle}
-          outcomes={decisionUtilityState.practicalOutcomes}
-        />
+        {shouldShowPracticalOutcomes && (
+          <ToolPracticalOutcomesSection
+            title={decisionUtilityState.practicalOutcomesTitle}
+            outcomes={decisionUtilityState.practicalOutcomes}
+          />
+        )}
 
         {/* Features Showcase */}
         {
