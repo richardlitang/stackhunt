@@ -343,9 +343,6 @@ const { showWorkflowFitSection } = buildToolPageWorkflowFitVisibility({
   hasWorkflowCards: workflowFitCards.length > 0,
   hasWorkflowHighlights: workflowFitHighlights.length > 0,
 });
-const quickJumpLinksView = showWorkflowFitSection
-  ? quickJumpLinks
-  : quickJumpLinks.filter((link) => link.href !== '#workflow-fit');
 const decisionHardLimitEvidence = canonicalHardLimits[0] || null;
 const pricingScenarioState = buildToolPagePricingScenarioState({
   toolName: tool.name,
@@ -395,6 +392,9 @@ const {
   updateHistoryState,
   quickJumpLinks,
 } = navigationState;
+const quickJumpLinksView = showWorkflowFitSection
+  ? quickJumpLinks
+  : quickJumpLinks.filter((link) => link.href !== '#workflow-fit');
 const {
   compareButtonProps,
   addToStackProps,
