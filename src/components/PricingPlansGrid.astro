@@ -7,15 +7,22 @@
  */
 
 import type { SMPPricingData, KnowledgeCard } from '@/lib/knowledge-card';
+import { filterPlansForLens, type PricingReviewLens } from '@/lib/pricing/plan-lens';
 import CheckIcon from '@/components/icons/Check.astro';
 
 interface Props {
   smp_pricing?: SMPPricingData;
   legacy_pricing?: KnowledgeCard['pricing'];
   toolName: string;
+  activeReviewLens?: PricingReviewLens;
 }
 
-const { smp_pricing, legacy_pricing, toolName: _toolName } = Astro.props;
+const {
+  smp_pricing,
+  legacy_pricing,
+  toolName: _toolName,
+  activeReviewLens = 'general',
+} = Astro.props;
 
 const hasMeaningfulPlanName = (name?: string): boolean => {
   if (!name || !name.trim()) return false;
@@ -38,7 +45,9 @@ const filteredSmpPlans = Array.isArray(smp_pricing?.plans)
           hasRenderablePlanPrice(plan.price_monthly) ||
           hasRenderablePlanPrice(plan.price_annual) ||
           hasRenderablePlanPrice(plan.price_per_unit);
-        return hasNamedTier && (hasMeaningfulPlanName(planName) || hasPriceSignal || plan.is_enterprise);
+        return (
+          hasNamedTier && (hasMeaningfulPlanName(planName) || hasPriceSignal || plan.is_enterprise)
+        );
       })
       .map((plan, index) => {
         const planName = typeof plan.name === 'string' ? plan.name.trim() : '';
@@ -46,16 +55,17 @@ const filteredSmpPlans = Array.isArray(smp_pricing?.plans)
         return { ...plan, displayName };
       })
   : [];
+const lensFilteredSmpPlans = filterPlansForLens(filteredSmpPlans, activeReviewLens);
 
 // Determine which pricing data to use
-const hasSMPPricing = Boolean(smp_pricing && filteredSmpPlans.length > 0);
+const hasSMPPricing = Boolean(smp_pricing && lensFilteredSmpPlans.length > 0);
 const hasLegacyPricing = legacy_pricing?.tiers && legacy_pricing.tiers.length > 0;
 
 if (!hasSMPPricing && !hasLegacyPricing) return null;
 
 // Use compact table view for multi-product platforms (>6 plans)
-const useCompactView = hasSMPPricing && filteredSmpPlans.length > 6;
-const planCount = hasSMPPricing ? filteredSmpPlans.length : 0;
+const useCompactView = hasSMPPricing && lensFilteredSmpPlans.length > 6;
+const planCount = hasSMPPricing ? lensFilteredSmpPlans.length : 0;
 
 // Pricing model labels
 const modelLabels = {
@@ -116,7 +126,7 @@ const discountLabels = {
               </tr>
             </thead>
             <tbody class="divide-y divide-zinc-800">
-              {filteredSmpPlans.map((plan) => (
+              {lensFilteredSmpPlans.map((plan) => (
                 <tr class="hover:bg-zinc-800/30 transition-colors">
                   <td class="px-4 py-3 font-medium text-zinc-100">{plan.displayName}</td>
                   <td class="px-4 py-3 text-right tabular-nums">
@@ -151,7 +161,7 @@ const discountLabels = {
   {
     hasSMPPricing && !useCompactView && (
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredSmpPlans.map((plan) => (
+        {lensFilteredSmpPlans.map((plan) => (
           <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-4 hover:border-zinc-600 transition">
             {/* Plan Header */}
             <div class="mb-4 border-b border-zinc-800 pb-4">

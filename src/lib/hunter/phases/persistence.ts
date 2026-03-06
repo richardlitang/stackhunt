@@ -22,6 +22,7 @@ import { normalizeCategory } from '../../config/taxonomy';
 import { ensureParentSuite } from '../utils/suite-manager';
 import { updateNormalizedPricing } from '../../pricing/persist';
 import { mapSmpPricingToV2 } from '../../pricing';
+import { enrichSmpPricingForLens } from '@/lib/pricing/plan-lens';
 import { persistItemFactPack } from '../fact-pack';
 import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
@@ -187,34 +188,42 @@ function meetsAuthoritativeSourceThreshold(
 }
 
 function getMinActionabilityScore(): number {
-  const raw = typeof process !== 'undefined' ? process.env.HUNTER_MIN_ACTIONABILITY_SCORE : undefined;
+  const raw =
+    typeof process !== 'undefined' ? process.env.HUNTER_MIN_ACTIONABILITY_SCORE : undefined;
   const parsed = raw ? Number(raw) : NaN;
   if (!Number.isFinite(parsed)) return DEFAULT_MIN_ACTIONABILITY_SCORE;
   return Math.min(100, Math.max(0, Math.round(parsed)));
 }
 
 function getMinReaderUtilityScore(): number {
-  const raw = typeof process !== 'undefined' ? process.env.HUNTER_MIN_READER_UTILITY_SCORE : undefined;
+  const raw =
+    typeof process !== 'undefined' ? process.env.HUNTER_MIN_READER_UTILITY_SCORE : undefined;
   const parsed = raw ? Number(raw) : NaN;
   if (!Number.isFinite(parsed)) return DEFAULT_MIN_READER_UTILITY_SCORE;
   return Math.min(100, Math.max(0, Math.round(parsed)));
 }
 
-function getGenerationActionabilityScore(generationQuality?: Record<string, unknown>): number | null {
+function getGenerationActionabilityScore(
+  generationQuality?: Record<string, unknown>
+): number | null {
   const raw = generationQuality?.actionabilityScore;
   const numeric = typeof raw === 'number' ? raw : Number(raw);
   if (!Number.isFinite(numeric)) return null;
   return Math.min(100, Math.max(0, numeric));
 }
 
-function getGenerationReaderUtilityScore(generationQuality?: Record<string, unknown>): number | null {
+function getGenerationReaderUtilityScore(
+  generationQuality?: Record<string, unknown>
+): number | null {
   const raw = generationQuality?.readerUtilityScore;
   const numeric = typeof raw === 'number' ? raw : Number(raw);
   if (!Number.isFinite(numeric)) return null;
   return Math.min(100, Math.max(0, numeric));
 }
 
-function isMissingGenerationQualityColumnError(error: { message?: string } | null | undefined): boolean {
+function isMissingGenerationQualityColumnError(
+  error: { message?: string } | null | undefined
+): boolean {
   const message = error?.message || '';
   return (
     message.includes("Could not find the 'generation_quality' column of 'reviews'") ||
@@ -244,8 +253,13 @@ function detectCoverageGaps(
   const readClaimTexts = (claims: unknown[]): string[] =>
     claims
       .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
-      .filter((text: unknown): text is string => typeof text === 'string' && text.trim().length > 0);
-  const claimTexts = [...readClaimTexts(analysis?.pros || []), ...readClaimTexts(analysis?.cons || [])];
+      .filter(
+        (text: unknown): text is string => typeof text === 'string' && text.trim().length > 0
+      );
+  const claimTexts = [
+    ...readClaimTexts(analysis?.pros || []),
+    ...readClaimTexts(analysis?.cons || []),
+  ];
   const reviewContextText = [
     analysis?.reviewContext?.humanVerdict,
     analysis?.reviewContext?.userAdvocate?.originStory,
@@ -299,7 +313,8 @@ async function maybeEnqueueCoverageGapRehunt(params: {
   generationQuality?: Record<string, unknown>;
   deps: HunterDependencies;
 }): Promise<void> {
-  const { toolName, contextTitle, categorySlug, analysis, knowledgeCard, generationQuality, deps } = params;
+  const { toolName, contextTitle, categorySlug, analysis, knowledgeCard, generationQuality, deps } =
+    params;
   const gaps = detectCoverageGaps(analysis, knowledgeCard, generationQuality);
   const minActionabilityScore = getMinActionabilityScore();
   const actionabilityScore = getGenerationActionabilityScore(generationQuality);
@@ -307,7 +322,8 @@ async function maybeEnqueueCoverageGapRehunt(params: {
   const readerUtilityScore = getGenerationReaderUtilityScore(generationQuality);
   const hasMissingActionability = actionabilityScore === null;
   const hasActionabilityGap =
-    hasMissingActionability || (actionabilityScore !== null && actionabilityScore < minActionabilityScore);
+    hasMissingActionability ||
+    (actionabilityScore !== null && actionabilityScore < minActionabilityScore);
   const hasMissingReaderUtility = readerUtilityScore === null;
   const hasReaderUtilityGap =
     hasMissingReaderUtility ||
@@ -522,7 +538,9 @@ async function enrichComparativeFeatureSignals(
   if (!knowledgeCard.features || typeof knowledgeCard.features !== 'object') return;
 
   const rawCore = Array.isArray(knowledgeCard.features.core) ? knowledgeCard.features.core : [];
-  const rawUnique = Array.isArray(knowledgeCard.features.unique) ? knowledgeCard.features.unique : [];
+  const rawUnique = Array.isArray(knowledgeCard.features.unique)
+    ? knowledgeCard.features.unique
+    : [];
   const rawDifferentiators = Array.isArray(knowledgeCard?.competitive?.differentiators)
     ? knowledgeCard.competitive.differentiators
     : [];
@@ -602,7 +620,9 @@ async function enrichComparativeFeatureSignals(
   if (effectiveUnique.length === 0) return;
 
   const cleanedCore = rawCore
-    .filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+    .filter(
+      (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
+    )
     .map((value: string) => value.trim())
     .filter((value: string, index: number, arr: string[]) => {
       const key = normalizeFeatureLabel(value);
@@ -1236,6 +1256,10 @@ export async function executePersistencePhase(
   let categoryId: string | null = null;
   const analysis = ctx.analysis.analysis;
   const knowledgeCard = ctx.research.knowledgeCard;
+  const lensAwarePricing = enrichSmpPricingForLens(knowledgeCard?.smp_pricing);
+  if (lensAwarePricing) {
+    knowledgeCard.smp_pricing = lensAwarePricing;
+  }
   const guardrailSources = ctx.research.scoutResult.raw_sources.map((source) => ({
     url: source.url,
     title: source.title,
@@ -1656,7 +1680,9 @@ export async function executePersistencePhase(
         )
       );
       const uniqueDerived = vettedDerived.filter((con) => {
-        const key = stripTerminalPunctuation(sanitizeNarrativeClaimText(con.text) || con.text).toLowerCase();
+        const key = stripTerminalPunctuation(
+          sanitizeNarrativeClaimText(con.text) || con.text
+        ).toLowerCase();
         return key.length > 0 && !existing.has(key);
       });
       const cap = Math.max(0, 3 - validCons.length);
@@ -1974,11 +2000,12 @@ export async function executePersistencePhase(
           const type = (entry.source_type || '').toLowerCase();
           const typeWeight =
             type === 'official' ? 4 : type === 'docs' ? 3 : type === 'support' ? 2 : 1;
-          const pathWeight = /(pricing|plans?|docs?|help|support|quickstart|get-started|onboarding|setup|api|developers?|legal|security|trust)/.test(
-            url
-          )
-            ? 2
-            : 0;
+          const pathWeight =
+            /(pricing|plans?|docs?|help|support|quickstart|get-started|onboarding|setup|api|developers?|legal|security|trust)/.test(
+              url
+            )
+              ? 2
+              : 0;
           return typeWeight + pathWeight;
         };
         return score(b) - score(a);
@@ -1993,7 +2020,9 @@ export async function executePersistencePhase(
 
     // Deduplicate merged source pool by URL
     const uniqueSources = Array.from(
-      new Map([...claimSources, ...scoutEvidenceSources].map((entry) => [entry.url, entry])).values()
+      new Map(
+        [...claimSources, ...scoutEvidenceSources].map((entry) => [entry.url, entry])
+      ).values()
     );
 
     // Auto-publish if high quality and robust sources
@@ -2131,7 +2160,8 @@ export async function executePersistencePhase(
       categorySlug: ctx.categorySlug || null,
       analysis: ctx.analysis.analysis,
       knowledgeCard: ctx.research.knowledgeCard,
-      generationQuality: (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined,
+      generationQuality:
+        (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined,
       deps,
     });
 
@@ -2202,7 +2232,8 @@ export async function executePersistencePhase(
     categorySlug: ctx.categorySlug || null,
     analysis: ctx.analysis.analysis,
     knowledgeCard: ctx.research.knowledgeCard,
-    generationQuality: (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined,
+    generationQuality:
+      (ctx.analysis.generationQuality as Record<string, unknown> | undefined) || undefined,
     deps,
   });
   await persistQualityGateSnapshot(item.id, reviewId, deps);
@@ -2287,13 +2318,13 @@ async function persistQualityGateSnapshot(
       : null;
   const hasGettingStartedData = Boolean(
     setupComplexity &&
-      (Array.isArray(setupComplexity.steps) ||
-        typeof setupComplexity.estimated_setup_time === 'string' ||
-        typeof setupComplexity.setup_url === 'string')
+    (Array.isArray(setupComplexity.steps) ||
+      typeof setupComplexity.estimated_setup_time === 'string' ||
+      typeof setupComplexity.setup_url === 'string')
   );
   const hasSpecsData = Boolean(
     (specs.categorySpecificData && typeof specs.categorySpecificData === 'object') ||
-      (specs.specifics && typeof specs.specifics === 'object')
+    (specs.specifics && typeof specs.specifics === 'object')
   );
   const hasCommunityData = Number(readiness.signals.evidence_counts.community_domains || 0) > 0;
   const hasPlatformData = Boolean(
@@ -2306,11 +2337,7 @@ async function persistQualityGateSnapshot(
     evaluationDepth: 'docs_only',
     confidenceByField: {
       evidence:
-        readiness.signals.score >= 85
-          ? 'high'
-          : readiness.signals.score >= 70
-            ? 'medium'
-            : 'low',
+        readiness.signals.score >= 85 ? 'high' : readiness.signals.score >= 70 ? 'medium' : 'low',
       pricing: itemRow.pricing_verified_at ? 'high' : 'unknown',
       alternatives: readiness.signals.evidence_counts.community_domains > 0 ? 'medium' : 'unknown',
     },
@@ -2350,18 +2377,18 @@ async function persistQualityGateSnapshot(
     (reviewContext?.decision_intro as Record<string, unknown> | undefined);
   const hasBestForSignal = Boolean(
     decisionIntro &&
-      typeof decisionIntro.best_for === 'string' &&
-      decisionIntro.best_for.trim().length >= 12
+    typeof decisionIntro.best_for === 'string' &&
+    decisionIntro.best_for.trim().length >= 12
   );
   const hasNotForSignal = Boolean(
     decisionIntro &&
-      typeof decisionIntro.not_for === 'string' &&
-      decisionIntro.not_for.trim().length >= 12
+    typeof decisionIntro.not_for === 'string' &&
+    decisionIntro.not_for.trim().length >= 12
   );
   const hasTradeoffSignal = Boolean(
     decisionIntro &&
-      typeof decisionIntro.main_tradeoff === 'string' &&
-      decisionIntro.main_tradeoff.trim().length >= 12
+    typeof decisionIntro.main_tradeoff === 'string' &&
+    decisionIntro.main_tradeoff.trim().length >= 12
   );
   const qaGate = evaluateToolPageQaGate({
     title: `${itemRow.name || 'Tool'} Review | StackHunt`,
@@ -2635,6 +2662,10 @@ async function updatePricingOnly(
 
   const toolSlug = slugify(ctx.toolName);
   const knowledgeCard = ctx.research!.knowledgeCard;
+  const lensAwarePricing = enrichSmpPricingForLens(knowledgeCard?.smp_pricing);
+  if (lensAwarePricing) {
+    knowledgeCard.smp_pricing = lensAwarePricing;
+  }
 
   const { data: existingBySlug } = await deps.supabase
     .from('items')
@@ -2675,24 +2706,28 @@ async function updatePricingOnly(
 
   // price_only must only refresh pricing freshness surfaces and must not mutate editorial sections.
   const priceOnlyTimestamp = new Date().toISOString();
-  const canonical = (specs.canonical && typeof specs.canonical === 'object'
-    ? specs.canonical
-    : {}) as Record<string, unknown>;
-  const canonicalQuality = (canonical.quality && typeof canonical.quality === 'object'
-    ? canonical.quality
-    : {}) as Record<string, unknown>;
-  const sectionStatus = (canonicalQuality.section_status &&
-  typeof canonicalQuality.section_status === 'object'
-    ? canonicalQuality.section_status
-    : {}) as Record<string, unknown>;
-  const sectionPublishability = (canonicalQuality.section_publishability &&
-  typeof canonicalQuality.section_publishability === 'object'
-    ? canonicalQuality.section_publishability
-    : {}) as Record<string, unknown>;
-  const sectionLastUpdated = (canonical.section_last_updated &&
-  typeof canonical.section_last_updated === 'object'
-    ? canonical.section_last_updated
-    : {}) as Record<string, unknown>;
+  const canonical = (
+    specs.canonical && typeof specs.canonical === 'object' ? specs.canonical : {}
+  ) as Record<string, unknown>;
+  const canonicalQuality = (
+    canonical.quality && typeof canonical.quality === 'object' ? canonical.quality : {}
+  ) as Record<string, unknown>;
+  const sectionStatus = (
+    canonicalQuality.section_status && typeof canonicalQuality.section_status === 'object'
+      ? canonicalQuality.section_status
+      : {}
+  ) as Record<string, unknown>;
+  const sectionPublishability = (
+    canonicalQuality.section_publishability &&
+    typeof canonicalQuality.section_publishability === 'object'
+      ? canonicalQuality.section_publishability
+      : {}
+  ) as Record<string, unknown>;
+  const sectionLastUpdated = (
+    canonical.section_last_updated && typeof canonical.section_last_updated === 'object'
+      ? canonical.section_last_updated
+      : {}
+  ) as Record<string, unknown>;
   specs = {
     ...specs,
     canonical: {
@@ -2789,6 +2824,10 @@ async function persistResearchOnly(
 
   const toolSlug = slugify(ctx.toolName);
   const knowledgeCard = ctx.research.knowledgeCard;
+  const lensAwarePricing = enrichSmpPricingForLens(knowledgeCard?.smp_pricing);
+  if (lensAwarePricing) {
+    knowledgeCard.smp_pricing = lensAwarePricing;
+  }
   let categoryId: string | null = null;
   if (ctx.detectedCategory) {
     const { data: detectedCategory } = await deps.supabase
@@ -3320,7 +3359,8 @@ function normalizeClaim(
       checked_at: checkedAt,
       source_urls: claim.source_urls || [matchedSourceUrl],
       verification_method:
-        claim.verification_method || (hasTierABCorroboration(normalizedText) ? 'cross_source' : 'source_presence'),
+        claim.verification_method ||
+        (hasTierABCorroboration(normalizedText) ? 'cross_source' : 'source_presence'),
       scope,
       volatility,
       recheck_by: claim.recheck_by || computeClaimRecheckBy(checkedAt, volatility) || undefined,
@@ -3500,7 +3540,8 @@ function buildDerivedConsFromConstraints(
 
   const addDerivedCon = (text: string, sourceUrl?: string) => {
     if (!sourceUrl) return;
-    const checkedAt = sources.find((s) => s.url === sourceUrl)?.retrieved_at || new Date().toISOString();
+    const checkedAt =
+      sources.find((s) => s.url === sourceUrl)?.retrieved_at || new Date().toISOString();
     const volatility = classifyClaimVolatility(text, 'fact');
     derived.push({
       text,
@@ -3560,7 +3601,10 @@ function buildDerivedConsFromConstraints(
     if (portability.has_data_export === false) {
       addDerivedCon('No first-party data export path is documented.', portabilitySourceUrl);
     }
-    if (portability.migration_difficulty === 'hard' || portability.migration_difficulty === 'locked') {
+    if (
+      portability.migration_difficulty === 'hard' ||
+      portability.migration_difficulty === 'locked'
+    ) {
       addDerivedCon(
         `Migration-out difficulty is listed as ${portability.migration_difficulty}.`,
         portabilitySourceUrl
@@ -3580,10 +3624,16 @@ function buildDerivedConsFromConstraints(
   const integrations = knowledgeCard?.integrations;
   if (integrationSourceUrl && integrations) {
     if (integrations.has_api === false) {
-      addDerivedCon('No public API access is documented in first-party sources.', integrationSourceUrl);
+      addDerivedCon(
+        'No public API access is documented in first-party sources.',
+        integrationSourceUrl
+      );
     }
     if (integrations.has_webhooks === false) {
-      addDerivedCon('Webhook support is not documented in first-party sources.', integrationSourceUrl);
+      addDerivedCon(
+        'Webhook support is not documented in first-party sources.',
+        integrationSourceUrl
+      );
     }
   }
 
@@ -3599,7 +3649,10 @@ function buildDerivedConsFromConstraints(
       support.has_phone_support === false &&
       support.has_dedicated_support === false
     ) {
-      addDerivedCon('Real-time support channels are limited (no live chat/phone listed).', supportSourceUrl);
+      addDerivedCon(
+        'Real-time support channels are limited (no live chat/phone listed).',
+        supportSourceUrl
+      );
     }
   }
 
@@ -4059,7 +4112,11 @@ async function createReview(
   }
 
   if (normalizedCons.length === 0) {
-    const derivedCons = buildDerivedConsFromConstraints(knowledgeCard, analysis.websiteUrl, sources);
+    const derivedCons = buildDerivedConsFromConstraints(
+      knowledgeCard,
+      analysis.websiteUrl,
+      sources
+    );
     const vettedDerived: ClaimWithSource[] = [];
     for (const derived of derivedCons) {
       const validation = validateNegativeClaim(derived, sources);
@@ -4075,7 +4132,9 @@ async function createReview(
         ).values()
       );
       normalizedCons.push(...deduped.slice(normalizedCons.length));
-      deps.log(`[Guardrail] Added ${vettedDerived.length} derived review cons from constraints/pricing`);
+      deps.log(
+        `[Guardrail] Added ${vettedDerived.length} derived review cons from constraints/pricing`
+      );
     }
   }
 

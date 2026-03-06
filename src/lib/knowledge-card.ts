@@ -33,6 +33,10 @@ export const SMPPlanSchema = z
       .describe(
         'Who is this plan for? individual=solo users, team=2-10, business=10-100, enterprise=100+'
       ),
+    works_for_lenses: z
+      .array(z.enum(['personal', 'startup', 'enterprise']))
+      .optional()
+      .describe('Lens tags used to match plans to review lenses on tool pages'),
     price_monthly: z.number().nullable().optional(), // Monthly price (null/undefined = no monthly option)
     price_annual: z.number().nullable().optional(), // Total annual price (null/undefined = no annual option)
     // Tolerant Reader: Accept any string to avoid pipeline failures on novel units
@@ -596,7 +600,6 @@ export const KnowledgeCardSchema = z.object({
 
   // === V3.1: REVIEW CONTEXT (The "Human Touch" Layer) ===
   review_context: ReviewContextSchema.optional(),
-
 });
 
 export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>;
