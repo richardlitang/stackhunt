@@ -20,7 +20,7 @@ export function buildToolPageQuickJumpLinks(
   input: BuildToolPageQuickJumpLinksInput
 ): ToolPageQuickJumpLink[] {
   const links: ToolPageQuickJumpLink[] = [
-    { href: '#workflow-fit', label: 'Workflow fit' },
+    { href: '#workflow-fit', label: 'Rollout checkpoints' },
     { href: '#how-we-evaluate', label: 'How we evaluated' },
   ];
 

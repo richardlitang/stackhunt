@@ -17,7 +17,7 @@ describe('tool page quick jump links', () => {
     });
 
     expect(result.map((item) => item.label)).toEqual([
-      'Workflow fit',
+      'Rollout checkpoints',
       'How we evaluated',
       'Disclosures',
     ]);
