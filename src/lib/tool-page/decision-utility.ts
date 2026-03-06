@@ -23,7 +23,10 @@ export interface ToolPageDecisionUtilityState {
   verdictLeadOverride: string;
   testChecklistTitle: string;
   testChecklistItems: string[];
-  pricingMentalModelItems: string[];
+  pricingMentalModelItems: Array<{
+    text: string;
+    status: 'Source-backed' | 'Needs confirmation';
+  }>;
   commonSetupsTitle: string;
   commonSetups: ToolPageDecisionUtilitySetup[];
   practicalOutcomesTitle: string;
@@ -95,7 +98,7 @@ export function buildToolPageDecisionUtilityState(
     ? buildCrmChecklist(input.activeReviewLens)
     : buildGenericChecklist(input.toolName);
 
-  const pricingMentalModelItems =
+  const basePricingMentalModelItems =
     input.activeReviewLens === 'startup'
       ? [
           'Cost normally scales with seats, workspace count, and plan tier.',
@@ -113,6 +116,20 @@ export function buildToolPageDecisionUtilityState(
             'The first paid threshold is usually headcount or feature-gating, not usage volume alone.',
             'Confirm billing behavior before rollout so team growth does not surprise budget owners.',
           ];
+  const pricingMentalModelItems: ToolPageDecisionUtilityState['pricingMentalModelItems'] = [
+    ...(input.hardLimitText
+      ? [
+          {
+            text: input.hardLimitText,
+            status: 'Source-backed' as const,
+          },
+        ]
+      : []),
+    ...basePricingMentalModelItems.map((text) => ({
+      text,
+      status: 'Needs confirmation' as const,
+    })),
+  ];
 
   const commonSetups = isCrm
     ? [
