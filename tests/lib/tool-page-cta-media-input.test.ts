@@ -39,6 +39,7 @@ describe('tool page cta media input', () => {
       model: 'subscription',
       plans: [{ name: 'Pro' }],
     });
+    expect(result.activeReviewLens).toBe('general');
     expect(result.renderVerdictSafe).toBe('Solid shortlist option');
   });
 
@@ -104,11 +105,13 @@ describe('tool page cta media input', () => {
         smp_pricing: { model: 'subscription', plans: [{ name: 'Team' }] },
       },
       renderVerdictSafe: 'Strong option',
+      activeReviewLens: 'startup',
     });
 
     expect(result.tool.slug).toBe('gamma');
     expect(result.tool.category).toEqual({ slug: 'analytics', name: 'Analytics' });
     expect(result.knowledgeCardPricing.startingPrice).toBe(49);
+    expect(result.activeReviewLens).toBe('startup');
     expect(result.renderVerdictSafe).toBe('Strong option');
   });
 });

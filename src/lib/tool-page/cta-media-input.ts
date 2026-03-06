@@ -1,4 +1,5 @@
 import type { BuildToolPageCtaMediaStateInput } from '@/lib/tool-page/cta-media-state';
+import type { PricingReviewLens } from '@/lib/pricing/plan-lens';
 
 interface BuildToolPageCtaMediaStateInputFromToolInput {
   tool: {
@@ -20,6 +21,7 @@ interface BuildToolPageCtaMediaStateInputFromToolInput {
     | null
     | undefined;
   renderVerdictSafe: string | null;
+  activeReviewLens?: PricingReviewLens;
 }
 
 interface BuildToolPageCtaMediaToolFromRouteToolInput {
@@ -38,6 +40,7 @@ interface BuildToolPageCtaMediaStateInputFromRouteContextInput {
   category: { slug: string; name: string } | null;
   knowledgeCard: BuildToolPageCtaMediaStateInputFromToolInput['knowledgeCard'];
   renderVerdictSafe: BuildToolPageCtaMediaStateInputFromToolInput['renderVerdictSafe'];
+  activeReviewLens?: PricingReviewLens;
 }
 
 export function buildToolPageCtaMediaToolFromRouteTool(
@@ -80,6 +83,7 @@ export function buildToolPageCtaMediaStateInputFromTool(
       plans: input.knowledgeCard?.smp_pricing?.plans,
     },
     renderVerdictSafe: input.renderVerdictSafe,
+    activeReviewLens: input.activeReviewLens || 'general',
   };
 }
 
@@ -90,5 +94,6 @@ export function buildToolPageCtaMediaStateInputFromRouteContext(
     tool: buildToolPageCtaMediaToolFromRouteTool(input.tool, input.category),
     knowledgeCard: input.knowledgeCard,
     renderVerdictSafe: input.renderVerdictSafe,
+    activeReviewLens: input.activeReviewLens,
   });
 }

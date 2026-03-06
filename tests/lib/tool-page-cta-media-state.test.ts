@@ -56,4 +56,35 @@ describe('tool page cta media state', () => {
     expect(state.addToStackProps.toolSlug).toBe('acme');
     expect(state.verdictContent.body).toContain('Solid shortlist option');
   });
+
+  it('filters add-to-stack plans for the active pricing lens', () => {
+    const state = buildToolPageCtaMediaState({
+      tool: {
+        id: 'tool_4',
+        slug: 'delta',
+        name: 'Delta',
+        logo_url: null,
+        pricing_type: 'tiered',
+        user_verifications_this_week: 0,
+        video_id: null,
+        video_title: null,
+        category: null,
+      },
+      knowledgeCardPricing: {
+        startingPrice: null,
+        model: 'tiered',
+        plans: [
+          { name: 'Free', target_audience: 'individual' },
+          { name: 'Team', target_audience: 'team' },
+          { name: 'Enterprise', target_audience: 'enterprise' },
+        ],
+      },
+      renderVerdictSafe: null,
+      activeReviewLens: 'enterprise',
+    });
+
+    const plans = Array.isArray(state.addToStackProps.plans) ? state.addToStackProps.plans : [];
+    expect(plans).toHaveLength(1);
+    expect((plans[0] as { name?: string }).name).toBe('Enterprise');
+  });
 });

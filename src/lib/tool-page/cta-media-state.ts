@@ -5,6 +5,7 @@ import { buildToolPagePriceVerificationProps } from '@/lib/tool-page/price-verif
 import { buildToolPageVerdictContent } from '@/lib/tool-page/verdict-content';
 import { buildToolPageVideoProps } from '@/lib/tool-page/video-props';
 import { buildToolPageVideoState } from '@/lib/tool-page/video-state';
+import { filterPlansForLensWithMeta, type PricingReviewLens } from '@/lib/pricing/plan-lens';
 
 export interface BuildToolPageCtaMediaStateInput {
   tool: {
@@ -24,6 +25,7 @@ export interface BuildToolPageCtaMediaStateInput {
     plans: unknown;
   };
   renderVerdictSafe: string | null;
+  activeReviewLens?: PricingReviewLens;
 }
 
 export function buildToolPageCtaMediaState(input: BuildToolPageCtaMediaStateInput): {
@@ -34,6 +36,13 @@ export function buildToolPageCtaMediaState(input: BuildToolPageCtaMediaStateInpu
   videoProps: ReturnType<typeof buildToolPageVideoProps>;
   verdictContent: ReturnType<typeof buildToolPageVerdictContent>;
 } {
+  const allPlans = Array.isArray(input.knowledgeCardPricing.plans)
+    ? input.knowledgeCardPricing.plans
+    : [];
+  const { plans: lensFilteredPlans } = filterPlansForLensWithMeta(
+    allPlans,
+    input.activeReviewLens || 'general'
+  );
   const compareButtonProps = buildToolPageCompareButtonProps({
     toolSlug: input.tool.slug,
     toolName: input.tool.name,
@@ -47,7 +56,7 @@ export function buildToolPageCtaMediaState(input: BuildToolPageCtaMediaStateInpu
     toolLogo: input.tool.logo_url,
     pricingStartingPrice: input.knowledgeCardPricing.startingPrice,
     pricingModel: input.knowledgeCardPricing.model ?? input.tool.pricing_type,
-    pricingPlans: input.knowledgeCardPricing.plans,
+    pricingPlans: lensFilteredPlans,
   });
   const priceVerificationProps = buildToolPagePriceVerificationProps({
     toolId: input.tool.id,

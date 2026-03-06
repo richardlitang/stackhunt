@@ -171,7 +171,7 @@ export function buildToolPageDecisionUtilityState(
             'The first paid threshold is usually headcount or feature-gating, not usage volume alone.',
             'Confirm billing behavior before rollout so team growth does not surprise budget owners.',
           ];
-  const pricingMentalModelItems: ToolPageDecisionUtilityState['pricingMentalModelItems'] = [
+  const pricingMentalModelItemsRaw: ToolPageDecisionUtilityState['pricingMentalModelItems'] = [
     ...(input.hardLimitText
       ? [
           {
@@ -198,6 +198,13 @@ export function buildToolPageDecisionUtilityState(
       ...(input.pricingEvidenceSourceUrl ? { evidenceHref: '#pricing' } : {}),
     })),
   ];
+  const seenPricingMentalModelKeys = new Set<string>();
+  const pricingMentalModelItems = pricingMentalModelItemsRaw.filter((item) => {
+    const key = item.text.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!key || seenPricingMentalModelKeys.has(key)) return false;
+    seenPricingMentalModelKeys.add(key);
+    return true;
+  });
 
   const commonSetups = hasEvidenceAnchoredUtility
     ? isCrm

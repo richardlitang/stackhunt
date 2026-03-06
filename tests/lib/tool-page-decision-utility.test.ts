@@ -118,4 +118,26 @@ describe('tool page decision utility', () => {
     expect(result.testChecklistItems[1]).toContain('auth');
     expect(result.hasEvidenceAnchoredUtility).toBe(true);
   });
+
+  it('dedupes repeated pricing mental model bullets', () => {
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'Acme',
+      categorySlug: 'ai-automation',
+      activeReviewLens: 'general',
+      hasApi: true,
+      hasParentTool: false,
+      hasEnterpriseSignals: false,
+      lensBestFitLine: 'Best fit',
+      lensWeakFitLine: 'Weak fit',
+      lensTradeoffLine: 'Tradeoff',
+      hardLimitText: 'No free trial available for paid tiers.',
+      pricingEvidenceSummary: 'No free trial available for paid tiers.',
+      pricingEvidenceSourceUrl: 'https://example.com/pricing',
+    });
+
+    const normalized = result.pricingMentalModelItems.map((item) =>
+      item.text.toLowerCase().replace(/\s+/g, ' ').trim()
+    );
+    expect(new Set(normalized).size).toBe(normalized.length);
+  });
 });
