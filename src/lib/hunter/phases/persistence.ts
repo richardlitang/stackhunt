@@ -3500,6 +3500,14 @@ function normalizeClaim(
     title: string;
     snippet: string;
     domain: string;
+    source_type?:
+      | 'official'
+      | 'docs'
+      | 'support'
+      | 'legal'
+      | 'editorial'
+      | 'community'
+      | 'directory';
     retrieved_at?: string;
     published_at?: string;
     time_since?: string;
@@ -3639,7 +3647,10 @@ function normalizeClaim(
       normalizedSourceUrlToOriginal.get(normalizedComparisonBasisSourceUrl)
         ? normalizedSourceUrlToOriginal.get(normalizedComparisonBasisSourceUrl)
         : undefined;
-    const sourceType = claim.source_type || classifySourceType(matchedSourceUrl, toolWebsite);
+    const matchedSource = findSource(matchedSourceUrl);
+    const sourceType =
+      claim.source_type ||
+      classifySourceType(matchedSourceUrl, toolWebsite, matchedSource?.source_type);
     const strictKind = detectClaimKind(claim.text, claimType);
     const detectedKind =
       strictKind === 'comparison' || strictKind === 'derived_metric'
@@ -3783,7 +3794,7 @@ function normalizeClaim(
   const scopedLegacy = enforceOfferingScope(legacyText, bestSource.url, sources);
   if (!scopedLegacy) return null;
   legacyText = scopedLegacy;
-  const legacySourceType = classifySourceType(bestSource.url, toolWebsite);
+  const legacySourceType = classifySourceType(bestSource.url, toolWebsite, bestSource.source_type);
   if (legacySourceType === 'official' && hasCommunityHedgingLanguage(legacyText)) {
     return null;
   }
@@ -4094,6 +4105,7 @@ function buildUserSignalSummary(
     text: string;
     source_type: 'community' | 'editorial';
     source_domain: string | null;
+    source_channel: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
   }>;
 } | null {
   const all = [
@@ -4149,6 +4161,7 @@ function buildUserSignalSummary(
     text: string;
     source_type: 'community' | 'editorial';
     source_domain: string | null;
+    source_channel: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
   }> = [];
   const seen = new Set<string>();
   const rankedUserClaims = [...community, ...editorial].sort((a, b) => {
@@ -4176,6 +4189,10 @@ function buildUserSignalSummary(
       text: signal,
       source_type: claim.source_type === 'community' ? 'community' : 'editorial',
       source_domain: normalizeDomain(claim.source_url),
+      source_channel:
+        claim.source_type === 'community'
+          ? inferCommunityBucket(normalizeDomain(claim.source_url))
+          : 'editorial',
     });
     if (uniqueSignals.length >= 3) break;
   }

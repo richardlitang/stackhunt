@@ -587,6 +587,7 @@ export interface ToolSpecs {
       text: string;
       source_type: 'community' | 'editorial';
       source_domain: string | null;
+      source_channel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
     }>;
   };
   user_reported_pros?: Array<{
