@@ -199,6 +199,7 @@ export { buildToolPageVideoProps } from '@/lib/tool-page/video-props';
 export { buildToolPageViewRuntime } from '@/lib/tool-page/view-runtime';
 export { buildToolPageWebsiteState } from '@/lib/tool-page/website';
 export { buildToolPageWebsiteLabel } from '@/lib/tool-page/website-label';
+export { buildToolPageWorkflowFitVisibility } from '@/lib/tool-page/workflow-fit-visibility';
 export { deriveToolPageRequestState } from '@/lib/tool-page/request-state';
 export {
   toToolPageOptionalRecord,

@@ -54,6 +54,7 @@ import {
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
   buildToolPageDecisionUtilityState,
   buildToolPagePricingScenarioState,
+  buildToolPageWorkflowFitVisibility,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
@@ -336,6 +337,11 @@ const decisionUtilityState = buildToolPageDecisionUtilityState({
   lensWeakFitLine,
   lensTradeoffLine,
   hardLimitText: canonicalHardLimits[0]?.text || null,
+});
+const { showWorkflowFitSection } = buildToolPageWorkflowFitVisibility({
+  categorySlug: tool.category?.slug || null,
+  hasWorkflowCards: workflowFitCards.length > 0,
+  hasWorkflowHighlights: workflowFitHighlights.length > 0,
 });
 const decisionHardLimitEvidence = canonicalHardLimits[0] || null;
 const pricingScenarioState = buildToolPagePricingScenarioState({
@@ -883,7 +889,11 @@ applyToolPageRobotsHeader({
           )
         }
         {showProceduralVerdict && <ToolDecisionConditionsSection />}
-        <ToolWorkflowFitSection cards={workflowFitCards} highlights={workflowFitHighlights} />
+        {
+          showWorkflowFitSection && (
+            <ToolWorkflowFitSection cards={workflowFitCards} highlights={workflowFitHighlights} />
+          )
+        }
 
         {/* Pricing Plans */}
         {
