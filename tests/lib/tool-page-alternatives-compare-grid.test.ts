@@ -44,11 +44,22 @@ describe('resolveToolCompareGridValue', () => {
   it('uses computed diff as heuristic for integration approach and evidence level', () => {
     const tool: ToolCompareGridLike = {
       ...baseTool,
-      computedDiff: { featureDiff: 'API-first integration focus' },
+      computedDiff: {
+        featureDiff: 'API-first integration focus',
+        priceDiff: 'attio has a free tier',
+        learningDiff: 'attio is easier to learn (~Hours)',
+      },
     };
 
     expect(resolveToolCompareGridValue('Integration approach', tool)).toBe(
       'API-first integration focus'
+    );
+    expect(resolveToolCompareGridValue('Setup time', tool)).toBe(
+      'Attio is easier to learn (~Hours)'
+    );
+    expect(resolveToolCompareGridValue('Seat complexity', tool)).toBe('Attio has a free tier');
+    expect(resolveToolCompareGridValue('Best for', tool)).toBe(
+      'Teams optimizing for feature and integration fit'
     );
     expect(resolveToolCompareGridValue('Evidence level', tool)).toBe('Heuristic');
   });

@@ -29,6 +29,12 @@ export const TOOL_COMPARE_GRID_ROWS = [
 
 export type ToolCompareGridRow = (typeof TOOL_COMPARE_GRID_ROWS)[number];
 
+function toSentenceCase(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return trimmed;
+  return `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}`;
+}
+
 function normalizePricingType(type?: string | null): string {
   const value = (type || '').toLowerCase();
   if (!value) return 'Needs confirmation';
@@ -53,8 +59,10 @@ export function resolveToolCompareGridValue(
 ): string {
   switch (row) {
     case 'Setup time':
+      if (tool.computedDiff?.learningDiff) return toSentenceCase(tool.computedDiff.learningDiff);
       return normalizeSetup(tool.learning_curve);
     case 'Seat complexity':
+      if (tool.computedDiff?.priceDiff) return toSentenceCase(tool.computedDiff.priceDiff);
       return normalizePricingType(tool.pricing_type);
     case 'Customization depth':
       if (tool.curatedVerdict) return 'Comparison brief available';
@@ -65,6 +73,9 @@ export function resolveToolCompareGridValue(
       return 'Needs confirmation';
     case 'Best for':
       if (tool.curatedVerdict) return 'Teams matching the comparison brief assumptions';
+      if (tool.computedDiff?.featureDiff) return 'Teams optimizing for feature and integration fit';
+      if (tool.computedDiff?.priceDiff) return 'Teams prioritizing pricing model differences';
+      if (tool.computedDiff?.learningDiff) return 'Teams prioritizing setup speed';
       return 'Needs confirmation';
     case 'Evidence level': {
       const level = resolveAlternativeEvidenceLevel({
