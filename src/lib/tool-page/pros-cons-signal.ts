@@ -78,22 +78,23 @@ export function scoreProsConsClaimSignal(input: {
 
 export function prioritizeProsConsClaims<
   T extends {
+    text?: string;
     source_type?: ProsConsSourceType;
     claim_type?: ProsConsClaimType;
     corroborating_source_count?: number;
     claim_confidence_tier?: 'high' | 'medium' | 'low';
-    displayText: string;
+    displayText?: string;
   },
 >(items: T[]): T[] {
   const ranked = [...items]
     .map((item, index) => ({
       item,
       index,
-      key: normalizeProsConsKey(item.displayText),
+      key: normalizeProsConsKey(getClaimDisplayText(item)),
       score: scoreProsConsClaimSignal({
         sourceType: item.source_type || 'official',
         claimType: item.claim_type,
-        text: item.displayText,
+        text: getClaimDisplayText(item),
         corroboratingSourceCount: item.corroborating_source_count,
         claimConfidenceTier: item.claim_confidence_tier,
       }),
@@ -112,13 +113,21 @@ function normalizeProsConsKey(text: string): string {
     .trim();
 }
 
-function dedupeRankedProsConsClaims<T extends { item: { displayText: string }; key: string }>(
+function getClaimDisplayText<T extends { displayText?: string; text?: string }>(item: T): string {
+  const display = typeof item.displayText === 'string' ? item.displayText : '';
+  if (display.trim().length > 0) return display;
+  return typeof item.text === 'string' ? item.text : '';
+}
+
+function dedupeRankedProsConsClaims<
+  T extends { item: { displayText?: string; text?: string }; key: string },
+>(
   ranked: T[]
 ): T[] {
   const seen = new Set<string>();
   const deduped: T[] = [];
   for (const entry of ranked) {
-    const key = entry.key || normalizeProsConsKey(entry.item.displayText);
+    const key = entry.key || normalizeProsConsKey(getClaimDisplayText(entry.item));
     if (!key || seen.has(key)) continue;
     seen.add(key);
     deduped.push(entry);

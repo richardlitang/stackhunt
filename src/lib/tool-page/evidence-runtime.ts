@@ -4,6 +4,7 @@ import type { ToolPageEvidenceBullet, ToolPageEvidenceBulletV2 } from '@/lib/too
 import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
 import { buildToolPagePricingViewModel } from '@/lib/tool-page/pricing';
 import type { ToolPagePricingEvidenceLink } from '@/lib/tool-page/pricing';
+import { prioritizeProsConsClaims } from '@/lib/tool-page/pros-cons-signal';
 import { buildToolPageSourcesViewModel } from '@/lib/tool-page/sources';
 import { buildToolPageTradeoffEvidence } from '@/lib/tool-page/tradeoff-evidence';
 
@@ -83,10 +84,13 @@ export function buildToolPageEvidenceRuntime(
   const globalEvidenceCons = input.globalCons
     .map(input.toEvidenceBullet)
     .filter((item): item is ToolPageEvidenceBullet => Boolean(item));
-  const effectiveEvidencePros =
-    contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros;
+  const effectiveEvidencePros = prioritizeProsConsClaims(
+    contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros
+  );
   const rawEvidenceCons = contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
-  const effectiveEvidenceCons = rawEvidenceCons.filter((item) => !input.isDisallowedConClaim(item.text));
+  const effectiveEvidenceCons = prioritizeProsConsClaims(
+    rawEvidenceCons.filter((item) => !input.isDisallowedConClaim(item.text))
+  );
   const hasStrengths = effectiveEvidencePros.length + effectiveEvidenceCons.length >= 2;
 
   const canonicalHardLimitsResult = deriveToolPageCanonicalHardLimits({
