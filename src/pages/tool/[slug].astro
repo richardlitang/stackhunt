@@ -649,12 +649,22 @@ applyToolPageRobotsHeader({
         <li>
           <span class="font-medium text-zinc-100">Use if:</span>{' '}
           {decisionUtilityState.decisionUseIf}{' '}
-          <span class="text-xs text-zinc-500">(Evidence: Why This Verdict)</span>
+          <a
+            href="#verdict"
+            class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
+          >
+            Evidence
+          </a>
         </li>
         <li>
           <span class="font-medium text-zinc-100">Avoid if:</span>{' '}
           {decisionUtilityState.decisionAvoidIf}{' '}
-          <span class="text-xs text-zinc-500">(Evidence: Why This Verdict)</span>
+          <a
+            href="#verdict"
+            class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
+          >
+            Evidence
+          </a>
         </li>
         <li>
           <span class="font-medium text-zinc-100">Watch out:</span>{' '}
