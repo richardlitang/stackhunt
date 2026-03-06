@@ -960,15 +960,28 @@ applyToolPageRobotsHeader({
                     {decisionUtilityState.pricingMentalModelItems.map((item) => (
                       <li class="flex flex-wrap items-center gap-1.5">
                         <span>- {item.text}</span>
-                        <span
-                          class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
-                            item.status === 'Source-backed'
-                              ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300'
-                              : 'border-amber-700/70 bg-amber-950/40 text-amber-200'
-                          }`}
-                        >
-                          {item.status}
-                        </span>
+                        {item.evidenceHref ? (
+                          <a
+                            href={item.evidenceHref}
+                            class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
+                              item.status === 'Source-backed'
+                                ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300 hover:border-emerald-500'
+                                : 'border-amber-700/70 bg-amber-950/40 text-amber-200 hover:border-amber-500'
+                            }`}
+                          >
+                            {item.status}
+                          </a>
+                        ) : (
+                          <span
+                            class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
+                              item.status === 'Source-backed'
+                                ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300'
+                                : 'border-amber-700/70 bg-amber-950/40 text-amber-200'
+                            }`}
+                          >
+                            {item.status}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

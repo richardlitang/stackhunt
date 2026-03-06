@@ -26,6 +26,7 @@ export interface ToolPageDecisionUtilityState {
   pricingMentalModelItems: Array<{
     text: string;
     status: 'Source-backed' | 'Needs confirmation';
+    evidenceHref?: string;
   }>;
   commonSetupsTitle: string;
   commonSetups: ToolPageDecisionUtilitySetup[];
@@ -122,6 +123,7 @@ export function buildToolPageDecisionUtilityState(
           {
             text: input.hardLimitText,
             status: 'Source-backed' as const,
+            evidenceHref: '#verdict',
           },
         ]
       : []),
