@@ -86,4 +86,49 @@ describe('tool page alternatives pricing state', () => {
     expect(state.alternativeCardsView.length).toBe(1);
     expect(state.alternativesSectionState.viewAllHref).toBe('/categories/project-management');
   });
+
+  it('prioritizes alternatives based on active lens', () => {
+    const state = buildToolPageAlternativesPricingState({
+      activeReviewLens: 'enterprise',
+      pricingInsightsInput: {
+        budgetCostDrivers: [],
+        budgetOneTimeFees: [],
+        budgetCommitmentTerms: null,
+        budgetRoiThreshold: null,
+      },
+      primaryFunctionInput: { specs: null },
+      alternativesIntroInput: {
+        alternativesLabel: 'Alternatives',
+        categoryName: 'CRM',
+      },
+      compareTeaserInput: {
+        toolSlug: 'acme',
+        alternatives: [],
+      },
+      alternativesSectionInput: {
+        category: { slug: 'crm-sales', name: 'CRM' },
+      },
+      alternativeCardsInput: {
+        alternatives: [
+          {
+            slug: 'starter',
+            name: 'Starter CRM',
+            pricing_type: 'freemium',
+            metadata: { target_market: 'consumer' },
+            specs: { pricing_data: { plans: [{ target_audience: 'individual' }] } },
+          },
+          {
+            slug: 'enterprise',
+            name: 'Enterprise CRM',
+            pricing_type: 'enterprise',
+            metadata: { target_market: 'enterprise' },
+            specs: { pricing_data: { plans: [{ target_audience: 'enterprise' }] } },
+          },
+        ],
+        canCompareByAlternativeSlug: { starter: true, enterprise: true },
+      },
+    });
+
+    expect(state.alternativeCardsView[0]?.alt.slug).toBe('enterprise');
+  });
 });

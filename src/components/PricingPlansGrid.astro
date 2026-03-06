@@ -66,6 +66,12 @@ if (!hasSMPPricing && !hasLegacyPricing) return null;
 // Use compact table view for multi-product platforms (>6 plans)
 const useCompactView = hasSMPPricing && lensFilteredSmpPlans.length > 6;
 const planCount = hasSMPPricing ? lensFilteredSmpPlans.length : 0;
+const lensLabelMap: Record<PricingReviewLens, string> = {
+  general: 'General',
+  personal: 'Solo / Freelancer',
+  startup: 'Startup',
+  enterprise: 'Enterprise',
+};
 
 // Pricing model labels
 const modelLabels = {
@@ -115,6 +121,11 @@ const discountLabels = {
   {
     hasSMPPricing && useCompactView && (
       <div>
+        {activeReviewLens !== 'general' && (
+          <p class="mb-2 text-xs text-zinc-500">
+            Showing plans most relevant to the {lensLabelMap[activeReviewLens]} lens.
+          </p>
+        )}
         <p class="mb-4 text-sm text-zinc-400">{planCount} plans with published pricing data</p>
         <div class="overflow-hidden rounded-lg border border-zinc-700">
           <table class="w-full text-sm">
@@ -161,6 +172,11 @@ const discountLabels = {
   {
     hasSMPPricing && !useCompactView && (
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {activeReviewLens !== 'general' && (
+          <p class="col-span-full mb-1 text-xs text-zinc-500">
+            Showing plans most relevant to the {lensLabelMap[activeReviewLens]} lens.
+          </p>
+        )}
         {lensFilteredSmpPlans.map((plan) => (
           <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-4 hover:border-zinc-600 transition">
             {/* Plan Header */}

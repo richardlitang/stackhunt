@@ -871,6 +871,7 @@ function buildCanonicalPricingPlans(pricingData: any): {
     plan_id: string;
     plan_name: string;
     audience?: string | null;
+    works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
     seat_type?: string | null;
     price_monthly?: number | null;
     price_annual?: number | null;
@@ -889,6 +890,11 @@ function buildCanonicalPricingPlans(pricingData: any): {
     plan_id: String(plan?.id || slugify(String(plan?.name || 'plan'))),
     plan_name: String(plan?.name || 'Unknown'),
     audience: typeof plan?.target_audience === 'string' ? plan.target_audience : null,
+    works_for_lenses: Array.isArray(plan?.works_for_lenses)
+      ? plan.works_for_lenses.filter((value: unknown) =>
+          value === 'personal' || value === 'startup' || value === 'enterprise'
+        )
+      : null,
     seat_type: typeof plan?.scaling_unit === 'string' ? plan.scaling_unit : null,
     price_monthly: typeof plan?.price_monthly === 'number' ? plan.price_monthly : null,
     price_annual: typeof plan?.price_annual === 'number' ? plan.price_annual : null,
