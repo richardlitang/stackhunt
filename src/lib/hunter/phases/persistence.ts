@@ -35,6 +35,7 @@ import {
 import { persistItemFactPack } from '../fact-pack';
 import { mergeDefined } from '@/lib/utils/merge-defined';
 import type { ToolSpecs } from '@/types/database';
+import { inferUserSignalChannelFromUrl } from '@/lib/user-signal-channel';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import {
   classifyClaimVolatility,
@@ -4126,31 +4127,13 @@ function buildUserSignalSummary(
     }
   };
 
-  const inferCommunityBucket = (domain: string | null): 'reddit' | 'forum' | 'hn' | 'other' => {
-    if (!domain) return 'other';
-    if (domain === 'reddit.com' || domain.endsWith('.reddit.com')) return 'reddit';
-    if (domain === 'news.ycombinator.com' || domain === 'ycombinator.com') return 'hn';
-    if (
-      domain.includes('forum') ||
-      domain.includes('community') ||
-      domain.includes('discourse') ||
-      domain.endsWith('.stackexchange.com') ||
-      domain === 'stackoverflow.com' ||
-      domain === 'quora.com' ||
-      domain === 'discord.com'
-    ) {
-      return 'forum';
-    }
-    return 'other';
-  };
-
   let redditClaims = 0;
   let forumClaims = 0;
   let hnClaims = 0;
   for (const claim of community) {
     const domain = normalizeDomain(claim.source_url);
     if (domain) communityDomains.add(domain);
-    const bucket = inferCommunityBucket(domain);
+    const bucket = inferUserSignalChannelFromUrl(claim.source_url);
     if (bucket === 'reddit') redditClaims += 1;
     if (bucket === 'forum') forumClaims += 1;
     if (bucket === 'hn') hnClaims += 1;
@@ -4191,7 +4174,7 @@ function buildUserSignalSummary(
       source_domain: normalizeDomain(claim.source_url),
       source_channel:
         claim.source_type === 'community'
-          ? inferCommunityBucket(normalizeDomain(claim.source_url))
+          ? inferUserSignalChannelFromUrl(claim.source_url)
           : 'editorial',
     });
     if (uniqueSignals.length >= 3) break;
