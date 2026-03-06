@@ -275,6 +275,7 @@ const userSignalSummary =
           text?: string;
           source_type?: 'community' | 'editorial';
           source_domain?: string | null;
+          source_channel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
         }>;
       })
     : null;
@@ -1341,6 +1342,13 @@ applyToolPageRobotsHeader({
                       {communityConsCount || 0} cons.
                     </p>
                   )}
+                  {(communityProsCount || 0) + (communityConsCount || 0) === 0 &&
+                    qualityState.communityCorroborationCount > 0 && (
+                      <p class="mt-1 text-xs text-amber-300">
+                        Community sources were found, but not enough source-backed user claims were
+                        extracted yet.
+                      </p>
+                    )}
                   {userSignalSummary &&
                     ((userSignalSummary.reddit_claims || 0) +
                       (userSignalSummary.forum_claims || 0) +
@@ -1371,6 +1379,9 @@ applyToolPageRobotsHeader({
                         <li>
                           - {claim.text}
                           {claim.source_domain ? ` (${claim.source_domain})` : ''}
+                          {claim.source_channel && claim.source_channel !== 'other'
+                            ? ` [${claim.source_channel}]`
+                            : ''}
                         </li>
                       ))}
                     </ul>
