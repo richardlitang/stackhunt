@@ -31,7 +31,9 @@ function matchesHostPattern(hostname: string, patterns: RegExp[]): boolean {
 
 function isLikelyCommunityHost(hostname: string): boolean {
   if (matchesHostPattern(hostname, COMMUNITY_HOST_PATTERNS)) return true;
-  return hostname.includes('forum') || hostname.includes('community') || hostname.includes('discourse');
+  return (
+    hostname.includes('forum') || hostname.includes('community') || hostname.includes('discourse')
+  );
 }
 
 export function classifyProsConsSourceType(input: {
