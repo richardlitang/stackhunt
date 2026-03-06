@@ -1973,7 +1973,9 @@ export async function executePersistencePhase(
       },
     };
     if (userSignalCoveragePending) {
-      deps.log('[User Signal] Coverage pending: community domains found but no user-reported claims');
+      deps.log(
+        '[User Signal] Coverage pending: community domains found but no user-reported claims'
+      );
     }
   }
 

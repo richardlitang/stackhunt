@@ -108,8 +108,8 @@ export function buildToolPageQualityState(
       : undefined;
   const canonicalQuality =
     input.tool?.specs && typeof input.tool.specs === 'object'
-      ? ((((input.tool.specs as Record<string, unknown>).canonical as Record<string, unknown>)?.quality ||
-          {}) as {
+      ? ((((input.tool.specs as Record<string, unknown>).canonical as Record<string, unknown>)
+          ?.quality || {}) as {
           user_signal_coverage_pending?: boolean;
         })
       : undefined;
