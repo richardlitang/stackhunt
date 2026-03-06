@@ -362,6 +362,7 @@ SCALING UNIT (Required for non-flat models):
 PLAN EXTRACTION:
 - Plan IDs: "${toolSlug}-{plan-name}" format (e.g., "${toolSlug}-pro")
 - target_audience: individual (solo/freelancer) | team (2-10) | business (10-100) | enterprise (100+)
+- works_for_lenses: optional array using only personal | startup | enterprise when the source clearly indicates fit
 - Extract ALL tiers (Free through Enterprise) - UI filters later
 - Feature flags: includes_sso, includes_api, includes_sla, includes_priority_support, is_enterprise
 
