@@ -28,6 +28,12 @@ export const TOOL_COMPARE_GRID_ROWS = [
 ] as const;
 
 export type ToolCompareGridRow = (typeof TOOL_COMPARE_GRID_ROWS)[number];
+export type ToolCompareGridEvidenceTag = 'source' | 'heuristic' | 'pending';
+
+export interface ToolCompareGridCell {
+  value: string;
+  evidenceTag: ToolCompareGridEvidenceTag;
+}
 
 function toSentenceCase(text: string): string {
   const trimmed = text.trim();
@@ -57,36 +63,82 @@ export function resolveToolCompareGridValue(
   row: ToolCompareGridRow,
   tool: ToolCompareGridLike
 ): string {
+  return resolveToolCompareGridCell(row, tool).value;
+}
+
+export function resolveToolCompareGridCell(
+  row: ToolCompareGridRow,
+  tool: ToolCompareGridLike
+): ToolCompareGridCell {
   switch (row) {
     case 'Setup time':
-      if (tool.computedDiff?.learningDiff) return toSentenceCase(tool.computedDiff.learningDiff);
-      return normalizeSetup(tool.learning_curve);
+      if (tool.computedDiff?.learningDiff) {
+        return { value: toSentenceCase(tool.computedDiff.learningDiff), evidenceTag: 'heuristic' };
+      }
+      return {
+        value: normalizeSetup(tool.learning_curve),
+        evidenceTag: tool.learning_curve ? 'source' : 'pending',
+      };
     case 'Seat complexity':
-      if (tool.computedDiff?.priceDiff) return toSentenceCase(tool.computedDiff.priceDiff);
-      return normalizePricingType(tool.pricing_type);
+      if (tool.computedDiff?.priceDiff) {
+        return { value: toSentenceCase(tool.computedDiff.priceDiff), evidenceTag: 'heuristic' };
+      }
+      return {
+        value: normalizePricingType(tool.pricing_type),
+        evidenceTag: tool.pricing_type ? 'source' : 'pending',
+      };
     case 'Customization depth':
-      if (tool.curatedVerdict) return 'Comparison brief available';
-      if (tool.computedDiff?.featureDiff) return 'Model signal only, verify in docs';
-      return 'Needs confirmation';
+      if (tool.curatedVerdict)
+        return { value: 'Comparison brief available', evidenceTag: 'source' };
+      if (tool.computedDiff?.featureDiff) {
+        return { value: 'Model signal only, verify in docs', evidenceTag: 'heuristic' };
+      }
+      return { value: 'Needs confirmation', evidenceTag: 'pending' };
     case 'Integration approach':
-      if (tool.computedDiff?.featureDiff) return tool.computedDiff.featureDiff;
-      return 'Needs confirmation';
+      if (tool.computedDiff?.featureDiff) {
+        return { value: tool.computedDiff.featureDiff, evidenceTag: 'heuristic' };
+      }
+      return { value: 'Needs confirmation', evidenceTag: 'pending' };
     case 'Best for':
-      if (tool.curatedVerdict) return 'Teams matching the comparison brief assumptions';
-      if (tool.computedDiff?.featureDiff) return 'Teams optimizing for feature and integration fit';
-      if (tool.computedDiff?.priceDiff) return 'Teams prioritizing pricing model differences';
-      if (tool.computedDiff?.learningDiff) return 'Teams prioritizing setup speed';
-      return 'Needs confirmation';
+      if (tool.curatedVerdict) {
+        return { value: 'Teams matching the comparison brief assumptions', evidenceTag: 'source' };
+      }
+      if (tool.computedDiff?.featureDiff) {
+        return {
+          value: 'Teams optimizing for feature and integration fit',
+          evidenceTag: 'heuristic',
+        };
+      }
+      if (tool.computedDiff?.priceDiff) {
+        return { value: 'Teams prioritizing pricing model differences', evidenceTag: 'heuristic' };
+      }
+      if (tool.computedDiff?.learningDiff) {
+        return { value: 'Teams prioritizing setup speed', evidenceTag: 'heuristic' };
+      }
+      return { value: 'Needs confirmation', evidenceTag: 'pending' };
     case 'Evidence level': {
       const level = resolveAlternativeEvidenceLevel({
         curatedVerdict: tool.curatedVerdict,
         computedDiff: tool.computedDiff,
       });
-      return labelAlternativeEvidenceLevelForGrid(level);
+      return {
+        value: labelAlternativeEvidenceLevelForGrid(level),
+        evidenceTag:
+          level === 'evidence_backed'
+            ? 'source'
+            : level === 'model_derived'
+              ? 'heuristic'
+              : 'pending',
+      };
     }
-    case 'Rationale source':
-      return buildAlternativeRationaleSourceLabel(tool.curatedVerdict);
+    case 'Rationale source': {
+      const label = buildAlternativeRationaleSourceLabel(tool.curatedVerdict);
+      return {
+        value: label,
+        evidenceTag: label === 'Comparison brief' ? 'source' : 'pending',
+      };
+    }
     default:
-      return 'Needs confirmation';
+      return { value: 'Needs confirmation', evidenceTag: 'pending' };
   }
 }

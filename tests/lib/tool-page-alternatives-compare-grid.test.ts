@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  resolveToolCompareGridCell,
   resolveToolCompareGridValue,
   type ToolCompareGridLike,
 } from '@/lib/tool-page/alternatives-compare-grid';
@@ -24,6 +25,7 @@ describe('resolveToolCompareGridValue', () => {
     expect(resolveToolCompareGridValue('Setup time', tool)).toBe('Needs confirmation');
     expect(resolveToolCompareGridValue('Seat complexity', tool)).toBe('Needs confirmation');
     expect(resolveToolCompareGridValue('Customization depth', tool)).toBe('Needs confirmation');
+    expect(resolveToolCompareGridCell('Setup time', tool).evidenceTag).toBe('pending');
   });
 
   it('uses curated verdict signals where available', () => {
@@ -39,6 +41,7 @@ describe('resolveToolCompareGridValue', () => {
       'Teams matching the comparison brief assumptions'
     );
     expect(resolveToolCompareGridValue('Rationale source', tool)).toBe('Comparison brief');
+    expect(resolveToolCompareGridCell('Best for', tool).evidenceTag).toBe('source');
   });
 
   it('uses computed diff as heuristic for integration approach and evidence level', () => {
@@ -62,5 +65,6 @@ describe('resolveToolCompareGridValue', () => {
       'Teams optimizing for feature and integration fit'
     );
     expect(resolveToolCompareGridValue('Evidence level', tool)).toBe('Heuristic');
+    expect(resolveToolCompareGridCell('Setup time', tool).evidenceTag).toBe('heuristic');
   });
 });
