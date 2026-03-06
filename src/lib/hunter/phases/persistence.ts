@@ -3997,7 +3997,10 @@ function buildUserSignalSummary(
       domain.includes('forum') ||
       domain.includes('community') ||
       domain.includes('discourse') ||
-      domain.endsWith('.stackexchange.com')
+      domain.endsWith('.stackexchange.com') ||
+      domain === 'stackoverflow.com' ||
+      domain === 'quora.com' ||
+      domain === 'discord.com'
     ) {
       return 'forum';
     }
@@ -4023,7 +4026,17 @@ function buildUserSignalSummary(
     source_domain: string | null;
   }> = [];
   const seen = new Set<string>();
-  for (const claim of [...community, ...editorial]) {
+  const rankedUserClaims = [...community, ...editorial].sort((a, b) => {
+    const aSourceUrls = Array.isArray(a.source_urls) ? a.source_urls.length : 1;
+    const bSourceUrls = Array.isArray(b.source_urls) ? b.source_urls.length : 1;
+    const aTier = a.claim_confidence_tier === 'high' ? 3 : a.claim_confidence_tier === 'medium' ? 2 : 1;
+    const bTier = b.claim_confidence_tier === 'high' ? 3 : b.claim_confidence_tier === 'medium' ? 2 : 1;
+    const aSourceType = a.source_type === 'community' ? 2 : 1;
+    const bSourceType = b.source_type === 'community' ? 2 : 1;
+    return bSourceType - aSourceType || bSourceUrls - aSourceUrls || bTier - aTier;
+  });
+
+  for (const claim of rankedUserClaims) {
     const signal = stripTerminalPunctuation(
       sanitizeNarrativeClaimText(claim.text) || claim.text
     ).trim();
