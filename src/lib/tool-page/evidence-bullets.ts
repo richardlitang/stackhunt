@@ -3,6 +3,9 @@ import { isLikelyIncompleteToolPageClause, stripToolPageControlChars } from '@/l
 export type ToolPageEvidenceBullet = {
   text: string;
   sourceUrl: string;
+  sourceType?: 'official' | 'editorial' | 'community';
+  claimType?: 'fact' | 'opinion';
+  corroboratingSourceCount?: number;
   works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'>;
 };
 
@@ -51,7 +54,29 @@ export function toToolPageEvidenceBullet(
   ) {
     return null;
   }
-  return { text, sourceUrl };
+  const sourceType =
+    value.source_type === 'official' ||
+    value.source_type === 'editorial' ||
+    value.source_type === 'community'
+      ? value.source_type
+      : undefined;
+  const claimType =
+    value.claim_type === 'fact' || value.claim_type === 'opinion' ? value.claim_type : undefined;
+  const corroboratingFromUrls = Array.isArray(value.source_urls)
+    ? new Set(
+        value.source_urls
+          .filter((entry): entry is string => typeof entry === 'string')
+          .map((entry) => entry.trim())
+          .filter((entry) => entry.length > 0)
+      ).size
+    : 0;
+  const corroboratingFromField =
+    typeof value.corroborating_source_count === 'number' &&
+    Number.isFinite(value.corroborating_source_count)
+      ? value.corroborating_source_count
+      : 0;
+  const corroboratingSourceCount = Math.max(1, corroboratingFromUrls, corroboratingFromField);
+  return { text, sourceUrl, sourceType, claimType, corroboratingSourceCount };
 }
 
 export function buildToolPageEvidenceBulletV2({

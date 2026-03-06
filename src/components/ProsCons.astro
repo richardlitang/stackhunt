@@ -19,6 +19,7 @@ interface ClaimWithSource {
   source_url?: string;
   source_type?: SourceType;
   claim_type?: ClaimType;
+  corroborating_source_count?: number;
   retrieved_at?: string; // ISO 8601 timestamp for time-bound defense
 }
 
@@ -349,6 +350,9 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                     >
                       {getDomain(pro.source_url)}
                     </a>
+                    {typeof pro.corroborating_source_count === 'number' &&
+                      pro.corroborating_source_count > 1 &&
+                      `, corroborated by ${pro.corroborating_source_count} sources`}
                   </p>
                   <p class="mt-1 text-xs text-zinc-500">
                     Why it matters: {deriveWhyItMatters(pro.displayText, 'pro')}
@@ -412,6 +416,9 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                     >
                       {getDomain(con.source_url)}
                     </a>
+                    {typeof con.corroborating_source_count === 'number' &&
+                      con.corroborating_source_count > 1 &&
+                      `, corroborated by ${con.corroborating_source_count} sources`}
                   </p>
                   <p class="mt-1 text-xs text-zinc-500">
                     Why it matters: {deriveWhyItMatters(con.displayText, 'con')}

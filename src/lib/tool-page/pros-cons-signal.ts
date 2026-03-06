@@ -54,18 +54,22 @@ export function scoreProsConsClaimSignal(input: {
   sourceType: ProsConsSourceType;
   claimType?: ProsConsClaimType | null;
   text?: string;
+  corroboratingSourceCount?: number;
 }): number {
   const sourceWeight =
-    input.sourceType === 'community' ? 300 : input.sourceType === 'editorial' ? 200 : 100;
-  const claimWeight = input.claimType === 'opinion' ? 20 : 0;
+    input.sourceType === 'community' ? 320 : input.sourceType === 'editorial' ? 220 : 120;
+  const corroborationCount = Math.max(1, input.corroboratingSourceCount || 1);
+  const corroborationWeight = Math.min(120, (corroborationCount - 1) * 40);
+  const claimWeight = input.claimType === 'opinion' ? 12 : 0;
   const textWeight = (input.text || '').length;
-  return sourceWeight + claimWeight + textWeight;
+  return sourceWeight + corroborationWeight + claimWeight + textWeight;
 }
 
 export function prioritizeProsConsClaims<
   T extends {
     source_type?: ProsConsSourceType;
     claim_type?: ProsConsClaimType;
+    corroborating_source_count?: number;
     displayText: string;
   },
 >(items: T[]): T[] {
@@ -77,6 +81,7 @@ export function prioritizeProsConsClaims<
         sourceType: item.source_type || 'official',
         claimType: item.claim_type,
         text: item.displayText,
+        corroboratingSourceCount: item.corroborating_source_count,
       }),
     }))
     .sort((a, b) => b.score - a.score || a.index - b.index)

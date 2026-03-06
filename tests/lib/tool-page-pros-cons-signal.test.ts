@@ -28,15 +28,31 @@ describe('tool-page pros/cons signal weighting', () => {
     );
   });
 
+  it('boosts corroborated claims above single-source claims of same source type', () => {
+    const corroborated = scoreProsConsClaimSignal({
+      sourceType: 'community',
+      text: 'Users report onboarding slows down on larger teams',
+      corroboratingSourceCount: 3,
+    });
+    const singleSource = scoreProsConsClaimSignal({
+      sourceType: 'community',
+      text: 'Users report onboarding slows down on larger teams',
+      corroboratingSourceCount: 1,
+    });
+    expect(corroborated).toBeGreaterThan(singleSource);
+  });
+
   it('prioritizes community and editorial claims ahead of official claims', () => {
     const ranked = prioritizeProsConsClaims([
       {
         displayText: 'Official docs mention automation templates',
         source_type: 'official' as const,
+        corroborating_source_count: 3,
       },
       {
         displayText: 'Users report setup friction when adding reps',
         source_type: 'community' as const,
+        corroborating_source_count: 2,
       },
       {
         displayText: 'Reviewers note stronger reporting than peers',

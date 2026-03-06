@@ -16,7 +16,13 @@ const isEligibleEvidenceUrl = (url?: string | null): boolean => {
 describe('tool page evidence bullets', () => {
   it('converts structured evidence bullets and rejects invalid ones', () => {
     const valid = toToolPageEvidenceBullet(
-      { text: 'Documented limit', source_url: 'https://acme.com/docs' },
+      {
+        text: 'Documented limit',
+        source_url: 'https://acme.com/docs',
+        source_type: 'community',
+        claim_type: 'opinion',
+        source_urls: ['https://acme.com/docs', 'https://reddit.com/r/acme/comments/1'],
+      },
       isEligibleEvidenceUrl
     );
     const invalid = toToolPageEvidenceBullet(
@@ -24,7 +30,13 @@ describe('tool page evidence bullets', () => {
       isEligibleEvidenceUrl
     );
 
-    expect(valid).toEqual({ text: 'Documented limit', sourceUrl: 'https://acme.com/docs' });
+    expect(valid).toEqual({
+      text: 'Documented limit',
+      sourceUrl: 'https://acme.com/docs',
+      sourceType: 'community',
+      claimType: 'opinion',
+      corroboratingSourceCount: 2,
+    });
     expect(invalid).toBeNull();
   });
 

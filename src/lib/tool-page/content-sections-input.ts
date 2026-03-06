@@ -17,8 +17,20 @@ interface BuildToolPageContentSectionsStateInputFromRouteInput {
     quality: string;
     inclusionReason: string;
   }>;
-  effectiveEvidencePros: Array<{ text: string; sourceUrl: string | null }>;
-  effectiveEvidenceCons: Array<{ text: string; sourceUrl: string | null }>;
+  effectiveEvidencePros: Array<{
+    text: string;
+    sourceUrl: string | null;
+    sourceType?: 'official' | 'editorial' | 'community';
+    claimType?: 'fact' | 'opinion';
+    corroboratingSourceCount?: number;
+  }>;
+  effectiveEvidenceCons: Array<{
+    text: string;
+    sourceUrl: string | null;
+    sourceType?: 'official' | 'editorial' | 'community';
+    claimType?: 'fact' | 'opinion';
+    corroboratingSourceCount?: number;
+  }>;
   knowledgeCard:
     | {
         setup_complexity?: string | null;
