@@ -406,6 +406,16 @@ export interface ToolCanonicalFacts {
       startup?: number;
       enterprise?: number;
     };
+    constraints_lens_coverage?: {
+      personal?: number;
+      startup?: number;
+      enterprise?: number;
+    };
+    integrations_lens_coverage?: {
+      personal?: number;
+      startup?: number;
+      enterprise?: number;
+    };
   };
   faq_locked?: Array<{
     question: string;

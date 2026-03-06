@@ -956,7 +956,7 @@ function buildCanonicalPricingPlans(pricingData: any): {
   return { entities, conflicts };
 }
 
-function buildPricingLensCoverage(
+function buildTaggedLensCoverage(
   entities: Array<{
     works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
   }>
@@ -969,6 +969,45 @@ function buildPricingLensCoverage(
     if (tags.includes('enterprise')) coverage.enterprise += 1;
   }
   return coverage;
+}
+
+function buildPricingLensCoverage(
+  entities: Array<{
+    works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
+  }>
+): { personal: number; startup: number; enterprise: number } {
+  return buildTaggedLensCoverage(entities);
+}
+
+function collectConstraintLensEntries(specs: ToolSpecs): Array<{
+  works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
+}> {
+  const constraints =
+    specs.constraints && typeof specs.constraints === 'object'
+      ? (specs.constraints as Record<string, unknown>)
+      : null;
+  if (!constraints) return [];
+  const hardLimits = Array.isArray(constraints.hard_limits) ? constraints.hard_limits : [];
+  const hiddenCosts = Array.isArray(constraints.hidden_costs) ? constraints.hidden_costs : [];
+  return [...hardLimits, ...hiddenCosts].filter(
+    (entry): entry is { works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null } =>
+      Boolean(entry) && typeof entry === 'object'
+  );
+}
+
+function collectIntegrationLensEntries(specs: ToolSpecs): Array<{
+  works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
+}> {
+  const integrations =
+    specs.integrations && typeof specs.integrations === 'object'
+      ? (specs.integrations as Record<string, unknown>)
+      : null;
+  if (!integrations) return [];
+  const notable = Array.isArray(integrations.notable) ? integrations.notable : [];
+  return notable.filter(
+    (entry): entry is { works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null } =>
+      Boolean(entry) && typeof entry === 'object'
+  );
 }
 
 function enrichIntegrationsForLens(integrations: unknown): unknown {
@@ -1632,6 +1671,8 @@ export async function executePersistencePhase(
 
   if (knowledgeCard?.smp_pricing) {
     const pricingCanonical = buildCanonicalPricingPlans(knowledgeCard.smp_pricing);
+    const constraintLensCoverage = buildTaggedLensCoverage(collectConstraintLensEntries(specs));
+    const integrationLensCoverage = buildTaggedLensCoverage(collectIntegrationLensEntries(specs));
     const currentCanonical = (specs.canonical as Record<string, any>) || {};
     const currentQuality = (currentCanonical.quality as Record<string, any>) || {};
     const nextPricingConflictCount = pricingCanonical.conflicts.length;
@@ -1649,6 +1690,8 @@ export async function executePersistencePhase(
         pricing_conflicts_count: nextPricingConflictCount,
         pricing_conflicts: pricingCanonical.conflicts,
         pricing_lens_coverage: buildPricingLensCoverage(pricingCanonical.entities),
+        constraints_lens_coverage: constraintLensCoverage,
+        integrations_lens_coverage: integrationLensCoverage,
       },
     };
 
@@ -2791,6 +2834,8 @@ async function updatePricingOnly(
   if (knowledgeCard?.smp_pricing) {
     const mappedPricingV2 = mapSmpPricingToV2(toolSlug, knowledgeCard.smp_pricing);
     const pricingCanonical = buildCanonicalPricingPlans(knowledgeCard.smp_pricing);
+    const constraintLensCoverage = buildTaggedLensCoverage(collectConstraintLensEntries(specs));
+    const integrationLensCoverage = buildTaggedLensCoverage(collectIntegrationLensEntries(specs));
     const currentCanonical =
       specs.canonical && typeof specs.canonical === 'object'
         ? (specs.canonical as Record<string, unknown>)
@@ -2810,6 +2855,8 @@ async function updatePricingOnly(
           pricing_conflicts_count: pricingCanonical.conflicts.length,
           pricing_conflicts: pricingCanonical.conflicts,
           pricing_lens_coverage: buildPricingLensCoverage(pricingCanonical.entities),
+          constraints_lens_coverage: constraintLensCoverage,
+          integrations_lens_coverage: integrationLensCoverage,
         },
       },
     });
@@ -2977,6 +3024,8 @@ async function persistResearchOnly(
     specs.pricing_data = knowledgeCard.smp_pricing;
     specs.pricing_v2 = mapSmpPricingToV2(toolSlug, knowledgeCard.smp_pricing) ?? undefined;
     const pricingCanonical = buildCanonicalPricingPlans(knowledgeCard.smp_pricing);
+    const constraintLensCoverage = buildTaggedLensCoverage(collectConstraintLensEntries(specs));
+    const integrationLensCoverage = buildTaggedLensCoverage(collectIntegrationLensEntries(specs));
     const currentCanonical =
       specs.canonical && typeof specs.canonical === 'object'
         ? (specs.canonical as Record<string, unknown>)
@@ -2993,6 +3042,8 @@ async function persistResearchOnly(
         pricing_conflicts_count: pricingCanonical.conflicts.length,
         pricing_conflicts: pricingCanonical.conflicts,
         pricing_lens_coverage: buildPricingLensCoverage(pricingCanonical.entities),
+        constraints_lens_coverage: constraintLensCoverage,
+        integrations_lens_coverage: integrationLensCoverage,
       },
     };
   }
