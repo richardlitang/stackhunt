@@ -54,9 +54,11 @@ function evidenceChipLabel(cell: ToolCompareGridCell): string {
               <td class="px-2 py-2">
                 {(() => {
                   const cell = resolveToolCompareGridCell(row, main);
+                  const value =
+                    row === 'Choose this instead if' ? 'Current tool under review' : cell.value;
                   return (
                     <div class="flex flex-wrap items-center gap-1.5">
-                      <span>{cell.value}</span>
+                      <span>{value}</span>
                       <span
                         class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${evidenceChipClass(cell)}`}
                       >
@@ -69,8 +71,8 @@ function evidenceChipLabel(cell: ToolCompareGridCell): string {
               {alternatives.slice(0, 2).map((alt) => {
                 const cell = resolveToolCompareGridCell(row, alt);
                 const hasCompareLink =
-                  row === 'Rationale source' &&
-                  cell.value === 'Comparison brief' &&
+                  ((row === 'Rationale source' && cell.value === 'Comparison brief') ||
+                    (row === 'Choose this instead if' && cell.evidenceTag === 'source')) &&
                   Boolean(main.slug && alt.slug);
                 const [slugA, slugB] =
                   (main.slug || '') < (alt.slug || '')
