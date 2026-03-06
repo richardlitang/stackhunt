@@ -43,4 +43,3 @@ describe('tool page alternatives lens ranking', () => {
     expect(ranked[0]?.slug).toBe('enterprise-tool');
   });
 });
-

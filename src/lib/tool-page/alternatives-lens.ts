@@ -6,7 +6,10 @@ interface ToolPageAlternativeLensLike {
   specs?: unknown;
 }
 
-function hasAudienceInSpecs(specs: unknown, audience: 'individual' | 'team' | 'business' | 'enterprise'): boolean {
+function hasAudienceInSpecs(
+  specs: unknown,
+  audience: 'individual' | 'team' | 'business' | 'enterprise'
+): boolean {
   const record = specs && typeof specs === 'object' ? (specs as Record<string, unknown>) : null;
   const pricingData =
     record?.pricing_data && typeof record.pricing_data === 'object'
@@ -21,7 +24,8 @@ function hasAudienceInSpecs(specs: unknown, audience: 'individual' | 'team' | 'b
 }
 
 function readTargetMarket(metadata: unknown): string | null {
-  const record = metadata && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : null;
+  const record =
+    metadata && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : null;
   const targetMarket = record?.target_market;
   return typeof targetMarket === 'string' ? targetMarket.toLowerCase() : null;
 }
@@ -74,4 +78,3 @@ export function rankAlternativesForLens<T extends ToolPageAlternativeLensLike>(
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((entry) => entry.alternative);
 }
-

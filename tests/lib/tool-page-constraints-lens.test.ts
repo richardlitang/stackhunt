@@ -22,4 +22,3 @@ describe('tool page constraints lens ranking', () => {
     expect(ranked[0]?.text).toContain('SSO and SCIM');
   });
 });
-

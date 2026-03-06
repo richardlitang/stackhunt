@@ -45,4 +45,3 @@ export function rankConstraintsForLens<T extends ToolPageConstraintLike>(
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((entry) => entry.constraint);
 }
-

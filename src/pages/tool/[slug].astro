@@ -1471,13 +1471,11 @@ applyToolPageRobotsHeader({
                   {alternativesLabel} to {tool.name}
                 </h2>
                 <p class="mt-1 text-sm text-zinc-400">{alternativesIntroText}</p>
-                {
-                  activeReviewLens !== 'general' && (
-                    <p class="mt-1 text-xs text-zinc-500">
-                      Alternatives are prioritized for the current review lens.
-                    </p>
-                  )
-                }
+                {activeReviewLens !== 'general' && (
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Alternatives are prioritized for the current review lens.
+                  </p>
+                )}
               </div>
               {alternativesSectionState.viewAllHref && (
                 <a

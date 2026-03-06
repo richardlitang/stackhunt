@@ -891,8 +891,8 @@ function buildCanonicalPricingPlans(pricingData: any): {
     plan_name: String(plan?.name || 'Unknown'),
     audience: typeof plan?.target_audience === 'string' ? plan.target_audience : null,
     works_for_lenses: Array.isArray(plan?.works_for_lenses)
-      ? plan.works_for_lenses.filter((value: unknown) =>
-          value === 'personal' || value === 'startup' || value === 'enterprise'
+      ? plan.works_for_lenses.filter(
+          (value: unknown) => value === 'personal' || value === 'startup' || value === 'enterprise'
         )
       : null,
     seat_type: typeof plan?.scaling_unit === 'string' ? plan.scaling_unit : null,

@@ -22,4 +22,3 @@ describe('tool page integrations lens ranking', () => {
     expect(ranked[0]?.name).toBe('Okta');
   });
 });
-
