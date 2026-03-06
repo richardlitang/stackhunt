@@ -3,7 +3,11 @@ import {
   stripToolPageControlChars,
 } from '@/lib/tool-page/text';
 
-export type ToolPageEvidenceBullet = { text: string; sourceUrl: string };
+export type ToolPageEvidenceBullet = {
+  text: string;
+  sourceUrl: string;
+  works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'>;
+};
 
 export type ToolPageEvidenceSource = {
   url: string;

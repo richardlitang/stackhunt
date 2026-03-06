@@ -1,6 +1,7 @@
 export interface ToolPageConstraintBullet {
   text: string;
   sourceUrl: string;
+  works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'>;
 }
 
 export interface DeriveCanonicalHardLimitsInput {

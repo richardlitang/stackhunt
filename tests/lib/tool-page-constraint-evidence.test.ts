@@ -10,7 +10,14 @@ describe('tool page constraint evidence', () => {
           { name: 'No source', source_url: '' },
         ],
         hard_limits: [
-          { metric: 'api_calls', value: 1000, unit: 'month', plan_name_match: 'Starter', source_url: 'https://b.com' },
+          {
+            metric: 'api_calls',
+            value: 1000,
+            unit: 'month',
+            plan_name_match: 'Starter',
+            source_url: 'https://b.com',
+            works_for_lenses: ['startup'],
+          },
           { metric: 'blocked_limit', value: 10, source_url: 'https://c.com' },
         ],
       },
@@ -22,5 +29,6 @@ describe('tool page constraint evidence', () => {
     expect(result.hiddenCostBullets[0].text).toContain('Gateway fee');
     expect(result.hardLimitFromConstraints).toHaveLength(1);
     expect(result.hardLimitFromConstraints[0].text).toContain('api calls');
+    expect(result.hardLimitFromConstraints[0].works_for_lenses).toEqual(['startup']);
   });
 });

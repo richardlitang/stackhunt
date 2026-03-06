@@ -1,6 +1,7 @@
 export interface ToolPageConstraintEvidenceBullet {
   text: string;
   sourceUrl: string;
+  works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'>;
 }
 
 interface BuildToolPageConstraintEvidenceInput {
@@ -28,7 +29,19 @@ export function buildToolPageConstraintEvidence(
           const name = typeof entry.name === 'string' ? entry.name.trim() : 'Hidden cost';
           const amount = typeof entry.amount === 'string' ? ` (${entry.amount})` : '';
           const whenCharged = typeof entry.when_charged === 'string' ? ` — ${entry.when_charged}` : '';
-          return { text: `${name}${amount}${whenCharged}`, sourceUrl };
+          const worksForLenses = Array.isArray(entry.works_for_lenses)
+            ? entry.works_for_lenses.filter(
+                (lens): lens is 'personal' | 'startup' | 'enterprise' =>
+                  lens === 'personal' || lens === 'startup' || lens === 'enterprise'
+              )
+            : undefined;
+          return {
+            text: `${name}${amount}${whenCharged}`,
+            sourceUrl,
+            ...(worksForLenses && worksForLenses.length > 0
+              ? { works_for_lenses: worksForLenses }
+              : {}),
+          };
         })
         .filter((item): item is ToolPageConstraintEvidenceBullet => Boolean(item))
     : [];
@@ -49,7 +62,19 @@ export function buildToolPageConstraintEvidence(
           const text = `${metric}: ${value}${unit}${plan}`.trim();
           if (!text || text === 'Limit:') return null;
           if (input.isDisallowedConClaim(text)) return null;
-          return { text, sourceUrl };
+          const worksForLenses = Array.isArray(entry.works_for_lenses)
+            ? entry.works_for_lenses.filter(
+                (lens): lens is 'personal' | 'startup' | 'enterprise' =>
+                  lens === 'personal' || lens === 'startup' || lens === 'enterprise'
+              )
+            : undefined;
+          return {
+            text,
+            sourceUrl,
+            ...(worksForLenses && worksForLenses.length > 0
+              ? { works_for_lenses: worksForLenses }
+              : {}),
+          };
         })
         .filter((item): item is ToolPageConstraintEvidenceBullet => Boolean(item))
     : [];
