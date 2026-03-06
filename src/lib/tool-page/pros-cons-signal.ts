@@ -63,14 +63,17 @@ export function scoreProsConsClaimSignal(input: {
   claimType?: ProsConsClaimType | null;
   text?: string;
   corroboratingSourceCount?: number;
+  claimConfidenceTier?: 'high' | 'medium' | 'low';
 }): number {
   const sourceWeight =
     input.sourceType === 'community' ? 320 : input.sourceType === 'editorial' ? 220 : 120;
   const corroborationCount = Math.max(1, input.corroboratingSourceCount || 1);
   const corroborationWeight = Math.min(120, (corroborationCount - 1) * 40);
   const claimWeight = input.claimType === 'opinion' ? 12 : 0;
+  const confidenceWeight =
+    input.claimConfidenceTier === 'high' ? 28 : input.claimConfidenceTier === 'medium' ? 12 : 0;
   const textWeight = (input.text || '').length;
-  return sourceWeight + corroborationWeight + claimWeight + textWeight;
+  return sourceWeight + corroborationWeight + claimWeight + confidenceWeight + textWeight;
 }
 
 export function prioritizeProsConsClaims<
@@ -78,6 +81,7 @@ export function prioritizeProsConsClaims<
     source_type?: ProsConsSourceType;
     claim_type?: ProsConsClaimType;
     corroborating_source_count?: number;
+    claim_confidence_tier?: 'high' | 'medium' | 'low';
     displayText: string;
   },
 >(items: T[]): T[] {
@@ -90,6 +94,7 @@ export function prioritizeProsConsClaims<
         claimType: item.claim_type,
         text: item.displayText,
         corroboratingSourceCount: item.corroborating_source_count,
+        claimConfidenceTier: item.claim_confidence_tier,
       }),
     }))
     .sort((a, b) => b.score - a.score || a.index - b.index)

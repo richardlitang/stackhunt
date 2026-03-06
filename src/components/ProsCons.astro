@@ -20,6 +20,8 @@ interface ClaimWithSource {
   source_type?: SourceType;
   claim_type?: ClaimType;
   corroborating_source_count?: number;
+  claim_confidence_tier?: 'high' | 'medium' | 'low';
+  claim_confidence_score?: number;
   retrieved_at?: string; // ISO 8601 timestamp for time-bound defense
 }
 
@@ -353,6 +355,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                     {typeof pro.corroborating_source_count === 'number' &&
                       pro.corroborating_source_count > 1 &&
                       `, corroborated by ${pro.corroborating_source_count} sources`}
+                    {pro.claim_confidence_tier && `, confidence ${pro.claim_confidence_tier}`}
                   </p>
                   <p class="mt-1 text-xs text-zinc-500">
                     Why it matters: {deriveWhyItMatters(pro.displayText, 'pro')}
@@ -419,6 +422,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                     {typeof con.corroborating_source_count === 'number' &&
                       con.corroborating_source_count > 1 &&
                       `, corroborated by ${con.corroborating_source_count} sources`}
+                    {con.claim_confidence_tier && `, confidence ${con.claim_confidence_tier}`}
                   </p>
                   <p class="mt-1 text-xs text-zinc-500">
                     Why it matters: {deriveWhyItMatters(con.displayText, 'con')}

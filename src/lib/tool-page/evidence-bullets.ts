@@ -6,6 +6,8 @@ export type ToolPageEvidenceBullet = {
   sourceType?: 'official' | 'editorial' | 'community';
   claimType?: 'fact' | 'opinion';
   corroboratingSourceCount?: number;
+  claimConfidenceTier?: 'high' | 'medium' | 'low';
+  claimConfidenceScore?: number;
   works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'>;
 };
 
@@ -76,7 +78,26 @@ export function toToolPageEvidenceBullet(
       ? value.corroborating_source_count
       : 0;
   const corroboratingSourceCount = Math.max(1, corroboratingFromUrls, corroboratingFromField);
-  return { text, sourceUrl, sourceType, claimType, corroboratingSourceCount };
+  const claimConfidenceTier =
+    value.claim_confidence_tier === 'high' ||
+    value.claim_confidence_tier === 'medium' ||
+    value.claim_confidence_tier === 'low'
+      ? value.claim_confidence_tier
+      : undefined;
+  const claimConfidenceScore =
+    typeof value.claim_confidence_score === 'number' &&
+    Number.isFinite(value.claim_confidence_score)
+      ? value.claim_confidence_score
+      : undefined;
+  return {
+    text,
+    sourceUrl,
+    sourceType,
+    claimType,
+    corroboratingSourceCount,
+    claimConfidenceTier,
+    claimConfidenceScore,
+  };
 }
 
 export function buildToolPageEvidenceBulletV2({

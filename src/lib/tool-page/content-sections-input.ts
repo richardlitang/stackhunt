@@ -23,6 +23,8 @@ interface BuildToolPageContentSectionsStateInputFromRouteInput {
     sourceType?: 'official' | 'editorial' | 'community';
     claimType?: 'fact' | 'opinion';
     corroboratingSourceCount?: number;
+    claimConfidenceTier?: 'high' | 'medium' | 'low';
+    claimConfidenceScore?: number;
   }>;
   effectiveEvidenceCons: Array<{
     text: string;
@@ -30,6 +32,8 @@ interface BuildToolPageContentSectionsStateInputFromRouteInput {
     sourceType?: 'official' | 'editorial' | 'community';
     claimType?: 'fact' | 'opinion';
     corroboratingSourceCount?: number;
+    claimConfidenceTier?: 'high' | 'medium' | 'low';
+    claimConfidenceScore?: number;
   }>;
   knowledgeCard:
     | {

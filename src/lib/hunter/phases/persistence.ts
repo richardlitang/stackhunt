@@ -3274,6 +3274,56 @@ function normalizeClaim(
   }>,
   toolWebsite?: string
 ): ClaimWithSource | null {
+  const clampConfidence = (value: number): number => Math.min(0.96, Math.max(0.3, value));
+  const computeClaimConfidenceScore = (input: {
+    sourceType: ClaimWithSource['source_type'];
+    claimType: ClaimWithSource['claim_type'];
+    verificationMethod?: ClaimWithSource['verification_method'];
+    sourceUrls?: string[];
+    claimKind?: ClaimWithSource['claim_kind'];
+    comparisonBasisSourceUrl?: string;
+  }): number => {
+    const base = (() => {
+      if (input.sourceType === 'official' && input.claimType === 'fact') return 0.86;
+      if (input.sourceType === 'official') return 0.76;
+      if (input.sourceType === 'editorial' && input.claimType === 'fact') return 0.78;
+      if (input.sourceType === 'editorial') return 0.68;
+      if (input.sourceType === 'community' && input.claimType === 'fact') return 0.66;
+      return 0.58;
+    })();
+    const sourceCount = new Set(
+      (input.sourceUrls || []).map((url) => normalizeEvidenceUrl(url) || url).filter(Boolean)
+    ).size;
+    const corroborationBoost = Math.min(0.12, Math.max(0, sourceCount - 1) * 0.04);
+    const verificationBoost = input.verificationMethod === 'cross_source' ? 0.08 : 0;
+    const comparatorPenalty =
+      (input.claimKind === 'comparison' || input.claimKind === 'derived_metric') &&
+      !input.comparisonBasisSourceUrl
+        ? -0.08
+        : 0;
+    return clampConfidence(base + corroborationBoost + verificationBoost + comparatorPenalty);
+  };
+  const confidenceTierForScore = (score: number): 'high' | 'medium' | 'low' => {
+    if (score >= 0.8) return 'high';
+    if (score >= 0.65) return 'medium';
+    return 'low';
+  };
+  const withClaimConfidence = (claimValue: ClaimWithSource): ClaimWithSource => {
+    const confidenceScore = computeClaimConfidenceScore({
+      sourceType: claimValue.source_type,
+      claimType: claimValue.claim_type,
+      verificationMethod: claimValue.verification_method,
+      sourceUrls: claimValue.source_urls,
+      claimKind: claimValue.claim_kind,
+      comparisonBasisSourceUrl: claimValue.comparison_basis_source_url,
+    });
+    return {
+      ...claimValue,
+      claim_confidence_score: confidenceScore,
+      claim_confidence_tier: confidenceTierForScore(confidenceScore),
+    };
+  };
+
   // Current timestamp for time-bound defense
   const retrievedAt = new Date().toISOString();
 
@@ -3424,7 +3474,7 @@ function normalizeClaim(
     const volatility = classifyClaimVolatility(normalizedText, claimType);
     const scope = claim.scope || inferClaimScope(normalizedText, matchedSourceUrl) || undefined;
 
-    return {
+    return withClaimConfidence({
       text: normalizedText,
       source_url: matchedSourceUrl,
       source_type: sourceType,
@@ -3441,7 +3491,7 @@ function normalizeClaim(
       claim_kind: needsComparatorBasis && !comparisonBasisSourceUrl ? 'inference' : detectedKind,
       vendor_phrase: vendorPhrase || normalizedText,
       comparison_basis_source_url: comparisonBasisSourceUrl,
-    };
+    });
   }
 
   // Legacy string - try to find a relevant source
@@ -3509,7 +3559,7 @@ function normalizeClaim(
   const volatility = classifyClaimVolatility(legacyText, 'opinion');
   const scope = inferClaimScope(legacyText, bestSource.url) || undefined;
 
-  return {
+  return withClaimConfidence({
     text: legacyText,
     source_url: bestSource.url,
     source_type: legacySourceType,
@@ -3523,7 +3573,7 @@ function normalizeClaim(
     recheck_by: computeClaimRecheckBy(checkedAt, volatility) || undefined,
     claim_kind: detectClaimKind(legacyText, 'opinion'),
     vendor_phrase: claimText,
-  };
+  });
 }
 
 function buildDerivedConsFromConstraints(
@@ -3629,6 +3679,8 @@ function buildDerivedConsFromConstraints(
       scope: inferClaimScope(text, sourceUrl) || undefined,
       volatility,
       recheck_by: computeClaimRecheckBy(checkedAt, volatility) || undefined,
+      claim_confidence_score: 0.72,
+      claim_confidence_tier: 'medium',
     });
   };
 
@@ -4675,11 +4727,13 @@ function buildClaimLedgerRows(
         scope: claim.scope || null,
         volatility: claim.volatility || null,
         recheck_by: claim.recheck_by || null,
+        claim_confidence_score: claim.claim_confidence_score ?? null,
+        claim_confidence_tier: claim.claim_confidence_tier ?? null,
       },
       source_url: claimSourceUrl,
       source_domain: source?.domain || claimDomain || null,
       policy_snapshot: claimSourceUrl ? policySnapshot : null,
-      confidence: deriveClaimConfidence(claim, source),
+      confidence: claim.claim_confidence_score ?? deriveClaimConfidence(claim, source),
       intent: 'editorial_intelligence',
       extracted_at: claim.retrieved_at || undefined,
     };

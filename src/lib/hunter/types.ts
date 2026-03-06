@@ -179,6 +179,8 @@ export interface ClaimWithSource {
   claim_kind?: ClaimKind;
   vendor_phrase?: string;
   comparison_basis_source_url?: string;
+  claim_confidence_score?: number;
+  claim_confidence_tier?: 'high' | 'medium' | 'low';
 }
 
 /**
@@ -641,6 +643,8 @@ export const ClaimWithSourceSchema = z.object({
   claim_kind: ClaimKindSchema.optional(),
   vendor_phrase: z.string().min(3).max(300).optional(),
   comparison_basis_source_url: z.string().url().optional(),
+  claim_confidence_score: z.number().min(0).max(1).optional(),
+  claim_confidence_tier: z.enum(['high', 'medium', 'low']).optional(),
 });
 
 // Legacy schema (plain string) - for backwards compatibility

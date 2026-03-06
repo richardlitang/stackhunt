@@ -22,6 +22,8 @@ describe('tool page evidence bullets', () => {
         source_type: 'community',
         claim_type: 'opinion',
         source_urls: ['https://acme.com/docs', 'https://reddit.com/r/acme/comments/1'],
+        claim_confidence_tier: 'medium',
+        claim_confidence_score: 0.7,
       },
       isEligibleEvidenceUrl
     );
@@ -36,6 +38,8 @@ describe('tool page evidence bullets', () => {
       sourceType: 'community',
       claimType: 'opinion',
       corroboratingSourceCount: 2,
+      claimConfidenceTier: 'medium',
+      claimConfidenceScore: 0.7,
     });
     expect(invalid).toBeNull();
   });

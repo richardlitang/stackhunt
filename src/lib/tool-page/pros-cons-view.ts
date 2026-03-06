@@ -9,6 +9,8 @@ export interface ToolPageProsConsEntry {
   source_type?: 'official' | 'editorial' | 'community';
   claim_type?: 'fact' | 'opinion';
   corroborating_source_count?: number;
+  claim_confidence_tier?: 'high' | 'medium' | 'low';
+  claim_confidence_score?: number;
 }
 
 interface BuildToolPageProsConsViewInput {
@@ -17,6 +19,8 @@ interface BuildToolPageProsConsViewInput {
       sourceType?: 'official' | 'editorial' | 'community';
       claimType?: 'fact' | 'opinion';
       corroboratingSourceCount?: number;
+      claimConfidenceTier?: 'high' | 'medium' | 'low';
+      claimConfidenceScore?: number;
     }
   >;
   cons: Array<
@@ -24,6 +28,8 @@ interface BuildToolPageProsConsViewInput {
       sourceType?: 'official' | 'editorial' | 'community';
       claimType?: 'fact' | 'opinion';
       corroboratingSourceCount?: number;
+      claimConfidenceTier?: 'high' | 'medium' | 'low';
+      claimConfidenceScore?: number;
     }
   >;
 }
@@ -41,6 +47,10 @@ export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput)
       ...(typeof entry.corroboratingSourceCount === 'number'
         ? { corroborating_source_count: entry.corroboratingSourceCount }
         : {}),
+      ...(entry.claimConfidenceTier ? { claim_confidence_tier: entry.claimConfidenceTier } : {}),
+      ...(typeof entry.claimConfidenceScore === 'number'
+        ? { claim_confidence_score: entry.claimConfidenceScore }
+        : {}),
     })),
     cons: input.cons.map((entry) => ({
       text: entry.text,
@@ -49,6 +59,10 @@ export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput)
       ...(entry.claimType ? { claim_type: entry.claimType } : {}),
       ...(typeof entry.corroboratingSourceCount === 'number'
         ? { corroborating_source_count: entry.corroboratingSourceCount }
+        : {}),
+      ...(entry.claimConfidenceTier ? { claim_confidence_tier: entry.claimConfidenceTier } : {}),
+      ...(typeof entry.claimConfidenceScore === 'number'
+        ? { claim_confidence_score: entry.claimConfidenceScore }
         : {}),
     })),
   };

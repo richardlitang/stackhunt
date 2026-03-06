@@ -51,6 +51,22 @@ describe('tool-page pros/cons signal weighting', () => {
     expect(corroborated).toBeGreaterThan(singleSource);
   });
 
+  it('boosts high-confidence claims over medium-confidence claims when source type is equal', () => {
+    const highConfidence = scoreProsConsClaimSignal({
+      sourceType: 'editorial',
+      text: 'Reviewers report cleaner reporting workflow',
+      corroboratingSourceCount: 2,
+      claimConfidenceTier: 'high',
+    });
+    const mediumConfidence = scoreProsConsClaimSignal({
+      sourceType: 'editorial',
+      text: 'Reviewers report cleaner reporting workflow',
+      corroboratingSourceCount: 2,
+      claimConfidenceTier: 'medium',
+    });
+    expect(highConfidence).toBeGreaterThan(mediumConfidence);
+  });
+
   it('prioritizes community and editorial claims ahead of official claims', () => {
     const ranked = prioritizeProsConsClaims([
       {
