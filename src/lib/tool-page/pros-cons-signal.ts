@@ -36,6 +36,29 @@ function isLikelyCommunityHost(hostname: string): boolean {
   );
 }
 
+function inferCommunityChannel(sourceUrl?: string | null): 'reddit' | 'forum' | 'hn' | 'other' {
+  if (!sourceUrl) return 'other';
+  try {
+    const hostname = new URL(sourceUrl).hostname.toLowerCase();
+    if (hostname === 'reddit.com' || hostname.endsWith('.reddit.com')) return 'reddit';
+    if (hostname === 'news.ycombinator.com' || hostname.endsWith('.ycombinator.com')) return 'hn';
+    if (
+      hostname.includes('forum') ||
+      hostname.includes('community') ||
+      hostname.includes('discourse') ||
+      hostname === 'stackoverflow.com' ||
+      hostname.endsWith('.stackexchange.com') ||
+      hostname === 'quora.com' ||
+      hostname === 'discord.com'
+    ) {
+      return 'forum';
+    }
+    return 'other';
+  } catch {
+    return 'other';
+  }
+}
+
 export function classifyProsConsSourceType(input: {
   sourceUrl?: string | null;
   sourceType?: string | null;
@@ -60,6 +83,7 @@ export function classifyProsConsSourceType(input: {
 
 export function scoreProsConsClaimSignal(input: {
   sourceType: ProsConsSourceType;
+  sourceUrl?: string | null;
   claimType?: ProsConsClaimType | null;
   text?: string;
   corroboratingSourceCount?: number;
@@ -70,10 +94,29 @@ export function scoreProsConsClaimSignal(input: {
   const corroborationCount = Math.max(1, input.corroboratingSourceCount || 1);
   const corroborationWeight = Math.min(120, (corroborationCount - 1) * 40);
   const claimWeight = input.claimType === 'opinion' ? 12 : 0;
+  const communityChannel =
+    input.sourceType === 'community' ? inferCommunityChannel(input.sourceUrl) : null;
+  const communityChannelBoost =
+    communityChannel === 'reddit'
+      ? 24
+      : communityChannel === 'hn'
+        ? 18
+        : communityChannel === 'forum'
+          ? 14
+          : communityChannel === 'other'
+            ? 6
+            : 0;
   const confidenceWeight =
     input.claimConfidenceTier === 'high' ? 28 : input.claimConfidenceTier === 'medium' ? 12 : 0;
   const textWeight = (input.text || '').length;
-  return sourceWeight + corroborationWeight + claimWeight + confidenceWeight + textWeight;
+  return (
+    sourceWeight +
+    corroborationWeight +
+    claimWeight +
+    communityChannelBoost +
+    confidenceWeight +
+    textWeight
+  );
 }
 
 export function prioritizeProsConsClaims<
@@ -93,6 +136,10 @@ export function prioritizeProsConsClaims<
       key: normalizeProsConsKey(getClaimDisplayText(item)),
       score: scoreProsConsClaimSignal({
         sourceType: item.source_type || 'official',
+        sourceUrl:
+          typeof (item as { source_url?: string }).source_url === 'string'
+            ? (item as { source_url?: string }).source_url || null
+            : null,
         claimType: item.claim_type,
         text: getClaimDisplayText(item),
         corroboratingSourceCount: item.corroborating_source_count,

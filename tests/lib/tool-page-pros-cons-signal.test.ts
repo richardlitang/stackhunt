@@ -37,6 +37,22 @@ describe('tool-page pros/cons signal weighting', () => {
     );
   });
 
+  it('prioritizes corroborated Reddit community claims over generic community claims', () => {
+    const reddit = scoreProsConsClaimSignal({
+      sourceType: 'community',
+      sourceUrl: 'https://www.reddit.com/r/saas/comments/abc123',
+      text: 'Users report performance drops during heavy usage windows',
+      corroboratingSourceCount: 2,
+    });
+    const genericCommunity = scoreProsConsClaimSignal({
+      sourceType: 'community',
+      sourceUrl: 'https://example-community-site.com/thread/1',
+      text: 'Users report performance drops during heavy usage windows',
+      corroboratingSourceCount: 2,
+    });
+    expect(reddit).toBeGreaterThan(genericCommunity);
+  });
+
   it('boosts corroborated claims above single-source claims of same source type', () => {
     const corroborated = scoreProsConsClaimSignal({
       sourceType: 'community',
