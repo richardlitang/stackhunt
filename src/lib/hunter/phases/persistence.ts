@@ -951,6 +951,21 @@ function buildCanonicalPricingPlans(pricingData: any): {
   return { entities, conflicts };
 }
 
+function buildPricingLensCoverage(
+  entities: Array<{
+    works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
+  }>
+): { personal: number; startup: number; enterprise: number } {
+  const coverage = { personal: 0, startup: 0, enterprise: 0 };
+  for (const entity of entities) {
+    const tags = Array.isArray(entity.works_for_lenses) ? entity.works_for_lenses : [];
+    if (tags.includes('personal')) coverage.personal += 1;
+    if (tags.includes('startup')) coverage.startup += 1;
+    if (tags.includes('enterprise')) coverage.enterprise += 1;
+  }
+  return coverage;
+}
+
 function sanitizeOperationalFields(
   data: Record<string, unknown> | undefined,
   label: string,
@@ -1577,6 +1592,7 @@ export async function executePersistencePhase(
         conflicts_count: Math.max(0, nextConflictCount),
         pricing_conflicts_count: nextPricingConflictCount,
         pricing_conflicts: pricingCanonical.conflicts,
+        pricing_lens_coverage: buildPricingLensCoverage(pricingCanonical.entities),
       },
     };
 
@@ -2737,6 +2753,7 @@ async function updatePricingOnly(
           ...currentQuality,
           pricing_conflicts_count: pricingCanonical.conflicts.length,
           pricing_conflicts: pricingCanonical.conflicts,
+          pricing_lens_coverage: buildPricingLensCoverage(pricingCanonical.entities),
         },
       },
     });
@@ -2919,6 +2936,7 @@ async function persistResearchOnly(
         ...currentQuality,
         pricing_conflicts_count: pricingCanonical.conflicts.length,
         pricing_conflicts: pricingCanonical.conflicts,
+        pricing_lens_coverage: buildPricingLensCoverage(pricingCanonical.entities),
       },
     };
   }

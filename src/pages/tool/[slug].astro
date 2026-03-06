@@ -245,6 +245,28 @@ const userSignalSummary =
         hn_claims?: number;
       })
     : null;
+const pricingLensCoverageRecord =
+  tool.specs && typeof tool.specs === 'object'
+    ? (
+        ((tool.specs as Record<string, unknown>).canonical as Record<string, unknown> | undefined)
+          ?.quality as Record<string, unknown> | undefined
+      )?.pricing_lens_coverage
+    : null;
+const pricingLensCoverage =
+  pricingLensCoverageRecord && typeof pricingLensCoverageRecord === 'object'
+    ? (pricingLensCoverageRecord as {
+        personal?: number;
+        startup?: number;
+        enterprise?: number;
+      })
+    : null;
+const activeLensPricingPlanCount =
+  activeReviewLens === 'general' ? null : Number(pricingLensCoverage?.[activeReviewLens] || 0);
+const activeLensLabelMap: Record<'personal' | 'startup' | 'enterprise', string> = {
+  personal: 'Solo / Freelancer',
+  startup: 'Startup',
+  enterprise: 'Enterprise',
+};
 const toolMeta = generateToolMeta(tool, tool.review_count);
 const toolCategoryRef = buildToolPageCategoryRef(tool.category);
 const { runtimeViewBundle, navigationState, ctaMediaState } =
@@ -961,6 +983,13 @@ applyToolPageRobotsHeader({
                   </h2>
                   {pricingSectionState.checkedLead && (
                     <p class="mt-1 text-xs text-zinc-500">{pricingSectionState.checkedLead}</p>
+                  )}
+                  {activeReviewLens !== 'general' && activeLensPricingPlanCount !== null && (
+                    <p class="mt-1 text-xs text-zinc-500">
+                      Lens coverage, {activeLensLabelMap[activeReviewLens]}:{' '}
+                      {activeLensPricingPlanCount} plan{activeLensPricingPlanCount === 1 ? '' : 's'}{' '}
+                      tagged.
+                    </p>
                   )}
                 </div>
                 <span class="inline-flex items-center gap-2 text-xs text-zinc-400">

@@ -380,6 +380,7 @@ export interface ToolCanonicalFacts {
     plan_id: string;
     plan_name: string;
     audience?: string | null;
+    works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
     seat_type?: string | null;
     price_monthly?: number | null;
     price_annual?: number | null;
@@ -400,6 +401,11 @@ export interface ToolCanonicalFacts {
       values: unknown[];
       urls: string[];
     }>;
+    pricing_lens_coverage?: {
+      personal?: number;
+      startup?: number;
+      enterprise?: number;
+    };
   };
   faq_locked?: Array<{
     question: string;
