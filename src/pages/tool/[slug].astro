@@ -55,6 +55,7 @@ import {
   buildToolPageDecisionUtilityState,
   buildToolPagePricingScenarioState,
   buildToolPageWorkflowFitVisibility,
+  buildToolPageQuickJumpLinksView,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
@@ -392,9 +393,10 @@ const {
   updateHistoryState,
   quickJumpLinks,
 } = navigationState;
-const quickJumpLinksView = showWorkflowFitSection
-  ? quickJumpLinks
-  : quickJumpLinks.filter((link) => link.href !== '#workflow-fit');
+const quickJumpLinksView = buildToolPageQuickJumpLinksView({
+  links: quickJumpLinks,
+  showWorkflowFitSection,
+});
 const {
   compareButtonProps,
   addToStackProps,

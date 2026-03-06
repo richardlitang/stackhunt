@@ -143,6 +143,7 @@ export { buildToolPageFaqItemsView } from '@/lib/tool-page/faq-items-view';
 export { buildToolPageFreshnessLabels } from '@/lib/tool-page/freshness-labels';
 export { buildToolPageGettingStartedProps } from '@/lib/tool-page/getting-started-props';
 export { buildToolPageQuickJumpLinks } from '@/lib/tool-page/quick-jump-links';
+export { buildToolPageQuickJumpLinksView } from '@/lib/tool-page/quick-jump-links-view';
 export { buildToolPageOperationalDetailsState } from '@/lib/tool-page/operational-details';
 export { buildToolPageQualityState } from '@/lib/tool-page/quality-state';
 export { buildToolPageQualityStateInput } from '@/lib/tool-page/quality-state-input';
