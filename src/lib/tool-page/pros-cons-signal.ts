@@ -121,9 +121,7 @@ function getClaimDisplayText<T extends { displayText?: string; text?: string }>(
 
 function dedupeRankedProsConsClaims<
   T extends { item: { displayText?: string; text?: string }; key: string },
->(
-  ranked: T[]
-): T[] {
+>(ranked: T[]): T[] {
   const seen = new Set<string>();
   const deduped: T[] = [];
   for (const entry of ranked) {

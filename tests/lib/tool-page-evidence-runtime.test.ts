@@ -14,12 +14,15 @@ describe('tool page evidence runtime', () => {
         if (typeof item.text !== 'string') return null;
         return {
           text: item.text,
-          sourceUrl: typeof item.sourceUrl === 'string' ? item.sourceUrl : 'https://example.com/docs',
+          sourceUrl:
+            typeof item.sourceUrl === 'string' ? item.sourceUrl : 'https://example.com/docs',
         };
       },
       isDisallowedConClaim: () => false,
       hiddenCostBullets: [],
-      hardLimitFromConstraints: [{ text: 'Seat cap: 10 users', sourceUrl: 'https://example.com/pricing' }],
+      hardLimitFromConstraints: [
+        { text: 'Seat cap: 10 users', sourceUrl: 'https://example.com/pricing' },
+      ],
       cleanNarrativeText: (value) => (typeof value === 'string' ? value.trim() : null),
       decisionSnapshotWatchOuts: ['Seat cap on starter'],
       decisionTradeoffSummaryInitial: '',
@@ -61,7 +64,14 @@ describe('tool page evidence runtime', () => {
       faqItems: [],
       specsVerifiedLabel: '2026-03-01',
       communityVerifiedLabel: '2026-03-01',
-      buildEvidenceBulletV2: ({ text, kind, sourceUrl, sourceLabel, retrievedAt, requiredSourcing }) => ({
+      buildEvidenceBulletV2: ({
+        text,
+        kind,
+        sourceUrl,
+        sourceLabel,
+        retrievedAt,
+        requiredSourcing,
+      }) => ({
         text,
         kind,
         sourceUrl,
@@ -160,7 +170,14 @@ describe('tool page evidence runtime', () => {
       faqItems: [],
       specsVerifiedLabel: '2026-03-01',
       communityVerifiedLabel: '2026-03-01',
-      buildEvidenceBulletV2: ({ text, kind, sourceUrl, sourceLabel, retrievedAt, requiredSourcing }) => ({
+      buildEvidenceBulletV2: ({
+        text,
+        kind,
+        sourceUrl,
+        sourceLabel,
+        retrievedAt,
+        requiredSourcing,
+      }) => ({
         text,
         kind,
         sourceUrl,

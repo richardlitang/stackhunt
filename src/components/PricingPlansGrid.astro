@@ -55,10 +55,8 @@ const filteredSmpPlans = Array.isArray(smp_pricing?.plans)
         return { ...plan, displayName };
       })
   : [];
-const { plans: lensFilteredSmpPlans, usedFallback: usedLensFallbackPlans } = filterPlansForLensWithMeta(
-  filteredSmpPlans,
-  activeReviewLens
-);
+const { plans: lensFilteredSmpPlans, usedFallback: usedLensFallbackPlans } =
+  filterPlansForLensWithMeta(filteredSmpPlans, activeReviewLens);
 
 // Determine which pricing data to use
 const hasSMPPricing = Boolean(smp_pricing && lensFilteredSmpPlans.length > 0);

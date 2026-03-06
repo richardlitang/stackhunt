@@ -1,6 +1,9 @@
 import { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page/evidence-grade';
 import type { ToolPageEvidenceLinkEntry } from '@/lib/tool-page/evidence-links';
-import type { ToolPageEvidenceBullet, ToolPageEvidenceBulletV2 } from '@/lib/tool-page/evidence-bullets';
+import type {
+  ToolPageEvidenceBullet,
+  ToolPageEvidenceBulletV2,
+} from '@/lib/tool-page/evidence-bullets';
 import { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
 import { buildToolPagePricingViewModel } from '@/lib/tool-page/pricing';
 import type { ToolPagePricingEvidenceLink } from '@/lib/tool-page/pricing';
@@ -61,7 +64,9 @@ export interface ToolPageEvidenceRuntime {
   showPricingSection: boolean;
   pricingNarrativeLead: string;
   pricingNarrativeLabel: string;
-  collectedSourcesBySection: ReturnType<typeof buildToolPageSourcesViewModel>['collectedSourcesBySection'];
+  collectedSourcesBySection: ReturnType<
+    typeof buildToolPageSourcesViewModel
+  >['collectedSourcesBySection'];
   collectedSourcesTotal: number;
   hasCollectedSources: boolean;
   decisionProofPoints: ToolPageEvidenceBulletV2[];
@@ -87,7 +92,8 @@ export function buildToolPageEvidenceRuntime(
   const effectiveEvidencePros = prioritizeProsConsClaims(
     contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros
   );
-  const rawEvidenceCons = contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
+  const rawEvidenceCons =
+    contextualEvidenceCons.length > 0 ? contextualEvidenceCons : globalEvidenceCons;
   const effectiveEvidenceCons = prioritizeProsConsClaims(
     rawEvidenceCons.filter((item) => !input.isDisallowedConClaim(item.text))
   );
@@ -154,7 +160,8 @@ export function buildToolPageEvidenceRuntime(
     officialDocsSourceUrl: officialDocsSource?.url || null,
     canonicalHardLimits,
   });
-  const { collectedSourcesBySection, collectedSourcesTotal, hasCollectedSources } = sourcesViewModel;
+  const { collectedSourcesBySection, collectedSourcesTotal, hasCollectedSources } =
+    sourcesViewModel;
 
   const decisionProofPoints = [
     input.buildEvidenceBulletV2({

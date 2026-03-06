@@ -1499,7 +1499,9 @@ export async function executePersistencePhase(
   // V4: Add constraints if extracted
   if (knowledgeCard?.constraints) {
     const constraints = knowledgeCard.constraints;
-    const plans = Array.isArray(knowledgeCard.smp_pricing?.plans) ? knowledgeCard.smp_pricing.plans : [];
+    const plans = Array.isArray(knowledgeCard.smp_pricing?.plans)
+      ? knowledgeCard.smp_pricing.plans
+      : [];
     const { resolvePlanId } = await import('@/lib/pricing/constraints.js');
 
     if (Array.isArray(constraints.hard_limits)) {
@@ -1533,10 +1535,7 @@ export async function executePersistencePhase(
       constraints.hidden_costs = constraints.hidden_costs.map((hiddenCost) => {
         const inferredTags = deriveLensTagsForConstraintText({
           description: typeof hiddenCost.description === 'string' ? hiddenCost.description : null,
-          trigger:
-            typeof hiddenCost.trigger === 'string'
-              ? hiddenCost.trigger
-              : null,
+          trigger: typeof hiddenCost.trigger === 'string' ? hiddenCost.trigger : null,
           type: null,
           planName: null,
         });
@@ -4095,8 +4094,10 @@ function buildUserSignalSummary(
   const rankedUserClaims = [...community, ...editorial].sort((a, b) => {
     const aSourceUrls = Array.isArray(a.source_urls) ? a.source_urls.length : 1;
     const bSourceUrls = Array.isArray(b.source_urls) ? b.source_urls.length : 1;
-    const aTier = a.claim_confidence_tier === 'high' ? 3 : a.claim_confidence_tier === 'medium' ? 2 : 1;
-    const bTier = b.claim_confidence_tier === 'high' ? 3 : b.claim_confidence_tier === 'medium' ? 2 : 1;
+    const aTier =
+      a.claim_confidence_tier === 'high' ? 3 : a.claim_confidence_tier === 'medium' ? 2 : 1;
+    const bTier =
+      b.claim_confidence_tier === 'high' ? 3 : b.claim_confidence_tier === 'medium' ? 2 : 1;
     const aSourceType = a.source_type === 'community' ? 2 : 1;
     const bSourceType = b.source_type === 'community' ? 2 : 1;
     return bSourceType - aSourceType || bSourceUrls - aSourceUrls || bTier - aTier;

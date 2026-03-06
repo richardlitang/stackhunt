@@ -94,5 +94,7 @@ export function filterPlansForLensWithMeta<T extends LensScopedPlanLike>(
   if (activeReviewLens === 'general') return { plans, usedFallback: false };
   const lensKey = activeReviewLens;
   const matched = plans.filter((plan) => derivePlanLensTags(plan).includes(lensKey));
-  return matched.length > 0 ? { plans: matched, usedFallback: false } : { plans, usedFallback: true };
+  return matched.length > 0
+    ? { plans: matched, usedFallback: false }
+    : { plans, usedFallback: true };
 }

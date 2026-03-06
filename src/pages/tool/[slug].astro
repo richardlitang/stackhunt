@@ -1407,8 +1407,9 @@ applyToolPageRobotsHeader({
             <div data-focus-target data-focus-groups="all integrations capabilities">
               {activeReviewLens !== 'general' && activeLensIntegrationCount !== null && (
                 <p class="mb-2 text-xs text-zinc-500">
-                  Lens coverage, {activeLensLabelMap[activeReviewLens]}: {activeLensIntegrationCount}{' '}
-                  integration{activeLensIntegrationCount === 1 ? '' : 's'} tagged.
+                  Lens coverage, {activeLensLabelMap[activeReviewLens]}:{' '}
+                  {activeLensIntegrationCount} integration
+                  {activeLensIntegrationCount === 1 ? '' : 's'} tagged.
                 </p>
               )}
               <PlatformIntegrations

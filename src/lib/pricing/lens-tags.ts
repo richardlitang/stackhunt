@@ -18,8 +18,7 @@ export function normalizeLensTags(tags: unknown): LensTag[] {
   return Array.from(
     new Set(
       tags.filter(
-        (tag): tag is LensTag =>
-          tag === 'personal' || tag === 'startup' || tag === 'enterprise'
+        (tag): tag is LensTag => tag === 'personal' || tag === 'startup' || tag === 'enterprise'
       )
     )
   ).sort((a, b) => LENS_ORDER.indexOf(a) - LENS_ORDER.indexOf(b));
