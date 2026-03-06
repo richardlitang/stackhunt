@@ -24,6 +24,7 @@ describe('tool page evidence bullets', () => {
         source_urls: ['https://acme.com/docs', 'https://reddit.com/r/acme/comments/1'],
         claim_confidence_tier: 'medium',
         claim_confidence_score: 0.7,
+        works_for_lenses: ['startup', 'enterprise'],
       },
       isEligibleEvidenceUrl
     );
@@ -40,6 +41,7 @@ describe('tool page evidence bullets', () => {
       corroboratingSourceCount: 2,
       claimConfidenceTier: 'medium',
       claimConfidenceScore: 0.7,
+      works_for_lenses: ['startup', 'enterprise'],
     });
     expect(invalid).toBeNull();
   });

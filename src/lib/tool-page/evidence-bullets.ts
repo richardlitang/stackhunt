@@ -89,6 +89,12 @@ export function toToolPageEvidenceBullet(
     Number.isFinite(value.claim_confidence_score)
       ? value.claim_confidence_score
       : undefined;
+  const worksForLenses = Array.isArray(value.works_for_lenses)
+    ? value.works_for_lenses.filter(
+        (lens): lens is 'personal' | 'startup' | 'enterprise' =>
+          lens === 'personal' || lens === 'startup' || lens === 'enterprise'
+      )
+    : undefined;
   return {
     text,
     sourceUrl,
@@ -97,6 +103,7 @@ export function toToolPageEvidenceBullet(
     corroboratingSourceCount,
     claimConfidenceTier,
     claimConfidenceScore,
+    ...(worksForLenses && worksForLenses.length > 0 ? { works_for_lenses: worksForLenses } : {}),
   };
 }
 
