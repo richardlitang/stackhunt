@@ -85,10 +85,11 @@ export function prioritizeProsConsClaims<
     displayText: string;
   },
 >(items: T[]): T[] {
-  return [...items]
+  const ranked = [...items]
     .map((item, index) => ({
       item,
       index,
+      key: normalizeProsConsKey(item.displayText),
       score: scoreProsConsClaimSignal({
         sourceType: item.source_type || 'official',
         claimType: item.claim_type,
@@ -97,6 +98,51 @@ export function prioritizeProsConsClaims<
         claimConfidenceTier: item.claim_confidence_tier,
       }),
     }))
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .map((entry) => entry.item);
+    .sort((a, b) => b.score - a.score || a.index - b.index);
+
+  const deduped = dedupeRankedProsConsClaims(ranked);
+  return promoteUserSignalTopSlots(deduped).map((entry) => entry.item);
+}
+
+function normalizeProsConsKey(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function dedupeRankedProsConsClaims<T extends { item: { displayText: string }; key: string }>(
+  ranked: T[]
+): T[] {
+  const seen = new Set<string>();
+  const deduped: T[] = [];
+  for (const entry of ranked) {
+    const key = entry.key || normalizeProsConsKey(entry.item.displayText);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(entry);
+  }
+  return deduped;
+}
+
+function promoteUserSignalTopSlots<
+  T extends { item: { source_type?: ProsConsSourceType }; index: number; score: number },
+>(ranked: T[]): T[] {
+  if (ranked.length <= 1) return ranked;
+  const firstTwo = ranked.slice(0, 2);
+  const hasUserSignalTop2 = firstTwo.some(
+    (entry) => entry.item.source_type === 'community' || entry.item.source_type === 'editorial'
+  );
+  if (hasUserSignalTop2) return ranked;
+
+  const firstUserSignalIndex = ranked.findIndex(
+    (entry) => entry.item.source_type === 'community' || entry.item.source_type === 'editorial'
+  );
+  if (firstUserSignalIndex === -1) return ranked;
+
+  const copy = [...ranked];
+  const [userSignalEntry] = copy.splice(firstUserSignalIndex, 1);
+  copy.splice(1, 0, userSignalEntry);
+  return copy;
 }

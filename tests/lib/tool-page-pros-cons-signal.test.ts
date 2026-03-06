@@ -89,4 +89,49 @@ describe('tool-page pros/cons signal weighting', () => {
     expect(ranked[1]?.source_type).toBe('editorial');
     expect(ranked[2]?.source_type).toBe('official');
   });
+
+  it('dedupes repeated low-signal bullets by normalized text', () => {
+    const ranked = prioritizeProsConsClaims([
+      {
+        displayText: 'Supports core workflows for CRM teams.',
+        source_type: 'official' as const,
+      },
+      {
+        displayText: 'Supports core workflows for CRM teams',
+        source_type: 'official' as const,
+      },
+      {
+        displayText: 'Users report cleaner contact routing setup',
+        source_type: 'community' as const,
+      },
+    ]);
+
+    expect(ranked).toHaveLength(2);
+    expect(
+      ranked.filter((item) => item.displayText.toLowerCase().includes('supports core workflows'))
+    ).toHaveLength(1);
+  });
+
+  it('ensures top two contain at least one user-signal claim when available', () => {
+    const ranked = prioritizeProsConsClaims([
+      {
+        displayText: 'Official docs mention automation templates and robust workflows',
+        source_type: 'official' as const,
+      },
+      {
+        displayText: 'Official docs describe field customization controls',
+        source_type: 'official' as const,
+      },
+      {
+        displayText: 'Users report setup friction for permissions at team handoff',
+        source_type: 'community' as const,
+      },
+    ]);
+
+    expect(
+      ranked
+        .slice(0, 2)
+        .some((item) => item.source_type === 'community' || item.source_type === 'editorial')
+    ).toBe(true);
+  });
 });
