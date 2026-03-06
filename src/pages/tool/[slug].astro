@@ -343,6 +343,9 @@ const { showWorkflowFitSection } = buildToolPageWorkflowFitVisibility({
   hasWorkflowCards: workflowFitCards.length > 0,
   hasWorkflowHighlights: workflowFitHighlights.length > 0,
 });
+const quickJumpLinksView = showWorkflowFitSection
+  ? quickJumpLinks
+  : quickJumpLinks.filter((link) => link.href !== '#workflow-fit');
 const decisionHardLimitEvidence = canonicalHardLimits[0] || null;
 const pricingScenarioState = buildToolPagePricingScenarioState({
   toolName: tool.name,
@@ -799,7 +802,7 @@ applyToolPageRobotsHeader({
       </div>
       <div class="mt-3 flex flex-wrap gap-2 text-sm">
         {
-          quickJumpLinks.map((link) => (
+          quickJumpLinksView.map((link) => (
             <a
               href={link.href}
               class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
