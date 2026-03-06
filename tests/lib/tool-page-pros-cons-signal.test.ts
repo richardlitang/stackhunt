@@ -15,6 +15,15 @@ describe('tool-page pros/cons signal weighting', () => {
     expect(classifyProsConsSourceType({ sourceUrl: 'https://docs.acme.com/help' })).toBe(
       'official'
     );
+    expect(
+      classifyProsConsSourceType({ sourceUrl: 'https://community.figma.com/t/workflow/12345' })
+    ).toBe('community');
+    expect(
+      classifyProsConsSourceType({ sourceUrl: 'https://forum.asana.com/t/tip/12345' })
+    ).toBe('community');
+    expect(
+      classifyProsConsSourceType({ sourceUrl: 'https://discourse.example.io/t/thread/1' })
+    ).toBe('community');
   });
 
   it('gives higher score to user-signal sources than official docs', () => {

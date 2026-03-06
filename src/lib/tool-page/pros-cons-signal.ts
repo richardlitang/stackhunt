@@ -5,6 +5,7 @@ const COMMUNITY_HOST_PATTERNS = [
   /(^|\.)reddit\.com$/i,
   /(^|\.)news\.ycombinator\.com$/i,
   /(^|\.)stackoverflow\.com$/i,
+  /(^|\.)stackexchange\.com$/i,
   /(^|\.)quora\.com$/i,
   /(^|\.)discord\.com$/i,
   /(^|\.)x\.com$/i,
@@ -28,6 +29,11 @@ function matchesHostPattern(hostname: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(hostname));
 }
 
+function isLikelyCommunityHost(hostname: string): boolean {
+  if (matchesHostPattern(hostname, COMMUNITY_HOST_PATTERNS)) return true;
+  return hostname.includes('forum') || hostname.includes('community') || hostname.includes('discourse');
+}
+
 export function classifyProsConsSourceType(input: {
   sourceUrl?: string | null;
   sourceType?: string | null;
@@ -42,7 +48,7 @@ export function classifyProsConsSourceType(input: {
   if (!input.sourceUrl) return 'official';
   try {
     const hostname = new URL(input.sourceUrl).hostname.toLowerCase();
-    if (matchesHostPattern(hostname, COMMUNITY_HOST_PATTERNS)) return 'community';
+    if (isLikelyCommunityHost(hostname)) return 'community';
     if (matchesHostPattern(hostname, EDITORIAL_HOST_PATTERNS)) return 'editorial';
     return 'official';
   } catch {
