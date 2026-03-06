@@ -3,6 +3,7 @@ interface PracticalOutcome {
   outcome: string;
   verifyInDemo: string;
   planDependency: string;
+  planDependencyStatus: 'Source-backed' | 'Needs confirmation';
 }
 
 interface Props {
@@ -31,6 +32,15 @@ const { title, outcomes } = Astro.props as Props;
             </p>
             <p class="mt-1 text-xs text-zinc-400">
               <span class="text-zinc-500">Plan dependency:</span> {item.planDependency}
+              <span
+                class={`ml-2 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
+                  item.planDependencyStatus === 'Source-backed'
+                    ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300'
+                    : 'border-amber-700/70 bg-amber-950/40 text-amber-200'
+                }`}
+              >
+                {item.planDependencyStatus}
+              </span>
             </p>
           </article>
         ))}

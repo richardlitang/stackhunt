@@ -21,6 +21,7 @@ describe('tool page decision utility', () => {
     expect(result.verdictLeadOverride).toContain('fits startups');
     expect(result.commonSetups).toHaveLength(3);
     expect(result.practicalOutcomesTitle).toBe('What it does in practice');
+    expect(result.practicalOutcomes[0]?.planDependencyStatus).toBe('Needs confirmation');
   });
 
   it('adds solo-specific checklist and verdict lead for personal lens', () => {
@@ -55,5 +56,6 @@ describe('tool page decision utility', () => {
     expect(result.testChecklistItems[0]).toContain('Run one complete high-frequency workflow');
     expect(result.commonSetups).toHaveLength(3);
     expect(result.decisionWatchOut).toContain('Watch out');
+    expect(result.practicalOutcomes[0]?.planDependencyStatus).toBe('Needs confirmation');
   });
 });
