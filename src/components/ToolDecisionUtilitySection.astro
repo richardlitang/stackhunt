@@ -47,7 +47,10 @@ const { checklistTitle, checklistItems, commonSetupsTitle, commonSetups } = Astr
               <p class="mt-2 text-xs text-zinc-400">
                 Cost trigger:{' '}
                 {setup.costTrigger.evidenceHref ? (
-                  <a href={setup.costTrigger.evidenceHref} class="text-hunt-500 hover:text-hunt-400">
+                  <a
+                    href={setup.costTrigger.evidenceHref}
+                    class="text-hunt-500 hover:text-hunt-400"
+                  >
                     {setup.costTrigger.text}
                   </a>
                 ) : (

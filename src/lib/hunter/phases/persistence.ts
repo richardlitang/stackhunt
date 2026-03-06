@@ -3740,7 +3740,10 @@ function buildUserSignalSummary(
   corroborating_community_domains: number;
   top_user_reported_signals: string[];
 } | null {
-  const all = [...pros.map((claim) => ({ ...claim, kind: 'pro' as const })), ...cons.map((claim) => ({ ...claim, kind: 'con' as const }))];
+  const all = [
+    ...pros.map((claim) => ({ ...claim, kind: 'pro' as const })),
+    ...cons.map((claim) => ({ ...claim, kind: 'con' as const })),
+  ];
   const community = all.filter((claim) => claim.source_type === 'community');
   const editorial = all.filter((claim) => claim.source_type === 'editorial');
   if (community.length === 0 && editorial.length === 0) return null;

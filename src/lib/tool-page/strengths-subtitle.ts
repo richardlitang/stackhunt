@@ -3,9 +3,7 @@ interface BuildToolPageStrengthsSubtitleInput {
   communityCorroborationCount?: number;
 }
 
-export function buildToolPageStrengthsSubtitle(
-  input: BuildToolPageStrengthsSubtitleInput
-): string {
+export function buildToolPageStrengthsSubtitle(input: BuildToolPageStrengthsSubtitleInput): string {
   if (input.prosConsSourcesCount > 0) {
     if ((input.communityCorroborationCount || 0) > 0) {
       return `Evidence-backed pros and cons only, with ${input.communityCorroborationCount} corroborating community domains.`;

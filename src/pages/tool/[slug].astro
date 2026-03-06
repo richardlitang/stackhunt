@@ -1176,7 +1176,8 @@ applyToolPageRobotsHeader({
                       (userSignalSummary.community_cons || 0) >
                       0 && (
                       <p class="mt-1 text-xs text-zinc-500">
-                        Community-backed signals in this section: {userSignalSummary.community_pros || 0} pros,{' '}
+                        Community-backed signals in this section:{' '}
+                        {userSignalSummary.community_pros || 0} pros,{' '}
                         {userSignalSummary.community_cons || 0} cons.
                       </p>
                     )}
@@ -1515,8 +1516,8 @@ applyToolPageRobotsHeader({
                 )}
                 {qualityState.communityCorroborationCount > 0 && (
                   <p class="mt-1 text-xs text-zinc-500">
-                    Includes signals corroborated across{' '}
-                    {qualityState.communityCorroborationCount} community domains.
+                    Includes signals corroborated across {qualityState.communityCorroborationCount}{' '}
+                    community domains.
                   </p>
                 )}
               </div>
