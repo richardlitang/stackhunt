@@ -9,6 +9,7 @@ describe('tool page research status view', () => {
       trustConfidenceLabel: 'high',
       pendingVerificationCount: 2,
       communityCorroborationCount: 3,
+      userSignalCoveragePending: true,
       communityVerifiedLabel: null,
       specsVerifiedLabel: '3 days ago',
       pricingCheckedLabel: null,
@@ -16,6 +17,9 @@ describe('tool page research status view', () => {
 
     expect(result.pendingConfirmationLabel).toContain('2 claims still pending');
     expect(result.communityCorroborationLabel).toContain('3 corroborating community domains');
+    expect(result.userSignalCoverageLabel).toContain(
+      'User-reported claim extraction is still pending'
+    );
     expect(result.lastCheckedLabel).toBe('3 days ago');
   });
 
@@ -26,6 +30,7 @@ describe('tool page research status view', () => {
       trustConfidenceLabel: 'medium',
       pendingVerificationCount: 0,
       communityCorroborationCount: 0,
+      userSignalCoveragePending: false,
       communityVerifiedLabel: null,
       specsVerifiedLabel: null,
       pricingCheckedLabel: null,
@@ -33,6 +38,7 @@ describe('tool page research status view', () => {
 
     expect(result.pendingConfirmationLabel).toBeNull();
     expect(result.communityCorroborationLabel).toBeNull();
+    expect(result.userSignalCoverageLabel).toBeNull();
     expect(result.lastCheckedLabel).toBe('unknown');
   });
 });

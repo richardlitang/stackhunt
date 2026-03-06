@@ -4,6 +4,7 @@ interface BuildToolPageResearchStatusInput {
   trustConfidenceLabel: string;
   pendingVerificationCount: number;
   communityCorroborationCount?: number;
+  userSignalCoveragePending?: boolean;
   communityVerifiedLabel: string | null;
   specsVerifiedLabel: string | null;
   pricingCheckedLabel: string | null;
@@ -14,6 +15,7 @@ export interface ToolPageResearchStatusView {
   linkedSourcesLabel: string;
   pendingConfirmationLabel: string | null;
   communityCorroborationLabel: string | null;
+  userSignalCoverageLabel: string | null;
   lastCheckedLabel: string;
 }
 
@@ -31,6 +33,9 @@ export function buildToolPageResearchStatusView(
       (input.communityCorroborationCount || 0) > 0
         ? `${input.communityCorroborationCount} corroborating community domains`
         : null,
+    userSignalCoverageLabel: input.userSignalCoveragePending
+      ? 'User-reported claim extraction is still pending for community sources'
+      : null,
     lastCheckedLabel:
       input.communityVerifiedLabel ||
       input.specsVerifiedLabel ||

@@ -19,6 +19,7 @@ interface BuildToolPageChromeStateInput {
   trustConfidenceLabel: 'High' | 'Medium' | 'Low';
   pendingVerificationCount: number;
   communityCorroborationCount?: number;
+  userSignalCoveragePending?: boolean;
   communityVerifiedLabel: string | null;
   specsVerifiedLabel: string | null;
   pricingCheckedLabel: string | null;
@@ -50,6 +51,7 @@ export function buildToolPageChromeState(input: BuildToolPageChromeStateInput): 
     trustConfidenceLabel: input.trustConfidenceLabel,
     pendingVerificationCount: input.pendingVerificationCount,
     communityCorroborationCount: input.communityCorroborationCount || 0,
+    userSignalCoveragePending: input.userSignalCoveragePending || false,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,

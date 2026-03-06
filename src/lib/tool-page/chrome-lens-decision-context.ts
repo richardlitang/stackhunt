@@ -40,6 +40,7 @@ interface BuildToolPageChromeLensStateFromDecisionContextInput {
   evaluationDepth: 'Docs-only' | 'Light hands-on' | 'Deep hands-on';
   qualityState: {
     communityCorroborationCount: number;
+    userSignalCoveragePending?: boolean;
   };
 }
 
@@ -56,6 +57,7 @@ export function buildToolPageChromeLensStateFromDecisionContext(
       trustConfidenceLabel: input.runtimeViewBundle.trustConfidenceLabel,
       pendingVerificationCount: input.runtimeViewBundle.pendingVerificationCount,
       communityCorroborationCount: input.qualityState.communityCorroborationCount,
+      userSignalCoveragePending: input.qualityState.userSignalCoveragePending || false,
       communityVerifiedLabel: input.reviewSignalsView.communityVerifiedLabel,
       specsVerifiedLabel: input.reviewSignalsView.specsVerifiedLabel,
       pricingCheckedLabel: input.evidenceRuntime.pricingCheckedLabel,

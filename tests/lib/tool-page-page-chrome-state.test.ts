@@ -14,6 +14,7 @@ describe('tool page chrome state', () => {
       trustConfidenceLabel: 'High',
       pendingVerificationCount: 0,
       communityCorroborationCount: 2,
+      userSignalCoveragePending: true,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-05',
       pricingCheckedLabel: '2026-03-05',
@@ -35,6 +36,9 @@ describe('tool page chrome state', () => {
     expect(state.researchStatusView.communityCorroborationLabel).toContain(
       '2 corroborating community domains'
     );
+    expect(state.researchStatusView.userSignalCoverageLabel).toContain(
+      'User-reported claim extraction is still pending'
+    );
   });
 
   it('builds chrome state from route-level fields', () => {
@@ -46,6 +50,7 @@ describe('tool page chrome state', () => {
       trustConfidenceLabel: 'High',
       pendingVerificationCount: 1,
       communityCorroborationCount: 1,
+      userSignalCoveragePending: false,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-05',
       pricingCheckedLabel: '2026-03-05',

@@ -8,6 +8,7 @@ interface BuildToolPageChromeStateInputFromRouteInput {
   trustConfidenceLabel: 'High' | 'Medium' | 'Low';
   pendingVerificationCount: number;
   communityCorroborationCount?: number;
+  userSignalCoveragePending?: boolean;
   communityVerifiedLabel: string | null;
   specsVerifiedLabel: string | null;
   pricingCheckedLabel: string | null;
@@ -27,6 +28,7 @@ interface BuildToolPageChromeStateInputFromRouteContextInput {
   trustConfidenceLabel: BuildToolPageChromeStateInputFromRouteInput['trustConfidenceLabel'];
   pendingVerificationCount: BuildToolPageChromeStateInputFromRouteInput['pendingVerificationCount'];
   communityCorroborationCount: BuildToolPageChromeStateInputFromRouteInput['communityCorroborationCount'];
+  userSignalCoveragePending?: BuildToolPageChromeStateInputFromRouteInput['userSignalCoveragePending'];
   communityVerifiedLabel: BuildToolPageChromeStateInputFromRouteInput['communityVerifiedLabel'];
   specsVerifiedLabel: BuildToolPageChromeStateInputFromRouteInput['specsVerifiedLabel'];
   pricingCheckedLabel: BuildToolPageChromeStateInputFromRouteInput['pricingCheckedLabel'];
@@ -51,6 +53,7 @@ export function buildToolPageChromeStateInputFromRoute(
     trustConfidenceLabel: input.trustConfidenceLabel,
     pendingVerificationCount: input.pendingVerificationCount,
     communityCorroborationCount: input.communityCorroborationCount || 0,
+    userSignalCoveragePending: input.userSignalCoveragePending || false,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,
@@ -74,6 +77,7 @@ export function buildToolPageChromeStateInputFromRouteContext(
     trustConfidenceLabel: input.trustConfidenceLabel,
     pendingVerificationCount: input.pendingVerificationCount,
     communityCorroborationCount: input.communityCorroborationCount || 0,
+    userSignalCoveragePending: input.userSignalCoveragePending || false,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,
