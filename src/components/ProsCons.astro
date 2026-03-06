@@ -35,18 +35,14 @@ interface Props {
 const { pros, cons, title, showSources = true, sourceDisplay } = Astro.props;
 const resolvedSourceDisplay =
   (sourceDisplay === 'toggle' ? 'block' : sourceDisplay) || (showSources ? 'block' : 'hidden');
-
 const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
-const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
-const stripControlChars = (value: string): string =>
-  value.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
-const normalizeClaimKey = (value: string): string =>
-  stripControlChars(value)
-    .replace(TERMINAL_PUNCTUATION, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+
+import {
+  finalizeProsConsClaims,
+  stripProsConsControlChars,
+} from '@/lib/tool-page/pros-cons-quality';
+
+const stripControlChars = (value: string): string => stripProsConsControlChars(value);
 const isLikelyIncompleteClause = (value: string): boolean => {
   const text = stripControlChars(value).replace(TERMINAL_PUNCTUATION, '').trim();
   if (!text) return true;
@@ -122,50 +118,6 @@ function normalizeClaim(
   };
 }
 
-const LOW_SIGNAL_PATTERNS = [
-  /\bsupports?\s+core\s+workflows?\b/i,
-  /\bhelps?\s+teams?\s+work\s+better\b/i,
-  /\bimproves?\s+productivity\b/i,
-  /\beasy\s+to\s+use\b/i,
-  /\bmodern\s+interface\b/i,
-];
-
-function isLowSignalClaim(text: string): boolean {
-  const normalized = normalizeClaimKey(text);
-  if (!normalized) return true;
-  return LOW_SIGNAL_PATTERNS.some((pattern) => pattern.test(normalized));
-}
-
-function finalizeClaims<T extends { displayText: string }>(
-  items: T[]
-): {
-  items: T[];
-  droppedDuplicates: number;
-  droppedLowSignal: number;
-} {
-  const seen = new Set<string>();
-  const unique: T[] = [];
-  let droppedDuplicates = 0;
-  let droppedLowSignal = 0;
-
-  for (const item of items) {
-    const key = normalizeClaimKey(item.displayText);
-    if (!key) continue;
-    if (seen.has(key)) {
-      droppedDuplicates++;
-      continue;
-    }
-    seen.add(key);
-    if (isLowSignalClaim(item.displayText)) {
-      droppedLowSignal++;
-      continue;
-    }
-    unique.push(item);
-  }
-
-  return { items: unique, droppedDuplicates, droppedLowSignal };
-}
-
 const normalizedPros = pros
   .map((item, i) => normalizeClaim(item, i))
   .filter((item) => item.displayText && !isLikelyIncompleteClause(item.displayText));
@@ -184,8 +136,8 @@ const evidenceBackedCons = normalizedCons
     return sourceUrl ? { ...item, source_url: sourceUrl } : null;
   })
   .filter((item): item is (typeof normalizedCons)[number] => Boolean(item));
-const finalizedPros = finalizeClaims(evidenceBackedPros);
-const finalizedCons = finalizeClaims(evidenceBackedCons);
+const finalizedPros = finalizeProsConsClaims(evidenceBackedPros);
+const finalizedCons = finalizeProsConsClaims(evidenceBackedCons);
 const droppedClaimsForQuality =
   finalizedPros.droppedDuplicates +
   finalizedPros.droppedLowSignal +
