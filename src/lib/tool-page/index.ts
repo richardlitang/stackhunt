@@ -53,6 +53,7 @@ export {
 } from '@/lib/tool-page/chrome-input';
 export { buildToolPageChromeLensStateFromRouteContext } from '@/lib/tool-page/chrome-lens-state';
 export { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
+export { rankConstraintsForLens } from '@/lib/tool-page/constraints-lens';
 export { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
 export { getToolPageData } from '@/lib/tool-page/data';
 export {

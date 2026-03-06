@@ -56,6 +56,7 @@ import {
   buildToolPagePricingScenarioState,
   buildToolPageWorkflowFitVisibility,
   buildToolPageQuickJumpLinksView,
+  rankConstraintsForLens,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
@@ -224,6 +225,8 @@ const {
   collectedSourcesBySection: _collectedSourcesBySection,
   hasCollectedSources,
 } = evidenceRuntime;
+const lensRankedHardLimits = rankConstraintsForLens(canonicalHardLimits, activeReviewLens);
+const topLensHardLimit = lensRankedHardLimits[0] || null;
 const toolMeta = generateToolMeta(tool, tool.review_count);
 const toolCategoryRef = buildToolPageCategoryRef(tool.category);
 const { runtimeViewBundle, navigationState, ctaMediaState } =
@@ -338,17 +341,17 @@ const decisionUtilityState = buildToolPageDecisionUtilityState({
   lensBestFitLine,
   lensWeakFitLine,
   lensTradeoffLine,
-  hardLimitText: canonicalHardLimits[0]?.text || null,
+  hardLimitText: topLensHardLimit?.text || null,
 });
 const { showWorkflowFitSection } = buildToolPageWorkflowFitVisibility({
   categorySlug: tool.category?.slug || null,
   hasWorkflowCards: workflowFitCards.length > 0,
   hasWorkflowHighlights: workflowFitHighlights.length > 0,
 });
-const decisionHardLimitEvidence = canonicalHardLimits[0] || null;
+const decisionHardLimitEvidence = topLensHardLimit || null;
 const pricingScenarioState = buildToolPagePricingScenarioState({
   toolName: tool.name,
-  hardLimitText: canonicalHardLimits[0]?.text || null,
+  hardLimitText: topLensHardLimit?.text || null,
 });
 const {
   reviewInProgressBannerText,
@@ -846,11 +849,11 @@ applyToolPageRobotsHeader({
                   set:html={simpleMarkdown(verdictContent.body)}
                 />
               </div>
-              {canonicalHardLimits.length > 0 && (
+              {lensRankedHardLimits.length > 0 && (
                 <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
                   <h3 class="text-sm font-semibold text-zinc-200">Hard limits / dealbreakers</h3>
                   <ul class="mt-2 space-y-2 text-sm text-zinc-300">
-                    {canonicalHardLimits.slice(0, 4).map((item) => (
+                    {lensRankedHardLimits.slice(0, 4).map((item) => (
                       <li>
                         - {item.text}{' '}
                         <a
@@ -999,15 +1002,15 @@ applyToolPageRobotsHeader({
                     </div>
                   )}
                 </div>
-                {canonicalHardLimits[0] && (
+                {topLensHardLimit && (
                   <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                       {tool.name} free plan limits and hard constraints
                     </h3>
                     <p class="mt-2 text-xs text-zinc-300">
-                      {canonicalHardLimits[0].text}{' '}
+                      {topLensHardLimit.text}{' '}
                       <a
-                        href={canonicalHardLimits[0].sourceUrl}
+                        href={topLensHardLimit.sourceUrl}
                         target="_blank"
                         rel="noopener"
                         data-outbound="source"
@@ -1096,7 +1099,7 @@ applyToolPageRobotsHeader({
                     </p>
                   </div>
                 )}
-                {canonicalHardLimits.length > 0 && (
+                {lensRankedHardLimits.length > 0 && (
                   <p class="mt-4 text-sm text-zinc-400">
                     Canonical constraints live in{' '}
                     <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
