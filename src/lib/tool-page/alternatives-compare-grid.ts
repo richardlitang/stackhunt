@@ -40,10 +40,7 @@ export interface ToolCompareGridCell {
   evidenceTag: ToolCompareGridEvidenceTag;
 }
 
-const ROWS_ALLOWING_HEURISTIC_ONLY = new Set<ToolCompareGridRow>([
-  'Choose this instead if',
-  'Evidence level',
-]);
+const ROWS_ALLOWING_HEURISTIC_ONLY = new Set<ToolCompareGridRow>(['Evidence level']);
 
 function toSentenceCase(text: string): string {
   const trimmed = text.trim();

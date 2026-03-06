@@ -141,4 +141,35 @@ describe('resolveToolCompareGridValue', () => {
     expect(rows).toContain('Setup time');
     expect(rows).toContain('Seat complexity');
   });
+
+  it('suppresses choose-this row when it is only heuristic with no source-backed cell', () => {
+    const main: ToolCompareGridLike = {
+      name: 'MainTool',
+      pricing_type: null,
+      learning_curve: null,
+      curatedVerdict: null,
+      computedDiff: {
+        featureDiff: 'API-first',
+        priceDiff: 'Higher unit cost',
+        learningDiff: 'Slower onboarding',
+      },
+    };
+    const alternatives: ToolCompareGridLike[] = [
+      {
+        name: 'AltA',
+        pricing_type: null,
+        learning_curve: null,
+        curatedVerdict: null,
+        computedDiff: {
+          featureDiff: 'Native integrations',
+          priceDiff: 'Lower unit cost',
+          learningDiff: 'Faster onboarding',
+        },
+      },
+    ];
+
+    const rows = deriveVisibleToolCompareGridRows(main, alternatives, 'general');
+    expect(rows).not.toContain('Choose this instead if');
+    expect(rows).toContain('Evidence level');
+  });
 });
