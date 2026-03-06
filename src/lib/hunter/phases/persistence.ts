@@ -1035,6 +1035,48 @@ function enrichIntegrationsForLens(integrations: unknown): unknown {
   };
 }
 
+function enrichConstraintsForLens(constraints: unknown): unknown {
+  if (!constraints || typeof constraints !== 'object') return constraints;
+  const value = constraints as Record<string, unknown>;
+  const hardLimits = Array.isArray(value.hard_limits) ? value.hard_limits : [];
+  const hiddenCosts = Array.isArray(value.hidden_costs) ? value.hidden_costs : [];
+  if (hardLimits.length === 0 && hiddenCosts.length === 0) return constraints;
+
+  return {
+    ...value,
+    hard_limits: hardLimits.map((entry) => {
+      if (!entry || typeof entry !== 'object') return entry;
+      const limit = entry as Record<string, unknown>;
+      const inferredTags = deriveLensTagsForConstraintText({
+        description: typeof limit.description === 'string' ? limit.description : null,
+        type: typeof limit.type === 'string' ? limit.type : null,
+        planName: typeof limit.plan_name_match === 'string' ? limit.plan_name_match : null,
+        trigger: typeof limit.consequence === 'string' ? limit.consequence : null,
+      });
+      const mergedTags = mergeLensTags(limit.works_for_lenses, inferredTags);
+      return {
+        ...limit,
+        ...(mergedTags.length > 0 ? { works_for_lenses: mergedTags } : {}),
+      };
+    }),
+    hidden_costs: hiddenCosts.map((entry) => {
+      if (!entry || typeof entry !== 'object') return entry;
+      const hiddenCost = entry as Record<string, unknown>;
+      const inferredTags = deriveLensTagsForConstraintText({
+        description: typeof hiddenCost.description === 'string' ? hiddenCost.description : null,
+        type: null,
+        planName: null,
+        trigger: typeof hiddenCost.trigger === 'string' ? hiddenCost.trigger : null,
+      });
+      const mergedTags = mergeLensTags(hiddenCost.works_for_lenses, inferredTags);
+      return {
+        ...hiddenCost,
+        ...(mergedTags.length > 0 ? { works_for_lenses: mergedTags } : {}),
+      };
+    }),
+  };
+}
+
 function sanitizeOperationalFields(
   data: Record<string, unknown> | undefined,
   label: string,
@@ -1359,6 +1401,14 @@ export async function executePersistencePhase(
   if (lensAwarePricing) {
     knowledgeCard.smp_pricing = lensAwarePricing;
   }
+  const lensAwareIntegrations = enrichIntegrationsForLens(knowledgeCard?.integrations);
+  if (lensAwareIntegrations) {
+    knowledgeCard.integrations = lensAwareIntegrations as typeof knowledgeCard.integrations;
+  }
+  const lensAwareConstraints = enrichConstraintsForLens(knowledgeCard?.constraints);
+  if (lensAwareConstraints) {
+    knowledgeCard.constraints = lensAwareConstraints as typeof knowledgeCard.constraints;
+  }
   const guardrailSources = ctx.research.scoutResult.raw_sources.map((source) => ({
     url: source.url,
     title: source.title,
@@ -1411,11 +1461,11 @@ export async function executePersistencePhase(
   // Step 2: Upsert Item (with Knowledge Card + V2 fields)
 
   // Build V2/V3 specs from analysis + Knowledge Card
-  const lensAwareIntegrations = enrichIntegrationsForLens(knowledgeCard?.integrations);
+  const lensTaggedIntegrations = enrichIntegrationsForLens(knowledgeCard?.integrations);
   const specs: ToolSpecs = {
     pricing_model: analysis.pricingType,
     platforms: analysis.graphTags?.platforms || [],
-    integrations: (lensAwareIntegrations as any) || [],
+    integrations: (lensTaggedIntegrations as any) || [],
   };
 
   // V3: Add SMP pricing data if extracted
@@ -2801,6 +2851,14 @@ async function updatePricingOnly(
   if (lensAwarePricing) {
     knowledgeCard.smp_pricing = lensAwarePricing;
   }
+  const lensAwareIntegrations = enrichIntegrationsForLens(knowledgeCard?.integrations);
+  if (lensAwareIntegrations) {
+    knowledgeCard.integrations = lensAwareIntegrations as typeof knowledgeCard.integrations;
+  }
+  const lensAwareConstraints = enrichConstraintsForLens(knowledgeCard?.constraints);
+  if (lensAwareConstraints) {
+    knowledgeCard.constraints = lensAwareConstraints as typeof knowledgeCard.constraints;
+  }
 
   const { data: existingBySlug } = await deps.supabase
     .from('items')
@@ -2985,6 +3043,14 @@ async function persistResearchOnly(
   const lensAwarePricing = enrichSmpPricingForLens(knowledgeCard?.smp_pricing);
   if (lensAwarePricing) {
     knowledgeCard.smp_pricing = lensAwarePricing;
+  }
+  const lensAwareIntegrations = enrichIntegrationsForLens(knowledgeCard?.integrations);
+  if (lensAwareIntegrations) {
+    knowledgeCard.integrations = lensAwareIntegrations as typeof knowledgeCard.integrations;
+  }
+  const lensAwareConstraints = enrichConstraintsForLens(knowledgeCard?.constraints);
+  if (lensAwareConstraints) {
+    knowledgeCard.constraints = lensAwareConstraints as typeof knowledgeCard.constraints;
   }
   let categoryId: string | null = null;
   if (ctx.detectedCategory) {
