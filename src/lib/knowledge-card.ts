@@ -236,6 +236,10 @@ export type ConstraintConsequence = z.infer<typeof ConstraintConsequenceSchema>;
 
 export const ConstraintSchema = z.object({
   plan_name_match: z.string().nullable(), // Plan name string for fuzzy matching (NOT plan_id)
+  works_for_lenses: z
+    .array(z.enum(['personal', 'startup', 'enterprise']))
+    .optional()
+    .describe('Lens tags used to prioritize this limit in lens-specific summaries'),
   type: ConstraintTypeSchema,
   value: z.number(),
   consequence: ConstraintConsequenceSchema,
@@ -387,6 +391,10 @@ export const IntegrationSchema = z.object({
   name: z.string(), // "Slack", "Google Drive"
   type: z.enum(['native', 'api', 'zapier', 'webhook', 'plugin']),
   direction: z.enum(['import', 'export', 'bidirectional']).nullable().optional(),
+  works_for_lenses: z
+    .array(z.enum(['personal', 'startup', 'enterprise']))
+    .optional()
+    .describe('Lens tags used to prioritize this integration in lens-specific ordering'),
 });
 export type Integration = z.infer<typeof IntegrationSchema>;
 
@@ -711,6 +719,12 @@ export const GeminiKnowledgeCardSchema = {
                 enum: ['import', 'export', 'bidirectional'],
                 nullable: true,
               },
+              works_for_lenses: {
+                type: 'array',
+                items: { type: 'string', enum: ['personal', 'startup', 'enterprise'] },
+                description:
+                  'Optional lens tags for prioritizing integrations in Personal, Startup, or Enterprise views',
+              },
             },
             required: ['name', 'type'],
           },
@@ -882,6 +896,12 @@ export const GeminiKnowledgeCardSchema = {
                 nullable: true,
                 description:
                   'REQUIRED: Who is this plan for? individual=solo/freelancer (1 user), team=2-10 people, business=10-100, enterprise=100+. Infer from features: Free/Personal→individual, Starter/Team→team, Professional/Business→business, Enterprise/Premium→enterprise',
+              },
+              works_for_lenses: {
+                type: 'array',
+                items: { type: 'string', enum: ['personal', 'startup', 'enterprise'] },
+                description:
+                  'Optional lens tags for plan relevance. Use only when explicitly supported by source context.',
               },
               includes_sso: { type: 'boolean', default: false },
               includes_api: { type: 'boolean', default: false },

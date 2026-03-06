@@ -105,6 +105,7 @@ Extract into company object:
 Also extract:
 - features.core: 3-5 most important features
 - features.unique: 1-3 differentiating features
+- integrations.notable[].works_for_lenses (optional): ["personal" | "startup" | "enterprise"] only when source context clearly indicates segment fit
 - competitive.main_alternatives: 3-5 direct competitors
 - competitive.best_for: "Best for X because Y"
 - learning_curve: minutes/hours/days/weeks
@@ -269,6 +270,7 @@ EVIDENCE REQUIREMENTS (CRITICAL):
 - If no limits are documented → Leave constraints empty
 - If limit exists but consequence is unclear → Use "upgrade_locked" as default
 - If multiple plans share same limit → Use plan_name_match: null
+- constraints.hard_limits[].works_for_lenses (optional): add ["personal" | "startup" | "enterprise"] only when source text clearly maps the limit to a lens-specific team shape
 
 **overage**: For auto_charge consequences, extract the overage cost
   - Example: "50k records free, $0.01 per additional record" → overage: {cost: 0.01, unit: "per record"}
@@ -343,6 +345,7 @@ Extract into smp_portability:
 Extract into integrations:
 - has_api, has_zapier, has_webhooks: booleans
 - notable: [{name, type: native/api/zapier/webhook, direction: import/export/bidirectional}]
+- notable[].works_for_lenses (optional): only tag when docs clearly frame the integration for solo, startup, or enterprise workflows
 
 === EXTRACTION RULES ===
 

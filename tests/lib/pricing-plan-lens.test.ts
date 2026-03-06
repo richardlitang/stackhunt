@@ -21,6 +21,15 @@ describe('pricing plan lens tagging', () => {
     expect(derivePlanLensTags({ target_audience: 'enterprise' })).toEqual(['enterprise']);
   });
 
+  it('keeps source-provided lens tags when present', () => {
+    expect(
+      derivePlanLensTags({
+        target_audience: 'enterprise',
+        works_for_lenses: ['startup', 'enterprise'],
+      })
+    ).toEqual(['startup', 'enterprise']);
+  });
+
   it('enriches pricing plans with audience and works_for_lenses', () => {
     const result = enrichSmpPricingForLens({
       model: 'tiered',

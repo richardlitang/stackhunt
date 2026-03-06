@@ -242,6 +242,7 @@ export interface SMPPlanData {
 
   // Plan positioning metadata
   target_audience?: string | null;
+  works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
 
   // Limits (for plan comparison)
   max_users?: number | null; // null = unlimited
