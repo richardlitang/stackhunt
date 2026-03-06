@@ -53,12 +53,19 @@ function normalizeUserReportedEntry(value: Record<string, unknown>): ToolPagePro
     (toNonEmptyString(value.source_domain || value.sourceDomain) ? 'community' : undefined);
   const claimType =
     value.claim_type === 'fact' || value.claim_type === 'opinion' ? value.claim_type : undefined;
+  const sourceUrls = Array.isArray(value.source_urls)
+    ? value.source_urls.filter((entry): entry is string => typeof entry === 'string')
+    : Array.isArray(value.sourceUrls)
+      ? value.sourceUrls.filter((entry): entry is string => typeof entry === 'string')
+      : [];
   const corroboratingSourceCount =
     typeof value.corroborating_source_count === 'number'
       ? value.corroborating_source_count
       : typeof value.corroboratingSourceCount === 'number'
         ? value.corroboratingSourceCount
-        : undefined;
+        : sourceUrls.length > 0
+          ? sourceUrls.length
+          : undefined;
   const claimConfidenceTier =
     value.claim_confidence_tier === 'high' ||
     value.claim_confidence_tier === 'medium' ||
@@ -68,6 +75,12 @@ function normalizeUserReportedEntry(value: Record<string, unknown>): ToolPagePro
           value.claimConfidenceTier === 'medium' ||
           value.claimConfidenceTier === 'low'
         ? value.claimConfidenceTier
+        : undefined;
+  const claimConfidenceScore =
+    typeof value.claim_confidence_score === 'number'
+      ? value.claim_confidence_score
+      : typeof value.claimConfidenceScore === 'number'
+        ? value.claimConfidenceScore
         : undefined;
 
   return {
@@ -79,6 +92,9 @@ function normalizeUserReportedEntry(value: Record<string, unknown>): ToolPagePro
       ? { corroborating_source_count: corroboratingSourceCount }
       : {}),
     ...(claimConfidenceTier ? { claim_confidence_tier: claimConfidenceTier } : {}),
+    ...(typeof claimConfidenceScore === 'number'
+      ? { claim_confidence_score: claimConfidenceScore }
+      : {}),
   };
 }
 

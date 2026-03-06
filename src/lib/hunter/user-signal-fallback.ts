@@ -21,6 +21,7 @@ export interface UserSignalFallbackSource {
 export interface UserSignalFallbackClaim {
   text: string;
   source_url: string;
+  source_urls: string[];
   source_type: 'community' | 'editorial';
   claim_type: 'opinion';
   corroborating_source_count: number;
@@ -78,14 +79,29 @@ function normalizeSourceUrl(value: string): string | null {
   }
 }
 
+function normalizeClaimKey(value: string): string {
+  return stripTerminalPunctuation(sanitizeNarrativeClaimText(value))
+    .toLowerCase()
+    .replace(/^users report(?: that)?\s+/i, '')
+    .replace(/^community (?:reports|mentions)\s+/i, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function buildFallbackUserSignalClaimsFromSources(input: {
   sources: UserSignalFallbackSource[];
   label: UserSignalFallbackLabel;
   maxItems?: number;
 }): UserSignalFallbackClaim[] {
   const maxItems = Math.max(1, Math.min(6, input.maxItems || 3));
-  const fallback: UserSignalFallbackClaim[] = [];
-  const seen = new Set<string>();
+  type Candidate = {
+    text: string;
+    source_url: string;
+    source_type: 'community' | 'editorial';
+    retrieved_at: string;
+  };
+  const candidates: Candidate[] = [];
 
   for (const source of input.sources) {
     const sourceUrl = typeof source.url === 'string' ? normalizeSourceUrl(source.url) : null;
@@ -117,22 +133,77 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
       inferredSourceType === 'community' && !hasCommunityHedgingLanguage(cleanedCandidate)
         ? `Users report ${cleanedCandidate.charAt(0).toLowerCase()}${cleanedCandidate.slice(1)}`
         : cleanedCandidate;
-    const key = stripTerminalPunctuation(normalizedText).toLowerCase();
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
 
-    fallback.push({
+    candidates.push({
       text: normalizedText,
       source_url: sourceUrl,
       source_type: inferredSourceType,
-      claim_type: 'opinion',
-      corroborating_source_count: 1,
       retrieved_at: source.retrieved_at || new Date().toISOString(),
-      claim_confidence_tier: inferredSourceType === 'editorial' ? 'medium' : 'low',
     });
-
-    if (fallback.length >= maxItems) break;
   }
 
-  return fallback;
+  const grouped = new Map<
+    string,
+    {
+      text: string;
+      source_urls: Set<string>;
+      source_type: 'community' | 'editorial';
+      retrieved_at: string;
+      candidateCount: number;
+    }
+  >();
+
+  for (const candidate of candidates) {
+    const key = normalizeClaimKey(candidate.text);
+    if (!key) continue;
+    const existing = grouped.get(key);
+    if (!existing) {
+      grouped.set(key, {
+        text: candidate.text,
+        source_urls: new Set([candidate.source_url]),
+        source_type: candidate.source_type,
+        retrieved_at: candidate.retrieved_at,
+        candidateCount: 1,
+      });
+      continue;
+    }
+    existing.source_urls.add(candidate.source_url);
+    existing.candidateCount += 1;
+    if (candidate.text.length > existing.text.length) {
+      existing.text = candidate.text;
+    }
+    if (existing.source_type !== 'community' && candidate.source_type === 'community') {
+      existing.source_type = 'community';
+    }
+    if (candidate.retrieved_at > existing.retrieved_at) {
+      existing.retrieved_at = candidate.retrieved_at;
+    }
+  }
+
+  return Array.from(grouped.values())
+    .sort((a, b) => {
+      const corroborationDelta = b.source_urls.size - a.source_urls.size;
+      if (corroborationDelta !== 0) return corroborationDelta;
+      const sourceTypeDelta =
+        Number(b.source_type === 'community') - Number(a.source_type === 'community');
+      if (sourceTypeDelta !== 0) return sourceTypeDelta;
+      return b.text.length - a.text.length;
+    })
+    .slice(0, maxItems)
+    .map((entry) => {
+      const corroboratingSourceCount = Math.max(entry.source_urls.size, entry.candidateCount);
+      const confidenceTier: 'medium' | 'low' =
+        corroboratingSourceCount >= 2 || entry.source_type === 'editorial' ? 'medium' : 'low';
+      const sourceUrls = Array.from(entry.source_urls);
+      return {
+        text: entry.text,
+        source_url: sourceUrls[0],
+        source_urls: sourceUrls,
+        source_type: entry.source_type,
+        claim_type: 'opinion',
+        corroborating_source_count: corroboratingSourceCount,
+        retrieved_at: entry.retrieved_at,
+        claim_confidence_tier: confidenceTier,
+      };
+    });
 }

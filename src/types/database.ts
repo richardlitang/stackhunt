@@ -584,6 +584,8 @@ export interface ToolSpecs {
     reddit_claims: number;
     forum_claims: number;
     hn_claims: number;
+    low_confidence_user_claims?: number;
+    needs_confirmation_claims?: number;
     top_user_reported_signals: string[];
     top_user_reported_claims: Array<{
       text: string;
@@ -595,19 +597,23 @@ export interface ToolSpecs {
   user_reported_pros?: Array<{
     text: string;
     source_url: string;
+    source_urls?: string[];
     source_type: 'community' | 'editorial';
     claim_type: 'opinion' | 'fact';
     corroborating_source_count?: number;
     claim_confidence_tier?: 'high' | 'medium' | 'low';
+    claim_confidence_score?: number;
     retrieved_at?: string;
   }>;
   user_reported_cons?: Array<{
     text: string;
     source_url: string;
+    source_urls?: string[];
     source_type: 'community' | 'editorial';
     claim_type: 'opinion' | 'fact';
     corroborating_source_count?: number;
     claim_confidence_tier?: 'high' | 'medium' | 'low';
+    claim_confidence_score?: number;
     retrieved_at?: string;
   }>;
 

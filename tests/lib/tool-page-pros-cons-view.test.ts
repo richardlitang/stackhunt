@@ -33,4 +33,23 @@ describe('tool page pros/cons view', () => {
       cons: [{ text: 'Steep learning curve', source_url: null }],
     });
   });
+
+  it('derives corroboration from user-reported source_urls when count is absent', () => {
+    const result = buildToolPageProsConsView({
+      pros: [],
+      cons: [],
+      userReportedPros: [
+        {
+          text: 'Users report strong day-to-day reliability.',
+          source_url: 'https://reddit.com/r/example/1',
+          source_urls: ['https://reddit.com/r/example/1', 'https://news.ycombinator.com/item?id=1'],
+          source_type: 'community',
+          claim_confidence_tier: 'medium',
+        },
+      ],
+    });
+
+    expect(result.pros[0]?.corroborating_source_count).toBe(2);
+    expect(result.pros[0]?.claim_confidence_tier).toBe('medium');
+  });
 });

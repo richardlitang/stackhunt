@@ -22,6 +22,7 @@ describe('hunter user signal fallback', () => {
     expect(claims).toHaveLength(1);
     expect(claims[0]?.source_type).toBe('community');
     expect(claims[0]?.text.toLowerCase()).toContain('users report');
+    expect(claims[0]?.source_urls.length).toBeGreaterThan(0);
   });
 
   it('extracts cons only when negative cues exist', () => {
@@ -44,5 +45,28 @@ describe('hunter user signal fallback', () => {
     expect(claims.length).toBeGreaterThan(0);
     expect(claims.every((claim) => claim.claim_type === 'opinion')).toBe(true);
     expect(claims.some((claim) => claim.source_type === 'community')).toBe(true);
+  });
+
+  it('aggregates corroboration counts when similar claims appear across sources', () => {
+    const claims = buildFallbackUserSignalClaimsFromSources({
+      label: 'cons',
+      sources: [
+        {
+          url: 'https://www.reddit.com/r/saas/comments/1',
+          snippet: 'Users report slow responses during busy periods and reliability issues.',
+          source_type: 'community',
+        },
+        {
+          url: 'https://news.ycombinator.com/item?id=22',
+          snippet: 'Users report slow responses during busy periods and reliability issues.',
+          source_type: 'community',
+        },
+      ],
+    });
+
+    expect(claims).toHaveLength(1);
+    expect(claims[0]?.corroborating_source_count).toBe(2);
+    expect(claims[0]?.claim_confidence_tier).toBe('medium');
+    expect(claims[0]?.source_urls).toHaveLength(2);
   });
 });

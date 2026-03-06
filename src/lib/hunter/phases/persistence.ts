@@ -1981,16 +1981,34 @@ export async function executePersistencePhase(
           source_type: 'community' | 'editorial';
         } => claim.source_type === 'community' || claim.source_type === 'editorial'
       )
-      .map((claim) => ({
-        text: claim.text,
-        source_url: claim.source_url,
-        source_type: claim.source_type,
-        claim_type: claim.claim_type,
-        ...(claim.claim_confidence_tier
-          ? { claim_confidence_tier: claim.claim_confidence_tier }
-          : {}),
-        ...(claim.retrieved_at ? { retrieved_at: claim.retrieved_at } : {}),
-      }));
+      .map((claim) => {
+        const claimRecord = claim as unknown as {
+          corroborating_source_count?: unknown;
+        };
+        const corroboratingSourceCount =
+          typeof claimRecord.corroborating_source_count === 'number'
+            ? claimRecord.corroborating_source_count
+            : undefined;
+        return {
+          text: claim.text,
+          source_url: claim.source_url,
+          ...(Array.isArray(claim.source_urls) && claim.source_urls.length > 0
+            ? { source_urls: claim.source_urls }
+            : {}),
+          source_type: claim.source_type,
+          claim_type: claim.claim_type,
+          ...(typeof corroboratingSourceCount === 'number'
+            ? { corroborating_source_count: corroboratingSourceCount }
+            : {}),
+          ...(claim.claim_confidence_tier
+            ? { claim_confidence_tier: claim.claim_confidence_tier }
+            : {}),
+          ...(typeof claim.claim_confidence_score === 'number'
+            ? { claim_confidence_score: claim.claim_confidence_score }
+            : {}),
+          ...(claim.retrieved_at ? { retrieved_at: claim.retrieved_at } : {}),
+        };
+      });
   specs.user_reported_pros = toUserReportedClaims(resolvedUserReportedPros);
   specs.user_reported_cons = toUserReportedClaims(resolvedUserReportedCons);
 
