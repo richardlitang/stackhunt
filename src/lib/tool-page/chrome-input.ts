@@ -9,6 +9,7 @@ interface BuildToolPageChromeStateInputFromRouteInput {
   pendingVerificationCount: number;
   communityCorroborationCount?: number;
   userSignalCoveragePending?: boolean;
+  userSignalNeedsConfirmationCount?: number;
   communityVerifiedLabel: string | null;
   specsVerifiedLabel: string | null;
   pricingCheckedLabel: string | null;
@@ -29,6 +30,7 @@ interface BuildToolPageChromeStateInputFromRouteContextInput {
   pendingVerificationCount: BuildToolPageChromeStateInputFromRouteInput['pendingVerificationCount'];
   communityCorroborationCount: BuildToolPageChromeStateInputFromRouteInput['communityCorroborationCount'];
   userSignalCoveragePending?: BuildToolPageChromeStateInputFromRouteInput['userSignalCoveragePending'];
+  userSignalNeedsConfirmationCount?: BuildToolPageChromeStateInputFromRouteInput['userSignalNeedsConfirmationCount'];
   communityVerifiedLabel: BuildToolPageChromeStateInputFromRouteInput['communityVerifiedLabel'];
   specsVerifiedLabel: BuildToolPageChromeStateInputFromRouteInput['specsVerifiedLabel'];
   pricingCheckedLabel: BuildToolPageChromeStateInputFromRouteInput['pricingCheckedLabel'];
@@ -54,6 +56,7 @@ export function buildToolPageChromeStateInputFromRoute(
     pendingVerificationCount: input.pendingVerificationCount,
     communityCorroborationCount: input.communityCorroborationCount || 0,
     userSignalCoveragePending: input.userSignalCoveragePending || false,
+    userSignalNeedsConfirmationCount: input.userSignalNeedsConfirmationCount || 0,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,
@@ -78,6 +81,7 @@ export function buildToolPageChromeStateInputFromRouteContext(
     pendingVerificationCount: input.pendingVerificationCount,
     communityCorroborationCount: input.communityCorroborationCount || 0,
     userSignalCoveragePending: input.userSignalCoveragePending || false,
+    userSignalNeedsConfirmationCount: input.userSignalNeedsConfirmationCount || 0,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,

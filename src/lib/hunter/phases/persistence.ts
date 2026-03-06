@@ -4179,6 +4179,8 @@ function buildUserSignalSummary(
   reddit_claims: number;
   forum_claims: number;
   hn_claims: number;
+  low_confidence_user_claims: number;
+  needs_confirmation_claims: number;
   top_user_reported_signals: string[];
   top_user_reported_claims: Array<{
     text: string;
@@ -4216,6 +4218,24 @@ function buildUserSignalSummary(
     if (bucket === 'forum') forumClaims += 1;
     if (bucket === 'hn') hnClaims += 1;
   }
+  const lowConfidenceUserClaims = [...community, ...editorial].filter(
+    (claim) => claim.claim_confidence_tier === 'low'
+  ).length;
+  const needsConfirmationClaims = [...community, ...editorial].filter((claim) => {
+    const claimRecord = claim as Record<string, unknown>;
+    const explicitCorroborationCount =
+      typeof claimRecord.corroborating_source_count === 'number'
+        ? claimRecord.corroborating_source_count
+        : null;
+    const corroborationCount =
+      typeof explicitCorroborationCount === 'number'
+        ? explicitCorroborationCount
+        : Array.isArray(claim.source_urls) && claim.source_urls.length > 0
+          ? claim.source_urls.length
+          : 1;
+    if (claim.source_type === 'community' && corroborationCount < 2) return true;
+    return claim.claim_confidence_tier === 'low';
+  }).length;
 
   const uniqueSignals: string[] = [];
   const topClaims: Array<{
@@ -4268,6 +4288,8 @@ function buildUserSignalSummary(
     reddit_claims: redditClaims,
     forum_claims: forumClaims,
     hn_claims: hnClaims,
+    low_confidence_user_claims: lowConfidenceUserClaims,
+    needs_confirmation_claims: needsConfirmationClaims,
     top_user_reported_signals: uniqueSignals,
     top_user_reported_claims: topClaims,
   };

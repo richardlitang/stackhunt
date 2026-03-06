@@ -23,6 +23,7 @@ export interface UserSignalFallbackClaim {
   source_url: string;
   source_type: 'community' | 'editorial';
   claim_type: 'opinion';
+  corroborating_source_count: number;
   retrieved_at: string;
   claim_confidence_tier: 'medium' | 'low';
 }
@@ -125,6 +126,7 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
       source_url: sourceUrl,
       source_type: inferredSourceType,
       claim_type: 'opinion',
+      corroborating_source_count: 1,
       retrieved_at: source.retrieved_at || new Date().toISOString(),
       claim_confidence_tier: inferredSourceType === 'editorial' ? 'medium' : 'low',
     });

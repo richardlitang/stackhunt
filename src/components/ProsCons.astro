@@ -317,6 +317,17 @@ function deriveWhyItMatters(text: string, kind: 'pro' | 'con'): string {
     : 'Becomes a blocker when it conflicts with your required rollout or operating model.';
 }
 
+function needsConfirmationChip(claim: {
+  source_type?: SourceType;
+  claim_confidence_tier?: 'high' | 'medium' | 'low';
+  corroborating_source_count?: number;
+}): boolean {
+  const corroborationCount =
+    typeof claim.corroborating_source_count === 'number' ? claim.corroborating_source_count : 1;
+  if (claim.source_type === 'community' && corroborationCount < 2) return true;
+  return claim.claim_confidence_tier === 'low';
+}
+
 import CheckIcon from '@/components/icons/Check.astro';
 import MinusIcon from '@/components/icons/Minus.astro';
 import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
@@ -367,6 +378,13 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                       `, corroborated by ${pro.corroborating_source_count} sources`}
                     {pro.claim_confidence_tier && `, confidence ${pro.claim_confidence_tier}`}
                   </p>
+                  {needsConfirmationChip(pro) && (
+                    <p class="mt-1">
+                      <span class="inline-flex items-center rounded-full border border-amber-700/70 bg-amber-950/40 px-1.5 py-0.5 text-[10px] text-amber-200">
+                        Needs confirmation
+                      </span>
+                    </p>
+                  )}
                   <p class="mt-1 text-xs text-zinc-500">
                     Why it matters: {deriveWhyItMatters(pro.displayText, 'pro')}
                   </p>
@@ -434,6 +452,13 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                       `, corroborated by ${con.corroborating_source_count} sources`}
                     {con.claim_confidence_tier && `, confidence ${con.claim_confidence_tier}`}
                   </p>
+                  {needsConfirmationChip(con) && (
+                    <p class="mt-1">
+                      <span class="inline-flex items-center rounded-full border border-amber-700/70 bg-amber-950/40 px-1.5 py-0.5 text-[10px] text-amber-200">
+                        Needs confirmation
+                      </span>
+                    </p>
+                  )}
                   <p class="mt-1 text-xs text-zinc-500">
                     Why it matters: {deriveWhyItMatters(con.displayText, 'con')}
                   </p>

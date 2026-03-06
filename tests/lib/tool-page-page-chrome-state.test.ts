@@ -15,6 +15,7 @@ describe('tool page chrome state', () => {
       pendingVerificationCount: 0,
       communityCorroborationCount: 2,
       userSignalCoveragePending: true,
+      userSignalNeedsConfirmationCount: 1,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-05',
       pricingCheckedLabel: '2026-03-05',
@@ -39,6 +40,9 @@ describe('tool page chrome state', () => {
     expect(state.researchStatusView.userSignalCoverageLabel).toContain(
       'User-reported claim extraction is still pending'
     );
+    expect(state.researchStatusView.userSignalNeedsConfirmationLabel).toContain(
+      '1 user-reported claims still need corroboration'
+    );
   });
 
   it('builds chrome state from route-level fields', () => {
@@ -51,6 +55,7 @@ describe('tool page chrome state', () => {
       pendingVerificationCount: 1,
       communityCorroborationCount: 1,
       userSignalCoveragePending: false,
+      userSignalNeedsConfirmationCount: 0,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-05',
       pricingCheckedLabel: '2026-03-05',

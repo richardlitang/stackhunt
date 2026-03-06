@@ -40,6 +40,7 @@ export interface ToolPageQualityState {
   communityCorroborationCount: number;
   userSignalClaimsCount: number;
   userSignalCoveragePending: boolean;
+  userSignalNeedsConfirmationCount: number;
 }
 
 export function buildToolPageQualityState(
@@ -103,6 +104,7 @@ export function buildToolPageQualityState(
       ? ((input.tool.specs as Record<string, unknown>).user_signal_summary as
           | {
               top_user_reported_claims?: unknown[];
+              needs_confirmation_claims?: number;
             }
           | undefined)
       : undefined;
@@ -131,6 +133,10 @@ export function buildToolPageQualityState(
   const userSignalCoveragePending =
     Boolean(canonicalQuality?.user_signal_coverage_pending) ||
     (communityCorroborationCount > 0 && userSignalClaimsCount === 0);
+  const userSignalNeedsConfirmationCount = Math.max(
+    0,
+    Number(userSignalSummary?.needs_confirmation_claims || 0) || 0
+  );
 
   return {
     contentConfidenceLevel,
@@ -145,5 +151,6 @@ export function buildToolPageQualityState(
     communityCorroborationCount,
     userSignalClaimsCount,
     userSignalCoveragePending,
+    userSignalNeedsConfirmationCount,
   };
 }
