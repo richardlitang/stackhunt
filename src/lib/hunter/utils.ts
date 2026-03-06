@@ -193,6 +193,25 @@ function isLikelyCommunityHost(hostname: string): boolean {
   return communityPrefixes.some((prefix) => hostname.startsWith(prefix));
 }
 
+function normalizeSourceTypeHint(
+  sourceTypeHint?: string | null
+): 'official' | 'editorial' | 'community' | null {
+  const value = (sourceTypeHint || '').trim().toLowerCase();
+  if (!value) return null;
+  if (
+    value === 'official' ||
+    value === 'docs' ||
+    value === 'support' ||
+    value === 'legal' ||
+    value === 'status'
+  ) {
+    return 'official';
+  }
+  if (value === 'community') return 'community';
+  if (value === 'editorial' || value === 'directory') return 'editorial';
+  return null;
+}
+
 /**
  * Classify a source URL into official, editorial, or community
  *
@@ -207,7 +226,8 @@ function isLikelyCommunityHost(hostname: string): boolean {
  */
 export function classifySourceType(
   url: string,
-  toolWebsite?: string
+  toolWebsite?: string,
+  sourceTypeHint?: string | null
 ): 'official' | 'editorial' | 'community' {
   try {
     const parsed = new URL(url);
@@ -220,6 +240,11 @@ export function classifySourceType(
       /^\/(community|forum|forums|discuss)(\/|$)/.test(pathname)
     ) {
       return 'community';
+    }
+
+    const normalizedHint = normalizeSourceTypeHint(sourceTypeHint);
+    if (normalizedHint) {
+      return normalizedHint;
     }
 
     // Check if this is the tool's official website

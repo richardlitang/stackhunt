@@ -403,6 +403,16 @@ describe('classifySourceType', () => {
     expect(classifySourceType('https://techradar.com/reviews/tool')).toBe('editorial');
     expect(classifySourceType('https://reddit.com/r/tool/comments/abc')).toBe('community');
   });
+
+  it('respects scout source type hints for docs/support domains', () => {
+    expect(
+      classifySourceType(
+        'https://support.claude.com/en/articles/11049762-choosing-a-claude-plan',
+        'https://claude.ai',
+        'support'
+      )
+    ).toBe('official');
+  });
 });
 
 describe('isLlmEligibleScoutSource', () => {
