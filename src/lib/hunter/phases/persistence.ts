@@ -1892,6 +1892,64 @@ export async function executePersistencePhase(
     }
   }
 
+  const normalizeExplicitUserClaims = (
+    claims: Array<string | ClaimWithSource> | undefined,
+    label: 'pros' | 'cons'
+  ): ClaimWithSource[] => {
+    if (!Array.isArray(claims) || claims.length === 0) return [];
+    const normalized = claims
+      .map((claim) => normalizeClaim(claim, sourcesList, analysis.websiteUrl))
+      .filter((claim): claim is ClaimWithSource => Boolean(claim))
+      .filter((claim) => claim.source_type === 'community' || claim.source_type === 'editorial')
+      .filter((claim) => isRenderableClaimText(claim.text));
+    const unique: ClaimWithSource[] = [];
+    const seen = new Set<string>();
+    for (const claim of normalized) {
+      const key = stripTerminalPunctuation(
+        sanitizeNarrativeClaimText(claim.text) || claim.text
+      ).toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      unique.push(claim);
+    }
+    if (unique.length > 0) {
+      deps.log(`[Item Content] Saved ${unique.length} explicit user-reported ${label}`);
+    }
+    return unique.slice(0, 5);
+  };
+
+  const fallbackUserReportedPros = normalizedPros.filter(
+    (claim) => claim.source_type === 'community' || claim.source_type === 'editorial'
+  );
+  const fallbackUserReportedCons = validCons.filter(
+    (claim) => claim.source_type === 'community' || claim.source_type === 'editorial'
+  );
+  const explicitUserReportedPros = normalizeExplicitUserClaims(analysis.userReportedPros, 'pros');
+  const explicitUserReportedCons = normalizeExplicitUserClaims(analysis.userReportedCons, 'cons');
+  const toUserReportedClaims = (claims: ClaimWithSource[]) =>
+    claims
+      .filter(
+        (
+          claim
+        ): claim is ClaimWithSource & {
+          source_type: 'community' | 'editorial';
+        } => claim.source_type === 'community' || claim.source_type === 'editorial'
+      )
+      .map((claim) => ({
+        text: claim.text,
+        source_url: claim.source_url,
+        source_type: claim.source_type,
+        claim_type: claim.claim_type,
+        ...(claim.claim_confidence_tier ? { claim_confidence_tier: claim.claim_confidence_tier } : {}),
+        ...(claim.retrieved_at ? { retrieved_at: claim.retrieved_at } : {}),
+      }));
+  specs.user_reported_pros = toUserReportedClaims(
+    explicitUserReportedPros.length > 0 ? explicitUserReportedPros : fallbackUserReportedPros
+  );
+  specs.user_reported_cons = toUserReportedClaims(
+    explicitUserReportedCons.length > 0 ? explicitUserReportedCons : fallbackUserReportedCons
+  );
+
   const userSignalSummary = buildUserSignalSummary(normalizedPros, validCons);
   if (userSignalSummary) {
     specs.user_signal_summary = userSignalSummary;

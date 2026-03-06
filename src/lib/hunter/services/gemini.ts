@@ -1750,6 +1750,32 @@ ${buildEvidenceContradictionGuardrails(evidencePacket)}`
                       },
                     },
                   },
+                  userReportedPros: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['text', 'source_url', 'source_type', 'claim_type'],
+                      properties: {
+                        text: { type: 'string' },
+                        source_url: { type: 'string' },
+                        source_type: { type: 'string', enum: ['editorial', 'community'] },
+                        claim_type: { type: 'string', enum: ['opinion'] },
+                      },
+                    },
+                  },
+                  userReportedCons: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['text', 'source_url', 'source_type', 'claim_type'],
+                      properties: {
+                        text: { type: 'string' },
+                        source_url: { type: 'string' },
+                        source_type: { type: 'string', enum: ['editorial', 'community'] },
+                        claim_type: { type: 'string', enum: ['opinion'] },
+                      },
+                    },
+                  },
                   summary: { type: 'string' },
                   sentimentTags: { type: 'array', items: { type: 'string' } },
                   pricingType: {

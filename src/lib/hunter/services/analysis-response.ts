@@ -63,6 +63,14 @@ export function normalizeAnalysisResponseObject(
     };
     if (Array.isArray(parsed.pros)) parsed.pros = parsed.pros.map(fixClaim);
     if (Array.isArray(parsed.cons)) parsed.cons = parsed.cons.map(fixClaim);
+    if (Array.isArray(parsed.userReportedPros))
+      parsed.userReportedPros = parsed.userReportedPros.map(fixClaim);
+    if (Array.isArray(parsed.user_reported_pros))
+      parsed.user_reported_pros = parsed.user_reported_pros.map(fixClaim);
+    if (Array.isArray(parsed.userReportedCons))
+      parsed.userReportedCons = parsed.userReportedCons.map(fixClaim);
+    if (Array.isArray(parsed.user_reported_cons))
+      parsed.user_reported_cons = parsed.user_reported_cons.map(fixClaim);
   }
 
   if (typeof parsed.verdict === 'string' && parsed.verdict.length > 200) {
@@ -73,6 +81,12 @@ export function normalizeAnalysisResponseObject(
   }
 
   if (!Array.isArray(parsed.sentimentTags)) parsed.sentimentTags = [];
+  if (!Array.isArray(parsed.userReportedPros) && Array.isArray(parsed.user_reported_pros)) {
+    parsed.userReportedPros = parsed.user_reported_pros;
+  }
+  if (!Array.isArray(parsed.userReportedCons) && Array.isArray(parsed.user_reported_cons)) {
+    parsed.userReportedCons = parsed.user_reported_cons;
+  }
   if (!Array.isArray(parsed.vetoLogic)) parsed.vetoLogic = [];
   if (!Array.isArray(parsed.realityChecks)) parsed.realityChecks = [];
   if (!parsed.graphTags || typeof parsed.graphTags !== 'object') {

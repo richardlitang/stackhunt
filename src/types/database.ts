@@ -589,6 +589,24 @@ export interface ToolSpecs {
       source_domain: string | null;
     }>;
   };
+  user_reported_pros?: Array<{
+    text: string;
+    source_url: string;
+    source_type: 'community' | 'editorial';
+    claim_type: 'opinion' | 'fact';
+    corroborating_source_count?: number;
+    claim_confidence_tier?: 'high' | 'medium' | 'low';
+    retrieved_at?: string;
+  }>;
+  user_reported_cons?: Array<{
+    text: string;
+    source_url: string;
+    source_type: 'community' | 'editorial';
+    claim_type: 'opinion' | 'fact';
+    corroborating_source_count?: number;
+    claim_confidence_tier?: 'high' | 'medium' | 'low';
+    retrieved_at?: string;
+  }>;
 
   // V4: Category-specific extracted data
   categorySpecificData?: Record<string, unknown>;

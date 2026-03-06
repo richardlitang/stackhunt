@@ -243,7 +243,7 @@ AVOID vague cons:
 - ❌ "Lacks some advanced features found in dedicated solutions"
 - ✅ "No SQL query support or relational joins"
 
-Put subjective or persona-specific opinions ONLY in reviewContext.userAdvocate.
+Put persona-specific color in reviewContext.userAdvocate, but emit corroborated user-reported claims in userReportedPros/userReportedCons.
 
 ## USER SIGNAL BALANCE (REQUIRED WHEN AVAILABLE)
 
@@ -494,6 +494,22 @@ Output ONLY valid JSON matching this exact schema:
       "claim_type": "<fact|opinion>"
     }
   ],  // MAXIMUM 5 cons - prioritize most important if you have more. CRITICAL: Community-sourced cons MUST be hedged for legal protection.
+  "userReportedPros": [
+    {
+      "text": "<corroborated user-reported benefit in neutral language>",
+      "source_url": "<REQUIRED: URL from community/editorial source pool>",
+      "source_type": "<editorial|community>",
+      "claim_type": "<opinion>"
+    }
+  ],  // OPTIONAL: up to 3. Include only if supported by user/community/editorial evidence.
+  "userReportedCons": [
+    {
+      "text": "<corroborated user-reported drawback. MUST use hedging language>",
+      "source_url": "<REQUIRED: URL from community/editorial source pool>",
+      "source_type": "<editorial|community>",
+      "claim_type": "<opinion>"
+    }
+  ],  // OPTIONAL: up to 3. Include only if supported by user/community/editorial evidence.
   "faqs": [
     {
       "question": "<real user question>",

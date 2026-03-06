@@ -193,6 +193,8 @@ export interface HunterAnalysis {
   score: number;
   pros: (string | ClaimWithSource)[];
   cons: (string | ClaimWithSource)[];
+  userReportedPros?: (string | ClaimWithSource)[];
+  userReportedCons?: (string | ClaimWithSource)[];
   faqs?: Array<{
     question: string;
     answer: string;
@@ -661,6 +663,8 @@ export const AnalysisSchema = z.object({
   score: z.number().min(0).max(100),
   pros: ClaimArraySchema,
   cons: ClaimArraySchema,
+  userReportedPros: ClaimArraySchema.optional(),
+  userReportedCons: ClaimArraySchema.optional(),
   faqs: z
     .array(
       z.object({

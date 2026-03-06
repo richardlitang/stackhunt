@@ -286,6 +286,18 @@ export function validateAnalysis(analysis: {
   score: number;
   pros: Array<{ text: string; source?: string; source_type?: string; claim_type?: string }>;
   cons: Array<{ text: string; source?: string; source_type?: string; claim_type?: string }>;
+  userReportedPros?: Array<{
+    text: string;
+    source?: string;
+    source_type?: string;
+    claim_type?: string;
+  }>;
+  userReportedCons?: Array<{
+    text: string;
+    source?: string;
+    source_type?: string;
+    claim_type?: string;
+  }>;
   summary: string;
   verdict?: string | null;
   reviewContext?: {
