@@ -321,12 +321,19 @@ function needsConfirmationChip(claim: {
   source_type?: SourceType;
   claim_confidence_tier?: 'high' | 'medium' | 'low';
   corroborating_source_count?: number;
+  claim_confidence_score?: number;
 }): boolean {
   const corroborationCount =
     typeof claim.corroborating_source_count === 'number' ? claim.corroborating_source_count : 1;
   if (claim.source_type === 'community' && corroborationCount < 2) return true;
+  if (typeof claim.claim_confidence_score === 'number' && claim.claim_confidence_score < 0.65) {
+    return true;
+  }
   return claim.claim_confidence_tier === 'low';
 }
+const hasNeedsConfirmationClaims = [...finalizedPros.items, ...finalizedCons.items].some((item) =>
+  needsConfirmationChip(item)
+);
 
 import CheckIcon from '@/components/icons/Check.astro';
 import MinusIcon from '@/components/icons/Minus.astro';
@@ -506,6 +513,14 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
     showInsufficientUniqueClaimsNotice && (
       <div class="mt-4 rounded-lg border border-amber-700/40 bg-amber-950/20 p-3 text-xs text-amber-200">
         Not enough unique source-backed pros found yet (pending verification).
+      </div>
+    )
+  }
+  {
+    hasNeedsConfirmationClaims && (
+      <div class="mt-4 rounded-lg border border-amber-700/40 bg-amber-950/20 p-3 text-xs text-amber-200">
+        Some user-reported claims are still weakly corroborated and should be validated in a live
+        demo.
       </div>
     )
   }
