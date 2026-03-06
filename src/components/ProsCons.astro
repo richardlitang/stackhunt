@@ -302,9 +302,19 @@ function deriveWhyItMatters(text: string, kind: 'pro' | 'con'): string {
   if (/\b(report|analytics|dashboard|forecast)\b/.test(lower)) {
     return 'Directly affects planning quality, KPI visibility, and operating cadence.';
   }
+  if (/\b(model|version|context window|latency|throughput|capacity)\b/.test(lower)) {
+    return kind === 'pro'
+      ? 'Determines whether quality and response speed hold up on your highest-volume tasks.'
+      : 'Can create delivery risk if model behavior or capacity is inconsistent under load.';
+  }
+  if (/\b(export|portability|lock[-\s]?in|migration)\b/.test(lower)) {
+    return kind === 'pro'
+      ? 'Makes migration and compliance operations easier if you need to move data later.'
+      : 'Increases switching risk and operational effort if migration paths are constrained.';
+  }
   return kind === 'pro'
-    ? 'Improves day-to-day execution when this aligns with your highest-frequency workflow.'
-    : 'Adds rollout or operating risk if this conflicts with your required workflow.';
+    ? 'Matters most when this directly improves a workflow you run every day.'
+    : 'Becomes a blocker when it conflicts with your required rollout or operating model.';
 }
 
 import CheckIcon from '@/components/icons/Check.astro';

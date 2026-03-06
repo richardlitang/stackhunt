@@ -55,6 +55,7 @@ import { applyToolPageFreshnessPolicy } from '@/lib/tool-page/freshness-policy';
 import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
 import { computeToolPageSectionContract } from '@/lib/tool-page/standard';
 import { sanitizeUrl } from '@/lib/utils/url';
+import { buildFallbackUserSignalClaimsFromSources } from '@/lib/hunter/user-signal-fallback';
 import { buildDecisionSlots } from '@/lib/tool-page/intro';
 import { normalizeCategorySlug, resolveCategoryFromPrimaryFunction } from '../category-resolver';
 
@@ -1918,6 +1919,24 @@ export async function executePersistencePhase(
     }
     return unique.slice(0, 5);
   };
+  const mergeUniqueUserClaims = (
+    primary: ClaimWithSource[],
+    supplement: ClaimWithSource[],
+    max = 5
+  ): ClaimWithSource[] => {
+    const merged: ClaimWithSource[] = [];
+    const seen = new Set<string>();
+    for (const claim of [...primary, ...supplement]) {
+      const key = stripTerminalPunctuation(
+        sanitizeNarrativeClaimText(claim.text) || claim.text
+      ).toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(claim);
+      if (merged.length >= max) break;
+    }
+    return merged;
+  };
 
   const fallbackUserReportedPros = normalizedPros.filter(
     (claim) => claim.source_type === 'community' || claim.source_type === 'editorial'
@@ -1927,6 +1946,32 @@ export async function executePersistencePhase(
   );
   const explicitUserReportedPros = normalizeExplicitUserClaims(analysis.userReportedPros, 'pros');
   const explicitUserReportedCons = normalizeExplicitUserClaims(analysis.userReportedCons, 'cons');
+  const sourceDerivedUserReportedPros = buildFallbackUserSignalClaimsFromSources({
+    sources: sourcesList,
+    label: 'pros',
+  });
+  const sourceDerivedUserReportedCons = buildFallbackUserSignalClaimsFromSources({
+    sources: sourcesList,
+    label: 'cons',
+  });
+  if (sourceDerivedUserReportedPros.length > 0) {
+    deps.log(
+      `[Item Content] Added ${sourceDerivedUserReportedPros.length} source-derived user-reported pros`
+    );
+  }
+  if (sourceDerivedUserReportedCons.length > 0) {
+    deps.log(
+      `[Item Content] Added ${sourceDerivedUserReportedCons.length} source-derived user-reported cons`
+    );
+  }
+  const resolvedUserReportedPros = mergeUniqueUserClaims(
+    explicitUserReportedPros.length > 0 ? explicitUserReportedPros : fallbackUserReportedPros,
+    sourceDerivedUserReportedPros
+  );
+  const resolvedUserReportedCons = mergeUniqueUserClaims(
+    explicitUserReportedCons.length > 0 ? explicitUserReportedCons : fallbackUserReportedCons,
+    sourceDerivedUserReportedCons
+  );
   const toUserReportedClaims = (claims: ClaimWithSource[]) =>
     claims
       .filter(
@@ -1946,12 +1991,8 @@ export async function executePersistencePhase(
           : {}),
         ...(claim.retrieved_at ? { retrieved_at: claim.retrieved_at } : {}),
       }));
-  specs.user_reported_pros = toUserReportedClaims(
-    explicitUserReportedPros.length > 0 ? explicitUserReportedPros : fallbackUserReportedPros
-  );
-  specs.user_reported_cons = toUserReportedClaims(
-    explicitUserReportedCons.length > 0 ? explicitUserReportedCons : fallbackUserReportedCons
-  );
+  specs.user_reported_pros = toUserReportedClaims(resolvedUserReportedPros);
+  specs.user_reported_cons = toUserReportedClaims(resolvedUserReportedCons);
 
   const userSignalSummary = buildUserSignalSummary(normalizedPros, validCons);
   if (userSignalSummary) {
