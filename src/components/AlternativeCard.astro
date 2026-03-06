@@ -167,9 +167,10 @@ const recommendationEvidenceChipClass =
 
   {/* Layer 3: Fallback */}
   {showFallback && <p class="mb-3 text-xs text-zinc-400 line-clamp-2">{fallbackDescription}</p>}
-  <p class="mb-3 rounded border border-zinc-800 bg-zinc-950/40 px-2.5 py-2 text-xs text-zinc-300">
-    {chooseInsteadLine}
-  </p>
+  <div class="mb-3 rounded border border-zinc-800 bg-zinc-950/40 px-2.5 py-2">
+    <p class="text-[11px] uppercase tracking-wide text-zinc-500">Choose this instead if</p>
+    <p class="mt-1 text-xs text-zinc-300">{chooseInsteadLine}</p>
+  </div>
   <div class="mb-1">
     <span
       class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${recommendationEvidenceChipClass}`}
