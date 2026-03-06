@@ -556,6 +556,14 @@ export interface ToolSpecs {
   // V5: Cynical CTO layers
   vetoLogic?: unknown[];
   realityChecks?: unknown[];
+  user_signal_summary?: {
+    community_pros: number;
+    community_cons: number;
+    editorial_pros: number;
+    editorial_cons: number;
+    corroborating_community_domains: number;
+    top_user_reported_signals: string[];
+  };
 
   // V4: Category-specific extracted data
   categorySpecificData?: Record<string, unknown>;

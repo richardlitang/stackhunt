@@ -1719,6 +1719,11 @@ export async function executePersistencePhase(
     }
   }
 
+  const userSignalSummary = buildUserSignalSummary(normalizedPros, validCons);
+  if (userSignalSummary) {
+    specs.user_signal_summary = userSignalSummary;
+  }
+
   // Prefer curated FAQs from analysis if present
   if (analysis.faqs && analysis.faqs.length > 0) {
     const inferFaqSource = (url?: string): 'paa' | 'forum' | 'reddit' | null => {
@@ -3722,6 +3727,57 @@ function isPricingBiasedDerivedCon(text: string): boolean {
     /^No self-serve free tier/i.test(text) ||
     /^No self-serve free trial/i.test(text)
   );
+}
+
+function buildUserSignalSummary(
+  pros: ClaimWithSource[],
+  cons: ClaimWithSource[]
+): {
+  community_pros: number;
+  community_cons: number;
+  editorial_pros: number;
+  editorial_cons: number;
+  corroborating_community_domains: number;
+  top_user_reported_signals: string[];
+} | null {
+  const all = [...pros.map((claim) => ({ ...claim, kind: 'pro' as const })), ...cons.map((claim) => ({ ...claim, kind: 'con' as const }))];
+  const community = all.filter((claim) => claim.source_type === 'community');
+  const editorial = all.filter((claim) => claim.source_type === 'editorial');
+  if (community.length === 0 && editorial.length === 0) return null;
+
+  const communityDomains = new Set<string>();
+  for (const claim of community) {
+    try {
+      const hostname = new URL(claim.source_url).hostname.replace(/^www\./i, '').toLowerCase();
+      if (hostname) communityDomains.add(hostname);
+    } catch {
+      // Ignore invalid URLs, claims are already source-validated elsewhere.
+    }
+  }
+
+  const candidateSignals = [...community, ...editorial]
+    .map((claim) => sanitizeNarrativeClaimText(claim.text) || claim.text)
+    .map((text) => stripTerminalPunctuation(text).trim())
+    .filter((text) => text.length >= 16);
+
+  const uniqueSignals: string[] = [];
+  const seen = new Set<string>();
+  for (const signal of candidateSignals) {
+    const key = signal.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueSignals.push(signal);
+    if (uniqueSignals.length >= 3) break;
+  }
+
+  return {
+    community_pros: community.filter((claim) => claim.kind === 'pro').length,
+    community_cons: community.filter((claim) => claim.kind === 'con').length,
+    editorial_pros: editorial.filter((claim) => claim.kind === 'pro').length,
+    editorial_cons: editorial.filter((claim) => claim.kind === 'con').length,
+    corroborating_community_domains: communityDomains.size,
+    top_user_reported_signals: uniqueSignals,
+  };
 }
 
 /**
