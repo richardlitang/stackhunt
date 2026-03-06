@@ -15,10 +15,10 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 7. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 233)
 8. `buildToolPageChromeContentStateFromDecisionContext(...)` (frontmatter line 288)
 9. `buildToolPageDecisionUtilityState(...)` (frontmatter line 338)
-10. `buildToolPageWorkflowFitVisibility(...)` (frontmatter line 349)
-11. `buildToolPagePricingScenarioState(...)` (frontmatter line 355)
-12. `buildToolPageQuickJumpLinksView(...)` (frontmatter line 403)
-13. `applyToolPageRobotsHeader(...)` (frontmatter line 415)
+10. `buildToolPageWorkflowFitVisibility(...)` (frontmatter line 350)
+11. `buildToolPagePricingScenarioState(...)` (frontmatter line 356)
+12. `buildToolPageQuickJumpLinksView(...)` (frontmatter line 404)
+13. `applyToolPageRobotsHeader(...)` (frontmatter line 416)
 
 ## Tool-Page Imports Used by Route
 
