@@ -6,6 +6,7 @@ import { toToolPageObjectArray } from '@/lib/tool-page/route-normalizers';
 describe('tool page content/alternatives decision context', () => {
   it('matches explicit route-context wiring', () => {
     const input = {
+      activeReviewLens: 'startup' as const,
       alternativesLabel: 'Alternatives' as const,
       toolCategoryRef: { slug: 'project-management', name: 'Project Management' },
       orderedAlternatives: [
@@ -104,6 +105,7 @@ describe('tool page content/alternatives decision context', () => {
 
     const expected = buildToolPageContentAlternativesStateFromRouteContext({
       alternativesPricing: {
+        activeReviewLens: input.activeReviewLens,
         budgetCostDrivers: input.reviewContextSignals.budgetCostDrivers,
         budgetOneTimeFees: input.reviewContextSignals.budgetOneTimeFees,
         budgetCommitmentTerms: input.reviewContextSignals.budgetCommitmentTerms,

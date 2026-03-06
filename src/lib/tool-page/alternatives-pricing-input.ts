@@ -1,4 +1,5 @@
 import type { buildToolPageAlternativesPricingState } from '@/lib/tool-page/alternatives-pricing-state';
+import type { ReviewLens } from '@/lib/tool-page/view-model';
 import {
   toToolPageComparableAlternatives,
   toToolPageOrderedAlternatives,
@@ -6,6 +7,7 @@ import {
 } from '@/lib/tool-page/route-normalizers';
 
 interface BuildToolPageAlternativesPricingStateInputFromRouteInput {
+  activeReviewLens: ReviewLens;
   budgetCostDrivers: string[];
   budgetOneTimeFees: string[];
   budgetCommitmentTerms: string | null | undefined;
@@ -21,6 +23,7 @@ interface BuildToolPageAlternativesPricingStateInputFromRouteInput {
 }
 
 interface BuildToolPageAlternativesPricingStateInputFromRouteContextInput {
+  activeReviewLens: BuildToolPageAlternativesPricingStateInputFromRouteInput['activeReviewLens'];
   budgetCostDrivers: BuildToolPageAlternativesPricingStateInputFromRouteInput['budgetCostDrivers'];
   budgetOneTimeFees: BuildToolPageAlternativesPricingStateInputFromRouteInput['budgetOneTimeFees'];
   budgetCommitmentTerms: BuildToolPageAlternativesPricingStateInputFromRouteInput['budgetCommitmentTerms'];
@@ -40,6 +43,7 @@ export function buildToolPageAlternativesPricingStateInputFromRoute(
   input: BuildToolPageAlternativesPricingStateInputFromRouteInput
 ): Parameters<typeof buildToolPageAlternativesPricingState>[0] {
   return {
+    activeReviewLens: input.activeReviewLens,
     pricingInsightsInput: {
       budgetCostDrivers: input.budgetCostDrivers,
       budgetOneTimeFees: input.budgetOneTimeFees,
@@ -71,6 +75,7 @@ export function buildToolPageAlternativesPricingStateInputFromRouteContext(
   input: BuildToolPageAlternativesPricingStateInputFromRouteContextInput
 ): Parameters<typeof buildToolPageAlternativesPricingState>[0] {
   return buildToolPageAlternativesPricingStateInputFromRoute({
+    activeReviewLens: input.activeReviewLens,
     budgetCostDrivers: input.budgetCostDrivers,
     budgetOneTimeFees: input.budgetOneTimeFees,
     budgetCommitmentTerms: input.budgetCommitmentTerms,

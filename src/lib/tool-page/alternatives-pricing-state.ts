@@ -5,8 +5,11 @@ import { buildToolPageAlternativesSectionState } from '@/lib/tool-page/alternati
 import { buildToolPageCompareTeaserLinks } from '@/lib/tool-page/compare-teasers';
 import { buildToolPagePricingInsightsBudgetAnalyst } from '@/lib/tool-page/pricing-insights-input';
 import { buildToolPagePrimaryFunction } from '@/lib/tool-page/taxonomy';
+import type { ReviewLens } from '@/lib/tool-page/view-model';
+import { rankAlternativesForLens } from '@/lib/tool-page/alternatives-lens';
 
 interface BuildToolPageAlternativesPricingStateInput {
+  activeReviewLens: ReviewLens;
   pricingInsightsInput: Parameters<typeof buildToolPagePricingInsightsBudgetAnalyst>[0];
   primaryFunctionInput: Parameters<typeof buildToolPagePrimaryFunction>[0];
   alternativesIntroInput: Omit<
@@ -40,7 +43,14 @@ export function buildToolPageAlternativesPricingState(
   const alternativesSectionState = buildToolPageAlternativesSectionState(
     input.alternativesSectionInput
   );
-  const alternativeCardsView = buildToolPageAlternativeCardsView(input.alternativeCardsInput);
+  const alternatives = rankAlternativesForLens(
+    input.alternativeCardsInput.alternatives,
+    input.activeReviewLens
+  );
+  const alternativeCardsView = buildToolPageAlternativeCardsView({
+    ...input.alternativeCardsInput,
+    alternatives,
+  });
 
   return {
     pricingInsightsBudgetAnalyst,

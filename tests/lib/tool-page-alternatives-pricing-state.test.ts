@@ -7,6 +7,7 @@ import {
 describe('tool page alternatives pricing state', () => {
   it('builds alternatives and pricing intro state together', () => {
     const state = buildToolPageAlternativesPricingState({
+      activeReviewLens: 'startup',
       pricingInsightsInput: {
         budgetCostDrivers: ['Per-seat pricing'],
         budgetOneTimeFees: ['Setup fee'],
@@ -56,6 +57,7 @@ describe('tool page alternatives pricing state', () => {
 
   it('builds alternatives pricing state from route-level fields', () => {
     const state = buildToolPageAlternativesPricingStateFromRoute({
+      activeReviewLens: 'startup',
       budgetCostDrivers: ['Per-seat pricing'],
       budgetOneTimeFees: ['Setup fee'],
       budgetCommitmentTerms: 'Annual contract',

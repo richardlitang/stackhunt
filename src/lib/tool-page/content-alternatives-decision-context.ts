@@ -4,10 +4,12 @@ import type { buildToolPageReviewArtifactsStateFromRouteContext } from '@/lib/to
 import type { ToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 import type { buildToolPageReviewSignalsView } from '@/lib/tool-page/review-signals-view';
 import type { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
+import type { ReviewLens } from '@/lib/tool-page/view-model';
 import { toToolPageObjectArray } from '@/lib/tool-page/route-normalizers';
 import { buildToolPageContentAlternativesStateFromRouteContext } from '@/lib/tool-page/content-alternatives-state';
 
 interface BuildToolPageContentAlternativesStateFromDecisionContextInput {
+  activeReviewLens: ReviewLens;
   alternativesLabel: 'Alternatives' | 'Related Tools';
   toolCategoryRef: { slug: string; name: string } | null;
   orderedAlternatives: unknown;
@@ -42,6 +44,7 @@ export function buildToolPageContentAlternativesStateFromDecisionContext(
 ): ReturnType<typeof buildToolPageContentAlternativesStateFromRouteContext> {
   return buildToolPageContentAlternativesStateFromRouteContext({
     alternativesPricing: {
+      activeReviewLens: input.activeReviewLens,
       budgetCostDrivers: input.reviewContextSignals.budgetCostDrivers,
       budgetOneTimeFees: input.reviewContextSignals.budgetOneTimeFees,
       budgetCommitmentTerms: input.reviewContextSignals.budgetCommitmentTerms,

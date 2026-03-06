@@ -7,6 +7,7 @@ import {
 describe('tool page alternatives pricing input', () => {
   it('maps route fields into alternatives pricing state input', () => {
     const result = buildToolPageAlternativesPricingStateInputFromRoute({
+      activeReviewLens: 'startup',
       budgetCostDrivers: ['Per seat'],
       budgetOneTimeFees: ['Onboarding'],
       budgetCommitmentTerms: 'Annual discount',
@@ -22,6 +23,7 @@ describe('tool page alternatives pricing input', () => {
     });
 
     expect(result.pricingInsightsInput.budgetCostDrivers).toEqual(['Per seat']);
+    expect(result.activeReviewLens).toBe('startup');
     expect(result.primaryFunctionInput.specs).toEqual({ category: 'project-management' });
     expect(result.alternativesIntroInput).toEqual({
       alternativesLabel: 'Alternatives',
@@ -33,6 +35,7 @@ describe('tool page alternatives pricing input', () => {
 
   it('maps flattened route context into alternatives pricing state input', () => {
     const result = buildToolPageAlternativesPricingStateInputFromRouteContext({
+      activeReviewLens: 'enterprise',
       budgetCostDrivers: ['Per seat'],
       budgetOneTimeFees: ['Onboarding'],
       budgetCommitmentTerms: 'Annual discount',
@@ -49,6 +52,7 @@ describe('tool page alternatives pricing input', () => {
     });
 
     expect(result.pricingInsightsInput.budgetCostDrivers).toEqual(['Per seat']);
+    expect(result.activeReviewLens).toBe('enterprise');
     expect(result.primaryFunctionInput.specs).toEqual({ category: 'project-management' });
     expect(result.compareTeaserInput.toolSlug).toBe('acme');
     expect(result.alternativeCardsInput.canCompareByAlternativeSlug.beta).toBe(true);
