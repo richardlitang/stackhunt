@@ -1,6 +1,7 @@
 import type { ReviewLens } from '@/lib/tool-page/view-model';
 
 interface ToolPageAlternativeLensLike {
+  slug: string;
   pricing_type?: string | null;
   metadata?: unknown;
   specs?: unknown;
