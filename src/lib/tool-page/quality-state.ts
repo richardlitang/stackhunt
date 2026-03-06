@@ -106,6 +106,13 @@ export function buildToolPageQualityState(
             }
           | undefined)
       : undefined;
+  const canonicalQuality =
+    input.tool?.specs && typeof input.tool.specs === 'object'
+      ? ((((input.tool.specs as Record<string, unknown>).canonical as Record<string, unknown>)?.quality ||
+          {}) as {
+          user_signal_coverage_pending?: boolean;
+        })
+      : undefined;
   const explicitUserPros =
     input.tool?.specs && typeof input.tool.specs === 'object'
       ? (input.tool.specs as Record<string, unknown>).user_reported_pros
@@ -121,7 +128,9 @@ export function buildToolPageQualityState(
     ? userSignalSummary.top_user_reported_claims.length
     : 0;
   const userSignalClaimsCount = Math.max(explicitUserClaimsCount, summarizedUserClaimsCount);
-  const userSignalCoveragePending = communityCorroborationCount > 0 && userSignalClaimsCount === 0;
+  const userSignalCoveragePending =
+    Boolean(canonicalQuality?.user_signal_coverage_pending) ||
+    (communityCorroborationCount > 0 && userSignalClaimsCount === 0);
 
   return {
     contentConfidenceLevel,

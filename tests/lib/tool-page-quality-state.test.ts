@@ -87,4 +87,35 @@ describe('tool page quality state', () => {
     expect(result.userSignalClaimsCount).toBe(0);
     expect(result.userSignalCoveragePending).toBe(true);
   });
+
+  it('honors canonical pending flag from ETL quality metadata', () => {
+    const tool = {
+      name: 'Acme',
+      short_description: 'Acme helps teams automate workflows.',
+      metadata: {},
+      specs: {
+        canonical: {
+          quality: {
+            user_signal_coverage_pending: true,
+          },
+        },
+      },
+    } as any;
+
+    const result = buildToolPageQualityState({
+      tool,
+      firstReview: null,
+      reviewSelection: {
+        hasPublishedReview: false,
+        hasDraftReview: true,
+      },
+      persistedQuality: {
+        evidence_counts: {
+          community_domains: 0,
+        },
+      },
+    });
+
+    expect(result.userSignalCoveragePending).toBe(true);
+  });
 });
