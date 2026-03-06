@@ -20,6 +20,7 @@ describe('tool page decision utility', () => {
     ).toBe(true);
     expect(result.verdictLeadOverride).toContain('fits startups');
     expect(result.commonSetups).toHaveLength(3);
+    expect(result.commonSetups[0]?.costTrigger?.status).toBe('Source-backed');
     expect(result.practicalOutcomesTitle).toBe('What it does in practice');
     expect(result.practicalOutcomes[0]?.planDependencyStatus).toBe('Needs confirmation');
     expect(result.pricingMentalModelItems[0]?.status).toBe('Source-backed');

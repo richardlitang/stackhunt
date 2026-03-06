@@ -4,6 +4,11 @@ export interface ToolPageDecisionUtilitySetup {
   title: string;
   body: string;
   verificationLabel?: string;
+  costTrigger?: {
+    text: string;
+    status: 'Source-backed' | 'Needs confirmation';
+    evidenceHref?: string;
+  };
 }
 
 export interface BuildToolPageDecisionUtilityInput {
@@ -152,6 +157,15 @@ export function buildToolPageDecisionUtilityState(
         {
           title: '2 to 3 person founder-led sales',
           body: 'Week one is usually pipeline setup, contact hygiene rules, and one outbound motion. Seat caps or role limits often surface first.',
+          ...(input.hardLimitText
+            ? {
+                costTrigger: {
+                  text: input.hardLimitText,
+                  status: 'Source-backed' as const,
+                  evidenceHref: '#pricing',
+                },
+              }
+            : {}),
         },
         {
           title: '5 to 10 person SDR and AE split',
@@ -167,6 +181,15 @@ export function buildToolPageDecisionUtilityState(
         {
           title: 'Small team rollout',
           body: 'Start with one owner and one success metric, then expand only after a full workflow passes.',
+          ...(input.hardLimitText
+            ? {
+                costTrigger: {
+                  text: input.hardLimitText,
+                  status: 'Source-backed' as const,
+                  evidenceHref: '#pricing',
+                },
+              }
+            : {}),
         },
         {
           title: 'Functional team rollout',

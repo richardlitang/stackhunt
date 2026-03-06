@@ -13,4 +13,10 @@ describe('tool page strengths subtitle', () => {
       'Pros and cons will appear after source-backed claims are collected.'
     );
   });
+
+  it('includes community corroboration count when present', () => {
+    expect(
+      buildToolPageStrengthsSubtitle({ prosConsSourcesCount: 3, communityCorroborationCount: 2 })
+    ).toBe('Evidence-backed pros and cons only, with 2 corroborating community domains.');
+  });
 });

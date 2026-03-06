@@ -3,6 +3,11 @@ interface SetupCard {
   title: string;
   body: string;
   verificationLabel?: string;
+  costTrigger?: {
+    text: string;
+    status: 'Source-backed' | 'Needs confirmation';
+    evidenceHref?: string;
+  };
 }
 
 interface Props {
@@ -38,6 +43,27 @@ const { checklistTitle, checklistItems, commonSetupsTitle, commonSetups } = Astr
           <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
             <h4 class="text-sm font-semibold text-zinc-100">{setup.title}</h4>
             <p class="mt-2 text-sm text-zinc-300">{setup.body}</p>
+            {setup.costTrigger && (
+              <p class="mt-2 text-xs text-zinc-400">
+                Cost trigger:{' '}
+                {setup.costTrigger.evidenceHref ? (
+                  <a href={setup.costTrigger.evidenceHref} class="text-hunt-500 hover:text-hunt-400">
+                    {setup.costTrigger.text}
+                  </a>
+                ) : (
+                  <span>{setup.costTrigger.text}</span>
+                )}{' '}
+                <span
+                  class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
+                    setup.costTrigger.status === 'Source-backed'
+                      ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300'
+                      : 'border-amber-700/70 bg-amber-950/40 text-amber-200'
+                  }`}
+                >
+                  {setup.costTrigger.status}
+                </span>
+              </p>
+            )}
             {setup.verificationLabel && (
               <p class="mt-2 text-xs text-amber-300">{setup.verificationLabel}</p>
             )}

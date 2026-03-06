@@ -5,6 +5,7 @@ import type { ToolPageReviewContextSignals } from '@/lib/tool-page/review-contex
 import type { buildToolPageReviewSignalsView } from '@/lib/tool-page/review-signals-view';
 import type { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
 import type { ReviewLens } from '@/lib/tool-page/view-model';
+import type { buildToolPageQualityState } from '@/lib/tool-page/quality-state';
 import { toToolPageObjectArray } from '@/lib/tool-page/route-normalizers';
 import { buildToolPageContentAlternativesStateFromRouteContext } from '@/lib/tool-page/content-alternatives-state';
 
@@ -37,6 +38,7 @@ interface BuildToolPageContentAlternativesStateFromDecisionContextInput {
   reviewArtifactsState: ReturnType<typeof buildToolPageReviewArtifactsStateFromRouteContext>;
   reviewSignalsView: ReturnType<typeof buildToolPageReviewSignalsView>;
   reviewContextSignals: ToolPageReviewContextSignals;
+  qualityState: Pick<ReturnType<typeof buildToolPageQualityState>, 'communityCorroborationCount'>;
 }
 
 export function buildToolPageContentAlternativesStateFromDecisionContext(
@@ -68,6 +70,7 @@ export function buildToolPageContentAlternativesStateFromDecisionContext(
       setupTracks: toToolPageObjectArray(input.setupTracks),
       gettingStartedCtaUrl: input.decisionRuntime.setupSignals.gettingStartedCtaUrl,
       prosConsSourcesCount: input.evidenceRuntime.collectedSourcesBySection.pros_cons,
+      communityCorroborationCount: input.qualityState.communityCorroborationCount,
       evidenceBasis: input.reviewArtifactsState.evidenceBasis,
       hasCommunity: input.sectionFlags.hasCommunity,
       userAdvocate: input.reviewContextSignals.userAdvocate,

@@ -25,6 +25,7 @@ describe('tool page content sections input', () => {
       gettingStartedCtaUrl: 'https://example.com/start',
       toolName: 'Acme',
       prosConsSourcesCount: 3,
+      communityCorroborationCount: 2,
       affiliateOffers: [{ id: 'offer_1' }],
       evidenceBasis: [{ label: 'Official', count: 2 }],
       tribalKnowledge: {
@@ -57,6 +58,7 @@ describe('tool page content sections input', () => {
     expect(result.operationalDetailsInput.hasSecurity).toBe(true);
     expect(result.operationalDetailsInput.hasParentTool).toBe(false);
     expect(result.pricingEvidenceInput.pricingEvidenceCount).toBe(2);
+    expect(result.strengthsSubtitleInput.communityCorroborationCount).toBe(2);
   });
 
   it('maps flattened route context into content sections state input', () => {
@@ -77,6 +79,7 @@ describe('tool page content sections input', () => {
       setupTracks: [],
       gettingStartedCtaUrl: 'https://example.com/start',
       prosConsSourcesCount: 3,
+      communityCorroborationCount: 1,
       evidenceBasis: [{ label: 'Official', count: 2 }],
       hasCommunity: true,
       userAdvocate: { persona: 'Power users' },
@@ -109,5 +112,6 @@ describe('tool page content sections input', () => {
     expect(result.gettingStartedInput.toolName).toBe('Acme');
     expect(result.aboutContentInput.longDescription).toBe('Long description');
     expect(result.affiliateOffersInput.offers).toEqual([{ id: 'offer_1' }]);
+    expect(result.strengthsSubtitleInput.communityCorroborationCount).toBe(1);
   });
 });

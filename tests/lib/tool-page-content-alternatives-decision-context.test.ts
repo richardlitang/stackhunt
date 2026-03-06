@@ -99,6 +99,9 @@ describe('tool page content/alternatives decision context', () => {
         delighters: ['Fast onboarding'],
         frustrations: ['Limited offline mode'],
       },
+      qualityState: {
+        communityCorroborationCount: 2,
+      },
     } as const;
 
     const result = buildToolPageContentAlternativesStateFromDecisionContext(input);
@@ -129,6 +132,7 @@ describe('tool page content/alternatives decision context', () => {
         setupTracks: toToolPageObjectArray(input.setupTracks),
         gettingStartedCtaUrl: input.decisionRuntime.setupSignals.gettingStartedCtaUrl,
         prosConsSourcesCount: input.evidenceRuntime.collectedSourcesBySection.pros_cons,
+        communityCorroborationCount: input.qualityState.communityCorroborationCount,
         evidenceBasis: input.reviewArtifactsState.evidenceBasis,
         hasCommunity: input.sectionFlags.hasCommunity,
         userAdvocate: input.reviewContextSignals.userAdvocate,

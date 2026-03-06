@@ -227,6 +227,20 @@ const {
 } = evidenceRuntime;
 const lensRankedHardLimits = rankConstraintsForLens(canonicalHardLimits, activeReviewLens);
 const topLensHardLimit = lensRankedHardLimits[0] || null;
+const userSignalSummaryRecord =
+  tool.specs && typeof tool.specs === 'object'
+    ? (tool.specs as Record<string, unknown>).user_signal_summary
+    : null;
+const userSignalSummary =
+  userSignalSummaryRecord && typeof userSignalSummaryRecord === 'object'
+    ? (userSignalSummaryRecord as {
+        community_cons?: number;
+        community_pros?: number;
+        editorial_cons?: number;
+        editorial_pros?: number;
+        corroborating_community_domains?: number;
+      })
+    : null;
 const toolMeta = generateToolMeta(tool, tool.review_count);
 const toolCategoryRef = buildToolPageCategoryRef(tool.category);
 const { runtimeViewBundle, navigationState, ctaMediaState } =
@@ -317,6 +331,7 @@ const { lensViewFields, toolChromeState, alternativesPricingState, contentSectio
       reviewArtifactsState,
       reviewSignalsView,
       reviewContextSignals,
+      qualityState,
     },
   });
 const {
@@ -1156,6 +1171,15 @@ applyToolPageRobotsHeader({
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
                   <p class="mt-1 text-sm text-zinc-400">{strengthsSubtitle}</p>
+                  {userSignalSummary &&
+                    (userSignalSummary.community_pros || 0) +
+                      (userSignalSummary.community_cons || 0) >
+                      0 && (
+                      <p class="mt-1 text-xs text-zinc-500">
+                        Community-backed signals in this section: {userSignalSummary.community_pros || 0} pros,{' '}
+                        {userSignalSummary.community_cons || 0} cons.
+                      </p>
+                    )}
                 </div>
                 <span class="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-400">
                   <span class="group-open:hidden">Expand</span>
@@ -1487,6 +1511,12 @@ applyToolPageRobotsHeader({
                 {activeReviewLens !== 'general' && (
                   <p class="mt-1 text-xs text-zinc-500">
                     Alternatives are prioritized for the current review lens.
+                  </p>
+                )}
+                {qualityState.communityCorroborationCount > 0 && (
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Includes signals corroborated across{' '}
+                    {qualityState.communityCorroborationCount} community domains.
                   </p>
                 )}
               </div>

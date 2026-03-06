@@ -48,6 +48,7 @@ describe('tool page chrome/content decision context', () => {
         pricingVerifiedLabel: '2026-03-02',
       },
       evaluationDepth: 'Light hands-on',
+      qualityState: { communityCorroborationCount: 2 },
     } as never;
 
     const contentAlternatives = {
@@ -108,6 +109,7 @@ describe('tool page chrome/content decision context', () => {
         delighters: ['Fast onboarding'],
         frustrations: ['Limited offline mode'],
       },
+      qualityState: { communityCorroborationCount: 2 },
     } as never;
 
     const result = buildToolPageChromeContentStateFromDecisionContext({
