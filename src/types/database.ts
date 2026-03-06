@@ -573,6 +573,11 @@ export interface ToolSpecs {
     forum_claims: number;
     hn_claims: number;
     top_user_reported_signals: string[];
+    top_user_reported_claims: Array<{
+      text: string;
+      source_type: 'community' | 'editorial';
+      source_domain: string | null;
+    }>;
   };
 
   // V4: Category-specific extracted data

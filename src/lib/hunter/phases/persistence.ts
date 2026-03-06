@@ -3806,6 +3806,11 @@ function buildUserSignalSummary(
   forum_claims: number;
   hn_claims: number;
   top_user_reported_signals: string[];
+  top_user_reported_claims: Array<{
+    text: string;
+    source_type: 'community' | 'editorial';
+    source_domain: string | null;
+  }>;
 } | null {
   const all = [
     ...pros.map((claim) => ({ ...claim, kind: 'pro' as const })),
@@ -3852,18 +3857,27 @@ function buildUserSignalSummary(
     if (bucket === 'hn') hnClaims += 1;
   }
 
-  const candidateSignals = [...community, ...editorial]
-    .map((claim) => sanitizeNarrativeClaimText(claim.text) || claim.text)
-    .map((text) => stripTerminalPunctuation(text).trim())
-    .filter((text) => text.length >= 16);
-
   const uniqueSignals: string[] = [];
+  const topClaims: Array<{
+    text: string;
+    source_type: 'community' | 'editorial';
+    source_domain: string | null;
+  }> = [];
   const seen = new Set<string>();
-  for (const signal of candidateSignals) {
+  for (const claim of [...community, ...editorial]) {
+    const signal = stripTerminalPunctuation(
+      sanitizeNarrativeClaimText(claim.text) || claim.text
+    ).trim();
+    if (signal.length < 16) continue;
     const key = signal.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
     uniqueSignals.push(signal);
+    topClaims.push({
+      text: signal,
+      source_type: claim.source_type === 'community' ? 'community' : 'editorial',
+      source_domain: normalizeDomain(claim.source_url),
+    });
     if (uniqueSignals.length >= 3) break;
   }
 
@@ -3878,6 +3892,7 @@ function buildUserSignalSummary(
     forum_claims: forumClaims,
     hn_claims: hnClaims,
     top_user_reported_signals: uniqueSignals,
+    top_user_reported_claims: topClaims,
   };
 }
 
