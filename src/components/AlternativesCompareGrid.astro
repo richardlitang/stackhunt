@@ -5,14 +5,16 @@ import {
   type ToolCompareGridCell,
   type ToolCompareGridLike,
 } from '@/lib/tool-page/alternatives-compare-grid';
+import type { ReviewLens } from '@/lib/tool-page/view-model';
 
 interface Props {
   main: ToolCompareGridLike;
   alternatives: ToolCompareGridLike[];
   asOfLabel?: string | null;
+  activeReviewLens?: ReviewLens;
 }
 
-const { main, alternatives, asOfLabel = null } = Astro.props as Props;
+const { main, alternatives, asOfLabel = null, activeReviewLens = 'general' } = Astro.props as Props;
 
 function evidenceChipClass(cell: ToolCompareGridCell): string {
   if (cell.evidenceTag === 'source') {
@@ -53,7 +55,7 @@ function evidenceChipLabel(cell: ToolCompareGridCell): string {
               <td class="px-2 py-2 text-zinc-400">{row}</td>
               <td class="px-2 py-2">
                 {(() => {
-                  const cell = resolveToolCompareGridCell(row, main);
+                  const cell = resolveToolCompareGridCell(row, main, activeReviewLens);
                   const value =
                     row === 'Choose this instead if' ? 'Current tool under review' : cell.value;
                   return (
@@ -69,7 +71,7 @@ function evidenceChipLabel(cell: ToolCompareGridCell): string {
                 })()}
               </td>
               {alternatives.slice(0, 2).map((alt) => {
-                const cell = resolveToolCompareGridCell(row, alt);
+                const cell = resolveToolCompareGridCell(row, alt, activeReviewLens);
                 const hasCompareLink =
                   ((row === 'Rationale source' && cell.value === 'Comparison brief') ||
                     (row === 'Choose this instead if' && cell.evidenceTag === 'source')) &&

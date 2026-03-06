@@ -21,4 +21,20 @@ describe('tool page integrations lens ranking', () => {
     const ranked = rankIntegrationsForLens(notable, 'enterprise');
     expect(ranked[0]?.name).toBe('Okta');
   });
+
+  it('prioritizes integrations explicitly tagged for the active lens', () => {
+    const ranked = rankIntegrationsForLens(
+      [
+        { name: 'Google Sheets', type: 'native', direction: 'import' },
+        {
+          name: 'Custom ERP Connector',
+          type: 'api',
+          direction: 'bidirectional',
+          works_for_lenses: ['enterprise'] as const,
+        },
+      ],
+      'enterprise'
+    );
+    expect(ranked[0]?.name).toBe('Custom ERP Connector');
+  });
 });

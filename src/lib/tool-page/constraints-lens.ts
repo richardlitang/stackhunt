@@ -2,6 +2,7 @@ import type { ReviewLens } from '@/lib/tool-page/view-model';
 
 interface ToolPageConstraintLike {
   text: string;
+  works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
 }
 
 function scoreConstraintForLens(text: string, lens: ReviewLens): number {
@@ -31,16 +32,26 @@ function scoreConstraintForLens(text: string, lens: ReviewLens): number {
   return score;
 }
 
+function hasLensTag(
+  tags: ToolPageConstraintLike['works_for_lenses'],
+  lens: Exclude<ReviewLens, 'general'>
+): boolean {
+  return Array.isArray(tags) && tags.includes(lens);
+}
+
 export function rankConstraintsForLens<T extends ToolPageConstraintLike>(
   constraints: T[],
   activeReviewLens: ReviewLens
 ): T[] {
   if (activeReviewLens === 'general') return constraints;
+  const lens = activeReviewLens;
   return [...constraints]
     .map((constraint, index) => ({
       constraint,
       index,
-      score: scoreConstraintForLens(constraint.text, activeReviewLens),
+      score:
+        (hasLensTag(constraint.works_for_lenses, lens) ? 100 : 0) +
+        scoreConstraintForLens(constraint.text, lens),
     }))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((entry) => entry.constraint);

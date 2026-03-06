@@ -4,6 +4,7 @@ interface ToolPageNotableIntegrationLike {
   name: string;
   type?: string | null;
   direction?: string | null;
+  works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
 }
 
 function scoreIntegrationForLens(
@@ -39,16 +40,26 @@ function scoreIntegrationForLens(
   return score;
 }
 
+function hasLensTag(
+  tags: ToolPageNotableIntegrationLike['works_for_lenses'],
+  lens: Exclude<ReviewLens, 'general'>
+): boolean {
+  return Array.isArray(tags) && tags.includes(lens);
+}
+
 export function rankIntegrationsForLens<T extends ToolPageNotableIntegrationLike>(
   notable: T[],
   activeReviewLens: ReviewLens
 ): T[] {
   if (activeReviewLens === 'general') return notable;
+  const lens = activeReviewLens;
   return [...notable]
     .map((integration, index) => ({
       integration,
       index,
-      score: scoreIntegrationForLens(integration, activeReviewLens),
+      score:
+        (hasLensTag(integration.works_for_lenses, lens) ? 100 : 0) +
+        scoreIntegrationForLens(integration, lens),
     }))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((entry) => entry.integration);

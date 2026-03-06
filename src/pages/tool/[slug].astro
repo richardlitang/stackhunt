@@ -1504,6 +1504,7 @@ applyToolPageRobotsHeader({
               computedDiff: microDiffs.get(entry.alt.slug) || null,
             }))}
             asOfLabel={freshnessLabels.verdictAsOfLabel}
+            activeReviewLens={activeReviewLens}
           />
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {alternativeCardsView.map((entry) => (

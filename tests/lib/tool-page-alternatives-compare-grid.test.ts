@@ -74,4 +74,18 @@ describe('resolveToolCompareGridValue', () => {
       'heuristic'
     );
   });
+
+  it('uses lens-aware fallback copy when evidence is pending', () => {
+    const tool: ToolCompareGridLike = {
+      ...baseTool,
+      curatedVerdict: null,
+      computedDiff: null,
+    };
+
+    expect(resolveToolCompareGridValue('Best for', tool, 'enterprise')).toContain('governance');
+    expect(resolveToolCompareGridValue('Integration approach', tool, 'startup')).toContain(
+      'workflow'
+    );
+    expect(resolveToolCompareGridCell('Best for', tool, 'enterprise').evidenceTag).toBe('pending');
+  });
 });

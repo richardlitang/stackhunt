@@ -21,4 +21,18 @@ describe('tool page constraints lens ranking', () => {
     const ranked = rankConstraintsForLens(constraints, 'enterprise');
     expect(ranked[0]?.text).toContain('SSO and SCIM');
   });
+
+  it('prioritizes explicit lens tags over keyword-only matches', () => {
+    const ranked = rankConstraintsForLens(
+      [
+        { text: 'General quota limit applies on all plans.' },
+        {
+          text: 'Workspace policy limit applies when enterprise governance is enabled.',
+          works_for_lenses: ['enterprise'] as const,
+        },
+      ],
+      'enterprise'
+    );
+    expect(ranked[0]?.works_for_lenses).toEqual(['enterprise']);
+  });
 });

@@ -6,6 +6,7 @@ import {
   buildAlternativeChooseLine,
   buildAlternativeRationaleSourceLabel,
 } from '@/lib/tool-page/alternative-rationale';
+import type { ReviewLens } from '@/lib/tool-page/view-model';
 
 export interface ToolCompareGridLike {
   name: string;
@@ -63,16 +64,33 @@ function normalizeSetup(curve?: string | null): string {
   return 'Medium';
 }
 
+function lensFallbackForBestFor(lens: ReviewLens): string {
+  if (lens === 'personal') return 'Solo operators prioritizing low seat friction';
+  if (lens === 'startup') return 'Teams prioritizing rollout speed and pipeline control';
+  if (lens === 'enterprise') return 'Teams prioritizing governance and cross-team controls';
+  return 'Needs confirmation';
+}
+
+function lensFallbackForIntegrationApproach(lens: ReviewLens): string {
+  if (lens === 'personal') return 'Automation-first integrations, verify native depth';
+  if (lens === 'startup') return 'API and workflow integrations for team handoffs';
+  if (lens === 'enterprise')
+    return 'Identity and governance integrations, verify in procurement docs';
+  return 'Needs confirmation';
+}
+
 export function resolveToolCompareGridValue(
   row: ToolCompareGridRow,
-  tool: ToolCompareGridLike
+  tool: ToolCompareGridLike,
+  activeReviewLens: ReviewLens = 'general'
 ): string {
-  return resolveToolCompareGridCell(row, tool).value;
+  return resolveToolCompareGridCell(row, tool, activeReviewLens).value;
 }
 
 export function resolveToolCompareGridCell(
   row: ToolCompareGridRow,
-  tool: ToolCompareGridLike
+  tool: ToolCompareGridLike,
+  activeReviewLens: ReviewLens = 'general'
 ): ToolCompareGridCell {
   switch (row) {
     case 'Setup time':
@@ -102,7 +120,10 @@ export function resolveToolCompareGridCell(
       if (tool.computedDiff?.featureDiff) {
         return { value: tool.computedDiff.featureDiff, evidenceTag: 'heuristic' };
       }
-      return { value: 'Needs confirmation', evidenceTag: 'pending' };
+      return {
+        value: lensFallbackForIntegrationApproach(activeReviewLens),
+        evidenceTag: 'pending',
+      };
     case 'Best for':
       if (tool.curatedVerdict) {
         return { value: 'Teams matching the comparison brief assumptions', evidenceTag: 'source' };
@@ -119,7 +140,7 @@ export function resolveToolCompareGridCell(
       if (tool.computedDiff?.learningDiff) {
         return { value: 'Teams prioritizing setup speed', evidenceTag: 'heuristic' };
       }
-      return { value: 'Needs confirmation', evidenceTag: 'pending' };
+      return { value: lensFallbackForBestFor(activeReviewLens), evidenceTag: 'pending' };
     case 'Choose this instead if': {
       if (tool.curatedVerdict || tool.computedDiff) {
         return {
