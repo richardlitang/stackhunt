@@ -1,5 +1,6 @@
 type ProsConsSourceType = 'official' | 'editorial' | 'community';
 type ProsConsClaimType = 'fact' | 'opinion';
+import { inferUserSignalChannelFromUrl } from '@/lib/user-signal-channel';
 
 const COMMUNITY_HOST_PATTERNS = [
   /(^|\.)reddit\.com$/i,
@@ -34,29 +35,6 @@ function isLikelyCommunityHost(hostname: string): boolean {
   return (
     hostname.includes('forum') || hostname.includes('community') || hostname.includes('discourse')
   );
-}
-
-function inferCommunityChannel(sourceUrl?: string | null): 'reddit' | 'forum' | 'hn' | 'other' {
-  if (!sourceUrl) return 'other';
-  try {
-    const hostname = new URL(sourceUrl).hostname.toLowerCase();
-    if (hostname === 'reddit.com' || hostname.endsWith('.reddit.com')) return 'reddit';
-    if (hostname === 'news.ycombinator.com' || hostname.endsWith('.ycombinator.com')) return 'hn';
-    if (
-      hostname.includes('forum') ||
-      hostname.includes('community') ||
-      hostname.includes('discourse') ||
-      hostname === 'stackoverflow.com' ||
-      hostname.endsWith('.stackexchange.com') ||
-      hostname === 'quora.com' ||
-      hostname === 'discord.com'
-    ) {
-      return 'forum';
-    }
-    return 'other';
-  } catch {
-    return 'other';
-  }
 }
 
 export function classifyProsConsSourceType(input: {
@@ -95,7 +73,7 @@ export function scoreProsConsClaimSignal(input: {
   const corroborationWeight = Math.min(120, (corroborationCount - 1) * 40);
   const claimWeight = input.claimType === 'opinion' ? 12 : 0;
   const communityChannel =
-    input.sourceType === 'community' ? inferCommunityChannel(input.sourceUrl) : null;
+    input.sourceType === 'community' ? inferUserSignalChannelFromUrl(input.sourceUrl) : null;
   const communityChannelBoost =
     communityChannel === 'reddit'
       ? 24
