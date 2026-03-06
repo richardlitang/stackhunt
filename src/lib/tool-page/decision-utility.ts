@@ -1,4 +1,8 @@
 import type { ReviewLens } from '@/lib/tool-page/view-model';
+import {
+  resolveToolPageProductArchetype,
+  type ToolPageProductArchetype,
+} from '@/lib/tool-page/product-archetype';
 
 export interface ToolPageDecisionUtilitySetup {
   title: string;
@@ -15,6 +19,9 @@ export interface BuildToolPageDecisionUtilityInput {
   toolName: string;
   categorySlug: string | null;
   activeReviewLens: ReviewLens;
+  hasApi: boolean;
+  hasParentTool: boolean;
+  hasEnterpriseSignals: boolean;
   lensBestFitLine: string;
   lensWeakFitLine: string;
   lensTradeoffLine: string;
@@ -91,12 +98,46 @@ function buildGenericChecklist(toolName: string): string[] {
   ];
 }
 
+function buildArchetypeChecklist(
+  archetype: ToolPageProductArchetype,
+  toolName: string,
+  lens: ReviewLens
+): string[] {
+  if (archetype === 'api_first_devtool') {
+    return [
+      `Run one production-like API workflow in ${toolName}, then measure latency and output quality.`,
+      'Validate auth, key rotation, and usage-limit behavior before rollout.',
+      'Confirm one integration path your engineers depend on daily.',
+      'Check how plan limits affect usage spikes and team expansion.',
+      lens === 'enterprise'
+        ? 'Verify governance controls, auditability, and procurement constraints in writing.'
+        : 'Verify the first upgrade trigger by team size or required capability.',
+    ];
+  }
+  if (archetype === 'product_family_platform') {
+    return [
+      `Choose one product surface in ${toolName} first, then validate end-to-end value before expanding.`,
+      'Test how data and permissions carry across product surfaces.',
+      'Confirm billing boundaries across plan families and workspace/account structure.',
+      'Validate one reporting path used for operational decisions.',
+      'Document the first upgrade trigger for your current team shape.',
+    ];
+  }
+  return buildGenericChecklist(toolName);
+}
+
 export function buildToolPageDecisionUtilityState(
   input: BuildToolPageDecisionUtilityInput
 ): ToolPageDecisionUtilityState {
   const hasEvidenceAnchoredUtility = Boolean(
     input.hardLimitText || input.pricingEvidenceSourceUrl || input.pricingEvidenceSummary
   );
+  const productArchetype = resolveToolPageProductArchetype({
+    categorySlug: input.categorySlug,
+    hasApi: input.hasApi,
+    hasParentTool: input.hasParentTool,
+    hasEnterpriseSignals: input.hasEnterpriseSignals,
+  });
   const useIf =
     input.lensBestFitLine || 'Use when source-backed capabilities match your daily workflow.';
   const avoidIf = input.lensWeakFitLine || 'Avoid when core rollout needs are still unconfirmed.';
@@ -109,7 +150,7 @@ export function buildToolPageDecisionUtilityState(
   const testChecklistItems = hasEvidenceAnchoredUtility
     ? isCrm
       ? buildCrmChecklist(input.activeReviewLens)
-      : buildGenericChecklist(input.toolName)
+      : buildArchetypeChecklist(productArchetype, input.toolName, input.activeReviewLens)
     : [];
 
   const basePricingMentalModelItems =

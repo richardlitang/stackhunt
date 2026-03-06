@@ -490,6 +490,11 @@ const decisionUtilityState = buildToolPageDecisionUtilityState({
   toolName: tool.name,
   categorySlug: tool.category?.slug || null,
   activeReviewLens,
+  hasApi: Boolean(knowledgeCard?.integrations?.has_api),
+  hasParentTool: Boolean(parentTool),
+  hasEnterpriseSignals:
+    (tool.pricing_type || '').toLowerCase().includes('enterprise') ||
+    tags.audiences.some((audience) => audience.slug.toLowerCase().includes('enterprise')),
   lensBestFitLine,
   lensWeakFitLine,
   lensTradeoffLine,

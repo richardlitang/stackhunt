@@ -7,6 +7,9 @@ describe('tool page decision utility', () => {
       toolName: 'Attio',
       categorySlug: 'crm-sales',
       activeReviewLens: 'startup',
+      hasApi: false,
+      hasParentTool: false,
+      hasEnterpriseSignals: false,
       lensBestFitLine: 'Startups that can own CRM ops.',
       lensWeakFitLine: 'Teams needing preconfigured CRM setup.',
       lensTradeoffLine: 'Flexibility vs setup overhead.',
@@ -32,6 +35,9 @@ describe('tool page decision utility', () => {
       toolName: 'Attio',
       categorySlug: 'crm-sales',
       activeReviewLens: 'personal',
+      hasApi: false,
+      hasParentTool: false,
+      hasEnterpriseSignals: false,
       lensBestFitLine: 'Solo operators who can own setup.',
       lensWeakFitLine: 'Teams needing prebuilt defaults.',
       lensTradeoffLine: 'Flexibility vs setup overhead.',
@@ -49,6 +55,9 @@ describe('tool page decision utility', () => {
       toolName: 'Notion',
       categorySlug: 'project-management',
       activeReviewLens: 'general',
+      hasApi: false,
+      hasParentTool: false,
+      hasEnterpriseSignals: false,
       lensBestFitLine: '',
       lensWeakFitLine: '',
       lensTradeoffLine: '',
@@ -56,10 +65,11 @@ describe('tool page decision utility', () => {
     });
 
     expect(result.testChecklistTitle).toBe('What to test before rollout');
-    expect(result.testChecklistItems[0]).toContain('Run one complete high-frequency workflow');
-    expect(result.commonSetups).toHaveLength(3);
+    expect(result.testChecklistItems).toHaveLength(0);
+    expect(result.commonSetups).toHaveLength(0);
+    expect(result.hasEvidenceAnchoredUtility).toBe(false);
     expect(result.decisionWatchOut).toContain('Watch out');
-    expect(result.practicalOutcomes[0]?.planDependencyStatus).toBe('Needs confirmation');
+    expect(result.practicalOutcomes).toHaveLength(0);
     expect(
       result.pricingMentalModelItems.every((item) => item.status === 'Needs confirmation')
     ).toBe(true);
@@ -70,6 +80,9 @@ describe('tool page decision utility', () => {
       toolName: 'Attio',
       categorySlug: 'crm-sales',
       activeReviewLens: 'startup',
+      hasApi: false,
+      hasParentTool: false,
+      hasEnterpriseSignals: false,
       lensBestFitLine: 'Startups that can own CRM ops.',
       lensWeakFitLine: 'Teams needing preconfigured CRM setup.',
       lensTradeoffLine: 'Flexibility vs setup overhead.',
@@ -85,5 +98,24 @@ describe('tool page decision utility', () => {
         (item) => item.status === 'Source-backed' && item.text.includes('tiers vary')
       )
     ).toBe(true);
+  });
+
+  it('uses API-first checklist for developer/API archetype tools', () => {
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'Claude',
+      categorySlug: 'developer-tools',
+      activeReviewLens: 'enterprise',
+      hasApi: true,
+      hasParentTool: false,
+      hasEnterpriseSignals: true,
+      lensBestFitLine: 'Developer teams with API-first workflows.',
+      lensWeakFitLine: 'Teams needing turnkey workflow software.',
+      lensTradeoffLine: 'Flexibility vs implementation ownership.',
+      hardLimitText: 'Usage limits vary by plan and demand.',
+    });
+
+    expect(result.testChecklistItems[0]).toContain('production-like API workflow');
+    expect(result.testChecklistItems[1]).toContain('auth');
+    expect(result.hasEvidenceAnchoredUtility).toBe(true);
   });
 });
