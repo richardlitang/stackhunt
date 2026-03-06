@@ -22,6 +22,10 @@ const { checklistTitle, checklistItems, commonSetupsTitle, commonSetups } = Astr
   data-focus-groups="all verdict setup pricing"
 >
   <h3 class="text-base font-semibold text-zinc-100">{checklistTitle}</h3>
+  <p class="mt-2 text-xs text-zinc-500">
+    Use these as rollout checks. Treat plan-gated assumptions as needs confirmation until verified
+    in docs or a live demo.
+  </p>
   <ul class="mt-3 space-y-2 text-sm text-zinc-300">
     {checklistItems.map((item) => <li>- {item}</li>)}
   </ul>
