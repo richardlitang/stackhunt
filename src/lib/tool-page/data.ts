@@ -2,7 +2,10 @@ import { getAlternatives } from '@/lib/analysis/alternatives';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
 import { getToolBySlugAndType, getToolTags, supabase } from '@/lib/supabase';
 import { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
-import { fetchToolPageCuratedVerdicts } from '@/lib/tool-page/curated-verdicts';
+import {
+  fetchToolPageCuratedVerdictEntries,
+  type ToolPageCuratedVerdictEntry,
+} from '@/lib/tool-page/curated-verdicts';
 import { orderToolPageAlternativesByIds } from '@/lib/tool-page/alternatives-order';
 import {
   deriveToolPageReviewContentLists,
@@ -39,7 +42,11 @@ export interface ToolPageData {
   tool: ToolPageTool;
   parentTool: ToolPageParentTool | null;
   tags: ToolPageTags;
-  primaryOffer: ToolPageTool extends { affiliate_offers?: infer T } ? T extends Array<infer U> ? U | null : null : null;
+  primaryOffer: ToolPageTool extends { affiliate_offers?: infer T }
+    ? T extends Array<infer U>
+      ? U | null
+      : null
+    : null;
   reviewSelection: ReturnType<typeof selectToolPageReview>;
   firstReview: ReturnType<typeof selectToolPageReview>['firstPublished'];
   reviewContentLists: ReturnType<typeof deriveToolPageReviewContentLists>;
@@ -47,7 +54,7 @@ export interface ToolPageData {
   orderedAlternatives: ToolPageAlternative[];
   alternativesLabel: 'Alternatives' | 'Related Tools';
   microDiffs: ToolPageMicroDiffs;
-  curatedVerdicts: Map<string, string>;
+  curatedVerdictEntries: Map<string, ToolPageCuratedVerdictEntry>;
 }
 
 export async function getToolPageData(slug: string): Promise<ToolPageData | null> {
@@ -71,14 +78,20 @@ export async function getToolPageData(slug: string): Promise<ToolPageData | null
   if (Array.isArray(tool.affiliate_offers) && tool.affiliate_offers.length > 0) {
     const primary = tool.affiliate_offers.find(
       (offer: unknown): offer is NonNullable<ToolPageData['primaryOffer']> =>
-        Boolean(offer && typeof offer === 'object' && (offer as { is_primary?: unknown }).is_primary === true)
+        Boolean(
+          offer &&
+          typeof offer === 'object' &&
+          (offer as { is_primary?: unknown }).is_primary === true
+        )
     );
     primaryOffer = primary || tool.affiliate_offers[0] || null;
   }
   const reviews = Array.isArray(tool.reviews) ? tool.reviews : [];
   const reviewSelection = selectToolPageReview(reviews);
   const firstReview = reviewSelection.firstPublished;
-  const reviewContentLists = deriveToolPageReviewContentLists(firstReview as ToolPageReviewContentLike | null);
+  const reviewContentLists = deriveToolPageReviewContentLists(
+    firstReview as ToolPageReviewContentLike | null
+  );
   const coreState = deriveToolPageCoreState({
     tool,
     hasNewerUnpublishedReview: reviewSelection.hasNewerUnpublishedThanPublished,
@@ -134,7 +147,7 @@ export async function getToolPageData(slug: string): Promise<ToolPageData | null
     : new Map();
 
   const altSlugs = orderedAlternatives.map((item) => item.slug);
-  const curatedVerdicts = await fetchToolPageCuratedVerdicts(tool.slug, altSlugs);
+  const curatedVerdictEntries = await fetchToolPageCuratedVerdictEntries(tool.slug, altSlugs);
 
   return {
     tool,
@@ -148,6 +161,6 @@ export async function getToolPageData(slug: string): Promise<ToolPageData | null
     orderedAlternatives,
     alternativesLabel,
     microDiffs,
-    curatedVerdicts,
+    curatedVerdictEntries,
   };
 }

@@ -8,15 +8,20 @@ interface ComparisonInsightRow {
   created_at?: string | null;
 }
 
+export interface ToolPageCuratedVerdictEntry {
+  verdict: string;
+  updatedAt: string | null;
+}
+
 export function buildToolPageCuratedVerdictRowLimit(alternativeCount: number): number {
   return Math.min(Math.max(alternativeCount * 3, 20), 300);
 }
 
-export async function fetchToolPageCuratedVerdicts(
+export async function fetchToolPageCuratedVerdictEntries(
   toolSlug: string,
   alternativeSlugs: string[]
-): Promise<Map<string, string>> {
-  const verdicts = new Map<string, string>();
+): Promise<Map<string, ToolPageCuratedVerdictEntry>> {
+  const verdicts = new Map<string, ToolPageCuratedVerdictEntry>();
   if (alternativeSlugs.length === 0) return verdicts;
   const alternativeSlugSet = new Set(alternativeSlugs);
 
@@ -55,9 +60,24 @@ export async function fetchToolPageCuratedVerdicts(
       insight.item_a_slug === toolSlug ? insight.item_b_slug : insight.item_a_slug;
     if (!alternativeSlugSet.has(alternativeSlug)) continue;
     if (!verdicts.has(alternativeSlug)) {
-      verdicts.set(alternativeSlug, insight.verdict);
+      verdicts.set(alternativeSlug, {
+        verdict: insight.verdict,
+        updatedAt: insight.updated_at || insight.created_at || null,
+      });
     }
   }
 
+  return verdicts;
+}
+
+export async function fetchToolPageCuratedVerdicts(
+  toolSlug: string,
+  alternativeSlugs: string[]
+): Promise<Map<string, string>> {
+  const entries = await fetchToolPageCuratedVerdictEntries(toolSlug, alternativeSlugs);
+  const verdicts = new Map<string, string>();
+  for (const [slug, entry] of entries.entries()) {
+    verdicts.set(slug, entry.verdict);
+  }
   return verdicts;
 }

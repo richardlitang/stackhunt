@@ -12,6 +12,7 @@ vi.mock('@/lib/supabase', () => ({
 
 import {
   buildToolPageCuratedVerdictRowLimit,
+  fetchToolPageCuratedVerdictEntries,
   fetchToolPageCuratedVerdicts,
 } from '@/lib/tool-page/curated-verdicts';
 
@@ -67,6 +68,38 @@ describe('fetchToolPageCuratedVerdicts', () => {
       nullsFirst: false,
     });
     expect(forwardQuery.limit).toHaveBeenCalledWith(20);
+  });
+
+  it('returns verdict entries with freshness metadata', async () => {
+    const forwardQuery = createQueryMock([
+      {
+        item_a_slug: 'acme',
+        item_b_slug: 'beta',
+        verdict: 'use beta for larger revops teams',
+        updated_at: '2026-03-06T00:00:00Z',
+      },
+    ]);
+    const reverseQuery = createQueryMock([
+      {
+        item_a_slug: 'gamma',
+        item_b_slug: 'acme',
+        verdict: 'prefer gamma for faster setup',
+        created_at: '2026-03-04T00:00:00Z',
+      },
+    ]);
+
+    fromMock.mockImplementationOnce(() => forwardQuery).mockImplementationOnce(() => reverseQuery);
+
+    const result = await fetchToolPageCuratedVerdictEntries('acme', ['beta', 'gamma']);
+
+    expect(result.get('beta')).toEqual({
+      verdict: 'use beta for larger revops teams',
+      updatedAt: '2026-03-06T00:00:00Z',
+    });
+    expect(result.get('gamma')).toEqual({
+      verdict: 'prefer gamma for faster setup',
+      updatedAt: '2026-03-04T00:00:00Z',
+    });
   });
 
   it('returns empty map for no alternatives', async () => {

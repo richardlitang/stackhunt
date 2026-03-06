@@ -1,8 +1,19 @@
 ---
+import {
+  labelAlternativeEvidenceLevelForGrid,
+  resolveAlternativeEvidenceLevel,
+} from '@/lib/tool-page/alternative-evidence';
+
 interface ToolCompareLike {
   name: string;
   pricing_type?: string | null;
   learning_curve?: string | null;
+  curatedVerdict?: string | null;
+  computedDiff?: {
+    priceDiff?: string;
+    learningDiff?: string;
+    featureDiff?: string;
+  } | null;
 }
 
 interface Props {
@@ -49,8 +60,13 @@ function getValue(row: (typeof rows)[number], tool: ToolCompareLike): string {
       return 'Check native apps versus API-first fit';
     case 'Best for':
       return 'Teams aligned with this tool’s rollout profile';
-    case 'Evidence level':
-      return 'Heuristic summary, verify in docs';
+    case 'Evidence level': {
+      const level = resolveAlternativeEvidenceLevel({
+        curatedVerdict: tool.curatedVerdict,
+        computedDiff: tool.computedDiff,
+      });
+      return labelAlternativeEvidenceLevelForGrid(level);
+    }
     default:
       return 'Unknown';
   }

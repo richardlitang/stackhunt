@@ -82,7 +82,7 @@ const {
   orderedAlternatives,
   alternativesLabel,
   microDiffs,
-  curatedVerdicts,
+  curatedVerdictEntries,
 } = toolPageData;
 const {
   knowledgeCard,
@@ -1412,6 +1412,8 @@ applyToolPageRobotsHeader({
               name: entry.alt.name,
               pricing_type: entry.alt.pricing_type,
               learning_curve: entry.alt.learning_curve,
+              curatedVerdict: curatedVerdictEntries.get(entry.alt.slug)?.verdict || null,
+              computedDiff: microDiffs.get(entry.alt.slug) || null,
             }))}
           />
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1425,7 +1427,10 @@ applyToolPageRobotsHeader({
                   base_score: tool.base_score,
                 }}
                 alt={entry.alt}
-                curatedVerdict={curatedVerdicts.get(entry.alt.slug)}
+                curatedVerdict={curatedVerdictEntries.get(entry.alt.slug)?.verdict || null}
+                curatedVerdictUpdatedAt={
+                  curatedVerdictEntries.get(entry.alt.slug)?.updatedAt || null
+                }
                 computedDiff={microDiffs.get(entry.alt.slug)}
                 showCompareLink={entry.showCompareLink}
               />

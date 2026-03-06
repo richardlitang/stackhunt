@@ -13,6 +13,11 @@
 import Logo from './Logo.astro';
 import PricingBadge from './PricingBadge.astro';
 import { getDisplayDescription } from '@/lib/display-description';
+import {
+  formatAlternativeEvidenceDate,
+  labelAlternativeEvidenceLevel,
+  resolveAlternativeEvidenceLevel,
+} from '@/lib/tool-page/alternative-evidence';
 
 interface Props {
   /** The main item we're comparing FROM */
@@ -37,6 +42,7 @@ interface Props {
   };
   /** Curated insight (if available) - Layer 1 */
   curatedVerdict?: string | null;
+  curatedVerdictUpdatedAt?: string | null;
   /** Computed micro-diffs - Layer 2 */
   computedDiff?: {
     priceDiff?: string; // e.g., "Free vs $15/mo"
@@ -47,7 +53,14 @@ interface Props {
   showCompareLink?: boolean;
 }
 
-const { main, alt, curatedVerdict, computedDiff, showCompareLink = true } = Astro.props;
+const {
+  main,
+  alt,
+  curatedVerdict,
+  curatedVerdictUpdatedAt = null,
+  computedDiff,
+  showCompareLink = true,
+} = Astro.props;
 
 // Determine compare URL (alphabetical order)
 const [slugA, slugB] = main.slug < alt.slug ? [main.slug, alt.slug] : [alt.slug, main.slug];
@@ -84,9 +97,12 @@ const chooseInsteadLine = (() => {
   }
   return `Choose ${alt.name} instead if: its workflow and rollout profile fit your team better than ${main.name}.`;
 })();
-const recommendationEvidenceLabel = showCurated
-  ? 'Evidence-backed rationale'
-  : 'Needs confirmation';
+const recommendationEvidenceLevel = resolveAlternativeEvidenceLevel({
+  curatedVerdict,
+  computedDiff,
+});
+const recommendationEvidenceLabel = labelAlternativeEvidenceLevel(recommendationEvidenceLevel);
+const curatedVerdictCheckedLabel = formatAlternativeEvidenceDate(curatedVerdictUpdatedAt);
 ---
 
 <div
@@ -156,7 +172,18 @@ const recommendationEvidenceLabel = showCurated
   <p class="mb-3 rounded border border-zinc-800 bg-zinc-950/40 px-2.5 py-2 text-xs text-zinc-300">
     {chooseInsteadLine}
   </p>
-  <p class="mb-3 text-[11px] text-zinc-500">{recommendationEvidenceLabel}</p>
+  <p class="mb-1 text-[11px] text-zinc-500">{recommendationEvidenceLabel}</p>
+  {
+    showCurated && (
+      <p class="mb-3 text-[11px] text-zinc-500">
+        <a href={compareUrl} class="text-hunt-500 hover:text-hunt-400">
+          Evidence: comparison brief
+        </a>
+        {curatedVerdictCheckedLabel ? `, updated ${curatedVerdictCheckedLabel}` : ''}
+      </p>
+    )
+  }
+  {!showCurated && <div class="mb-3" />}
 
   {/* Spacer to push footer to bottom */}
   <div class="flex-1"></div>
