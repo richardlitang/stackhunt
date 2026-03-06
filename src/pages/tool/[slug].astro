@@ -1427,11 +1427,13 @@ applyToolPageRobotsHeader({
           <AlternativesCompareGrid
             main={{
               name: tool.name,
+              slug: tool.slug,
               pricing_type: tool.pricing_type,
               learning_curve: tool.learning_curve,
             }}
             alternatives={alternativeCardsView.map((entry) => ({
               name: entry.alt.name,
+              slug: entry.alt.slug,
               pricing_type: entry.alt.pricing_type,
               learning_curve: entry.alt.learning_curve,
               curatedVerdict: curatedVerdictEntries.get(entry.alt.slug)?.verdict || null,

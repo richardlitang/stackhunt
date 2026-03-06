@@ -18,6 +18,7 @@ import {
   labelAlternativeEvidenceLevel,
   resolveAlternativeEvidenceLevel,
 } from '@/lib/tool-page/alternative-evidence';
+import { buildAlternativeChooseLine } from '@/lib/tool-page/alternative-rationale';
 
 interface Props {
   /** The main item we're comparing FROM */
@@ -82,21 +83,12 @@ const fallbackDescription = getDisplayDescription({
 // Get a single most relevant micro-diff for compact display
 const microDiff =
   computedDiff?.priceDiff || computedDiff?.learningDiff || computedDiff?.featureDiff;
-const chooseInsteadLine = (() => {
-  if (showCurated && curatedVerdict) {
-    return `Choose ${alt.name} instead if: ${curatedVerdict}`;
-  }
-  if (computedDiff?.priceDiff) {
-    return `Choose ${alt.name} instead if: pricing model differences are your primary decision factor.`;
-  }
-  if (computedDiff?.learningDiff) {
-    return `Choose ${alt.name} instead if: setup speed and learning curve are the primary constraints.`;
-  }
-  if (computedDiff?.featureDiff) {
-    return `Choose ${alt.name} instead if: feature depth or integration fit matters more than migration simplicity.`;
-  }
-  return `Choose ${alt.name} instead if: its workflow and rollout profile fit your team better than ${main.name}.`;
-})();
+const chooseInsteadLine = buildAlternativeChooseLine({
+  altName: alt.name,
+  mainName: main.name,
+  curatedVerdict,
+  computedDiff,
+});
 const recommendationEvidenceLevel = resolveAlternativeEvidenceLevel({
   curatedVerdict,
   computedDiff,
