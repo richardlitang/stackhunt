@@ -28,7 +28,8 @@ export function buildToolPageConstraintEvidence(
           if (!input.isEligibleEvidenceUrl(sourceUrl)) return null;
           const name = typeof entry.name === 'string' ? entry.name.trim() : 'Hidden cost';
           const amount = typeof entry.amount === 'string' ? ` (${entry.amount})` : '';
-          const whenCharged = typeof entry.when_charged === 'string' ? ` — ${entry.when_charged}` : '';
+          const whenCharged =
+            typeof entry.when_charged === 'string' ? ` — ${entry.when_charged}` : '';
           const worksForLenses = Array.isArray(entry.works_for_lenses)
             ? entry.works_for_lenses.filter(
                 (lens): lens is 'personal' | 'startup' | 'enterprise' =>
@@ -52,13 +53,15 @@ export function buildToolPageConstraintEvidence(
           const entry = limit as Record<string, unknown>;
           const sourceUrl = typeof entry.source_url === 'string' ? entry.source_url : '';
           if (!input.isEligibleEvidenceUrl(sourceUrl)) return null;
-          const metric = typeof entry.metric === 'string' ? entry.metric.replace(/_/g, ' ') : 'Limit';
+          const metric =
+            typeof entry.metric === 'string' ? entry.metric.replace(/_/g, ' ') : 'Limit';
           const value =
             typeof entry.value === 'number' || typeof entry.value === 'string'
               ? String(entry.value)
               : '';
           const unit = typeof entry.unit === 'string' ? ` ${entry.unit}` : '';
-          const plan = typeof entry.plan_name_match === 'string' ? ` (${entry.plan_name_match})` : '';
+          const plan =
+            typeof entry.plan_name_match === 'string' ? ` (${entry.plan_name_match})` : '';
           const text = `${metric}: ${value}${unit}${plan}`.trim();
           if (!text || text === 'Limit:') return null;
           if (input.isDisallowedConClaim(text)) return null;

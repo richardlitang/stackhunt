@@ -1,7 +1,4 @@
-import {
-  isLikelyIncompleteToolPageClause,
-  stripToolPageControlChars,
-} from '@/lib/tool-page/text';
+import { isLikelyIncompleteToolPageClause, stripToolPageControlChars } from '@/lib/tool-page/text';
 
 export type ToolPageEvidenceBullet = {
   text: string;

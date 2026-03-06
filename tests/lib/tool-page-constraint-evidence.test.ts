@@ -6,7 +6,12 @@ describe('tool page constraint evidence', () => {
     const result = buildToolPageConstraintEvidence({
       constraints: {
         hidden_costs: [
-          { name: 'Gateway fee', amount: '$0.30', when_charged: 'per transaction', source_url: 'https://a.com' },
+          {
+            name: 'Gateway fee',
+            amount: '$0.30',
+            when_charged: 'per transaction',
+            source_url: 'https://a.com',
+          },
           { name: 'No source', source_url: '' },
         ],
         hard_limits: [

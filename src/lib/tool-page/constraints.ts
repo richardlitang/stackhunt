@@ -35,10 +35,15 @@ export function deriveToolPageCanonicalHardLimits(
       ...input.effectiveEvidenceCons.filter((item) =>
         /\b(limit|limited|quota|cap|hard stop|ceiling|overage|maximum|max)\b/i.test(item.text)
       ),
-      ...input.hiddenCostBullets.filter((item) => /\b(setup fee|one-time|activation)\b/i.test(item.text)),
+      ...input.hiddenCostBullets.filter((item) =>
+        /\b(setup fee|one-time|activation)\b/i.test(item.text)
+      ),
     ].slice(0, 6)
   );
-  const canonicalHardLimits = withUniqueText([...hardLimitBullets, ...input.hiddenCostBullets]).slice(0, 6);
+  const canonicalHardLimits = withUniqueText([
+    ...hardLimitBullets,
+    ...input.hiddenCostBullets,
+  ]).slice(0, 6);
 
   return {
     hardLimitBullets,
