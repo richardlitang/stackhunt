@@ -59,6 +59,12 @@ function buildCrmChecklist(lens: ReviewLens): string[] {
       'Add a second team member and confirm what changes at the first paid-seat threshold.',
     ];
   }
+  if (lens === 'personal') {
+    return [
+      ...base,
+      'Verify solo workflow speed, then re-check role and handoff setup before inviting a second user.',
+    ];
+  }
   return base;
 }
 
@@ -138,13 +144,26 @@ export function buildToolPageDecisionUtilityState(
         },
       ];
 
+  const verdictLeadOverride = (() => {
+    if (input.activeReviewLens === 'startup') {
+      return `${input.toolName} fits startups that can own CRM operations and iterate quickly on pipeline and data model.`;
+    }
+    if (input.activeReviewLens === 'enterprise') {
+      return `${input.toolName} should be evaluated against governance, rollout control, and cross-team reporting requirements first.`;
+    }
+    if (input.activeReviewLens === 'personal') {
+      return `${input.toolName} works best when an individual operator needs flexibility now and can accept added setup work later.`;
+    }
+    return isCrm
+      ? `${input.toolName} should be judged on operational rollout fit, not feature volume alone.`
+      : `${input.toolName} should be evaluated by workflow outcomes, rollout friction, and cost triggers.`;
+  })();
+
   return {
     decisionUseIf: useIf,
     decisionAvoidIf: avoidIf,
     decisionWatchOut: watchOut,
-    verdictLeadOverride: isCrm
-      ? `${input.toolName} should be judged on operational rollout fit, not feature volume alone.`
-      : `${input.toolName} should be evaluated by workflow outcomes, rollout friction, and cost triggers.`,
+    verdictLeadOverride,
     testChecklistTitle: isCrm ? 'What to test in 30 minutes' : 'What to test before rollout',
     testChecklistItems,
     pricingMentalModelItems,
