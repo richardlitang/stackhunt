@@ -44,16 +44,15 @@ function toSourceType(value: unknown): 'official' | 'editorial' | 'community' | 
   return value === 'official' || value === 'editorial' || value === 'community' ? value : undefined;
 }
 
-function normalizeUserReportedEntry(
-  value: Record<string, unknown>
-): ToolPageProsConsEntry | null {
+function normalizeUserReportedEntry(value: Record<string, unknown>): ToolPageProsConsEntry | null {
   const text = toNonEmptyString(value.text || value.claim);
   if (!text) return null;
   const sourceUrl = toNonEmptyString(value.source_url || value.sourceUrl);
   const sourceType =
     toSourceType(value.source_type || value.sourceType) ||
     (toNonEmptyString(value.source_domain || value.sourceDomain) ? 'community' : undefined);
-  const claimType = value.claim_type === 'fact' || value.claim_type === 'opinion' ? value.claim_type : undefined;
+  const claimType =
+    value.claim_type === 'fact' || value.claim_type === 'opinion' ? value.claim_type : undefined;
   const corroboratingSourceCount =
     typeof value.corroborating_source_count === 'number'
       ? value.corroborating_source_count

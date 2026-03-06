@@ -90,11 +90,14 @@ These need explicit deprecation or cleanup as the new contract lands:
 **Goal:** Stop flattening complex products before page rendering.
 
 ### Task 1: Extend knowledge-card schema for product shape
+
 **Files:**
+
 - Modify: `src/lib/knowledge-card.ts`
 - Modify: `src/lib/hunter/types.ts`
 
 **Action:**
+
 - Add explicit fields for:
   - `product_surfaces`
   - `buying_modes`
@@ -105,6 +108,7 @@ These need explicit deprecation or cleanup as the new contract lands:
 - Keep each field serializable and source-traceable.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 ```
@@ -114,16 +118,20 @@ npm run typecheck
 ---
 
 ### Task 2: Update analysis prompt to require product-shape output
+
 **Files:**
+
 - Modify: `src/lib/hunter/services/prompts.ts`
 - Modify: `src/lib/hunter/services/forensic-framework.ts`
 
 **Action:**
+
 - Require the model to identify product shape before generating verdict language.
 - For products with multiple surfaces, require separate bullets for app, API, team, or enterprise when applicable.
 - Stop allowing generic fallback if product shape is unresolved.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 ```
@@ -137,11 +145,14 @@ npm run typecheck
 **Goal:** Put real user pain and delight into visible decision sections, not hidden side channels.
 
 ### Task 3: Add explicit user-reported pros and cons to schema
+
 **Files:**
+
 - Modify: `src/lib/knowledge-card.ts`
 - Modify: `src/lib/hunter/types.ts`
 
 **Action:**
+
 - Add:
   - `user_reported_pros`
   - `user_reported_cons`
@@ -155,6 +166,7 @@ npm run typecheck
   - `retrieved_at`
 
 **Verify:**
+
 ```bash
 npm run typecheck
 ```
@@ -164,16 +176,20 @@ npm run typecheck
 ---
 
 ### Task 4: Rework prompts so user signal feeds visible review evidence
+
 **Files:**
+
 - Modify: `src/lib/hunter/services/prompts.ts`
 - Modify: `src/lib/hunter/prompts/extraction.ts`
 
 **Action:**
+
 - Keep factual pros and cons, but require up to 3 corroborated user-reported pros and cons when community or editorial evidence exists.
 - Remove the current rule that effectively relegates subjective signal to `reviewContext.userAdvocate` only.
 - Preserve `userAdvocate` as supporting context, not the sole destination for user sentiment.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 ```
@@ -183,16 +199,20 @@ npm run typecheck
 ---
 
 ### Task 5: Feed deep community content into analysis instead of snippet-only signal
+
 **Files:**
+
 - Modify: `src/lib/hunter/phases/analysis.ts`
 - Modify: `src/lib/hunter/phases/research.ts`
 
 **Action:**
+
 - Ensure `tribalDeepContent` or equivalent full-discussion content is actually passed into analysis.
 - Treat it as the primary source for user frustrations and repeated workflow praise when available.
 - Keep snippet-only fallbacks labeled weaker than full-thread evidence.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run test -- --runInBand analysis
@@ -207,15 +227,19 @@ npm run test -- --runInBand analysis
 **Goal:** Stop losing nuance between analysis output and page rendering.
 
 ### Task 6: Persist new product-shape and user-signal fields without flattening
+
 **Files:**
+
 - Modify: `src/lib/hunter/phases/persistence.ts`
 
 **Action:**
+
 - Persist all new product-shape fields.
 - Persist `user_reported_pros` and `user_reported_cons` alongside legacy pros and cons.
 - Keep `user_signal_summary` as an aggregate, but stop treating it as a substitute for actual claims.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 ```
@@ -225,15 +249,19 @@ npm run typecheck
 ---
 
 ### Task 7: Relax destructive filtering that drops buyer-useful user pain
+
 **Files:**
+
 - Modify: `src/lib/hunter/phases/persistence.ts`
 
 **Action:**
+
 - Remove or narrow the current logic that keeps frustrations only when they match cons too closely.
 - Preserve nuanced user complaints if they are corroborated, even when they do not map cleanly to official constraints.
 - Keep traceability requirements intact.
 
 **Verify:**
+
 ```bash
 npm run test -- --runInBand persistence
 npm run typecheck
@@ -244,10 +272,13 @@ npm run typecheck
 ---
 
 ### Task 8: Update coverage-gap detection to match current schema and new fields
+
 **Files:**
+
 - Modify: `src/lib/hunter/phases/persistence.ts`
 
 **Action:**
+
 - Replace stale checks against old fields.
 - Add missing-data detection for:
   - product shape
@@ -257,6 +288,7 @@ npm run typecheck
 - Trigger re-hunt or visible “insufficient evidence” states when these are missing.
 
 **Verify:**
+
 ```bash
 npm run test -- --runInBand persistence
 npm run typecheck
@@ -267,11 +299,14 @@ npm run typecheck
 ---
 
 ### Task 8.5: Create a deprecation map for old fields and payloads
+
 **Files:**
+
 - Modify: `docs/DECISIONS.md` if a durable migration rule is needed
 - Add or update: this plan file during implementation
 
 **Action:**
+
 - Record which fields are:
   - canonical and kept
   - transitional and read-only
@@ -283,6 +318,7 @@ npm run typecheck
   - legacy generic decision-utility fallback outputs
 
 **Verify:**
+
 ```bash
 rg -n "user_signal_summary|userAdvocate|decisionUtilityState" src/lib src/pages src/components
 ```
@@ -296,12 +332,15 @@ rg -n "user_signal_summary|userAdvocate|decisionUtilityState" src/lib src/pages 
 **Goal:** Make the page reflect product shape and evidence quality instead of generic fallbacks.
 
 ### Task 9: Add a dedicated hero/top-block builder driven by product shape
+
 **Files:**
+
 - Add: `src/lib/tool-page/top-block.ts`
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: `src/lib/tool-page/index.ts`
 
 **Action:**
+
 - Build a single source of truth for the top block:
   - one-sentence positioning
   - which product surface is being evaluated
@@ -312,6 +351,7 @@ rg -n "user_signal_summary|userAdvocate|decisionUtilityState" src/lib src/pages 
 - If missing, show an explicit partial-evidence state.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -322,12 +362,15 @@ npm run build
 ---
 
 ### Task 10: Split visible strengths and weaknesses into documented vs user-reported
+
 **Files:**
+
 - Modify: `src/components/ProsCons.astro`
 - Modify: `src/lib/tool-page/review-content.ts`
 - Modify: `src/pages/tool/[slug].astro`
 
 **Action:**
+
 - Support two visible evidence groups:
   - `Documented strengths and limits`
   - `What users like and dislike`
@@ -336,6 +379,7 @@ npm run build
 - If user-reported claims are unavailable, show a clear absence state instead of backfilling with docs-only copy.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -346,12 +390,15 @@ npm run build
 ---
 
 ### Task 11: Replace generic decision utility fallbacks with evidence-gated builders
+
 **Files:**
+
 - Modify: `src/lib/tool-page/decision-utility.ts`
 - Modify: `src/components/ToolDecisionUtilitySection.astro`
 - Modify: `src/components/ToolPracticalOutcomesSection.astro`
 
 **Action:**
+
 - Stop using category-only generic fallbacks as the default.
 - Build checklist items, common setups, and practical outcomes from:
   - product surfaces
@@ -362,6 +409,7 @@ npm run build
 - If evidence is too thin, collapse the section and show a short explicit note.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -372,12 +420,15 @@ npm run build
 ---
 
 ### Task 12: Add product-archetype routing for frontend section behavior
+
 **Files:**
+
 - Add: `src/lib/tool-page/product-archetype.ts`
 - Modify: `src/lib/tool-page/view-model.ts`
 - Modify: `src/pages/tool/[slug].astro`
 
 **Action:**
+
 - Introduce at least these archetypes:
   - `single_surface_saas`
   - `product_family_platform`
@@ -391,6 +442,7 @@ npm run build
   - pricing framing
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -401,12 +453,15 @@ npm run build
 ---
 
 ### Task 13: Fix getting-started to support multiple entry paths
+
 **Files:**
+
 - Modify: `src/components/GettingStarted.astro`
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: any supporting lib file if extraction is needed
 
 **Action:**
+
 - Support multiple start paths like:
   - use the app
   - install the code tool
@@ -415,6 +470,7 @@ npm run build
 - Show persona-appropriate paths based on lens and product shape.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -425,12 +481,15 @@ npm run build
 ---
 
 ### Task 14: Rebuild pricing framing around plan families and lens relevance
+
 **Files:**
+
 - Modify: `src/lib/tool-page/pricing-scenarios.ts`
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: pricing-related components as needed
 
 **Action:**
+
 - Distinguish between:
   - individual plans
   - startup/team plans
@@ -440,6 +499,7 @@ npm run build
 - Stop rendering generic seat/workspace heuristics when they are not product-appropriate.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -450,17 +510,21 @@ npm run build
 ---
 
 ### Task 15: Suppress low-signal alternatives instead of presenting heuristic filler
+
 **Files:**
+
 - Modify: `src/lib/tool-page/alternatives-compare-grid.ts`
 - Modify: `src/lib/tool-page/alternative-rationale.ts`
 - Modify: `src/pages/tool/[slug].astro`
 
 **Action:**
+
 - Require stronger evidence for compare-grid rows.
 - Hide rows that are mostly `Needs confirmation` or generic heuristics.
 - Keep “choose this instead if” only when there is actual comparison evidence or a high-signal curated brief.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -475,16 +539,20 @@ npm run build
 **Goal:** Remove UI and route code that the new builders make unnecessary.
 
 ### Task 15.5: Remove duplicated or redundant visible sections
+
 **Files:**
+
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: any affected components under `src/components/`
 
 **Action:**
+
 - Remove duplicated visible “What it does in practice” surfaces when the new practical outcomes section is canonical.
 - Remove secondary narrative blocks that repeat top-block or verdict content without adding new evidence.
 - Collapse or delete sections whose only output is generic filler.
 
 **Verify:**
+
 ```bash
 npm run build
 node scripts/qa-rendered-tool-pages.mjs
@@ -495,16 +563,20 @@ node scripts/qa-rendered-tool-pages.mjs
 ---
 
 ### Task 15.6: Simplify route wiring after builder extraction
+
 **Files:**
+
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: `src/lib/tool-page/index.ts`
 
 **Action:**
+
 - Remove route-local data shaping that is superseded by new builder modules.
 - Keep the route orchestration-only where possible.
 - Reduce duplicate props and one-off display flags that become unnecessary.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -519,17 +591,21 @@ npm run build
 **Goal:** Remove stale fields, transitional payloads, and persistence branches once replacements are live.
 
 ### Task 16: Remove primary-page dependence on legacy user-advocate storage
+
 **Files:**
+
 - Modify: `src/lib/tool-page/review-context.ts`
 - Modify: `src/lib/tool-page/tribal-knowledge-props.ts`
 - Modify: any ETL or persistence files still reading legacy user-only fields for main page sections
 
 **Action:**
+
 - Keep `userAdvocate` only for supporting context like vibe or narrative color if still useful.
 - Stop using it as the main source for visible pros and cons once `user_reported_pros` and `user_reported_cons` are live.
 - Mark remaining userAdvocate-only fields as transitional or supporting.
 
 **Verify:**
+
 ```bash
 rg -n "userAdvocate" src/lib src/pages src/components
 npm run typecheck
@@ -540,17 +616,21 @@ npm run typecheck
 ---
 
 ### Task 17: Remove obsolete generic decision-utility structures
+
 **Files:**
+
 - Modify: `src/lib/tool-page/decision-utility.ts`
 - Modify: `src/components/ToolDecisionUtilitySection.astro`
 - Modify: `src/components/ToolPracticalOutcomesSection.astro`
 
 **Action:**
+
 - Remove builder branches whose only purpose is generic fallback prose.
 - Delete unused state fields once product-specific builders become canonical.
 - Ensure no UI element survives only because the old state shape required it.
 
 **Verify:**
+
 ```bash
 rg -n "commonSetups|pricingMentalModelItems|practicalOutcomes" src/lib src/components src/pages
 npm run typecheck
@@ -561,16 +641,20 @@ npm run typecheck
 ---
 
 ### Task 18: Retire low-value heuristic alternatives rows
+
 **Files:**
+
 - Modify: `src/lib/tool-page/alternatives-compare-grid.ts`
 - Modify: `src/components/AlternativesCompareGrid.astro`
 
 **Action:**
+
 - Delete compare-grid rows that do not survive the stronger evidence threshold.
 - Remove UI copy that normalizes weak heuristic rows as acceptable default content.
 - Keep only rows that routinely deliver actual decision value.
 
 **Verify:**
+
 ```bash
 npm run build
 node scripts/qa-rendered-tool-pages.mjs
@@ -581,17 +665,21 @@ node scripts/qa-rendered-tool-pages.mjs
 ---
 
 ### Task 19: Remove stale persistence branches and fallback serializers
+
 **Files:**
+
 - Modify: `src/lib/hunter/phases/persistence.ts`
 - Modify: `src/lib/hunter/services/gemini.ts`
 - Modify: any test fixtures relying on removed shapes
 
 **Action:**
+
 - Remove compatibility branches that only exist for the old visible-page contract after migration is complete.
 - Delete dead sanitization code that filtered toward obsolete shapes.
 - Keep backward-compatibility only where historical published data still requires a read path.
 
 **Verify:**
+
 ```bash
 npm run test
 npm run typecheck
@@ -606,12 +694,15 @@ npm run typecheck
 **Goal:** Turn repeated review feedback into mechanical enforcement.
 
 ### Task 20: Add tool-page QA checks for product specificity and weak filler
+
 **Files:**
+
 - Modify: `src/lib/tool-page-qa-gate.ts`
 - Modify: `scripts/qa-rendered-tool-pages.mjs`
 - Add or modify tests under `tests/`
 
 **Action:**
+
 - Add blockers or warnings for:
   - generic top-block positioning
   - pros/cons with no user-reported evidence when community data exists
@@ -620,6 +711,7 @@ npm run typecheck
   - pages missing product-surface differentiation when the product is multi-surface
 
 **Verify:**
+
 ```bash
 npm run test
 node scripts/qa-rendered-tool-pages.mjs
@@ -630,7 +722,9 @@ node scripts/qa-rendered-tool-pages.mjs
 ---
 
 ### Task 21: Add cleanup-oriented regression tests
+
 **Files:**
+
 - Add or modify tests for:
   - `src/lib/tool-page/top-block.ts`
   - `src/lib/tool-page/decision-utility.ts`
@@ -639,6 +733,7 @@ node scripts/qa-rendered-tool-pages.mjs
   - persistence and prompt normalization test files as needed
 
 **Action:**
+
 - Cover at least:
   - single-surface SaaS case
   - multi-surface platform case
@@ -649,6 +744,7 @@ node scripts/qa-rendered-tool-pages.mjs
   - no heuristic alternatives grid rows when evidence is below threshold
 
 **Verify:**
+
 ```bash
 npm run test
 npm run typecheck
@@ -663,10 +759,13 @@ npm run typecheck
 **Goal:** Validate the new contract on representative pages before wider rollout.
 
 ### Task 22: Pilot on one simple SaaS page and one multi-surface page
+
 **Files:**
+
 - No template additions required beyond shipped code
 
 **Action:**
+
 - Re-run the pipeline and render QA for:
   - one simple single-surface SaaS page
   - Claude as the multi-surface stress test
@@ -677,6 +776,7 @@ npm run typecheck
   - pricing relevance by lens
 
 **Verify:**
+
 ```bash
 npm run hunt -- --tool="Claude"
 npm run build
@@ -688,15 +788,19 @@ node scripts/qa-rendered-tool-pages.mjs
 ---
 
 ### Task 23: Promote rollout gate for tool pages
+
 **Files:**
+
 - Modify: CI or policy gate scripts as needed
 - Update: `docs/TOOL_PAGE_ORCHESTRATION_MAP.md` if route composition changes
 
 **Action:**
+
 - Make the new checks part of normal pre-push and content QA for `/tool` pages.
 - Keep scope limited to tool pages in this rollout.
 
 **Verify:**
+
 ```bash
 npm run qa:prepush
 ```

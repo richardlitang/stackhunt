@@ -51,9 +51,13 @@ export function deriveToolPageCoreState(input: ToolPageCoreStateInput): ToolPage
   const constraints = toolSpecs?.constraints as ToolConstraints | null;
   const canonicalFacts = toolSpecs?.canonical as Record<string, unknown> | undefined;
   const setupTracks = canonicalFacts?.setup_tracks as ToolPageSetupTracks | undefined;
-  const categorySpecificData = toolSpecs?.categorySpecificData as Record<string, unknown> | undefined;
+  const categorySpecificData = toolSpecs?.categorySpecificData as
+    | Record<string, unknown>
+    | undefined;
   const canonicalLatestModels = Array.isArray(canonicalFacts?.latest_models_comparison)
-    ? canonicalFacts.latest_models_comparison.filter((entry): entry is string => typeof entry === 'string')
+    ? canonicalFacts.latest_models_comparison.filter(
+        (entry): entry is string => typeof entry === 'string'
+      )
     : [];
   const displayCategorySpecificData =
     categorySpecificData && canonicalLatestModels.length > 0
@@ -68,12 +72,16 @@ export function deriveToolPageCoreState(input: ToolPageCoreStateInput): ToolPage
   const userReportedPros = Array.isArray(
     toolSpecs?.user_reported_pros || toolSpecs?.userReportedPros
   )
-    ? ((toolSpecs?.user_reported_pros || toolSpecs?.userReportedPros) as Array<Record<string, unknown>>)
+    ? ((toolSpecs?.user_reported_pros || toolSpecs?.userReportedPros) as Array<
+        Record<string, unknown>
+      >)
     : [];
   const userReportedCons = Array.isArray(
     toolSpecs?.user_reported_cons || toolSpecs?.userReportedCons
   )
-    ? ((toolSpecs?.user_reported_cons || toolSpecs?.userReportedCons) as Array<Record<string, unknown>>)
+    ? ((toolSpecs?.user_reported_cons || toolSpecs?.userReportedCons) as Array<
+        Record<string, unknown>
+      >)
     : [];
   const reviewContext = input.hasNewerUnpublishedReview
     ? null

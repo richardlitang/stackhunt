@@ -160,53 +160,53 @@ export function buildToolPageDecisionUtilityState(
 
   const commonSetups = hasEvidenceAnchoredUtility
     ? isCrm
-    ? [
-        {
-          title: '2 to 3 person founder-led sales',
-          body: 'Week one is usually pipeline setup, contact hygiene rules, and one outbound motion. Seat caps or role limits often surface first.',
-          ...(input.hardLimitText
-            ? {
-                costTrigger: {
-                  text: input.hardLimitText,
-                  status: 'Source-backed' as const,
-                  evidenceHref: '#pricing',
-                },
-              }
-            : {}),
-        },
-        {
-          title: '5 to 10 person SDR and AE split',
-          body: 'Expect to define role ownership, handoff rules, and reporting cadence before scale. Pipeline and field governance become mandatory.',
-        },
-        {
-          title: 'Enterprise pilot',
-          body: 'Validate identity controls, audit expectations, and rollout governance before expansion.',
-          verificationLabel: 'Verify plan and procurement requirements from official sources.',
-        },
-      ]
-    : [
-        {
-          title: 'Small team rollout',
-          body: 'Start with one owner and one success metric, then expand only after a full workflow passes.',
-          ...(input.hardLimitText
-            ? {
-                costTrigger: {
-                  text: input.hardLimitText,
-                  status: 'Source-backed' as const,
-                  evidenceHref: '#pricing',
-                },
-              }
-            : {}),
-        },
-        {
-          title: 'Functional team rollout',
-          body: 'Define roles, permissions, and integration ownership before adding broad access.',
-        },
-        {
-          title: 'Cross-functional rollout',
-          body: 'Confirm governance and support model first to avoid operational drift during scale.',
-        },
-      ]
+      ? [
+          {
+            title: '2 to 3 person founder-led sales',
+            body: 'Week one is usually pipeline setup, contact hygiene rules, and one outbound motion. Seat caps or role limits often surface first.',
+            ...(input.hardLimitText
+              ? {
+                  costTrigger: {
+                    text: input.hardLimitText,
+                    status: 'Source-backed' as const,
+                    evidenceHref: '#pricing',
+                  },
+                }
+              : {}),
+          },
+          {
+            title: '5 to 10 person SDR and AE split',
+            body: 'Expect to define role ownership, handoff rules, and reporting cadence before scale. Pipeline and field governance become mandatory.',
+          },
+          {
+            title: 'Enterprise pilot',
+            body: 'Validate identity controls, audit expectations, and rollout governance before expansion.',
+            verificationLabel: 'Verify plan and procurement requirements from official sources.',
+          },
+        ]
+      : [
+          {
+            title: 'Small team rollout',
+            body: 'Start with one owner and one success metric, then expand only after a full workflow passes.',
+            ...(input.hardLimitText
+              ? {
+                  costTrigger: {
+                    text: input.hardLimitText,
+                    status: 'Source-backed' as const,
+                    evidenceHref: '#pricing',
+                  },
+                }
+              : {}),
+          },
+          {
+            title: 'Functional team rollout',
+            body: 'Define roles, permissions, and integration ownership before adding broad access.',
+          },
+          {
+            title: 'Cross-functional rollout',
+            body: 'Confirm governance and support model first to avoid operational drift during scale.',
+          },
+        ]
     : [];
 
   const verdictLeadOverride = (() => {
@@ -238,43 +238,43 @@ export function buildToolPageDecisionUtilityState(
     practicalOutcomes: hasEvidenceAnchoredUtility
       ? isCrm
         ? [
-          {
-            outcome:
-              'Capture leads, enrich records, route ownership, and start follow-up sequences.',
-            verifyInDemo: 'Run one inbound and one outbound lead path end-to-end.',
-            planDependency:
-              'Automation depth and sequencing can be plan-gated, verify before rollout.',
-            planDependencyStatus: 'Needs confirmation',
-          },
-          {
-            outcome:
-              'Keep pipeline clean with dedupe rules, enrichment checks, and required fields.',
-            verifyInDemo:
-              'Import duplicate contacts and inspect merge behavior plus field governance.',
-            planDependency: 'Data quality controls can vary by plan and admin role.',
-            planDependencyStatus: 'Needs confirmation',
-          },
-          {
-            outcome: 'Track forecasting and activity quality for sales operations.',
-            verifyInDemo:
-              'Confirm pipeline, conversion, and activity reports with your real definitions.',
-            planDependency: 'Reporting scope and retention rules may vary by plan.',
-            planDependencyStatus: 'Needs confirmation',
-          },
+            {
+              outcome:
+                'Capture leads, enrich records, route ownership, and start follow-up sequences.',
+              verifyInDemo: 'Run one inbound and one outbound lead path end-to-end.',
+              planDependency:
+                'Automation depth and sequencing can be plan-gated, verify before rollout.',
+              planDependencyStatus: 'Needs confirmation',
+            },
+            {
+              outcome:
+                'Keep pipeline clean with dedupe rules, enrichment checks, and required fields.',
+              verifyInDemo:
+                'Import duplicate contacts and inspect merge behavior plus field governance.',
+              planDependency: 'Data quality controls can vary by plan and admin role.',
+              planDependencyStatus: 'Needs confirmation',
+            },
+            {
+              outcome: 'Track forecasting and activity quality for sales operations.',
+              verifyInDemo:
+                'Confirm pipeline, conversion, and activity reports with your real definitions.',
+              planDependency: 'Reporting scope and retention rules may vary by plan.',
+              planDependencyStatus: 'Needs confirmation',
+            },
           ]
         : [
-          {
-            outcome: `Turn ${input.toolName} into a repeatable core workflow for your team.`,
-            verifyInDemo: 'Run one representative task from setup through output validation.',
-            planDependency: 'Advanced workflow controls can be plan-gated.',
-            planDependencyStatus: 'Needs confirmation',
-          },
-          {
-            outcome: 'Reduce rework with clearer ownership and operating constraints.',
-            verifyInDemo: 'Test permissions and role handoff paths with two different users.',
-            planDependency: 'Admin and governance controls vary by plan.',
-            planDependencyStatus: 'Needs confirmation',
-          },
+            {
+              outcome: `Turn ${input.toolName} into a repeatable core workflow for your team.`,
+              verifyInDemo: 'Run one representative task from setup through output validation.',
+              planDependency: 'Advanced workflow controls can be plan-gated.',
+              planDependencyStatus: 'Needs confirmation',
+            },
+            {
+              outcome: 'Reduce rework with clearer ownership and operating constraints.',
+              verifyInDemo: 'Test permissions and role handoff paths with two different users.',
+              planDependency: 'Admin and governance controls vary by plan.',
+              planDependencyStatus: 'Needs confirmation',
+            },
           ]
       : [],
     hasEvidenceAnchoredUtility,

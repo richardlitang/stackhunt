@@ -196,7 +196,9 @@ export function deriveVisibleToolCompareGridRows(
   return TOOL_COMPARE_GRID_ROWS.filter((row) => {
     const cells = [
       resolveToolCompareGridCell(row, main, activeReviewLens),
-      ...comparisonAlternatives.map((alt) => resolveToolCompareGridCell(row, alt, activeReviewLens)),
+      ...comparisonAlternatives.map((alt) =>
+        resolveToolCompareGridCell(row, alt, activeReviewLens)
+      ),
     ];
     const hasSource = cells.some((cell) => cell.evidenceTag === 'source');
     const hasNonPending = cells.some((cell) => cell.evidenceTag !== 'pending');
