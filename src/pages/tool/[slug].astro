@@ -646,7 +646,7 @@ applyToolPageRobotsHeader({
           <span class="font-medium text-zinc-100">Use if:</span>{' '}
           {decisionUtilityState.decisionUseIf}{' '}
           <a
-            href="#evidence"
+            href="#verdict"
             class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
           >
             Evidence
@@ -656,7 +656,7 @@ applyToolPageRobotsHeader({
           <span class="font-medium text-zinc-100">Avoid if:</span>{' '}
           {decisionUtilityState.decisionAvoidIf}{' '}
           <a
-            href="#evidence"
+            href="#verdict"
             class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
           >
             Evidence
@@ -691,7 +691,7 @@ applyToolPageRobotsHeader({
       </ul>
       <p class="mt-4 text-xs text-zinc-500">
         Full evidence detail lives in{' '}
-        <a href="#evidence" class="text-hunt-500 hover:text-hunt-400"> Why This Verdict </a>
+        <a href="#verdict" class="text-hunt-500 hover:text-hunt-400"> Why This Verdict </a>
         .
       </p>
       <p class="mt-1 text-xs text-zinc-500">
@@ -817,9 +817,6 @@ applyToolPageRobotsHeader({
               data-focus-target
               data-focus-groups="all verdict"
             >
-              <span id="evidence" class="sr-only">
-                Evidence
-              </span>
               <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
               <p class="text-sm text-zinc-300">{decisionUtilityState.verdictLeadOverride}</p>
               <p class="text-sm text-zinc-400">As of {freshnessLabels.verdictAsOfLabel}.</p>
@@ -1053,7 +1050,7 @@ applyToolPageRobotsHeader({
                 {canonicalHardLimits.length > 0 && (
                   <p class="mt-4 text-sm text-zinc-400">
                     Canonical constraints live in{' '}
-                    <a href="#evidence" class="text-hunt-500 hover:text-hunt-400">
+                    <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
                       Why This Verdict
                     </a>
                     .
