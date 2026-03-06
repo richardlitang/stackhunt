@@ -243,8 +243,26 @@ const userSignalSummary =
         reddit_claims?: number;
         forum_claims?: number;
         hn_claims?: number;
+        top_user_reported_claims?: Array<{
+          text?: string;
+          source_type?: 'community' | 'editorial';
+          source_domain?: string | null;
+        }>;
       })
     : null;
+const topUserReportedClaims = Array.isArray(userSignalSummary?.top_user_reported_claims)
+  ? userSignalSummary.top_user_reported_claims
+      .filter(
+        (
+          claim
+        ): claim is {
+          text: string;
+          source_type?: 'community' | 'editorial';
+          source_domain?: string | null;
+        } => typeof claim?.text === 'string' && claim.text.trim().length > 0
+      )
+      .slice(0, 2)
+  : [];
 const pricingLensCoverageRecord =
   tool.specs && typeof tool.specs === 'object'
     ? (
@@ -1278,6 +1296,16 @@ applyToolPageRobotsHeader({
                           : '.'}
                       </p>
                     )}
+                  {topUserReportedClaims.length > 0 && (
+                    <ul class="mt-2 space-y-1 text-xs text-zinc-500">
+                      {topUserReportedClaims.map((claim) => (
+                        <li>
+                          - {claim.text}
+                          {claim.source_domain ? ` (${claim.source_domain})` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <span class="inline-flex shrink-0 items-center gap-2 text-xs text-zinc-400">
                   <span class="group-open:hidden">Expand</span>
