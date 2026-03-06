@@ -41,6 +41,10 @@ import {
   finalizeProsConsClaims,
   stripProsConsControlChars,
 } from '@/lib/tool-page/pros-cons-quality';
+import {
+  classifyProsConsSourceType,
+  prioritizeProsConsClaims,
+} from '@/lib/tool-page/pros-cons-signal';
 
 const stripControlChars = (value: string): string => stripProsConsControlChars(value);
 const isLikelyIncompleteClause = (value: string): boolean => {
@@ -127,17 +131,38 @@ const normalizedCons = cons
 const evidenceBackedPros = normalizedPros
   .map((item) => {
     const sourceUrl = normalizeSourceUrl(item.source_url);
-    return sourceUrl ? { ...item, source_url: sourceUrl } : null;
+    return sourceUrl
+      ? {
+          ...item,
+          source_url: sourceUrl,
+          source_type: classifyProsConsSourceType({
+            sourceUrl,
+            sourceType: item.source_type || null,
+          }),
+        }
+      : null;
   })
   .filter((item): item is (typeof normalizedPros)[number] => Boolean(item));
 const evidenceBackedCons = normalizedCons
   .map((item) => {
     const sourceUrl = normalizeSourceUrl(item.source_url);
-    return sourceUrl ? { ...item, source_url: sourceUrl } : null;
+    return sourceUrl
+      ? {
+          ...item,
+          source_url: sourceUrl,
+          source_type: classifyProsConsSourceType({
+            sourceUrl,
+            sourceType: item.source_type || null,
+          }),
+        }
+      : null;
   })
   .filter((item): item is (typeof normalizedCons)[number] => Boolean(item));
-const finalizedPros = finalizeProsConsClaims(evidenceBackedPros);
-const finalizedCons = finalizeProsConsClaims(evidenceBackedCons);
+const finalizedPros = finalizeProsConsClaims(prioritizeProsConsClaims(evidenceBackedPros));
+const finalizedCons = finalizeProsConsClaims(prioritizeProsConsClaims(evidenceBackedCons));
+const hasUserSignalClaims = [...finalizedPros.items, ...finalizedCons.items].some(
+  (item) => item.source_type === 'community' || item.source_type === 'editorial'
+);
 const droppedClaimsForQuality =
   finalizedPros.droppedDuplicates +
   finalizedPros.droppedLowSignal +
@@ -298,6 +323,13 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
         </div>
         <span class="font-semibold text-green-400">Pros</span>
       </div>
+      {
+        hasUserSignalClaims && (
+          <p class="mb-3 text-xs text-zinc-500">
+            Ordering favors user-reported and independent review signals before vendor-doc claims.
+          </p>
+        )
+      }
 
       <ul class="space-y-3">
         {

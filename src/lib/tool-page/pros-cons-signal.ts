@@ -1,0 +1,84 @@
+type ProsConsSourceType = 'official' | 'editorial' | 'community';
+type ProsConsClaimType = 'fact' | 'opinion';
+
+const COMMUNITY_HOST_PATTERNS = [
+  /(^|\.)reddit\.com$/i,
+  /(^|\.)news\.ycombinator\.com$/i,
+  /(^|\.)stackoverflow\.com$/i,
+  /(^|\.)quora\.com$/i,
+  /(^|\.)discord\.com$/i,
+  /(^|\.)x\.com$/i,
+  /(^|\.)twitter\.com$/i,
+];
+
+const EDITORIAL_HOST_PATTERNS = [
+  /(^|\.)g2\.com$/i,
+  /(^|\.)capterra\.com$/i,
+  /(^|\.)trustradius\.com$/i,
+  /(^|\.)getapp\.com$/i,
+  /(^|\.)softwareadvice\.com$/i,
+  /(^|\.)producthunt\.com$/i,
+  /(^|\.)pcmag\.com$/i,
+  /(^|\.)techradar\.com$/i,
+  /(^|\.)forbes\.com$/i,
+  /(^|\.)zapier\.com$/i,
+];
+
+function matchesHostPattern(hostname: string, patterns: RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(hostname));
+}
+
+export function classifyProsConsSourceType(input: {
+  sourceUrl?: string | null;
+  sourceType?: string | null;
+}): ProsConsSourceType {
+  if (
+    input.sourceType === 'community' ||
+    input.sourceType === 'editorial' ||
+    input.sourceType === 'official'
+  ) {
+    return input.sourceType;
+  }
+  if (!input.sourceUrl) return 'official';
+  try {
+    const hostname = new URL(input.sourceUrl).hostname.toLowerCase();
+    if (matchesHostPattern(hostname, COMMUNITY_HOST_PATTERNS)) return 'community';
+    if (matchesHostPattern(hostname, EDITORIAL_HOST_PATTERNS)) return 'editorial';
+    return 'official';
+  } catch {
+    return 'official';
+  }
+}
+
+export function scoreProsConsClaimSignal(input: {
+  sourceType: ProsConsSourceType;
+  claimType?: ProsConsClaimType | null;
+  text?: string;
+}): number {
+  const sourceWeight =
+    input.sourceType === 'community' ? 300 : input.sourceType === 'editorial' ? 200 : 100;
+  const claimWeight = input.claimType === 'opinion' ? 20 : 0;
+  const textWeight = (input.text || '').length;
+  return sourceWeight + claimWeight + textWeight;
+}
+
+export function prioritizeProsConsClaims<
+  T extends {
+    source_type?: ProsConsSourceType;
+    claim_type?: ProsConsClaimType;
+    displayText: string;
+  },
+>(items: T[]): T[] {
+  return [...items]
+    .map((item, index) => ({
+      item,
+      index,
+      score: scoreProsConsClaimSignal({
+        sourceType: item.source_type || 'official',
+        claimType: item.claim_type,
+        text: item.displayText,
+      }),
+    }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((entry) => entry.item);
+}
