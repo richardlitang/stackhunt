@@ -1,3 +1,5 @@
+import { inferUserSignalChannelFromUrl } from '@/lib/user-signal-channel';
+
 interface ToolPageEvidenceBulletLike {
   text: string;
   sourceUrl: string | null;
@@ -45,6 +47,15 @@ function toNonEmptyString(value: unknown): string | null {
 
 function toSourceType(value: unknown): 'official' | 'editorial' | 'community' | undefined {
   return value === 'official' || value === 'editorial' || value === 'community' ? value : undefined;
+}
+
+function deriveSourceChannelFromUrl(
+  sourceType: 'official' | 'editorial' | 'community' | undefined,
+  sourceUrl: string | null
+): 'reddit' | 'forum' | 'hn' | 'editorial' | 'other' | undefined {
+  if (sourceType === 'editorial') return 'editorial';
+  if (sourceType === 'community') return inferUserSignalChannelFromUrl(sourceUrl);
+  return undefined;
 }
 
 function normalizeUserReportedEntry(value: Record<string, unknown>): ToolPageProsConsEntry | null {
@@ -104,7 +115,9 @@ function normalizeUserReportedEntry(value: Record<string, unknown>): ToolPagePro
     text,
     source_url: sourceUrl,
     ...(sourceType ? { source_type: sourceType } : {}),
-    ...(sourceChannel ? { source_channel: sourceChannel } : {}),
+    ...(sourceChannel || deriveSourceChannelFromUrl(sourceType, sourceUrl)
+      ? { source_channel: sourceChannel || deriveSourceChannelFromUrl(sourceType, sourceUrl) }
+      : {}),
     ...(claimType ? { claim_type: claimType } : {}),
     ...(typeof corroboratingSourceCount === 'number'
       ? { corroborating_source_count: corroboratingSourceCount }
@@ -133,7 +146,12 @@ export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput)
         text: entry.text,
         source_url: entry.sourceUrl,
         ...(entry.sourceType ? { source_type: entry.sourceType } : {}),
-        ...(entry.sourceChannel ? { source_channel: entry.sourceChannel } : {}),
+        ...(entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl)
+          ? {
+              source_channel:
+                entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
+            }
+          : {}),
         ...(entry.claimType ? { claim_type: entry.claimType } : {}),
         ...(typeof entry.corroboratingSourceCount === 'number'
           ? { corroborating_source_count: entry.corroboratingSourceCount }
@@ -150,7 +168,12 @@ export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput)
         text: entry.text,
         source_url: entry.sourceUrl,
         ...(entry.sourceType ? { source_type: entry.sourceType } : {}),
-        ...(entry.sourceChannel ? { source_channel: entry.sourceChannel } : {}),
+        ...(entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl)
+          ? {
+              source_channel:
+                entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
+            }
+          : {}),
         ...(entry.claimType ? { claim_type: entry.claimType } : {}),
         ...(typeof entry.corroboratingSourceCount === 'number'
           ? { corroborating_source_count: entry.corroboratingSourceCount }

@@ -55,4 +55,19 @@ describe('tool page pros/cons view', () => {
     expect(result.pros[0]?.corroborating_source_count).toBe(2);
     expect(result.pros[0]?.claim_confidence_tier).toBe('medium');
   });
+
+  it('derives source channel for community claims when channel is missing', () => {
+    const result = buildToolPageProsConsView({
+      pros: [
+        {
+          text: 'Users report faster setup after migration.',
+          sourceUrl: 'https://news.ycombinator.com/item?id=12345',
+          sourceType: 'community',
+        },
+      ],
+      cons: [],
+    });
+
+    expect(result.pros[0]?.source_channel).toBe('hn');
+  });
 });
