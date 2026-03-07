@@ -39,6 +39,7 @@ Implemented in code:
 - content-sections input now merges persisted lane user signals into frontend user-signal rendering, with dedupe against legacy `user_reported_*` payloads
 - decision utility now suppresses generic fallback bullets when evidence is thin, replacing them with an explicit pending-evidence notice
 - alternatives header copy now suppresses generic intro fallback for non-alternative or low-context states
+- alternatives compare-grid decision rows now require source-backed rationale, heuristic-only rows are downgraded to pending and suppressed by existing visibility rules
 
 ## Confirmed Bloat and Over-Engineering
 

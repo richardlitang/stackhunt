@@ -48,7 +48,7 @@ describe('resolveToolCompareGridValue', () => {
     expect(resolveToolCompareGridCell('Choose this instead if', tool).evidenceTag).toBe('source');
   });
 
-  it('uses computed diff as heuristic for integration approach and evidence level', () => {
+  it('uses computed diff for setup/seat heuristics while keeping decision rows pending', () => {
     const tool: ToolCompareGridLike = {
       ...baseTool,
       computedDiff: {
@@ -58,22 +58,16 @@ describe('resolveToolCompareGridValue', () => {
       },
     };
 
-    expect(resolveToolCompareGridValue('Integration approach', tool)).toBe(
-      'API-first integration focus'
-    );
+    expect(resolveToolCompareGridValue('Integration approach', tool)).toBe('Needs confirmation');
     expect(resolveToolCompareGridValue('Setup time', tool)).toBe(
       'Attio is easier to learn (~Hours)'
     );
     expect(resolveToolCompareGridValue('Seat complexity', tool)).toBe('Attio has a free tier');
-    expect(resolveToolCompareGridValue('Best for', tool)).toBe(
-      'Teams optimizing for feature and integration fit'
-    );
-    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toContain('Choose');
+    expect(resolveToolCompareGridValue('Best for', tool)).toBe('Needs confirmation');
+    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toBe('Needs confirmation');
     expect(resolveToolCompareGridValue('Evidence level', tool)).toBe('Heuristic');
     expect(resolveToolCompareGridCell('Setup time', tool).evidenceTag).toBe('heuristic');
-    expect(resolveToolCompareGridCell('Choose this instead if', tool).evidenceTag).toBe(
-      'heuristic'
-    );
+    expect(resolveToolCompareGridCell('Choose this instead if', tool).evidenceTag).toBe('pending');
   });
 
   it('uses lens-aware fallback copy when evidence is pending', () => {
@@ -170,6 +164,8 @@ describe('resolveToolCompareGridValue', () => {
 
     const rows = deriveVisibleToolCompareGridRows(main, alternatives, 'general');
     expect(rows).not.toContain('Choose this instead if');
+    expect(rows).not.toContain('Best for');
+    expect(rows).not.toContain('Integration approach');
     expect(rows).toContain('Evidence level');
   });
 

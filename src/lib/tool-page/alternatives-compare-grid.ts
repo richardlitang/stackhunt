@@ -119,9 +119,6 @@ export function resolveToolCompareGridCell(
       }
       return { value: 'Needs confirmation', evidenceTag: 'pending' };
     case 'Integration approach':
-      if (tool.computedDiff?.featureDiff) {
-        return { value: tool.computedDiff.featureDiff, evidenceTag: 'heuristic' };
-      }
       return {
         value: lensFallbackForIntegrationApproach(activeReviewLens),
         evidenceTag: 'pending',
@@ -130,21 +127,9 @@ export function resolveToolCompareGridCell(
       if (tool.curatedVerdict) {
         return { value: 'Teams matching the comparison brief assumptions', evidenceTag: 'source' };
       }
-      if (tool.computedDiff?.featureDiff) {
-        return {
-          value: 'Teams optimizing for feature and integration fit',
-          evidenceTag: 'heuristic',
-        };
-      }
-      if (tool.computedDiff?.priceDiff) {
-        return { value: 'Teams prioritizing pricing model differences', evidenceTag: 'heuristic' };
-      }
-      if (tool.computedDiff?.learningDiff) {
-        return { value: 'Teams prioritizing setup speed', evidenceTag: 'heuristic' };
-      }
       return { value: lensFallbackForBestFor(activeReviewLens), evidenceTag: 'pending' };
     case 'Choose this instead if': {
-      if (tool.curatedVerdict || tool.computedDiff) {
+      if (tool.curatedVerdict) {
         return {
           value: buildAlternativeChooseLine({
             altName: tool.name,
@@ -152,7 +137,7 @@ export function resolveToolCompareGridCell(
             curatedVerdict: tool.curatedVerdict || null,
             computedDiff: tool.computedDiff || null,
           }),
-          evidenceTag: tool.curatedVerdict ? 'source' : 'heuristic',
+          evidenceTag: 'source',
         };
       }
       return { value: 'Needs confirmation', evidenceTag: 'pending' };
