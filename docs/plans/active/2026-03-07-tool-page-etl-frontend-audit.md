@@ -20,6 +20,21 @@ Partial yes, but not complete.
 
 Conclusion: direction is now correct, but the system is still in a transitional hybrid state.
 
+## 2026-03-07 Progress Snapshot
+
+Implemented in code:
+
+- subject-aware review selection and subject-scope indexing blockers are live on tool pages
+- provisional index override is blocked when `subject_scope_pending`
+- snippet-derived fallback user signal claims now require corroboration
+- analysis and persistence now emit/store lane envelopes:
+  - `subject_profile`
+  - `fact_sheet`
+  - `user_signal_sheet`
+  - `editorial_decision`
+- tool page quality-state now consumes persisted lane user signals to reduce false coverage-pending states
+- lane subject profile can now override slug heuristics during subject resolution
+
 ## Confirmed Bloat and Over-Engineering
 
 ### 1) Too many fallback generators still produce plausible prose when evidence is thin
