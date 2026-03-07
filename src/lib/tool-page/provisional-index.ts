@@ -40,7 +40,9 @@ export function evaluateToolPageProvisionalIndexEligibility({
   }
   const score = Number(firstReview.score || 0);
   const summaryLength =
-    typeof firstReview.summary_markdown === 'string' ? firstReview.summary_markdown.trim().length : 0;
+    typeof firstReview.summary_markdown === 'string'
+      ? firstReview.summary_markdown.trim().length
+      : 0;
   const prosCount = countToolPageClaimBullets(firstReview.pros);
   const consCount = countToolPageClaimBullets(firstReview.cons);
   const sourceCount = Array.isArray(firstReview.sources) ? firstReview.sources.length : 0;
