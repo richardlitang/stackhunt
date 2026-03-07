@@ -17,6 +17,7 @@ import {
   buildSnippetBucketsFromScout,
   isLlmEligibleScoutSource,
   buildBalancedSynthesisSources,
+  slugify,
 } from '../utils';
 import {
   SYNTHESIS_PROMPT,
@@ -32,6 +33,7 @@ import {
 import { getCategoryDefinition } from '../schemas';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import { resolveDetectedCategory } from '../category-resolver';
+import { buildHunterLaneOutputs } from '@/lib/hunter/evidence-lanes';
 
 /**
  * Execute the Analysis Phase
@@ -360,6 +362,13 @@ export async function executeAnalysisPhase(
       },
     };
   }
+  const laneOutputs = buildHunterLaneOutputs({
+    toolName: ctx.toolName,
+    toolSlug: slugify(ctx.toolName),
+    entityScope: ctx.entityScope,
+    analysis,
+  });
+  analysis.laneOutputs = laneOutputs;
 
   deps.log(`[Pass 2] Analysis complete - Score: ${analysis.score}/100`);
   deps.log(
@@ -463,6 +472,7 @@ export async function executeAnalysisPhase(
     logo,
     tokensUsed: synthesisTokens,
     generationQuality,
+    laneOutputs,
   };
 }
 

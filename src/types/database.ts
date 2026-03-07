@@ -425,6 +425,57 @@ export interface ToolCanonicalFacts {
     answer_source_url?: string;
     answer_source_type?: 'official' | 'editorial' | 'community';
   }>;
+  entity_first_lane_outputs?: {
+    subject_profile: {
+      subject_type: 'product' | 'product_surface' | 'plan_family' | 'deployment_mode';
+      subject_key: string;
+      display_name: string;
+      entity_scope?: 'core' | 'copilot' | 'actions' | 'enterprise_cloud' | 'enterprise_server' | null;
+      confidence: 'high' | 'medium' | 'low';
+    };
+    fact_sheet: {
+      official_facts: Array<{
+        text: string;
+        source_url?: string | null;
+        source_type?: 'official' | 'editorial' | 'community' | null;
+        claim_type?: 'fact' | 'opinion' | null;
+      }>;
+      official_pricing_facts: Array<{
+        text: string;
+        source_url?: string | null;
+        source_type?: 'official' | 'editorial' | 'community' | null;
+        claim_type?: 'fact' | 'opinion' | null;
+      }>;
+      official_limit_facts: Array<{
+        text: string;
+        source_url?: string | null;
+        source_type?: 'official' | 'editorial' | 'community' | null;
+        claim_type?: 'fact' | 'opinion' | null;
+      }>;
+    };
+    user_signal_sheet: {
+      user_signal_pros: Array<{
+        text: string;
+        source_url?: string | null;
+        source_type?: 'official' | 'editorial' | 'community' | null;
+        claim_type?: 'fact' | 'opinion' | null;
+      }>;
+      user_signal_cons: Array<{
+        text: string;
+        source_url?: string | null;
+        source_type?: 'official' | 'editorial' | 'community' | null;
+        claim_type?: 'fact' | 'opinion' | null;
+      }>;
+    };
+    editorial_decision: {
+      summary: string | null;
+      best_for: string | null;
+      not_for: string | null;
+      main_tradeoff: string | null;
+      human_verdict: string | null;
+    };
+  };
+  entity_first_lane_outputs_version?: string;
 }
 
 // ============================================================================

@@ -1725,6 +1725,17 @@ export async function executePersistencePhase(
     }
   }
 
+  const laneOutputs = ctx.analysis.laneOutputs || analysis.laneOutputs;
+  if (laneOutputs) {
+    const currentCanonical = (specs.canonical as Record<string, any>) || {};
+    specs.canonical = {
+      ...currentCanonical,
+      entity_first_lane_outputs: laneOutputs,
+      entity_first_lane_outputs_version: 'v1',
+    };
+    deps.log('[Lane Outputs] Saved subject/fact/user-signal/editorial lane payloads');
+  }
+
   if (knowledgeCard?.smp_pricing) {
     const pricingCanonical = buildCanonicalPricingPlans(knowledgeCard.smp_pricing);
     const constraintLensCoverage = buildTaggedLensCoverage(collectConstraintLensEntries(specs));

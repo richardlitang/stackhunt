@@ -190,6 +190,47 @@ export interface ClaimWithSource {
  */
 export type LegacyClaim = string;
 
+export interface HunterLaneClaim {
+  text: string;
+  source_url?: string | null;
+  source_type?: SourceType | null;
+  claim_type?: ClaimType | null;
+}
+
+export interface HunterSubjectProfile {
+  subject_type: 'product' | 'product_surface' | 'plan_family' | 'deployment_mode';
+  subject_key: string;
+  display_name: string;
+  entity_scope: HunterEntityScope | null;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface HunterFactSheet {
+  official_facts: HunterLaneClaim[];
+  official_pricing_facts: HunterLaneClaim[];
+  official_limit_facts: HunterLaneClaim[];
+}
+
+export interface HunterUserSignalSheet {
+  user_signal_pros: HunterLaneClaim[];
+  user_signal_cons: HunterLaneClaim[];
+}
+
+export interface HunterEditorialDecision {
+  summary: string | null;
+  best_for: string | null;
+  not_for: string | null;
+  main_tradeoff: string | null;
+  human_verdict: string | null;
+}
+
+export interface HunterLaneOutputs {
+  subject_profile: HunterSubjectProfile;
+  fact_sheet: HunterFactSheet;
+  user_signal_sheet: HunterUserSignalSheet;
+  editorial_decision: HunterEditorialDecision;
+}
+
 export interface HunterAnalysis {
   score: number;
   pros: (string | ClaimWithSource)[];
@@ -336,6 +377,7 @@ export interface HunterAnalysis {
       conflicts_count?: number;
     };
   };
+  laneOutputs?: HunterLaneOutputs;
 }
 
 // ============================================================================
@@ -560,6 +602,7 @@ export interface AnalysisOutput {
   logo: { path: string; url: string } | null;
   tokensUsed: number;
   generationQuality?: SynthesisGenerationQuality;
+  laneOutputs?: HunterLaneOutputs;
 }
 
 /**
