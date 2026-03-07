@@ -237,13 +237,17 @@ Candidates for removal or de-emphasis:
 
 - [ ] Add a `review_subject` plan and schema proposal with migration sketch (`npm run typecheck`)
 - [ ] Teach hunt preflight to resolve or require one canonical subject for ambiguous products (`npm run test -- tests/lib/hunter-analysis-schema.test.ts && npm run typecheck`)
-- [ ] Add subject-aware review selection for tool pages (`npm run test -- tests/lib/tool-page-qa-gate.test.ts && npm run typecheck`)
+- [x] Add subject-aware review selection for tool pages (`npm run test -- tests/lib/tool-page-qa-gate.test.ts && npm run typecheck`)
 
 ### Phase 2: Evidence-lane ETL
 
-- [ ] Split analysis output into fact sheet, user signal sheet, and editorial decision output (`npm run typecheck && npm run test`)
+- [~] Split analysis output into fact sheet, user signal sheet, and editorial decision output (`npm run typecheck && npm run test`)
 - [ ] Update prompts to stop blending official facts and user sentiment into one global claim list (`npm run typecheck && npm run test`)
 - [ ] Persist user signals as first-class evidence, not just review context flavor (`npm run typecheck && npm run test`)
+
+Notes:
+- 2026-03-07 progress: added lane envelope contracts (`subject_profile`, `fact_sheet`, `user_signal_sheet`, `editorial_decision`) to hunter analysis output and canonical persistence payloads.
+- 2026-03-07 progress: tool-page runtime now reads persisted lane outputs and uses lane user-signal claims in quality-state coverage gating.
 
 ### Phase 3: Page compiler rebuild
 
