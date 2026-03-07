@@ -2043,6 +2043,24 @@ export async function executePersistencePhase(
         }
       }
     }
+    if ((userSignalSummary.needs_confirmation_claims || 0) > 0 && ctx.queueItemId) {
+      try {
+        await deps.supabase.rpc('log_metric', {
+          p_metric_type: 'user_signal_needs_confirmation',
+          p_metric_value: userSignalSummary.needs_confirmation_claims || 0,
+          p_tags: {
+            phase: 'persistence',
+            tool_name: ctx.toolName,
+            queue_item_id: ctx.queueItemId,
+            reddit_claims: userSignalSummary.reddit_claims || 0,
+            forum_claims: userSignalSummary.forum_claims || 0,
+            hn_claims: userSignalSummary.hn_claims || 0,
+          },
+        });
+      } catch (error) {
+        deps.log(`[User Signal] Failed to log needs-confirmation metric: ${String(error)}`);
+      }
+    }
   }
 
   // Prefer curated FAQs from analysis if present
