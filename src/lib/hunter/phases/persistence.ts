@@ -56,6 +56,10 @@ import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
 import { computeToolPageSectionContract } from '@/lib/tool-page/standard';
 import { sanitizeUrl } from '@/lib/utils/url';
 import { buildFallbackUserSignalClaimsFromSources } from '@/lib/hunter/user-signal-fallback';
+import {
+  mergeRankedUserSignalClaims,
+  normalizeUserSignalClaimKey,
+} from '@/lib/hunter/user-signal-claims';
 import { buildDecisionSlots } from '@/lib/tool-page/intro';
 import { normalizeCategorySlug, resolveCategoryFromPrimaryFunction } from '../category-resolver';
 
@@ -1907,9 +1911,9 @@ export async function executePersistencePhase(
     const unique: ClaimWithSource[] = [];
     const seen = new Set<string>();
     for (const claim of normalized) {
-      const key = stripTerminalPunctuation(
-        sanitizeNarrativeClaimText(claim.text) || claim.text
-      ).toLowerCase();
+      const key = normalizeUserSignalClaimKey(
+        stripTerminalPunctuation(sanitizeNarrativeClaimText(claim.text) || claim.text)
+      );
       if (!key || seen.has(key)) continue;
       seen.add(key);
       unique.push(claim);
@@ -1919,25 +1923,6 @@ export async function executePersistencePhase(
     }
     return unique.slice(0, 5);
   };
-  const mergeUniqueUserClaims = (
-    primary: ClaimWithSource[],
-    supplement: ClaimWithSource[],
-    max = 5
-  ): ClaimWithSource[] => {
-    const merged: ClaimWithSource[] = [];
-    const seen = new Set<string>();
-    for (const claim of [...primary, ...supplement]) {
-      const key = stripTerminalPunctuation(
-        sanitizeNarrativeClaimText(claim.text) || claim.text
-      ).toLowerCase();
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      merged.push(claim);
-      if (merged.length >= max) break;
-    }
-    return merged;
-  };
-
   const fallbackUserReportedPros = normalizedPros.filter(
     (claim) => claim.source_type === 'community' || claim.source_type === 'editorial'
   );
@@ -1964,11 +1949,11 @@ export async function executePersistencePhase(
       `[Item Content] Added ${sourceDerivedUserReportedCons.length} source-derived user-reported cons`
     );
   }
-  const resolvedUserReportedPros = mergeUniqueUserClaims(
+  const resolvedUserReportedPros = mergeRankedUserSignalClaims(
     explicitUserReportedPros.length > 0 ? explicitUserReportedPros : fallbackUserReportedPros,
     sourceDerivedUserReportedPros
   );
-  const resolvedUserReportedCons = mergeUniqueUserClaims(
+  const resolvedUserReportedCons = mergeRankedUserSignalClaims(
     explicitUserReportedCons.length > 0 ? explicitUserReportedCons : fallbackUserReportedCons,
     sourceDerivedUserReportedCons
   );
