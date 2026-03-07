@@ -119,4 +119,93 @@ describe('tool page prep/decision composite state', () => {
     );
     expect(result.decisionSectionState.faqSchema).toEqual(expectedDecision.faqSchema);
   });
+
+  it('propagates subject scope suppression into quality-state noindex blockers', () => {
+    const input = {
+      prep: {
+        reviewSources: [{ url: 'https://docs.acme.com' }],
+        isEligibleEvidenceUrl: (value: unknown) =>
+          typeof value === 'string' && value.includes('acme.com'),
+        tool: {
+          slug: 'acme-enterprise',
+          metadata: {},
+          item_category_links: [],
+        },
+        orderedAlternatives: [],
+      },
+      decision: {
+        tool: {
+          name: 'Acme Enterprise',
+          short_description: 'Acme short',
+          long_description: 'Acme long',
+          pricing_type: 'subscription',
+          verdict: null,
+          website: 'https://acme.com',
+          category: { slug: 'project-management' },
+          last_verified_at: '2026-03-01T00:00:00.000Z',
+          pricing_verified_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T00:00:00.000Z',
+        },
+        firstReview: null,
+        reviewSelection: {
+          hasPublishedReview: false,
+          hasDraftReview: false,
+        },
+        canonicalFacts: null,
+        resolvedSubject: {
+          subjectType: 'plan_family',
+          subjectKey: 'acme-enterprise:enterprise',
+          displayName: 'Acme Enterprise',
+          entityScope: null,
+          confidence: 'low' as const,
+          ambiguityReason: 'Enterprise family detected, but deployment mode is unresolved.',
+        },
+        subjectSelectionSuppressed: true,
+        subjectSelectionReason:
+          'Published review content is hidden until this page resolves one product surface.',
+        knowledgeCard: {
+          support: { channels: ['email'] },
+        },
+        setupTracks: null,
+        reviewContentLists: {
+          pros: [],
+          cons: [],
+        },
+        audiences: [],
+        reviewContextSignals: {
+          userAdvocate: null,
+          humanVerdict: null,
+          delighters: [],
+          frustrations: [],
+          powerTip: null,
+          vibe: null,
+          originStory: null,
+          idealFor: [],
+          avoidIf: [],
+          budgetCostDrivers: [],
+          budgetOneTimeFees: [],
+          budgetCommitmentTerms: [],
+          budgetRoiThreshold: null,
+        },
+        globalCons: [],
+        categorySpecificData: null,
+        vipSpecifics: null,
+        idealFor: [],
+        avoidIf: [],
+        delighters: [],
+        frustrations: [],
+        powerTip: null,
+        humanVerdict: null,
+        hasParentTool: false,
+        now: new Date('2026-03-05T00:00:00.000Z'),
+        orderedAlternativesCount: 0,
+      },
+    } as const;
+
+    const result = buildToolPagePrepDecisionStateFromRouteContext(input);
+
+    expect(result.decisionSectionState.qualityState.subjectScopePending).toBe(true);
+    expect(result.decisionSectionState.qualityState.gateShouldIndex).toBe(false);
+    expect(result.decisionSectionState.qualityState.gateReasons).toContain('subject_scope_pending');
+  });
 });
