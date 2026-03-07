@@ -127,6 +127,61 @@ describe('tool page quality state', () => {
     expect(result.userSignalCoveragePending).toBe(true);
   });
 
+  it('uses lane-output user signals to clear pending coverage', () => {
+    const tool = {
+      name: 'Acme',
+      short_description: 'Acme helps teams automate workflows.',
+      metadata: {},
+      specs: {
+        user_signal_summary: {
+          top_user_reported_claims: [],
+        },
+      },
+    } as any;
+
+    const result = buildToolPageQualityState({
+      tool,
+      firstReview: null,
+      reviewSelection: {
+        hasPublishedReview: false,
+        hasDraftReview: false,
+      },
+      persistedQuality: {
+        evidence_counts: {
+          community_domains: 2,
+        },
+      },
+      laneOutputs: {
+        subject_profile: {
+          subject_type: 'product',
+          subject_key: 'acme:core',
+          display_name: 'Acme',
+          entity_scope: 'core',
+          confidence: 'high',
+        },
+        fact_sheet: {
+          official_facts: [],
+          official_pricing_facts: [],
+          official_limit_facts: [],
+        },
+        user_signal_sheet: {
+          user_signal_pros: [{ text: 'Users report fast onboarding.' }],
+          user_signal_cons: [{ text: 'Users report occasional sync lag.' }],
+        },
+        editorial_decision: {
+          summary: null,
+          best_for: null,
+          not_for: null,
+          main_tradeoff: null,
+          human_verdict: null,
+        },
+      },
+    });
+
+    expect(result.userSignalClaimsCount).toBe(2);
+    expect(result.userSignalCoveragePending).toBe(false);
+  });
+
   it('surfaces subject-scope pending message when review selection is suppressed', () => {
     const tool = {
       name: 'Acme',

@@ -33,6 +33,7 @@ interface BuildToolPageDecisionSectionStateInputFromRouteContextInput {
   resolvedSubject?: ToolPageDecisionSectionInput['qualityStateInput']['resolvedSubject'];
   subjectSelectionSuppressed?: ToolPageDecisionSectionInput['qualityStateInput']['subjectSelectionSuppressed'];
   subjectSelectionReason?: ToolPageDecisionSectionInput['qualityStateInput']['subjectSelectionReason'];
+  laneOutputs?: ToolPageDecisionSectionInput['qualityStateInput']['laneOutputs'];
   knowledgeCard: Record<string, unknown> | null;
   setupTracks: unknown;
   reviewContentLists: {
@@ -88,6 +89,7 @@ export function buildToolPageDecisionSectionStateInputFromRouteContext(
       resolvedSubject: input.resolvedSubject,
       subjectSelectionSuppressed: input.subjectSelectionSuppressed,
       subjectSelectionReason: input.subjectSelectionReason,
+      laneOutputs: input.laneOutputs,
     },
     faqStateInput: input.knowledgeCard,
     displaySignalsInput: {

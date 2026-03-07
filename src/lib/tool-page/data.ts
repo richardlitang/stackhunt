@@ -17,7 +17,9 @@ import {
   scoreToolPageReviewSubjectMatch,
   type ToolPageResolvedSubject,
 } from '@/lib/tool-page/review-subject';
+import { readToolPageLaneOutputs, type ToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
 import { selectToolPageReview } from '@/lib/reviews/select-review';
+import type { Tool } from '@/types/database';
 
 type ToolPageTool = Awaited<ReturnType<typeof getToolBySlugAndType>>;
 type ToolPageTags = Awaited<ReturnType<typeof getToolTags>>;
@@ -48,6 +50,7 @@ export interface ToolPageData {
   tool: ToolPageTool;
   parentTool: ToolPageParentTool | null;
   resolvedSubject: ToolPageResolvedSubject;
+  laneOutputs: ToolPageLaneOutputs | null;
   subjectSelectionSuppressed: boolean;
   subjectSelectionReason: string | null;
   tags: ToolPageTags;
@@ -96,6 +99,7 @@ export async function getToolPageData(slug: string): Promise<ToolPageData | null
     primaryOffer = primary || tool.affiliate_offers[0] || null;
   }
   const reviews = Array.isArray(tool.reviews) ? tool.reviews : [];
+  const laneOutputs = readToolPageLaneOutputs(tool as Tool);
   const resolvedSubject = resolveToolPageReviewSubject({
     tool: {
       name: tool.name,
@@ -190,6 +194,7 @@ export async function getToolPageData(slug: string): Promise<ToolPageData | null
     tool,
     parentTool,
     resolvedSubject,
+    laneOutputs,
     subjectSelectionSuppressed,
     subjectSelectionReason,
     tags,

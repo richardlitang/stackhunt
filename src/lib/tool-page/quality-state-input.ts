@@ -13,6 +13,7 @@ interface BuildToolPageQualityStateInputContext {
   subjectSelectionReason?: Parameters<
     typeof buildToolPageQualityState
   >[0]['subjectSelectionReason'];
+  laneOutputs?: Parameters<typeof buildToolPageQualityState>[0]['laneOutputs'];
 }
 
 export function buildToolPageQualityStateInput(
@@ -37,5 +38,6 @@ export function buildToolPageQualityStateInput(
     resolvedSubject: input.resolvedSubject,
     subjectSelectionSuppressed: input.subjectSelectionSuppressed,
     subjectSelectionReason: input.subjectSelectionReason,
+    laneOutputs: input.laneOutputs,
   };
 }

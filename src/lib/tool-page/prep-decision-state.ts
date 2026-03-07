@@ -26,6 +26,9 @@ interface BuildToolPagePrepDecisionStateFromRouteContextInput {
     subjectSelectionReason?: Parameters<
       typeof buildToolPageDecisionSectionStateInputFromRouteContext
     >[0]['subjectSelectionReason'];
+    laneOutputs?: Parameters<
+      typeof buildToolPageDecisionSectionStateInputFromRouteContext
+    >[0]['laneOutputs'];
     knowledgeCard: Parameters<
       typeof buildToolPageDecisionSectionStateInputFromRouteContext
     >[0]['knowledgeCard'];
@@ -75,6 +78,7 @@ export function buildToolPagePrepDecisionStateFromRouteContext(
       resolvedSubject: input.decision.resolvedSubject,
       subjectSelectionSuppressed: input.decision.subjectSelectionSuppressed,
       subjectSelectionReason: input.decision.subjectSelectionReason,
+      laneOutputs: input.decision.laneOutputs,
       knowledgeCard: input.decision.knowledgeCard,
       setupTracks: input.decision.setupTracks,
       reviewContentLists: input.decision.reviewContentLists,

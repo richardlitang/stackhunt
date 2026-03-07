@@ -1,6 +1,10 @@
 import { evaluateContentConfidence, getConfidenceLevel } from '@/lib/confidence';
 import { evaluateIndexReadiness } from '@/lib/quality-gate';
 import { deriveToolPageReviewProgress } from '@/lib/tool-page/review-progress';
+import {
+  countToolPageLaneUserSignals,
+  type ToolPageLaneOutputs,
+} from '@/lib/tool-page/lane-outputs';
 import type { Review, Tool } from '@/types/database';
 
 type SectionStatus = 'show' | 'hide' | 'procedural';
@@ -32,6 +36,7 @@ interface BuildToolPageQualityStateInput {
   };
   subjectSelectionSuppressed?: boolean;
   subjectSelectionReason?: string | null;
+  laneOutputs?: ToolPageLaneOutputs | null;
 }
 
 export interface ToolPageQualityState {
@@ -143,9 +148,11 @@ export function buildToolPageQualityState(
     ? userSignalSummary.top_user_reported_claims.length
     : 0;
   const userSignalClaimsCount = Math.max(explicitUserClaimsCount, summarizedUserClaimsCount);
+  const laneUserSignalClaimsCount = countToolPageLaneUserSignals(input.laneOutputs || null);
+  const normalizedUserSignalClaimsCount = Math.max(userSignalClaimsCount, laneUserSignalClaimsCount);
   const userSignalCoveragePending =
     Boolean(canonicalQuality?.user_signal_coverage_pending) ||
-    (communityCorroborationCount > 0 && userSignalClaimsCount === 0);
+    (communityCorroborationCount > 0 && normalizedUserSignalClaimsCount === 0);
   const userSignalNeedsConfirmationCount = Math.max(
     0,
     Number(userSignalSummary?.needs_confirmation_claims || 0) || 0
@@ -179,7 +186,7 @@ export function buildToolPageQualityState(
     safeDraftDescription,
     showReviewInProgressBanner: reviewProgress.showReviewInProgressBanner,
     communityCorroborationCount,
-    userSignalClaimsCount,
+    userSignalClaimsCount: normalizedUserSignalClaimsCount,
     userSignalCoveragePending,
     userSignalNeedsConfirmationCount,
     userSignalChannelCoverageCount,
