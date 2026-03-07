@@ -430,7 +430,13 @@ export interface ToolCanonicalFacts {
       subject_type: 'product' | 'product_surface' | 'plan_family' | 'deployment_mode';
       subject_key: string;
       display_name: string;
-      entity_scope?: 'core' | 'copilot' | 'actions' | 'enterprise_cloud' | 'enterprise_server' | null;
+      entity_scope?:
+        | 'core'
+        | 'copilot'
+        | 'actions'
+        | 'enterprise_cloud'
+        | 'enterprise_server'
+        | null;
       confidence: 'high' | 'medium' | 'low';
     };
     fact_sheet: {

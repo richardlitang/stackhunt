@@ -33,7 +33,9 @@ function toLaneClaim(claim: string | ClaimWithSource): HunterLaneClaim | null {
   };
 }
 
-function inferSubjectType(entityScope?: HunterEntityScope): HunterLaneOutputs['subject_profile']['subject_type'] {
+function inferSubjectType(
+  entityScope?: HunterEntityScope
+): HunterLaneOutputs['subject_profile']['subject_type'] {
   if (!entityScope || entityScope === 'core') return 'product';
   if (entityScope === 'enterprise_cloud' || entityScope === 'enterprise_server') {
     return 'deployment_mode';
@@ -128,9 +130,9 @@ export function buildHunterLaneOutputs(input: {
   };
 }
 
-export function extractLaneClaimTexts(claims: Array<string | ClaimWithSource> | undefined): string[] {
+export function extractLaneClaimTexts(
+  claims: Array<string | ClaimWithSource> | undefined
+): string[] {
   if (!Array.isArray(claims)) return [];
-  return claims
-    .map((claim) => readClaimText(claim).trim())
-    .filter((text) => text.length > 0);
+  return claims.map((claim) => readClaimText(claim).trim()).filter((text) => text.length > 0);
 }

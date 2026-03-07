@@ -246,6 +246,7 @@ Candidates for removal or de-emphasis:
 - [ ] Persist user signals as first-class evidence, not just review context flavor (`npm run typecheck && npm run test`)
 
 Notes:
+
 - 2026-03-07 progress: added lane envelope contracts (`subject_profile`, `fact_sheet`, `user_signal_sheet`, `editorial_decision`) to hunter analysis output and canonical persistence payloads.
 - 2026-03-07 progress: tool-page runtime now reads persisted lane outputs and uses lane user-signal claims in quality-state coverage gating.
 

@@ -36,15 +36,19 @@ export interface ToolPageLaneOutputs {
 function isClaimArray(value: unknown): value is ToolPageLaneClaim[] {
   return (
     Array.isArray(value) &&
-    value.every((entry) => entry && typeof entry === 'object' && typeof (entry as any).text === 'string')
+    value.every(
+      (entry) => entry && typeof entry === 'object' && typeof (entry as any).text === 'string'
+    )
   );
 }
 
 export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null {
-  const specs = tool?.specs && typeof tool.specs === 'object' ? (tool.specs as Record<string, unknown>) : null;
-  const canonical = specs?.canonical && typeof specs.canonical === 'object'
-    ? (specs.canonical as Record<string, unknown>)
-    : null;
+  const specs =
+    tool?.specs && typeof tool.specs === 'object' ? (tool.specs as Record<string, unknown>) : null;
+  const canonical =
+    specs?.canonical && typeof specs.canonical === 'object'
+      ? (specs.canonical as Record<string, unknown>)
+      : null;
   const raw = canonical?.entity_first_lane_outputs;
   if (!raw || typeof raw !== 'object') return null;
   const outputs = raw as Record<string, unknown>;
@@ -59,7 +63,9 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
   const officialPricingFacts = isClaimArray(factSheet.official_pricing_facts)
     ? factSheet.official_pricing_facts
     : [];
-  const officialLimitFacts = isClaimArray(factSheet.official_limit_facts) ? factSheet.official_limit_facts : [];
+  const officialLimitFacts = isClaimArray(factSheet.official_limit_facts)
+    ? factSheet.official_limit_facts
+    : [];
   const userSignalPros = isClaimArray(userSignalSheet.user_signal_pros)
     ? userSignalSheet.user_signal_pros
     : [];
@@ -69,12 +75,15 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
 
   return {
     subject_profile: {
-      subject_type: (subject.subject_type as ToolPageLaneOutputs['subject_profile']['subject_type']) || 'product',
+      subject_type:
+        (subject.subject_type as ToolPageLaneOutputs['subject_profile']['subject_type']) ||
+        'product',
       subject_key: subject.subject_key,
       display_name: typeof subject.display_name === 'string' ? subject.display_name : tool.name,
       entity_scope:
         (subject.entity_scope as ToolPageLaneOutputs['subject_profile']['entity_scope']) || null,
-      confidence: (subject.confidence as ToolPageLaneOutputs['subject_profile']['confidence']) || 'medium',
+      confidence:
+        (subject.confidence as ToolPageLaneOutputs['subject_profile']['confidence']) || 'medium',
     },
     fact_sheet: {
       official_facts: officialFacts,

@@ -883,11 +883,13 @@ export const AnalysisSchema = z.object({
         confidence: z.enum(['high', 'medium', 'low']),
       }),
       fact_sheet: z.object({
-        official_facts: z.array(ClaimWithSourceSchema.pick({ text: true }).extend({
-          source_url: z.string().url().nullable().optional(),
-          source_type: SourceTypeSchema.nullable().optional(),
-          claim_type: ClaimTypeSchema.nullable().optional(),
-        })),
+        official_facts: z.array(
+          ClaimWithSourceSchema.pick({ text: true }).extend({
+            source_url: z.string().url().nullable().optional(),
+            source_type: SourceTypeSchema.nullable().optional(),
+            claim_type: ClaimTypeSchema.nullable().optional(),
+          })
+        ),
         official_pricing_facts: z.array(
           ClaimWithSourceSchema.pick({ text: true }).extend({
             source_url: z.string().url().nullable().optional(),

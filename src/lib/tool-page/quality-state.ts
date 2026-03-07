@@ -149,7 +149,10 @@ export function buildToolPageQualityState(
     : 0;
   const userSignalClaimsCount = Math.max(explicitUserClaimsCount, summarizedUserClaimsCount);
   const laneUserSignalClaimsCount = countToolPageLaneUserSignals(input.laneOutputs || null);
-  const normalizedUserSignalClaimsCount = Math.max(userSignalClaimsCount, laneUserSignalClaimsCount);
+  const normalizedUserSignalClaimsCount = Math.max(
+    userSignalClaimsCount,
+    laneUserSignalClaimsCount
+  );
   const userSignalCoveragePending =
     Boolean(canonicalQuality?.user_signal_coverage_pending) ||
     (communityCorroborationCount > 0 && normalizedUserSignalClaimsCount === 0);

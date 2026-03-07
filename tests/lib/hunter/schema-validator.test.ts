@@ -90,9 +90,9 @@ describe('validateAnalysis claim hygiene', () => {
 
     expect(report.shouldPublish).toBe(false);
     expect(report.humanReviewRequired).toBe(true);
-    expect(
-      report.validations.some((v) => v.message.includes('community-style hedging'))
-    ).toBe(true);
+    expect(report.validations.some((v) => v.message.includes('community-style hedging'))).toBe(
+      true
+    );
   });
 
   it('allows clean, sourced claims', () => {
