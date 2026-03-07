@@ -54,4 +54,30 @@ describe('tool page review progress', () => {
     expect(result.showReviewInProgressBanner).toBe(false);
     expect(result.provisionalReasons.length).toBeGreaterThan(0);
   });
+
+  it('keeps banner off when subject scope is pending despite strong draft signals', () => {
+    const result = deriveToolPageReviewProgress({
+      tool: {
+        id: 'tool_1',
+        metadata: {},
+        specs: {},
+        pricing_verified_at: '2026-03-01T00:00:00.000Z',
+        short_description: 'Acme',
+        verdict: 'Useful',
+        updated_at: '2026-03-01T00:00:00.000Z',
+      } as Tool,
+      firstReview: {
+        status: 'review',
+        score: 90,
+        summary_markdown: 'x'.repeat(170),
+        pros: ['One', 'Two'],
+        cons: ['One'],
+        sources: [{ url: 'https://a.com' }, { url: 'https://b.com' }, { url: 'https://c.com' }],
+      },
+      gateReasons: ['subject_scope_pending'],
+    });
+
+    expect(result.showReviewInProgressBanner).toBe(false);
+    expect(result.provisionalReasons).toContain('subject_scope_pending');
+  });
 });
