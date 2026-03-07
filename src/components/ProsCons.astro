@@ -168,6 +168,32 @@ const evidenceBackedCons = normalizedCons
   .filter((item): item is (typeof normalizedCons)[number] => Boolean(item));
 const finalizedPros = finalizeProsConsClaims(prioritizeProsConsClaims(evidenceBackedPros));
 const finalizedCons = finalizeProsConsClaims(prioritizeProsConsClaims(evidenceBackedCons));
+function limitClaimsPerDomain<T extends { source_url?: string }>(
+  items: T[],
+  maxPerDomain = 2
+): { items: T[]; droppedForDomainCap: number } {
+  const domainCounts = new Map<string, number>();
+  const kept: T[] = [];
+  let droppedForDomainCap = 0;
+  for (const item of items) {
+    const sourceUrl = item.source_url;
+    if (!sourceUrl) {
+      kept.push(item);
+      continue;
+    }
+    const domain = getDomain(sourceUrl);
+    const nextCount = (domainCounts.get(domain) || 0) + 1;
+    if (nextCount > maxPerDomain) {
+      droppedForDomainCap++;
+      continue;
+    }
+    domainCounts.set(domain, nextCount);
+    kept.push(item);
+  }
+  return { items: kept, droppedForDomainCap };
+}
+const domainCappedPros = limitClaimsPerDomain(finalizedPros.items, 2);
+const domainCappedCons = limitClaimsPerDomain(finalizedCons.items, 2);
 const hasUserSignalClaims = [...finalizedPros.items, ...finalizedCons.items].some(
   (item) => item.source_type === 'community' || item.source_type === 'editorial'
 );
@@ -175,14 +201,17 @@ const droppedClaimsForQuality =
   finalizedPros.droppedDuplicates +
   finalizedPros.droppedLowSignal +
   finalizedCons.droppedDuplicates +
-  finalizedCons.droppedLowSignal;
-const hasEvidenceBackedClaims = finalizedPros.items.length > 0 || finalizedCons.items.length > 0;
-const hasMinimumUniqueEvidenceClaims = finalizedPros.items.length + finalizedCons.items.length >= 2;
+  finalizedCons.droppedLowSignal +
+  domainCappedPros.droppedForDomainCap +
+  domainCappedCons.droppedForDomainCap;
+const hasEvidenceBackedClaims = domainCappedPros.items.length > 0 || domainCappedCons.items.length > 0;
+const hasMinimumUniqueEvidenceClaims =
+  domainCappedPros.items.length + domainCappedCons.items.length >= 2;
 const showInsufficientUniqueClaimsNotice =
   !hasMinimumUniqueEvidenceClaims && droppedClaimsForQuality > 0;
 
 const sourceEntries = (() => {
-  const entries = [...finalizedPros.items, ...finalizedCons.items].map((item) => ({
+  const entries = [...domainCappedPros.items, ...domainCappedCons.items].map((item) => ({
     url: item.source_url as string,
     domain: getDomain(item.source_url as string),
     source_type: item.source_type,
@@ -379,7 +408,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
 
       <ul class="space-y-3">
         {
-          finalizedPros.items.map((pro) => (
+          domainCappedPros.items.map((pro) => (
             <li class="text-sm text-zinc-300">
               <div class="flex items-start gap-3">
                 <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
@@ -455,7 +484,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
 
       <ul class="space-y-3">
         {
-          finalizedCons.items.map((con) => (
+          domainCappedCons.items.map((con) => (
             <li class="text-sm text-zinc-300">
               <div class="flex items-start gap-3">
                 <MinusIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
