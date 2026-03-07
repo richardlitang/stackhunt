@@ -28,6 +28,7 @@ export interface BuildToolPageDecisionUtilityInput {
   hardLimitText: string | null;
   pricingEvidenceSourceUrl?: string | null;
   pricingEvidenceSummary?: string | null;
+  lowConfidenceMode?: boolean;
 }
 
 export interface ToolPageDecisionUtilityState {
@@ -129,6 +130,7 @@ function buildArchetypeChecklist(
 export function buildToolPageDecisionUtilityState(
   input: BuildToolPageDecisionUtilityInput
 ): ToolPageDecisionUtilityState {
+  const lowConfidenceMode = Boolean(input.lowConfidenceMode);
   const hasEvidenceAnchoredUtility = Boolean(
     input.hardLimitText || input.pricingEvidenceSourceUrl || input.pricingEvidenceSummary
   );
@@ -138,13 +140,17 @@ export function buildToolPageDecisionUtilityState(
     hasParentTool: input.hasParentTool,
     hasEnterpriseSignals: input.hasEnterpriseSignals,
   });
-  const useIf =
+  const useIfBase =
     input.lensBestFitLine || 'Use when source-backed capabilities match your daily workflow.';
-  const avoidIf = input.lensWeakFitLine || 'Avoid when core rollout needs are still unconfirmed.';
-  const watchOut =
+  const avoidIfBase =
+    input.lensWeakFitLine || 'Avoid when core rollout needs are still unconfirmed.';
+  const watchOutBase =
     input.hardLimitText ||
     input.lensTradeoffLine ||
     'Watch out for plan limits and rollout dependencies.';
+  const useIf = lowConfidenceMode ? `${useIfBase} (Early signal, verify in demo.)` : useIfBase;
+  const avoidIf = lowConfidenceMode ? `${avoidIfBase} (Evidence still evolving.)` : avoidIfBase;
+  const watchOut = lowConfidenceMode ? `${watchOutBase} (Pending claims remain.)` : watchOutBase;
 
   const isCrm = isCrmCategory(input.categorySlug);
   const testChecklistItems = hasEvidenceAnchoredUtility
@@ -199,8 +205,16 @@ export function buildToolPageDecisionUtilityState(
     })),
   ];
   const seenPricingMentalModelKeys = new Set<string>();
+  const normalizePricingMentalModelKey = (value: string): string =>
+    value
+      .toLowerCase()
+      .replace(/^[\-\s]+/, '')
+      .replace(/[.:;!?]+$/g, '')
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   const pricingMentalModelItems = pricingMentalModelItemsRaw.filter((item) => {
-    const key = item.text.toLowerCase().replace(/\s+/g, ' ').trim();
+    const key = normalizePricingMentalModelKey(item.text);
     if (!key || seenPricingMentalModelKeys.has(key)) return false;
     seenPricingMentalModelKeys.add(key);
     return true;

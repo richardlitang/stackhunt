@@ -140,4 +140,24 @@ describe('tool page decision utility', () => {
     );
     expect(new Set(normalized).size).toBe(normalized.length);
   });
+
+  it('softens decision bullets in low-confidence mode', () => {
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'Acme',
+      categorySlug: 'crm-sales',
+      activeReviewLens: 'general',
+      hasApi: false,
+      hasParentTool: false,
+      hasEnterpriseSignals: false,
+      lensBestFitLine: 'Use for flexible pipeline workflows.',
+      lensWeakFitLine: 'Avoid for strict turnkey requirements.',
+      lensTradeoffLine: 'Flexibility vs setup overhead.',
+      hardLimitText: null,
+      lowConfidenceMode: true,
+    });
+
+    expect(result.decisionUseIf).toContain('Early signal');
+    expect(result.decisionAvoidIf).toContain('Evidence still evolving');
+    expect(result.decisionWatchOut).toContain('Pending claims remain');
+  });
 });
