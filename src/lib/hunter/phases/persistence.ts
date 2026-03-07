@@ -1996,6 +1996,7 @@ export async function executePersistencePhase(
             ? { source_urls: claim.source_urls }
             : {}),
           source_type: claim.source_type,
+          ...(claim.source_channel ? { source_channel: claim.source_channel } : {}),
           claim_type: claim.claim_type,
           ...(typeof corroboratingSourceCount === 'number'
             ? { corroborating_source_count: corroboratingSourceCount }
@@ -4231,7 +4232,7 @@ function buildUserSignalSummary(
   for (const claim of community) {
     const domain = normalizeDomain(claim.source_url);
     if (domain) communityDomains.add(domain);
-    const bucket = inferUserSignalChannelFromUrl(claim.source_url);
+    const bucket = claim.source_channel || inferUserSignalChannelFromUrl(claim.source_url);
     if (bucket === 'reddit') redditClaims += 1;
     if (bucket === 'forum') forumClaims += 1;
     if (bucket === 'hn') hnClaims += 1;
@@ -4290,7 +4291,7 @@ function buildUserSignalSummary(
       source_domain: normalizeDomain(claim.source_url),
       source_channel:
         claim.source_type === 'community'
-          ? inferUserSignalChannelFromUrl(claim.source_url)
+          ? claim.source_channel || inferUserSignalChannelFromUrl(claim.source_url)
           : 'editorial',
     });
     if (uniqueSignals.length >= 3) break;
@@ -5081,6 +5082,7 @@ function buildClaimLedgerRows(
       value_json: {
         text: claim.text,
         source_type: claim.source_type || null,
+        source_channel: claim.source_channel || null,
         claim_type: claim.claim_type || null,
         vendor_phrase: claim.vendor_phrase || claim.text,
         kind: claim.claim_kind || detectClaimKind(claim.text, claim.claim_type || 'opinion'),

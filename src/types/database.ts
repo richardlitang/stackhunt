@@ -599,6 +599,7 @@ export interface ToolSpecs {
     source_url: string;
     source_urls?: string[];
     source_type: 'community' | 'editorial';
+    source_channel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
     claim_type: 'opinion' | 'fact';
     corroborating_source_count?: number;
     claim_confidence_tier?: 'high' | 'medium' | 'low';
@@ -610,6 +611,7 @@ export interface ToolSpecs {
     source_url: string;
     source_urls?: string[];
     source_type: 'community' | 'editorial';
+    source_channel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
     claim_type: 'opinion' | 'fact';
     corroborating_source_count?: number;
     claim_confidence_tier?: 'high' | 'medium' | 'low';

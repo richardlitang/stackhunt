@@ -168,6 +168,7 @@ export interface ClaimWithSource {
   text: string;
   source_url: string;
   source_type: SourceType;
+  source_channel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
   claim_type: ClaimType;
   retrieved_at: string; // ISO 8601 timestamp - provides "staleness" defense
   checked_at?: string;
