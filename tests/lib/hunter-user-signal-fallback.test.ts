@@ -12,6 +12,11 @@ describe('hunter user signal fallback', () => {
           source_type: 'community',
         },
         {
+          url: 'https://news.ycombinator.com/item?id=445566',
+          snippet: 'Teams say onboarding is fast and the workflow is easier to adopt.',
+          source_type: 'community',
+        },
+        {
           url: 'https://vendor.example.com/docs/setup',
           snippet: 'Official setup reference.',
           source_type: 'docs',
@@ -36,7 +41,12 @@ describe('hunter user signal fallback', () => {
           source_type: 'community',
         },
         {
-          url: 'https://www.g2.com/products/acme/reviews',
+          url: 'https://www.reddit.com/r/saas/comments/cons-1',
+          snippet: 'Users report slow responses and inconsistent reliability under load.',
+          source_type: 'community',
+        },
+        {
+          url: 'https://example.com/reviews/acme-setup',
           snippet: 'Reviewers mention confusion during advanced setup.',
           source_type: 'editorial',
         },
@@ -71,7 +81,7 @@ describe('hunter user signal fallback', () => {
     expect(claims[0]?.source_urls).toHaveLength(2);
   });
 
-  it('assigns medium confidence to high-signal reddit claims even when single-source', () => {
+  it('suppresses single-source community fallback claims even when high-signal', () => {
     const claims = buildFallbackUserSignalClaimsFromSources({
       label: 'pros',
       sources: [
@@ -83,9 +93,7 @@ describe('hunter user signal fallback', () => {
       ],
     });
 
-    expect(claims).toHaveLength(1);
-    expect(claims[0]?.source_channel).toBe('reddit');
-    expect(claims[0]?.claim_confidence_tier).toBe('medium');
+    expect(claims).toHaveLength(0);
   });
 
   it('extracts sentence-level claims from longer snippets', () => {
@@ -94,6 +102,12 @@ describe('hunter user signal fallback', () => {
       sources: [
         {
           url: 'https://www.reddit.com/r/saas/comments/777',
+          snippet:
+            'Teams like the UI for quick tasks. But users report slow sync and missing notifications during peak hours.',
+          source_type: 'community',
+        },
+        {
+          url: 'https://news.ycombinator.com/item?id=777',
           snippet:
             'Teams like the UI for quick tasks. But users report slow sync and missing notifications during peak hours.',
           source_type: 'community',
@@ -113,6 +127,12 @@ describe('hunter user signal fallback', () => {
           url: 'https://www.reddit.com/r/saas/comments/123',
           snippet: 'Users report easier onboarding and faster setup for small teams.',
           title: 'Top 10 AI tools compared in 2026',
+          source_type: 'community',
+        },
+        {
+          url: 'https://news.ycombinator.com/item?id=123',
+          snippet: 'Users report easier onboarding and faster setup for small teams.',
+          title: 'Best SaaS tools this year',
           source_type: 'community',
         },
       ],

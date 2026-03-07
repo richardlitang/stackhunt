@@ -218,6 +218,12 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
   }
 
   return Array.from(grouped.values())
+    .filter(
+      (entry) =>
+        entry.source_type === 'editorial' ||
+        entry.source_urls.size >= 2 ||
+        entry.candidateCount >= 2
+    )
     .sort((a, b) => {
       const corroborationDelta = b.source_urls.size - a.source_urls.size;
       if (corroborationDelta !== 0) return corroborationDelta;
