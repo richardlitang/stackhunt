@@ -1,5 +1,7 @@
 const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
 const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
+const HEDGING_PREFIX =
+  /^(users report(?: that)?|according to community feedback|based on user discussions|according to reviews|reviewers note that),?\s+/i;
 
 const LOW_SIGNAL_PATTERNS = [
   /\bsupports?\s+core\s+workflows?\b/i,
@@ -37,6 +39,7 @@ export function stripProsConsControlChars(value: string): string {
 
 export function normalizeProsConsClaimKey(value: string): string {
   return stripProsConsControlChars(value)
+    .replace(HEDGING_PREFIX, '')
     .replace(TERMINAL_PUNCTUATION, '')
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')

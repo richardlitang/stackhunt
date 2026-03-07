@@ -13,6 +13,12 @@ describe('tool-page pros/cons quality', () => {
     );
   });
 
+  it('strips hedging prefixes so user-voice duplicates collapse', () => {
+    expect(normalizeProsConsClaimKey('Users report fast setup and reliable workflows.')).toBe(
+      'fast setup and reliable workflows'
+    );
+  });
+
   it('flags low-signal claims', () => {
     expect(isLowSignalProsConsClaim('Supports core workflows for most teams')).toBe(true);
     expect(isLowSignalProsConsClaim('API access is available for custom integrations')).toBe(false);
