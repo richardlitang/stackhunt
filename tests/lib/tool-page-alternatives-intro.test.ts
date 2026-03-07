@@ -19,6 +19,6 @@ describe('tool page alternatives intro text', () => {
         primaryFunction: null,
         categoryName: null,
       })
-    ).toBe('Similar tools you might find useful');
+    ).toBeNull();
   });
 });

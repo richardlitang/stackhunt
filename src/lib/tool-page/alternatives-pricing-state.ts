@@ -26,7 +26,7 @@ export function buildToolPageAlternativesPricingState(
 ): {
   pricingInsightsBudgetAnalyst: ReturnType<typeof buildToolPagePricingInsightsBudgetAnalyst>;
   primaryFunction: string | null;
-  alternativesIntroText: string;
+  alternativesIntroText: string | null;
   compareTeaserLinks: ReturnType<typeof buildToolPageCompareTeaserLinks>;
   alternativesSectionState: ReturnType<typeof buildToolPageAlternativesSectionState>;
   alternativeCardsView: ReturnType<typeof buildToolPageAlternativeCardsView>;

@@ -37,6 +37,8 @@ Implemented in code:
 - analysis now normalizes mixed factual and user-signal claims before decision rendering
 - schema validation now blocks publish when `pros/cons` contains opinion/community signals or `userReported*` contains factual/official claims
 - content-sections input now merges persisted lane user signals into frontend user-signal rendering, with dedupe against legacy `user_reported_*` payloads
+- decision utility now suppresses generic fallback bullets when evidence is thin, replacing them with an explicit pending-evidence notice
+- alternatives header copy now suppresses generic intro fallback for non-alternative or low-context states
 
 ## Confirmed Bloat and Over-Engineering
 

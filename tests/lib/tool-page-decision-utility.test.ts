@@ -68,7 +68,10 @@ describe('tool page decision utility', () => {
     expect(result.testChecklistItems).toHaveLength(0);
     expect(result.commonSetups).toHaveLength(0);
     expect(result.hasEvidenceAnchoredUtility).toBe(false);
-    expect(result.decisionWatchOut).toContain('Watch out');
+    expect(result.hasDecisionBullets).toBe(false);
+    expect(result.decisionUseIf).toBe('');
+    expect(result.decisionAvoidIf).toBe('');
+    expect(result.decisionWatchOut).toBe('');
     expect(result.practicalOutcomes).toHaveLength(0);
     expect(
       result.pricingMentalModelItems.every((item) => item.status === 'Needs confirmation')
@@ -159,5 +162,6 @@ describe('tool page decision utility', () => {
     expect(result.decisionUseIf).toContain('Early signal');
     expect(result.decisionAvoidIf).toContain('Evidence still evolving');
     expect(result.decisionWatchOut).toContain('Pending claims remain');
+    expect(result.hasDecisionBullets).toBe(true);
   });
 });

@@ -6,13 +6,14 @@ interface BuildToolPageAlternativesIntroTextInput {
 
 export function buildToolPageAlternativesIntroText(
   input: BuildToolPageAlternativesIntroTextInput
-): string {
+): string | null {
   if (input.alternativesLabel !== 'Alternatives') {
-    return 'Similar tools you might find useful';
+    return null;
   }
 
   const subject =
-    input.primaryFunction?.trim().toLowerCase() || input.categoryName?.trim().toLowerCase() || 'software';
+    input.primaryFunction?.trim().toLowerCase() || input.categoryName?.trim().toLowerCase() || null;
+  if (!subject) return null;
 
   return `Other ${subject} tools to consider`;
 }

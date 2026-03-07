@@ -35,6 +35,7 @@ export interface ToolPageDecisionUtilityState {
   decisionUseIf: string;
   decisionAvoidIf: string;
   decisionWatchOut: string;
+  hasDecisionBullets: boolean;
   verdictLeadOverride: string;
   testChecklistTitle: string;
   testChecklistItems: string[];
@@ -140,17 +141,28 @@ export function buildToolPageDecisionUtilityState(
     hasParentTool: input.hasParentTool,
     hasEnterpriseSignals: input.hasEnterpriseSignals,
   });
-  const useIfBase =
-    input.lensBestFitLine || 'Use when source-backed capabilities match your daily workflow.';
-  const avoidIfBase =
-    input.lensWeakFitLine || 'Avoid when core rollout needs are still unconfirmed.';
+  const useIfBase = typeof input.lensBestFitLine === 'string' ? input.lensBestFitLine.trim() : '';
+  const avoidIfBase = typeof input.lensWeakFitLine === 'string' ? input.lensWeakFitLine.trim() : '';
   const watchOutBase =
-    input.hardLimitText ||
-    input.lensTradeoffLine ||
-    'Watch out for plan limits and rollout dependencies.';
-  const useIf = lowConfidenceMode ? `${useIfBase} (Early signal, verify in demo.)` : useIfBase;
-  const avoidIf = lowConfidenceMode ? `${avoidIfBase} (Evidence still evolving.)` : avoidIfBase;
-  const watchOut = lowConfidenceMode ? `${watchOutBase} (Pending claims remain.)` : watchOutBase;
+    (typeof input.hardLimitText === 'string' && input.hardLimitText.trim().length > 0
+      ? input.hardLimitText.trim()
+      : '') || (typeof input.lensTradeoffLine === 'string' ? input.lensTradeoffLine.trim() : '');
+  const useIf = useIfBase
+    ? lowConfidenceMode
+      ? `${useIfBase} (Early signal, verify in demo.)`
+      : useIfBase
+    : '';
+  const avoidIf = avoidIfBase
+    ? lowConfidenceMode
+      ? `${avoidIfBase} (Evidence still evolving.)`
+      : avoidIfBase
+    : '';
+  const watchOut = watchOutBase
+    ? lowConfidenceMode
+      ? `${watchOutBase} (Pending claims remain.)`
+      : watchOutBase
+    : '';
+  const hasDecisionBullets = useIf.length > 0 || avoidIf.length > 0 || watchOut.length > 0;
 
   const isCrm = isCrmCategory(input.categorySlug);
   const testChecklistItems = hasEvidenceAnchoredUtility
@@ -290,6 +302,7 @@ export function buildToolPageDecisionUtilityState(
     decisionUseIf: useIf,
     decisionAvoidIf: avoidIf,
     decisionWatchOut: watchOut,
+    hasDecisionBullets,
     verdictLeadOverride,
     testChecklistTitle: isCrm ? 'What to test in 30 minutes' : 'What to test before rollout',
     testChecklistItems,

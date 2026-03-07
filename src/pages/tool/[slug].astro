@@ -877,62 +877,74 @@ applyToolPageRobotsHeader({
       <p class="mt-2 text-xs text-zinc-500">
         Summary of linked sources as of {freshnessLabels.verdictAsOfLabel}.
       </p>
-      <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-        <li>
-          <span class="font-medium text-zinc-100">Use if:</span>{' '}
-          {decisionUtilityState.decisionUseIf}{' '}
-          <a
-            href="#verdict"
-            class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
-          >
-            Evidence
-          </a>
-        </li>
-        <li>
-          <span class="font-medium text-zinc-100">Avoid if:</span>{' '}
-          {decisionUtilityState.decisionAvoidIf}{' '}
-          <a
-            href="#verdict"
-            class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
-          >
-            Evidence
-          </a>
-        </li>
-        <li>
-          <span class="font-medium text-zinc-100">Watch out:</span>{' '}
-          {decisionUtilityState.decisionWatchOut}
-          {
-            decisionHardLimitEvidence ? (
-              <>
-                {' '}
-                <a
-                  href={decisionHardLimitEvidence.sourceUrl}
-                  target="_blank"
-                  rel="noopener"
-                  aria-label={sourceAriaLabel(decisionHardLimitEvidence.text)}
-                  data-outbound="source"
-                  data-location="decision-watchout"
-                  data-tool={tool.slug}
-                  class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
-                  title="Open source"
-                >
-                  Source
-                </a>
-              </>
-            ) : (
-              <>
-                {' '}
+      {
+        decisionUtilityState.hasDecisionBullets ? (
+          <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+            {decisionUtilityState.decisionUseIf && (
+              <li>
+                <span class="font-medium text-zinc-100">Use if:</span>{' '}
+                {decisionUtilityState.decisionUseIf}{' '}
                 <a
                   href="#verdict"
                   class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
                 >
                   Evidence
                 </a>
-              </>
-            )
-          }
-        </li>
-      </ul>
+              </li>
+            )}
+            {decisionUtilityState.decisionAvoidIf && (
+              <li>
+                <span class="font-medium text-zinc-100">Avoid if:</span>{' '}
+                {decisionUtilityState.decisionAvoidIf}{' '}
+                <a
+                  href="#verdict"
+                  class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
+                >
+                  Evidence
+                </a>
+              </li>
+            )}
+            {decisionUtilityState.decisionWatchOut && (
+              <li>
+                <span class="font-medium text-zinc-100">Watch out:</span>{' '}
+                {decisionUtilityState.decisionWatchOut}
+                {decisionHardLimitEvidence ? (
+                  <>
+                    {' '}
+                    <a
+                      href={decisionHardLimitEvidence.sourceUrl}
+                      target="_blank"
+                      rel="noopener"
+                      aria-label={sourceAriaLabel(decisionHardLimitEvidence.text)}
+                      data-outbound="source"
+                      data-location="decision-watchout"
+                      data-tool={tool.slug}
+                      class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
+                      title="Open source"
+                    >
+                      Source
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    {' '}
+                    <a
+                      href="#verdict"
+                      class="inline-flex items-center align-middle rounded-md border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 text-[11px] text-zinc-300 hover:border-hunt-500 hover:text-hunt-500"
+                    >
+                      Evidence
+                    </a>
+                  </>
+                )}
+              </li>
+            )}
+          </ul>
+        ) : (
+          <p class="mt-3 text-sm text-zinc-400">
+            Source-backed decision bullets are still being assembled for this review.
+          </p>
+        )
+      }
       <p class="mt-4 text-xs text-zinc-500">
         Full evidence detail lives in{' '}
         <a href="#verdict" class="text-hunt-500 hover:text-hunt-400"> Why This Verdict </a>
@@ -1786,7 +1798,9 @@ applyToolPageRobotsHeader({
                 <h2 class="text-2xl font-semibold text-zinc-100">
                   {alternativesLabel} to {tool.name}
                 </h2>
-                <p class="mt-1 text-sm text-zinc-400">{alternativesIntroText}</p>
+                {alternativesIntroText && (
+                  <p class="mt-1 text-sm text-zinc-400">{alternativesIntroText}</p>
+                )}
                 {activeReviewLens !== 'general' && (
                   <p class="mt-1 text-xs text-zinc-500">
                     Alternatives are prioritized for the current review lens.
