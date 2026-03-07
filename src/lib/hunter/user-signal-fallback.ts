@@ -141,7 +141,8 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
       if (!isRenderableClaimText(sentenceCandidate)) continue;
 
       const hasNegativeSignal =
-        NEGATIVE_CUES.test(sentenceCandidate) || USER_SIGNAL_NEGATIVE_TOKENS.test(sentenceCandidate);
+        NEGATIVE_CUES.test(sentenceCandidate) ||
+        USER_SIGNAL_NEGATIVE_TOKENS.test(sentenceCandidate);
       const hasPositiveSignal = USER_SIGNAL_POSITIVE_TOKENS.test(sentenceCandidate);
       if (input.label === 'cons' && !hasNegativeSignal) continue;
       if (input.label === 'pros' && (hasNegativeSignal || !hasPositiveSignal)) continue;

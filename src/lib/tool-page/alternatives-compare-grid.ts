@@ -200,8 +200,7 @@ export function deriveVisibleToolCompareGridRows(
     const normalizedValues = cells
       .map((cell) => cell.value.toLowerCase().replace(/\s+/g, ' ').trim())
       .filter(Boolean);
-    const hasValueVariance =
-      normalizedValues.length > 1 && new Set(normalizedValues).size > 1;
+    const hasValueVariance = normalizedValues.length > 1 && new Set(normalizedValues).size > 1;
     const hasSource = cells.some((cell) => cell.evidenceTag === 'source');
     const hasNonPending = cells.some((cell) => cell.evidenceTag !== 'pending');
     if (!hasNonPending) return false;

@@ -19,9 +19,11 @@ export function normalizeUserSignalClaimKey(value: string): string {
 }
 
 export function scoreUserSignalClaim(claim: ClaimWithSource): number {
-  const sourceWeight = claim.source_type === 'community' ? 40 : claim.source_type === 'editorial' ? 28 : 12;
+  const sourceWeight =
+    claim.source_type === 'community' ? 40 : claim.source_type === 'editorial' ? 28 : 12;
   const channel = claim.source_channel || inferUserSignalChannelFromUrl(claim.source_url);
-  const channelWeight = channel === 'reddit' ? 14 : channel === 'hn' ? 11 : channel === 'forum' ? 8 : 0;
+  const channelWeight =
+    channel === 'reddit' ? 14 : channel === 'hn' ? 11 : channel === 'forum' ? 8 : 0;
   const corroborationCount = Math.max(
     1,
     typeof (claim as { corroborating_source_count?: number }).corroborating_source_count ===

@@ -20,7 +20,10 @@ describe('hunter user-signal claims', () => {
       source_type: 'community',
       source_channel: 'reddit',
       claim_type: 'opinion',
-      source_urls: ['https://www.reddit.com/r/saas/comments/abc', 'https://news.ycombinator.com/item?id=1'],
+      source_urls: [
+        'https://www.reddit.com/r/saas/comments/abc',
+        'https://news.ycombinator.com/item?id=1',
+      ],
       claim_confidence_tier: 'medium',
       retrieved_at: new Date().toISOString(),
     });
@@ -44,7 +47,10 @@ describe('hunter user-signal claims', () => {
           source_type: 'community',
           source_channel: 'reddit',
           claim_type: 'opinion',
-          source_urls: ['https://www.reddit.com/r/saas/comments/abc', 'https://news.ycombinator.com/item?id=2'],
+          source_urls: [
+            'https://www.reddit.com/r/saas/comments/abc',
+            'https://news.ycombinator.com/item?id=2',
+          ],
           claim_confidence_tier: 'medium',
           retrieved_at: new Date().toISOString(),
         },

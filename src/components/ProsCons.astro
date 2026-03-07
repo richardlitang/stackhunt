@@ -204,7 +204,8 @@ const droppedClaimsForQuality =
   finalizedCons.droppedLowSignal +
   domainCappedPros.droppedForDomainCap +
   domainCappedCons.droppedForDomainCap;
-const hasEvidenceBackedClaims = domainCappedPros.items.length > 0 || domainCappedCons.items.length > 0;
+const hasEvidenceBackedClaims =
+  domainCappedPros.items.length > 0 || domainCappedCons.items.length > 0;
 const hasMinimumUniqueEvidenceClaims =
   domainCappedPros.items.length + domainCappedCons.items.length >= 2;
 const showInsufficientUniqueClaimsNotice =
