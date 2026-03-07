@@ -42,6 +42,7 @@ interface BuildToolPageChromeLensStateFromDecisionContextInput {
     communityCorroborationCount: number;
     userSignalCoveragePending?: boolean;
     userSignalNeedsConfirmationCount?: number;
+    userSignalChannelCoverageCount?: number;
   };
 }
 
@@ -60,6 +61,7 @@ export function buildToolPageChromeLensStateFromDecisionContext(
       communityCorroborationCount: input.qualityState.communityCorroborationCount,
       userSignalCoveragePending: input.qualityState.userSignalCoveragePending || false,
       userSignalNeedsConfirmationCount: input.qualityState.userSignalNeedsConfirmationCount || 0,
+      userSignalChannelCoverageCount: input.qualityState.userSignalChannelCoverageCount || 0,
       communityVerifiedLabel: input.reviewSignalsView.communityVerifiedLabel,
       specsVerifiedLabel: input.reviewSignalsView.specsVerifiedLabel,
       pricingCheckedLabel: input.evidenceRuntime.pricingCheckedLabel,

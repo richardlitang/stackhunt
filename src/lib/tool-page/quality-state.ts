@@ -41,6 +41,7 @@ export interface ToolPageQualityState {
   userSignalClaimsCount: number;
   userSignalCoveragePending: boolean;
   userSignalNeedsConfirmationCount: number;
+  userSignalChannelCoverageCount: number;
 }
 
 export function buildToolPageQualityState(
@@ -105,6 +106,9 @@ export function buildToolPageQualityState(
           | {
               top_user_reported_claims?: unknown[];
               needs_confirmation_claims?: number;
+              reddit_claims?: number;
+              forum_claims?: number;
+              hn_claims?: number;
             }
           | undefined)
       : undefined;
@@ -137,6 +141,11 @@ export function buildToolPageQualityState(
     0,
     Number(userSignalSummary?.needs_confirmation_claims || 0) || 0
   );
+  const userSignalChannelCoverageCount = [
+    Number(userSignalSummary?.reddit_claims || 0) > 0,
+    Number(userSignalSummary?.forum_claims || 0) > 0,
+    Number(userSignalSummary?.hn_claims || 0) > 0,
+  ].filter(Boolean).length;
 
   return {
     contentConfidenceLevel,
@@ -152,5 +161,6 @@ export function buildToolPageQualityState(
     userSignalClaimsCount,
     userSignalCoveragePending,
     userSignalNeedsConfirmationCount,
+    userSignalChannelCoverageCount,
   };
 }

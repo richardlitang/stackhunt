@@ -56,6 +56,7 @@ describe('tool page quality state', () => {
     expect(result.userSignalClaimsCount).toBe(2);
     expect(result.userSignalCoveragePending).toBe(false);
     expect(result.userSignalNeedsConfirmationCount).toBe(0);
+    expect(result.userSignalChannelCoverageCount).toBe(0);
   });
 
   it('flags pending user-signal coverage when community domains exist but claims are absent', () => {
@@ -67,6 +68,9 @@ describe('tool page quality state', () => {
         user_signal_summary: {
           top_user_reported_claims: [],
           needs_confirmation_claims: 2,
+          reddit_claims: 1,
+          forum_claims: 1,
+          hn_claims: 0,
         },
       },
     } as any;
@@ -89,6 +93,7 @@ describe('tool page quality state', () => {
     expect(result.userSignalClaimsCount).toBe(0);
     expect(result.userSignalCoveragePending).toBe(true);
     expect(result.userSignalNeedsConfirmationCount).toBe(2);
+    expect(result.userSignalChannelCoverageCount).toBe(2);
   });
 
   it('honors canonical pending flag from ETL quality metadata', () => {

@@ -16,6 +16,7 @@ describe('tool page chrome input', () => {
       communityCorroborationCount: 4,
       userSignalCoveragePending: true,
       userSignalNeedsConfirmationCount: 2,
+      userSignalChannelCoverageCount: 3,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-04',
       pricingCheckedLabel: '2026-03-03',
@@ -38,6 +39,7 @@ describe('tool page chrome input', () => {
     expect(result.communityCorroborationCount).toBe(4);
     expect(result.userSignalCoveragePending).toBe(true);
     expect(result.userSignalNeedsConfirmationCount).toBe(2);
+    expect(result.userSignalChannelCoverageCount).toBe(3);
     expect(result.activeReviewLens).toBe('general');
   });
 
@@ -52,6 +54,7 @@ describe('tool page chrome input', () => {
       communityCorroborationCount: 3,
       userSignalCoveragePending: false,
       userSignalNeedsConfirmationCount: 1,
+      userSignalChannelCoverageCount: 2,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-04',
       pricingCheckedLabel: '2026-03-03',
@@ -73,6 +76,7 @@ describe('tool page chrome input', () => {
     expect(result.communityCorroborationCount).toBe(3);
     expect(result.userSignalCoveragePending).toBe(false);
     expect(result.userSignalNeedsConfirmationCount).toBe(1);
+    expect(result.userSignalChannelCoverageCount).toBe(2);
     expect(result.activeReviewLens).toBe('general');
   });
 });

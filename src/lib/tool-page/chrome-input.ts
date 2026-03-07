@@ -10,6 +10,7 @@ interface BuildToolPageChromeStateInputFromRouteInput {
   communityCorroborationCount?: number;
   userSignalCoveragePending?: boolean;
   userSignalNeedsConfirmationCount?: number;
+  userSignalChannelCoverageCount?: number;
   communityVerifiedLabel: string | null;
   specsVerifiedLabel: string | null;
   pricingCheckedLabel: string | null;
@@ -31,6 +32,7 @@ interface BuildToolPageChromeStateInputFromRouteContextInput {
   communityCorroborationCount: BuildToolPageChromeStateInputFromRouteInput['communityCorroborationCount'];
   userSignalCoveragePending?: BuildToolPageChromeStateInputFromRouteInput['userSignalCoveragePending'];
   userSignalNeedsConfirmationCount?: BuildToolPageChromeStateInputFromRouteInput['userSignalNeedsConfirmationCount'];
+  userSignalChannelCoverageCount?: BuildToolPageChromeStateInputFromRouteInput['userSignalChannelCoverageCount'];
   communityVerifiedLabel: BuildToolPageChromeStateInputFromRouteInput['communityVerifiedLabel'];
   specsVerifiedLabel: BuildToolPageChromeStateInputFromRouteInput['specsVerifiedLabel'];
   pricingCheckedLabel: BuildToolPageChromeStateInputFromRouteInput['pricingCheckedLabel'];
@@ -57,6 +59,7 @@ export function buildToolPageChromeStateInputFromRoute(
     communityCorroborationCount: input.communityCorroborationCount || 0,
     userSignalCoveragePending: input.userSignalCoveragePending || false,
     userSignalNeedsConfirmationCount: input.userSignalNeedsConfirmationCount || 0,
+    userSignalChannelCoverageCount: input.userSignalChannelCoverageCount || 0,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,
@@ -82,6 +85,7 @@ export function buildToolPageChromeStateInputFromRouteContext(
     communityCorroborationCount: input.communityCorroborationCount || 0,
     userSignalCoveragePending: input.userSignalCoveragePending || false,
     userSignalNeedsConfirmationCount: input.userSignalNeedsConfirmationCount || 0,
+    userSignalChannelCoverageCount: input.userSignalChannelCoverageCount || 0,
     communityVerifiedLabel: input.communityVerifiedLabel,
     specsVerifiedLabel: input.specsVerifiedLabel,
     pricingCheckedLabel: input.pricingCheckedLabel,

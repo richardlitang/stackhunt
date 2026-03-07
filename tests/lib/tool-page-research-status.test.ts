@@ -11,6 +11,7 @@ describe('tool page research status view', () => {
       communityCorroborationCount: 3,
       userSignalCoveragePending: true,
       userSignalNeedsConfirmationCount: 2,
+      userSignalChannelCoverageCount: 2,
       communityVerifiedLabel: null,
       specsVerifiedLabel: '3 days ago',
       pricingCheckedLabel: null,
@@ -24,6 +25,7 @@ describe('tool page research status view', () => {
     expect(result.userSignalNeedsConfirmationLabel).toContain(
       '2 user-reported claims still need corroboration'
     );
+    expect(result.userSignalChannelCoverageLabel).toContain('2 user-signal channels represented');
     expect(result.lastCheckedLabel).toBe('3 days ago');
   });
 
@@ -36,6 +38,7 @@ describe('tool page research status view', () => {
       communityCorroborationCount: 0,
       userSignalCoveragePending: false,
       userSignalNeedsConfirmationCount: 0,
+      userSignalChannelCoverageCount: 0,
       communityVerifiedLabel: null,
       specsVerifiedLabel: null,
       pricingCheckedLabel: null,
@@ -45,6 +48,7 @@ describe('tool page research status view', () => {
     expect(result.communityCorroborationLabel).toBeNull();
     expect(result.userSignalCoverageLabel).toBeNull();
     expect(result.userSignalNeedsConfirmationLabel).toBeNull();
+    expect(result.userSignalChannelCoverageLabel).toBeNull();
     expect(result.lastCheckedLabel).toBe('unknown');
   });
 });

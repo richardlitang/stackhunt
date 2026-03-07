@@ -16,6 +16,7 @@ describe('tool page chrome state', () => {
       communityCorroborationCount: 2,
       userSignalCoveragePending: true,
       userSignalNeedsConfirmationCount: 1,
+      userSignalChannelCoverageCount: 2,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-05',
       pricingCheckedLabel: '2026-03-05',
@@ -43,6 +44,9 @@ describe('tool page chrome state', () => {
     expect(state.researchStatusView.userSignalNeedsConfirmationLabel).toContain(
       '1 user-reported claims still need corroboration'
     );
+    expect(state.researchStatusView.userSignalChannelCoverageLabel).toContain(
+      '2 user-signal channels represented'
+    );
   });
 
   it('builds chrome state from route-level fields', () => {
@@ -56,6 +60,7 @@ describe('tool page chrome state', () => {
       communityCorroborationCount: 1,
       userSignalCoveragePending: false,
       userSignalNeedsConfirmationCount: 0,
+      userSignalChannelCoverageCount: 1,
       communityVerifiedLabel: '2026-03-05',
       specsVerifiedLabel: '2026-03-05',
       pricingCheckedLabel: '2026-03-05',

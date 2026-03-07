@@ -6,6 +6,7 @@ interface BuildToolPageResearchStatusInput {
   communityCorroborationCount?: number;
   userSignalCoveragePending?: boolean;
   userSignalNeedsConfirmationCount?: number;
+  userSignalChannelCoverageCount?: number;
   communityVerifiedLabel: string | null;
   specsVerifiedLabel: string | null;
   pricingCheckedLabel: string | null;
@@ -18,6 +19,7 @@ export interface ToolPageResearchStatusView {
   communityCorroborationLabel: string | null;
   userSignalCoverageLabel: string | null;
   userSignalNeedsConfirmationLabel: string | null;
+  userSignalChannelCoverageLabel: string | null;
   lastCheckedLabel: string;
 }
 
@@ -41,6 +43,10 @@ export function buildToolPageResearchStatusView(
     userSignalNeedsConfirmationLabel:
       (input.userSignalNeedsConfirmationCount || 0) > 0
         ? `${input.userSignalNeedsConfirmationCount} user-reported claims still need corroboration`
+        : null,
+    userSignalChannelCoverageLabel:
+      (input.userSignalChannelCoverageCount || 0) > 0
+        ? `${input.userSignalChannelCoverageCount} user-signal channels represented (Reddit, forums, HN)`
         : null,
     lastCheckedLabel:
       input.communityVerifiedLabel ||
