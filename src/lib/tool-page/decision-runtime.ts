@@ -9,8 +9,6 @@ import { deriveToolPageSetupSignals } from '@/lib/tool-page/setup';
 import {
   cleanToolPageDecisionSlotText,
   cleanToolPageNarrativeText,
-  deriveToolPageFallbackConsText,
-  deriveToolPagePaymentTriggerCons,
   hasToolPageDistinctAbout,
   uniqueToolPageDecisionText,
 } from '@/lib/tool-page/text';
@@ -65,8 +63,6 @@ export function buildToolPageDecisionRuntime(input: BuildToolPageDecisionRuntime
   isDisallowedConClaim: (text: string) => boolean;
   hasVerdict: boolean;
   isPaymentsCategory: boolean;
-  fallbackConsText: string[];
-  paymentTriggerCons: string[];
   decisionSnapshotSummary: string;
   introLooksSpecSheet: boolean;
   decisionSnapshotBestWhen: string[];
@@ -74,7 +70,10 @@ export function buildToolPageDecisionRuntime(input: BuildToolPageDecisionRuntime
   decisionTradeoffSummaryInitial: string;
   decisionSnapshotDifferentiators: string[];
 } {
-  const hasAbout = hasToolPageDistinctAbout(input.tool.long_description, input.tool.short_description);
+  const hasAbout = hasToolPageDistinctAbout(
+    input.tool.long_description,
+    input.tool.short_description
+  );
   const setupSignals = deriveToolPageSetupSignals({
     knowledgeCard: input.knowledgeCard,
     setupTracks: input.setupTracks || null,
@@ -82,9 +81,10 @@ export function buildToolPageDecisionRuntime(input: BuildToolPageDecisionRuntime
   });
   const hasGettingStartedRaw = setupSignals.hasGettingStarted;
   const comparativeFeaturePeerCount =
-    typeof (input.knowledgeCard?.meta as Record<string, unknown> | undefined)?.comparative_feature_peer_count ===
-    'number'
-      ? ((input.knowledgeCard?.meta as Record<string, unknown>).comparative_feature_peer_count as number)
+    typeof (input.knowledgeCard?.meta as Record<string, unknown> | undefined)
+      ?.comparative_feature_peer_count === 'number'
+      ? ((input.knowledgeCard?.meta as Record<string, unknown>)
+          .comparative_feature_peer_count as number)
       : 0;
 
   const pricingSignals = deriveToolPagePricingSignals({
@@ -105,7 +105,9 @@ export function buildToolPageDecisionRuntime(input: BuildToolPageDecisionRuntime
     toolVerdict: input.tool.verdict || null,
     humanVerdict: input.reviewContextSignals.humanVerdict || null,
     avoidIf: Array.isArray(input.reviewContextSignals.avoidIf)
-      ? input.reviewContextSignals.avoidIf.filter((item): item is string => typeof item === 'string')
+      ? input.reviewContextSignals.avoidIf.filter(
+          (item): item is string => typeof item === 'string'
+        )
       : [],
     hasEligibleNegativeEvidence: input.hasEligibleNegativeEvidence,
     hasFreePlanSignal,
@@ -121,8 +123,6 @@ export function buildToolPageDecisionRuntime(input: BuildToolPageDecisionRuntime
       ? input.knowledgeCard.smp_taxonomy.primary_function
       : null
   );
-  const fallbackConsText = deriveToolPageFallbackConsText(Array.isArray(input.globalCons) ? input.globalCons : []);
-  const paymentTriggerCons = deriveToolPagePaymentTriggerCons(fallbackConsText);
   const fallbackDecisionSummary = buildToolPageFallbackDecisionSummary(
     input.tool.name,
     input.tool.short_description,
@@ -134,12 +134,6 @@ export function buildToolPageDecisionRuntime(input: BuildToolPageDecisionRuntime
     fallbackDecisionSummary,
     idealFor: input.reviewContextSignals.idealFor,
     guardedAvoidIf,
-    isPaymentsCategory,
-    paymentTriggerCons,
-    fallbackConsText,
-    firstReviewPros: input.review.pros,
-    firstReviewCons: input.review.cons,
-    tagAudienceNames: input.tags.audiences.map((tag) => tag.name),
     isDisallowedConClaim,
     cleanNarrativeText: cleanToolPageNarrativeText,
     cleanDecisionSlotText: cleanToolPageDecisionSlotText,
@@ -164,8 +158,6 @@ export function buildToolPageDecisionRuntime(input: BuildToolPageDecisionRuntime
     isDisallowedConClaim,
     hasVerdict,
     isPaymentsCategory,
-    fallbackConsText,
-    paymentTriggerCons,
     decisionSnapshotSummary: decisionSnapshot.decisionSnapshotSummary,
     introLooksSpecSheet: decisionSnapshot.introLooksSpecSheet,
     decisionSnapshotBestWhen: decisionSnapshot.decisionSnapshotBestWhen,

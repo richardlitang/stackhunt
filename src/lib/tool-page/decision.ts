@@ -4,12 +4,6 @@ export interface BuildToolPageDecisionSnapshotInput {
   fallbackDecisionSummary: string;
   idealFor: unknown[];
   guardedAvoidIf: unknown[];
-  isPaymentsCategory: boolean;
-  paymentTriggerCons: string[];
-  fallbackConsText: string[];
-  firstReviewPros: unknown[];
-  firstReviewCons: unknown[];
-  tagAudienceNames: string[];
   isDisallowedConClaim: (text: string) => boolean;
   cleanNarrativeText: (value: unknown) => string | null;
   cleanDecisionSlotText: (
