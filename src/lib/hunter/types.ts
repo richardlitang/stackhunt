@@ -870,6 +870,64 @@ export const AnalysisSchema = z.object({
         .optional(),
     })
     .optional(),
+  laneOutputs: z
+    .object({
+      subject_profile: z.object({
+        subject_type: z.enum(['product', 'product_surface', 'plan_family', 'deployment_mode']),
+        subject_key: z.string().min(2),
+        display_name: z.string().min(1),
+        entity_scope: z
+          .enum(['core', 'copilot', 'actions', 'enterprise_cloud', 'enterprise_server'])
+          .nullable()
+          .optional(),
+        confidence: z.enum(['high', 'medium', 'low']),
+      }),
+      fact_sheet: z.object({
+        official_facts: z.array(ClaimWithSourceSchema.pick({ text: true }).extend({
+          source_url: z.string().url().nullable().optional(),
+          source_type: SourceTypeSchema.nullable().optional(),
+          claim_type: ClaimTypeSchema.nullable().optional(),
+        })),
+        official_pricing_facts: z.array(
+          ClaimWithSourceSchema.pick({ text: true }).extend({
+            source_url: z.string().url().nullable().optional(),
+            source_type: SourceTypeSchema.nullable().optional(),
+            claim_type: ClaimTypeSchema.nullable().optional(),
+          })
+        ),
+        official_limit_facts: z.array(
+          ClaimWithSourceSchema.pick({ text: true }).extend({
+            source_url: z.string().url().nullable().optional(),
+            source_type: SourceTypeSchema.nullable().optional(),
+            claim_type: ClaimTypeSchema.nullable().optional(),
+          })
+        ),
+      }),
+      user_signal_sheet: z.object({
+        user_signal_pros: z.array(
+          ClaimWithSourceSchema.pick({ text: true }).extend({
+            source_url: z.string().url().nullable().optional(),
+            source_type: SourceTypeSchema.nullable().optional(),
+            claim_type: ClaimTypeSchema.nullable().optional(),
+          })
+        ),
+        user_signal_cons: z.array(
+          ClaimWithSourceSchema.pick({ text: true }).extend({
+            source_url: z.string().url().nullable().optional(),
+            source_type: SourceTypeSchema.nullable().optional(),
+            claim_type: ClaimTypeSchema.nullable().optional(),
+          })
+        ),
+      }),
+      editorial_decision: z.object({
+        summary: z.string().nullable(),
+        best_for: z.string().nullable(),
+        not_for: z.string().nullable(),
+        main_tradeoff: z.string().nullable(),
+        human_verdict: z.string().nullable(),
+      }),
+    })
+    .optional(),
   // V4: Smart Schema - Category-specific extracted data
   categorySpecificData: z.record(z.string(), z.unknown()).optional(),
   // V4: Tool Hints - VIP tool-specific extracted data

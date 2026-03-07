@@ -139,4 +139,71 @@ describe('validateAnalysis claim hygiene', () => {
       )
     ).toBe(true);
   });
+
+  it('accepts optional lane output envelopes', () => {
+    const analysis = baseAnalysis() as any;
+    analysis.laneOutputs = {
+      subject_profile: {
+        subject_type: 'product',
+        subject_key: 'acme:core',
+        display_name: 'Acme',
+        entity_scope: 'core',
+        confidence: 'high',
+      },
+      fact_sheet: {
+        official_facts: [
+          {
+            text: 'Official docs confirm API authentication examples are available.',
+            source_url: 'https://example.com/docs/api',
+            source_type: 'official',
+            claim_type: 'fact',
+          },
+        ],
+        official_pricing_facts: [
+          {
+            text: 'Official pricing page lists seat-based plans.',
+            source_url: 'https://example.com/pricing',
+            source_type: 'official',
+            claim_type: 'fact',
+          },
+        ],
+        official_limit_facts: [
+          {
+            text: 'Official docs describe rate limits for API endpoints.',
+            source_url: 'https://example.com/docs/limits',
+            source_type: 'official',
+            claim_type: 'fact',
+          },
+        ],
+      },
+      user_signal_sheet: {
+        user_signal_pros: [
+          {
+            text: 'Users report onboarding is faster than expected for small teams.',
+            source_url: 'https://reddit.com/r/saas/1',
+            source_type: 'community',
+            claim_type: 'opinion',
+          },
+        ],
+        user_signal_cons: [
+          {
+            text: 'Users report billing can be confusing during usage spikes.',
+            source_url: 'https://news.ycombinator.com/item?id=123',
+            source_type: 'community',
+            claim_type: 'opinion',
+          },
+        ],
+      },
+      editorial_decision: {
+        summary: 'Good fit for API-focused teams with technical owners.',
+        best_for: 'Small engineering teams',
+        not_for: 'Non-technical teams needing turnkey onboarding',
+        main_tradeoff: 'Faster rollout versus higher setup discipline',
+        human_verdict: 'Strong shortlist for API-centric stacks',
+      },
+    };
+
+    const report = validateAnalysis(analysis);
+    expect(report.isValid).toBe(true);
+  });
 });
