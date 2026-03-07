@@ -256,7 +256,7 @@ Notes:
 
 - [ ] Build a slimmer tool-page compiler around one subject and one fixed section order (`npm run typecheck && npm run test && npm run build`)
 - [ ] Replace generic decision utility builders with subject-specific decision builders (`npm run test -- tests/lib/tool-page-decision-utility.test.ts && npm run typecheck`)
-- [ ] Replace mixed pros/cons rendering with separate fact-backed and user-reported evidence groups (`npm run test -- tests/lib/tool-page-pros-cons-view.test.ts && npm run typecheck`)
+- [~] Replace mixed pros/cons rendering with separate fact-backed and user-reported evidence groups (`npm run test -- tests/lib/tool-page-pros-cons-view.test.ts && npm run typecheck`)
 
 ### Phase 4: Alternatives and category cleanup
 
@@ -273,6 +273,7 @@ Notes:
 
 - 2026-03-07: The next quality jump will come from subject resolution and evidence separation, not from adding more page sections.
 - 2026-03-07: User-reported pros and cons should become a first-class evidence lane, but they must remain explicitly corroborated and visibly distinct from official product facts.
+- 2026-03-07: Strengths and weaknesses now render factual claims and user-reported signals in separate UI groups, while preserving source-backed attribution in both.
 - 2026-03-07: Cleanup is part of the rebuild. New subject-level architecture should replace redundant storage and UI, not sit alongside it indefinitely.
 
 ## Exit Criteria

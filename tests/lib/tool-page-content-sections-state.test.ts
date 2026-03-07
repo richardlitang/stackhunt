@@ -104,6 +104,8 @@ describe('tool page content sections state', () => {
     expect(state.sourceListsView.lowConfidenceLinks.length).toBe(1);
     expect(state.prosConsView.pros.length).toBe(1);
     expect(state.prosConsView.cons.length).toBe(1);
+    expect(state.prosConsView.userSignalPros.length).toBe(0);
+    expect(state.prosConsView.userSignalCons.length).toBe(0);
     expect(state.pricingSectionState.checkedLead).toContain('Pricing checked');
     expect(state.pricingEvidenceState.hasEvidencePanel).toBe(true);
     expect(state.operationalDetailsState.showCompanyInfo).toBe(true);
@@ -165,6 +167,7 @@ describe('tool page content sections state', () => {
 
     expect(state.sourceListsView.methodologyLinks.length).toBe(1);
     expect(state.prosConsView.pros.length).toBe(1);
+    expect(state.prosConsView.userSignalPros.length).toBe(0);
     expect(state.pricingEvidenceState.hasEvidencePanel).toBe(true);
   });
 });

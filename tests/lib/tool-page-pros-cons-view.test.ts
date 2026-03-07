@@ -33,6 +33,8 @@ describe('tool page pros/cons view', () => {
         },
       ],
       cons: [{ text: 'Steep learning curve', source_url: null }],
+      userSignalPros: [],
+      userSignalCons: [],
     });
   });
 
@@ -52,8 +54,8 @@ describe('tool page pros/cons view', () => {
       ],
     });
 
-    expect(result.pros[0]?.corroborating_source_count).toBe(2);
-    expect(result.pros[0]?.claim_confidence_tier).toBe('medium');
+    expect(result.userSignalPros[0]?.corroborating_source_count).toBe(2);
+    expect(result.userSignalPros[0]?.claim_confidence_tier).toBe('medium');
   });
 
   it('derives source channel for community claims when channel is missing', () => {
@@ -86,6 +88,39 @@ describe('tool page pros/cons view', () => {
       ],
     });
 
-    expect(result.cons[0]?.source_channel).toBe('reddit');
+    expect(result.userSignalCons[0]?.source_channel).toBe('reddit');
+  });
+
+  it('keeps factual and user-reported lanes separate', () => {
+    const result = buildToolPageProsConsView({
+      pros: [{ text: 'Official docs confirm SSO support.', sourceUrl: 'https://example.com/docs' }],
+      cons: [
+        {
+          text: 'Official pricing has seat caps on starter.',
+          sourceUrl: 'https://example.com/pricing',
+        },
+      ],
+      userReportedPros: [
+        {
+          text: 'Users report onboarding is quick once templates are set up.',
+          source_url: 'https://reddit.com/r/saas/alpha',
+          source_type: 'community',
+          claim_type: 'opinion',
+        },
+      ],
+      userReportedCons: [
+        {
+          text: 'Users report intermittent UI lag in large workspaces.',
+          source_url: 'https://news.ycombinator.com/item?id=12345',
+          source_type: 'community',
+          claim_type: 'opinion',
+        },
+      ],
+    });
+
+    expect(result.pros).toHaveLength(1);
+    expect(result.cons).toHaveLength(1);
+    expect(result.userSignalPros).toHaveLength(1);
+    expect(result.userSignalCons).toHaveLength(1);
   });
 });
