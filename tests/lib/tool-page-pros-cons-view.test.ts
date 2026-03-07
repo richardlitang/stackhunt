@@ -8,9 +8,8 @@ describe('tool page pros/cons view', () => {
         {
           text: 'Fast setup',
           sourceUrl: 'https://docs.example.com/setup',
-          sourceType: 'community',
-          sourceChannel: 'reddit',
-          claimType: 'opinion',
+          sourceType: 'official',
+          claimType: 'fact',
           corroboratingSourceCount: 3,
           claimConfidenceTier: 'high',
           claimConfidenceScore: 0.82,
@@ -24,9 +23,8 @@ describe('tool page pros/cons view', () => {
         {
           text: 'Fast setup',
           source_url: 'https://docs.example.com/setup',
-          source_type: 'community',
-          claim_type: 'opinion',
-          source_channel: 'reddit',
+          source_type: 'official',
+          claim_type: 'fact',
           corroborating_source_count: 3,
           claim_confidence_tier: 'high',
           claim_confidence_score: 0.82,
@@ -70,7 +68,7 @@ describe('tool page pros/cons view', () => {
       cons: [],
     });
 
-    expect(result.pros[0]?.source_channel).toBe('hn');
+    expect(result.userSignalPros[0]?.source_channel).toBe('hn');
   });
 
   it('derives channel from source_urls when primary source_url is not classifiable', () => {
@@ -120,6 +118,32 @@ describe('tool page pros/cons view', () => {
 
     expect(result.pros).toHaveLength(1);
     expect(result.cons).toHaveLength(1);
+    expect(result.userSignalPros).toHaveLength(1);
+    expect(result.userSignalCons).toHaveLength(1);
+  });
+
+  it('reroutes contaminated opinion/community claims out of factual lanes', () => {
+    const result = buildToolPageProsConsView({
+      pros: [
+        {
+          text: 'Users report support quality varies by timezone.',
+          sourceUrl: 'https://reddit.com/r/saas/2',
+          sourceType: 'community',
+          claimType: 'opinion',
+        },
+      ],
+      cons: [
+        {
+          text: 'Users report billing spikes are hard to predict.',
+          sourceUrl: 'https://news.ycombinator.com/item?id=9988',
+          sourceType: 'community',
+          claimType: 'opinion',
+        },
+      ],
+    });
+
+    expect(result.pros).toHaveLength(0);
+    expect(result.cons).toHaveLength(0);
     expect(result.userSignalPros).toHaveLength(1);
     expect(result.userSignalCons).toHaveLength(1);
   });

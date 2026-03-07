@@ -141,6 +141,35 @@ function normalizeUserReportedEntry(value: Record<string, unknown>): ToolPagePro
   };
 }
 
+function normalizeFactualEntry(
+  entry: BuildToolPageProsConsViewInput['pros'][number]
+): ToolPageProsConsEntry {
+  return {
+    text: entry.text,
+    source_url: entry.sourceUrl,
+    ...(entry.sourceType ? { source_type: entry.sourceType } : {}),
+    ...(entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl)
+      ? {
+          source_channel:
+            entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
+        }
+      : {}),
+    ...(entry.claimType ? { claim_type: entry.claimType } : {}),
+    ...(typeof entry.corroboratingSourceCount === 'number'
+      ? { corroborating_source_count: entry.corroboratingSourceCount }
+      : {}),
+    ...(entry.claimConfidenceTier ? { claim_confidence_tier: entry.claimConfidenceTier } : {}),
+    ...(typeof entry.claimConfidenceScore === 'number'
+      ? { claim_confidence_score: entry.claimConfidenceScore }
+      : {}),
+  };
+}
+
+function isUserSignalContamination(entry: ToolPageProsConsEntry): boolean {
+  if (entry.claim_type === 'opinion') return true;
+  return entry.source_type === 'community';
+}
+
 export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput): {
   pros: ToolPageProsConsEntry[];
   cons: ToolPageProsConsEntry[];
@@ -153,47 +182,31 @@ export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput)
   const userReportedCons = (input.userReportedCons || [])
     .map(normalizeUserReportedEntry)
     .filter((entry): entry is ToolPageProsConsEntry => Boolean(entry));
+  const factualPros: ToolPageProsConsEntry[] = [];
+  const factualCons: ToolPageProsConsEntry[] = [];
+  const reroutedUserSignalPros: ToolPageProsConsEntry[] = [];
+  const reroutedUserSignalCons: ToolPageProsConsEntry[] = [];
+
+  for (const raw of input.pros.map(normalizeFactualEntry)) {
+    if (isUserSignalContamination(raw)) {
+      reroutedUserSignalPros.push(raw);
+      continue;
+    }
+    factualPros.push(raw);
+  }
+
+  for (const raw of input.cons.map(normalizeFactualEntry)) {
+    if (isUserSignalContamination(raw)) {
+      reroutedUserSignalCons.push(raw);
+      continue;
+    }
+    factualCons.push(raw);
+  }
 
   return {
-    pros: input.pros.map((entry) => ({
-      text: entry.text,
-      source_url: entry.sourceUrl,
-      ...(entry.sourceType ? { source_type: entry.sourceType } : {}),
-      ...(entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl)
-        ? {
-            source_channel:
-              entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
-          }
-        : {}),
-      ...(entry.claimType ? { claim_type: entry.claimType } : {}),
-      ...(typeof entry.corroboratingSourceCount === 'number'
-        ? { corroborating_source_count: entry.corroboratingSourceCount }
-        : {}),
-      ...(entry.claimConfidenceTier ? { claim_confidence_tier: entry.claimConfidenceTier } : {}),
-      ...(typeof entry.claimConfidenceScore === 'number'
-        ? { claim_confidence_score: entry.claimConfidenceScore }
-        : {}),
-    })),
-    cons: input.cons.map((entry) => ({
-      text: entry.text,
-      source_url: entry.sourceUrl,
-      ...(entry.sourceType ? { source_type: entry.sourceType } : {}),
-      ...(entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl)
-        ? {
-            source_channel:
-              entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
-          }
-        : {}),
-      ...(entry.claimType ? { claim_type: entry.claimType } : {}),
-      ...(typeof entry.corroboratingSourceCount === 'number'
-        ? { corroborating_source_count: entry.corroboratingSourceCount }
-        : {}),
-      ...(entry.claimConfidenceTier ? { claim_confidence_tier: entry.claimConfidenceTier } : {}),
-      ...(typeof entry.claimConfidenceScore === 'number'
-        ? { claim_confidence_score: entry.claimConfidenceScore }
-        : {}),
-    })),
-    userSignalPros: userReportedPros,
-    userSignalCons: userReportedCons,
+    pros: factualPros,
+    cons: factualCons,
+    userSignalPros: [...userReportedPros, ...reroutedUserSignalPros],
+    userSignalCons: [...userReportedCons, ...reroutedUserSignalCons],
   };
 }
