@@ -659,13 +659,16 @@ export const ClaimArraySchema = z
   .array(z.union([LegacyClaimSchema, ClaimWithSourceSchema]))
   .min(1)
   .max(5);
+export const OptionalClaimArraySchema = z
+  .array(z.union([LegacyClaimSchema, ClaimWithSourceSchema]))
+  .max(5);
 
 export const AnalysisSchema = z.object({
   score: z.number().min(0).max(100),
   pros: ClaimArraySchema,
   cons: ClaimArraySchema,
-  userReportedPros: ClaimArraySchema.optional(),
-  userReportedCons: ClaimArraySchema.optional(),
+  userReportedPros: OptionalClaimArraySchema.optional(),
+  userReportedCons: OptionalClaimArraySchema.optional(),
   faqs: z
     .array(
       z.object({
