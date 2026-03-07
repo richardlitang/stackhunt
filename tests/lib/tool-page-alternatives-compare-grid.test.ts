@@ -172,4 +172,30 @@ describe('resolveToolCompareGridValue', () => {
     expect(rows).not.toContain('Choose this instead if');
     expect(rows).toContain('Evidence level');
   });
+
+  it('suppresses heuristic rows when every cell resolves to the same generic value', () => {
+    const main: ToolCompareGridLike = {
+      name: 'MainTool',
+      pricing_type: null,
+      learning_curve: null,
+      curatedVerdict: null,
+      computedDiff: {
+        featureDiff: 'Model signal only, verify in docs',
+      },
+    };
+    const alternatives: ToolCompareGridLike[] = [
+      {
+        name: 'AltA',
+        pricing_type: null,
+        learning_curve: null,
+        curatedVerdict: null,
+        computedDiff: {
+          featureDiff: 'Model signal only, verify in docs',
+        },
+      },
+    ];
+
+    const rows = deriveVisibleToolCompareGridRows(main, alternatives, 'general');
+    expect(rows).not.toContain('Customization depth');
+  });
 });

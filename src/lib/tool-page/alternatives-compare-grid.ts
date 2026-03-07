@@ -197,9 +197,15 @@ export function deriveVisibleToolCompareGridRows(
         resolveToolCompareGridCell(row, alt, activeReviewLens)
       ),
     ];
+    const normalizedValues = cells
+      .map((cell) => cell.value.toLowerCase().replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    const hasValueVariance =
+      normalizedValues.length > 1 && new Set(normalizedValues).size > 1;
     const hasSource = cells.some((cell) => cell.evidenceTag === 'source');
     const hasNonPending = cells.some((cell) => cell.evidenceTag !== 'pending');
     if (!hasNonPending) return false;
+    if (!hasSource && !hasValueVariance && !ROWS_ALLOWING_HEURISTIC_ONLY.has(row)) return false;
     if (hasSource) return true;
     return ROWS_ALLOWING_HEURISTIC_ONLY.has(row);
   });
