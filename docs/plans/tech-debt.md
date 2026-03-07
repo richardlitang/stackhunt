@@ -6,6 +6,18 @@ Track architecture, pipeline, and SEO debt as small, agent-executable items.
 
 ## Open Items
 
+- `tool-page-entity-ambiguity`: ambiguous parent products like GitHub can still render mixed-scope reviews because page selection is freshness-based instead of subject-based.
+  - Owner: platform
+  - Target date: 2026-03-14
+  - Next verification: `rg -n "review_subject|entity_scope|selectToolPageReview|getToolPageData" src/lib src/pages`
+- `tool-page-evidence-lane-blending`: official facts, user signals, and editorial synthesis are still blended across prompts, persistence, and rendering.
+  - Owner: platform
+  - Target date: 2026-03-14
+  - Next verification: `rg -n "userReportedPros|userReportedCons|reviewContext|official_fact|user_signal|editorial_inference" src/lib docs`
+- `tool-page-generic-fallback-copy`: decision and rollout builders still generate template-safe copy when product-specific evidence is weak.
+  - Owner: platform
+  - Target date: 2026-03-14
+  - Next verification: `rg -n "What to test before rollout|Common setups|should be evaluated by workflow outcomes|fits startups" src/lib/tool-page src/pages/tool/[slug].astro`
 - `tool-page-route-thinning`: `src/pages/tool/[slug].astro` is still a heavy composition root (~1.9k lines) despite recent helper extraction.
   - Owner: platform
   - Target date: 2026-03-12
