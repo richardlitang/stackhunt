@@ -618,6 +618,20 @@ EDITORIAL sources (can be "fact" or "opinion"):
 COMMUNITY sources (usually "opinion", requires hedging):
 - Public forum discussions and practitioner writeups
 
+## Evidence Lane Rules (Entity-First Rebuild)
+
+Treat output fields as separate lanes:
+
+- pros and cons: prioritize source-backed product truths and constraints (official first, editorial second).
+- userReportedPros and userReportedCons: only user/community/editorial experience signals, never official marketing claims.
+- reviewContext.decisionEvidence: must anchor to source-backed reasons, and should not reuse generic summary language.
+
+Hard rules:
+
+- Do not place community complaints into official/factual lane unless independently corroborated by official documentation.
+- Do not place official plan/pricing/capability claims into userReported lanes.
+- If lane confidence is weak, output fewer claims instead of filling with generic prose.
+
 ## Claim Type Guide:
 
 FACTS (verifiable):
