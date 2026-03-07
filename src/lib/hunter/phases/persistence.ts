@@ -1989,6 +1989,11 @@ export async function executePersistencePhase(
           typeof claimRecord.corroborating_source_count === 'number'
             ? claimRecord.corroborating_source_count
             : undefined;
+        const sourceChannel =
+          claim.source_channel ||
+          (claim.source_type === 'community'
+            ? inferUserSignalChannelFromUrl(claim.source_url)
+            : 'editorial');
         return {
           text: claim.text,
           source_url: claim.source_url,
@@ -1996,7 +2001,7 @@ export async function executePersistencePhase(
             ? { source_urls: claim.source_urls }
             : {}),
           source_type: claim.source_type,
-          ...(claim.source_channel ? { source_channel: claim.source_channel } : {}),
+          ...(sourceChannel ? { source_channel: sourceChannel } : {}),
           claim_type: claim.claim_type,
           ...(typeof corroboratingSourceCount === 'number'
             ? { corroborating_source_count: corroboratingSourceCount }
