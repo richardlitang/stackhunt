@@ -101,6 +101,7 @@ describe('tool page content/alternatives decision context', () => {
       },
       qualityState: {
         communityCorroborationCount: 2,
+        userSignalClaimsCount: 3,
       },
     } as const;
 
@@ -133,6 +134,7 @@ describe('tool page content/alternatives decision context', () => {
         gettingStartedCtaUrl: input.decisionRuntime.setupSignals.gettingStartedCtaUrl,
         prosConsSourcesCount: input.evidenceRuntime.collectedSourcesBySection.pros_cons,
         communityCorroborationCount: input.qualityState.communityCorroborationCount,
+        userSignalClaimsCount: input.qualityState.userSignalClaimsCount,
         evidenceBasis: input.reviewArtifactsState.evidenceBasis,
         hasCommunity: input.sectionFlags.hasCommunity,
         userAdvocate: input.reviewContextSignals.userAdvocate,

@@ -55,6 +55,7 @@ interface BuildToolPageContentSectionsStateInputFromRouteInput {
   toolName: string;
   prosConsSourcesCount: number;
   communityCorroborationCount?: number;
+  userSignalClaimsCount?: number;
   affiliateOffers:
     | Array<{ url: string; cta_text: string; is_affiliate?: boolean | null }>
     | null
@@ -97,6 +98,7 @@ interface BuildToolPageContentSectionsStateInputFromRouteContextInput {
   gettingStartedCtaUrl: BuildToolPageContentSectionsStateInputFromRouteInput['gettingStartedCtaUrl'];
   prosConsSourcesCount: BuildToolPageContentSectionsStateInputFromRouteInput['prosConsSourcesCount'];
   communityCorroborationCount: BuildToolPageContentSectionsStateInputFromRouteInput['communityCorroborationCount'];
+  userSignalClaimsCount?: BuildToolPageContentSectionsStateInputFromRouteInput['userSignalClaimsCount'];
   evidenceBasis: BuildToolPageContentSectionsStateInputFromRouteInput['evidenceBasis'];
   hasCommunity: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['hasCommunity'];
   userAdvocate: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['userAdvocate'];
@@ -154,6 +156,7 @@ export function buildToolPageContentSectionsStateInputFromRoute(
     strengthsSubtitleInput: {
       prosConsSourcesCount: input.prosConsSourcesCount,
       communityCorroborationCount: input.communityCorroborationCount || 0,
+      userSignalClaimsCount: input.userSignalClaimsCount || 0,
     },
     affiliateOffersInput: {
       offers: input.affiliateOffers || [],
@@ -228,6 +231,7 @@ export function buildToolPageContentSectionsStateInputFromRouteContext(
     toolName: input.tool.name,
     prosConsSourcesCount: input.prosConsSourcesCount,
     communityCorroborationCount: input.communityCorroborationCount || 0,
+    userSignalClaimsCount: input.userSignalClaimsCount || 0,
     affiliateOffers: input.tool.affiliate_offers || [],
     evidenceBasis: input.evidenceBasis,
     tribalKnowledge: {

@@ -40,7 +40,10 @@ interface BuildToolPageContentAlternativesStateFromDecisionContextInput {
   reviewArtifactsState: ReturnType<typeof buildToolPageReviewArtifactsStateFromRouteContext>;
   reviewSignalsView: ReturnType<typeof buildToolPageReviewSignalsView>;
   reviewContextSignals: ToolPageReviewContextSignals;
-  qualityState: Pick<ReturnType<typeof buildToolPageQualityState>, 'communityCorroborationCount'>;
+  qualityState: Pick<
+    ReturnType<typeof buildToolPageQualityState>,
+    'communityCorroborationCount' | 'userSignalClaimsCount'
+  >;
 }
 
 export function buildToolPageContentAlternativesStateFromDecisionContext(
@@ -75,6 +78,7 @@ export function buildToolPageContentAlternativesStateFromDecisionContext(
       gettingStartedCtaUrl: input.decisionRuntime.setupSignals.gettingStartedCtaUrl,
       prosConsSourcesCount: input.evidenceRuntime.collectedSourcesBySection.pros_cons,
       communityCorroborationCount: input.qualityState.communityCorroborationCount,
+      userSignalClaimsCount: input.qualityState.userSignalClaimsCount,
       evidenceBasis: input.reviewArtifactsState.evidenceBasis,
       hasCommunity: input.sectionFlags.hasCommunity,
       userAdvocate: input.reviewContextSignals.userAdvocate,
