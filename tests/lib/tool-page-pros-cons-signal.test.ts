@@ -53,6 +53,22 @@ describe('tool-page pros/cons signal weighting', () => {
     expect(reddit).toBeGreaterThan(genericCommunity);
   });
 
+  it('uses explicit source channel when provided by ETL', () => {
+    const hn = scoreProsConsClaimSignal({
+      sourceType: 'community',
+      sourceChannel: 'hn',
+      sourceUrl: null,
+      text: 'Users report useful engineering discussions around edge cases',
+    });
+    const other = scoreProsConsClaimSignal({
+      sourceType: 'community',
+      sourceChannel: 'other',
+      sourceUrl: null,
+      text: 'Users report useful engineering discussions around edge cases',
+    });
+    expect(hn).toBeGreaterThan(other);
+  });
+
   it('boosts corroborated claims above single-source claims of same source type', () => {
     const corroborated = scoreProsConsClaimSignal({
       sourceType: 'community',

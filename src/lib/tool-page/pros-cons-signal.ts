@@ -62,6 +62,7 @@ export function classifyProsConsSourceType(input: {
 export function scoreProsConsClaimSignal(input: {
   sourceType: ProsConsSourceType;
   sourceUrl?: string | null;
+  sourceChannel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
   claimType?: ProsConsClaimType | null;
   text?: string;
   corroboratingSourceCount?: number;
@@ -73,7 +74,9 @@ export function scoreProsConsClaimSignal(input: {
   const corroborationWeight = Math.min(120, (corroborationCount - 1) * 40);
   const claimWeight = input.claimType === 'opinion' ? 12 : 0;
   const communityChannel =
-    input.sourceType === 'community' ? inferUserSignalChannelFromUrl(input.sourceUrl) : null;
+    input.sourceType === 'community'
+      ? input.sourceChannel || inferUserSignalChannelFromUrl(input.sourceUrl)
+      : null;
   const communityChannelBoost =
     communityChannel === 'reddit'
       ? 24
@@ -101,6 +104,7 @@ export function prioritizeProsConsClaims<
   T extends {
     text?: string;
     source_type?: ProsConsSourceType;
+    source_channel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
     claim_type?: ProsConsClaimType;
     corroborating_source_count?: number;
     claim_confidence_tier?: 'high' | 'medium' | 'low';
@@ -118,6 +122,8 @@ export function prioritizeProsConsClaims<
           typeof (item as { source_url?: string }).source_url === 'string'
             ? (item as { source_url?: string }).source_url || null
             : null,
+        sourceChannel:
+          typeof item.source_channel === 'string' ? item.source_channel : undefined,
         claimType: item.claim_type,
         text: getClaimDisplayText(item),
         corroboratingSourceCount: item.corroborating_source_count,
