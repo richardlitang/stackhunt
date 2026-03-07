@@ -150,4 +150,41 @@ describe('tool page review subject', () => {
     expect(mapped?.entityScope).toBe('copilot');
     expect(mapped?.subjectKey).toBe('github:copilot');
   });
+
+  it('marks low-confidence lane subject profiles as ambiguous', () => {
+    const mapped = mapLaneSubjectProfileToResolvedSubject(
+      {
+        subject_profile: {
+          subject_type: 'plan_family',
+          subject_key: 'github:enterprise',
+          display_name: 'GitHub Enterprise',
+          entity_scope: null,
+          confidence: 'low',
+        },
+        fact_sheet: {
+          official_facts: [],
+          official_pricing_facts: [],
+          official_limit_facts: [],
+        },
+        user_signal_sheet: {
+          user_signal_pros: [],
+          user_signal_cons: [],
+        },
+        editorial_decision: {
+          summary: null,
+          best_for: null,
+          not_for: null,
+          main_tradeoff: null,
+          human_verdict: null,
+        },
+      },
+      {
+        name: 'GitHub Enterprise',
+        slug: 'github-enterprise',
+      }
+    );
+
+    expect(mapped?.confidence).toBe('low');
+    expect(mapped?.ambiguityReason).toContain('low confidence');
+  });
 });
