@@ -122,8 +122,7 @@ export function prioritizeProsConsClaims<
           typeof (item as { source_url?: string }).source_url === 'string'
             ? (item as { source_url?: string }).source_url || null
             : null,
-        sourceChannel:
-          typeof item.source_channel === 'string' ? item.source_channel : undefined,
+        sourceChannel: typeof item.source_channel === 'string' ? item.source_channel : undefined,
         claimType: item.claim_type,
         text: getClaimDisplayText(item),
         corroboratingSourceCount: item.corroborating_source_count,

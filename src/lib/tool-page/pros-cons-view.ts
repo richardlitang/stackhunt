@@ -149,7 +149,8 @@ export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput)
         ...(entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl)
           ? {
               source_channel:
-                entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
+                entry.sourceChannel ||
+                deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
             }
           : {}),
         ...(entry.claimType ? { claim_type: entry.claimType } : {}),
@@ -171,7 +172,8 @@ export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput)
         ...(entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl)
           ? {
               source_channel:
-                entry.sourceChannel || deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
+                entry.sourceChannel ||
+                deriveSourceChannelFromUrl(entry.sourceType, entry.sourceUrl),
             }
           : {}),
         ...(entry.claimType ? { claim_type: entry.claimType } : {}),

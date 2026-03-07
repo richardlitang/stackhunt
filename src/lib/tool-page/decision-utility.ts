@@ -208,7 +208,7 @@ export function buildToolPageDecisionUtilityState(
   const normalizePricingMentalModelKey = (value: string): string =>
     value
       .toLowerCase()
-      .replace(/^[\-\s]+/, '')
+      .replace(/^[-\s]+/, '')
       .replace(/[.:;!?]+$/g, '')
       .replace(/[^\w\s]/g, ' ')
       .replace(/\s+/g, ' ')
