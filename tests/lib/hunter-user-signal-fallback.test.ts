@@ -122,4 +122,19 @@ describe('hunter user signal fallback', () => {
     expect(claims[0]?.text.toLowerCase()).toContain('easier onboarding');
     expect(claims[0]?.text.toLowerCase()).not.toContain('top 10 ai tools');
   });
+
+  it('filters low-signal marketing-style claims from community snippets', () => {
+    const claims = buildFallbackUserSignalClaimsFromSources({
+      label: 'pros',
+      sources: [
+        {
+          url: 'https://www.reddit.com/r/saas/comments/low_signal',
+          snippet: 'Supports core workflows for most teams with flexibility.',
+          source_type: 'community',
+        },
+      ],
+    });
+
+    expect(claims).toHaveLength(0);
+  });
 });

@@ -1,5 +1,6 @@
 import type { ClaimWithSource } from '@/lib/hunter/types';
 import { inferUserSignalChannelFromUrl } from '@/lib/user-signal-channel';
+import { isLowSignalUserClaimText, scoreUserVoiceStrength } from '@/lib/user-signal-quality';
 
 const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
 const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
@@ -36,8 +37,18 @@ export function scoreUserSignalClaim(claim: ClaimWithSource): number {
   const corroborationWeight = Math.min(15, (corroborationCount - 1) * 5);
   const confidenceWeight =
     claim.claim_confidence_tier === 'high' ? 10 : claim.claim_confidence_tier === 'medium' ? 5 : 0;
+  const userVoiceWeight = scoreUserVoiceStrength(claim.text);
+  const lowSignalPenalty = isLowSignalUserClaimText(claim.text) ? 12 : 0;
   const textWeight = Math.min(8, Math.floor((claim.text || '').length / 40));
-  return sourceWeight + channelWeight + corroborationWeight + confidenceWeight + textWeight;
+  return (
+    sourceWeight +
+    channelWeight +
+    corroborationWeight +
+    confidenceWeight +
+    userVoiceWeight +
+    textWeight -
+    lowSignalPenalty
+  );
 }
 
 export function mergeRankedUserSignalClaims(

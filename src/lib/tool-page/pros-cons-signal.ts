@@ -1,6 +1,7 @@
 type ProsConsSourceType = 'official' | 'editorial' | 'community';
 type ProsConsClaimType = 'fact' | 'opinion';
 import { inferUserSignalChannelFromUrl } from '@/lib/user-signal-channel';
+import { isLowSignalUserClaimText, scoreUserVoiceStrength } from '@/lib/user-signal-quality';
 
 const COMMUNITY_HOST_PATTERNS = [
   /(^|\.)reddit\.com$/i,
@@ -89,6 +90,11 @@ export function scoreProsConsClaimSignal(input: {
             : 0;
   const confidenceWeight =
     input.claimConfidenceTier === 'high' ? 28 : input.claimConfidenceTier === 'medium' ? 12 : 0;
+  const userVoiceWeight =
+    input.sourceType === 'community' || input.sourceType === 'editorial'
+      ? scoreUserVoiceStrength(input.text)
+      : 0;
+  const lowSignalPenalty = isLowSignalUserClaimText(input.text) ? 20 : 0;
   const textWeight = (input.text || '').length;
   return (
     sourceWeight +
@@ -96,7 +102,9 @@ export function scoreProsConsClaimSignal(input: {
     claimWeight +
     communityChannelBoost +
     confidenceWeight +
-    textWeight
+    userVoiceWeight +
+    textWeight -
+    lowSignalPenalty
   );
 }
 

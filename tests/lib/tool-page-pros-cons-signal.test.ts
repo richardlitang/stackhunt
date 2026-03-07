@@ -37,6 +37,20 @@ describe('tool-page pros/cons signal weighting', () => {
     );
   });
 
+  it('penalizes low-signal generic claims even when source type is community', () => {
+    const generic = scoreProsConsClaimSignal({
+      sourceType: 'community',
+      sourceUrl: 'https://www.reddit.com/r/saas/comments/abc',
+      text: 'Supports core workflows for most teams.',
+    });
+    const concrete = scoreProsConsClaimSignal({
+      sourceType: 'community',
+      sourceUrl: 'https://www.reddit.com/r/saas/comments/abc',
+      text: 'I hit friction in permissions setup when handing off leads between reps.',
+    });
+    expect(concrete).toBeGreaterThan(generic);
+  });
+
   it('prioritizes corroborated Reddit community claims over generic community claims', () => {
     const reddit = scoreProsConsClaimSignal({
       sourceType: 'community',

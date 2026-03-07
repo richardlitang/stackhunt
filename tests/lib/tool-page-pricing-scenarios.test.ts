@@ -6,6 +6,7 @@ describe('tool page pricing scenarios', () => {
     const result = buildToolPagePricingScenarioState({
       toolName: 'Attio',
       hardLimitText: 'Free plan capped at 3 seats.',
+      activeReviewLens: 'startup',
     });
 
     expect(result.examples[0]).toContain('3 seats or fewer');
@@ -16,9 +17,21 @@ describe('tool page pricing scenarios', () => {
     const result = buildToolPagePricingScenarioState({
       toolName: 'Notion',
       hardLimitText: null,
+      activeReviewLens: 'general',
     });
 
     expect(result.examples[0]).toContain('Small-team example');
     expect(result.examples[1]).toContain('Growth example');
+  });
+
+  it('returns enterprise-oriented examples for enterprise lens', () => {
+    const result = buildToolPagePricingScenarioState({
+      toolName: 'Notion',
+      hardLimitText: 'Free plan capped at 3 seats.',
+      activeReviewLens: 'enterprise',
+    });
+
+    expect(result.examples[0]).toContain('Pilot example');
+    expect(result.examples[1]).toContain('contract scope');
   });
 });

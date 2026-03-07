@@ -56,16 +56,12 @@ const statusLabels = {
   class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
 >
   <h2 class="mb-2 text-lg font-semibold text-zinc-100">
-    {
-      practicalOutcomesVisible
-        ? 'Capabilities and implementation depth'
-        : 'Capabilities and feature depth'
-    }
+    {practicalOutcomesVisible ? 'Capability inventory' : 'Capabilities and feature depth'}
   </h2>
   <p class="mb-6 text-sm text-zinc-400">
     {
       practicalOutcomesVisible
-        ? 'Detailed capability inventory after outcome-focused rollout guidance.'
+        ? 'Detailed capability inventory after outcome-focused rollout guidance, trimmed to avoid repeated narrative claims.'
         : peerCount > 0
           ? `Source-backed capabilities compared with ${peerCount} similar tools.`
           : 'Source-backed capability summary focused on practical team impact.'
@@ -91,7 +87,7 @@ const statusLabels = {
 
   {/* Unique Features */}
   {
-    features.unique && features.unique.length > 0 && (
+    !practicalOutcomesVisible && features.unique && features.unique.length > 0 && (
       <div class="mb-6">
         <h3 class="mb-3 text-sm font-medium text-zinc-300">Why teams choose it</h3>
         <div class="grid gap-3">

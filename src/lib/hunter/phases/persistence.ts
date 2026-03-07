@@ -59,6 +59,7 @@ import { buildFallbackUserSignalClaimsFromSources } from '@/lib/hunter/user-sign
 import {
   mergeRankedUserSignalClaims,
   normalizeUserSignalClaimKey,
+  scoreUserSignalClaim,
 } from '@/lib/hunter/user-signal-claims';
 import { buildDecisionSlots } from '@/lib/tool-page/intro';
 import { normalizeCategorySlug, resolveCategoryFromPrimaryFunction } from '../category-resolver';
@@ -4272,17 +4273,9 @@ function buildUserSignalSummary(
     source_channel: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
   }> = [];
   const seen = new Set<string>();
-  const rankedUserClaims = [...community, ...editorial].sort((a, b) => {
-    const aSourceUrls = Array.isArray(a.source_urls) ? a.source_urls.length : 1;
-    const bSourceUrls = Array.isArray(b.source_urls) ? b.source_urls.length : 1;
-    const aTier =
-      a.claim_confidence_tier === 'high' ? 3 : a.claim_confidence_tier === 'medium' ? 2 : 1;
-    const bTier =
-      b.claim_confidence_tier === 'high' ? 3 : b.claim_confidence_tier === 'medium' ? 2 : 1;
-    const aSourceType = a.source_type === 'community' ? 2 : 1;
-    const bSourceType = b.source_type === 'community' ? 2 : 1;
-    return bSourceType - aSourceType || bSourceUrls - aSourceUrls || bTier - aTier;
-  });
+  const rankedUserClaims = [...community, ...editorial].sort(
+    (a, b) => scoreUserSignalClaim(b) - scoreUserSignalClaim(a)
+  );
 
   const normalizeSignal = (claim: ClaimWithSource): string => {
     return stripTerminalPunctuation(sanitizeNarrativeClaimText(claim.text) || claim.text).trim();

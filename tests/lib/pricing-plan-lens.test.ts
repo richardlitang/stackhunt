@@ -71,4 +71,28 @@ describe('pricing plan lens tagging', () => {
     expect(matched.usedFallback).toBe(true);
     expect(matched.plans).toHaveLength(1);
   });
+
+  it('uses scored fallback ordering when lens tags are absent', () => {
+    const plans = [
+      { name: 'Free', target_audience: null, is_enterprise: false, works_for_lenses: ['personal'] },
+      {
+        name: 'Scale',
+        target_audience: null,
+        is_enterprise: false,
+        works_for_lenses: ['startup'],
+      },
+      {
+        name: 'Custom Plan',
+        target_audience: null,
+        is_enterprise: false,
+        includes_sso: true,
+        works_for_lenses: ['startup'],
+      },
+    ];
+    const matched = filterPlansForLensWithMeta(plans, 'enterprise');
+
+    expect(matched.usedFallback).toBe(true);
+    expect(matched.plans[0]?.name).toBe('Custom Plan');
+    expect(matched.plans.length).toBeLessThanOrEqual(2);
+  });
 });

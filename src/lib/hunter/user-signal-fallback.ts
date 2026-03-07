@@ -1,4 +1,5 @@
 import { inferUserSignalChannelFromUrl } from '@/lib/user-signal-channel';
+import { hasUserVoiceEvidence, isLowSignalUserClaimText } from '@/lib/user-signal-quality';
 
 export type UserSignalFallbackLabel = 'pros' | 'cons';
 
@@ -139,6 +140,7 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
     const sentenceCandidates = splitSnippetIntoCandidateSentences(cleanedCandidate);
     for (const sentenceCandidate of sentenceCandidates) {
       if (!isRenderableClaimText(sentenceCandidate)) continue;
+      if (isLowSignalUserClaimText(sentenceCandidate)) continue;
 
       const hasNegativeSignal =
         NEGATIVE_CUES.test(sentenceCandidate) ||
@@ -146,6 +148,13 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
       const hasPositiveSignal = USER_SIGNAL_POSITIVE_TOKENS.test(sentenceCandidate);
       if (input.label === 'cons' && !hasNegativeSignal) continue;
       if (input.label === 'pros' && (hasNegativeSignal || !hasPositiveSignal)) continue;
+      if (
+        inferredSourceType === 'community' &&
+        channel === 'other' &&
+        !hasUserVoiceEvidence(sentenceCandidate)
+      ) {
+        continue;
+      }
 
       const normalizedText =
         inferredSourceType === 'community' && !hasCommunityHedgingLanguage(sentenceCandidate)

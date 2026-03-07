@@ -515,6 +515,7 @@ const decisionHardLimitEvidence = topLensHardLimit || null;
 const pricingScenarioState = buildToolPagePricingScenarioState({
   toolName: tool.name,
   hardLimitText: topLensHardLimit?.text || null,
+  activeReviewLens,
 });
 const {
   reviewInProgressBannerText,
