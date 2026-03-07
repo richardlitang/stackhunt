@@ -530,8 +530,7 @@ const shouldShowDecisionUtilitySection =
   decisionUtilityState.hasEvidenceAnchoredUtility &&
   (decisionUtilityState.testChecklistItems.length > 0 ||
     decisionUtilityState.commonSetups.length > 0);
-const shouldShowPracticalOutcomes =
-  decisionUtilityState.practicalOutcomes.length > 0 && !hasFeatures;
+const shouldShowPracticalOutcomes = decisionUtilityState.practicalOutcomes.length > 0;
 const showEarlySnapshotToneBanner =
   trustBarProps.confidence === 'Low' || trustBarProps.pendingCount > 0;
 const {
@@ -1446,6 +1445,7 @@ applyToolPageRobotsHeader({
                 toolName={tool.name}
                 sectionId="features"
                 peerCount={comparativeFeaturePeerCount}
+                practicalOutcomesVisible={shouldShowPracticalOutcomes}
               />
             </div>
           )

@@ -13,9 +13,16 @@ interface Props {
   toolName: string;
   sectionId?: string;
   peerCount?: number;
+  practicalOutcomesVisible?: boolean;
 }
 
-const { features, toolName: _toolName, sectionId, peerCount = 0 } = Astro.props;
+const {
+  features,
+  toolName: _toolName,
+  sectionId,
+  peerCount = 0,
+  practicalOutcomesVisible = false,
+} = Astro.props;
 
 // Check if we have any data to display
 const hasData =
@@ -48,18 +55,22 @@ const statusLabels = {
   id={sectionId}
   class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
 >
-  <h2 class="mb-2 text-lg font-semibold text-zinc-100">Capabilities and feature depth</h2>
+  <h2 class="mb-2 text-lg font-semibold text-zinc-100">
+    {practicalOutcomesVisible ? 'Capabilities and implementation depth' : 'Capabilities and feature depth'}
+  </h2>
   <p class="mb-6 text-sm text-zinc-400">
     {
-      peerCount > 0
-        ? `Source-backed capabilities compared with ${peerCount} similar tools.`
-        : 'Source-backed capability summary focused on practical team impact.'
+      practicalOutcomesVisible
+        ? 'Detailed capability inventory after outcome-focused rollout guidance.'
+        : peerCount > 0
+          ? `Source-backed capabilities compared with ${peerCount} similar tools.`
+          : 'Source-backed capability summary focused on practical team impact.'
     }
   </p>
 
   {/* Core Features */}
   {
-    features.core && features.core.length > 0 && (
+    !practicalOutcomesVisible && features.core && features.core.length > 0 && (
       <div class="mb-6">
         <h3 class="mb-3 text-sm font-medium text-zinc-300">Core workflows</h3>
         <div class="grid gap-3 sm:grid-cols-2">
