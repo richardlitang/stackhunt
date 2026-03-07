@@ -18,6 +18,7 @@ interface ClaimWithSource {
   text: string;
   source_url?: string;
   source_type?: SourceType;
+  source_channel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
   claim_type?: ClaimType;
   corroborating_source_count?: number;
   claim_confidence_tier?: 'high' | 'medium' | 'low';
@@ -81,6 +82,8 @@ const HEDGING_PREFIXES: Record<SourceType, string[]> = {
   editorial: ['According to reviews,', 'Reviewers note that'],
   official: [],
 };
+const EXISTING_HEDGING_PREFIX =
+  /^(users report(?: that)?|according to community feedback|based on user discussions|according to reviews|reviewers note that),?\s+/i;
 
 // Normalize items to consistent format
 function normalizeClaim(
@@ -112,8 +115,10 @@ function normalizeClaim(
     const prefixes = HEDGING_PREFIXES[item.source_type];
     if (prefixes.length > 0) {
       const prefix = prefixes[index % prefixes.length];
-      // Lowercase first letter of claim text when adding prefix
-      displayText = `${prefix} ${item.text.charAt(0).toLowerCase()}${item.text.slice(1)}`;
+      if (!EXISTING_HEDGING_PREFIX.test(displayText)) {
+        // Lowercase first letter of claim text when adding prefix
+        displayText = `${prefix} ${item.text.charAt(0).toLowerCase()}${item.text.slice(1)}`;
+      }
     }
   }
 
@@ -232,6 +237,16 @@ function getSourceLabel(sourceType?: SourceType): string {
     default:
       return 'Source';
   }
+}
+
+function getSourceChannelLabel(
+  sourceChannel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other'
+): string | null {
+  if (sourceChannel === 'reddit') return 'Reddit';
+  if (sourceChannel === 'hn') return 'HN';
+  if (sourceChannel === 'forum') return 'Forum';
+  if (sourceChannel === 'editorial') return 'Editorial';
+  return null;
 }
 
 // Format timestamp for display (e.g., "Jan 2026")
@@ -383,6 +398,8 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                     {typeof pro.corroborating_source_count === 'number' &&
                       pro.corroborating_source_count > 1 &&
                       `, corroborated by ${pro.corroborating_source_count} sources`}
+                    {getSourceChannelLabel(pro.source_channel) &&
+                      `, ${getSourceChannelLabel(pro.source_channel)}`}
                     {pro.claim_confidence_tier && `, confidence ${pro.claim_confidence_tier}`}
                   </p>
                   {needsConfirmationChip(pro) && (
@@ -457,6 +474,8 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                     {typeof con.corroborating_source_count === 'number' &&
                       con.corroborating_source_count > 1 &&
                       `, corroborated by ${con.corroborating_source_count} sources`}
+                    {getSourceChannelLabel(con.source_channel) &&
+                      `, ${getSourceChannelLabel(con.source_channel)}`}
                     {con.claim_confidence_tier && `, confidence ${con.claim_confidence_tier}`}
                   </p>
                   {needsConfirmationChip(con) && (
