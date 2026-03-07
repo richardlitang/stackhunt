@@ -51,10 +51,19 @@ function toSourceType(value: unknown): 'official' | 'editorial' | 'community' | 
 
 function deriveSourceChannelFromUrl(
   sourceType: 'official' | 'editorial' | 'community' | undefined,
-  sourceUrl: string | null
+  sourceUrl: string | null,
+  sourceUrls?: string[]
 ): 'reddit' | 'forum' | 'hn' | 'editorial' | 'other' | undefined {
   if (sourceType === 'editorial') return 'editorial';
-  if (sourceType === 'community') return inferUserSignalChannelFromUrl(sourceUrl);
+  if (sourceType === 'community') {
+    if (Array.isArray(sourceUrls) && sourceUrls.length > 0) {
+      for (const candidate of sourceUrls) {
+        const channel = inferUserSignalChannelFromUrl(candidate);
+        if (channel !== 'other') return channel;
+      }
+    }
+    return inferUserSignalChannelFromUrl(sourceUrl);
+  }
   return undefined;
 }
 
@@ -115,8 +124,11 @@ function normalizeUserReportedEntry(value: Record<string, unknown>): ToolPagePro
     text,
     source_url: sourceUrl,
     ...(sourceType ? { source_type: sourceType } : {}),
-    ...(sourceChannel || deriveSourceChannelFromUrl(sourceType, sourceUrl)
-      ? { source_channel: sourceChannel || deriveSourceChannelFromUrl(sourceType, sourceUrl) }
+    ...(sourceChannel || deriveSourceChannelFromUrl(sourceType, sourceUrl, sourceUrls)
+      ? {
+          source_channel:
+            sourceChannel || deriveSourceChannelFromUrl(sourceType, sourceUrl, sourceUrls),
+        }
       : {}),
     ...(claimType ? { claim_type: claimType } : {}),
     ...(typeof corroboratingSourceCount === 'number'

@@ -70,4 +70,22 @@ describe('tool page pros/cons view', () => {
 
     expect(result.pros[0]?.source_channel).toBe('hn');
   });
+
+  it('derives channel from source_urls when primary source_url is not classifiable', () => {
+    const result = buildToolPageProsConsView({
+      pros: [],
+      cons: [],
+      userReportedCons: [
+        {
+          text: 'Users report intermittent sync lag.',
+          source_url: 'https://example.com/thread',
+          source_urls: ['https://example.com/thread', 'https://www.reddit.com/r/saas/comments/xyz'],
+          source_type: 'community',
+          claim_confidence_tier: 'low',
+        },
+      ],
+    });
+
+    expect(result.cons[0]?.source_channel).toBe('reddit');
+  });
 });
