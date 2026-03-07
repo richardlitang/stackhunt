@@ -127,7 +127,10 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
           : null;
     if (!inferredSourceType) continue;
 
-    const rawCandidate = `${source.snippet || ''} ${source.title || ''}`.trim();
+    const rawCandidate =
+      (typeof source.snippet === 'string' && source.snippet.trim().length > 0
+        ? source.snippet
+        : source.title) || '';
     const cleanedCandidate = stripTerminalPunctuation(
       sanitizeNarrativeClaimText(rawCandidate) || rawCandidate
     );

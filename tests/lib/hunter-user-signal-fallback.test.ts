@@ -104,4 +104,22 @@ describe('hunter user signal fallback', () => {
     expect(claims).toHaveLength(1);
     expect(claims[0]?.text.toLowerCase()).toContain('slow sync');
   });
+
+  it('prioritizes snippet text over noisy titles for claim extraction', () => {
+    const claims = buildFallbackUserSignalClaimsFromSources({
+      label: 'pros',
+      sources: [
+        {
+          url: 'https://www.reddit.com/r/saas/comments/123',
+          snippet: 'Users report easier onboarding and faster setup for small teams.',
+          title: 'Top 10 AI tools compared in 2026',
+          source_type: 'community',
+        },
+      ],
+    });
+
+    expect(claims).toHaveLength(1);
+    expect(claims[0]?.text.toLowerCase()).toContain('easier onboarding');
+    expect(claims[0]?.text.toLowerCase()).not.toContain('top 10 ai tools');
+  });
 });
