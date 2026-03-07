@@ -6,6 +6,13 @@ interface BuildToolPageQualityStateInputContext {
   firstReview: Parameters<typeof buildToolPageQualityState>[0]['firstReview'];
   reviewSelection: Parameters<typeof buildToolPageQualityState>[0]['reviewSelection'];
   canonicalFacts: Record<string, unknown> | null | undefined;
+  resolvedSubject?: Parameters<typeof buildToolPageQualityState>[0]['resolvedSubject'];
+  subjectSelectionSuppressed?: Parameters<
+    typeof buildToolPageQualityState
+  >[0]['subjectSelectionSuppressed'];
+  subjectSelectionReason?: Parameters<
+    typeof buildToolPageQualityState
+  >[0]['subjectSelectionReason'];
 }
 
 export function buildToolPageQualityStateInput(
@@ -27,5 +34,8 @@ export function buildToolPageQualityStateInput(
     firstReview: input.firstReview,
     reviewSelection: input.reviewSelection,
     persistedQuality,
+    resolvedSubject: input.resolvedSubject,
+    subjectSelectionSuppressed: input.subjectSelectionSuppressed,
+    subjectSelectionReason: input.subjectSelectionReason,
   };
 }

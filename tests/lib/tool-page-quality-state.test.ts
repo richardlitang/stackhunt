@@ -126,4 +126,67 @@ describe('tool page quality state', () => {
 
     expect(result.userSignalCoveragePending).toBe(true);
   });
+
+  it('surfaces subject-scope pending message when review selection is suppressed', () => {
+    const tool = {
+      name: 'Acme',
+      short_description: 'Acme helps teams automate workflows.',
+      metadata: {},
+      specs: {},
+    } as any;
+
+    const result = buildToolPageQualityState({
+      tool,
+      firstReview: null,
+      reviewSelection: {
+        hasPublishedReview: false,
+        hasDraftReview: false,
+      },
+      persistedQuality: undefined,
+      resolvedSubject: {
+        confidence: 'high',
+        entityScope: 'copilot',
+        subjectType: 'product_surface',
+      },
+      subjectSelectionSuppressed: true,
+      subjectSelectionReason: 'Published review content is hidden until scope resolves.',
+    });
+
+    expect(result.subjectScopePending).toBe(true);
+    expect(result.subjectScopeMessage).toBe(
+      'Published review content is hidden until scope resolves.'
+    );
+    expect(result.gateShouldIndex).toBe(false);
+    expect(result.gateReasons).toContain('subject_scope_pending');
+  });
+
+  it('blocks index readiness when subject confidence is low', () => {
+    const tool = {
+      name: 'Acme Enterprise',
+      short_description: 'Acme helps teams automate workflows.',
+      metadata: {},
+      specs: {},
+    } as any;
+
+    const result = buildToolPageQualityState({
+      tool,
+      firstReview: null,
+      reviewSelection: {
+        hasPublishedReview: false,
+        hasDraftReview: false,
+      },
+      persistedQuality: undefined,
+      resolvedSubject: {
+        confidence: 'low',
+        entityScope: null,
+        subjectType: 'plan_family',
+      },
+      subjectSelectionSuppressed: false,
+      subjectSelectionReason: null,
+    });
+
+    expect(result.subjectScopePending).toBe(true);
+    expect(result.gateShouldIndex).toBe(false);
+    expect(result.gateReasons).toContain('subject_scope_pending');
+  });
 });

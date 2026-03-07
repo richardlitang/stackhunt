@@ -11,6 +11,12 @@ import {
   deriveToolPageReviewContentLists,
   type ToolPageReviewContentLike,
 } from '@/lib/tool-page/review-content';
+import {
+  resolveToolPageReviewSubject,
+  shouldUseSubjectMatchedReview,
+  scoreToolPageReviewSubjectMatch,
+  type ToolPageResolvedSubject,
+} from '@/lib/tool-page/review-subject';
 import { selectToolPageReview } from '@/lib/reviews/select-review';
 
 type ToolPageTool = Awaited<ReturnType<typeof getToolBySlugAndType>>;
@@ -41,6 +47,9 @@ interface ToolPageParentTool {
 export interface ToolPageData {
   tool: ToolPageTool;
   parentTool: ToolPageParentTool | null;
+  resolvedSubject: ToolPageResolvedSubject;
+  subjectSelectionSuppressed: boolean;
+  subjectSelectionReason: string | null;
   tags: ToolPageTags;
   primaryOffer: ToolPageTool extends { affiliate_offers?: infer T }
     ? T extends Array<infer U>
@@ -87,14 +96,42 @@ export async function getToolPageData(slug: string): Promise<ToolPageData | null
     primaryOffer = primary || tool.affiliate_offers[0] || null;
   }
   const reviews = Array.isArray(tool.reviews) ? tool.reviews : [];
-  const reviewSelection = selectToolPageReview(reviews);
-  const firstReview = reviewSelection.firstPublished;
+  const resolvedSubject = resolveToolPageReviewSubject({
+    tool: {
+      name: tool.name,
+      slug: tool.slug,
+    },
+    parentTool,
+  });
+  const reviewSelection = selectToolPageReview(reviews, {
+    getReviewScore: (review) => scoreToolPageReviewSubjectMatch(review, resolvedSubject),
+  });
+  const shouldUsePublishedReview = shouldUseSubjectMatchedReview({
+    subject: resolvedSubject,
+    publishedReviewScore: reviewSelection.publishedReviewScore,
+  });
+  const effectiveReviewSelection = shouldUsePublishedReview
+    ? reviewSelection
+    : {
+        ...reviewSelection,
+        firstPublished: null,
+        hasPublishedReview: false,
+        hasNewerUnpublishedThanPublished: false,
+        publishedReviewScore: null,
+      };
+  const subjectSelectionSuppressed =
+    !shouldUsePublishedReview && reviewSelection.hasPublishedReview;
+  const subjectSelectionReason = subjectSelectionSuppressed
+    ? resolvedSubject.ambiguityReason ||
+      'Published review content is hidden until this page resolves a single review subject.'
+    : null;
+  const firstReview = effectiveReviewSelection.firstPublished;
   const reviewContentLists = deriveToolPageReviewContentLists(
     firstReview as ToolPageReviewContentLike | null
   );
   const coreState = deriveToolPageCoreState({
     tool,
-    hasNewerUnpublishedReview: reviewSelection.hasNewerUnpublishedThanPublished,
+    hasNewerUnpublishedReview: effectiveReviewSelection.hasNewerUnpublishedThanPublished,
   });
 
   const alternativesResponse = await getAlternatives(tool, { matchThreshold: 0.4, matchCount: 6 });
@@ -152,9 +189,12 @@ export async function getToolPageData(slug: string): Promise<ToolPageData | null
   return {
     tool,
     parentTool,
+    resolvedSubject,
+    subjectSelectionSuppressed,
+    subjectSelectionReason,
     tags,
     primaryOffer,
-    reviewSelection,
+    reviewSelection: effectiveReviewSelection,
     firstReview,
     reviewContentLists,
     coreState,

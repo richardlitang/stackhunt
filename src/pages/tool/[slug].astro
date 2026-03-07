@@ -76,6 +76,9 @@ if (!toolPageData || !toolPageData.tool) {
 const {
   tool,
   parentTool,
+  resolvedSubject,
+  subjectSelectionSuppressed,
+  subjectSelectionReason,
   tags,
   primaryOffer,
   reviewSelection,
@@ -117,6 +120,9 @@ const { prepState, decisionSectionState, reviewArtifactsState, evidenceSignalsSt
         firstReview,
         reviewSelection,
         canonicalFacts,
+        resolvedSubject,
+        subjectSelectionSuppressed,
+        subjectSelectionReason,
         knowledgeCard,
         setupTracks,
         reviewContentLists,
@@ -661,6 +667,13 @@ applyToolPageRobotsHeader({
               <p class="mt-1 text-sm text-zinc-400">
                 {reviewDek}
               </p>
+              {
+                qualityState.subjectScopePending && qualityState.subjectScopeMessage && (
+                  <p class="mt-2 rounded-lg border border-orange-700/40 bg-orange-950/20 px-3 py-2 text-sm text-orange-100">
+                    {qualityState.subjectScopeMessage}
+                  </p>
+                )
+              }
               {
                 showEarlySnapshotToneBanner && (
                   <p class="mt-2 rounded-lg border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-sm text-amber-100">

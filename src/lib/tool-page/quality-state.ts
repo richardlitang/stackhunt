@@ -25,6 +25,13 @@ interface BuildToolPageQualityStateInput {
   firstReview: ToolPageFirstReview;
   reviewSelection: ReviewSelectionLike;
   persistedQuality: PersistedQualityLike | undefined;
+  resolvedSubject?: {
+    confidence?: 'high' | 'medium' | 'low';
+    entityScope?: string | null;
+    subjectType?: string;
+  };
+  subjectSelectionSuppressed?: boolean;
+  subjectSelectionReason?: string | null;
 }
 
 export interface ToolPageQualityState {
@@ -42,6 +49,8 @@ export interface ToolPageQualityState {
   userSignalCoveragePending: boolean;
   userSignalNeedsConfirmationCount: number;
   userSignalChannelCoverageCount: number;
+  subjectScopePending: boolean;
+  subjectScopeMessage: string | null;
 }
 
 export function buildToolPageQualityState(
@@ -146,13 +155,25 @@ export function buildToolPageQualityState(
     Number(userSignalSummary?.forum_claims || 0) > 0,
     Number(userSignalSummary?.hn_claims || 0) > 0,
   ].filter(Boolean).length;
+  const subjectScopePending =
+    Boolean(input.subjectSelectionSuppressed) || input.resolvedSubject?.confidence === 'low';
+  const subjectScopeMessage = input.subjectSelectionSuppressed
+    ? input.subjectSelectionReason ||
+      'Published review content is hidden until this page resolves one product surface.'
+    : input.resolvedSubject?.confidence === 'low'
+      ? 'This page is waiting for clearer subject resolution before full review content can be shown.'
+      : null;
+  const normalizedGateReasons = subjectScopePending
+    ? Array.from(new Set([...gateReasons, 'subject_scope_pending']))
+    : gateReasons;
+  const normalizedGateShouldIndex = subjectScopePending ? false : gateShouldIndex;
 
   return {
     contentConfidenceLevel,
     sectionPublishability,
     sectionStatus,
-    gateShouldIndex,
-    gateReasons,
+    gateShouldIndex: normalizedGateShouldIndex,
+    gateReasons: normalizedGateReasons,
     hasProceduralGuidance,
     isDraftPage,
     safeDraftDescription,
@@ -162,5 +183,7 @@ export function buildToolPageQualityState(
     userSignalCoveragePending,
     userSignalNeedsConfirmationCount,
     userSignalChannelCoverageCount,
+    subjectScopePending,
+    subjectScopeMessage,
   };
 }

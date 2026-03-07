@@ -17,6 +17,15 @@ interface BuildToolPagePrepDecisionStateFromRouteContextInput {
     canonicalFacts: Parameters<
       typeof buildToolPageDecisionSectionStateInputFromRouteContext
     >[0]['canonicalFacts'];
+    resolvedSubject?: Parameters<
+      typeof buildToolPageDecisionSectionStateInputFromRouteContext
+    >[0]['resolvedSubject'];
+    subjectSelectionSuppressed?: Parameters<
+      typeof buildToolPageDecisionSectionStateInputFromRouteContext
+    >[0]['subjectSelectionSuppressed'];
+    subjectSelectionReason?: Parameters<
+      typeof buildToolPageDecisionSectionStateInputFromRouteContext
+    >[0]['subjectSelectionReason'];
     knowledgeCard: Parameters<
       typeof buildToolPageDecisionSectionStateInputFromRouteContext
     >[0]['knowledgeCard'];
@@ -63,6 +72,9 @@ export function buildToolPagePrepDecisionStateFromRouteContext(
       firstReview: input.decision.firstReview,
       reviewSelection: input.decision.reviewSelection,
       canonicalFacts: input.decision.canonicalFacts,
+      resolvedSubject: input.decision.resolvedSubject,
+      subjectSelectionSuppressed: input.decision.subjectSelectionSuppressed,
+      subjectSelectionReason: input.decision.subjectSelectionReason,
       knowledgeCard: input.decision.knowledgeCard,
       setupTracks: input.decision.setupTracks,
       reviewContentLists: input.decision.reviewContentLists,

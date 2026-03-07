@@ -25,4 +25,24 @@ describe('selectToolPageReview', () => {
     expect(selection.hasPublishedReview).toBe(false);
     expect(selection.hasDraftReview).toBe(false);
   });
+
+  it('prefers higher-scoring published review over fresher review when score callback is provided', () => {
+    const oldHighScoreReview = {
+      id: 'old-high',
+      status: 'published',
+      updated_at: '2025-01-01T00:00:00.000Z',
+    };
+    const freshLowScoreReview = {
+      id: 'fresh-low',
+      status: 'published',
+      updated_at: '2025-02-01T00:00:00.000Z',
+    };
+
+    const selection = selectToolPageReview([oldHighScoreReview, freshLowScoreReview], {
+      getReviewScore: (review) => (review.id === 'old-high' ? 10 : 1),
+    });
+
+    expect(selection.firstPublished?.id).toBe('old-high');
+    expect(selection.publishedReviewScore).toBe(10);
+  });
 });

@@ -30,6 +30,9 @@ interface BuildToolPageDecisionSectionStateInputFromRouteContextInput {
   firstReview: ToolPageDecisionSectionInput['qualityStateInput']['firstReview'];
   reviewSelection: ToolPageDecisionSectionInput['qualityStateInput']['reviewSelection'];
   canonicalFacts: ToolPageDecisionSectionInput['qualityStateInput']['canonicalFacts'];
+  resolvedSubject?: ToolPageDecisionSectionInput['qualityStateInput']['resolvedSubject'];
+  subjectSelectionSuppressed?: ToolPageDecisionSectionInput['qualityStateInput']['subjectSelectionSuppressed'];
+  subjectSelectionReason?: ToolPageDecisionSectionInput['qualityStateInput']['subjectSelectionReason'];
   knowledgeCard: Record<string, unknown> | null;
   setupTracks: unknown;
   reviewContentLists: {
@@ -82,6 +85,9 @@ export function buildToolPageDecisionSectionStateInputFromRouteContext(
       firstReview: input.firstReview,
       reviewSelection: input.reviewSelection,
       canonicalFacts: input.canonicalFacts,
+      resolvedSubject: input.resolvedSubject,
+      subjectSelectionSuppressed: input.subjectSelectionSuppressed,
+      subjectSelectionReason: input.subjectSelectionReason,
     },
     faqStateInput: input.knowledgeCard,
     displaySignalsInput: {
