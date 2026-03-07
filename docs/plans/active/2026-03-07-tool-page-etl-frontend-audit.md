@@ -36,6 +36,7 @@ Implemented in code:
 - lane subject profile can now override slug heuristics during subject resolution
 - analysis now normalizes mixed factual and user-signal claims before decision rendering
 - schema validation now blocks publish when `pros/cons` contains opinion/community signals or `userReported*` contains factual/official claims
+- content-sections input now merges persisted lane user signals into frontend user-signal rendering, with dedupe against legacy `user_reported_*` payloads
 
 ## Confirmed Bloat and Over-Engineering
 

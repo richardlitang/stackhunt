@@ -118,4 +118,78 @@ describe('tool page content sections input', () => {
     expect(result.strengthsSubtitleInput.communityCorroborationCount).toBe(1);
     expect(result.strengthsSubtitleInput.userSignalClaimsCount).toBe(2);
   });
+
+  it('merges lane user-signal entries with legacy user-reported arrays', () => {
+    const result = buildToolPageContentSectionsStateInputFromRoute({
+      evidenceLinks: [],
+      lowConfidenceEvidenceLinks: [],
+      effectiveEvidencePros: [],
+      effectiveEvidenceCons: [],
+      userReportedPros: [
+        {
+          text: 'Users report fast onboarding after template setup.',
+          source_url: 'https://reddit.com/r/saas/1',
+          source_type: 'community',
+        },
+      ],
+      userReportedCons: [],
+      laneOutputs: {
+        user_signal_sheet: {
+          user_signal_pros: [
+            {
+              text: 'Users report fast onboarding after template setup.',
+              source_url: 'https://reddit.com/r/saas/1',
+              source_type: 'community',
+            },
+            {
+              text: 'Reviewers note smoother rollout for SMB teams.',
+              source_url: 'https://example.com/review',
+              source_type: 'editorial',
+            },
+          ],
+          user_signal_cons: [
+            {
+              text: 'Users report occasional lag in larger workspaces.',
+              source_url: 'https://news.ycombinator.com/item?id=123',
+              source_type: 'community',
+            },
+          ],
+        },
+      },
+      knowledgeCard: null,
+      fallbackWebsiteUrl: null,
+      setupTracks: [],
+      gettingStartedCtaUrl: null,
+      toolName: 'Acme',
+      prosConsSourcesCount: 0,
+      affiliateOffers: [],
+      evidenceBasis: [],
+      tribalKnowledge: {
+        hasCommunity: false,
+        userAdvocate: null,
+        guardedHumanVerdict: null,
+        vibe: null,
+        originStory: null,
+        idealFor: [],
+        guardedAvoidIf: [],
+        powerTip: null,
+        delighters: [],
+        frustrations: [],
+      },
+      displayCategorySpecificData: null,
+      vipSpecifics: null,
+      categoryName: null,
+      specsVerifiedLabel: null,
+      longDescription: null,
+      pricingCheckedLabel: null,
+      hasOfficialPricingSource: false,
+      pricingEvidenceCount: 0,
+      hasSecurity: false,
+      hasPortability: false,
+      hasParentTool: false,
+    });
+
+    expect(result.prosConsInput.userReportedPros).toHaveLength(2);
+    expect(result.prosConsInput.userReportedCons).toHaveLength(1);
+  });
 });

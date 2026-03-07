@@ -34,6 +34,12 @@ interface BuildToolPageContentAlternativesStateFromDecisionContextInput {
   vipSpecifics: Record<string, unknown> | null;
   userReportedPros: Array<Record<string, unknown>>;
   userReportedCons: Array<Record<string, unknown>>;
+  laneOutputs?: {
+    user_signal_sheet?: {
+      user_signal_pros?: Array<Record<string, unknown>>;
+      user_signal_cons?: Array<Record<string, unknown>>;
+    };
+  } | null;
   decisionRuntime: ReturnType<typeof buildToolPageDecisionRuntime>;
   sectionFlags: ReturnType<typeof buildToolPageSectionFlags>;
   evidenceRuntime: ReturnType<typeof buildToolPageEvidenceRuntime>;
@@ -73,6 +79,7 @@ export function buildToolPageContentAlternativesStateFromDecisionContext(
       effectiveEvidenceCons: input.evidenceRuntime.effectiveEvidenceCons,
       userReportedPros: input.userReportedPros,
       userReportedCons: input.userReportedCons,
+      laneOutputs: input.laneOutputs,
       knowledgeCard: input.knowledgeCard,
       setupTracks: toToolPageObjectArray(input.setupTracks),
       gettingStartedCtaUrl: input.decisionRuntime.setupSignals.gettingStartedCtaUrl,

@@ -37,6 +37,12 @@ interface BuildToolPageContentSectionsStateInputFromRouteInput {
   }>;
   userReportedPros: Array<Record<string, unknown>>;
   userReportedCons: Array<Record<string, unknown>>;
+  laneOutputs?: {
+    user_signal_sheet?: {
+      user_signal_pros?: Array<Record<string, unknown>>;
+      user_signal_cons?: Array<Record<string, unknown>>;
+    };
+  } | null;
   knowledgeCard:
     | {
         setup_complexity?: string | null;
@@ -93,6 +99,7 @@ interface BuildToolPageContentSectionsStateInputFromRouteContextInput {
   effectiveEvidenceCons: BuildToolPageContentSectionsStateInputFromRouteInput['effectiveEvidenceCons'];
   userReportedPros: BuildToolPageContentSectionsStateInputFromRouteInput['userReportedPros'];
   userReportedCons: BuildToolPageContentSectionsStateInputFromRouteInput['userReportedCons'];
+  laneOutputs?: BuildToolPageContentSectionsStateInputFromRouteInput['laneOutputs'];
   knowledgeCard: BuildToolPageContentSectionsStateInputFromRouteInput['knowledgeCard'];
   setupTracks: BuildToolPageContentSectionsStateInputFromRouteInput['setupTracks'];
   gettingStartedCtaUrl: BuildToolPageContentSectionsStateInputFromRouteInput['gettingStartedCtaUrl'];
@@ -130,9 +137,58 @@ interface BuildToolPageContentSectionsStateInputFromRouteContextInput {
   };
 }
 
+function readLaneUserSignalEntries(
+  laneOutputs: BuildToolPageContentSectionsStateInputFromRouteInput['laneOutputs']
+): {
+  pros: Array<Record<string, unknown>>;
+  cons: Array<Record<string, unknown>>;
+} {
+  const userSignalSheet =
+    laneOutputs && typeof laneOutputs === 'object'
+      ? ((laneOutputs as Record<string, unknown>).user_signal_sheet as Record<string, unknown>)
+      : null;
+  const lanePros = Array.isArray(userSignalSheet?.user_signal_pros)
+    ? (userSignalSheet?.user_signal_pros as Array<Record<string, unknown>>)
+    : [];
+  const laneCons = Array.isArray(userSignalSheet?.user_signal_cons)
+    ? (userSignalSheet?.user_signal_cons as Array<Record<string, unknown>>)
+    : [];
+  return { pros: lanePros, cons: laneCons };
+}
+
+function mergeUniqueEntries(
+  primary: Array<Record<string, unknown>>,
+  secondary: Array<Record<string, unknown>>
+): Array<Record<string, unknown>> {
+  const seen = new Set<string>();
+  const merged: Array<Record<string, unknown>> = [];
+
+  const consume = (entry: Record<string, unknown>) => {
+    const text = typeof entry.text === 'string' ? entry.text.trim().toLowerCase() : '';
+    const sourceUrl =
+      typeof entry.source_url === 'string'
+        ? entry.source_url.trim().toLowerCase()
+        : typeof entry.sourceUrl === 'string'
+          ? entry.sourceUrl.trim().toLowerCase()
+          : '';
+    const key = `${text}|${sourceUrl}`;
+    if (!text || seen.has(key)) return;
+    seen.add(key);
+    merged.push(entry);
+  };
+
+  primary.forEach(consume);
+  secondary.forEach(consume);
+  return merged;
+}
+
 export function buildToolPageContentSectionsStateInputFromRoute(
   input: BuildToolPageContentSectionsStateInputFromRouteInput
 ): Parameters<typeof buildToolPageContentSectionsState>[0] {
+  const laneSignals = readLaneUserSignalEntries(input.laneOutputs);
+  const mergedUserReportedPros = mergeUniqueEntries(input.userReportedPros || [], laneSignals.pros);
+  const mergedUserReportedCons = mergeUniqueEntries(input.userReportedCons || [], laneSignals.cons);
+
   return {
     sourceListsInput: {
       evidenceLinks: input.evidenceLinks,
@@ -141,8 +197,8 @@ export function buildToolPageContentSectionsStateInputFromRoute(
     prosConsInput: {
       pros: input.effectiveEvidencePros,
       cons: input.effectiveEvidenceCons,
-      userReportedPros: input.userReportedPros,
-      userReportedCons: input.userReportedCons,
+      userReportedPros: mergedUserReportedPros,
+      userReportedCons: mergedUserReportedCons,
     },
     gettingStartedInput: {
       setupComplexity: input.knowledgeCard?.setup_complexity,
@@ -224,6 +280,7 @@ export function buildToolPageContentSectionsStateInputFromRouteContext(
     effectiveEvidenceCons: input.effectiveEvidenceCons,
     userReportedPros: input.userReportedPros,
     userReportedCons: input.userReportedCons,
+    laneOutputs: input.laneOutputs,
     knowledgeCard: input.knowledgeCard,
     fallbackWebsiteUrl: input.tool.website || null,
     setupTracks: input.setupTracks,
