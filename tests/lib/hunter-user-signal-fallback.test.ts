@@ -87,4 +87,21 @@ describe('hunter user signal fallback', () => {
     expect(claims[0]?.source_channel).toBe('reddit');
     expect(claims[0]?.claim_confidence_tier).toBe('medium');
   });
+
+  it('extracts sentence-level claims from longer snippets', () => {
+    const claims = buildFallbackUserSignalClaimsFromSources({
+      label: 'cons',
+      sources: [
+        {
+          url: 'https://www.reddit.com/r/saas/comments/777',
+          snippet:
+            'Teams like the UI for quick tasks. But users report slow sync and missing notifications during peak hours.',
+          source_type: 'community',
+        },
+      ],
+    });
+
+    expect(claims).toHaveLength(1);
+    expect(claims[0]?.text.toLowerCase()).toContain('slow sync');
+  });
 });

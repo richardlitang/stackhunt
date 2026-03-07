@@ -90,6 +90,15 @@ function normalizeClaimKey(value: string): string {
     .trim();
 }
 
+function splitSnippetIntoCandidateSentences(value: string): string[] {
+  return value
+    .split(/(?<=[.!?])\s+/)
+    .map((segment) => stripTerminalPunctuation(sanitizeNarrativeClaimText(segment)))
+    .map((segment) => segment.replace(/^[-•]\s*/, '').trim())
+    .filter((segment) => segment.length >= 24)
+    .slice(0, 4);
+}
+
 export function buildFallbackUserSignalClaimsFromSources(input: {
   sources: UserSignalFallbackSource[];
   label: UserSignalFallbackLabel;
@@ -123,27 +132,33 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
       sanitizeNarrativeClaimText(rawCandidate) || rawCandidate
     );
     if (!cleanedCandidate || cleanedCandidate.length < 24) continue;
-    if (!isRenderableClaimText(cleanedCandidate)) continue;
 
-    const hasNegativeSignal =
-      NEGATIVE_CUES.test(cleanedCandidate) || USER_SIGNAL_NEGATIVE_TOKENS.test(cleanedCandidate);
-    const hasPositiveSignal = USER_SIGNAL_POSITIVE_TOKENS.test(cleanedCandidate);
-    if (input.label === 'cons' && !hasNegativeSignal) continue;
-    if (input.label === 'pros' && (hasNegativeSignal || !hasPositiveSignal)) continue;
+    const sentenceCandidates = splitSnippetIntoCandidateSentences(cleanedCandidate);
+    for (const sentenceCandidate of sentenceCandidates) {
+      if (!isRenderableClaimText(sentenceCandidate)) continue;
 
-    const normalizedText =
-      inferredSourceType === 'community' && !hasCommunityHedgingLanguage(cleanedCandidate)
-        ? `Users report ${cleanedCandidate.charAt(0).toLowerCase()}${cleanedCandidate.slice(1)}`
-        : cleanedCandidate;
+      const hasNegativeSignal =
+        NEGATIVE_CUES.test(sentenceCandidate) || USER_SIGNAL_NEGATIVE_TOKENS.test(sentenceCandidate);
+      const hasPositiveSignal = USER_SIGNAL_POSITIVE_TOKENS.test(sentenceCandidate);
+      if (input.label === 'cons' && !hasNegativeSignal) continue;
+      if (input.label === 'pros' && (hasNegativeSignal || !hasPositiveSignal)) continue;
 
-    candidates.push({
-      text: normalizedText,
-      source_url: sourceUrl,
-      source_type: inferredSourceType,
-      source_channel:
-        inferredSourceType === 'community' ? inferUserSignalChannelFromUrl(sourceUrl) : 'editorial',
-      retrieved_at: source.retrieved_at || new Date().toISOString(),
-    });
+      const normalizedText =
+        inferredSourceType === 'community' && !hasCommunityHedgingLanguage(sentenceCandidate)
+          ? `Users report ${sentenceCandidate.charAt(0).toLowerCase()}${sentenceCandidate.slice(1)}`
+          : sentenceCandidate;
+
+      candidates.push({
+        text: normalizedText,
+        source_url: sourceUrl,
+        source_type: inferredSourceType,
+        source_channel:
+          inferredSourceType === 'community'
+            ? inferUserSignalChannelFromUrl(sourceUrl)
+            : 'editorial',
+        retrieved_at: source.retrieved_at || new Date().toISOString(),
+      });
+    }
   }
 
   const grouped = new Map<
