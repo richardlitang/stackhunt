@@ -21,6 +21,7 @@ describe('hunter user signal fallback', () => {
 
     expect(claims).toHaveLength(1);
     expect(claims[0]?.source_type).toBe('community');
+    expect(claims[0]?.source_channel).toBe('reddit');
     expect(claims[0]?.text.toLowerCase()).toContain('users report');
     expect(claims[0]?.source_urls.length).toBeGreaterThan(0);
   });
@@ -68,5 +69,22 @@ describe('hunter user signal fallback', () => {
     expect(claims[0]?.corroborating_source_count).toBe(2);
     expect(claims[0]?.claim_confidence_tier).toBe('medium');
     expect(claims[0]?.source_urls).toHaveLength(2);
+  });
+
+  it('assigns medium confidence to high-signal reddit claims even when single-source', () => {
+    const claims = buildFallbackUserSignalClaimsFromSources({
+      label: 'pros',
+      sources: [
+        {
+          url: 'https://www.reddit.com/r/saas/comments/99',
+          snippet: 'Users report strong reliability and faster execution in daily usage.',
+          source_type: 'community',
+        },
+      ],
+    });
+
+    expect(claims).toHaveLength(1);
+    expect(claims[0]?.source_channel).toBe('reddit');
+    expect(claims[0]?.claim_confidence_tier).toBe('medium');
   });
 });

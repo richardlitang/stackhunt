@@ -23,6 +23,7 @@ export interface UserSignalFallbackClaim {
   source_url: string;
   source_urls: string[];
   source_type: 'community' | 'editorial';
+  source_channel: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
   claim_type: 'opinion';
   corroborating_source_count: number;
   retrieved_at: string;
@@ -99,6 +100,7 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
     text: string;
     source_url: string;
     source_type: 'community' | 'editorial';
+    source_channel: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
     retrieved_at: string;
   };
   const candidates: Candidate[] = [];
@@ -138,6 +140,8 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
       text: normalizedText,
       source_url: sourceUrl,
       source_type: inferredSourceType,
+      source_channel:
+        inferredSourceType === 'community' ? inferUserSignalChannelFromUrl(sourceUrl) : 'editorial',
       retrieved_at: source.retrieved_at || new Date().toISOString(),
     });
   }
@@ -148,6 +152,7 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
       text: string;
       source_urls: Set<string>;
       source_type: 'community' | 'editorial';
+      source_channel: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
       retrieved_at: string;
       candidateCount: number;
     }
@@ -162,6 +167,7 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
         text: candidate.text,
         source_urls: new Set([candidate.source_url]),
         source_type: candidate.source_type,
+        source_channel: candidate.source_channel,
         retrieved_at: candidate.retrieved_at,
         candidateCount: 1,
       });
@@ -174,6 +180,9 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
     }
     if (existing.source_type !== 'community' && candidate.source_type === 'community') {
       existing.source_type = 'community';
+      existing.source_channel = candidate.source_channel;
+    } else if (existing.source_channel === 'other' && candidate.source_channel !== 'other') {
+      existing.source_channel = candidate.source_channel;
     }
     if (candidate.retrieved_at > existing.retrieved_at) {
       existing.retrieved_at = candidate.retrieved_at;
@@ -192,14 +201,19 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
     .slice(0, maxItems)
     .map((entry) => {
       const corroboratingSourceCount = Math.max(entry.source_urls.size, entry.candidateCount);
+      const channelConfidenceBoost =
+        entry.source_channel === 'reddit' || entry.source_channel === 'hn';
       const confidenceTier: 'medium' | 'low' =
-        corroboratingSourceCount >= 2 || entry.source_type === 'editorial' ? 'medium' : 'low';
+        corroboratingSourceCount >= 2 || entry.source_type === 'editorial' || channelConfidenceBoost
+          ? 'medium'
+          : 'low';
       const sourceUrls = Array.from(entry.source_urls);
       return {
         text: entry.text,
         source_url: sourceUrls[0],
         source_urls: sourceUrls,
         source_type: entry.source_type,
+        source_channel: entry.source_channel,
         claim_type: 'opinion',
         corroborating_source_count: corroboratingSourceCount,
         retrieved_at: entry.retrieved_at,
