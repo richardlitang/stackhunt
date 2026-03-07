@@ -1,4 +1,5 @@
 import type { HunterEntityScope } from '@/lib/hunter/types';
+import type { ToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
 
 export type ToolPageReviewSubjectType =
   | 'product'
@@ -151,6 +152,28 @@ export function resolveToolPageReviewSubject(
     entityScope: 'core',
     confidence: 'high',
     ambiguityReason: null,
+  };
+}
+
+export function mapLaneSubjectProfileToResolvedSubject(
+  laneOutputs: ToolPageLaneOutputs | null,
+  tool: { name: string; slug: string }
+): ToolPageResolvedSubject | null {
+  if (!laneOutputs) return null;
+  const profile = laneOutputs.subject_profile;
+  if (!profile || typeof profile.subject_key !== 'string') return null;
+
+  const entityScope = normalizeEntityScope(profile.entity_scope);
+  return {
+    subjectType: profile.subject_type,
+    subjectKey: profile.subject_key || `${tool.slug}:core`,
+    displayName: profile.display_name || tool.name,
+    entityScope,
+    confidence: profile.confidence,
+    ambiguityReason:
+      profile.confidence === 'low'
+        ? 'Persisted lane subject is low confidence and needs explicit surface resolution.'
+        : null,
   };
 }
 

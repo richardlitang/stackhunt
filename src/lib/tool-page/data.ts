@@ -12,6 +12,7 @@ import {
   type ToolPageReviewContentLike,
 } from '@/lib/tool-page/review-content';
 import {
+  mapLaneSubjectProfileToResolvedSubject,
   resolveToolPageReviewSubject,
   shouldUseSubjectMatchedReview,
   scoreToolPageReviewSubjectMatch,
@@ -100,13 +101,18 @@ export async function getToolPageData(slug: string): Promise<ToolPageData | null
   }
   const reviews = Array.isArray(tool.reviews) ? tool.reviews : [];
   const laneOutputs = readToolPageLaneOutputs(tool as Tool);
-  const resolvedSubject = resolveToolPageReviewSubject({
-    tool: {
+  const resolvedSubject =
+    mapLaneSubjectProfileToResolvedSubject(laneOutputs, {
       name: tool.name,
       slug: tool.slug,
-    },
-    parentTool,
-  });
+    }) ||
+    resolveToolPageReviewSubject({
+      tool: {
+        name: tool.name,
+        slug: tool.slug,
+      },
+      parentTool,
+    });
   const reviewSelection = selectToolPageReview(reviews, {
     getReviewScore: (review) => scoreToolPageReviewSubjectMatch(review, resolvedSubject),
   });

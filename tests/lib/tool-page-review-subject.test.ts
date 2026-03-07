@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   collectReviewEntityScopes,
+  mapLaneSubjectProfileToResolvedSubject,
   resolveToolPageReviewSubject,
   scoreToolPageReviewSubjectMatch,
   shouldUseSubjectMatchedReview,
@@ -110,5 +111,43 @@ describe('tool page review subject', () => {
         publishedReviewScore: 4,
       })
     ).toBe(false);
+  });
+
+  it('prefers persisted lane subject profile when available', () => {
+    const mapped = mapLaneSubjectProfileToResolvedSubject(
+      {
+        subject_profile: {
+          subject_type: 'product_surface',
+          subject_key: 'github:copilot',
+          display_name: 'GitHub Copilot',
+          entity_scope: 'copilot',
+          confidence: 'high',
+        },
+        fact_sheet: {
+          official_facts: [],
+          official_pricing_facts: [],
+          official_limit_facts: [],
+        },
+        user_signal_sheet: {
+          user_signal_pros: [],
+          user_signal_cons: [],
+        },
+        editorial_decision: {
+          summary: null,
+          best_for: null,
+          not_for: null,
+          main_tradeoff: null,
+          human_verdict: null,
+        },
+      },
+      {
+        name: 'GitHub',
+        slug: 'github',
+      }
+    );
+
+    expect(mapped?.subjectType).toBe('product_surface');
+    expect(mapped?.entityScope).toBe('copilot');
+    expect(mapped?.subjectKey).toBe('github:copilot');
   });
 });
