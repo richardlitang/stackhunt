@@ -7,6 +7,7 @@ Last verified: 2026-03-07
 This is the operator handoff for the tool-page rebuild. Use it when continuing work in another thread, another agent session, or after context reset.
 
 The full architecture plan lives in [2026-03-07-entity-first-tool-page-rebuild.md](./2026-03-07-entity-first-tool-page-rebuild.md).
+Latest ETL-to-frontend checkpoint lives in [2026-03-07-tool-page-etl-frontend-audit.md](./2026-03-07-tool-page-etl-frontend-audit.md).
 
 ## The Core Problem
 
