@@ -1911,51 +1911,64 @@ applyToolPageRobotsHeader({
               />
             </div>
           </details>
-          <h2 class="text-lg font-semibold text-zinc-100">Methodology & Sources</h2>
-          <div class="mt-3 flex flex-wrap gap-2">
-            {evidenceBasisChips.map((chip) => (
-              <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
-                {chip.text}
-              </span>
-            ))}
-          </div>
-          <details class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-            <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
-            <ul class="mt-3 space-y-2 text-sm">
-              {sourceListsView.methodologyLinks.map((source) => (
-                <li>
-                  <a
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener"
-                    data-outbound="source"
-                    data-location="methodology-sources"
-                    data-tool={tool.slug}
-                    class="text-zinc-300 hover:text-hunt-500"
-                  >
-                    {source.title}
-                  </a>
-                  <span class="ml-2 text-xs text-zinc-500">
-                    {source.domain} · {source.basis} · {source.quality} confidence ·{' '}
-                    {source.inclusionReason}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {lowConfidenceSourcesState.show && (
-              <div class="mt-4 rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-amber-300">
-                  {lowConfidenceSourcesState.title}
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+            <summary class="flex cursor-pointer list-none items-center justify-between">
+              <div>
+                <span class="text-sm font-medium text-zinc-300">Methodology and sources</span>
+                <p class="mt-1 text-xs text-zinc-500">
+                  Verification detail, kept available without crowding the page.
                 </p>
-                <ul class="mt-2 space-y-1 text-xs text-zinc-400">
-                  {sourceListsView.lowConfidenceLinks.map((source) => (
-                    <li>
-                      {source.domain} · {source.inclusionReason}
-                    </li>
-                  ))}
-                </ul>
               </div>
-            )}
+              <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+                <span class="group-open:hidden">Expand</span>
+                <span class="hidden group-open:inline">Collapse</span>
+              </span>
+            </summary>
+            <div class="mt-3 flex flex-wrap gap-2">
+              {evidenceBasisChips.map((chip) => (
+                <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
+                  {chip.text}
+                </span>
+              ))}
+            </div>
+            <details class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+              <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
+              <ul class="mt-3 space-y-2 text-sm">
+                {sourceListsView.methodologyLinks.map((source) => (
+                  <li>
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener"
+                      data-outbound="source"
+                      data-location="methodology-sources"
+                      data-tool={tool.slug}
+                      class="text-zinc-300 hover:text-hunt-500"
+                    >
+                      {source.title}
+                    </a>
+                    <span class="ml-2 text-xs text-zinc-500">
+                      {source.domain} · {source.basis} · {source.quality} confidence ·{' '}
+                      {source.inclusionReason}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {lowConfidenceSourcesState.show && (
+                <div class="mt-4 rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-amber-300">
+                    {lowConfidenceSourcesState.title}
+                  </p>
+                  <ul class="mt-2 space-y-1 text-xs text-zinc-400">
+                    {sourceListsView.lowConfidenceLinks.map((source) => (
+                      <li>
+                        {source.domain} · {source.inclusionReason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </details>
           </details>
         </section>
       )
