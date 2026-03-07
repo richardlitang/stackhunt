@@ -50,4 +50,22 @@ describe('tool page provisional index', () => {
     expect(result.reasons).toContain('missing_required_sections');
     expect(result.reasons).toContain('structure_missing');
   });
+
+  it('treats subject scope pending as a hard blocker', () => {
+    const result = evaluateToolPageProvisionalIndexEligibility({
+      firstReview: {
+        status: 'review',
+        score: 90,
+        summary_markdown: 'x'.repeat(180),
+        pros: ['Pro 1', 'Pro 2'],
+        cons: ['Con 1'],
+        sources: [{ url: 'a' }, { url: 'b' }, { url: 'c' }],
+      },
+      gateReasons: ['subject_scope_pending'],
+      strictBlockers: [],
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons).toContain('subject_scope_pending');
+  });
 });

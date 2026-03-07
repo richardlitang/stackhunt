@@ -50,6 +50,7 @@ export function evaluateToolPageProvisionalIndexEligibility({
   const hardReasons = gateReasons.filter(
     (reason) =>
       reason === 'missing_required_sections' ||
+      reason === 'subject_scope_pending' ||
       reason === 'UNSUPPORTED_NEGATIVE_CLAIM' ||
       reason.startsWith('conflicts_detected:') ||
       reason.startsWith('pricing_conflicts_detected:')
