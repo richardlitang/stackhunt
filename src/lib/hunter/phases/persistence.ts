@@ -4284,13 +4284,14 @@ function buildUserSignalSummary(
     return bSourceType - aSourceType || bSourceUrls - aSourceUrls || bTier - aTier;
   });
 
-  for (const claim of rankedUserClaims) {
-    const signal = stripTerminalPunctuation(
-      sanitizeNarrativeClaimText(claim.text) || claim.text
-    ).trim();
-    if (signal.length < 16) continue;
+  const normalizeSignal = (claim: ClaimWithSource): string => {
+    return stripTerminalPunctuation(sanitizeNarrativeClaimText(claim.text) || claim.text).trim();
+  };
+  const pushClaim = (claim: ClaimWithSource): boolean => {
+    const signal = normalizeSignal(claim);
+    if (signal.length < 16) return false;
     const key = signal.toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) return false;
     seen.add(key);
     uniqueSignals.push(signal);
     topClaims.push({
@@ -4302,7 +4303,21 @@ function buildUserSignalSummary(
           ? claim.source_channel || inferUserSignalChannelFromUrl(claim.source_url)
           : 'editorial',
     });
+    return true;
+  };
+  const preferredChannels: Array<'reddit' | 'forum' | 'hn'> = ['reddit', 'forum', 'hn'];
+  for (const channel of preferredChannels) {
     if (uniqueSignals.length >= 3) break;
+    const match = rankedUserClaims.find(
+      (claim) =>
+        claim.source_type === 'community' &&
+        (claim.source_channel || inferUserSignalChannelFromUrl(claim.source_url)) === channel
+    );
+    if (match) pushClaim(match);
+  }
+  for (const claim of rankedUserClaims) {
+    if (uniqueSignals.length >= 3) break;
+    pushClaim(claim);
   }
 
   return {
