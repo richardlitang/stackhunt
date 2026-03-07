@@ -40,6 +40,7 @@ Implemented in code:
 - decision utility now suppresses generic fallback bullets when evidence is thin, replacing them with an explicit pending-evidence notice
 - alternatives header copy now suppresses generic intro fallback for non-alternative or low-context states
 - alternatives compare-grid decision rows now require source-backed rationale, heuristic-only rows are downgraded to pending and suppressed by existing visibility rules
+- decision snapshot fallback now avoids deriving summary and watchouts from generic pros/cons fallbacks; snapshot fields are emitted only when decision-slot or guarded-fit signals exist
 
 ## Confirmed Bloat and Over-Engineering
 

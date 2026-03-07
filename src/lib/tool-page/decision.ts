@@ -12,7 +12,10 @@ export interface BuildToolPageDecisionSnapshotInput {
   tagAudienceNames: string[];
   isDisallowedConClaim: (text: string) => boolean;
   cleanNarrativeText: (value: unknown) => string | null;
-  cleanDecisionSlotText: (value: unknown, slot: 'best_fit' | 'weak_fit' | 'tradeoff') => string | null;
+  cleanDecisionSlotText: (
+    value: unknown,
+    slot: 'best_fit' | 'weak_fit' | 'tradeoff'
+  ) => string | null;
   uniqueDecisionText: (items: Array<unknown>) => string[];
 }
 
@@ -25,15 +28,11 @@ export interface ToolPageDecisionSnapshot {
 }
 
 export function buildToolPageFallbackDecisionSummary(
-  toolName: string,
+  _toolName: string,
   shortDescription: string | null | undefined,
   tagline: string | null | undefined
 ): string {
-  return (
-    shortDescription ||
-    tagline ||
-    `${toolName} can work well for some teams, but fit depends on your workflow and plan constraints.`
-  );
+  return shortDescription || tagline || '';
 }
 
 export function deriveToolPageDecisionDifferentiators(
@@ -66,7 +65,8 @@ export function buildToolPageDecisionSnapshot(
       ? decisionIntroNotForRaw
       : '';
   const decisionIntroTradeoffRaw = input.cleanDecisionSlotText(
-    (input.decisionSlotsRaw?.tradeoff as string | undefined) ?? input.decisionIntroRaw?.main_tradeoff,
+    (input.decisionSlotsRaw?.tradeoff as string | undefined) ??
+      input.decisionIntroRaw?.main_tradeoff,
     'tradeoff'
   );
   const decisionIntroTradeoff =
@@ -88,9 +88,7 @@ export function buildToolPageDecisionSnapshot(
         ? [decisionIntroBestFor, ...input.idealFor]
         : input.idealFor.length > 0
           ? input.idealFor
-          : input.tagAudienceNames.length > 0
-            ? input.tagAudienceNames
-            : input.firstReviewPros
+          : []
     )
     .slice(0, 3);
 
@@ -99,11 +97,7 @@ export function buildToolPageDecisionSnapshot(
       ? [decisionIntroNotFor, ...input.guardedAvoidIf]
       : input.guardedAvoidIf.length > 0
         ? input.guardedAvoidIf.slice(0, 2)
-        : input.isPaymentsCategory && input.paymentTriggerCons.length > 0
-          ? input.paymentTriggerCons.slice(0, 2)
-          : input.fallbackConsText.length > 0
-            ? input.fallbackConsText.slice(0, 2)
-            : input.firstReviewCons.slice(0, 2)
+        : []
   );
 
   const decisionSnapshotWatchOuts = decisionSnapshotWatchOutCandidates

@@ -48,7 +48,7 @@ describe('tool page decision snapshot', () => {
 
     expect(result.introLooksSpecSheet).toBe(true);
     expect(result.decisionSnapshotSummary).toBe('Fallback summary');
-    expect(result.decisionSnapshotBestWhen).toEqual(['For analysts']);
+    expect(result.decisionSnapshotBestWhen).toEqual([]);
   });
 
   it('applies disallowed-claim filtering and fallback watch-outs', () => {
@@ -80,9 +80,30 @@ describe('tool page decision snapshot', () => {
       'Short description'
     );
     expect(buildToolPageFallbackDecisionSummary('Acme', null, 'Tagline')).toBe('Tagline');
-    expect(buildToolPageFallbackDecisionSummary('Acme', null, null)).toContain(
-      'Acme can work well for some teams'
-    );
+    expect(buildToolPageFallbackDecisionSummary('Acme', null, null)).toBe('');
+  });
+
+  it('does not derive best-when/watch-out lists from generic pros/cons fallbacks', () => {
+    const result = buildToolPageDecisionSnapshot({
+      decisionSlotsRaw: null,
+      decisionIntroRaw: null,
+      fallbackDecisionSummary: '',
+      idealFor: [],
+      guardedAvoidIf: [],
+      isPaymentsCategory: true,
+      paymentTriggerCons: ['Settlement lag risk'],
+      fallbackConsText: ['Contract lock-in'],
+      firstReviewPros: ['Good for teams'],
+      firstReviewCons: ['Needs setup'],
+      tagAudienceNames: ['Operations'],
+      isDisallowedConClaim: () => false,
+      cleanNarrativeText,
+      cleanDecisionSlotText,
+      uniqueDecisionText,
+    });
+
+    expect(result.decisionSnapshotBestWhen).toEqual([]);
+    expect(result.decisionSnapshotWatchOuts).toEqual([]);
   });
 
   it('derives differentiators from unique and core features with dedupe', () => {
