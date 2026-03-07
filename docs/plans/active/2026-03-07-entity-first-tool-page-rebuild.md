@@ -242,13 +242,15 @@ Candidates for removal or de-emphasis:
 ### Phase 2: Evidence-lane ETL
 
 - [~] Split analysis output into fact sheet, user signal sheet, and editorial decision output (`npm run typecheck && npm run test`)
-- [ ] Update prompts to stop blending official facts and user sentiment into one global claim list (`npm run typecheck && npm run test`)
+- [~] Update prompts to stop blending official facts and user sentiment into one global claim list (`npm run typecheck && npm run test`)
 - [ ] Persist user signals as first-class evidence, not just review context flavor (`npm run typecheck && npm run test`)
 
 Notes:
 
 - 2026-03-07 progress: added lane envelope contracts (`subject_profile`, `fact_sheet`, `user_signal_sheet`, `editorial_decision`) to hunter analysis output and canonical persistence payloads.
 - 2026-03-07 progress: tool-page runtime now reads persisted lane outputs and uses lane user-signal claims in quality-state coverage gating.
+- 2026-03-07 progress: analysis now normalizes mixed claims into strict lanes before decision rendering (factual in `pros/cons`, user signals in `userReported*`), and logs lane-move telemetry.
+- 2026-03-07 progress: schema validation now blocks publish when factual lanes and user-signal lanes are contaminated.
 
 ### Phase 3: Page compiler rebuild
 

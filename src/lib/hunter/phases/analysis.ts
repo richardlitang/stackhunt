@@ -33,7 +33,10 @@ import {
 import { getCategoryDefinition } from '../schemas';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import { resolveDetectedCategory } from '../category-resolver';
-import { buildHunterLaneOutputs } from '@/lib/hunter/evidence-lanes';
+import {
+  buildHunterLaneOutputs,
+  normalizeHunterAnalysisEvidenceLanes,
+} from '@/lib/hunter/evidence-lanes';
 
 /**
  * Execute the Analysis Phase
@@ -220,6 +223,17 @@ export async function executeAnalysisPhase(
   );
   applyAuthoritativeModelInventory(analysis, inventoryApiResult.modelOptions, deps.log);
   applyCanonicalSetupTracks(analysis, ctx.research.knowledgeCard);
+  const laneNormalization = normalizeHunterAnalysisEvidenceLanes(analysis);
+  const laneMovesTotal =
+    laneNormalization.moved_to_user_signal_pros +
+    laneNormalization.moved_to_user_signal_cons +
+    laneNormalization.moved_to_fact_pros +
+    laneNormalization.moved_to_fact_cons;
+  if (laneMovesTotal > 0 || laneNormalization.claim_type_coerced_to_opinion > 0) {
+    deps.log(
+      `[Phase 2: Lane normalization] moved_to_user=${laneNormalization.moved_to_user_signal_pros + laneNormalization.moved_to_user_signal_cons} moved_to_fact=${laneNormalization.moved_to_fact_pros + laneNormalization.moved_to_fact_cons} coerced_to_opinion=${laneNormalization.claim_type_coerced_to_opinion}`
+    );
+  }
 
   // Attach Knowledge Card to analysis
   analysis.knowledgeCard = ctx.research.knowledgeCard;

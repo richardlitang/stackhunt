@@ -29,7 +29,7 @@ function baseAnalysis() {
         text: 'Teams may need engineering support to maintain self-hosted deployments',
         source: 'https://example.com/docs/self-hosting',
         source_type: 'official',
-        claim_type: 'opinion',
+        claim_type: 'fact',
       },
     ],
     summary:
@@ -205,5 +205,24 @@ describe('validateAnalysis claim hygiene', () => {
 
     const report = validateAnalysis(analysis);
     expect(report.isValid).toBe(true);
+  });
+
+  it('blocks publish when factual and user-signal lanes are mixed', () => {
+    const analysis = baseAnalysis();
+    analysis.cons[1].claim_type = 'opinion';
+    analysis.userReportedPros = [
+      {
+        text: 'Official docs confirm SSO on business plans.',
+        source: 'https://example.com/docs/security',
+        source_type: 'official',
+        claim_type: 'fact',
+      },
+    ];
+
+    const report = validateAnalysis(analysis);
+
+    expect(report.shouldPublish).toBe(false);
+    expect(report.validations.some((v) => v.message.includes('non-factual'))).toBe(true);
+    expect(report.validations.some((v) => v.message.includes('factual/official'))).toBe(true);
   });
 });

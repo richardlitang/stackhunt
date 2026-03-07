@@ -34,6 +34,8 @@ Implemented in code:
   - `editorial_decision`
 - tool page quality-state now consumes persisted lane user signals to reduce false coverage-pending states
 - lane subject profile can now override slug heuristics during subject resolution
+- analysis now normalizes mixed factual and user-signal claims before decision rendering
+- schema validation now blocks publish when `pros/cons` contains opinion/community signals or `userReported*` contains factual/official claims
 
 ## Confirmed Bloat and Over-Engineering
 

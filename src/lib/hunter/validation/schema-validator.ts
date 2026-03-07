@@ -425,6 +425,35 @@ export function validateAnalysis(analysis: {
       message: `${officialCommunityHedgingCount} claims use community-style hedging but cite official sources`,
     });
   }
+  const prosConsNonFactualCount = allClaims.filter((claim) => {
+    const sourceType = (claim.source_type || '').toLowerCase();
+    const claimType = (claim.claim_type || '').toLowerCase();
+    if (!sourceType) return false;
+    if (sourceType === 'community') return true;
+    return claimType === 'opinion';
+  }).length;
+  if (prosConsNonFactualCount > 0) {
+    validations.push({
+      field: 'pros_cons',
+      severity: 'warning',
+      message: `${prosConsNonFactualCount}/${allClaims.length} pros/cons claims are non-factual and should be moved to userReported lanes`,
+    });
+  }
+
+  const userSignals = [...(analysis.userReportedPros || []), ...(analysis.userReportedCons || [])];
+  const userSignalFactualCount = userSignals.filter((claim) => {
+    const sourceType = (claim.source_type || '').toLowerCase();
+    const claimType = (claim.claim_type || '').toLowerCase();
+    if (sourceType === 'official') return true;
+    return claimType === 'fact';
+  }).length;
+  if (userSignalFactualCount > 0) {
+    validations.push({
+      field: 'user_reported',
+      severity: 'warning',
+      message: `${userSignalFactualCount}/${userSignals.length} user-reported claims are factual/official and should be moved to pros/cons`,
+    });
+  }
 
   // 4. Summary length check
   if (analysis.summary.length < 50) {
@@ -555,6 +584,8 @@ export function validateAnalysis(analysis: {
     { check: consWithoutSources === 0, weight: 5 },
     { check: malformedClaimCount === 0, weight: 10 },
     { check: officialCommunityHedgingCount === 0, weight: 5 },
+    { check: prosConsNonFactualCount === 0, weight: 8 },
+    { check: userSignalFactualCount === 0, weight: 8 },
     { check: decisionIntroBlockingIssues === 0, weight: 15 },
     { check: decisionIntroWarnings === 0, weight: 5 },
     { check: decisionIntroQualityPasses === decisionFields.length, weight: 5 },
@@ -570,6 +601,8 @@ export function validateAnalysis(analysis: {
   const hasBlockingClaimIssues =
     malformedClaimCount > 0 ||
     officialCommunityHedgingCount > 0 ||
+    prosConsNonFactualCount > 0 ||
+    userSignalFactualCount > 0 ||
     decisionIntroBlockingIssues > 0 ||
     decisionIntroWarnings > 0 ||
     decisionEvidenceBlockingIssues > 0;

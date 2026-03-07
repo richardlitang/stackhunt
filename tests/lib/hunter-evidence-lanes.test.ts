@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildHunterLaneOutputs } from '@/lib/hunter/evidence-lanes';
+import {
+  buildHunterLaneOutputs,
+  normalizeHunterAnalysisEvidenceLanes,
+} from '@/lib/hunter/evidence-lanes';
 import type { HunterAnalysis } from '@/lib/hunter/types';
 
 function makeAnalysis(): HunterAnalysis {
@@ -94,5 +97,44 @@ describe('hunter evidence lanes', () => {
 
     expect(laneOutputs.fact_sheet.official_pricing_facts.length).toBeGreaterThan(0);
     expect(laneOutputs.fact_sheet.official_limit_facts.length).toBeGreaterThan(0);
+  });
+
+  it('normalizes mixed factual and user-signal claims into the correct lanes', () => {
+    const analysis = makeAnalysis();
+    analysis.pros.push({
+      text: 'Users report support quality varies by timezone.',
+      source_url: 'https://reddit.com/r/saas/2',
+      source_type: 'community',
+      claim_type: 'fact',
+      retrieved_at: '2026-03-07T00:00:00.000Z',
+    });
+    analysis.userReportedCons?.push({
+      text: 'Official docs list strict API rate limits on starter plan.',
+      source_url: 'https://acme.com/docs/limits',
+      source_type: 'official',
+      claim_type: 'fact',
+      retrieved_at: '2026-03-07T00:00:00.000Z',
+    });
+
+    const stats = normalizeHunterAnalysisEvidenceLanes(analysis);
+
+    expect(stats.moved_to_user_signal_pros).toBeGreaterThan(0);
+    expect(stats.moved_to_fact_cons).toBeGreaterThan(0);
+    expect(stats.claim_type_coerced_to_opinion).toBeGreaterThan(0);
+    expect(
+      analysis.userReportedPros?.some(
+        (claim) =>
+          typeof claim !== 'string' &&
+          claim.text.includes('support quality varies by timezone') &&
+          claim.claim_type === 'opinion'
+      )
+    ).toBe(true);
+    expect(
+      analysis.cons.some(
+        (claim) =>
+          typeof claim !== 'string' &&
+          claim.text.includes('Official docs list strict API rate limits')
+      )
+    ).toBe(true);
   });
 });

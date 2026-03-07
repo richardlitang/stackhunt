@@ -12,6 +12,16 @@ const PRICING_TOKENS =
   /\b(price|pricing|cost|costs|billing|billed|plan|plans|tier|tiers|seat|quota|credit|credits|overage)\b/i;
 const LIMIT_TOKENS =
   /\b(limit|limits|cap|caps|ceiling|ceilings|maximum|max|minimum|min|rate limit|throttle)\b/i;
+const VALID_SOURCE_TYPES = new Set<SourceType>(['official', 'editorial', 'community']);
+const FACTUAL_SOURCE_TYPES = new Set<SourceType>(['official', 'editorial']);
+
+export interface HunterLaneNormalizationStats {
+  moved_to_user_signal_pros: number;
+  moved_to_user_signal_cons: number;
+  moved_to_fact_pros: number;
+  moved_to_fact_cons: number;
+  claim_type_coerced_to_opinion: number;
+}
 
 function readClaimText(claim: string | ClaimWithSource): string {
   return typeof claim === 'string' ? claim : claim.text || '';
@@ -31,6 +41,169 @@ function toLaneClaim(claim: string | ClaimWithSource): HunterLaneClaim | null {
     source_type: (claim.source_type as SourceType | undefined) || null,
     claim_type: (claim.claim_type as ClaimType | undefined) || null,
   };
+}
+
+function toClaimWithSource(claim: string | ClaimWithSource): ClaimWithSource | null {
+  if (typeof claim !== 'object' || !claim) return null;
+  const text = typeof claim.text === 'string' ? claim.text.trim() : '';
+  if (!text) return null;
+
+  const source_type = VALID_SOURCE_TYPES.has(claim.source_type as SourceType)
+    ? (claim.source_type as SourceType)
+    : null;
+  const claim_type =
+    claim.claim_type === 'fact' || claim.claim_type === 'opinion' ? claim.claim_type : null;
+  if (!source_type || !claim_type) return null;
+
+  return {
+    ...claim,
+    text,
+    source_type,
+    claim_type,
+  };
+}
+
+function claimDedupeKey(claim: string | ClaimWithSource): string {
+  if (typeof claim === 'string') return `legacy:${claim.trim().toLowerCase()}`;
+  const text = String(claim.text || '')
+    .trim()
+    .toLowerCase();
+  const source = String(claim.source_url || '')
+    .trim()
+    .toLowerCase();
+  return `${text}|${source}`;
+}
+
+function dedupeClaims(claims: Array<string | ClaimWithSource>): Array<string | ClaimWithSource> {
+  const seen = new Set<string>();
+  const deduped: Array<string | ClaimWithSource> = [];
+  for (const claim of claims) {
+    const key = claimDedupeKey(claim);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(claim);
+  }
+  return deduped;
+}
+
+function isUserSignalClaim(claim: ClaimWithSource): boolean {
+  if (claim.claim_type === 'opinion') return true;
+  return claim.source_type === 'community';
+}
+
+function isFactualClaim(claim: ClaimWithSource): boolean {
+  if (claim.claim_type !== 'fact') return false;
+  return !!claim.source_type && FACTUAL_SOURCE_TYPES.has(claim.source_type);
+}
+
+/**
+ * Normalize claim lanes before downstream decision rendering:
+ * - pros/cons are factual claims
+ * - userReported* arrays are user/editorial experience signals
+ */
+export function normalizeHunterAnalysisEvidenceLanes(
+  analysis: HunterAnalysis
+): HunterLaneNormalizationStats {
+  const stats: HunterLaneNormalizationStats = {
+    moved_to_user_signal_pros: 0,
+    moved_to_user_signal_cons: 0,
+    moved_to_fact_pros: 0,
+    moved_to_fact_cons: 0,
+    claim_type_coerced_to_opinion: 0,
+  };
+
+  const normalizedPros = Array.isArray(analysis.pros) ? [...analysis.pros] : [];
+  const normalizedCons = Array.isArray(analysis.cons) ? [...analysis.cons] : [];
+  const normalizedUserPros = Array.isArray(analysis.userReportedPros)
+    ? [...analysis.userReportedPros]
+    : [];
+  const normalizedUserCons = Array.isArray(analysis.userReportedCons)
+    ? [...analysis.userReportedCons]
+    : [];
+
+  const keepFactPros: Array<string | ClaimWithSource> = [];
+  const keepFactCons: Array<string | ClaimWithSource> = [];
+  const keepUserPros: Array<string | ClaimWithSource> = [];
+  const keepUserCons: Array<string | ClaimWithSource> = [];
+
+  for (const raw of normalizedPros) {
+    const claim = toClaimWithSource(raw);
+    if (!claim) {
+      keepFactPros.push(raw);
+      continue;
+    }
+    if (claim.source_type === 'community' && claim.claim_type === 'fact') {
+      claim.claim_type = 'opinion';
+      stats.claim_type_coerced_to_opinion += 1;
+    }
+    if (isUserSignalClaim(claim)) {
+      keepUserPros.push(claim);
+      stats.moved_to_user_signal_pros += 1;
+      continue;
+    }
+    keepFactPros.push(claim);
+  }
+
+  for (const raw of normalizedCons) {
+    const claim = toClaimWithSource(raw);
+    if (!claim) {
+      keepFactCons.push(raw);
+      continue;
+    }
+    if (claim.source_type === 'community' && claim.claim_type === 'fact') {
+      claim.claim_type = 'opinion';
+      stats.claim_type_coerced_to_opinion += 1;
+    }
+    if (isUserSignalClaim(claim)) {
+      keepUserCons.push(claim);
+      stats.moved_to_user_signal_cons += 1;
+      continue;
+    }
+    keepFactCons.push(claim);
+  }
+
+  for (const raw of normalizedUserPros) {
+    const claim = toClaimWithSource(raw);
+    if (!claim) {
+      keepUserPros.push(raw);
+      continue;
+    }
+    if (claim.source_type === 'community' && claim.claim_type === 'fact') {
+      claim.claim_type = 'opinion';
+      stats.claim_type_coerced_to_opinion += 1;
+    }
+    if (isFactualClaim(claim)) {
+      keepFactPros.push(claim);
+      stats.moved_to_fact_pros += 1;
+      continue;
+    }
+    keepUserPros.push(claim);
+  }
+
+  for (const raw of normalizedUserCons) {
+    const claim = toClaimWithSource(raw);
+    if (!claim) {
+      keepUserCons.push(raw);
+      continue;
+    }
+    if (claim.source_type === 'community' && claim.claim_type === 'fact') {
+      claim.claim_type = 'opinion';
+      stats.claim_type_coerced_to_opinion += 1;
+    }
+    if (isFactualClaim(claim)) {
+      keepFactCons.push(claim);
+      stats.moved_to_fact_cons += 1;
+      continue;
+    }
+    keepUserCons.push(claim);
+  }
+
+  analysis.pros = dedupeClaims(keepFactPros);
+  analysis.cons = dedupeClaims(keepFactCons);
+  analysis.userReportedPros = dedupeClaims(keepUserPros);
+  analysis.userReportedCons = dedupeClaims(keepUserCons);
+
+  return stats;
 }
 
 function inferSubjectType(
