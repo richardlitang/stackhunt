@@ -24,11 +24,13 @@ const {
 >
   <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
     <h2 class="text-lg font-semibold text-zinc-100">We tested it</h2>
-    {testedAtLabel && (
-      <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
-        Tested on {testedAtLabel}
-      </span>
-    )}
+    {
+      testedAtLabel && (
+        <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+          Tested on {testedAtLabel}
+        </span>
+      )
+    }
   </summary>
   <div class="mt-3">
     {testEnvironment && <p class="text-sm text-zinc-300">Environment: {testEnvironment}</p>}
