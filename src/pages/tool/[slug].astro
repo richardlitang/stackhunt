@@ -1862,31 +1862,12 @@ applyToolPageRobotsHeader({
           data-focus-target
           data-focus-groups="all trust"
         >
-          <details class="group mb-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
-            <summary class="flex cursor-pointer list-none items-center justify-between">
-              <span class="text-sm font-medium text-zinc-300">Trust details</span>
-              <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
-                <span class="group-open:hidden">Expand</span>
-                <span class="hidden group-open:inline">Collapse</span>
-              </span>
-            </summary>
-            <div class="mt-3">
-              <TrustBar
-                status={trustBarProps.status}
-                pendingCount={trustBarProps.pendingCount}
-                evaluationDepth={trustBarProps.evaluationDepth}
-                lastChecked={trustBarProps.lastChecked}
-                confidence={trustBarProps.confidence}
-                sourcesCount={trustBarProps.sourcesCount}
-              />
-            </div>
-          </details>
           <details class="group rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
             <summary class="flex cursor-pointer list-none items-center justify-between">
               <div>
-                <span class="text-sm font-medium text-zinc-300">Methodology and sources</span>
+                <span class="text-sm font-medium text-zinc-300">Sources and methodology details</span>
                 <p class="mt-1 text-xs text-zinc-500">
-                  Verification detail, kept available without crowding the page.
+                  Kept available for verification and crawler parsing, hidden by default for reader focus.
                 </p>
               </div>
               <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
@@ -1894,6 +1875,23 @@ applyToolPageRobotsHeader({
                 <span class="hidden group-open:inline">Collapse</span>
               </span>
             </summary>
+            <p class="mt-3 text-xs text-zinc-500">
+              Trust status: {trustBarProps.status}. Confidence: {trustBarProps.confidence}. Sources:{' '}
+              {trustBarProps.sourcesCount}. Last checked: {trustBarProps.lastChecked || 'Unknown'}.
+            </p>
+            <details class="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+              <summary class="cursor-pointer text-sm text-zinc-300">Verification snapshot</summary>
+              <div class="mt-3">
+                <TrustBar
+                  status={trustBarProps.status}
+                  pendingCount={trustBarProps.pendingCount}
+                  evaluationDepth={trustBarProps.evaluationDepth}
+                  lastChecked={trustBarProps.lastChecked}
+                  confidence={trustBarProps.confidence}
+                  sourcesCount={trustBarProps.sourcesCount}
+                />
+              </div>
+            </details>
             <div class="mt-3 flex flex-wrap gap-2">
               {evidenceBasisChips.map((chip) => (
                 <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
