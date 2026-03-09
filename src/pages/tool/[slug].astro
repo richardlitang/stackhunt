@@ -1107,14 +1107,16 @@ applyToolPageRobotsHeader({
                   <h3 class="text-sm font-semibold text-zinc-200">Recommendation drivers</h3>
                   <ul class="mt-2 space-y-1 text-sm text-zinc-300">
                     {scoreDrivers.map((item) => (
-                      <li>
-                        - {item}{' '}
-                        <a href="#sources" class="text-xs text-hunt-500 hover:text-hunt-400">
-                          Evidence
-                        </a>
-                      </li>
+                      <li>- {item}</li>
                     ))}
                   </ul>
+                  <p class="mt-2 text-xs text-zinc-500">
+                    Source detail is available in{' '}
+                    <a href="#sources" class="text-zinc-400 underline underline-offset-2 hover:text-hunt-500">
+                      Methodology and sources
+                    </a>
+                    .
+                  </p>
                 </div>
               )}
             </section>
@@ -1244,9 +1246,9 @@ applyToolPageRobotsHeader({
                         data-outbound="source"
                         data-location="pricing-hard-limit"
                         data-tool={tool.slug}
-                        class="text-hunt-500 hover:text-hunt-400"
+                        class="text-zinc-400 underline underline-offset-2 hover:text-hunt-500"
                       >
-                        Evidence
+                        Source
                       </a>
                     </p>
                   </div>
@@ -1280,10 +1282,10 @@ applyToolPageRobotsHeader({
                       publish a reliable numeric table yet.
                     </p>
                     {pricingEvidenceState.hasEvidencePanel && (
-                      <div class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                          Relevant pricing sources
-                        </p>
+                      <details class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
+                        <summary class="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                          Pricing source references
+                        </summary>
                         <ul class="mt-2 space-y-1 text-xs text-zinc-300">
                           {officialPricingSource && (
                             <li>
@@ -1320,7 +1322,7 @@ applyToolPageRobotsHeader({
                             </li>
                           ))}
                         </ul>
-                      </div>
+                      </details>
                     )}
                     <p class="text-xs text-zinc-500">
                       Last checked {freshnessLabels.pricingSectionLastCheckedLabel}.
