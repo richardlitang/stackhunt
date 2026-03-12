@@ -33,6 +33,7 @@ import type {
   ResearchOutput,
 } from './types';
 import { classifyErrorForDlq } from './errors';
+import { preflightSubjectResolution } from './subject-preflight';
 
 export class Hunter {
   private supabase: SupabaseClient<Database>;
@@ -337,10 +338,34 @@ export class Hunter {
     if (input.contextTitle) this.log(`Context: ${input.contextTitle}`);
     if (this.config.isDraftMode) this.log(`Mode: DRAFT (requires review)`);
 
+    const subjectPreflight = preflightSubjectResolution({
+      toolName: input.toolName,
+      entityScope: input.entityScope || null,
+      mode: input.queueItemId ? 'queue_add' : 'direct_hunt',
+    });
+    if (!subjectPreflight.ok) {
+      const recommendation =
+        subjectPreflight.recommendedScopes.length > 0
+          ? ` Recommended scopes: ${subjectPreflight.recommendedScopes.join(', ')}.`
+          : '';
+      const errorMessage = `${subjectPreflight.message || 'Subject preflight failed.'}${recommendation}`;
+      this.log(`❌ ${errorMessage}`);
+      return this.withTelemetry(
+        {
+          success: false,
+          error: errorMessage,
+          tokensUsed: 0,
+          durationMs: Date.now() - startTime,
+        },
+        0
+      );
+    }
+    const resolvedEntityScope = subjectPreflight.resolvedScope || undefined;
+
     // Create HunterContext that flows through all phases
     const ctx: HunterContext = {
       toolName: input.toolName,
-      entityScope: input.entityScope,
+      entityScope: resolvedEntityScope,
       contextTitle: input.contextTitle,
       categorySlug: input.categorySlug,
       queueItemId: input.queueItemId,
@@ -405,7 +430,7 @@ export class Hunter {
         const resumedResearch = await this.loadLatestResearchCheckpoint(
           input.toolName,
           input.contextTitle,
-          input.entityScope
+          resolvedEntityScope
         );
         if (resumedResearch) {
           ctx.research = resumedResearch;
@@ -443,12 +468,16 @@ export class Hunter {
           if (!saved) {
             this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
             // Abort to prevent duplicate work
-            return this.withTelemetry({
-              success: false,
-              error: 'Checkpoint version conflict - item may have been processed by another worker',
-              tokensUsed: ctx.tokensUsed,
-              durationMs: Date.now() - ctx.startTime,
-            }, ctx.tokensUsed);
+            return this.withTelemetry(
+              {
+                success: false,
+                error:
+                  'Checkpoint version conflict - item may have been processed by another worker',
+                tokensUsed: ctx.tokensUsed,
+                durationMs: Date.now() - ctx.startTime,
+              },
+              ctx.tokensUsed
+            );
           }
 
           checkpointVersion = (checkpointVersion ?? 0) + 1; // Update local version
@@ -462,24 +491,30 @@ export class Hunter {
         if (status.shutdownDate) this.log(`   Shutdown: ${status.shutdownDate}`);
         if (status.reason) this.log(`   Reason: ${status.reason}`);
 
-        return this.withTelemetry({
-          success: true,
-          defunctStatus: status,
-          tokensUsed: ctx.tokensUsed,
-          durationMs: Date.now() - ctx.startTime,
-        }, ctx.tokensUsed);
+        return this.withTelemetry(
+          {
+            success: true,
+            defunctStatus: status,
+            tokensUsed: ctx.tokensUsed,
+            durationMs: Date.now() - ctx.startTime,
+          },
+          ctx.tokensUsed
+        );
       }
 
       // Early exit: Hard duplicate detected (unless forceUpdate)
       if (ctx.research.isDuplicate && !ctx.forceUpdate) {
         ctx.skipAnalysis = true;
         this.log(`⚠️ Duplicate detected, skipping expensive analysis`);
-        return this.withTelemetry({
-          success: true,
-          toolId: ctx.research.existingToolId,
-          tokensUsed: ctx.tokensUsed,
-          durationMs: Date.now() - ctx.startTime,
-        }, ctx.tokensUsed);
+        return this.withTelemetry(
+          {
+            success: true,
+            toolId: ctx.research.existingToolId,
+            tokensUsed: ctx.tokensUsed,
+            durationMs: Date.now() - ctx.startTime,
+          },
+          ctx.tokensUsed
+        );
       }
       if (ctx.research.isDuplicate && ctx.forceUpdate) {
         this.log(`🔄 Duplicate detected, but forceUpdate=true - continuing with re-extraction`);
@@ -503,9 +538,7 @@ export class Hunter {
           (source) => source.intent_tags.includes('reviews') && isLlmEligibleScoutSource(source)
         ).length;
         const tribalCount = scout.raw_sources.filter(
-          (source) =>
-            source.source_type === 'community' &&
-            isLlmEligibleScoutSource(source)
+          (source) => source.source_type === 'community' && isLlmEligibleScoutSource(source)
         ).length;
         const officialCount = scout.raw_sources
           .filter((source) => ['official', 'docs', 'support', 'legal'].includes(source.source_type))
@@ -513,7 +546,9 @@ export class Hunter {
         const pricingCount = scout.raw_sources.filter(
           (source) => source.intent_tags.includes('pricing') && isLlmEligibleScoutSource(source)
         ).length;
-        const eligibleCount = scout.raw_sources.filter((source) => isLlmEligibleScoutSource(source)).length;
+        const eligibleCount = scout.raw_sources.filter((source) =>
+          isLlmEligibleScoutSource(source)
+        ).length;
         const _totalSnippets = reviewCount + tribalCount + pricingCount;
 
         if (!passesPreflight(eligibleCount, officialCount)) {
@@ -541,9 +576,7 @@ export class Hunter {
               (source) => source.intent_tags.includes('reviews') && isLlmEligibleScoutSource(source)
             ).length;
             const freshTribalCount = freshScout.raw_sources.filter(
-              (source) =>
-                source.source_type === 'community' &&
-                isLlmEligibleScoutSource(source)
+              (source) => source.source_type === 'community' && isLlmEligibleScoutSource(source)
             ).length;
             const freshOfficialCount = freshScout.raw_sources
               .filter((source) =>
@@ -631,13 +664,16 @@ export class Hunter {
         this.log(`Tokens: ${ctx.tokensUsed}, Duration: ${Date.now() - ctx.startTime}ms`);
 
         // Don't clear checkpoint - item is in research_complete status
-        return this.withTelemetry({
-          success: true,
-          toolId: persistence.toolId,
-          queueStatus: 'research_complete',
-          tokensUsed: ctx.tokensUsed,
-          durationMs: Date.now() - ctx.startTime,
-        }, ctx.tokensUsed);
+        return this.withTelemetry(
+          {
+            success: true,
+            toolId: persistence.toolId,
+            queueStatus: 'research_complete',
+            tokensUsed: ctx.tokensUsed,
+            durationMs: Date.now() - ctx.startTime,
+          },
+          ctx.tokensUsed
+        );
       }
 
       if (!ctx.skipAnalysis && !ctx.analysis) {
@@ -668,12 +704,16 @@ export class Hunter {
 
           if (!saved) {
             this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
-            return this.withTelemetry({
-              success: false,
-              error: 'Checkpoint version conflict - item may have been processed by another worker',
-              tokensUsed: ctx.tokensUsed,
-              durationMs: Date.now() - ctx.startTime,
-            }, ctx.tokensUsed);
+            return this.withTelemetry(
+              {
+                success: false,
+                error:
+                  'Checkpoint version conflict - item may have been processed by another worker',
+                tokensUsed: ctx.tokensUsed,
+                durationMs: Date.now() - ctx.startTime,
+              },
+              ctx.tokensUsed
+            );
           }
 
           checkpointVersion = (checkpointVersion ?? 0) + 1; // Update local version
@@ -702,32 +742,41 @@ export class Hunter {
           await this.queue.clearCheckpoint(ctx.queueItemId, this.log.bind(this));
         }
 
-        return this.withTelemetry({
-          success: true,
-          toolId: persistence.toolId,
-          contextId: persistence.contextId || undefined,
-          reviewId: persistence.reviewId || undefined,
-          tokensUsed: ctx.tokensUsed,
-          durationMs: Date.now() - ctx.startTime,
-        }, ctx.tokensUsed);
+        return this.withTelemetry(
+          {
+            success: true,
+            toolId: persistence.toolId,
+            contextId: persistence.contextId || undefined,
+            reviewId: persistence.reviewId || undefined,
+            tokensUsed: ctx.tokensUsed,
+            durationMs: Date.now() - ctx.startTime,
+          },
+          ctx.tokensUsed
+        );
       }
 
       // If persistence was skipped, return partial result
-      return this.withTelemetry({
-        success: true,
-        tokensUsed: ctx.tokensUsed,
-        durationMs: Date.now() - ctx.startTime,
-        error: 'Persistence skipped due to validation failure',
-      }, ctx.tokensUsed);
+      return this.withTelemetry(
+        {
+          success: true,
+          tokensUsed: ctx.tokensUsed,
+          durationMs: Date.now() - ctx.startTime,
+          error: 'Persistence skipped due to validation failure',
+        },
+        ctx.tokensUsed
+      );
     } catch (error) {
       const err = error as Error;
       this.log(`❌ Hunt failed: ${err.message}`);
-      return this.withTelemetry({
-        success: false,
-        error: err.message,
-        tokensUsed: ctx.tokensUsed,
-        durationMs: Date.now() - ctx.startTime,
-      }, ctx.tokensUsed);
+      return this.withTelemetry(
+        {
+          success: false,
+          error: err.message,
+          tokensUsed: ctx.tokensUsed,
+          durationMs: Date.now() - ctx.startTime,
+        },
+        ctx.tokensUsed
+      );
     } finally {
       const summary = this.logger?.getSummary();
       if (summary) {

@@ -254,6 +254,7 @@ Notes:
 - 2026-03-13 progress: added review-subject schema proposal and migration sketch in `docs/plans/active/2026-03-13-review-subject-schema-proposal.md`.
 - 2026-03-13 progress: hunt CLI preflight now resolves inferred scope (for scoped tool names) and blocks ambiguous parent products without explicit `--entity-scope` or `--auto-scope-queue`.
 - 2026-03-13 progress: persistence now writes user-reported pros/cons into the `claims` ledger as first-class `user_signal_*` rows with explicit lane metadata in `value_json`.
+- 2026-03-13 progress: `Hunter.hunt()` now enforces subject preflight too, so queue workers cannot bypass canonical-subject scope checks.
 
 ### Phase 3: Page compiler rebuild
 
