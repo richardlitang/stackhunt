@@ -262,6 +262,8 @@ Notes:
 - 2026-03-13 progress: evidence runtime now keeps factual pros/cons lanes strict by filtering out community/opinion claims from core strengths-and-limitations evidence computation.
 - 2026-03-13 progress: quick-jump navigation now compiles from a fixed section-order contract, including explicit strengths section targeting.
 - 2026-03-13 progress: moved route-local `tool.specs` parsing (user-signal summary, top user claims, lens coverage counters) into `buildToolPageSpecsSignals(...)` to reduce `tool/[slug]` orchestration sprawl.
+- 2026-03-13 progress: moved decision-route assembly (`buildToolPageDecisionUtilityState`, pricing scenario, and early-snapshot tone gating) into `buildToolPageDecisionRouteState(...)`.
+- 2026-03-13 progress: moved chrome/content flattening and route field unpacking into `buildToolPageChromeRouteStateFromDecisionContext(...)` to reduce direct destructuring churn in `tool/[slug].astro`.
 
 ### Phase 3: Page compiler rebuild
 
