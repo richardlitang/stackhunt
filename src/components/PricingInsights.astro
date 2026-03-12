@@ -85,8 +85,21 @@ const dedupeMentalModelItems = (
 
 const factualCostDrivers = dedupe(costDrivers).slice(0, 5);
 const factualOneTimeFees = dedupe(oneTimeFees).slice(0, 4);
-const normalizedMentalModelItems = dedupeMentalModelItems(mentalModelItems).slice(0, 6);
-const normalizedCostModelExamples = dedupe(costModelExamples).slice(0, 5);
+const costDriverKeys = new Set(factualCostDrivers.map((item) => item.toLowerCase()));
+const oneTimeFeeKeys = new Set(factualOneTimeFees.map((item) => item.toLowerCase()));
+const normalizedMentalModelItems = dedupeMentalModelItems(mentalModelItems)
+  .filter((item) => {
+    const key = item.text.toLowerCase();
+    return !costDriverKeys.has(key) && !oneTimeFeeKeys.has(key);
+  })
+  .slice(0, 6);
+const mentalModelKeys = new Set(normalizedMentalModelItems.map((item) => item.text.toLowerCase()));
+const normalizedCostModelExamples = dedupe(costModelExamples)
+  .filter((item) => {
+    const key = item.toLowerCase();
+    return !costDriverKeys.has(key) && !oneTimeFeeKeys.has(key) && !mentalModelKeys.has(key);
+  })
+  .slice(0, 5);
 const normalizedCommitmentTerms =
   typeof commitmentTerms === 'string' ? normalize(commitmentTerms) : '';
 const normalizedRoiThreshold = typeof roiThreshold === 'string' ? normalize(roiThreshold) : '';
