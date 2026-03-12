@@ -77,18 +77,27 @@ export interface ToolPageEvidenceRuntime {
 export function buildToolPageEvidenceRuntime(
   input: BuildToolPageEvidenceRuntimeInput
 ): ToolPageEvidenceRuntime {
+  const isFactualEvidenceClaim = (item: ToolPageEvidenceBullet): boolean => {
+    if (item.sourceType === 'community') return false;
+    if (item.claimType === 'opinion') return false;
+    return true;
+  };
   const contextualEvidenceCons = input.reviewCons
     .map(input.toEvidenceBullet)
-    .filter((item): item is ToolPageEvidenceBullet => Boolean(item));
+    .filter((item): item is ToolPageEvidenceBullet => Boolean(item))
+    .filter(isFactualEvidenceClaim);
   const contextualEvidencePros = input.reviewPros
     .map(input.toEvidenceBullet)
-    .filter((item): item is ToolPageEvidenceBullet => Boolean(item));
+    .filter((item): item is ToolPageEvidenceBullet => Boolean(item))
+    .filter(isFactualEvidenceClaim);
   const globalEvidencePros = input.globalPros
     .map(input.toEvidenceBullet)
-    .filter((item): item is ToolPageEvidenceBullet => Boolean(item));
+    .filter((item): item is ToolPageEvidenceBullet => Boolean(item))
+    .filter(isFactualEvidenceClaim);
   const globalEvidenceCons = input.globalCons
     .map(input.toEvidenceBullet)
-    .filter((item): item is ToolPageEvidenceBullet => Boolean(item));
+    .filter((item): item is ToolPageEvidenceBullet => Boolean(item))
+    .filter(isFactualEvidenceClaim);
   const effectiveEvidencePros = prioritizeProsConsClaims(
     contextualEvidencePros.length > 0 ? contextualEvidencePros : globalEvidencePros
   );

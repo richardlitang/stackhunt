@@ -13,6 +13,7 @@ interface BuildToolPageNavigationMediaStateFromDecisionContextInput {
   };
   evidenceSignals: {
     showPricingSection: boolean;
+    hasStrengths: boolean;
   };
   faqItems: Array<{ question: string; answer: string; answer_source_url?: string | null }>;
   reviewArtifactsState: Pick<
@@ -32,6 +33,7 @@ export function buildToolPageNavigationMediaStateFromDecisionContext(
       showProceduralVerdict: input.presentationGates.showProceduralVerdict,
       hasGettingStarted: input.sectionFlags.hasGettingStarted,
       showPricingSection: input.evidenceSignals.showPricingSection,
+      hasStrengths: input.evidenceSignals.hasStrengths,
       hasFeatures: input.sectionFlags.hasFeatures,
       hasSpecs: input.sectionFlags.hasSpecs,
       showProceduralSpecs: input.presentationGates.showProceduralSpecs,

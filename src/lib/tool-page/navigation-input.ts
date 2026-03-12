@@ -3,6 +3,7 @@ interface BuildToolPageNavigationStateInputFromRouteInput {
   showProceduralVerdict: boolean;
   hasGettingStarted: boolean;
   showPricingSection: boolean;
+  hasStrengths: boolean;
   hasFeatures: boolean;
   hasSpecs: boolean;
   showProceduralSpecs: boolean;
@@ -20,6 +21,7 @@ interface BuildToolPageNavigationStateInputFromRouteContextInput {
   showProceduralVerdict: BuildToolPageNavigationStateInputFromRouteInput['showProceduralVerdict'];
   hasGettingStarted: BuildToolPageNavigationStateInputFromRouteInput['hasGettingStarted'];
   showPricingSection: BuildToolPageNavigationStateInputFromRouteInput['showPricingSection'];
+  hasStrengths: BuildToolPageNavigationStateInputFromRouteInput['hasStrengths'];
   hasFeatures: BuildToolPageNavigationStateInputFromRouteInput['hasFeatures'];
   hasSpecs: BuildToolPageNavigationStateInputFromRouteInput['hasSpecs'];
   showProceduralSpecs: BuildToolPageNavigationStateInputFromRouteInput['showProceduralSpecs'];
@@ -38,6 +40,7 @@ export function buildToolPageNavigationStateInputFromRoute(
   showVerdict: boolean;
   hasGettingStarted: boolean;
   showPricingSection: boolean;
+  hasStrengths: boolean;
   hasFeatures: boolean;
   showSpecs: boolean;
   hasPlatform: boolean;
@@ -52,6 +55,7 @@ export function buildToolPageNavigationStateInputFromRoute(
     showVerdict: input.hasVerdict || input.showProceduralVerdict,
     hasGettingStarted: input.hasGettingStarted,
     showPricingSection: input.showPricingSection,
+    hasStrengths: input.hasStrengths,
     hasFeatures: input.hasFeatures,
     showSpecs: input.hasSpecs || input.showProceduralSpecs,
     hasPlatform: input.hasPlatform,
@@ -72,6 +76,7 @@ export function buildToolPageNavigationStateInputFromRouteContext(
     showProceduralVerdict: input.showProceduralVerdict,
     hasGettingStarted: input.hasGettingStarted,
     showPricingSection: input.showPricingSection,
+    hasStrengths: input.hasStrengths,
     hasFeatures: input.hasFeatures,
     hasSpecs: input.hasSpecs,
     showProceduralSpecs: input.showProceduralSpecs,

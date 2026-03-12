@@ -12,6 +12,7 @@ describe('tool page navigation/media composite state', () => {
       showProceduralVerdict: false,
       hasGettingStarted: true,
       showPricingSection: true,
+      hasStrengths: true,
       hasFeatures: true,
       hasSpecs: true,
       showProceduralSpecs: false,

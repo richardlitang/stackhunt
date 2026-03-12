@@ -7,6 +7,7 @@ describe('tool page quick jump links', () => {
       showVerdict: false,
       hasGettingStarted: false,
       showPricingSection: false,
+      hasStrengths: false,
       hasFeatures: false,
       showSpecs: false,
       hasPlatform: false,
@@ -28,6 +29,7 @@ describe('tool page quick jump links', () => {
       showVerdict: true,
       hasGettingStarted: true,
       showPricingSection: true,
+      hasStrengths: true,
       hasFeatures: true,
       showSpecs: true,
       hasPlatform: true,
@@ -38,6 +40,7 @@ describe('tool page quick jump links', () => {
     });
 
     expect(result.some((item) => item.href === '#update-history')).toBe(true);
+    expect(result.some((item) => item.href === '#strengths')).toBe(true);
     expect(result[0].href).toBe('#verdict');
   });
 });

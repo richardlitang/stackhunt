@@ -90,6 +90,7 @@ describe('tool page runtime/navigation decision context', () => {
       },
       evidenceSignals: {
         showPricingSection: true,
+        hasStrengths: true,
       },
       faqItems: [{ question: 'Q', answer: 'A', answer_source_url: null }],
       reviewArtifactsState: {

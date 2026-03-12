@@ -9,6 +9,7 @@ interface BuildToolPageNavigationStateInput {
   showVerdict: boolean;
   hasGettingStarted: boolean;
   showPricingSection: boolean;
+  hasStrengths: boolean;
   hasFeatures: boolean;
   showSpecs: boolean;
   hasPlatform: boolean;
@@ -41,6 +42,7 @@ export function buildToolPageNavigationState(input: BuildToolPageNavigationState
     showVerdict: input.showVerdict,
     hasGettingStarted: input.hasGettingStarted,
     showPricingSection: input.showPricingSection,
+    hasStrengths: input.hasStrengths,
     hasFeatures: input.hasFeatures,
     showSpecs: input.showSpecs,
     hasPlatform: input.hasPlatform,

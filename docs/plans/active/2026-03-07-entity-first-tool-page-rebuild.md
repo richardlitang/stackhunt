@@ -259,6 +259,8 @@ Notes:
 - 2026-03-13 progress: category resolution now uses intent-aware precedence (explicit > detected > dossier category > taxonomy > context), and persistence applies that resolved slug when storing tool category.
 - 2026-03-13 progress: decision-utility state now suppresses generic pricing/setup/outcomes fallback content when confidence is low and no evidence anchors exist.
 - 2026-03-13 progress: decision-utility now consumes resolved subject type/scope and emits subject-specific rollout guidance for product surfaces, plan families, and deployment modes.
+- 2026-03-13 progress: evidence runtime now keeps factual pros/cons lanes strict by filtering out community/opinion claims from core strengths-and-limitations evidence computation.
+- 2026-03-13 progress: quick-jump navigation now compiles from a fixed section-order contract, including explicit strengths section targeting.
 
 ### Phase 3: Page compiler rebuild
 

@@ -1,7 +1,13 @@
+import {
+  buildToolPageFixedSectionLinks,
+  type ToolPageSectionKey,
+} from '@/lib/tool-page/section-order';
+
 interface BuildToolPageQuickJumpLinksInput {
   showVerdict: boolean;
   hasGettingStarted: boolean;
   showPricingSection: boolean;
+  hasStrengths: boolean;
   hasFeatures: boolean;
   showSpecs: boolean;
   hasPlatform: boolean;
@@ -19,22 +25,21 @@ export interface ToolPageQuickJumpLink {
 export function buildToolPageQuickJumpLinks(
   input: BuildToolPageQuickJumpLinksInput
 ): ToolPageQuickJumpLink[] {
-  const links: ToolPageQuickJumpLink[] = [
-    { href: '#workflow-fit', label: 'Rollout checkpoints' },
-    { href: '#how-we-evaluate', label: 'How we evaluated' },
-  ];
-
-  if (input.showVerdict) links.unshift({ href: '#verdict', label: 'Verdict' });
-  if (input.hasGettingStarted) links.push({ href: '#getting-started', label: 'Getting started' });
-  if (input.showPricingSection) links.push({ href: '#pricing-plans', label: 'Pricing' });
-  if (input.hasFeatures) links.push({ href: '#features', label: 'Features' });
-  if (input.showSpecs) links.push({ href: '#specs', label: 'Specs' });
-  if (input.hasPlatform) links.push({ href: '#platform-integrations', label: 'Platforms' });
-  if (input.hasFaq) links.push({ href: '#faq', label: 'FAQ' });
-  if (input.hasAlternatives) links.push({ href: '#alternatives', label: 'Alternatives' });
-  if (input.hasSources) links.push({ href: '#sources', label: 'Sources' });
-  if (input.hasUpdates) links.push({ href: '#update-history', label: 'Updates' });
-
-  links.push({ href: '/disclosure', label: 'Disclosures' });
-  return links;
+  const visibleSections = new Set<ToolPageSectionKey>([
+    'workflow_fit',
+    'how_we_evaluated',
+    'disclosures',
+  ]);
+  if (input.showVerdict) visibleSections.add('verdict');
+  if (input.showPricingSection) visibleSections.add('pricing');
+  if (input.hasGettingStarted) visibleSections.add('getting_started');
+  if (input.hasStrengths) visibleSections.add('strengths');
+  if (input.hasFeatures) visibleSections.add('features');
+  if (input.showSpecs) visibleSections.add('specs');
+  if (input.hasPlatform) visibleSections.add('platform');
+  if (input.hasFaq) visibleSections.add('faq');
+  if (input.hasAlternatives) visibleSections.add('alternatives');
+  if (input.hasSources) visibleSections.add('sources');
+  if (input.hasUpdates) visibleSections.add('update_history');
+  return buildToolPageFixedSectionLinks(visibleSections);
 }

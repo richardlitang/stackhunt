@@ -195,6 +195,10 @@ export { buildToolPageLensPriorityLead } from '@/lib/tool-page/lens-priority-cop
 export { buildToolPageLowConfidenceSourcesState } from '@/lib/tool-page/low-confidence-sources';
 export { buildToolPageSectionRuntime } from '@/lib/tool-page/section-runtime';
 export { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
+export {
+  buildToolPageFixedSectionLinks,
+  type ToolPageSectionKey,
+} from '@/lib/tool-page/section-order';
 export { buildToolPageSectionRuntimeInput } from '@/lib/tool-page/section-runtime-input';
 export { buildToolPageVideoState } from '@/lib/tool-page/video-state';
 export { buildToolPageVideoProps } from '@/lib/tool-page/video-props';

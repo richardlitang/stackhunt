@@ -89,7 +89,7 @@ describe('tool page evidence runtime', () => {
     expect(result.tradeoffCons.length).toBeGreaterThan(0);
   });
 
-  it('prioritizes and dedupes pros/cons with user-signal claims', () => {
+  it('keeps factual pros/cons separate from user-signal claims', () => {
     const result = buildToolPageEvidenceRuntime({
       reviewPros: [
         {
@@ -187,7 +187,7 @@ describe('tool page evidence runtime', () => {
       }),
     });
 
-    expect(result.effectiveEvidencePros).toHaveLength(2);
-    expect(result.effectiveEvidencePros[0]?.sourceType).toBe('community');
+    expect(result.effectiveEvidencePros).toHaveLength(1);
+    expect(result.effectiveEvidencePros[0]?.sourceType).toBe('official');
   });
 });
