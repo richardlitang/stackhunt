@@ -6,20 +6,19 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `deriveToolPageRequestState(...)` (frontmatter line 67)
-2. `applyToolPageVersionBypassCacheHeaders(...)` (frontmatter line 71)
-3. `getToolPageData(...)` (frontmatter line 73)
-4. `deriveToolPageReviewContextSignals(...)` (frontmatter line 110)
-5. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 112)
-6. `buildToolPageSpecsSignals(...)` (frontmatter line 249)
-7. `buildToolPageCategoryRef(...)` (frontmatter line 261)
-8. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 263)
-9. `buildToolPageChromeContentStateFromDecisionContext(...)` (frontmatter line 320)
-10. `buildToolPageDecisionUtilityState(...)` (frontmatter line 374)
-11. `buildToolPageWorkflowFitVisibility(...)` (frontmatter line 394)
-12. `buildToolPagePricingScenarioState(...)` (frontmatter line 400)
-13. `buildToolPageQuickJumpLinksView(...)` (frontmatter line 456)
-14. `applyToolPageRobotsHeader(...)` (frontmatter line 468)
+1. `deriveToolPageRequestState(...)` (frontmatter line 66)
+2. `applyToolPageVersionBypassCacheHeaders(...)` (frontmatter line 70)
+3. `getToolPageData(...)` (frontmatter line 72)
+4. `deriveToolPageReviewContextSignals(...)` (frontmatter line 109)
+5. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 111)
+6. `buildToolPageSpecsSignals(...)` (frontmatter line 248)
+7. `buildToolPageCategoryRef(...)` (frontmatter line 260)
+8. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 262)
+9. `buildToolPageChromeContentStateFromDecisionContext(...)` (frontmatter line 319)
+10. `buildToolPageDecisionUtilityState(...)` (frontmatter line 373)
+11. `buildToolPagePricingScenarioState(...)` (frontmatter line 394)
+12. `buildToolPageDecisionPresentationState(...)` (frontmatter line 449)
+13. `applyToolPageRobotsHeader(...)` (frontmatter line 465)
 
 ## Tool-Page Imports Used by Route
 
@@ -37,8 +36,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `buildToolPagePrepReviewEvidenceStateFromDecisionContext` | `@/lib/tool-page/prep-review-evidence-decision-context` |
 | `buildToolPageDecisionUtilityState`                       | `@/lib/tool-page/decision-utility`                      |
 | `buildToolPagePricingScenarioState`                       | `@/lib/tool-page/pricing-scenarios`                     |
-| `buildToolPageWorkflowFitVisibility`                      | `@/lib/tool-page/workflow-fit-visibility`               |
-| `buildToolPageQuickJumpLinksView`                         | `@/lib/tool-page/quick-jump-links-view`                 |
+| `buildToolPageDecisionPresentationState`                  | `@/lib/tool-page/decision-presentation-state`           |
 | `buildToolPageSpecsSignals`                               | `@/lib/tool-page/specs-signals`                         |
 
 ## One-Level Helper Dependencies
@@ -95,13 +93,10 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 - no nested `ToolPage*` helper calls detected
 
-### `buildToolPageWorkflowFitVisibility`
+### `buildToolPageDecisionPresentationState`
 
-- no nested `ToolPage*` helper calls detected
-
-### `buildToolPageQuickJumpLinksView`
-
-- no nested `ToolPage*` helper calls detected
+- `buildToolPageWorkflowFitVisibility(...)`
+- `buildToolPageQuickJumpLinksView(...)`
 
 ### `buildToolPageSpecsSignals`
 

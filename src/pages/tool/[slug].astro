@@ -54,8 +54,7 @@ import {
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
   buildToolPageDecisionUtilityState,
   buildToolPagePricingScenarioState,
-  buildToolPageWorkflowFitVisibility,
-  buildToolPageQuickJumpLinksView,
+  buildToolPageDecisionPresentationState,
   buildToolPageSpecsSignals,
   rankConstraintsForLens,
 } from '@/lib/tool-page';
@@ -391,11 +390,6 @@ const decisionUtilityState = buildToolPageDecisionUtilityState({
   pricingEvidenceSummary: pricingEvidenceLinks[0]?.text || null,
   lowConfidenceMode: qualityState.contentConfidenceLabel === 'Low',
 });
-const { showWorkflowFitSection } = buildToolPageWorkflowFitVisibility({
-  categorySlug: tool.category?.slug || null,
-  hasWorkflowCards: workflowFitCards.length > 0,
-  hasWorkflowHighlights: workflowFitHighlights.length > 0,
-});
 const decisionHardLimitEvidence = topLensHardLimit || null;
 const pricingScenarioState = buildToolPagePricingScenarioState({
   toolName: tool.name,
@@ -413,11 +407,6 @@ const {
   lensPriorityLead,
   freshnessLabels,
 } = toolChromeState;
-const shouldShowDecisionUtilitySection =
-  decisionUtilityState.hasEvidenceAnchoredUtility &&
-  (decisionUtilityState.testChecklistItems.length > 0 ||
-    decisionUtilityState.commonSetups.length > 0);
-const shouldShowPracticalOutcomes = decisionUtilityState.practicalOutcomes.length > 0;
 const showEarlySnapshotToneBanner =
   trustBarProps.confidence === 'Low' || trustBarProps.pendingCount > 0;
 const {
@@ -444,8 +433,6 @@ const {
   pricingNotice,
   operationalDetailsState,
 } = contentSectionsState;
-const hasUserSignalProsCons =
-  prosConsView.userSignalPros.length > 0 || prosConsView.userSignalCons.length > 0;
 const {
   sourcesSectionState,
   lowConfidenceSourcesState,
@@ -453,9 +440,19 @@ const {
   updateHistoryState,
   quickJumpLinks,
 } = navigationState;
-const quickJumpLinksView = buildToolPageQuickJumpLinksView({
-  links: quickJumpLinks,
+const {
   showWorkflowFitSection,
+  shouldShowDecisionUtilitySection,
+  shouldShowPracticalOutcomes,
+  hasUserSignalProsCons,
+  quickJumpLinksView,
+} = buildToolPageDecisionPresentationState({
+  categorySlug: tool.category?.slug || null,
+  workflowFitCardsCount: workflowFitCards.length,
+  workflowFitHighlightsCount: workflowFitHighlights.length,
+  decisionUtilityState,
+  prosConsView,
+  quickJumpLinks,
 });
 const {
   compareButtonProps,
