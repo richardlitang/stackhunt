@@ -52,8 +52,7 @@ import {
   buildToolPageRuntimeNavigationStateFromDecisionContext,
   buildToolPageChromeContentStateFromDecisionContext,
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
-  buildToolPageDecisionUtilityState,
-  buildToolPagePricingScenarioState,
+  buildToolPageDecisionRouteState,
   buildToolPageDecisionPresentationState,
   buildToolPageSpecsSignals,
   rankConstraintsForLens,
@@ -366,32 +365,6 @@ const {
   workflowFitHighlights,
   workflowFitCards,
 } = lensViewFields;
-const decisionUtilityState = buildToolPageDecisionUtilityState({
-  toolName: tool.name,
-  categorySlug: tool.category?.slug || null,
-  resolvedSubjectType: resolvedSubject?.subjectType || null,
-  resolvedEntityScope: resolvedSubject?.entityScope || null,
-  activeReviewLens,
-  hasApi: Boolean(knowledgeCard?.integrations?.has_api),
-  hasParentTool: Boolean(parentTool),
-  hasEnterpriseSignals:
-    (tool.pricing_type || '').toLowerCase().includes('enterprise') ||
-    tags.audiences.some((audience) => audience.slug.toLowerCase().includes('enterprise')),
-  lensBestFitLine,
-  lensWeakFitLine,
-  lensTradeoffLine,
-  hardLimitText: topLensHardLimit?.text || null,
-  pricingEvidenceSourceUrl:
-    pricingEvidenceLinks[0]?.sourceUrl || officialPricingSource?.url || null,
-  pricingEvidenceSummary: pricingEvidenceLinks[0]?.text || null,
-  lowConfidenceMode: qualityState.contentConfidenceLabel === 'Low',
-});
-const decisionHardLimitEvidence = topLensHardLimit || null;
-const pricingScenarioState = buildToolPagePricingScenarioState({
-  toolName: tool.name,
-  hardLimitText: topLensHardLimit?.text || null,
-  activeReviewLens,
-});
 const {
   reviewInProgressBannerText,
   researchStatusView,
@@ -403,8 +376,38 @@ const {
   lensPriorityLead,
   freshnessLabels,
 } = toolChromeState;
-const showEarlySnapshotToneBanner =
-  trustBarProps.confidence === 'Low' || trustBarProps.pendingCount > 0;
+const {
+  decisionUtilityState,
+  decisionHardLimitEvidence,
+  pricingScenarioState,
+  showEarlySnapshotToneBanner,
+} = buildToolPageDecisionRouteState({
+  tool: {
+    name: tool.name,
+    categorySlug: tool.category?.slug || null,
+    pricingType: tool.pricing_type,
+  },
+  resolvedSubject: {
+    subjectType: resolvedSubject?.subjectType || null,
+    entityScope: resolvedSubject?.entityScope || null,
+  },
+  activeReviewLens,
+  hasApi: Boolean(knowledgeCard?.integrations?.has_api),
+  hasParentTool: Boolean(parentTool),
+  audienceSlugs: tags.audiences.map((audience) => audience.slug || audience.name || ''),
+  lensBestFitLine,
+  lensWeakFitLine,
+  lensTradeoffLine,
+  topLensHardLimit,
+  pricingEvidenceSourceUrl:
+    pricingEvidenceLinks[0]?.sourceUrl || officialPricingSource?.url || null,
+  pricingEvidenceSummary: pricingEvidenceLinks[0]?.text || null,
+  contentConfidenceLabel: qualityState.contentConfidenceLabel,
+  trustBar: {
+    confidence: trustBarProps.confidence,
+    pendingCount: trustBarProps.pendingCount,
+  },
+});
 const {
   pricingInsightsBudgetAnalyst,
   alternativesIntroText,

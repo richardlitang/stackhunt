@@ -73,6 +73,7 @@ export {
   buildToolPageFallbackDecisionSummary,
   deriveToolPageDecisionDifferentiators,
 } from '@/lib/tool-page/decision';
+export { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 export { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision-utility';
 export {
   buildToolPageEvidenceBulletV2,
