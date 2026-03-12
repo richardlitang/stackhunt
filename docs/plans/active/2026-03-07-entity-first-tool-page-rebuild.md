@@ -258,11 +258,12 @@ Notes:
 - 2026-03-13 progress: alternatives cards now render an explicit comparison axis label, and rendered QA now fails on unresolved-subject verdict leaks, generic hero dek fallback, and malformed or axis-less comparison link sets.
 - 2026-03-13 progress: category resolution now uses intent-aware precedence (explicit > detected > dossier category > taxonomy > context), and persistence applies that resolved slug when storing tool category.
 - 2026-03-13 progress: decision-utility state now suppresses generic pricing/setup/outcomes fallback content when confidence is low and no evidence anchors exist.
+- 2026-03-13 progress: decision-utility now consumes resolved subject type/scope and emits subject-specific rollout guidance for product surfaces, plan families, and deployment modes.
 
 ### Phase 3: Page compiler rebuild
 
 - [ ] Build a slimmer tool-page compiler around one subject and one fixed section order (`npm run typecheck && npm run test && npm run build`)
-- [ ] Replace generic decision utility builders with subject-specific decision builders (`npm run test -- tests/lib/tool-page-decision-utility.test.ts && npm run typecheck`)
+- [~] Replace generic decision utility builders with subject-specific decision builders (`npm run test -- tests/lib/tool-page-decision-utility.test.ts && npm run typecheck`)
 - [~] Replace mixed pros/cons rendering with separate fact-backed and user-reported evidence groups (`npm run test -- tests/lib/tool-page-pros-cons-view.test.ts && npm run typecheck`)
 
 ### Phase 4: Alternatives and category cleanup

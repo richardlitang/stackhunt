@@ -46,4 +46,50 @@ describe('tool page decision utility state', () => {
     expect(result.commonSetups.length).toBeGreaterThan(0);
     expect(result.practicalOutcomes.length).toBeGreaterThan(0);
   });
+
+  it('uses subject-specific checklist and verdict lead for product surfaces', () => {
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'GitHub Actions',
+      categorySlug: 'developer-tools',
+      resolvedSubjectType: 'product_surface',
+      resolvedEntityScope: 'actions',
+      activeReviewLens: 'startup',
+      hasApi: true,
+      hasParentTool: true,
+      hasEnterpriseSignals: false,
+      lensBestFitLine: 'Best for CI workflows.',
+      lensWeakFitLine: 'Weak fit for teams with strict procurement-only controls.',
+      lensTradeoffLine: 'Tradeoff is velocity versus governance depth.',
+      hardLimitText: 'Advanced controls require higher tiers.',
+      pricingEvidenceSourceUrl: 'https://example.com/pricing',
+      pricingEvidenceSummary: 'Plan-gated CI minutes and controls.',
+      lowConfidenceMode: false,
+    });
+
+    expect(result.testChecklistItems[0]).toMatch(/surface only/i);
+    expect(result.verdictLeadOverride).toMatch(/specific product surface/i);
+  });
+
+  it('uses subject-specific plan-family guidance when plan family is resolved', () => {
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'GitHub Enterprise',
+      categorySlug: 'developer-tools',
+      resolvedSubjectType: 'plan_family',
+      resolvedEntityScope: null,
+      activeReviewLens: 'enterprise',
+      hasApi: true,
+      hasParentTool: true,
+      hasEnterpriseSignals: true,
+      lensBestFitLine: 'Best for governance-heavy orgs.',
+      lensWeakFitLine: 'Weak fit for self-serve solo buyers.',
+      lensTradeoffLine: 'Tradeoff is governance depth versus seat cost.',
+      hardLimitText: 'Enterprise controls are plan-gated.',
+      pricingEvidenceSourceUrl: 'https://example.com/pricing',
+      pricingEvidenceSummary: 'Seat minimums and annual commitments.',
+      lowConfidenceMode: false,
+    });
+
+    expect(result.testChecklistItems[0]).toMatch(/exact plans/i);
+    expect(result.verdictLeadOverride).toMatch(/exact plan fit/i);
+  });
 });

@@ -500,6 +500,8 @@ const {
 const decisionUtilityState = buildToolPageDecisionUtilityState({
   toolName: tool.name,
   categorySlug: tool.category?.slug || null,
+  resolvedSubjectType: resolvedSubject?.subjectType || null,
+  resolvedEntityScope: resolvedSubject?.entityScope || null,
   activeReviewLens,
   hasApi: Boolean(knowledgeCard?.integrations?.has_api),
   hasParentTool: Boolean(parentTool),

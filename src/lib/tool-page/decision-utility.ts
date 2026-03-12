@@ -18,6 +18,14 @@ export interface ToolPageDecisionUtilitySetup {
 export interface BuildToolPageDecisionUtilityInput {
   toolName: string;
   categorySlug: string | null;
+  resolvedSubjectType?: 'product' | 'product_surface' | 'plan_family' | 'deployment_mode' | null;
+  resolvedEntityScope?:
+    | 'core'
+    | 'copilot'
+    | 'actions'
+    | 'enterprise_cloud'
+    | 'enterprise_server'
+    | null;
   activeReviewLens: ReviewLens;
   hasApi: boolean;
   hasParentTool: boolean;
@@ -128,6 +136,45 @@ function buildArchetypeChecklist(
   return buildGenericChecklist(toolName);
 }
 
+function buildSubjectSpecificChecklist(input: {
+  subjectType: 'product' | 'product_surface' | 'plan_family' | 'deployment_mode';
+  entityScope: 'core' | 'copilot' | 'actions' | 'enterprise_cloud' | 'enterprise_server' | null;
+  toolName: string;
+  lens: ReviewLens;
+}): string[] | null {
+  if (input.subjectType === 'product_surface') {
+    return [
+      `Validate one end-to-end workflow in ${input.toolName} for this surface only, before evaluating adjacent products.`,
+      `Confirm where this surface starts and stops, then document what still needs a different tool or module.`,
+      'Check permissions, billing, and rollout ownership at the surface boundary, not suite-wide assumptions.',
+      input.lens === 'enterprise'
+        ? 'Verify governance controls and auditability for this specific surface in procurement docs.'
+        : 'Verify the first paid threshold that unlocks required surface-level capabilities.',
+    ];
+  }
+  if (input.subjectType === 'plan_family') {
+    return [
+      `Map required capabilities to exact plans in ${input.toolName}, then verify no critical feature is assumed across all tiers.`,
+      'Confirm seat minimums, annual commitments, and procurement constraints before rollout planning.',
+      'Run one pilot workflow on the intended target tier, not on a higher internal test tier.',
+      'Document the downgrade and rollback path if plan assumptions break after onboarding.',
+    ];
+  }
+  if (input.subjectType === 'deployment_mode') {
+    const deploymentLabel =
+      input.entityScope === 'enterprise_server'
+        ? 'self-hosted/server deployment'
+        : 'cloud deployment';
+    return [
+      `Validate one production-like workflow in the selected ${deploymentLabel} mode for ${input.toolName}.`,
+      'Confirm identity, networking, backup, and upgrade responsibilities for this deployment mode.',
+      'Check operational ownership boundaries between your team and vendor support.',
+      'Run one incident drill (access loss or rollout rollback) before expansion.',
+    ];
+  }
+  return null;
+}
+
 export function buildToolPageDecisionUtilityState(
   input: BuildToolPageDecisionUtilityInput
 ): ToolPageDecisionUtilityState {
@@ -166,10 +213,20 @@ export function buildToolPageDecisionUtilityState(
   const hasDecisionBullets = useIf.length > 0 || avoidIf.length > 0 || watchOut.length > 0;
 
   const isCrm = isCrmCategory(input.categorySlug);
+  const subjectSpecificChecklist = input.resolvedSubjectType
+    ? buildSubjectSpecificChecklist({
+        subjectType: input.resolvedSubjectType,
+        entityScope: input.resolvedEntityScope || null,
+        toolName: input.toolName,
+        lens: input.activeReviewLens,
+      })
+    : null;
   const testChecklistItems = hasEvidenceAnchoredUtility
-    ? isCrm
-      ? buildCrmChecklist(input.activeReviewLens)
-      : buildArchetypeChecklist(productArchetype, input.toolName, input.activeReviewLens)
+    ? subjectSpecificChecklist
+      ? subjectSpecificChecklist
+      : isCrm
+        ? buildCrmChecklist(input.activeReviewLens)
+        : buildArchetypeChecklist(productArchetype, input.toolName, input.activeReviewLens)
     : [];
 
   const basePricingMentalModelItems =
@@ -289,6 +346,15 @@ export function buildToolPageDecisionUtilityState(
   const verdictLeadOverride = (() => {
     if (shouldSuppressGenericUtility) {
       return `${input.toolName} has early signals, but subject-specific evidence is still too thin for reliable rollout guidance.`;
+    }
+    if (input.resolvedSubjectType === 'product_surface') {
+      return `${input.toolName} should be evaluated as a specific product surface, not as a full suite verdict.`;
+    }
+    if (input.resolvedSubjectType === 'plan_family') {
+      return `${input.toolName} should be judged on exact plan fit and upgrade constraints, not on broad feature impressions.`;
+    }
+    if (input.resolvedSubjectType === 'deployment_mode') {
+      return `${input.toolName} should be evaluated in the selected deployment mode first, with operations and governance validated before expansion.`;
     }
     if (input.activeReviewLens === 'startup') {
       return `${input.toolName} fits startups that can own CRM operations and iterate quickly on pipeline and data model.`;
