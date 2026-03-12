@@ -18,33 +18,19 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 import { readFileSync, existsSync } from 'fs';
 import { parse } from 'csv-parse/sync';
+import { preflightSubjectResolution } from '../src/lib/hunter/subject-preflight';
+import type { HunterEntityScope } from '../src/lib/hunter/types';
 
 // Load environment variables
 config();
 
-type EntityScopeAmbiguity = {
-  recommendedScopes: string[];
-};
-
-function detectEntityScopeAmbiguity(
-  toolName: string,
-  entityScope?: string
-): EntityScopeAmbiguity | null {
-  if (entityScope) return null;
-  const normalized = toolName.trim().toLowerCase();
-  if (normalized === 'github') {
-    return { recommendedScopes: ['core', 'copilot', 'actions', 'enterprise_cloud'] };
-  }
-  return null;
-}
-
 function buildAutoScopeQueueVariants(
   toolName: string,
+  recommendedScopes: HunterEntityScope[],
   contextTitle?: string
 ): Array<{ toolName: string; entityScope?: string; contextTitle?: string }> {
-  const ambiguity = detectEntityScopeAmbiguity(toolName);
-  if (!ambiguity) return [{ toolName, contextTitle }];
-  return ambiguity.recommendedScopes.map((scope) => ({
+  if (!recommendedScopes.length) return [{ toolName, contextTitle }];
+  return recommendedScopes.map((scope) => ({
     toolName,
     entityScope: scope,
     contextTitle,
@@ -60,20 +46,20 @@ async function main() {
       'entity-scope': { type: 'string' },
       scope: { type: 'string' },
       category: { type: 'string', short: 'g' },
-      publish: { type: 'boolean', short: 'p' },  // Skip draft, publish immediately
-      rehunt: { type: 'boolean', short: 'r' },   // Force re-extraction for duplicates
-      'research-only': { type: 'boolean' },       // Two-stage: stop after research (for batch synthesis)
-      queue: { type: 'string', short: 'q' },      // 'add' | 'process' | 'batch' | 'cleanup' | 'status'
-      'auto-scope-queue': { type: 'boolean' },    // Queue conservative parent/sub variants for ambiguous tools
-      strategy: { type: 'string', short: 's' },   // 'analyze' | 'import' | 'ahrefs' | 'classify' | 'approve' | 'status' | 'thresholds'
-      file: { type: 'string', short: 'f' },       // CSV file for import
-      priority: { type: 'string' },               // Queue priority (0-100) or min ROI for approve
-      limit: { type: 'string', short: 'l' },      // Limit for batch operations
-      'no-filter': { type: 'boolean' },           // Skip filtering for ahrefs import
-      'min-volume': { type: 'string' },           // Threshold: min search volume
-      'max-difficulty': { type: 'string' },       // Threshold: max keyword difficulty
-      'min-cpc': { type: 'string' },              // Threshold: min CPC
-      domain: { type: 'string', short: 'd' },     // Competitor domain for import
+      publish: { type: 'boolean', short: 'p' }, // Skip draft, publish immediately
+      rehunt: { type: 'boolean', short: 'r' }, // Force re-extraction for duplicates
+      'research-only': { type: 'boolean' }, // Two-stage: stop after research (for batch synthesis)
+      queue: { type: 'string', short: 'q' }, // 'add' | 'process' | 'batch' | 'cleanup' | 'status'
+      'auto-scope-queue': { type: 'boolean' }, // Queue conservative parent/sub variants for ambiguous tools
+      strategy: { type: 'string', short: 's' }, // 'analyze' | 'import' | 'ahrefs' | 'classify' | 'approve' | 'status' | 'thresholds'
+      file: { type: 'string', short: 'f' }, // CSV file for import
+      priority: { type: 'string' }, // Queue priority (0-100) or min ROI for approve
+      limit: { type: 'string', short: 'l' }, // Limit for batch operations
+      'no-filter': { type: 'boolean' }, // Skip filtering for ahrefs import
+      'min-volume': { type: 'string' }, // Threshold: min search volume
+      'max-difficulty': { type: 'string' }, // Threshold: max keyword difficulty
+      'min-cpc': { type: 'string' }, // Threshold: min CPC
+      domain: { type: 'string', short: 'd' }, // Competitor domain for import
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -85,7 +71,7 @@ async function main() {
 
   // Validate environment (only Supabase required for strategy operations)
   const supabaseVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-  const missingSupabase = supabaseVars.filter(v => !process.env[v]);
+  const missingSupabase = supabaseVars.filter((v) => !process.env[v]);
   if (missingSupabase.length > 0) {
     console.error(`Missing required environment variables: ${missingSupabase.join(', ')}`);
     process.exit(1);
@@ -102,7 +88,7 @@ async function main() {
     // Queue processing needs AI keys
     if (values.queue === 'process' || values.queue === 'batch') {
       const aiVars = ['GEMINI_API_KEY', 'SERPER_API_KEY'];
-      const missingAi = aiVars.filter(v => !process.env[v]);
+      const missingAi = aiVars.filter((v) => !process.env[v]);
       if (missingAi.length > 0) {
         console.error(`Missing AI environment variables for processing: ${missingAi.join(', ')}`);
         process.exit(1);
@@ -114,7 +100,7 @@ async function main() {
 
   // Direct hunt requires AI keys
   const aiVars = ['GEMINI_API_KEY', 'SERPER_API_KEY'];
-  const missingAi = aiVars.filter(v => !process.env[v]);
+  const missingAi = aiVars.filter((v) => !process.env[v]);
   if (missingAi.length > 0) {
     console.error(`Missing AI environment variables: ${missingAi.join(', ')}`);
     process.exit(1);
@@ -252,10 +238,7 @@ VPS Cron Jobs:
 }
 
 async function handleQueueOperation(values: Record<string, string | boolean | undefined>) {
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   if (values.queue === 'add') {
     if (!values.tool) {
@@ -264,11 +247,21 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
     }
 
     const autoScopeQueue = !!values['auto-scope-queue'];
-    const ambiguity = detectEntityScopeAmbiguity(values.tool as string);
+    const subjectPreflight = preflightSubjectResolution({
+      toolName: values.tool as string,
+      entityScope: ((values['entity-scope'] || values.scope) as string) || null,
+      mode: 'queue_add',
+    });
 
-    if (autoScopeQueue && ambiguity) {
+    if (!subjectPreflight.ok && !subjectPreflight.requiresExplicitScope) {
+      console.error(subjectPreflight.message || 'Subject preflight failed.');
+      process.exit(1);
+    }
+
+    if (autoScopeQueue && subjectPreflight.requiresExplicitScope) {
       const variants = buildAutoScopeQueueVariants(
         values.tool as string,
+        subjectPreflight.recommendedScopes,
         (values.context as string) || undefined
       );
       const requestedPriority = parseInt(values.priority as string) || 50;
@@ -296,7 +289,9 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
         if (error) {
           if (error.code === '23505') {
             const scopeLabel = row.entity_scope ? ` [scope=${row.entity_scope}]` : '';
-            console.log(`  ⏭️  ${row.tool_name}${scopeLabel} already in queue (pending/processing)`);
+            console.log(
+              `  ⏭️  ${row.tool_name}${scopeLabel} already in queue (pending/processing)`
+            );
             continue;
           }
           console.error(`  Failed to add ${row.tool_name}: ${error.message}`);
@@ -322,17 +317,23 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
       return;
     }
 
-    if (!autoScopeQueue && ambiguity) {
-      console.log(
-        `Tip: "${values.tool}" is ambiguous. Use --auto-scope-queue to enqueue conservative variants (e.g. core + Copilot).`
-      );
+    if (subjectPreflight.requiresExplicitScope && !autoScopeQueue) {
+      console.error(subjectPreflight.message || `Tool "${values.tool}" requires --entity-scope.`);
+      if (subjectPreflight.recommendedScopes.length > 0) {
+        console.error(`Recommended scopes: ${subjectPreflight.recommendedScopes.join(', ')}`);
+        console.error(
+          `Example: npm run hunt -- --queue add --tool="${values.tool}" --entity-scope=${subjectPreflight.recommendedScopes[0]}`
+        );
+      }
+      process.exit(1);
     }
 
+    const resolvedScope = subjectPreflight.resolvedScope;
     const { data, error } = await supabase
       .from('hunt_queue')
       .insert({
         tool_name: values.tool as string,
-        entity_scope: ((values['entity-scope'] || values.scope) as string) || null,
+        entity_scope: resolvedScope || null,
         context_title: (values.context as string) || null,
         category_slug: (values.category as string) || null,
         priority: parseInt(values.priority as string) || 50,
@@ -352,8 +353,8 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
     } else {
       console.log(`Added to hunt queue: ${values.tool}`);
       console.log(`  Context: ${values.context || '(none)'}`);
-      if (values['entity-scope'] || values.scope) {
-        console.log(`  Entity scope: ${(values['entity-scope'] || values.scope) as string}`);
+      if (resolvedScope) {
+        console.log(`  Entity scope: ${resolvedScope}`);
       }
       console.log(`  Priority: ${data.priority}`);
       console.log(`  Queue ID: ${data.id}`);
@@ -419,7 +420,9 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
     console.log('\n⏳ Pending:');
     if (pending?.length) {
       pending.forEach((item, i) => {
-        console.log(`  ${i + 1}. ${item.tool_name} ${item.context_title ? `(${item.context_title})` : ''}`);
+        console.log(
+          `  ${i + 1}. ${item.tool_name} ${item.context_title ? `(${item.context_title})` : ''}`
+        );
         console.log(`     Priority: ${item.priority} | Source: ${item.source}`);
       });
     } else {
@@ -429,7 +432,8 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
     console.log('\n🔄 Processing:');
     if (processing?.length) {
       processing.forEach((item, i) => {
-        const stale = item.heartbeat_at && new Date(item.heartbeat_at) < new Date(Date.now() - 5 * 60 * 1000);
+        const stale =
+          item.heartbeat_at && new Date(item.heartbeat_at) < new Date(Date.now() - 5 * 60 * 1000);
         console.log(`  ${i + 1}. ${item.tool_name} [${item.status}]${stale ? ' ⚠️ STALE' : ''}`);
         console.log(`     Worker: ${item.claimed_by || 'unknown'}`);
       });
@@ -450,7 +454,9 @@ async function handleQueueOperation(values: Record<string, string | boolean | un
     console.log('\n📝 Drafts Awaiting Review:');
     if (drafts?.length) {
       drafts.forEach((item, i) => {
-        console.log(`  ${i + 1}. ${(item.tool as { name: string })?.name || 'Unknown'} - ${(item.context as { title: string })?.title || 'No context'}`);
+        console.log(
+          `  ${i + 1}. ${(item.tool as { name: string })?.name || 'Unknown'} - ${(item.context as { title: string })?.title || 'No context'}`
+        );
       });
     } else {
       console.log('  (none)');
@@ -469,25 +475,36 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
   const isDraftMode = !values.publish;
   const forceUpdate = !!values.rehunt;
   const researchOnly = !!values['research-only'];
-  const entityScope = (values['entity-scope'] || values.scope) as string | undefined;
+  const entityScopeInput = (values['entity-scope'] || values.scope) as string | undefined;
+  const subjectPreflight = preflightSubjectResolution({
+    toolName: values.tool as string,
+    entityScope: entityScopeInput || null,
+    mode: 'direct_hunt',
+  });
+
+  if (!subjectPreflight.ok) {
+    console.error(subjectPreflight.message || 'Subject preflight failed.');
+    if (subjectPreflight.recommendedScopes.length > 0) {
+      console.error(`Recommended scopes: ${subjectPreflight.recommendedScopes.join(', ')}`);
+      console.error(
+        `Example: npm run hunt -- --tool="${values.tool}" --entity-scope=${subjectPreflight.recommendedScopes[0]}`
+      );
+    }
+    process.exit(1);
+  }
+  const entityScope = subjectPreflight.resolvedScope || undefined;
 
   console.log('═'.repeat(60));
   console.log(`🎯 Starting hunt for: ${values.tool}`);
   if (values.context) console.log(`📋 Context: ${values.context}`);
   if (entityScope) console.log(`🧭 Entity scope: ${entityScope}`);
-  const scopeAmbiguity = detectEntityScopeAmbiguity(values.tool as string, entityScope);
-  if (scopeAmbiguity) {
-    console.log(`⚠️  Scope ambiguity: "${values.tool}" is a parent product with common sub-products`);
-    console.log(`   Recommended scoped hunts: ${scopeAmbiguity.recommendedScopes.join(', ')}`);
-    console.log(
-      `   Example: npm run hunt -- --tool="${values.tool}" --entity-scope=${scopeAmbiguity.recommendedScopes[0]}`
-    );
-  }
   if (values.category) console.log(`📁 Category: ${values.category}`);
   if (researchOnly) {
     console.log(`🔬 Mode: RESEARCH ONLY (will await batch synthesis)`);
   } else {
-    console.log(`📝 Mode: ${isDraftMode ? 'DRAFT (requires review)' : 'PUBLISH (live immediately)'}`);
+    console.log(
+      `📝 Mode: ${isDraftMode ? 'DRAFT (requires review)' : 'PUBLISH (live immediately)'}`
+    );
   }
   if (forceUpdate) console.log(`🔄 Force update: Re-extracting data for existing tool`);
   console.log('═'.repeat(60));
@@ -498,10 +515,7 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
   const { ensureClassification } = await import('../src/lib/hunter/services/keyword-classifier.js');
 
   // V5: Ensure tool is classified before hunting (so Hunter gets Research Dossier)
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   console.log(`\n🤖 Checking classification for "${values.tool}"...`);
   const classificationResult = await ensureClassification(values.tool as string, supabase, {
@@ -511,7 +525,9 @@ async function runHunt(values: Record<string, string | boolean | undefined>) {
 
   let researchDossier = undefined;
   if (classificationResult.success && classificationResult.research_dossier) {
-    console.log(`✓ Classification ready: ${classificationResult.research_dossier.primary_category}`);
+    console.log(
+      `✓ Classification ready: ${classificationResult.research_dossier.primary_category}`
+    );
     researchDossier = classificationResult.research_dossier;
   } else {
     console.log(`⚠️  Classification failed or N/A, using fallback queries`);
@@ -636,10 +652,18 @@ async function runBatchProcess(maxItems: number) {
   })();
 
   console.log('═'.repeat(60));
-  console.log(`🔄 Starting batch processing (max ${maxItems} items, token cap ${maxTokensPerRun.toLocaleString()})`);
+  console.log(
+    `🔄 Starting batch processing (max ${maxItems} items, token cap ${maxTokensPerRun.toLocaleString()})`
+  );
   console.log('═'.repeat(60));
 
-  let result: { processed: number; succeeded: number; failed: number; results: Array<{ success: boolean; error?: string; toolName?: string; contextTitle?: string }>; tokensUsed: number };
+  let result: {
+    processed: number;
+    succeeded: number;
+    failed: number;
+    results: Array<{ success: boolean; error?: string; toolName?: string; contextTitle?: string }>;
+    tokensUsed: number;
+  };
   const errors: Array<{ tool: string; error: string }> = [];
   const successes: Array<{ tool: string; context?: string }> = [];
 
@@ -666,11 +690,12 @@ async function runBatchProcess(maxItems: number) {
           title: `${error.service.toUpperCase()} API Failure`,
           message: error.message,
           service: error.service,
-          action: error.type === 'auth_error'
-            ? 'Check and update API key in GitHub Secrets'
-            : error.type === 'quota_exceeded'
-            ? 'Check billing and quota limits'
-            : 'Review error logs and contact support',
+          action:
+            error.type === 'auth_error'
+              ? 'Check and update API key in GitHub Secrets'
+              : error.type === 'quota_exceeded'
+                ? 'Check billing and quota limits'
+                : 'Review error logs and contact support',
         });
       }
 
@@ -706,10 +731,7 @@ async function runBatchProcess(maxItems: number) {
 }
 
 async function runCleanup() {
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   // Call the database function to release stale claims
   const { data, error } = await supabase.rpc('release_stale_hunt_claims', {
@@ -734,10 +756,7 @@ async function runCleanup() {
 // =============================================================================
 
 async function handleStrategyOperation(values: Record<string, string | boolean | undefined>) {
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   const operation = values.strategy as string;
 
@@ -771,7 +790,9 @@ async function handleStrategyOperation(values: Record<string, string | boolean |
       break;
     default:
       console.error(`Unknown strategy operation: ${operation}`);
-      console.log('Valid operations: import, ahrefs, classify, analyze, approve, status, thresholds, competitors, gaps');
+      console.log(
+        'Valid operations: import, ahrefs, classify, analyze, approve, status, thresholds, competitors, gaps'
+      );
       process.exit(1);
   }
 }
@@ -846,7 +867,10 @@ async function handleStrategyImport(
     const toolName = row.tool_name || row.tool || row.Tool || row['Tool Name'];
     const contextQuery = row.context_query || row.context || row.Context || row.audience;
     const searchVolume = parseInt(row.search_volume || row.volume || row.Volume || '0', 10);
-    const keywordDifficulty = parseInt(row.keyword_difficulty || row.difficulty || row.KD || row.kd || '0', 10);
+    const keywordDifficulty = parseInt(
+      row.keyword_difficulty || row.difficulty || row.KD || row.kd || '0',
+      10
+    );
     const cpc = parseFloat(row.cpc || row.CPC || '0');
 
     // New fields for LLM brainstorm format
@@ -863,34 +887,55 @@ async function handleStrategyImport(
     } else {
       // Convert text to number (higher = more important)
       const priorityMap: Record<string, number> = {
-        critical: 95, urgent: 90, high: 80, medium: 50, low: 30, backlog: 10,
+        critical: 95,
+        urgent: 90,
+        high: 80,
+        medium: 50,
+        low: 30,
+        backlog: 10,
       };
       priority = priorityMap[rawPriority.toLowerCase()] || 50;
     }
 
     // Validate pillar
     const validPillars = ['builder', 'creative', 'growth', 'operations'];
-    const normalizedPillar = pillar && validPillars.includes(pillar.toLowerCase())
-      ? pillar.toLowerCase()
-      : null;
+    const normalizedPillar =
+      pillar && validPillars.includes(pillar.toLowerCase()) ? pillar.toLowerCase() : null;
 
     // Validate target audience
     const validAudiences = [
-      'freelancers', 'solopreneurs', 'small-teams', 'agencies',
-      'startups', 'enterprise', 'developers', 'designers',
-      'marketers', 'content-creators', 'consultants', 'coaches',
-      'remote-teams', 'sales-teams', 'finance-teams', 'students',
-      'non-profits', 'virtual-assistants', 'creatives', 'founders',
+      'freelancers',
+      'solopreneurs',
+      'small-teams',
+      'agencies',
+      'startups',
+      'enterprise',
+      'developers',
+      'designers',
+      'marketers',
+      'content-creators',
+      'consultants',
+      'coaches',
+      'remote-teams',
+      'sales-teams',
+      'finance-teams',
+      'students',
+      'non-profits',
+      'virtual-assistants',
+      'creatives',
+      'founders',
     ];
-    const normalizedAudience = targetAudience && validAudiences.includes(targetAudience.toLowerCase())
-      ? targetAudience.toLowerCase()
-      : null;
+    const normalizedAudience =
+      targetAudience && validAudiences.includes(targetAudience.toLowerCase())
+        ? targetAudience.toLowerCase()
+        : null;
 
     // Validate content type
     const validContentTypes = ['listicle', 'comparison', 'alternatives', 'single_tool', 'roundup'];
-    const normalizedContentType = contentType && validContentTypes.includes(contentType.toLowerCase())
-      ? contentType.toLowerCase()
-      : null;
+    const normalizedContentType =
+      contentType && validContentTypes.includes(contentType.toLowerCase())
+        ? contentType.toLowerCase()
+        : null;
 
     if (!keyword && !toolName) {
       skipped++;
@@ -898,29 +943,32 @@ async function handleStrategyImport(
     }
 
     // Determine source format
-    const hasLlmFields = pillar || targetAudience || contentType || notes || (rawPriority && !/^\d+$/.test(rawPriority));
+    const hasLlmFields =
+      pillar ||
+      targetAudience ||
+      contentType ||
+      notes ||
+      (rawPriority && !/^\d+$/.test(rawPriority));
     const sourceFormat = hasLlmFields ? 'llm_brainstorm' : 'simple';
 
     // Insert into content_ideas
-    const { error: insertError } = await supabase
-      .from('content_ideas')
-      .insert({
-        keyword: keyword || toolName,
-        tool_name: toolName || keyword,
-        context_query: contextQuery || null,
-        search_volume: searchVolume || null,
-        keyword_difficulty: keywordDifficulty || null,
-        cpc: cpc || null,
-        pillar: normalizedPillar,
-        target_audience: normalizedAudience,
-        content_type: normalizedContentType,
-        priority: priority,
-        notes: notes,
-        source: 'csv_import',
-        source_format: sourceFormat,
-        import_batch_id: batch.id,
-        status: 'pending',
-      });
+    const { error: insertError } = await supabase.from('content_ideas').insert({
+      keyword: keyword || toolName,
+      tool_name: toolName || keyword,
+      context_query: contextQuery || null,
+      search_volume: searchVolume || null,
+      keyword_difficulty: keywordDifficulty || null,
+      cpc: cpc || null,
+      pillar: normalizedPillar,
+      target_audience: normalizedAudience,
+      content_type: normalizedContentType,
+      priority: priority,
+      notes: notes,
+      source: 'csv_import',
+      source_format: sourceFormat,
+      import_batch_id: batch.id,
+      status: 'pending',
+    });
 
     if (insertError) {
       if (insertError.code === '23505') {
@@ -996,9 +1044,9 @@ async function handleStrategyAnalyze(
 
   // Calculate stats from returned rows
   const totalAnalyzed = ideas.length;
-  const duplicatesFound = ideas.filter(i => i.is_duplicate).length;
-  const rejected = ideas.filter(i => i.recommendation?.startsWith('REJECT')).length;
-  const highRoi = ideas.filter(i => i.recommendation?.includes('High ROI')).length;
+  const duplicatesFound = ideas.filter((i) => i.is_duplicate).length;
+  const rejected = ideas.filter((i) => i.recommendation?.startsWith('REJECT')).length;
+  const highRoi = ideas.filter((i) => i.recommendation?.includes('High ROI')).length;
 
   console.log(`  Analyzed:        ${totalAnalyzed} ideas`);
   console.log(`  Duplicates:      ${duplicatesFound} found`);
@@ -1007,7 +1055,7 @@ async function handleStrategyAnalyze(
 
   // Show top candidates (non-duplicates with highest ROI)
   const topIdeas = ideas
-    .filter(i => !i.is_duplicate && i.roi_score !== null)
+    .filter((i) => !i.is_duplicate && i.roi_score !== null)
     .sort((a, b) => (b.roi_score || 0) - (a.roi_score || 0))
     .slice(0, 10);
 
@@ -1100,7 +1148,7 @@ async function handleStrategyStatus(supabase: ReturnType<typeof createClient>) {
     .select('status')
     .then(({ data }) => {
       const counts: Record<string, number> = {};
-      data?.forEach(row => {
+      data?.forEach((row) => {
         counts[row.status] = (counts[row.status] || 0) + 1;
       });
       return { data: counts };
@@ -1141,7 +1189,9 @@ async function handleStrategyStatus(supabase: ReturnType<typeof createClient>) {
     recentBatches.forEach((batch) => {
       const date = new Date(batch.created_at).toLocaleDateString();
       console.log(`  ${batch.filename} (${date})`);
-      console.log(`    ${batch.imported_rows}/${batch.total_rows} imported | Status: ${batch.status}`);
+      console.log(
+        `    ${batch.imported_rows}/${batch.total_rows} imported | Status: ${batch.status}`
+      );
     });
   }
 
@@ -1241,7 +1291,7 @@ async function handleAhrefsImport(
     console.log('📏 Filter Thresholds:');
     console.log(`  Min Volume:     ${thresholds?.min_volume || 50}`);
     console.log(`  Max Difficulty: ${thresholds?.max_difficulty || 70}`);
-    console.log(`  Min CPC:        $${thresholds?.min_cpc || 0.10}`);
+    console.log(`  Min CPC:        $${thresholds?.min_cpc || 0.1}`);
     console.log('');
   } else {
     console.log('');
@@ -1288,16 +1338,18 @@ async function handleAhrefsImport(
 
   // Transform Ahrefs format to our format
   // Ahrefs columns: #, Keyword, Difficulty, Volume, CPC, Clicks, CPS, Return Rate, Parent Keyword
-  const keywords = records.map(row => ({
-    keyword: row.Keyword || row.keyword || '',
-    difficulty: parseInt(row.Difficulty || row.difficulty || '0', 10),
-    volume: parseInt(row.Volume || row.volume || '0', 10),
-    cpc: parseFloat(row.CPC || row.cpc || '0'),
-    clicks: row.Clicks ? parseInt(row.Clicks, 10) : null,
-    cps: row.CPS ? parseFloat(row.CPS) : null,
-    return_rate: row['Return Rate'] ? parseFloat(row['Return Rate']) : null,
-    parent_keyword: row['Parent Keyword'] || row.parent_keyword || null,
-  })).filter(k => k.keyword);  // Remove empty keywords
+  const keywords = records
+    .map((row) => ({
+      keyword: row.Keyword || row.keyword || '',
+      difficulty: parseInt(row.Difficulty || row.difficulty || '0', 10),
+      volume: parseInt(row.Volume || row.volume || '0', 10),
+      cpc: parseFloat(row.CPC || row.cpc || '0'),
+      clicks: row.Clicks ? parseInt(row.Clicks, 10) : null,
+      cps: row.CPS ? parseFloat(row.CPS) : null,
+      return_rate: row['Return Rate'] ? parseFloat(row['Return Rate']) : null,
+      parent_keyword: row['Parent Keyword'] || row.parent_keyword || null,
+    }))
+    .filter((k) => k.keyword); // Remove empty keywords
 
   console.log(`Parsed ${keywords.length} valid keywords`);
 
@@ -1326,7 +1378,7 @@ async function handleAhrefsImport(
     .update({
       imported_rows: importResult.imported,
       duplicate_rows: importResult.duplicates,
-      error_rows: importResult.filtered,  // Using error_rows for filtered count
+      error_rows: importResult.filtered, // Using error_rows for filtered count
       status: 'completed',
       completed_at: new Date().toISOString(),
     })
@@ -1404,7 +1456,7 @@ async function handleKeywordClassify(
   const batchSize = 10;
   for (let i = 0; i < keywords.length; i += batchSize) {
     const batch = keywords.slice(i, i + batchSize);
-    const keywordList = batch.map(k => k.keyword).join('\n');
+    const keywordList = batch.map((k) => k.keyword).join('\n');
 
     const prompt = `You are a Search Strategist and Research Planner for a SaaS comparison website.
 
@@ -1551,13 +1603,14 @@ Respond in JSON format:
 
       // Update each keyword
       for (const classification of parsed.classifications) {
-        const idea = batch.find(k => k.keyword === classification.keyword);
+        const idea = batch.find((k) => k.keyword === classification.keyword);
         if (!idea) continue;
 
         // Use normalized name from dossier if available
-        const toolName = classification.research_dossier?.normalized_tool_name
-          || classification.extracted_tools?.[0]
-          || null;
+        const toolName =
+          classification.research_dossier?.normalized_tool_name ||
+          classification.extracted_tools?.[0] ||
+          null;
 
         const { error: updateError } = await supabase.rpc('update_keyword_classification', {
           p_idea_id: idea.id,
@@ -1582,8 +1635,12 @@ Respond in JSON format:
           // Show dossier info if present
           if (classification.research_dossier) {
             const dossier = classification.research_dossier;
-            console.log(`    Category: ${dossier.primary_category} | Confidence: ${dossier.confidence}`);
-            console.log(`    Queries: ${dossier.scout_queries.length} | Targets: ${dossier.forensic_targets.join(', ')}`);
+            console.log(
+              `    Category: ${dossier.primary_category} | Confidence: ${dossier.confidence}`
+            );
+            console.log(
+              `    Queries: ${dossier.scout_queries.length} | Targets: ${dossier.forensic_targets.join(', ')}`
+            );
             if (dossier.red_flags?.length) {
               console.log(`    🚩 Red flags: ${dossier.red_flags.join('; ')}`);
             }
@@ -1597,7 +1654,7 @@ Respond in JSON format:
 
     // Rate limiting
     if (i + batchSize < keywords.length) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 
@@ -1620,7 +1677,9 @@ async function handleThresholds(
   values: Record<string, string | boolean | undefined>
 ) {
   const minVolume = values['min-volume'] ? parseInt(values['min-volume'] as string) : undefined;
-  const maxDifficulty = values['max-difficulty'] ? parseInt(values['max-difficulty'] as string) : undefined;
+  const maxDifficulty = values['max-difficulty']
+    ? parseInt(values['max-difficulty'] as string)
+    : undefined;
   const minCpc = values['min-cpc'] ? parseFloat(values['min-cpc'] as string) : undefined;
 
   console.log('═'.repeat(60));
@@ -1642,7 +1701,7 @@ async function handleThresholds(
   const thresholds = (current?.value as Record<string, number | boolean>) || {
     min_volume: 50,
     max_difficulty: 70,
-    min_cpc: 0.10,
+    min_cpc: 0.1,
     skip_informational: true,
   };
 
@@ -1707,13 +1766,17 @@ async function handleCompetitorImport(
 
   if (!filePath) {
     console.error('Error: --file is required for competitor import');
-    console.log('Usage: npm run hunt -- --strategy competitors --file="pages.csv" --domain="example.com"');
+    console.log(
+      'Usage: npm run hunt -- --strategy competitors --file="pages.csv" --domain="example.com"'
+    );
     process.exit(1);
   }
 
   if (!domain) {
     console.error('Error: --domain is required for competitor import');
-    console.log('Usage: npm run hunt -- --strategy competitors --file="pages.csv" --domain="example.com"');
+    console.log(
+      'Usage: npm run hunt -- --strategy competitors --file="pages.csv" --domain="example.com"'
+    );
     process.exit(1);
   }
 
@@ -1765,27 +1828,32 @@ async function handleCompetitorImport(
 
   // Transform to our format
   // Ahrefs columns: #, Traffic, %, Value, Keywords, RD, Page URL, Top keyword, Its volume, Pos.
-  const pages = records.map(row => {
-    // Parse traffic (might have commas like "1,404")
-    const trafficStr = row.Traffic || row.traffic || '0';
-    const traffic = parseInt(trafficStr.replace(/,/g, ''), 10);
+  const pages = records
+    .map((row) => {
+      // Parse traffic (might have commas like "1,404")
+      const trafficStr = row.Traffic || row.traffic || '0';
+      const traffic = parseInt(trafficStr.replace(/,/g, ''), 10);
 
-    // Parse value (might have $ and commas like "$2,796")
-    const valueStr = row.Value || row.value || '0';
-    const value = parseFloat(valueStr.replace(/[$,]/g, ''));
+      // Parse value (might have $ and commas like "$2,796")
+      const valueStr = row.Value || row.value || '0';
+      const value = parseFloat(valueStr.replace(/[$,]/g, ''));
 
-    return {
-      url: row['Page URL'] || row.url || row.URL || '',
-      traffic: traffic,
-      traffic_share: parseFloat((row['%'] || row.traffic_share || '0').replace('%', '')),
-      value: value,
-      keywords: parseInt(row.Keywords || row.keywords || '0', 10),
-      rd: parseInt(row.RD || row.rd || row['Referring Domains'] || '0', 10),
-      top_keyword: row['Top keyword'] || row.top_keyword || row.Keyword || '',
-      volume: parseInt((row['Its volume'] || row.volume || row.Volume || '0').replace(/,/g, ''), 10),
-      position: parseInt(row['Pos.'] || row.position || row.Position || '0', 10),
-    };
-  }).filter(p => p.url && p.top_keyword);
+      return {
+        url: row['Page URL'] || row.url || row.URL || '',
+        traffic: traffic,
+        traffic_share: parseFloat((row['%'] || row.traffic_share || '0').replace('%', '')),
+        value: value,
+        keywords: parseInt(row.Keywords || row.keywords || '0', 10),
+        rd: parseInt(row.RD || row.rd || row['Referring Domains'] || '0', 10),
+        top_keyword: row['Top keyword'] || row.top_keyword || row.Keyword || '',
+        volume: parseInt(
+          (row['Its volume'] || row.volume || row.Volume || '0').replace(/,/g, ''),
+          10
+        ),
+        position: parseInt(row['Pos.'] || row.position || row.Position || '0', 10),
+      };
+    })
+    .filter((p) => p.url && p.top_keyword);
 
   console.log(`Parsed ${pages.length} valid pages`);
 
@@ -1840,8 +1908,12 @@ async function handleCompetitorImport(
     console.log('─'.repeat(60));
     topOpportunities.forEach((opp, i) => {
       console.log(`  ${i + 1}. "${opp.top_keyword}"`);
-      console.log(`     Value: $${opp.traffic_value} | Pos: ${opp.their_position} | RD: ${opp.their_rd}`);
-      console.log(`     Opportunity: ${opp.opportunity_score} (${opp.opportunity_tier}, ${opp.difficulty})`);
+      console.log(
+        `     Value: $${opp.traffic_value} | Pos: ${opp.their_position} | RD: ${opp.their_rd}`
+      );
+      console.log(
+        `     Opportunity: ${opp.opportunity_score} (${opp.opportunity_tier}, ${opp.difficulty})`
+      );
     });
   }
 
@@ -1878,7 +1950,9 @@ async function handleGapAnalysis(
 
   if (!gaps?.length) {
     console.log('No keyword gaps found.');
-    console.log('Import competitor data first: npm run hunt -- --strategy competitors --file="pages.csv" --domain="competitor.com"');
+    console.log(
+      'Import competitor data first: npm run hunt -- --strategy competitors --file="pages.csv" --domain="competitor.com"'
+    );
     return;
   }
 
@@ -1886,9 +1960,9 @@ async function handleGapAnalysis(
   console.log('');
 
   // Group by tier
-  const highValue = gaps.filter(g => g.opportunity_score >= 1000);
-  const mediumValue = gaps.filter(g => g.opportunity_score >= 500 && g.opportunity_score < 1000);
-  const lowValue = gaps.filter(g => g.opportunity_score < 500);
+  const highValue = gaps.filter((g) => g.opportunity_score >= 1000);
+  const mediumValue = gaps.filter((g) => g.opportunity_score >= 500 && g.opportunity_score < 1000);
+  const lowValue = gaps.filter((g) => g.opportunity_score < 500);
 
   if (highValue.length) {
     console.log('🔥 HIGH VALUE GAPS (opportunity ≥ $1000):');
@@ -1896,7 +1970,9 @@ async function handleGapAnalysis(
     highValue.slice(0, 10).forEach((gap, i) => {
       console.log(`  ${i + 1}. "${gap.keyword}"`);
       console.log(`     Vol: ${gap.volume} | Value: $${gap.competitor_traffic_value}`);
-      console.log(`     Competitor: ${gap.competitor_domain} (pos ${gap.competitor_position}, ${gap.competitor_rd} RD)`);
+      console.log(
+        `     Competitor: ${gap.competitor_domain} (pos ${gap.competitor_position}, ${gap.competitor_rd} RD)`
+      );
     });
     console.log('');
   }
@@ -1910,7 +1986,9 @@ async function handleGapAnalysis(
     console.log('');
   }
 
-  console.log(`📊 Summary: ${highValue.length} high, ${mediumValue.length} medium, ${lowValue.length} low value gaps`);
+  console.log(
+    `📊 Summary: ${highValue.length} high, ${mediumValue.length} medium, ${lowValue.length} low value gaps`
+  );
   console.log('');
 
   // Offer to create content ideas

@@ -235,8 +235,8 @@ Candidates for removal or de-emphasis:
 
 ### Phase 1: Subject resolution contract
 
-- [ ] Add a `review_subject` plan and schema proposal with migration sketch (`npm run typecheck`)
-- [ ] Teach hunt preflight to resolve or require one canonical subject for ambiguous products (`npm run test -- tests/lib/hunter-analysis-schema.test.ts && npm run typecheck`)
+- [x] Add a `review_subject` plan and schema proposal with migration sketch (`npm run typecheck`)
+- [x] Teach hunt preflight to resolve or require one canonical subject for ambiguous products (`npm run test -- tests/lib/hunter-analysis-schema.test.ts && npm run typecheck`)
 - [x] Add subject-aware review selection for tool pages (`npm run test -- tests/lib/tool-page-qa-gate.test.ts && npm run typecheck`)
 
 ### Phase 2: Evidence-lane ETL
@@ -251,6 +251,8 @@ Notes:
 - 2026-03-07 progress: tool-page runtime now reads persisted lane outputs and uses lane user-signal claims in quality-state coverage gating.
 - 2026-03-07 progress: analysis now normalizes mixed claims into strict lanes before decision rendering (factual in `pros/cons`, user signals in `userReported*`), and logs lane-move telemetry.
 - 2026-03-07 progress: schema validation now blocks publish when factual lanes and user-signal lanes are contaminated.
+- 2026-03-13 progress: added review-subject schema proposal and migration sketch in `docs/plans/active/2026-03-13-review-subject-schema-proposal.md`.
+- 2026-03-13 progress: hunt CLI preflight now resolves inferred scope (for scoped tool names) and blocks ambiguous parent products without explicit `--entity-scope` or `--auto-scope-queue`.
 
 ### Phase 3: Page compiler rebuild
 
