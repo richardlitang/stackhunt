@@ -129,6 +129,25 @@ const POSITIVE_FREE_SIGNAL_PATTERN = /\b(freemium|free\s+tier|free\s+plan)\b/i;
 const WEB_ONLY_PATTERN =
   /\b(platform access is limited to web-based environments|web[-\s]*only|web-based environments only)\b/i;
 const NON_WEB_PLATFORM_PATTERN = /\b(ios|android|windows|mac(?:os)?|desktop app|desktop apps)\b/i;
+const SUBJECT_SCOPE_PENDING_PATTERN =
+  /\b(Published review content is hidden until this page resolves (?:one product surface|a single review subject)|waiting for clearer subject resolution)\b/i;
+const HERO_DEK_GENERIC_PATTERN = /^Pricing,\s*tradeoffs,\s*best for,\s*and alternatives\.?$/i;
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractHeadingText(html, headingTag = 'h1') {
+  const match = html.match(new RegExp(`<${headingTag}[^>]*>([\\s\\S]*?)<\\/${headingTag}>`, 'i'));
+  return match ? stripHtml(match[1]) : '';
+}
+
+function extractHeroDek(html) {
+  const match = html.match(
+    /<h1[^>]*>[\s\S]*?<\/h1>[\s\S]*?<p[^>]*class="[^"]*text-sm[^"]*text-zinc-400[^"]*"[^>]*>([\s\S]*?)<\/p>/i
+  );
+  return match ? stripHtml(match[1]) : '';
+}
 
 function auditRenderedPage({ url, html, maxNotConfirmed }) {
   const failures = [];
@@ -207,6 +226,36 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   }
   if (NON_WEB_PLATFORM_PATTERN.test(text) && WEB_ONLY_PATTERN.test(text)) {
     failures.push('contradictory_platform_claims');
+  }
+  if (SUBJECT_SCOPE_PENDING_PATTERN.test(text) && /\bDecision in 60 Seconds\b/i.test(text)) {
+    failures.push('entity_confusion_unresolved_subject_exposes_verdict');
+  }
+
+  const heroHeading = extractHeadingText(html, 'h1');
+  const heroDek = extractHeroDek(html);
+  if (heroDek && HERO_DEK_GENERIC_PATTERN.test(heroDek)) {
+    failures.push('generic_hero_dek_detected');
+  }
+  if (heroHeading && heroDek) {
+    const toolNameGuess = heroHeading.replace(/\s+Review\b/i, '').trim();
+    if (toolNameGuess && !new RegExp(`\\b${escapeRegExp(toolNameGuess)}\\b`, 'i').test(heroDek)) {
+      failures.push('hero_dek_missing_tool_name');
+    }
+  }
+
+  const compareLinkMatches = Array.from(html.matchAll(/href=["'](\/compare\/[^"']+)["']/gi)).map(
+    (match) => match[1]
+  );
+  const invalidCompareLinks = compareLinkMatches.filter(
+    (href) => !/^\/compare\/[a-z0-9-]+-vs-[a-z0-9-]+$/i.test(href)
+  );
+  if (invalidCompareLinks.length > 0) {
+    failures.push(
+      `unsupported_comparison_set_link_shape:${Array.from(new Set(invalidCompareLinks)).join(',')}`
+    );
+  }
+  if (compareLinkMatches.length > 0 && !/\bComparison axis\b/i.test(text)) {
+    failures.push('unsupported_comparison_set_missing_axis_label');
   }
 
   return {
@@ -414,6 +463,7 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
     path.join(root, 'src/pages/tool/[slug].astro'),
     path.join(root, 'src/lib/tool-page/lens.ts'),
     path.join(root, 'src/lib/tool-page/decision.ts'),
+    path.join(root, 'src/components/AlternativeCard.astro'),
   ];
   const failures = [];
   if (!fs.existsSync(sourcePaths[0])) {
@@ -438,6 +488,10 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
     {
       label: 'decision_intro_tradeoff',
       pattern: /(decisionIntroTradeoff|decisionTradeoffSummary(?:Initial|Resolved)?)/,
+    },
+    {
+      label: 'alternatives_comparison_axis',
+      pattern: /Comparison axis/,
     },
   ];
   for (const marker of requiredMarkers) {
@@ -514,6 +568,23 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   } else {
     failures.push('template_missing_decision_section');
   }
+  if (
+    SUBJECT_SCOPE_PENDING_PATTERN.test(source) &&
+    /\bDecision in 60 Seconds\b/i.test(source) &&
+    !/showReviewInProgressBanner/.test(source)
+  ) {
+    failures.push('template_entity_confusion_unresolved_subject_exposes_verdict');
+  }
+
+  if (/>\s*\{reviewDek\}\s*</.test(source)) {
+    failures.push('template_generic_hero_dek_unscoped');
+  }
+
+  const compareHrefMatches = Array.from(source.matchAll(/href=\{compareUrl\}|\/compare\/\$\{/g));
+  if (compareHrefMatches.length > 0 && !/\bComparison axis\b/i.test(source)) {
+    failures.push('template_unsupported_comparison_set_missing_axis_label');
+  }
+
   return failures;
 }
 

@@ -18,7 +18,10 @@ import {
   labelAlternativeEvidenceLevel,
   resolveAlternativeEvidenceLevel,
 } from '@/lib/tool-page/alternative-evidence';
-import { buildAlternativeChooseLine } from '@/lib/tool-page/alternative-rationale';
+import {
+  buildAlternativeChooseLine,
+  buildAlternativeComparisonAxisLabel,
+} from '@/lib/tool-page/alternative-rationale';
 
 interface Props {
   /** The main item we're comparing FROM */
@@ -86,6 +89,10 @@ const microDiff =
 const chooseInsteadLine = buildAlternativeChooseLine({
   altName: alt.name,
   mainName: main.name,
+  curatedVerdict,
+  computedDiff,
+});
+const comparisonAxisLabel = buildAlternativeComparisonAxisLabel({
   curatedVerdict,
   computedDiff,
 });
@@ -168,6 +175,8 @@ const recommendationEvidenceChipClass =
   {/* Layer 3: Fallback */}
   {showFallback && <p class="mb-3 text-xs text-zinc-400 line-clamp-2">{fallbackDescription}</p>}
   <div class="mb-3 rounded border border-zinc-800 bg-zinc-950/40 px-2.5 py-2">
+    <p class="text-[11px] uppercase tracking-wide text-zinc-500">Comparison axis</p>
+    <p class="mt-1 text-xs text-zinc-300">{comparisonAxisLabel}</p>
     <p class="text-[11px] uppercase tracking-wide text-zinc-500">Choose this instead if</p>
     <p class="mt-1 text-xs text-zinc-300">{chooseInsteadLine}</p>
   </div>

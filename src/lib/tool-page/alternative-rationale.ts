@@ -38,3 +38,14 @@ export function buildAlternativeChooseLine(input: BuildAlternativeChooseLineInpu
 export function buildAlternativeRationaleSourceLabel(curatedVerdict?: string | null): string {
   return curatedVerdict ? 'Comparison brief' : 'Pending verification';
 }
+
+export function buildAlternativeComparisonAxisLabel(input: {
+  curatedVerdict?: string | null;
+  computedDiff?: AlternativeRationaleDiff | null;
+}): 'Comparison brief' | 'Pricing model' | 'Rollout speed' | 'Capability fit' | 'Workflow fit' {
+  if (input.curatedVerdict) return 'Comparison brief';
+  if (input.computedDiff?.priceDiff) return 'Pricing model';
+  if (input.computedDiff?.learningDiff) return 'Rollout speed';
+  if (input.computedDiff?.featureDiff) return 'Capability fit';
+  return 'Workflow fit';
+}
