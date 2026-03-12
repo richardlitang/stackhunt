@@ -223,6 +223,7 @@ export { buildToolPageSectionState } from '@/lib/tool-page/section-state';
 export { buildToolPageStrengthsSubtitle } from '@/lib/tool-page/strengths-subtitle';
 export { buildToolPageSpecsProps } from '@/lib/tool-page/specs-props';
 export { buildToolPageSpecsSectionState } from '@/lib/tool-page/specs-section';
+export { buildToolPageSpecsSignals } from '@/lib/tool-page/specs-signals';
 export { deriveToolPageSetupSignals } from '@/lib/tool-page/setup';
 export { buildToolPagePrimaryFunction } from '@/lib/tool-page/taxonomy';
 export { buildToolPageSourceAriaLabel } from '@/lib/tool-page/source-labels';
