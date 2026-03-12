@@ -12,13 +12,13 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 4. `deriveToolPageReviewContextSignals(...)` (frontmatter line 109)
 5. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 111)
 6. `buildToolPageSpecsSignals(...)` (frontmatter line 248)
-7. `buildToolPageCategoryRef(...)` (frontmatter line 260)
-8. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 262)
-9. `buildToolPageChromeContentStateFromDecisionContext(...)` (frontmatter line 319)
-10. `buildToolPageDecisionUtilityState(...)` (frontmatter line 373)
-11. `buildToolPagePricingScenarioState(...)` (frontmatter line 394)
-12. `buildToolPageDecisionPresentationState(...)` (frontmatter line 449)
-13. `applyToolPageRobotsHeader(...)` (frontmatter line 465)
+7. `buildToolPageCategoryRef(...)` (frontmatter line 255)
+8. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 257)
+9. `buildToolPageChromeContentStateFromDecisionContext(...)` (frontmatter line 315)
+10. `buildToolPageDecisionUtilityState(...)` (frontmatter line 369)
+11. `buildToolPagePricingScenarioState(...)` (frontmatter line 390)
+12. `buildToolPageDecisionPresentationState(...)` (frontmatter line 445)
+13. `applyToolPageRobotsHeader(...)` (frontmatter line 461)
 
 ## Tool-Page Imports Used by Route
 
