@@ -14,10 +14,10 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 6. `buildToolPageSpecsSignals(...)` (frontmatter line 247)
 7. `buildToolPageCategoryRef(...)` (frontmatter line 254)
 8. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 256)
-9. `buildToolPageChromeContentStateFromDecisionContext(...)` (frontmatter line 314)
-10. `buildToolPageDecisionRouteState(...)` (frontmatter line 384)
-11. `buildToolPageDecisionPresentationState(...)` (frontmatter line 448)
-12. `applyToolPageRobotsHeader(...)` (frontmatter line 464)
+9. `buildToolPageChromeRouteStateFromDecisionContext(...)` (frontmatter line 357)
+10. `buildToolPageDecisionRouteState(...)` (frontmatter line 400)
+11. `buildToolPageDecisionPresentationState(...)` (frontmatter line 440)
+12. `applyToolPageRobotsHeader(...)` (frontmatter line 456)
 
 ## Tool-Page Imports Used by Route
 
@@ -31,7 +31,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `applyToolPageVersionBypassCacheHeaders`                  | `@/lib/tool-page/request-cache`                         |
 | `applyToolPageRobotsHeader`                               | `@/lib/tool-page/response-headers`                      |
 | `buildToolPageRuntimeNavigationStateFromDecisionContext`  | `@/lib/tool-page/runtime-navigation-decision-context`   |
-| `buildToolPageChromeContentStateFromDecisionContext`      | `@/lib/tool-page/chrome-content-decision-context`       |
+| `buildToolPageChromeRouteStateFromDecisionContext`        | `@/lib/tool-page/chrome-route-state`                    |
 | `buildToolPagePrepReviewEvidenceStateFromDecisionContext` | `@/lib/tool-page/prep-review-evidence-decision-context` |
 | `buildToolPageDecisionRouteState`                         | `@/lib/tool-page/decision-route-state`                  |
 | `buildToolPageDecisionPresentationState`                  | `@/lib/tool-page/decision-presentation-state`           |
@@ -73,10 +73,9 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `buildToolPageRuntimeViewBundleFromDecisionContext(...)`
 - `buildToolPageNavigationMediaStateFromDecisionContext(...)`
 
-### `buildToolPageChromeContentStateFromDecisionContext`
+### `buildToolPageChromeRouteStateFromDecisionContext`
 
-- `buildToolPageChromeLensStateFromDecisionContext(...)`
-- `buildToolPageContentAlternativesStateFromDecisionContext(...)`
+- `buildToolPageChromeContentStateFromDecisionContext(...)`
 
 ### `buildToolPagePrepReviewEvidenceStateFromDecisionContext`
 
