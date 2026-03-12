@@ -18,9 +18,22 @@ interface Props {
   summaryLead?: string;
   summaryLabel?: string;
   variant?: 'full' | 'compact';
+  mentalModelItems?: Array<{
+    text: string;
+    status: 'Source-backed' | 'Needs confirmation';
+    evidenceHref?: string;
+  }>;
+  costModelExamples?: string[];
 }
 
-const { budgetAnalyst, summaryLead, summaryLabel, variant = 'compact' } = Astro.props;
+const {
+  budgetAnalyst,
+  summaryLead,
+  summaryLabel,
+  variant = 'compact',
+  mentalModelItems = [],
+  costModelExamples = [],
+} = Astro.props;
 const normalizedSummaryLead = typeof summaryLead === 'string' ? summaryLead.trim() : '';
 const normalizedSummaryLabel = typeof summaryLabel === 'string' ? summaryLabel.trim() : '';
 
@@ -41,9 +54,39 @@ const dedupe = (items: string[]): string[] => {
   }
   return cleaned;
 };
+const dedupeMentalModelItems = (
+  items: Array<{
+    text: string;
+    status: 'Source-backed' | 'Needs confirmation';
+    evidenceHref?: string;
+  }>
+): Array<{
+  text: string;
+  status: 'Source-backed' | 'Needs confirmation';
+  evidenceHref?: string;
+}> => {
+  const seen = new Set<string>();
+  const cleaned: Array<{
+    text: string;
+    status: 'Source-backed' | 'Needs confirmation';
+    evidenceHref?: string;
+  }> = [];
+  for (const item of items) {
+    if (!item || typeof item.text !== 'string') continue;
+    const normalizedText = normalize(item.text);
+    if (!normalizedText) continue;
+    const key = normalizedText.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push({ ...item, text: normalizedText });
+  }
+  return cleaned;
+};
 
 const factualCostDrivers = dedupe(costDrivers).slice(0, 5);
 const factualOneTimeFees = dedupe(oneTimeFees).slice(0, 4);
+const normalizedMentalModelItems = dedupeMentalModelItems(mentalModelItems).slice(0, 6);
+const normalizedCostModelExamples = dedupe(costModelExamples).slice(0, 5);
 const normalizedCommitmentTerms =
   typeof commitmentTerms === 'string' ? normalize(commitmentTerms) : '';
 const normalizedRoiThreshold = typeof roiThreshold === 'string' ? normalize(roiThreshold) : '';
@@ -59,17 +102,15 @@ const safeRoiThreshold =
 
 const hasMechanicsData = Boolean(
   factualCostDrivers.length > 0 ||
-    factualOneTimeFees.length > 0 ||
-    normalizedCommitmentTerms ||
-    safeRoiThreshold
+  factualOneTimeFees.length > 0 ||
+  normalizedMentalModelItems.length > 0 ||
+  normalizedCostModelExamples.length > 0 ||
+  normalizedCommitmentTerms ||
+  safeRoiThreshold
 );
 
 // Don't render if both summary and mechanics are empty
-if (
-  !normalizedSummaryLead &&
-  !normalizedSummaryLabel &&
-  !hasMechanicsData
-) {
+if (!normalizedSummaryLead && !normalizedSummaryLabel && !hasMechanicsData) {
   return null;
 }
 ---
@@ -104,11 +145,7 @@ if (
         <p class="text-sm leading-relaxed text-zinc-200">{normalizedSummaryLead}</p>
       )
     }
-    {
-      normalizedSummaryLabel && (
-        <p class="text-xs text-zinc-500">{normalizedSummaryLabel}</p>
-      )
-    }
+    {normalizedSummaryLabel && <p class="text-xs text-zinc-500">{normalizedSummaryLabel}</p>}
 
     {/* Cost Drivers */}
     {
@@ -126,6 +163,45 @@ if (
       )
     }
 
+    {
+      normalizedMentalModelItems.length > 0 && (
+        <div class="rounded border border-zinc-800 bg-zinc-950/40 px-2 py-2">
+          <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Pricing mental model
+          </p>
+          <ul class="space-y-1">
+            {normalizedMentalModelItems.map((item) => (
+              <li class="flex flex-wrap items-center gap-1.5 text-xs text-zinc-300">
+                <span>- {item.text}</span>
+                {item.evidenceHref ? (
+                  <a
+                    href={item.evidenceHref}
+                    class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
+                      item.status === 'Source-backed'
+                        ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300 hover:border-emerald-500'
+                        : 'border-amber-700/70 bg-amber-950/40 text-amber-200 hover:border-amber-500'
+                    }`}
+                  >
+                    {item.status}
+                  </a>
+                ) : (
+                  <span
+                    class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
+                      item.status === 'Source-backed'
+                        ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300'
+                        : 'border-amber-700/70 bg-amber-950/40 text-amber-200'
+                    }`}
+                  >
+                    {item.status}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
     {/* One-Time Fees */}
     {
       factualOneTimeFees.length > 0 && (
@@ -134,6 +210,21 @@ if (
           <ul class="space-y-0.5">
             {factualOneTimeFees.map((fee) => (
               <li class="text-xs text-amber-200/90">{fee}</li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    {
+      normalizedCostModelExamples.length > 0 && (
+        <div class="border-t border-zinc-800 pt-2">
+          <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Cost model examples
+          </p>
+          <ul class="mt-1 space-y-1">
+            {normalizedCostModelExamples.map((item) => (
+              <li class="text-xs text-zinc-300">- {item}</li>
             ))}
           </ul>
         </div>
@@ -156,7 +247,8 @@ if (
             <div class="flex items-start gap-1.5">
               <span class="text-zinc-500">📈</span>
               <span class="text-zinc-300">
-                <strong class="text-zinc-200">Upgrade threshold (editorial):</strong> {safeRoiThreshold}
+                <strong class="text-zinc-200">Upgrade threshold (editorial):</strong>{' '}
+                {safeRoiThreshold}
               </span>
             </div>
           )}

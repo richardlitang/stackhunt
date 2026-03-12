@@ -1175,53 +1175,9 @@ applyToolPageRobotsHeader({
                   summaryLead={pricingNarrativeLead}
                   summaryLabel={pricingNarrativeLabel}
                   budgetAnalyst={pricingInsightsBudgetAnalyst}
+                  mentalModelItems={decisionUtilityState.pricingMentalModelItems}
+                  costModelExamples={pricingScenarioState.examples}
                 />
-                <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
-                  <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Pricing mental model
-                  </h3>
-                  <ul class="mt-2 space-y-1 text-xs text-zinc-300">
-                    {decisionUtilityState.pricingMentalModelItems.map((item) => (
-                      <li class="flex flex-wrap items-center gap-1.5">
-                        <span>- {item.text}</span>
-                        {item.evidenceHref ? (
-                          <a
-                            href={item.evidenceHref}
-                            class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
-                              item.status === 'Source-backed'
-                                ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300 hover:border-emerald-500'
-                                : 'border-amber-700/70 bg-amber-950/40 text-amber-200 hover:border-amber-500'
-                            }`}
-                          >
-                            {item.status}
-                          </a>
-                        ) : (
-                          <span
-                            class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${
-                              item.status === 'Source-backed'
-                                ? 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300'
-                                : 'border-amber-700/70 bg-amber-950/40 text-amber-200'
-                            }`}
-                          >
-                            {item.status}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  {pricingScenarioState.examples.length > 0 && (
-                    <div class="mt-3 border-t border-zinc-800 pt-3">
-                      <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                        Cost model examples
-                      </p>
-                      <ul class="mt-2 space-y-1 text-xs text-zinc-300">
-                        {pricingScenarioState.examples.map((item) => (
-                          <li>- {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
                 {topLensHardLimit && (
                   <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
