@@ -257,6 +257,7 @@ Notes:
 - 2026-03-13 progress: `Hunter.hunt()` now enforces subject preflight too, so queue workers cannot bypass canonical-subject scope checks.
 - 2026-03-13 progress: alternatives cards now render an explicit comparison axis label, and rendered QA now fails on unresolved-subject verdict leaks, generic hero dek fallback, and malformed or axis-less comparison link sets.
 - 2026-03-13 progress: category resolution now uses intent-aware precedence (explicit > detected > dossier category > taxonomy > context), and persistence applies that resolved slug when storing tool category.
+- 2026-03-13 progress: decision-utility state now suppresses generic pricing/setup/outcomes fallback content when confidence is low and no evidence anchors exist.
 
 ### Phase 3: Page compiler rebuild
 

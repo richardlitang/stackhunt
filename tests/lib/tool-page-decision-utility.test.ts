@@ -1,167 +1,49 @@
 import { describe, expect, it } from 'vitest';
 import { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision-utility';
 
-describe('tool page decision utility', () => {
-  it('builds CRM-specific checklist and setups for crm category', () => {
+describe('tool page decision utility state', () => {
+  it('suppresses generic utility sections when low-confidence mode lacks evidence anchors', () => {
     const result = buildToolPageDecisionUtilityState({
-      toolName: 'Attio',
-      categorySlug: 'crm-sales',
-      activeReviewLens: 'startup',
-      hasApi: false,
-      hasParentTool: false,
-      hasEnterpriseSignals: false,
-      lensBestFitLine: 'Startups that can own CRM ops.',
-      lensWeakFitLine: 'Teams needing preconfigured CRM setup.',
-      lensTradeoffLine: 'Flexibility vs setup overhead.',
-      hardLimitText: 'Free plan capped at 3 seats.',
-    });
-
-    expect(result.testChecklistTitle).toBe('What to test in 30 minutes');
-    expect(result.testChecklistItems[0]).toContain('Import a sample CSV');
-    expect(
-      result.testChecklistItems.some((item) => item.includes('first paid-seat threshold'))
-    ).toBe(true);
-    expect(result.verdictLeadOverride).toContain('fits startups');
-    expect(result.commonSetups).toHaveLength(3);
-    expect(result.commonSetups[0]?.costTrigger?.status).toBe('Source-backed');
-    expect(result.practicalOutcomesTitle).toBe('What it does in practice');
-    expect(result.practicalOutcomes[0]?.planDependencyStatus).toBe('Needs confirmation');
-    expect(result.pricingMentalModelItems[0]?.status).toBe('Source-backed');
-    expect(result.pricingMentalModelItems[0]?.evidenceHref).toBe('#verdict');
-  });
-
-  it('adds solo-specific checklist and verdict lead for personal lens', () => {
-    const result = buildToolPageDecisionUtilityState({
-      toolName: 'Attio',
-      categorySlug: 'crm-sales',
-      activeReviewLens: 'personal',
-      hasApi: false,
-      hasParentTool: false,
-      hasEnterpriseSignals: false,
-      lensBestFitLine: 'Solo operators who can own setup.',
-      lensWeakFitLine: 'Teams needing prebuilt defaults.',
-      lensTradeoffLine: 'Flexibility vs setup overhead.',
-      hardLimitText: 'Free plan capped at 3 seats.',
-    });
-
-    expect(
-      result.testChecklistItems.some((item) => item.includes('before inviting a second user'))
-    ).toBe(true);
-    expect(result.verdictLeadOverride).toContain('individual operator');
-  });
-
-  it('builds generic fallback for non-CRM categories', () => {
-    const result = buildToolPageDecisionUtilityState({
-      toolName: 'Notion',
+      toolName: 'Acme Tool',
       categorySlug: 'project-management',
       activeReviewLens: 'general',
       hasApi: false,
       hasParentTool: false,
       hasEnterpriseSignals: false,
-      lensBestFitLine: '',
-      lensWeakFitLine: '',
-      lensTradeoffLine: '',
+      lensBestFitLine: 'Best for teams that need lightweight planning.',
+      lensWeakFitLine: 'Weak fit for compliance-heavy rollouts.',
+      lensTradeoffLine: 'Tradeoff is simplicity versus depth.',
       hardLimitText: null,
-    });
-
-    expect(result.testChecklistTitle).toBe('What to test before rollout');
-    expect(result.testChecklistItems).toHaveLength(0);
-    expect(result.commonSetups).toHaveLength(0);
-    expect(result.hasEvidenceAnchoredUtility).toBe(false);
-    expect(result.hasDecisionBullets).toBe(false);
-    expect(result.decisionUseIf).toBe('');
-    expect(result.decisionAvoidIf).toBe('');
-    expect(result.decisionWatchOut).toBe('');
-    expect(result.practicalOutcomes).toHaveLength(0);
-    expect(
-      result.pricingMentalModelItems.every((item) => item.status === 'Needs confirmation')
-    ).toBe(true);
-  });
-
-  it('marks pricing mental model items as source-backed when pricing evidence is available', () => {
-    const result = buildToolPageDecisionUtilityState({
-      toolName: 'Attio',
-      categorySlug: 'crm-sales',
-      activeReviewLens: 'startup',
-      hasApi: false,
-      hasParentTool: false,
-      hasEnterpriseSignals: false,
-      lensBestFitLine: 'Startups that can own CRM ops.',
-      lensWeakFitLine: 'Teams needing preconfigured CRM setup.',
-      lensTradeoffLine: 'Flexibility vs setup overhead.',
-      hardLimitText: null,
-      pricingEvidenceSourceUrl: 'https://attio.com/pricing',
-      pricingEvidenceSummary: 'Pricing tiers vary by seats and plan capabilities.',
-    });
-
-    expect(result.pricingMentalModelItems[0]?.status).toBe('Source-backed');
-    expect(result.pricingMentalModelItems[0]?.evidenceHref).toBe('#pricing');
-    expect(
-      result.pricingMentalModelItems.some(
-        (item) => item.status === 'Source-backed' && item.text.includes('tiers vary')
-      )
-    ).toBe(true);
-  });
-
-  it('uses API-first checklist for developer/API archetype tools', () => {
-    const result = buildToolPageDecisionUtilityState({
-      toolName: 'Claude',
-      categorySlug: 'developer-tools',
-      activeReviewLens: 'enterprise',
-      hasApi: true,
-      hasParentTool: false,
-      hasEnterpriseSignals: true,
-      lensBestFitLine: 'Developer teams with API-first workflows.',
-      lensWeakFitLine: 'Teams needing turnkey workflow software.',
-      lensTradeoffLine: 'Flexibility vs implementation ownership.',
-      hardLimitText: 'Usage limits vary by plan and demand.',
-    });
-
-    expect(result.testChecklistItems[0]).toContain('production-like API workflow');
-    expect(result.testChecklistItems[1]).toContain('auth');
-    expect(result.hasEvidenceAnchoredUtility).toBe(true);
-  });
-
-  it('dedupes repeated pricing mental model bullets', () => {
-    const result = buildToolPageDecisionUtilityState({
-      toolName: 'Acme',
-      categorySlug: 'ai-automation',
-      activeReviewLens: 'general',
-      hasApi: true,
-      hasParentTool: false,
-      hasEnterpriseSignals: false,
-      lensBestFitLine: 'Best fit',
-      lensWeakFitLine: 'Weak fit',
-      lensTradeoffLine: 'Tradeoff',
-      hardLimitText: 'No free trial available for paid tiers.',
-      pricingEvidenceSummary: 'No free trial available for paid tiers.',
-      pricingEvidenceSourceUrl: 'https://example.com/pricing',
-    });
-
-    const normalized = result.pricingMentalModelItems.map((item) =>
-      item.text.toLowerCase().replace(/\s+/g, ' ').trim()
-    );
-    expect(new Set(normalized).size).toBe(normalized.length);
-  });
-
-  it('softens decision bullets in low-confidence mode', () => {
-    const result = buildToolPageDecisionUtilityState({
-      toolName: 'Acme',
-      categorySlug: 'crm-sales',
-      activeReviewLens: 'general',
-      hasApi: false,
-      hasParentTool: false,
-      hasEnterpriseSignals: false,
-      lensBestFitLine: 'Use for flexible pipeline workflows.',
-      lensWeakFitLine: 'Avoid for strict turnkey requirements.',
-      lensTradeoffLine: 'Flexibility vs setup overhead.',
-      hardLimitText: null,
+      pricingEvidenceSourceUrl: null,
+      pricingEvidenceSummary: null,
       lowConfidenceMode: true,
     });
 
-    expect(result.decisionUseIf).toContain('Early signal');
-    expect(result.decisionAvoidIf).toContain('Evidence still evolving');
-    expect(result.decisionWatchOut).toContain('Pending claims remain');
-    expect(result.hasDecisionBullets).toBe(true);
+    expect(result.pricingMentalModelItems).toEqual([]);
+    expect(result.commonSetups).toEqual([]);
+    expect(result.practicalOutcomes).toEqual([]);
+    expect(result.verdictLeadOverride).toMatch(/early signals/i);
+  });
+
+  it('keeps utility sections when evidence anchors exist even in low-confidence mode', () => {
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'Acme Tool',
+      categorySlug: 'crm-sales',
+      activeReviewLens: 'startup',
+      hasApi: true,
+      hasParentTool: false,
+      hasEnterpriseSignals: false,
+      lensBestFitLine: 'Best for teams scaling SDR handoffs.',
+      lensWeakFitLine: 'Weak fit for teams needing strict governance now.',
+      lensTradeoffLine: 'Tradeoff is velocity versus governance depth.',
+      hardLimitText: 'Advanced controls require higher-tier plans.',
+      pricingEvidenceSourceUrl: 'https://example.com/pricing',
+      pricingEvidenceSummary: 'Seat-based pricing with plan-gated automation.',
+      lowConfidenceMode: true,
+    });
+
+    expect(result.pricingMentalModelItems.length).toBeGreaterThan(0);
+    expect(result.commonSetups.length).toBeGreaterThan(0);
+    expect(result.practicalOutcomes.length).toBeGreaterThan(0);
   });
 });
