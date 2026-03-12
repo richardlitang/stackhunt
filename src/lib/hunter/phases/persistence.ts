@@ -4988,12 +4988,25 @@ async function createReview(
 
   if (reviewError) throw new Error(`Failed to save review: ${reviewError.message}`);
 
+  const normalizedUserReportedPros = normalizeUserSignalClaimsForLedger(
+    analysis.userReportedPros,
+    sources,
+    analysis.websiteUrl
+  );
+  const normalizedUserReportedCons = normalizeUserSignalClaimsForLedger(
+    analysis.userReportedCons,
+    sources,
+    analysis.websiteUrl
+  );
+
   if (sources && sources.length > 0) {
     const claimRows = buildClaimLedgerRows(
       itemId,
       contextId,
       normalizedPros,
       normalizedCons,
+      normalizedUserReportedPros,
+      normalizedUserReportedCons,
       sources
     );
     if (claimRows.length > 0) {
@@ -5007,11 +5020,50 @@ async function createReview(
   return review.id;
 }
 
+function normalizeUserSignalClaimsForLedger(
+  claims: Array<string | ClaimWithSource> | undefined,
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet: string;
+    domain: string;
+    retrieved_at?: string;
+    published_at?: string;
+    time_since?: string;
+    acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
+    llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
+    is_deep_scrape_allowed?: boolean;
+    block_reason?: string;
+  }>,
+  websiteUrl?: string | null
+): ClaimWithSource[] {
+  if (!Array.isArray(claims) || claims.length === 0) return [];
+  const seen = new Set<string>();
+  const result: ClaimWithSource[] = [];
+
+  for (const claim of claims) {
+    const normalized = normalizeClaim(claim, sources, websiteUrl || undefined);
+    if (!normalized) continue;
+    if (normalized.source_type !== 'community' && normalized.source_type !== 'editorial') continue;
+    if (!isRenderableClaimText(normalized.text)) continue;
+    const dedupeKey = normalizeUserSignalClaimKey(
+      stripTerminalPunctuation(sanitizeNarrativeClaimText(normalized.text) || normalized.text)
+    );
+    if (!dedupeKey || seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    result.push(normalized);
+  }
+
+  return result.slice(0, 5);
+}
+
 function buildClaimLedgerRows(
   itemId: string,
   contextId: string | null,
   pros: ClaimWithSource[],
   cons: ClaimWithSource[],
+  userReportedPros: ClaimWithSource[],
+  userReportedCons: ClaimWithSource[],
   sources: Array<{
     url: string;
     title: string;
@@ -5082,7 +5134,7 @@ function buildClaimLedgerRows(
     }
   }
 
-  const toRow = (claim: ClaimWithSource, type: string) => {
+  const toRow = (claim: ClaimWithSource, type: string, lane: 'fact' | 'user_signal') => {
     const claimSourceUrl = claim.source_url || null;
     const normalizedClaimSourceUrl = normalizeEvidenceUrl(claimSourceUrl);
     const claimDomain = extractDomain(normalizedClaimSourceUrl || claimSourceUrl);
@@ -5108,6 +5160,8 @@ function buildClaimLedgerRows(
       claim_type: type,
       value_json: {
         text: claim.text,
+        evidence_lane: lane,
+        claim_role: type,
         source_type: claim.source_type || null,
         source_channel: claim.source_channel || null,
         claim_type: claim.claim_type || null,
@@ -5133,5 +5187,10 @@ function buildClaimLedgerRows(
     };
   };
 
-  return [...pros.map((claim) => toRow(claim, 'pro')), ...cons.map((claim) => toRow(claim, 'con'))];
+  return [
+    ...pros.map((claim) => toRow(claim, 'pro', 'fact')),
+    ...cons.map((claim) => toRow(claim, 'con', 'fact')),
+    ...userReportedPros.map((claim) => toRow(claim, 'user_signal_pro', 'user_signal')),
+    ...userReportedCons.map((claim) => toRow(claim, 'user_signal_con', 'user_signal')),
+  ];
 }

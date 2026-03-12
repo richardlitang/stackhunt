@@ -243,7 +243,7 @@ Candidates for removal or de-emphasis:
 
 - [~] Split analysis output into fact sheet, user signal sheet, and editorial decision output (`npm run typecheck && npm run test`)
 - [~] Update prompts to stop blending official facts and user sentiment into one global claim list (`npm run typecheck && npm run test`)
-- [ ] Persist user signals as first-class evidence, not just review context flavor (`npm run typecheck && npm run test`)
+- [x] Persist user signals as first-class evidence, not just review context flavor (`npm run typecheck && npm run test`)
 
 Notes:
 
@@ -253,6 +253,7 @@ Notes:
 - 2026-03-07 progress: schema validation now blocks publish when factual lanes and user-signal lanes are contaminated.
 - 2026-03-13 progress: added review-subject schema proposal and migration sketch in `docs/plans/active/2026-03-13-review-subject-schema-proposal.md`.
 - 2026-03-13 progress: hunt CLI preflight now resolves inferred scope (for scoped tool names) and blocks ambiguous parent products without explicit `--entity-scope` or `--auto-scope-queue`.
+- 2026-03-13 progress: persistence now writes user-reported pros/cons into the `claims` ledger as first-class `user_signal_*` rows with explicit lane metadata in `value_json`.
 
 ### Phase 3: Page compiler rebuild
 
