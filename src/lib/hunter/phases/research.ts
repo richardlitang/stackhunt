@@ -489,7 +489,12 @@ export async function executeResearchPhase(
 
   // Step 2.5: Detect category for batch synthesis grouping
   // Uses same logic as analysis phase for consistency
-  const detectedCategory = detectCategoryFromResearch(knowledgeCard, ctx.contextTitle, deps);
+  const detectedCategory = detectCategoryFromResearch(
+    knowledgeCard,
+    ctx.contextTitle,
+    ctx.researchDossier?.primary_category,
+    deps
+  );
   if (detectedCategory) {
     ctx.detectedCategory = detectedCategory;
     deps.log(`[Category Detection] Detected: ${detectedCategory}`);
@@ -498,7 +503,12 @@ export async function executeResearchPhase(
   }
 
   // Step 3: Check for duplicate tools (Gatekeeper)
-  const existingTool = await checkForDuplicateTool(ctx.toolName, knowledgeCard, deps, ctx.entityScope);
+  const existingTool = await checkForDuplicateTool(
+    ctx.toolName,
+    knowledgeCard,
+    deps,
+    ctx.entityScope
+  );
 
   if (existingTool) {
     deps.log(`⚠️ Duplicate detected: "${ctx.toolName}" already exists (id: ${existingTool.id})`);
@@ -582,7 +592,9 @@ async function checkForDuplicateTool(
     const match = data[0];
     const normalizedMatchDomain = extractDomain(match.website);
     const sameDomain =
-      !!normalizedInputDomain && !!normalizedMatchDomain && normalizedInputDomain === normalizedMatchDomain;
+      !!normalizedInputDomain &&
+      !!normalizedMatchDomain &&
+      normalizedInputDomain === normalizedMatchDomain;
     const acceptableNameMatch = hasMeaningfulProductTokenOverlap(toolName, match.name);
 
     // Guardrail: avoid same-vendor cross-product collisions (e.g., "Zoho Books" -> "Zoho CRM").
@@ -653,13 +665,16 @@ function extractDomain(url?: string | null): string | null {
   const raw = url.trim().toLowerCase();
   if (!raw) return null;
   try {
-    const withProtocol = raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
+    const withProtocol =
+      raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`;
     return new URL(withProtocol).hostname.replace(/^www\./, '');
   } catch {
-    return raw
-      .replace(/^https?:\/\//, '')
-      .replace(/^www\./, '')
-      .split('/')[0] || null;
+    return (
+      raw
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .split('/')[0] || null
+    );
   }
 }
 
@@ -720,9 +735,11 @@ function hasMeaningfulProductTokenOverlap(a: string, b: string): boolean {
 function detectCategoryFromResearch(
   knowledgeCard: KnowledgeCard,
   contextTitle: string | undefined,
+  dossierPrimaryCategory: string | undefined,
   _deps: HunterDependencies
 ): string | undefined {
   return resolveDetectedCategory({
+    dossierPrimaryCategory,
     taxonomyPrimaryFunction: knowledgeCard?.smp_taxonomy?.primary_function,
     contextTitle,
   });

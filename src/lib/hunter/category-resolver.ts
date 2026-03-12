@@ -135,6 +135,23 @@ const KEYWORD_TO_SLUG: Record<string, string> = {
   calendar: 'productivity',
 };
 
+const DOSSIER_PRIMARY_CATEGORY_TO_SLUG: Record<string, string> = {
+  ai_model: 'ai-automation',
+  api_platform: 'developer-tools',
+  saas_collaboration: 'collaboration',
+  saas_productivity: 'productivity',
+  crm_sales: 'crm-sales',
+  marketing_email: 'email-marketing',
+  database_storage: 'developer-tools',
+  devtools: 'developer-tools',
+  legacy_defunct: 'developer-tools',
+  consumer_media: 'video-audio',
+  infrastructure: 'developer-tools',
+  design_creative: 'design',
+  video_conferencing: 'communication',
+  generic_saas: 'productivity',
+};
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -166,13 +183,29 @@ export function resolveCategoryFromContextTitle(contextTitle?: string | null): s
   return undefined;
 }
 
+export function resolveCategoryFromDossierPrimaryCategory(
+  primaryCategory?: string | null
+): string | undefined {
+  if (!primaryCategory) return undefined;
+  const normalizedPrimaryCategory = primaryCategory.trim().toLowerCase();
+  return normalizeCategorySlug(DOSSIER_PRIMARY_CATEGORY_TO_SLUG[normalizedPrimaryCategory]);
+}
+
 export function resolveDetectedCategory(params: {
   explicitCategorySlug?: string | null;
+  detectedCategorySlug?: string | null;
+  dossierPrimaryCategory?: string | null;
   taxonomyPrimaryFunction?: string | null;
   contextTitle?: string | null;
 }): string | undefined {
   const explicit = normalizeCategorySlug(params.explicitCategorySlug);
   if (explicit) return explicit;
+
+  const detected = normalizeCategorySlug(params.detectedCategorySlug);
+  if (detected) return detected;
+
+  const fromDossier = resolveCategoryFromDossierPrimaryCategory(params.dossierPrimaryCategory);
+  if (fromDossier) return fromDossier;
 
   const fromTaxonomy = resolveCategoryFromPrimaryFunction(params.taxonomyPrimaryFunction);
   if (fromTaxonomy) return fromTaxonomy;

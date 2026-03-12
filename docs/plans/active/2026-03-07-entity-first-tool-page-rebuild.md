@@ -256,6 +256,7 @@ Notes:
 - 2026-03-13 progress: persistence now writes user-reported pros/cons into the `claims` ledger as first-class `user_signal_*` rows with explicit lane metadata in `value_json`.
 - 2026-03-13 progress: `Hunter.hunt()` now enforces subject preflight too, so queue workers cannot bypass canonical-subject scope checks.
 - 2026-03-13 progress: alternatives cards now render an explicit comparison axis label, and rendered QA now fails on unresolved-subject verdict leaks, generic hero dek fallback, and malformed or axis-less comparison link sets.
+- 2026-03-13 progress: category resolution now uses intent-aware precedence (explicit > detected > dossier category > taxonomy > context), and persistence applies that resolved slug when storing tool category.
 
 ### Phase 3: Page compiler rebuild
 
@@ -266,7 +267,7 @@ Notes:
 ### Phase 4: Alternatives and category cleanup
 
 - [x] Rework alternatives so each card declares the comparison axis (`npm run test && npm run typecheck`)
-- [ ] Tighten category assignment rules so tool pages align with user intent and SEO intent (`npm run test && npm run typecheck`)
+- [x] Tighten category assignment rules so tool pages align with user intent and SEO intent (`npm run test && npm run typecheck`)
 - [x] Add QA gates for entity confusion, generic hero copy, and unsupported comparison sets (`npm run qa:prepush`)
 
 ### Phase 5: Redundancy cleanup

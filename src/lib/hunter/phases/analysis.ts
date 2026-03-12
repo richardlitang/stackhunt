@@ -959,6 +959,8 @@ export function detectToolCategory(
 ): string | undefined {
   const resolved = resolveDetectedCategory({
     explicitCategorySlug: ctx.categorySlug,
+    detectedCategorySlug: ctx.detectedCategory,
+    dossierPrimaryCategory: ctx.researchDossier?.primary_category,
     taxonomyPrimaryFunction: ctx.research?.knowledgeCard?.smp_taxonomy?.primary_function,
     contextTitle: ctx.contextTitle,
   });

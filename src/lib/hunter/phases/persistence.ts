@@ -62,7 +62,7 @@ import {
   scoreUserSignalClaim,
 } from '@/lib/hunter/user-signal-claims';
 import { buildDecisionSlots } from '@/lib/tool-page/intro';
-import { normalizeCategorySlug, resolveCategoryFromPrimaryFunction } from '../category-resolver';
+import { normalizeCategorySlug, resolveDetectedCategory } from '../category-resolver';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -1434,29 +1434,38 @@ export async function executePersistencePhase(
       .single();
     categoryId = cat?.id || null;
     resolvedCategorySlug = cat?.id ? normalizedExplicitSlug || ctx.categorySlug : null;
-  } else if (knowledgeCard?.smp_taxonomy?.primary_function) {
-    // Auto-map from extracted taxonomy
-    const primaryFunction = knowledgeCard.smp_taxonomy.primary_function;
-    deps.log(`[Category] Auto-mapping from taxonomy: "${primaryFunction}"`);
-
-    const categorySlug = resolveCategoryFromPrimaryFunction(primaryFunction);
-    if (categorySlug) {
-      const { data: cat } = await deps.supabase
+  } else {
+    const resolvedDetectedSlug = resolveDetectedCategory({
+      detectedCategorySlug: ctx.detectedCategory,
+      dossierPrimaryCategory: ctx.researchDossier?.primary_category,
+      taxonomyPrimaryFunction: knowledgeCard?.smp_taxonomy?.primary_function,
+      contextTitle: ctx.contextTitle,
+    });
+    if (resolvedDetectedSlug) {
+      const { data: functionCategory } = await deps.supabase
         .from('categories')
         .select('id')
-        .eq('slug', categorySlug)
+        .eq('slug', resolvedDetectedSlug)
         .eq('type', 'function')
         .maybeSingle();
-
-      if (cat) {
-        categoryId = cat.id;
-        resolvedCategorySlug = categorySlug;
-        deps.log(`[Category] Mapped "${primaryFunction}" → ${categorySlug}`);
+      if (functionCategory) {
+        categoryId = functionCategory.id;
+        resolvedCategorySlug = resolvedDetectedSlug;
+        deps.log(`[Category] Resolved category slug: ${resolvedDetectedSlug} (function intent)`);
       } else {
-        deps.log(`[Category] Warning: No category found for slug "${categorySlug}"`);
+        const { data: anyCategory } = await deps.supabase
+          .from('categories')
+          .select('id')
+          .eq('slug', resolvedDetectedSlug)
+          .maybeSingle();
+        if (anyCategory) {
+          categoryId = anyCategory.id;
+          resolvedCategorySlug = resolvedDetectedSlug;
+          deps.log(`[Category] Resolved category slug: ${resolvedDetectedSlug}`);
+        } else {
+          deps.log(`[Category] Warning: No category found for slug "${resolvedDetectedSlug}"`);
+        }
       }
-    } else {
-      deps.log(`[Category] Warning: No mapping for "${primaryFunction}"`);
     }
   }
 
