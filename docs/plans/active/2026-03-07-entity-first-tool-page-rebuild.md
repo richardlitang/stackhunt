@@ -261,6 +261,7 @@ Notes:
 - 2026-03-13 progress: decision-utility now consumes resolved subject type/scope and emits subject-specific rollout guidance for product surfaces, plan families, and deployment modes.
 - 2026-03-13 progress: evidence runtime now keeps factual pros/cons lanes strict by filtering out community/opinion claims from core strengths-and-limitations evidence computation.
 - 2026-03-13 progress: quick-jump navigation now compiles from a fixed section-order contract, including explicit strengths section targeting.
+- 2026-03-13 progress: moved route-local `tool.specs` parsing (user-signal summary, top user claims, lens coverage counters) into `buildToolPageSpecsSignals(...)` to reduce `tool/[slug]` orchestration sprawl.
 
 ### Phase 3: Page compiler rebuild
 
