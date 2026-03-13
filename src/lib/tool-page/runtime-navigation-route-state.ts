@@ -8,7 +8,7 @@ import type { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
 import type { ReviewLens } from '@/lib/tool-page/view-model';
 import { buildToolPageCtaMediaStateInputFromRouteContext } from '@/lib/tool-page/cta-media-input';
 import { buildToolPageCtaMediaState } from '@/lib/tool-page/cta-media-state';
-import { buildToolPageNavigationStateInputFromRouteContext } from '@/lib/tool-page/navigation-input';
+import { buildToolPageNavigationStateInputFromRoute } from '@/lib/tool-page/navigation-input';
 import { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
 import { buildToolPageRuntimeAssembly } from '@/lib/tool-page/runtime-assembly';
 import { buildToolPageRuntimeAssemblyInputBundleFromPageContext } from '@/lib/tool-page/runtime-assembly-route-input';
@@ -115,7 +115,7 @@ export function buildToolPageRuntimeNavigationRouteState(
     })
   );
   const navigationState = buildToolPageNavigationState(
-    buildToolPageNavigationStateInputFromRouteContext({
+    buildToolPageNavigationStateInputFromRoute({
       hasVerdict: input.decisionRuntime.hasVerdict,
       showProceduralVerdict: input.presentationGates.showProceduralVerdict,
       hasGettingStarted: input.sectionFlags.hasGettingStarted,
@@ -127,10 +127,10 @@ export function buildToolPageRuntimeNavigationRouteState(
       hasPlatform: input.sectionFlags.hasPlatform,
       hasFAQ: input.sectionFlags.hasFAQ,
       hasAlternatives: input.sectionFlags.hasAlternatives,
+      evidenceBasisCount: input.reviewArtifactsState.evidenceBasis.length,
+      lowConfidenceCount: input.reviewArtifactsState.lowConfidenceEvidenceLinks.length,
       faqItems: input.faqItems,
-      evidenceBasis: input.reviewArtifactsState.evidenceBasis,
-      lowConfidenceEvidenceLinks: input.reviewArtifactsState.lowConfidenceEvidenceLinks,
-      updateHistoryEntries: runtimeViewBundle.updateHistoryEntries,
+      updateHistoryEntriesCount: runtimeViewBundle.updateHistoryEntries.length,
     })
   );
   const ctaMediaState = buildToolPageCtaMediaState(

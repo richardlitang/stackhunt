@@ -16,24 +16,6 @@ interface BuildToolPageNavigationStateInputFromRouteInput {
   updateHistoryEntriesCount: number;
 }
 
-interface BuildToolPageNavigationStateInputFromRouteContextInput {
-  hasVerdict: BuildToolPageNavigationStateInputFromRouteInput['hasVerdict'];
-  showProceduralVerdict: BuildToolPageNavigationStateInputFromRouteInput['showProceduralVerdict'];
-  hasGettingStarted: BuildToolPageNavigationStateInputFromRouteInput['hasGettingStarted'];
-  showPricingSection: BuildToolPageNavigationStateInputFromRouteInput['showPricingSection'];
-  hasStrengths: BuildToolPageNavigationStateInputFromRouteInput['hasStrengths'];
-  hasFeatures: BuildToolPageNavigationStateInputFromRouteInput['hasFeatures'];
-  hasSpecs: BuildToolPageNavigationStateInputFromRouteInput['hasSpecs'];
-  showProceduralSpecs: BuildToolPageNavigationStateInputFromRouteInput['showProceduralSpecs'];
-  hasPlatform: BuildToolPageNavigationStateInputFromRouteInput['hasPlatform'];
-  hasFAQ: BuildToolPageNavigationStateInputFromRouteInput['hasFAQ'];
-  hasAlternatives: BuildToolPageNavigationStateInputFromRouteInput['hasAlternatives'];
-  faqItems: BuildToolPageNavigationStateInputFromRouteInput['faqItems'];
-  evidenceBasis: unknown[];
-  lowConfidenceEvidenceLinks: unknown[];
-  updateHistoryEntries: unknown[];
-}
-
 export function buildToolPageNavigationStateInputFromRoute(
   input: BuildToolPageNavigationStateInputFromRouteInput
 ): {
@@ -66,26 +48,4 @@ export function buildToolPageNavigationStateInputFromRoute(
     faqItems: input.faqItems,
     updateHistoryEntriesCount: input.updateHistoryEntriesCount,
   };
-}
-
-export function buildToolPageNavigationStateInputFromRouteContext(
-  input: BuildToolPageNavigationStateInputFromRouteContextInput
-): ReturnType<typeof buildToolPageNavigationStateInputFromRoute> {
-  return buildToolPageNavigationStateInputFromRoute({
-    hasVerdict: input.hasVerdict,
-    showProceduralVerdict: input.showProceduralVerdict,
-    hasGettingStarted: input.hasGettingStarted,
-    showPricingSection: input.showPricingSection,
-    hasStrengths: input.hasStrengths,
-    hasFeatures: input.hasFeatures,
-    hasSpecs: input.hasSpecs,
-    showProceduralSpecs: input.showProceduralSpecs,
-    hasPlatform: input.hasPlatform,
-    hasFAQ: input.hasFAQ,
-    hasAlternatives: input.hasAlternatives,
-    evidenceBasisCount: input.evidenceBasis.length,
-    lowConfidenceCount: input.lowConfidenceEvidenceLinks.length,
-    faqItems: input.faqItems,
-    updateHistoryEntriesCount: input.updateHistoryEntries.length,
-  });
 }

@@ -309,6 +309,7 @@ Notes:
 - 2026-03-13 progress: removed `buildToolPageDecisionSectionStateInputFromRouteContext(...)` and wired data prep directly to `buildToolPageDecisionSectionStateInputFromRoute(...)`.
 - 2026-03-13 progress: removed `buildToolPageEvidenceSignalsStateInputFromRouteContext(...)` and wired data prep directly to `buildToolPageEvidenceSignalsStateInputFromRoute(...)`.
 - 2026-03-13 progress: renamed `buildToolPageRuntimeAssemblySignalsInputFromRouteContext(...)` to `buildToolPageRuntimeAssemblySignalsInputFromRoute(...)` and rewired runtime navigation composition.
+- 2026-03-13 progress: removed `buildToolPageNavigationStateInputFromRouteContext(...)` and wired runtime navigation directly to `buildToolPageNavigationStateInputFromRoute(...)`.
 
 ### Phase 3: Page compiler rebuild
 
