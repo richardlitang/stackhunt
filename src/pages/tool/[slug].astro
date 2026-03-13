@@ -80,7 +80,6 @@ const {
   qualityState,
   pricingTypeLabel,
   hasComparableAlternatives,
-  showReviewInProgressBanner,
   hasAbout,
   comparativeFeaturePeerCount,
   hasPricing,
@@ -127,7 +126,6 @@ const {
   meta,
   indexPolicy,
   updateHistoryEntries,
-  toolReviewHeading,
   lensLabelMap,
   sourceAriaLabel,
   lensHrefs,
@@ -136,20 +134,11 @@ const {
   showFocusSwitch,
   lensPriorityLinks,
   verdictLabelRationale,
-  reviewDek,
   readerFocusNote,
   scoreDrivers,
   workflowFitHighlights,
   workflowFitCards,
-  reviewInProgressBannerText,
-  researchStatusView,
-  categoryBreadcrumb,
   trustBarProps,
-  verificationBadgeLabel,
-  websiteState,
-  websiteDisplayLabel,
-  lensPriorityLead,
-  freshnessLabels,
   pricingInsightsBudgetAnalyst,
   alternativesIntroText,
   compareTeaserLinks,
@@ -206,11 +195,11 @@ applyToolPageResponseRouteState({
       <span>/</span>
       <a href="/tools" class="hover:text-hunt-500">Tools</a>
       {
-        categoryBreadcrumb && (
+        pageAssemblyState.categoryBreadcrumb && (
           <>
             <span>/</span>
-            <a href={categoryBreadcrumb.href} class="hover:text-hunt-500">
-              {categoryBreadcrumb.label}
+            <a href={pageAssemblyState.categoryBreadcrumb.href} class="hover:text-hunt-500">
+              {pageAssemblyState.categoryBreadcrumb.label}
             </a>
           </>
         )
@@ -226,9 +215,9 @@ applyToolPageResponseRouteState({
       class="relative mb-12 overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg sm:p-8"
     >
       {
-        showReviewInProgressBanner && (
+        routeDataState.showReviewInProgressBanner && (
           <div class="mb-4 rounded-lg border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm text-sky-100">
-            {reviewInProgressBannerText}
+            {pageAssemblyState.reviewInProgressBannerText}
           </div>
         )
       }
@@ -254,7 +243,9 @@ applyToolPageResponseRouteState({
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.18em] text-hunt-400">Review</p>
               <div class="mt-1 flex items-center gap-3">
-                <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">{toolReviewHeading}</h1>
+                <h1 class="text-2xl font-bold text-zinc-100 sm:text-3xl">
+                  {pageAssemblyState.toolReviewHeading}
+                </h1>
                 {
                   tool.is_verified && (
                     <span class="flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-xs font-medium text-blue-200 ring-1 ring-blue-400/30">
@@ -265,13 +256,13 @@ applyToolPageResponseRouteState({
                           clip-rule="evenodd"
                         />
                       </svg>
-                      {verificationBadgeLabel}
+                      {pageAssemblyState.verificationBadgeLabel}
                     </span>
                   )
                 }
               </div>
               <p class="mt-1 text-sm text-zinc-400">
-                {tool.name}: {reviewDek}
+                {tool.name}: {pageAssemblyState.reviewDek}
               </p>
               {
                 qualityState.subjectScopePending && qualityState.subjectScopeMessage && (
@@ -319,7 +310,7 @@ applyToolPageResponseRouteState({
               )
             }
             {
-              websiteState.hasWebsite && (
+              pageAssemblyState.websiteState.hasWebsite && (
                 <a
                   href={tool.website}
                   target="_blank"
@@ -331,7 +322,9 @@ applyToolPageResponseRouteState({
                 >
                   <span>
                     <span class="text-xs uppercase tracking-wide text-zinc-500">Website</span>
-                    <span class="mt-1 block font-medium">{websiteDisplayLabel}</span>
+                    <span class="mt-1 block font-medium">
+                      {pageAssemblyState.websiteDisplayLabel}
+                    </span>
                   </span>
                   <svg
                     class="h-3.5 w-3.5 shrink-0"
@@ -384,48 +377,56 @@ applyToolPageResponseRouteState({
           </p>
           <div class="mt-3 space-y-1 text-xs text-zinc-400">
             <p>
-              <span class="text-zinc-300">{researchStatusView.reviewMethodLabel}</span>
+              <span class="text-zinc-300"
+                >{pageAssemblyState.researchStatusView.reviewMethodLabel}</span
+              >
             </p>
             <p>
-              <span class="text-zinc-300">{researchStatusView.linkedSourcesLabel}</span>
+              <span class="text-zinc-300"
+                >{pageAssemblyState.researchStatusView.linkedSourcesLabel}</span
+              >
             </p>
             {
-              researchStatusView.pendingConfirmationLabel && (
-                <p>
-                  <span class="text-amber-300">{researchStatusView.pendingConfirmationLabel}</span>
-                </p>
-              )
-            }
-            {
-              researchStatusView.communityCorroborationLabel && (
-                <p>
-                  <span class="text-zinc-300">
-                    {researchStatusView.communityCorroborationLabel}
-                  </span>
-                </p>
-              )
-            }
-            {
-              researchStatusView.userSignalCoverageLabel && (
-                <p>
-                  <span class="text-amber-300">{researchStatusView.userSignalCoverageLabel}</span>
-                </p>
-              )
-            }
-            {
-              researchStatusView.userSignalNeedsConfirmationLabel && (
+              pageAssemblyState.researchStatusView.pendingConfirmationLabel && (
                 <p>
                   <span class="text-amber-300">
-                    {researchStatusView.userSignalNeedsConfirmationLabel}
+                    {pageAssemblyState.researchStatusView.pendingConfirmationLabel}
                   </span>
                 </p>
               )
             }
             {
-              researchStatusView.userSignalChannelCoverageLabel && (
+              pageAssemblyState.researchStatusView.communityCorroborationLabel && (
                 <p>
                   <span class="text-zinc-300">
-                    {researchStatusView.userSignalChannelCoverageLabel}
+                    {pageAssemblyState.researchStatusView.communityCorroborationLabel}
+                  </span>
+                </p>
+              )
+            }
+            {
+              pageAssemblyState.researchStatusView.userSignalCoverageLabel && (
+                <p>
+                  <span class="text-amber-300">
+                    {pageAssemblyState.researchStatusView.userSignalCoverageLabel}
+                  </span>
+                </p>
+              )
+            }
+            {
+              pageAssemblyState.researchStatusView.userSignalNeedsConfirmationLabel && (
+                <p>
+                  <span class="text-amber-300">
+                    {pageAssemblyState.researchStatusView.userSignalNeedsConfirmationLabel}
+                  </span>
+                </p>
+              )
+            }
+            {
+              pageAssemblyState.researchStatusView.userSignalChannelCoverageLabel && (
+                <p>
+                  <span class="text-zinc-300">
+                    {pageAssemblyState.researchStatusView.userSignalChannelCoverageLabel}
                   </span>
                 </p>
               )
@@ -433,13 +434,13 @@ applyToolPageResponseRouteState({
             <p class="text-zinc-500">
               Last checked{' '}
               <span class="text-zinc-300">
-                {researchStatusView.lastCheckedLabel}
+                {pageAssemblyState.researchStatusView.lastCheckedLabel}
               </span>
             </p>
           </div>
           <div class="mt-4 space-y-2">
             {
-              websiteState.hasWebsite && (
+              pageAssemblyState.websiteState.hasWebsite && (
                 <a
                   href={tool.website}
                   target="_blank"
@@ -476,7 +477,7 @@ applyToolPageResponseRouteState({
       <h2 class="text-lg font-semibold text-zinc-100">Decision in 60 Seconds</h2>
       <p class="mt-1 text-sm leading-relaxed text-zinc-300">{verdictLabelRationale}</p>
       <p class="mt-2 text-xs text-zinc-500">
-        Summary of linked sources as of {freshnessLabels.verdictAsOfLabel}.
+        Summary of linked sources as of {pageAssemblyState.freshnessLabels.verdictAsOfLabel}.
       </p>
       {
         decisionUtilityState.hasDecisionBullets ? (
@@ -572,7 +573,7 @@ applyToolPageResponseRouteState({
       {
         lensPriorityLinks.length > 0 && (
           <div class="mt-3 border-t border-zinc-800 pt-3">
-            <p class="text-xs text-zinc-500">{lensPriorityLead}</p>
+            <p class="text-xs text-zinc-500">{pageAssemblyState.lensPriorityLead}</p>
             <div class="mt-2 flex flex-wrap gap-2">
               {lensPriorityLinks.map((item) => (
                 <a
@@ -604,7 +605,7 @@ applyToolPageResponseRouteState({
       </summary>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         {
-          websiteState.hasWebsite && (
+          pageAssemblyState.websiteState.hasWebsite && (
             <a
               href={tool.website}
               target="_blank"
@@ -658,7 +659,9 @@ applyToolPageResponseRouteState({
             >
               <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
               <p class="text-sm text-zinc-300">{decisionUtilityState.verdictLeadOverride}</p>
-              <p class="text-sm text-zinc-400">As of {freshnessLabels.verdictAsOfLabel}.</p>
+              <p class="text-sm text-zinc-400">
+                As of {pageAssemblyState.freshnessLabels.verdictAsOfLabel}.
+              </p>
               <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
                 <div
                   class="prose prose-slate prose-sm max-w-none text-zinc-200 leading-7"
@@ -871,7 +874,8 @@ applyToolPageResponseRouteState({
                       </details>
                     )}
                     <p class="text-xs text-zinc-500">
-                      Last checked {freshnessLabels.pricingSectionLastCheckedLabel}.
+                      Last checked{' '}
+                      {pageAssemblyState.freshnessLabels.pricingSectionLastCheckedLabel}.
                     </p>
                   </div>
                 )}
@@ -1365,7 +1369,7 @@ applyToolPageResponseRouteState({
               curatedVerdict: curatedVerdictEntries.get(entry.alt.slug)?.verdict || null,
               computedDiff: microDiffs.get(entry.alt.slug) || null,
             }))}
-            asOfLabel={freshnessLabels.verdictAsOfLabel}
+            asOfLabel={pageAssemblyState.freshnessLabels.verdictAsOfLabel}
             activeReviewLens={activeReviewLens}
           />
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
