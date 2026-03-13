@@ -76,6 +76,7 @@ export {
   buildToolPageFallbackDecisionSummary,
   deriveToolPageDecisionDifferentiators,
 } from '@/lib/tool-page/decision';
+export { buildToolPageDecisionAssemblyRouteState } from '@/lib/tool-page/decision-assembly-route-state';
 export { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 export { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision-utility';
 export {
