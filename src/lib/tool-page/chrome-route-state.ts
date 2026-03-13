@@ -1,59 +1,64 @@
-import { buildToolPageChromeLensStateFromRouteContext } from '@/lib/tool-page/chrome-lens-state';
-import { buildToolPageContentAlternativesStateFromRouteContext } from '@/lib/tool-page/content-alternatives-state';
+import { buildToolPageAlternativesPricingStateInputFromRouteContext } from '@/lib/tool-page/alternatives-pricing-input';
+import { buildToolPageAlternativesPricingState } from '@/lib/tool-page/alternatives-pricing-state';
+import { buildToolPageChromeStateInputFromRouteContext } from '@/lib/tool-page/chrome-input';
+import { buildToolPageContentSectionsStateInputFromRouteContext } from '@/lib/tool-page/content-sections-input';
+import { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
+import { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
+import { buildToolPageChromeState } from '@/lib/tool-page/page-chrome-state';
 import { toToolPageObjectArray } from '@/lib/tool-page/route-normalizers';
 
 interface BuildToolPageChromeRouteStateFromDecisionContextInput {
   chromeLens: {
-    lensRuntime: Parameters<typeof buildToolPageChromeLensStateFromRouteContext>[0]['lensRuntime'];
+    lensRuntime: Parameters<typeof buildToolPageLensViewFields>[0];
     activeReviewLens: Parameters<
-      typeof buildToolPageChromeLensStateFromRouteContext
-    >[0]['chrome']['activeReviewLens'];
+      typeof buildToolPageChromeStateInputFromRouteContext
+    >[0]['activeReviewLens'];
     toolCategory: Parameters<
-      typeof buildToolPageChromeLensStateFromRouteContext
-    >[0]['chrome']['toolCategory'];
-    tool: Parameters<typeof buildToolPageChromeLensStateFromRouteContext>[0]['chrome']['tool'];
+      typeof buildToolPageChromeStateInputFromRouteContext
+    >[0]['toolCategory'];
+    tool: Parameters<typeof buildToolPageChromeStateInputFromRouteContext>[0]['tool'];
     websiteHostLabel: Parameters<
-      typeof buildToolPageChromeLensStateFromRouteContext
-    >[0]['chrome']['websiteHostLabel'];
+      typeof buildToolPageChromeStateInputFromRouteContext
+    >[0]['websiteHostLabel'];
     runtimeViewBundle: {
       trustConfidenceLabel: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['trustConfidenceLabel'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['trustConfidenceLabel'];
       pendingVerificationCount: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['pendingVerificationCount'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['pendingVerificationCount'];
       trustStatus: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['trustStatus'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['trustStatus'];
       lensLabelMap: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['lensLabelMap'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['lensLabelMap'];
     };
     evidenceRuntime: {
       hasCollectedSources: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['hasCollectedSources'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['hasCollectedSources'];
       collectedSourcesTotal: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['collectedSourcesTotal'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['collectedSourcesTotal'];
       pricingCheckedLabel: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['pricingCheckedLabel'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['pricingCheckedLabel'];
     };
     reviewSignalsView: {
       communityVerifiedLabel: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['communityVerifiedLabel'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['communityVerifiedLabel'];
       specsVerifiedLabel: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['specsVerifiedLabel'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['specsVerifiedLabel'];
       pricingVerifiedLabel: Parameters<
-        typeof buildToolPageChromeLensStateFromRouteContext
-      >[0]['chrome']['pricingVerifiedLabel'];
+        typeof buildToolPageChromeStateInputFromRouteContext
+      >[0]['pricingVerifiedLabel'];
     };
     evaluationDepth: Parameters<
-      typeof buildToolPageChromeLensStateFromRouteContext
-    >[0]['chrome']['evaluationDepth'];
+      typeof buildToolPageChromeStateInputFromRouteContext
+    >[0]['evaluationDepth'];
     qualityState: {
       communityCorroborationCount: number;
       userSignalCoveragePending?: boolean;
@@ -63,165 +68,161 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
   };
   contentAlternatives: {
     activeReviewLens: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['alternativesPricing']['activeReviewLens'];
+      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+    >[0]['activeReviewLens'];
     alternativesLabel: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['alternativesPricing']['alternativesLabel'];
+      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+    >[0]['alternativesLabel'];
     toolCategoryRef: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['alternativesPricing']['category'];
+      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+    >[0]['category'];
     orderedAlternatives: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['alternativesPricing']['orderedAlternatives'];
+      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+    >[0]['orderedAlternatives'];
     comparableAlternatives: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['alternativesPricing']['comparableAlternatives'];
+      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+    >[0]['comparableAlternatives'];
     canCompareByAlternativeSlug: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['alternativesPricing']['canCompareByAlternativeSlug'];
+      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+    >[0]['canCompareByAlternativeSlug'];
     tool: {
       name: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['tool']['name'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['tool']['name'];
       slug: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['alternativesPricing']['tool']['slug'];
+        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      >[0]['tool']['slug'];
       specs: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['alternativesPricing']['tool']['specs'];
+        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      >[0]['tool']['specs'];
       website: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['tool']['website'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['tool']['website'];
       long_description: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['tool']['long_description'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['tool']['long_description'];
       affiliate_offers: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['tool']['affiliate_offers'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['tool']['affiliate_offers'];
     };
     knowledgeCard: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['contentSections']['knowledgeCard'];
+      typeof buildToolPageContentSectionsStateInputFromRouteContext
+    >[0]['knowledgeCard'];
     parentTool: unknown;
     setupTracks: unknown;
     displayCategorySpecificData: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['contentSections']['displayCategorySpecificData'];
+      typeof buildToolPageContentSectionsStateInputFromRouteContext
+    >[0]['displayCategorySpecificData'];
     vipSpecifics: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['contentSections']['vipSpecifics'];
+      typeof buildToolPageContentSectionsStateInputFromRouteContext
+    >[0]['vipSpecifics'];
     userReportedPros: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['contentSections']['userReportedPros'];
+      typeof buildToolPageContentSectionsStateInputFromRouteContext
+    >[0]['userReportedPros'];
     userReportedCons: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['contentSections']['userReportedCons'];
+      typeof buildToolPageContentSectionsStateInputFromRouteContext
+    >[0]['userReportedCons'];
     laneOutputs?: Parameters<
-      typeof buildToolPageContentAlternativesStateFromRouteContext
-    >[0]['contentSections']['laneOutputs'];
+      typeof buildToolPageContentSectionsStateInputFromRouteContext
+    >[0]['laneOutputs'];
     decisionRuntime: {
       setupSignals: {
         gettingStartedCtaUrl: Parameters<
-          typeof buildToolPageContentAlternativesStateFromRouteContext
-        >[0]['contentSections']['gettingStartedCtaUrl'];
+          typeof buildToolPageContentSectionsStateInputFromRouteContext
+        >[0]['gettingStartedCtaUrl'];
       };
       guardedHumanVerdict: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['guardedHumanVerdict'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['guardedHumanVerdict'];
       guardedAvoidIf: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['guardedAvoidIf'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['guardedAvoidIf'];
     };
     sectionFlags: {
       hasCommunity: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['hasCommunity'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['hasCommunity'];
       hasSecurity: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['hasSecurity'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['hasSecurity'];
       hasPortability: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['hasPortability'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['hasPortability'];
     };
     evidenceRuntime: {
       effectiveEvidencePros: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['effectiveEvidencePros'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['effectiveEvidencePros'];
       effectiveEvidenceCons: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['effectiveEvidenceCons'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['effectiveEvidenceCons'];
       collectedSourcesBySection: {
         pros_cons: Parameters<
-          typeof buildToolPageContentAlternativesStateFromRouteContext
-        >[0]['contentSections']['prosConsSourcesCount'];
+          typeof buildToolPageContentSectionsStateInputFromRouteContext
+        >[0]['prosConsSourcesCount'];
       };
       pricingCheckedLabel: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['pricingCheckedLabel'];
-      officialPricingSource: {
-        url?: string | null;
-      } | null;
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['pricingCheckedLabel'];
+      officialPricingSource: { url?: string | null } | null;
       pricingEvidenceLinks: Array<unknown>;
     };
     reviewArtifactsState: {
       evidenceLinks: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['evidenceLinks'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['evidenceLinks'];
       lowConfidenceEvidenceLinks: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['lowConfidenceEvidenceLinks'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['lowConfidenceEvidenceLinks'];
       evidenceBasis: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['evidenceBasis'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['evidenceBasis'];
     };
     reviewSignalsView: {
       specsVerifiedLabel: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['specsVerifiedLabel'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['specsVerifiedLabel'];
     };
     reviewContextSignals: {
       budgetCostDrivers: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['alternativesPricing']['budgetCostDrivers'];
+        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      >[0]['budgetCostDrivers'];
       budgetOneTimeFees: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['alternativesPricing']['budgetOneTimeFees'];
+        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      >[0]['budgetOneTimeFees'];
       budgetCommitmentTerms: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['alternativesPricing']['budgetCommitmentTerms'];
+        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      >[0]['budgetCommitmentTerms'];
       budgetRoiThreshold: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['alternativesPricing']['budgetRoiThreshold'];
+        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      >[0]['budgetRoiThreshold'];
       userAdvocate: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['userAdvocate'];
-      vibe: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['vibe'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['userAdvocate'];
+      vibe: Parameters<typeof buildToolPageContentSectionsStateInputFromRouteContext>[0]['vibe'];
       originStory: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['originStory'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['originStory'];
       idealFor: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['idealFor'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['idealFor'];
       powerTip: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['powerTip'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['powerTip'];
       delighters: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['delighters'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['delighters'];
       frustrations: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['frustrations'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['frustrations'];
     };
     qualityState: {
       communityCorroborationCount: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['communityCorroborationCount'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['communityCorroborationCount'];
       userSignalClaimsCount?: Parameters<
-        typeof buildToolPageContentAlternativesStateFromRouteContext
-      >[0]['contentSections']['userSignalClaimsCount'];
+        typeof buildToolPageContentSectionsStateInputFromRouteContext
+      >[0]['userSignalClaimsCount'];
     };
   };
 }
@@ -229,9 +230,9 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
 export function buildToolPageChromeRouteStateFromDecisionContext(
   input: BuildToolPageChromeRouteStateFromDecisionContextInput
 ) {
-  const { lensViewFields, toolChromeState } = buildToolPageChromeLensStateFromRouteContext({
-    lensRuntime: input.chromeLens.lensRuntime,
-    chrome: {
+  const lensViewFields = buildToolPageLensViewFields(input.chromeLens.lensRuntime);
+  const toolChromeState = buildToolPageChromeState(
+    buildToolPageChromeStateInputFromRouteContext({
       toolCategory: input.chromeLens.toolCategory,
       hasCollectedSources: input.chromeLens.evidenceRuntime.hasCollectedSources,
       evaluationDepth: input.chromeLens.evaluationDepth,
@@ -253,75 +254,76 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
       lensLabelMap: input.chromeLens.runtimeViewBundle.lensLabelMap,
       tool: input.chromeLens.tool,
       websiteHostLabel: input.chromeLens.websiteHostLabel,
-    },
-  });
-  const { alternativesPricingState, contentSectionsState } =
-    buildToolPageContentAlternativesStateFromRouteContext({
-      alternativesPricing: {
-        activeReviewLens: input.contentAlternatives.activeReviewLens,
-        budgetCostDrivers: input.contentAlternatives.reviewContextSignals.budgetCostDrivers,
-        budgetOneTimeFees: input.contentAlternatives.reviewContextSignals.budgetOneTimeFees,
-        budgetCommitmentTerms: input.contentAlternatives.reviewContextSignals.budgetCommitmentTerms,
-        budgetRoiThreshold: input.contentAlternatives.reviewContextSignals.budgetRoiThreshold,
-        alternativesLabel: input.contentAlternatives.alternativesLabel,
-        category: input.contentAlternatives.toolCategoryRef,
-        comparableAlternatives: input.contentAlternatives.comparableAlternatives,
-        orderedAlternatives: input.contentAlternatives.orderedAlternatives,
-        canCompareByAlternativeSlug: input.contentAlternatives.canCompareByAlternativeSlug,
-        tool: {
-          slug: input.contentAlternatives.tool.slug,
-          specs: input.contentAlternatives.tool.specs,
-        },
+    })
+  );
+  const alternativesPricingState = buildToolPageAlternativesPricingState(
+    buildToolPageAlternativesPricingStateInputFromRouteContext({
+      activeReviewLens: input.contentAlternatives.activeReviewLens,
+      budgetCostDrivers: input.contentAlternatives.reviewContextSignals.budgetCostDrivers,
+      budgetOneTimeFees: input.contentAlternatives.reviewContextSignals.budgetOneTimeFees,
+      budgetCommitmentTerms: input.contentAlternatives.reviewContextSignals.budgetCommitmentTerms,
+      budgetRoiThreshold: input.contentAlternatives.reviewContextSignals.budgetRoiThreshold,
+      alternativesLabel: input.contentAlternatives.alternativesLabel,
+      category: input.contentAlternatives.toolCategoryRef,
+      comparableAlternatives: input.contentAlternatives.comparableAlternatives,
+      orderedAlternatives: input.contentAlternatives.orderedAlternatives,
+      canCompareByAlternativeSlug: input.contentAlternatives.canCompareByAlternativeSlug,
+      tool: {
+        slug: input.contentAlternatives.tool.slug,
+        specs: input.contentAlternatives.tool.specs,
       },
-      contentSections: {
-        evidenceLinks: input.contentAlternatives.reviewArtifactsState.evidenceLinks,
-        lowConfidenceEvidenceLinks:
-          input.contentAlternatives.reviewArtifactsState.lowConfidenceEvidenceLinks,
-        effectiveEvidencePros: input.contentAlternatives.evidenceRuntime.effectiveEvidencePros,
-        effectiveEvidenceCons: input.contentAlternatives.evidenceRuntime.effectiveEvidenceCons,
-        userReportedPros: input.contentAlternatives.userReportedPros,
-        userReportedCons: input.contentAlternatives.userReportedCons,
-        laneOutputs: input.contentAlternatives.laneOutputs,
-        knowledgeCard: input.contentAlternatives.knowledgeCard,
-        setupTracks: toToolPageObjectArray(input.contentAlternatives.setupTracks),
-        gettingStartedCtaUrl:
-          input.contentAlternatives.decisionRuntime.setupSignals.gettingStartedCtaUrl,
-        prosConsSourcesCount:
-          input.contentAlternatives.evidenceRuntime.collectedSourcesBySection.pros_cons,
-        communityCorroborationCount:
-          input.contentAlternatives.qualityState.communityCorroborationCount,
-        userSignalClaimsCount: input.contentAlternatives.qualityState.userSignalClaimsCount,
-        evidenceBasis: input.contentAlternatives.reviewArtifactsState.evidenceBasis,
-        hasCommunity: input.contentAlternatives.sectionFlags.hasCommunity,
-        userAdvocate: input.contentAlternatives.reviewContextSignals.userAdvocate,
-        guardedHumanVerdict: input.contentAlternatives.decisionRuntime.guardedHumanVerdict,
-        vibe: input.contentAlternatives.reviewContextSignals.vibe,
-        originStory: input.contentAlternatives.reviewContextSignals.originStory,
-        idealFor: input.contentAlternatives.reviewContextSignals.idealFor,
-        guardedAvoidIf: input.contentAlternatives.decisionRuntime.guardedAvoidIf,
-        powerTip: input.contentAlternatives.reviewContextSignals.powerTip,
-        delighters: input.contentAlternatives.reviewContextSignals.delighters,
-        frustrations: input.contentAlternatives.reviewContextSignals.frustrations,
-        displayCategorySpecificData: input.contentAlternatives.displayCategorySpecificData,
-        vipSpecifics: input.contentAlternatives.vipSpecifics,
-        categoryName: input.contentAlternatives.toolCategoryRef?.name || null,
-        specsVerifiedLabel: input.contentAlternatives.reviewSignalsView.specsVerifiedLabel,
-        pricingCheckedLabel: input.contentAlternatives.evidenceRuntime.pricingCheckedLabel,
-        hasOfficialPricingSource: Boolean(
-          input.contentAlternatives.evidenceRuntime.officialPricingSource
-        ),
-        pricingEvidenceCount: input.contentAlternatives.evidenceRuntime.pricingEvidenceLinks.length,
-        hasSecurity: input.contentAlternatives.sectionFlags.hasSecurity,
-        hasPortability: input.contentAlternatives.sectionFlags.hasPortability,
-        hasParentTool: Boolean(input.contentAlternatives.parentTool),
-        tool: {
-          name: input.contentAlternatives.tool.name,
-          website: input.contentAlternatives.tool.website,
-          long_description: input.contentAlternatives.tool.long_description,
-          affiliate_offers: input.contentAlternatives.tool.affiliate_offers,
-        },
+    })
+  );
+  const contentSectionsState = buildToolPageContentSectionsState(
+    buildToolPageContentSectionsStateInputFromRouteContext({
+      evidenceLinks: input.contentAlternatives.reviewArtifactsState.evidenceLinks,
+      lowConfidenceEvidenceLinks:
+        input.contentAlternatives.reviewArtifactsState.lowConfidenceEvidenceLinks,
+      effectiveEvidencePros: input.contentAlternatives.evidenceRuntime.effectiveEvidencePros,
+      effectiveEvidenceCons: input.contentAlternatives.evidenceRuntime.effectiveEvidenceCons,
+      userReportedPros: input.contentAlternatives.userReportedPros,
+      userReportedCons: input.contentAlternatives.userReportedCons,
+      laneOutputs: input.contentAlternatives.laneOutputs,
+      knowledgeCard: input.contentAlternatives.knowledgeCard,
+      setupTracks: toToolPageObjectArray(input.contentAlternatives.setupTracks),
+      gettingStartedCtaUrl:
+        input.contentAlternatives.decisionRuntime.setupSignals.gettingStartedCtaUrl,
+      prosConsSourcesCount:
+        input.contentAlternatives.evidenceRuntime.collectedSourcesBySection.pros_cons,
+      communityCorroborationCount:
+        input.contentAlternatives.qualityState.communityCorroborationCount,
+      userSignalClaimsCount: input.contentAlternatives.qualityState.userSignalClaimsCount,
+      evidenceBasis: input.contentAlternatives.reviewArtifactsState.evidenceBasis,
+      hasCommunity: input.contentAlternatives.sectionFlags.hasCommunity,
+      userAdvocate: input.contentAlternatives.reviewContextSignals.userAdvocate,
+      guardedHumanVerdict: input.contentAlternatives.decisionRuntime.guardedHumanVerdict,
+      vibe: input.contentAlternatives.reviewContextSignals.vibe,
+      originStory: input.contentAlternatives.reviewContextSignals.originStory,
+      idealFor: input.contentAlternatives.reviewContextSignals.idealFor,
+      guardedAvoidIf: input.contentAlternatives.decisionRuntime.guardedAvoidIf,
+      powerTip: input.contentAlternatives.reviewContextSignals.powerTip,
+      delighters: input.contentAlternatives.reviewContextSignals.delighters,
+      frustrations: input.contentAlternatives.reviewContextSignals.frustrations,
+      displayCategorySpecificData: input.contentAlternatives.displayCategorySpecificData,
+      vipSpecifics: input.contentAlternatives.vipSpecifics,
+      categoryName: input.contentAlternatives.toolCategoryRef?.name || null,
+      specsVerifiedLabel: input.contentAlternatives.reviewSignalsView.specsVerifiedLabel,
+      pricingCheckedLabel: input.contentAlternatives.evidenceRuntime.pricingCheckedLabel,
+      hasOfficialPricingSource: Boolean(
+        input.contentAlternatives.evidenceRuntime.officialPricingSource
+      ),
+      pricingEvidenceCount: input.contentAlternatives.evidenceRuntime.pricingEvidenceLinks.length,
+      hasSecurity: input.contentAlternatives.sectionFlags.hasSecurity,
+      hasPortability: input.contentAlternatives.sectionFlags.hasPortability,
+      hasParentTool: Boolean(input.contentAlternatives.parentTool),
+      tool: {
+        name: input.contentAlternatives.tool.name,
+        website: input.contentAlternatives.tool.website,
+        long_description: input.contentAlternatives.tool.long_description,
+        affiliate_offers: input.contentAlternatives.tool.affiliate_offers,
       },
-    });
+    })
+  );
   const {
     lensHrefs,
     focusSwitchOptions,

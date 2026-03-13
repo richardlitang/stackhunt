@@ -300,6 +300,7 @@ Notes:
 - 2026-03-13 progress: removed `chrome-content-decision-context`, `chrome-lens-decision-context`, and `content-alternatives-decision-context`, and wired `buildToolPageChromeRouteStateFromDecisionContext(...)` directly to route-context builders.
 - 2026-03-13 progress: removed `review-evidence-decision-context` and wired `buildToolPageDataPrepRouteState(...)` directly to `buildToolPageReviewEvidenceStateFromRouteContext(...)`.
 - 2026-03-13 progress: removed `runtime-view-bundle-context` and `navigation-media-state`, and wired `buildToolPageRuntimeNavigationRouteState(...)` directly to runtime-assembly, navigation-state, and CTA-media builders.
+- 2026-03-13 progress: removed `chrome-lens-state` and `content-alternatives-state`, and wired `buildToolPageChromeRouteStateFromDecisionContext(...)` directly to lens/chrome plus alternatives/content canonical builders.
 
 ### Phase 3: Page compiler rebuild
 
