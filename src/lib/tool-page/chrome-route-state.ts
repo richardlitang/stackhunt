@@ -88,7 +88,7 @@ function buildToolPageChromeStateInputFromRouteData(
   });
 }
 
-interface BuildToolPageAlternativesPricingStateInputFromRouteContextInput {
+interface BuildToolPageAlternativesPricingStateInputFromRouteDataInput {
   activeReviewLens: Parameters<
     typeof buildToolPageAlternativesPricingStateInputFromRoute
   >[0]['activeReviewLens'];
@@ -119,8 +119,8 @@ interface BuildToolPageAlternativesPricingStateInputFromRouteContextInput {
   };
 }
 
-function buildToolPageAlternativesPricingStateInputFromRouteContext(
-  input: BuildToolPageAlternativesPricingStateInputFromRouteContextInput
+function buildToolPageAlternativesPricingStateInputFromRouteData(
+  input: BuildToolPageAlternativesPricingStateInputFromRouteDataInput
 ): Parameters<typeof buildToolPageAlternativesPricingState>[0] {
   return buildToolPageAlternativesPricingStateInputFromRoute({
     activeReviewLens: input.activeReviewLens,
@@ -352,32 +352,32 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
   };
   contentAlternatives: {
     activeReviewLens: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      typeof buildToolPageAlternativesPricingStateInputFromRouteData
     >[0]['activeReviewLens'];
     alternativesLabel: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      typeof buildToolPageAlternativesPricingStateInputFromRouteData
     >[0]['alternativesLabel'];
     toolCategoryRef: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      typeof buildToolPageAlternativesPricingStateInputFromRouteData
     >[0]['category'];
     orderedAlternatives: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      typeof buildToolPageAlternativesPricingStateInputFromRouteData
     >[0]['orderedAlternatives'];
     comparableAlternatives: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      typeof buildToolPageAlternativesPricingStateInputFromRouteData
     >[0]['comparableAlternatives'];
     canCompareByAlternativeSlug: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+      typeof buildToolPageAlternativesPricingStateInputFromRouteData
     >[0]['canCompareByAlternativeSlug'];
     tool: {
       name: Parameters<
         typeof buildToolPageContentSectionsStateInputFromRouteContext
       >[0]['tool']['name'];
       slug: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+        typeof buildToolPageAlternativesPricingStateInputFromRouteData
       >[0]['tool']['slug'];
       specs: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+        typeof buildToolPageAlternativesPricingStateInputFromRouteData
       >[0]['tool']['specs'];
       website: Parameters<
         typeof buildToolPageContentSectionsStateInputFromRouteContext
@@ -469,16 +469,16 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
     };
     reviewContextSignals: {
       budgetCostDrivers: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+        typeof buildToolPageAlternativesPricingStateInputFromRouteData
       >[0]['budgetCostDrivers'];
       budgetOneTimeFees: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+        typeof buildToolPageAlternativesPricingStateInputFromRouteData
       >[0]['budgetOneTimeFees'];
       budgetCommitmentTerms: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+        typeof buildToolPageAlternativesPricingStateInputFromRouteData
       >[0]['budgetCommitmentTerms'];
       budgetRoiThreshold: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteContext
+        typeof buildToolPageAlternativesPricingStateInputFromRouteData
       >[0]['budgetRoiThreshold'];
       userAdvocate: Parameters<
         typeof buildToolPageContentSectionsStateInputFromRouteContext
@@ -541,7 +541,7 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
     })
   );
   const alternativesPricingState = buildToolPageAlternativesPricingState(
-    buildToolPageAlternativesPricingStateInputFromRouteContext({
+    buildToolPageAlternativesPricingStateInputFromRouteData({
       activeReviewLens: input.contentAlternatives.activeReviewLens,
       budgetCostDrivers: input.contentAlternatives.reviewContextSignals.budgetCostDrivers,
       budgetOneTimeFees: input.contentAlternatives.reviewContextSignals.budgetOneTimeFees,

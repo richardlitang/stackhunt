@@ -318,6 +318,7 @@ Notes:
 - 2026-03-13 progress: updated evidence-signals state regression tests to consume `buildToolPageEvidenceSignalsStateInputFromRoute(...)` after route-context adapter removal.
 - 2026-03-13 progress: updated route call-shape guard fixtures to track `buildToolPageDecisionSectionStateInputFromRoute(...)` naming after route-context adapter removal.
 - 2026-03-13 progress: renamed local chrome-route helper `buildToolPageChromeStateInputFromRouteContext(...)` to `buildToolPageChromeStateInputFromRouteData(...)`.
+- 2026-03-13 progress: renamed local chrome-route helper `buildToolPageAlternativesPricingStateInputFromRouteContext(...)` to `buildToolPageAlternativesPricingStateInputFromRouteData(...)`.
 
 ### Phase 3: Page compiler rebuild
 
