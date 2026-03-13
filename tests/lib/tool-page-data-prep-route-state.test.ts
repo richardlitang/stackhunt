@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 
 const {
   deriveToolPageReviewContextSignalsMock,
-  buildToolPagePrepDecisionStateFromDecisionContextMock,
+  buildToolPagePrepDecisionStateFromRouteContextMock,
   buildToolPageReviewEvidenceStateFromDecisionContextMock,
 } = vi.hoisted(() => ({
   deriveToolPageReviewContextSignalsMock: vi.fn(() => ({
     delighters: ['Fast setup'],
     frustrations: ['Seat caps'],
   })),
-  buildToolPagePrepDecisionStateFromDecisionContextMock: vi.fn(() => ({
+  buildToolPagePrepDecisionStateFromRouteContextMock: vi.fn(() => ({
     prepState: { comparableAlternatives: [] },
     decisionSectionState: {
       decisionRuntime: { hasPricing: false },
@@ -27,9 +27,9 @@ vi.mock('@/lib/tool-page/review-context', () => ({
   deriveToolPageReviewContextSignals: deriveToolPageReviewContextSignalsMock,
 }));
 
-vi.mock('@/lib/tool-page/prep-decision-decision-context', () => ({
-  buildToolPagePrepDecisionStateFromDecisionContext:
-    buildToolPagePrepDecisionStateFromDecisionContextMock,
+vi.mock('@/lib/tool-page/prep-decision-state', () => ({
+  buildToolPagePrepDecisionStateFromRouteContext:
+    buildToolPagePrepDecisionStateFromRouteContextMock,
 }));
 
 vi.mock('@/lib/tool-page/review-evidence-decision-context', () => ({
@@ -83,7 +83,7 @@ describe('tool page data prep route state', () => {
     expect(result.tool.name).toBe('Acme');
     expect(result.websiteHostLabel).toBe('acme.com');
     expect(result.reviewContextSignals.delighters).toEqual(['Fast setup']);
-    expect(buildToolPagePrepDecisionStateFromDecisionContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPagePrepDecisionStateFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageReviewEvidenceStateFromDecisionContextMock).toHaveBeenCalledTimes(1);
   });
 });

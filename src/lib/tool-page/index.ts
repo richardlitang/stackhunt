@@ -140,7 +140,6 @@ export {
   buildToolPagePrepStateFromRoute,
 } from '@/lib/tool-page/prep-state';
 export { buildToolPagePrepDecisionStateFromRouteContext } from '@/lib/tool-page/prep-decision-state';
-export { buildToolPagePrepDecisionStateFromDecisionContext } from '@/lib/tool-page/prep-decision-decision-context';
 export {
   buildToolPagePrepStateInputFromRoute,
   buildToolPagePrepStateInputFromRouteContext,

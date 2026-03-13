@@ -1,4 +1,4 @@
-import { buildToolPagePrepDecisionStateFromDecisionContext } from '@/lib/tool-page/prep-decision-decision-context';
+import { buildToolPagePrepDecisionStateFromRouteContext } from '@/lib/tool-page/prep-decision-state';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 import { buildToolPageReviewEvidenceStateFromDecisionContext } from '@/lib/tool-page/review-evidence-decision-context';
 import type { ToolPageData } from '@/lib/tool-page/data';
@@ -13,7 +13,7 @@ export function buildToolPageDataPrepRouteState(
   input: BuildToolPageDataPrepRouteStateInput
 ): ToolPageData &
   ToolPageData['coreState'] &
-  ReturnType<typeof buildToolPagePrepDecisionStateFromDecisionContext> &
+  ReturnType<typeof buildToolPagePrepDecisionStateFromRouteContext> &
   ReturnType<typeof buildToolPageReviewEvidenceStateFromDecisionContext> & {
     reviewContextSignals: ReturnType<typeof deriveToolPageReviewContextSignals>;
   } {
@@ -47,7 +47,7 @@ export function buildToolPageDataPrepRouteState(
     reviewContext,
   } = coreState;
   const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
-  const { prepState, decisionSectionState } = buildToolPagePrepDecisionStateFromDecisionContext({
+  const { prepState, decisionSectionState } = buildToolPagePrepDecisionStateFromRouteContext({
     prep: {
       reviewSources: reviewContentLists.sources,
       isEligibleEvidenceUrl: input.isEligibleEvidenceUrl,
@@ -67,6 +67,12 @@ export function buildToolPageDataPrepRouteState(
       globalCons: globalCons as any,
       categorySpecificData: (categorySpecificData as Record<string, unknown> | null) || null,
       vipSpecifics: (vipSpecifics as Record<string, unknown> | null) || null,
+      idealFor: reviewContextSignals.idealFor,
+      avoidIf: reviewContextSignals.avoidIf,
+      delighters: reviewContextSignals.delighters,
+      frustrations: reviewContextSignals.frustrations,
+      powerTip: reviewContextSignals.powerTip,
+      humanVerdict: reviewContextSignals.humanVerdict,
       hasParentTool: Boolean(parentTool),
       now: input.now || new Date(),
       orderedAlternativesCount: orderedAlternatives?.length || 0,
