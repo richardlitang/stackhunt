@@ -12,7 +12,7 @@ import {
   toToolPageSpecsRecord,
 } from '@/lib/tool-page/route-normalizers';
 
-interface BuildToolPageChromeStateInputFromRouteContextInput {
+interface BuildToolPageChromeStateInputFromRouteDataInput {
   toolCategory: Parameters<typeof buildToolPageChromeStateInputFromRoute>[0]['toolCategory'];
   hasCollectedSources: Parameters<
     typeof buildToolPageChromeStateInputFromRoute
@@ -62,8 +62,8 @@ interface BuildToolPageChromeStateInputFromRouteContextInput {
   websiteHostLabel: string | null;
 }
 
-function buildToolPageChromeStateInputFromRouteContext(
-  input: BuildToolPageChromeStateInputFromRouteContextInput
+function buildToolPageChromeStateInputFromRouteData(
+  input: BuildToolPageChromeStateInputFromRouteDataInput
 ): Parameters<typeof buildToolPageChromeState>[0] {
   return buildToolPageChromeStateInputFromRoute({
     toolCategory: input.toolCategory,
@@ -299,53 +299,53 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
   chromeLens: {
     lensRuntime: Parameters<typeof buildToolPageLensViewFields>[0];
     activeReviewLens: Parameters<
-      typeof buildToolPageChromeStateInputFromRouteContext
+      typeof buildToolPageChromeStateInputFromRouteData
     >[0]['activeReviewLens'];
     toolCategory: Parameters<
-      typeof buildToolPageChromeStateInputFromRouteContext
+      typeof buildToolPageChromeStateInputFromRouteData
     >[0]['toolCategory'];
-    tool: Parameters<typeof buildToolPageChromeStateInputFromRouteContext>[0]['tool'];
+    tool: Parameters<typeof buildToolPageChromeStateInputFromRouteData>[0]['tool'];
     websiteHostLabel: Parameters<
-      typeof buildToolPageChromeStateInputFromRouteContext
+      typeof buildToolPageChromeStateInputFromRouteData
     >[0]['websiteHostLabel'];
     runtimeViewBundle: {
       trustConfidenceLabel: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['trustConfidenceLabel'];
       pendingVerificationCount: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['pendingVerificationCount'];
       trustStatus: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['trustStatus'];
       lensLabelMap: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['lensLabelMap'];
     };
     evidenceRuntime: {
       hasCollectedSources: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['hasCollectedSources'];
       collectedSourcesTotal: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['collectedSourcesTotal'];
       pricingCheckedLabel: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['pricingCheckedLabel'];
     };
     reviewSignalsView: {
       communityVerifiedLabel: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['communityVerifiedLabel'];
       specsVerifiedLabel: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['specsVerifiedLabel'];
       pricingVerifiedLabel: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteContext
+        typeof buildToolPageChromeStateInputFromRouteData
       >[0]['pricingVerifiedLabel'];
     };
     evaluationDepth: Parameters<
-      typeof buildToolPageChromeStateInputFromRouteContext
+      typeof buildToolPageChromeStateInputFromRouteData
     >[0]['evaluationDepth'];
     qualityState: {
       communityCorroborationCount: number;
@@ -520,7 +520,7 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
 ) {
   const lensViewFields = buildToolPageLensViewFields(input.chromeLens.lensRuntime);
   const toolChromeState = buildToolPageChromeState(
-    buildToolPageChromeStateInputFromRouteContext({
+    buildToolPageChromeStateInputFromRouteData({
       toolCategory: input.chromeLens.toolCategory,
       hasCollectedSources: input.chromeLens.evidenceRuntime.hasCollectedSources,
       evaluationDepth: input.chromeLens.evaluationDepth,
