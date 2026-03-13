@@ -331,6 +331,7 @@ Notes:
 - 2026-03-13 progress: removed `page-assembly-from-route-data-state` indirection by folding its mapping directly into `buildToolPagePageCompilerRouteStateFromPageContext(...)`, and deleted the wrapper-specific regression test.
 - 2026-03-13 progress: reduced `tool/[slug]` frontmatter local surface by binding hero/research-status/freshness fields directly from `pageAssemblyState` and `routeDataState` instead of top-level destructuring aliases.
 - 2026-03-13 progress: further reduced `tool/[slug]` local alias churn by binding CTA/workflow/video/quick-jump fields directly from `pageAssemblyState`.
+- 2026-03-13 progress: reduced remaining pricing/evidence/update-history alias churn in `tool/[slug]` by binding those fields directly from `routeDataState` and `pageAssemblyState`.
 
 ### Phase 3: Page compiler rebuild
 

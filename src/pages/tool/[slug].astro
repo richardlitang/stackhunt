@@ -104,11 +104,6 @@ const {
   showWeTestedIt,
   communityVerifiedLabel,
   hasStrengths,
-  officialPricingSource,
-  pricingEvidenceLinks,
-  showPricingSection,
-  pricingNarrativeLead,
-  pricingNarrativeLabel,
   hasCollectedSources,
   lensRankedHardLimits,
   topLensHardLimit,
@@ -122,10 +117,8 @@ const {
 } = routeDataState;
 const {
   pageSchemas,
-  updateHistoryLabels,
   meta,
   indexPolicy,
-  updateHistoryEntries,
   lensLabelMap,
   sourceAriaLabel,
   lensHrefs,
@@ -139,7 +132,6 @@ const {
   workflowFitHighlights,
   workflowFitCards,
   trustBarProps,
-  pricingInsightsBudgetAnalyst,
   alternativesIntroText,
   compareTeaserLinks,
   alternativesSectionState,
@@ -155,9 +147,6 @@ const {
   specsProps,
   specsSectionState,
   aboutContent,
-  pricingSectionState,
-  pricingEvidenceState,
-  pricingNotice,
   operationalDetailsState,
   decisionUtilityState,
   decisionHardLimitEvidence,
@@ -166,7 +155,6 @@ const {
   sourcesSectionState,
   lowConfidenceSourcesState,
   faqItemsView,
-  updateHistoryState,
 } = pageAssemblyState;
 applyToolPageResponseRouteState({
   response: Astro.response,
@@ -714,7 +702,7 @@ applyToolPageResponseRouteState({
 
         {/* Pricing Plans */}
         {
-          showPricingSection && (
+          routeDataState.showPricingSection && (
             <details
               id="pricing-plans"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -727,8 +715,10 @@ applyToolPageResponseRouteState({
                   <h2 class="text-lg font-semibold text-zinc-100">
                     {tool.name} pricing, how seats work
                   </h2>
-                  {pricingSectionState.checkedLead && (
-                    <p class="mt-1 text-xs text-zinc-500">{pricingSectionState.checkedLead}</p>
+                  {pageAssemblyState.pricingSectionState.checkedLead && (
+                    <p class="mt-1 text-xs text-zinc-500">
+                      {pageAssemblyState.pricingSectionState.checkedLead}
+                    </p>
                   )}
                   {activeReviewLens !== 'general' && activeLensPricingPlanCount !== null && (
                     <p class="mt-1 text-xs text-zinc-500">
@@ -764,9 +754,9 @@ applyToolPageResponseRouteState({
               <div class="mt-4">
                 <PricingInsights
                   variant="compact"
-                  summaryLead={pricingNarrativeLead}
-                  summaryLabel={pricingNarrativeLabel}
-                  budgetAnalyst={pricingInsightsBudgetAnalyst}
+                  summaryLead={routeDataState.pricingNarrativeLead}
+                  summaryLabel={routeDataState.pricingNarrativeLabel}
+                  budgetAnalyst={pageAssemblyState.pricingInsightsBudgetAnalyst}
                   mentalModelItems={decisionUtilityState.pricingMentalModelItems}
                   costModelExamples={pricingScenarioState.examples}
                 />
@@ -791,7 +781,7 @@ applyToolPageResponseRouteState({
                     </p>
                   </div>
                 )}
-                <p class="mb-4 text-xs text-zinc-500">{pricingNotice}</p>
+                <p class="mb-4 text-xs text-zinc-500">{pageAssemblyState.pricingNotice}</p>
                 {hasPricing ? (
                   <>
                     <PricingPlansGrid
@@ -821,17 +811,17 @@ applyToolPageResponseRouteState({
                       We found pricing references, but not enough source-backed plan detail to
                       publish a reliable numeric table yet.
                     </p>
-                    {pricingEvidenceState.hasEvidencePanel && (
+                    {pageAssemblyState.pricingEvidenceState.hasEvidencePanel && (
                       <details class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
                         <summary class="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-400">
                           Pricing source references
                         </summary>
                         <ul class="mt-2 space-y-1 text-xs text-zinc-300">
-                          {officialPricingSource && (
+                          {routeDataState.officialPricingSource && (
                             <li>
                               -{' '}
                               <a
-                                href={officialPricingSource.url}
+                                href={routeDataState.officialPricingSource.url}
                                 target="_blank"
                                 rel="noopener"
                                 aria-label="Open official pricing source"
@@ -844,7 +834,7 @@ applyToolPageResponseRouteState({
                               </a>
                             </li>
                           )}
-                          {pricingEvidenceLinks.map((entry) => (
+                          {routeDataState.pricingEvidenceLinks.map((entry) => (
                             <li>
                               -{' '}
                               <a
@@ -1501,7 +1491,7 @@ applyToolPageResponseRouteState({
     }
 
     {
-      updateHistoryState.hasUpdates && (
+      pageAssemblyState.updateHistoryState.hasUpdates && (
         <details
           id="update-history"
           class="group mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
@@ -1512,8 +1502,8 @@ applyToolPageResponseRouteState({
             <div>
               <h2 class="text-lg font-semibold text-zinc-100">Update History</h2>
               <p class="mt-1 text-sm text-zinc-400">
-                Last update {updateHistoryLabels.lastUpdateLabel} • Last check{' '}
-                {updateHistoryLabels.lastCheckLabel}
+                Last update {pageAssemblyState.updateHistoryLabels.lastUpdateLabel} • Last check{' '}
+                {pageAssemblyState.updateHistoryLabels.lastCheckLabel}
               </p>
             </div>
             <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
@@ -1522,7 +1512,7 @@ applyToolPageResponseRouteState({
             </span>
           </summary>
           <ul class="mt-4 space-y-3 text-sm text-zinc-300">
-            {updateHistoryEntries.map((entry) => (
+            {pageAssemblyState.updateHistoryEntries.map((entry) => (
               <li class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
                 <p class="font-medium text-zinc-100">{entry.date}</p>
                 <p class="mt-1">{entry.what}</p>
