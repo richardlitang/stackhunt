@@ -328,6 +328,7 @@ Notes:
 - 2026-03-13 progress: added `buildToolPagePageCompilerRouteStateFromPageContext(...)` so `tool/[slug]` composes route-data pipeline plus page assembly through one compiler entrypoint call.
 - 2026-03-13 progress: updated rendered tool-page QA template marker detection to recognize `buildToolPagePageCompilerRouteStateFromPageContext(...)` as a valid gate-wired orchestration entrypoint.
 - 2026-03-13 progress: added regression coverage for the page compiler entrypoint in `tests/lib/tool-page-page-compiler-route-state.test.ts`.
+- 2026-03-13 progress: removed `page-assembly-from-route-data-state` indirection by folding its mapping directly into `buildToolPagePageCompilerRouteStateFromPageContext(...)`, and deleted the wrapper-specific regression test.
 
 ### Phase 3: Page compiler rebuild
 

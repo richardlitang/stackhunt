@@ -49,4 +49,4 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 ### `buildToolPagePageCompilerRouteStateFromPageContext`
 
 - `buildToolPageRouteDataPipelineStateFromPageContext(...)`
-- `buildToolPagePageAssemblyStateFromRouteDataContext(...)`
+- `buildToolPagePageAssemblyRouteStateFromRouteData(...)`
