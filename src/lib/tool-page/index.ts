@@ -61,7 +61,6 @@ export { getToolPageData } from '@/lib/tool-page/data';
 export { buildToolPageDataPrepRouteState } from '@/lib/tool-page/data-prep-route-state';
 export { buildToolPageDecisionEvidenceRouteState } from '@/lib/tool-page/decision-evidence-route-state';
 export { buildToolPageDisplayRouteState } from '@/lib/tool-page/display-route-state';
-export { buildToolPageRoutePipelineStateFromDataPrepContext } from '@/lib/tool-page/route-pipeline-state';
 export { buildToolPageRouteDataPipelineStateFromPageContext } from '@/lib/tool-page/route-data-pipeline-state';
 export {
   buildToolPageDecisionSectionState,
