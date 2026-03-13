@@ -48,7 +48,7 @@ import {
   deriveToolPageRequestState,
   applyToolPageVersionBypassCacheHeaders,
   applyToolPageRobotsHeader,
-  buildToolPageRuntimeNavigationStateFromDecisionContext,
+  buildToolPageRuntimeNavigationRouteState,
   buildToolPageChromeRouteStateFromDecisionContext,
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
   buildToolPageDecisionRouteState,
@@ -255,50 +255,34 @@ const {
   category: tool.category,
 });
 const toolMeta = generateToolMeta(tool, tool.review_count);
-const { runtimeViewBundle, navigationState, ctaMediaState } =
-  buildToolPageRuntimeNavigationStateFromDecisionContext({
-    runtime: {
-      pathname: Astro.url.pathname,
-      searchParams: Astro.url.searchParams,
-      activeReviewLens,
-      tool,
-      primaryOffer,
-      faqSchema,
-      toolMeta,
-      canonicalHardLimits,
-      decisionRuntime,
-      sectionFlags,
-      evidenceRuntime,
-      qualityState,
-      reviewSignalsView,
-      presentationGates: {
-        showProceduralVerdict,
-        showProceduralSpecs,
-      },
-      evaluationDepth,
+const { runtimeViewBundle, navigationState, ctaMediaState } = buildToolPageRuntimeNavigationRouteState(
+  {
+    pathname: Astro.url.pathname,
+    searchParams: Astro.url.searchParams,
+    activeReviewLens,
+    tool,
+    primaryOffer,
+    faqSchema,
+    toolMeta,
+    canonicalHardLimits,
+    decisionRuntime,
+    sectionFlags,
+    evidenceRuntime,
+    qualityState,
+    reviewSignalsView,
+    presentationGates: {
+      showProceduralVerdict,
+      showProceduralSpecs,
     },
-    navigation: {
-      decisionRuntime,
-      sectionFlags,
-      presentationGates: {
-        showProceduralVerdict,
-        showProceduralSpecs,
-      },
-      evidenceSignals: {
-        showPricingSection,
-        hasStrengths,
-      },
-      faqItems,
-      reviewArtifactsState,
-      media: {
-        tool,
-        category: toolCategoryRef,
-        knowledgeCard,
-        renderVerdictSafe,
-        activeReviewLens,
-      },
-    },
-  });
+    evaluationDepth,
+    hasStrengths,
+    faqItems,
+    reviewArtifactsState,
+    category: toolCategoryRef,
+    knowledgeCard,
+    renderVerdictSafe,
+  }
+);
 const {
   pageSchemas,
   updateHistoryLabels,
