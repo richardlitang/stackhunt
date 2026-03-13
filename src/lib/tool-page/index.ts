@@ -86,10 +86,7 @@ export {
   buildToolPageEvidenceSignalsState,
   buildToolPageEvidenceSignalsStateFromRoute,
 } from '@/lib/tool-page/evidence-signals-state';
-export {
-  buildToolPageEvidenceSignalsStateInputFromRoute,
-  buildToolPageEvidenceSignalsStateInputFromRouteContext,
-} from '@/lib/tool-page/evidence-signals-route-input';
+export { buildToolPageEvidenceSignalsStateInputFromRoute } from '@/lib/tool-page/evidence-signals-route-input';
 export { buildToolPageEvidenceRuntime } from '@/lib/tool-page/evidence-runtime';
 export { buildToolPageEvidenceRuntimeInput } from '@/lib/tool-page/evidence-runtime-input';
 export {

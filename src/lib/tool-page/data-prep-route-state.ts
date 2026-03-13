@@ -1,4 +1,4 @@
-import { buildToolPageEvidenceSignalsStateInputFromRouteContext } from '@/lib/tool-page/evidence-signals-route-input';
+import { buildToolPageEvidenceSignalsStateInputFromRoute } from '@/lib/tool-page/evidence-signals-route-input';
 import { buildToolPageEvidenceSignalsState } from '@/lib/tool-page/evidence-signals-state';
 import { buildToolPageDecisionSectionStateInputFromRoute } from '@/lib/tool-page/decision-section-route-input';
 import { buildToolPageDecisionSectionState } from '@/lib/tool-page/decision-section-state';
@@ -143,41 +143,54 @@ export function buildToolPageDataPrepRouteState(
     toolName: tool.name,
   });
   const evidenceSignalsState = buildToolPageEvidenceSignalsState(
-    buildToolPageEvidenceSignalsStateInputFromRouteContext({
-      firstReview: firstReview as any,
-      toolLastVerifiedAt: tool.last_verified_at || null,
-      toolPricingVerifiedAt: tool.pricing_verified_at || null,
-      extractionDate: knowledgeCard?.meta?.extraction_date,
-      constraints: constraints as any,
-      isEligibleEvidenceUrl: input.isEligibleEvidenceUrl,
-      isDisallowedConClaim: decisionSectionState.decisionRuntime.isDisallowedConClaim,
-      reviewPros: reviewContentLists.pros as any,
-      reviewCons: reviewContentLists.cons as any,
-      globalPros: Array.isArray(globalPros) ? globalPros : [],
-      globalCons: Array.isArray(globalCons) ? globalCons : [],
-      toEvidenceBullet: prepState.toEvidenceBullet,
-      decisionSnapshotWatchOuts: decisionSectionState.decisionRuntime.decisionSnapshotWatchOuts,
-      decisionTradeoffSummaryInitial:
-        decisionSectionState.decisionRuntime.decisionTradeoffSummaryInitial,
-      hasPricing: decisionSectionState.decisionRuntime.hasPricing,
-      knowledgeCard,
-      sectionPricingStatus: decisionSectionState.qualityState.sectionStatus.pricing || 'hide',
-      budgetCostDrivers: reviewContextSignals.budgetCostDrivers,
-      budgetOneTimeFees: reviewContextSignals.budgetOneTimeFees,
-      budgetCommitmentTerms: reviewContextSignals.budgetCommitmentTerms,
-      budgetRoiThreshold: reviewContextSignals.budgetRoiThreshold,
-      faqItems: decisionSectionState.faqState.faqItems.map((item) => ({
-        question: typeof item.question === 'string' ? item.question : '',
-        answer: typeof item.answer === 'string' ? item.answer : '',
-        answer_source_url:
-          typeof item.answer_source_url === 'string' || item.answer_source_url === null
-            ? item.answer_source_url
+    buildToolPageEvidenceSignalsStateInputFromRoute({
+      reviewSignalsInput: {
+        firstReview: firstReview as any,
+        toolLastVerifiedAt: tool.last_verified_at || null,
+        toolPricingVerifiedAt: tool.pricing_verified_at || null,
+        extractionDate:
+          typeof knowledgeCard?.meta?.extraction_date === 'string'
+            ? knowledgeCard.meta.extraction_date
             : null,
-      })),
-      buildEvidenceBulletV2: prepState.buildEvidenceBulletV2,
-      officialEvidenceLinks: reviewArtifactsState.officialEvidenceLinks,
-      evidenceLinksAll: reviewArtifactsState.evidenceLinksAll,
-      evidenceLinks: reviewArtifactsState.evidenceLinks,
+      },
+      constraintEvidenceInput: {
+        constraints: constraints as any,
+        isEligibleEvidenceUrl: (value: unknown): boolean =>
+          typeof value === 'string' && input.isEligibleEvidenceUrl(value),
+        isDisallowedConClaim: decisionSectionState.decisionRuntime.isDisallowedConClaim,
+      },
+      evidenceRuntimeInput: {
+        reviewPros: reviewContentLists.pros as any,
+        reviewCons: reviewContentLists.cons as any,
+        globalPros: Array.isArray(globalPros) ? globalPros : [],
+        globalCons: Array.isArray(globalCons) ? globalCons : [],
+        toEvidenceBullet: prepState.toEvidenceBullet,
+        isDisallowedConClaim: decisionSectionState.decisionRuntime.isDisallowedConClaim,
+        decisionSnapshotWatchOuts: decisionSectionState.decisionRuntime.decisionSnapshotWatchOuts,
+        decisionTradeoffSummaryInitial:
+          decisionSectionState.decisionRuntime.decisionTradeoffSummaryInitial,
+        officialEvidenceLinks: reviewArtifactsState.officialEvidenceLinks,
+        evidenceLinksAll: reviewArtifactsState.evidenceLinksAll,
+        evidenceLinks: reviewArtifactsState.evidenceLinks,
+        hasPricing: decisionSectionState.decisionRuntime.hasPricing,
+        knowledgeCard,
+        sectionPricingStatus: decisionSectionState.qualityState.sectionStatus.pricing || 'hide',
+        budgetCostDrivers: reviewContextSignals.budgetCostDrivers,
+        budgetOneTimeFees: reviewContextSignals.budgetOneTimeFees,
+        budgetCommitmentTerms: reviewContextSignals.budgetCommitmentTerms,
+        budgetRoiThreshold: reviewContextSignals.budgetRoiThreshold,
+        faqItems: decisionSectionState.faqState.faqItems.map((item) => ({
+          question: typeof item.question === 'string' ? item.question : '',
+          answer: typeof item.answer === 'string' ? item.answer : '',
+          answer_source_url:
+            typeof item.answer_source_url === 'string' || item.answer_source_url === null
+              ? item.answer_source_url
+              : null,
+        })),
+        buildEvidenceBulletV2: prepState.buildEvidenceBulletV2,
+        isEligibleEvidenceUrl: (value: unknown): boolean =>
+          typeof value === 'string' && input.isEligibleEvidenceUrl(value),
+      },
     })
   );
 
