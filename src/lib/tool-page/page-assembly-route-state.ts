@@ -1,6 +1,6 @@
 import { buildToolPageChromeAssemblyRouteState } from '@/lib/tool-page/chrome-assembly-route-state';
-import { buildToolPageDecisionAssemblyRouteState } from '@/lib/tool-page/decision-assembly-route-state';
 import { buildToolPageDecisionNavigationRouteState } from '@/lib/tool-page/decision-navigation-route-state';
+import { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 import { buildToolPageRuntimeRouteState } from '@/lib/tool-page/runtime-route-state';
 import type { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-route-state';
 
@@ -8,7 +8,7 @@ interface BuildToolPagePageAssemblyRouteStateFromRouteContextInput {
   runtime: Parameters<typeof buildToolPageRuntimeRouteState>[0];
   chrome: Parameters<typeof buildToolPageChromeAssemblyRouteState>[0];
   decision: Omit<
-    Parameters<typeof buildToolPageDecisionAssemblyRouteState>[0],
+    Parameters<typeof buildToolPageDecisionRouteState>[0],
     | 'trustBar'
     | 'lensBestFitLine'
     | 'lensWeakFitLine'
@@ -32,7 +32,7 @@ export function buildToolPagePageAssemblyRouteStateFromRouteContext(
   input: BuildToolPagePageAssemblyRouteStateFromRouteContextInput
 ): ReturnType<typeof buildToolPageRuntimeRouteState> &
   ReturnType<typeof buildToolPageChromeAssemblyRouteState> &
-  ReturnType<typeof buildToolPageDecisionAssemblyRouteState> &
+  ReturnType<typeof buildToolPageDecisionRouteState> &
   ReturnType<typeof buildToolPageDecisionNavigationRouteState> &
   Pick<
     BuildToolPagePageAssemblyRouteStateFromRouteContextInput['ctaMediaState'],
@@ -46,7 +46,7 @@ export function buildToolPagePageAssemblyRouteStateFromRouteContext(
   const runtimeState = buildToolPageRuntimeRouteState(input.runtime);
   const chromeState = buildToolPageChromeAssemblyRouteState(input.chrome);
   const firstPricingEvidenceLink = input.decision.pricingEvidenceLinks[0];
-  const decisionState = buildToolPageDecisionAssemblyRouteState({
+  const decisionState = buildToolPageDecisionRouteState({
     tool: input.decision.tool,
     resolvedSubject: input.decision.resolvedSubject,
     activeReviewLens: input.decision.activeReviewLens,

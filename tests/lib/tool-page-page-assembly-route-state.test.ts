@@ -64,8 +64,8 @@ vi.mock('@/lib/tool-page/chrome-assembly-route-state', () => ({
   buildToolPageChromeAssemblyRouteState: buildToolPageChromeAssemblyRouteStateMock,
 }));
 
-vi.mock('@/lib/tool-page/decision-assembly-route-state', () => ({
-  buildToolPageDecisionAssemblyRouteState: buildToolPageDecisionAssemblyRouteStateMock,
+vi.mock('@/lib/tool-page/decision-route-state', () => ({
+  buildToolPageDecisionRouteState: buildToolPageDecisionAssemblyRouteStateMock,
 }));
 
 vi.mock('@/lib/tool-page/decision-navigation-route-state', () => ({
