@@ -15,9 +15,7 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
   activeReviewLens: ReviewLens;
   tool: Parameters<typeof buildToolPageRuntimeViewBundleFromPageContext>[0]['tool'] &
     Parameters<typeof buildToolPageNavigationMediaStateFromRouteContext>[0]['media']['tool'];
-  primaryOffer: Parameters<
-    typeof buildToolPageRuntimeViewBundleFromPageContext
-  >[0]['primaryOffer'];
+  primaryOffer: Parameters<typeof buildToolPageRuntimeViewBundleFromPageContext>[0]['primaryOffer'];
   faqSchema: Parameters<typeof buildToolPageRuntimeViewBundleFromPageContext>[0]['faqSchema'];
   toolMeta: Parameters<typeof buildToolPageRuntimeViewBundleFromPageContext>[0]['toolMeta'];
   canonicalHardLimits: Parameters<
@@ -52,8 +50,12 @@ export function buildToolPageRuntimeNavigationRouteState(
   input: BuildToolPageRuntimeNavigationRouteStateInput
 ): {
   runtimeViewBundle: ReturnType<typeof buildToolPageRuntimeViewBundle>;
-  navigationState: ReturnType<typeof buildToolPageNavigationMediaStateFromRouteContext>['navigationState'];
-  ctaMediaState: ReturnType<typeof buildToolPageNavigationMediaStateFromRouteContext>['ctaMediaState'];
+  navigationState: ReturnType<
+    typeof buildToolPageNavigationMediaStateFromRouteContext
+  >['navigationState'];
+  ctaMediaState: ReturnType<
+    typeof buildToolPageNavigationMediaStateFromRouteContext
+  >['ctaMediaState'];
 } {
   const { runtimeViewBundle } = buildToolPageRuntimeViewBundleFromPageContext({
     pathname: input.pathname,

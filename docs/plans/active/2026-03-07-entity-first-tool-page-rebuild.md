@@ -290,6 +290,11 @@ Notes:
 - 2026-03-13 progress: collapsed decision assembly to a single entrypoint by removing `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)`.
 - 2026-03-13 progress: removed `page-assembly-route-input` and inlined route-data to page-assembly mapping in `page-assembly-from-route-data-state`.
 - 2026-03-13 progress: removed `decision-assembly-route-state` pass-through and wired page assembly directly to `buildToolPageDecisionRouteState(...)`.
+- 2026-03-13 progress: simplified `buildToolPageChromeRouteStateFromDecisionContext(...)` by removing a hand-expanded return annotation and relying on inferred output shape.
+- 2026-03-13 progress: removed `chrome-assembly-route-state` and wired page assembly directly to nested chrome route-context inputs.
+- 2026-03-13 progress: inlined runtime-navigation decision composition into `buildToolPageRuntimeNavigationRouteState(...)`, removing `runtime-navigation-decision-context`.
+- 2026-03-13 progress: removed `navigation-media-decision-context` and mapped runtime-navigation signals directly into `buildToolPageNavigationMediaStateFromRouteContext(...)`.
+- 2026-03-13 progress: removed `runtime-view-bundle-decision-context` and mapped runtime signals directly into `buildToolPageRuntimeViewBundleFromPageContext(...)`.
 
 ### Phase 3: Page compiler rebuild
 
