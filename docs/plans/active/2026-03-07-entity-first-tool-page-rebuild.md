@@ -278,6 +278,7 @@ Notes:
 - 2026-03-13 progress: moved lens/spec/runtime-meta mid-route assembly into `buildToolPageRuntimeMidRouteState(...)`, so `tool/[slug]` no longer manually chains `buildToolPageLensHardLimitRouteState(...)`, `buildToolPageSpecsCategoryRouteState(...)`, and `buildToolPageRuntimeNavigationRouteState(...)`.
 - 2026-03-13 progress: moved runtime/chrome/decision/navigation composition plus CTA extraction into `buildToolPagePageAssemblyRouteStateFromRouteContext(...)`, collapsing the largest remaining mid-frontmatter helper chain in `tool/[slug].astro`.
 - 2026-03-13 progress: moved prep/quality/decision/section/review/evidence display-field projection into `buildToolPageDisplayRouteState(...)`, removing another large route-local destructuring block from `tool/[slug].astro`.
+- 2026-03-13 progress: moved `runtimeNavigation` payload shaping into `buildToolPageRuntimeMidRouteStateFromRouteContext(...)`, so `tool/[slug]` no longer assembles that nested runtime object inline.
 
 ### Phase 3: Page compiler rebuild
 

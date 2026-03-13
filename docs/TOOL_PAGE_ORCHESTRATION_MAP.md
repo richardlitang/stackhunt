@@ -11,9 +11,9 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 92)
 4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 107)
 5. `buildToolPageDisplayRouteState(...)` (frontmatter line 149)
-6. `buildToolPageRuntimeMidRouteState(...)` (frontmatter line 173)
-7. `buildToolPagePageAssemblyRouteStateFromRouteContext(...)` (frontmatter line 271)
-8. `applyToolPageResponseRouteState(...)` (frontmatter line 331)
+6. `buildToolPageRuntimeMidRouteStateFromRouteContext(...)` (frontmatter line 173)
+7. `buildToolPagePageAssemblyRouteStateFromRouteContext(...)` (frontmatter line 269)
+8. `applyToolPageResponseRouteState(...)` (frontmatter line 329)
 
 ## Tool-Page Imports Used by Route
 
@@ -26,7 +26,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `buildToolPageDisplayRouteState`                      | `@/lib/tool-page/display-route-state`           |
 | `buildToolPageRequestRouteState`                      | `@/lib/tool-page/request-response-route-state`  |
 | `applyToolPageResponseRouteState`                     | `@/lib/tool-page/request-response-route-state`  |
-| `buildToolPageRuntimeMidRouteState`                   | `@/lib/tool-page/runtime-mid-route-state`       |
+| `buildToolPageRuntimeMidRouteStateFromRouteContext`   | `@/lib/tool-page/runtime-mid-route-state`       |
 | `buildToolPagePageAssemblyRouteStateFromRouteContext` | `@/lib/tool-page/page-assembly-route-state`     |
 
 ## One-Level Helper Dependencies
@@ -67,8 +67,9 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `applyToolPageVersionBypassCacheHeaders(...)`
 - `applyToolPageRobotsHeader(...)`
 
-### `buildToolPageRuntimeMidRouteState`
+### `buildToolPageRuntimeMidRouteStateFromRouteContext`
 
+- `buildToolPageRuntimeMidRouteState(...)`
 - `buildToolPageLensHardLimitRouteState(...)`
 - `buildToolPageSpecsCategoryRouteState(...)`
 - `buildToolPageRuntimeNavigationRouteState(...)`
