@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageChromeContentStateFromDecisionContext } from '@/lib/tool-page/chrome-content-decision-context';
+import { buildToolPageChromeLensStateFromRouteContext } from '@/lib/tool-page/chrome-lens-state';
+import { buildToolPageContentAlternativesStateFromRouteContext } from '@/lib/tool-page/content-alternatives-state';
 import { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
+import { toToolPageObjectArray } from '@/lib/tool-page/route-normalizers';
 
 describe('tool page chrome route state', () => {
-  it('matches chrome-content composition while exposing flattened route fields', () => {
+  it('matches explicit chrome-lens and content-alternatives route-context wiring', () => {
     const input = {
       chromeLens: {
         lensRuntime: {
@@ -114,16 +116,100 @@ describe('tool page chrome route state', () => {
     };
 
     const routeState = buildToolPageChromeRouteStateFromDecisionContext(input);
-    const base = buildToolPageChromeContentStateFromDecisionContext(input);
+    const expectedChromeLens = buildToolPageChromeLensStateFromRouteContext({
+      lensRuntime: input.chromeLens.lensRuntime as never,
+      chrome: {
+        toolCategory: input.chromeLens.toolCategory,
+        hasCollectedSources: input.chromeLens.evidenceRuntime.hasCollectedSources,
+        evaluationDepth: input.chromeLens.evaluationDepth,
+        collectedSourcesTotal: input.chromeLens.evidenceRuntime.collectedSourcesTotal,
+        trustConfidenceLabel: input.chromeLens.runtimeViewBundle.trustConfidenceLabel,
+        pendingVerificationCount: input.chromeLens.runtimeViewBundle.pendingVerificationCount,
+        communityCorroborationCount: input.chromeLens.qualityState.communityCorroborationCount,
+        communityVerifiedLabel: input.chromeLens.reviewSignalsView.communityVerifiedLabel,
+        specsVerifiedLabel: input.chromeLens.reviewSignalsView.specsVerifiedLabel,
+        pricingCheckedLabel: input.chromeLens.evidenceRuntime.pricingCheckedLabel,
+        pricingVerifiedLabel: input.chromeLens.reviewSignalsView.pricingVerifiedLabel,
+        trustStatus: input.chromeLens.runtimeViewBundle.trustStatus,
+        activeReviewLens: input.chromeLens.activeReviewLens,
+        lensLabelMap: input.chromeLens.runtimeViewBundle.lensLabelMap,
+        tool: input.chromeLens.tool,
+        websiteHostLabel: input.chromeLens.websiteHostLabel,
+      },
+    });
+    const expectedContentAlternatives = buildToolPageContentAlternativesStateFromRouteContext({
+      alternativesPricing: {
+        activeReviewLens: input.contentAlternatives.activeReviewLens,
+        budgetCostDrivers: input.contentAlternatives.reviewContextSignals.budgetCostDrivers,
+        budgetOneTimeFees: input.contentAlternatives.reviewContextSignals.budgetOneTimeFees,
+        budgetCommitmentTerms: input.contentAlternatives.reviewContextSignals.budgetCommitmentTerms,
+        budgetRoiThreshold: input.contentAlternatives.reviewContextSignals.budgetRoiThreshold,
+        alternativesLabel: input.contentAlternatives.alternativesLabel,
+        category: input.contentAlternatives.toolCategoryRef,
+        comparableAlternatives: input.contentAlternatives.comparableAlternatives,
+        orderedAlternatives: input.contentAlternatives.orderedAlternatives,
+        canCompareByAlternativeSlug: input.contentAlternatives.canCompareByAlternativeSlug,
+        tool: {
+          slug: input.contentAlternatives.tool.slug,
+          specs: input.contentAlternatives.tool.specs,
+        },
+      },
+      contentSections: {
+        evidenceLinks: input.contentAlternatives.reviewArtifactsState.evidenceLinks,
+        lowConfidenceEvidenceLinks: input.contentAlternatives.reviewArtifactsState.lowConfidenceEvidenceLinks,
+        effectiveEvidencePros: input.contentAlternatives.evidenceRuntime.effectiveEvidencePros,
+        effectiveEvidenceCons: input.contentAlternatives.evidenceRuntime.effectiveEvidenceCons,
+        userReportedPros: input.contentAlternatives.userReportedPros,
+        userReportedCons: input.contentAlternatives.userReportedCons,
+        laneOutputs: input.contentAlternatives.laneOutputs,
+        knowledgeCard: input.contentAlternatives.knowledgeCard,
+        setupTracks: toToolPageObjectArray(input.contentAlternatives.setupTracks),
+        gettingStartedCtaUrl: input.contentAlternatives.decisionRuntime.setupSignals.gettingStartedCtaUrl,
+        prosConsSourcesCount: input.contentAlternatives.evidenceRuntime.collectedSourcesBySection.pros_cons,
+        communityCorroborationCount: input.contentAlternatives.qualityState.communityCorroborationCount,
+        userSignalClaimsCount: input.contentAlternatives.qualityState.userSignalClaimsCount,
+        evidenceBasis: input.contentAlternatives.reviewArtifactsState.evidenceBasis,
+        hasCommunity: input.contentAlternatives.sectionFlags.hasCommunity,
+        userAdvocate: input.contentAlternatives.reviewContextSignals.userAdvocate,
+        guardedHumanVerdict: input.contentAlternatives.decisionRuntime.guardedHumanVerdict,
+        vibe: input.contentAlternatives.reviewContextSignals.vibe,
+        originStory: input.contentAlternatives.reviewContextSignals.originStory,
+        idealFor: input.contentAlternatives.reviewContextSignals.idealFor,
+        guardedAvoidIf: input.contentAlternatives.decisionRuntime.guardedAvoidIf,
+        powerTip: input.contentAlternatives.reviewContextSignals.powerTip,
+        delighters: input.contentAlternatives.reviewContextSignals.delighters,
+        frustrations: input.contentAlternatives.reviewContextSignals.frustrations,
+        displayCategorySpecificData: input.contentAlternatives.displayCategorySpecificData,
+        vipSpecifics: input.contentAlternatives.vipSpecifics,
+        categoryName: input.contentAlternatives.toolCategoryRef?.name || null,
+        specsVerifiedLabel: input.contentAlternatives.reviewSignalsView.specsVerifiedLabel,
+        pricingCheckedLabel: input.contentAlternatives.evidenceRuntime.pricingCheckedLabel,
+        hasOfficialPricingSource: Boolean(input.contentAlternatives.evidenceRuntime.officialPricingSource),
+        pricingEvidenceCount: input.contentAlternatives.evidenceRuntime.pricingEvidenceLinks.length,
+        hasSecurity: input.contentAlternatives.sectionFlags.hasSecurity,
+        hasPortability: input.contentAlternatives.sectionFlags.hasPortability,
+        hasParentTool: Boolean(input.contentAlternatives.parentTool),
+        tool: {
+          name: input.contentAlternatives.tool.name,
+          website: input.contentAlternatives.tool.website,
+          long_description: input.contentAlternatives.tool.long_description,
+          affiliate_offers: input.contentAlternatives.tool.affiliate_offers,
+        },
+      },
+    });
 
-    expect(routeState.lensViewFields).toEqual(base.lensViewFields);
-    expect(routeState.toolChromeState).toEqual(base.toolChromeState);
-    expect(routeState.alternativesPricingState).toEqual(base.alternativesPricingState);
-    expect(routeState.contentSectionsState).toEqual(base.contentSectionsState);
-    expect(routeState.reviewInProgressBannerText).toEqual(
-      base.toolChromeState.reviewInProgressBannerText
+    expect(routeState.lensViewFields).toEqual(expectedChromeLens.lensViewFields);
+    expect(routeState.toolChromeState).toEqual(expectedChromeLens.toolChromeState);
+    expect(routeState.alternativesPricingState).toEqual(
+      expectedContentAlternatives.alternativesPricingState
     );
-    expect(routeState.compareTeaserLinks).toEqual(base.alternativesPricingState.compareTeaserLinks);
-    expect(routeState.prosConsView).toEqual(base.contentSectionsState.prosConsView);
+    expect(routeState.contentSectionsState).toEqual(expectedContentAlternatives.contentSectionsState);
+    expect(routeState.reviewInProgressBannerText).toEqual(
+      expectedChromeLens.toolChromeState.reviewInProgressBannerText
+    );
+    expect(routeState.compareTeaserLinks).toEqual(
+      expectedContentAlternatives.alternativesPricingState.compareTeaserLinks
+    );
+    expect(routeState.prosConsView).toEqual(expectedContentAlternatives.contentSectionsState.prosConsView);
   });
 });

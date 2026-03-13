@@ -57,7 +57,9 @@ export function buildToolPagePageAssemblyStateFromRouteDataContext(
         comparableAlternatives: routeDataState.comparableAlternatives,
         canCompareByAlternativeSlug: routeDataState.canCompareByAlternativeSlug,
         tool: routeDataState.tool,
-        knowledgeCard: routeDataState.knowledgeCard,
+        knowledgeCard: routeDataState.knowledgeCard as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['chrome']['contentAlternatives']['knowledgeCard'],
         parentTool: routeDataState.parentTool,
         setupTracks: routeDataState.setupTracks,
         displayCategorySpecificData: routeDataState.displayCategorySpecificData || null,

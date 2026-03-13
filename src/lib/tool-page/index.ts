@@ -39,10 +39,7 @@ export {
   buildToolPageContentSectionsStateFromRoute,
 } from '@/lib/tool-page/content-sections-state';
 export { buildToolPageContentAlternativesStateFromRouteContext } from '@/lib/tool-page/content-alternatives-state';
-export { buildToolPageContentAlternativesStateFromDecisionContext } from '@/lib/tool-page/content-alternatives-decision-context';
-export { buildToolPageChromeLensStateFromDecisionContext } from '@/lib/tool-page/chrome-lens-decision-context';
 export { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
-export { buildToolPageChromeContentStateFromDecisionContext } from '@/lib/tool-page/chrome-content-decision-context';
 export {
   buildToolPageContentSectionsStateInputFromRoute,
   buildToolPageContentSectionsStateInputFromRouteContext,
