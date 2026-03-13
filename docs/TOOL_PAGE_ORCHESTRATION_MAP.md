@@ -6,28 +6,24 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `buildToolPageRequestRouteState(...)` (frontmatter line 59)
-2. `getToolPageData(...)` (frontmatter line 64)
-3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 92)
-4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 107)
-5. `buildToolPageDisplayRouteState(...)` (frontmatter line 149)
-6. `buildToolPageRuntimeMidRouteStateFromRouteContext(...)` (frontmatter line 173)
-7. `buildToolPagePageAssemblyRouteStateFromPageContext(...)` (frontmatter line 269)
-8. `applyToolPageResponseRouteState(...)` (frontmatter line 307)
+1. `buildToolPageRequestRouteState(...)` (frontmatter line 57)
+2. `getToolPageData(...)` (frontmatter line 62)
+3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 90)
+4. `buildToolPageRoutePipelineStateFromDataPrepContext(...)` (frontmatter line 149)
+5. `buildToolPagePageAssemblyRouteStateFromPageContext(...)` (frontmatter line 231)
+6. `applyToolPageResponseRouteState(...)` (frontmatter line 269)
 
 ## Tool-Page Imports Used by Route
 
-| Symbol                                               | Module                                          |
-| ---------------------------------------------------- | ----------------------------------------------- |
-| `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing-link-text`             |
-| `getToolPageData`                                    | `@/lib/tool-page/data`                          |
-| `buildToolPageDataPrepRouteState`                    | `@/lib/tool-page/data-prep-route-state`         |
-| `buildToolPageDecisionEvidenceRouteState`            | `@/lib/tool-page/decision-evidence-route-state` |
-| `buildToolPageDisplayRouteState`                     | `@/lib/tool-page/display-route-state`           |
-| `buildToolPageRequestRouteState`                     | `@/lib/tool-page/request-response-route-state`  |
-| `applyToolPageResponseRouteState`                    | `@/lib/tool-page/request-response-route-state`  |
-| `buildToolPageRuntimeMidRouteStateFromRouteContext`  | `@/lib/tool-page/runtime-mid-route-state`       |
-| `buildToolPagePageAssemblyRouteStateFromPageContext` | `@/lib/tool-page/page-assembly-route-context`   |
+| Symbol                                               | Module                                         |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing-link-text`            |
+| `getToolPageData`                                    | `@/lib/tool-page/data`                         |
+| `buildToolPageDataPrepRouteState`                    | `@/lib/tool-page/data-prep-route-state`        |
+| `buildToolPageRequestRouteState`                     | `@/lib/tool-page/request-response-route-state` |
+| `applyToolPageResponseRouteState`                    | `@/lib/tool-page/request-response-route-state` |
+| `buildToolPageRoutePipelineStateFromDataPrepContext` | `@/lib/tool-page/route-pipeline-state`         |
+| `buildToolPagePageAssemblyRouteStateFromPageContext` | `@/lib/tool-page/page-assembly-route-context`  |
 
 ## One-Level Helper Dependencies
 
@@ -45,14 +41,6 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `deriveToolPageReviewContextSignals(...)`
 - `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)`
 
-### `buildToolPageDecisionEvidenceRouteState`
-
-- no nested `ToolPage*` helper calls detected
-
-### `buildToolPageDisplayRouteState`
-
-- no nested `ToolPage*` helper calls detected
-
 ### `buildToolPageRequestRouteState`
 
 - `deriveToolPageRequestState(...)`
@@ -67,12 +55,11 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `applyToolPageVersionBypassCacheHeaders(...)`
 - `applyToolPageRobotsHeader(...)`
 
-### `buildToolPageRuntimeMidRouteStateFromRouteContext`
+### `buildToolPageRoutePipelineStateFromDataPrepContext`
 
-- `buildToolPageRuntimeMidRouteState(...)`
-- `buildToolPageLensHardLimitRouteState(...)`
-- `buildToolPageSpecsCategoryRouteState(...)`
-- `buildToolPageRuntimeNavigationRouteState(...)`
+- `buildToolPageDecisionEvidenceRouteState(...)`
+- `buildToolPageDisplayRouteState(...)`
+- `buildToolPageRuntimeMidRouteStateFromRouteContext(...)`
 
 ### `buildToolPagePageAssemblyRouteStateFromPageContext`
 
