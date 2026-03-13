@@ -20,9 +20,15 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
   activeReviewLens: ReviewLens;
   tool: Parameters<typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext>[0]['tool'] &
     Parameters<typeof buildToolPageCtaMediaStateInputFromRouteContext>[0]['tool'];
-  primaryOffer: Parameters<typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext>[0]['primaryOffer'];
-  faqSchema: Parameters<typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext>[0]['faqSchema'];
-  toolMeta: Parameters<typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext>[0]['toolMeta'];
+  primaryOffer: Parameters<
+    typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext
+  >[0]['primaryOffer'];
+  faqSchema: Parameters<
+    typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext
+  >[0]['faqSchema'];
+  toolMeta: Parameters<
+    typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext
+  >[0]['toolMeta'];
   canonicalHardLimits: Parameters<
     typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext
   >[0]['canonicalHardLimits'];
@@ -42,9 +48,7 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
     ReturnType<typeof buildToolPageReviewArtifactsState>,
     'evidenceBasis' | 'lowConfidenceEvidenceLinks'
   >;
-  category: Parameters<
-    typeof buildToolPageCtaMediaStateInputFromRouteContext
-  >[0]['category'];
+  category: Parameters<typeof buildToolPageCtaMediaStateInputFromRouteContext>[0]['category'];
   knowledgeCard: Parameters<
     typeof buildToolPageCtaMediaStateInputFromRouteContext
   >[0]['knowledgeCard'];
