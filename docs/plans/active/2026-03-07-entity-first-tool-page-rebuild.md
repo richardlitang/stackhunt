@@ -282,6 +282,7 @@ Notes:
 - 2026-03-13 progress: moved page-assembly input shaping into `buildToolPagePageAssemblyRouteStateInputFromRouteContext(...)`, removing the remaining large `runtime/chrome/decision/navigation` object literal from `tool/[slug].astro`.
 - 2026-03-13 progress: added `buildToolPagePageAssemblyRouteStateFromPageContext(...)` to compose page-assembly input + state helpers in one route call and remove nested helper composition from `tool/[slug].astro`.
 - 2026-03-13 progress: added `buildToolPageRoutePipelineStateFromDataPrepContext(...)` to compose decision-evidence, display projection, and runtime-mid assembly in one route call.
+- 2026-03-13 progress: added `buildToolPageRouteDataPipelineStateFromPageContext(...)` so `tool/[slug]` now calls one helper for data-prep + pipeline composition.
 
 ### Phase 3: Page compiler rebuild
 

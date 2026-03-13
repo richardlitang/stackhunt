@@ -6,12 +6,11 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `buildToolPageRequestRouteState(...)` (frontmatter line 57)
-2. `getToolPageData(...)` (frontmatter line 62)
-3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 90)
-4. `buildToolPageRoutePipelineStateFromDataPrepContext(...)` (frontmatter line 149)
-5. `buildToolPagePageAssemblyRouteStateFromPageContext(...)` (frontmatter line 231)
-6. `applyToolPageResponseRouteState(...)` (frontmatter line 269)
+1. `buildToolPageRequestRouteState(...)` (frontmatter line 56)
+2. `getToolPageData(...)` (frontmatter line 61)
+3. `buildToolPageRouteDataPipelineStateFromPageContext(...)` (frontmatter line 139)
+4. `buildToolPagePageAssemblyRouteStateFromPageContext(...)` (frontmatter line 214)
+5. `applyToolPageResponseRouteState(...)` (frontmatter line 252)
 
 ## Tool-Page Imports Used by Route
 
@@ -19,10 +18,9 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | ---------------------------------------------------- | ---------------------------------------------- |
 | `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing-link-text`            |
 | `getToolPageData`                                    | `@/lib/tool-page/data`                         |
-| `buildToolPageDataPrepRouteState`                    | `@/lib/tool-page/data-prep-route-state`        |
 | `buildToolPageRequestRouteState`                     | `@/lib/tool-page/request-response-route-state` |
 | `applyToolPageResponseRouteState`                    | `@/lib/tool-page/request-response-route-state` |
-| `buildToolPageRoutePipelineStateFromDataPrepContext` | `@/lib/tool-page/route-pipeline-state`         |
+| `buildToolPageRouteDataPipelineStateFromPageContext` | `@/lib/tool-page/route-data-pipeline-state`    |
 | `buildToolPagePageAssemblyRouteStateFromPageContext` | `@/lib/tool-page/page-assembly-route-context`  |
 
 ## One-Level Helper Dependencies
@@ -35,11 +33,6 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 - `deriveToolPageReviewContentLists(...)`
 - `deriveToolPageCoreState(...)`
-
-### `buildToolPageDataPrepRouteState`
-
-- `deriveToolPageReviewContextSignals(...)`
-- `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)`
 
 ### `buildToolPageRequestRouteState`
 
@@ -55,11 +48,10 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `applyToolPageVersionBypassCacheHeaders(...)`
 - `applyToolPageRobotsHeader(...)`
 
-### `buildToolPageRoutePipelineStateFromDataPrepContext`
+### `buildToolPageRouteDataPipelineStateFromPageContext`
 
-- `buildToolPageDecisionEvidenceRouteState(...)`
-- `buildToolPageDisplayRouteState(...)`
-- `buildToolPageRuntimeMidRouteStateFromRouteContext(...)`
+- `buildToolPageDataPrepRouteState(...)`
+- `buildToolPageRoutePipelineStateFromDataPrepContext(...)`
 
 ### `buildToolPagePageAssemblyRouteStateFromPageContext`
 

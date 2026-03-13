@@ -42,11 +42,10 @@ import { simpleMarkdown } from '@/lib/utils';
 import {
   buildToolPagePricingLinkText,
   getToolPageData,
-  buildToolPageDataPrepRouteState,
   isEligibleEvidenceUrl,
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
-  buildToolPageRoutePipelineStateFromDataPrepContext,
+  buildToolPageRouteDataPipelineStateFromPageContext,
   buildToolPagePageAssemblyRouteStateFromPageContext,
 } from '@/lib/tool-page';
 
@@ -82,16 +81,7 @@ const {
   vipSpecifics,
   userReportedPros,
   userReportedCons,
-  prepState,
   reviewContextSignals,
-  decisionSectionState,
-  reviewArtifactsState: decisionReviewArtifactsState,
-  evidenceSignalsState,
-} = buildToolPageDataPrepRouteState({
-  toolPageData,
-  isEligibleEvidenceUrl,
-});
-const {
   qualityState,
   pricingTypeLabel,
   decisionRuntime,
@@ -146,17 +136,10 @@ const {
   runtimeViewBundle,
   navigationState,
   ctaMediaState,
-} = buildToolPageRoutePipelineStateFromDataPrepContext({
-  decisionSectionState,
-  decisionReviewArtifactsState,
-  evidenceSignalsState,
-  prepState,
+} = buildToolPageRouteDataPipelineStateFromPageContext({
+  toolPageData,
+  isEligibleEvidenceUrl,
   activeReviewLens,
-  tool,
-  primaryOffer,
-  knowledgeCard,
-  userReportedPros,
-  userReportedCons,
   pathname: Astro.url.pathname,
   searchParams: Astro.url.searchParams,
 });
