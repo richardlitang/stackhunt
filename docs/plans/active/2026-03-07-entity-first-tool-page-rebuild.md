@@ -306,6 +306,7 @@ Notes:
 - 2026-03-13 progress: removed `buildToolPageRuntimeAssemblyInputBundleFromRouteContext(...)` and wired page-context runtime assembly directly to `buildToolPageRuntimeAssemblyInputBundleFromRoute(...)`.
 - 2026-03-13 progress: removed `buildToolPageReviewArtifactsStateFromRouteContext(...)` and wired data prep directly to `buildToolPageReviewArtifactsStateFromRoute(...)`.
 - 2026-03-13 progress: removed `buildToolPagePrepStateInputFromRouteContext(...)` and wired data prep directly to `buildToolPagePrepStateInputFromRoute(...)`.
+- 2026-03-13 progress: removed `buildToolPageDecisionSectionStateInputFromRouteContext(...)` and wired data prep directly to `buildToolPageDecisionSectionStateInputFromRoute(...)`.
 
 ### Phase 3: Page compiler rebuild
 

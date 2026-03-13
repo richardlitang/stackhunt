@@ -1,6 +1,6 @@
 import { buildToolPageEvidenceSignalsStateInputFromRouteContext } from '@/lib/tool-page/evidence-signals-route-input';
 import { buildToolPageEvidenceSignalsState } from '@/lib/tool-page/evidence-signals-state';
-import { buildToolPageDecisionSectionStateInputFromRouteContext } from '@/lib/tool-page/decision-section-route-input';
+import { buildToolPageDecisionSectionStateInputFromRoute } from '@/lib/tool-page/decision-section-route-input';
 import { buildToolPageDecisionSectionState } from '@/lib/tool-page/decision-section-state';
 import { buildToolPagePrepStateInputFromRoute } from '@/lib/tool-page/prep-input';
 import { buildToolPagePrepState } from '@/lib/tool-page/prep-state';
@@ -12,6 +12,12 @@ interface BuildToolPageDataPrepRouteStateInput {
   toolPageData: ToolPageData;
   isEligibleEvidenceUrl: (url: unknown) => boolean;
   now?: Date;
+}
+
+function readToolPageStringField(value: unknown, key: string): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === 'string' ? field : null;
 }
 
 export function buildToolPageDataPrepRouteState(
@@ -67,34 +73,68 @@ export function buildToolPageDataPrepRouteState(
     })
   );
   const decisionSectionState = buildToolPageDecisionSectionState(
-    buildToolPageDecisionSectionStateInputFromRouteContext({
-      tool,
-      firstReview: firstReview as any,
-      reviewSelection,
-      canonicalFacts: canonicalFacts as any,
-      resolvedSubject,
-      subjectSelectionSuppressed,
-      subjectSelectionReason,
-      laneOutputs,
-      knowledgeCard: (knowledgeCard as Record<string, unknown> | null) || null,
-      setupTracks: setupTracks as any,
-      reviewContentLists: reviewContentLists as any,
-      audiences: tags.audiences,
-      reviewContextSignals,
-      globalCons: globalCons as any,
-      hasEligibleNegativeEvidence: prepState.hasEligibleNegativeEvidence,
-      categorySpecificData: (categorySpecificData as Record<string, unknown> | null) || null,
-      vipSpecifics: (vipSpecifics as Record<string, unknown> | null) || null,
-      eligibleSignalEvidenceCount: prepState.eligibleSignalEvidenceCount,
-      idealFor: reviewContextSignals.idealFor,
-      avoidIf: reviewContextSignals.avoidIf,
-      delighters: reviewContextSignals.delighters,
-      frustrations: reviewContextSignals.frustrations,
-      powerTip: reviewContextSignals.powerTip,
-      humanVerdict: reviewContextSignals.humanVerdict,
-      hasParentTool: Boolean(parentTool),
-      now: input.now || new Date(),
-      orderedAlternativesCount: orderedAlternatives?.length || 0,
+    buildToolPageDecisionSectionStateInputFromRoute({
+      qualityStateInput: {
+        tool,
+        firstReview: firstReview as any,
+        reviewSelection,
+        canonicalFacts: canonicalFacts as any,
+        resolvedSubject,
+        subjectSelectionSuppressed,
+        subjectSelectionReason,
+        laneOutputs,
+      },
+      faqStateInput: (knowledgeCard as Record<string, unknown> | null) || null,
+      displaySignalsInput: {
+        toolPricingType: tool.pricing_type,
+        reviewSummaryMarkdown: (firstReview as any)?.summary_markdown || null,
+        toolVerdict: tool.verdict || null,
+        humanVerdict: reviewContextSignals.humanVerdict,
+      },
+      decisionRuntimeInput: {
+        tool: {
+          name: tool.name,
+          short_description: tool.short_description,
+          long_description: tool.long_description,
+          pricing_type: tool.pricing_type,
+          verdict: tool.verdict,
+          website: tool.website,
+          category: { slug: tool.category?.slug || null },
+        },
+        knowledgeCard: (knowledgeCard as Record<string, unknown> | null) || null,
+        setupTracks: setupTracks as any,
+        firstReviewSummaryMarkdown: (firstReview as any)?.summary_markdown || null,
+        reviewPros: reviewContentLists.pros,
+        reviewCons: reviewContentLists.cons,
+        audiences: tags.audiences,
+        reviewContextSignals,
+        globalCons: globalCons as any,
+        hasEligibleNegativeEvidence: prepState.hasEligibleNegativeEvidence,
+      },
+      sectionRuntimeInput: {
+        knowledgeCard: (knowledgeCard as Record<string, unknown> | null) || null,
+        categorySpecificData: (categorySpecificData as Record<string, unknown> | null) || null,
+        vipSpecifics: (vipSpecifics as Record<string, unknown> | null) || null,
+        orderedAlternativesCount: orderedAlternatives?.length || 0,
+        eligibleSignalEvidenceCount: prepState.eligibleSignalEvidenceCount,
+        idealFor: reviewContextSignals.idealFor,
+        avoidIf: reviewContextSignals.avoidIf,
+        delighters: reviewContextSignals.delighters,
+        frustrations: reviewContextSignals.frustrations,
+        powerTip: reviewContextSignals.powerTip,
+        humanVerdict: reviewContextSignals.humanVerdict,
+        firstReviewUpdatedAt: readToolPageStringField(firstReview, 'updated_at'),
+        firstReviewCreatedAt: readToolPageStringField(firstReview, 'created_at'),
+        toolLastVerifiedAt: readToolPageStringField(tool, 'last_verified_at'),
+        toolPricingVerifiedAt: readToolPageStringField(tool, 'pricing_verified_at'),
+        toolUpdatedAt: readToolPageStringField(tool, 'updated_at'),
+        hasParentTool: Boolean(parentTool),
+        hasSupportData: Boolean(knowledgeCard?.support),
+        now: input.now || new Date(),
+      },
+      faqSchemaInput: {
+        tool,
+      },
     })
   );
   const reviewArtifactsState = buildToolPageReviewArtifactsStateFromRoute({

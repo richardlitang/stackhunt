@@ -59,10 +59,7 @@ export {
   buildToolPageDecisionSectionState,
   buildToolPageDecisionSectionStateFromRoute,
 } from '@/lib/tool-page/decision-section-state';
-export {
-  buildToolPageDecisionSectionStateInputFromRoute,
-  buildToolPageDecisionSectionStateInputFromRouteContext,
-} from '@/lib/tool-page/decision-section-route-input';
+export { buildToolPageDecisionSectionStateInputFromRoute } from '@/lib/tool-page/decision-section-route-input';
 export { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';
 export { buildToolPageDecisionRuntime } from '@/lib/tool-page/decision-runtime';
 export { buildToolPageDecisionRuntimeInput } from '@/lib/tool-page/decision-runtime-input';

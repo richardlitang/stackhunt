@@ -4,7 +4,7 @@ const {
   deriveToolPageReviewContextSignalsMock,
   buildToolPagePrepStateInputFromRouteMock,
   buildToolPagePrepStateMock,
-  buildToolPageDecisionSectionStateInputFromRouteContextMock,
+  buildToolPageDecisionSectionStateInputFromRouteMock,
   buildToolPageDecisionSectionStateMock,
   buildToolPageReviewArtifactsStateFromRouteMock,
   buildToolPageEvidenceSignalsStateInputFromRouteContextMock,
@@ -20,7 +20,7 @@ const {
     hasEligibleNegativeEvidence: false,
     eligibleSignalEvidenceCount: 0,
   })),
-  buildToolPageDecisionSectionStateInputFromRouteContextMock: vi.fn(() => ({})),
+  buildToolPageDecisionSectionStateInputFromRouteMock: vi.fn(() => ({})),
   buildToolPageDecisionSectionStateMock: vi.fn(() => ({
     decisionRuntime: { hasPricing: false, decisionSnapshotWatchOuts: [] },
     qualityState: { sectionStatus: { pricing: 'hide' } },
@@ -52,8 +52,8 @@ vi.mock('@/lib/tool-page/prep-state', () => ({
 }));
 
 vi.mock('@/lib/tool-page/decision-section-route-input', () => ({
-  buildToolPageDecisionSectionStateInputFromRouteContext:
-    buildToolPageDecisionSectionStateInputFromRouteContextMock,
+  buildToolPageDecisionSectionStateInputFromRoute:
+    buildToolPageDecisionSectionStateInputFromRouteMock,
 }));
 
 vi.mock('@/lib/tool-page/decision-section-state', () => ({
@@ -121,7 +121,7 @@ describe('tool page data prep route state', () => {
     expect(result.reviewContextSignals.delighters).toEqual(['Fast setup']);
     expect(buildToolPagePrepStateInputFromRouteMock).toHaveBeenCalledTimes(1);
     expect(buildToolPagePrepStateMock).toHaveBeenCalledTimes(1);
-    expect(buildToolPageDecisionSectionStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageDecisionSectionStateInputFromRouteMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageDecisionSectionStateMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageReviewArtifactsStateFromRouteMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageEvidenceSignalsStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
