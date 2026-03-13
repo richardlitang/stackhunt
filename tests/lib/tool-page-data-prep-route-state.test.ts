@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 const {
   deriveToolPageReviewContextSignalsMock,
   buildToolPagePrepDecisionStateFromRouteContextMock,
-  buildToolPageReviewEvidenceStateFromRouteContextMock,
+  buildToolPageReviewArtifactsStateFromRouteContextMock,
+  buildToolPageEvidenceSignalsStateInputFromRouteContextMock,
+  buildToolPageEvidenceSignalsStateMock,
 } = vi.hoisted(() => ({
   deriveToolPageReviewContextSignalsMock: vi.fn(() => ({
     delighters: ['Fast setup'],
@@ -17,9 +19,16 @@ const {
       faqState: { faqItems: [] },
     },
   })),
-  buildToolPageReviewEvidenceStateFromRouteContextMock: vi.fn(() => ({
-    reviewArtifactsState: { evidenceBasis: [] },
-    evidenceSignalsState: { reviewSignalsView: {}, evidenceRuntime: {} },
+  buildToolPageReviewArtifactsStateFromRouteContextMock: vi.fn(() => ({
+    evidenceBasis: [],
+    officialEvidenceLinks: [],
+    evidenceLinksAll: [],
+    evidenceLinks: [],
+  })),
+  buildToolPageEvidenceSignalsStateInputFromRouteContextMock: vi.fn(() => ({})),
+  buildToolPageEvidenceSignalsStateMock: vi.fn(() => ({
+    reviewSignalsView: {},
+    evidenceRuntime: {},
   })),
 }));
 
@@ -32,9 +41,18 @@ vi.mock('@/lib/tool-page/prep-decision-state', () => ({
     buildToolPagePrepDecisionStateFromRouteContextMock,
 }));
 
-vi.mock('@/lib/tool-page/review-evidence-state', () => ({
-  buildToolPageReviewEvidenceStateFromRouteContext:
-    buildToolPageReviewEvidenceStateFromRouteContextMock,
+vi.mock('@/lib/tool-page/review-artifacts-state', () => ({
+  buildToolPageReviewArtifactsStateFromRouteContext:
+    buildToolPageReviewArtifactsStateFromRouteContextMock,
+}));
+
+vi.mock('@/lib/tool-page/evidence-signals-route-input', () => ({
+  buildToolPageEvidenceSignalsStateInputFromRouteContext:
+    buildToolPageEvidenceSignalsStateInputFromRouteContextMock,
+}));
+
+vi.mock('@/lib/tool-page/evidence-signals-state', () => ({
+  buildToolPageEvidenceSignalsState: buildToolPageEvidenceSignalsStateMock,
 }));
 
 import { buildToolPageDataPrepRouteState } from '@/lib/tool-page/data-prep-route-state';
@@ -84,6 +102,8 @@ describe('tool page data prep route state', () => {
     expect(result.websiteHostLabel).toBe('acme.com');
     expect(result.reviewContextSignals.delighters).toEqual(['Fast setup']);
     expect(buildToolPagePrepDecisionStateFromRouteContextMock).toHaveBeenCalledTimes(1);
-    expect(buildToolPageReviewEvidenceStateFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageReviewArtifactsStateFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageEvidenceSignalsStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageEvidenceSignalsStateMock).toHaveBeenCalledTimes(1);
   });
 });

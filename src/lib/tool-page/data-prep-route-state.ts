@@ -1,6 +1,8 @@
+import { buildToolPageEvidenceSignalsStateInputFromRouteContext } from '@/lib/tool-page/evidence-signals-route-input';
+import { buildToolPageEvidenceSignalsState } from '@/lib/tool-page/evidence-signals-state';
 import { buildToolPagePrepDecisionStateFromRouteContext } from '@/lib/tool-page/prep-decision-state';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
-import { buildToolPageReviewEvidenceStateFromRouteContext } from '@/lib/tool-page/review-evidence-state';
+import { buildToolPageReviewArtifactsStateFromRouteContext } from '@/lib/tool-page/review-artifacts-state';
 import type { ToolPageData } from '@/lib/tool-page/data';
 
 interface BuildToolPageDataPrepRouteStateInput {
@@ -13,8 +15,9 @@ export function buildToolPageDataPrepRouteState(
   input: BuildToolPageDataPrepRouteStateInput
 ): ToolPageData &
   ToolPageData['coreState'] &
-  ReturnType<typeof buildToolPagePrepDecisionStateFromRouteContext> &
-  ReturnType<typeof buildToolPageReviewEvidenceStateFromRouteContext> & {
+  ReturnType<typeof buildToolPagePrepDecisionStateFromRouteContext> & {
+    reviewArtifactsState: ReturnType<typeof buildToolPageReviewArtifactsStateFromRouteContext>;
+    evidenceSignalsState: ReturnType<typeof buildToolPageEvidenceSignalsState>;
     reviewContextSignals: ReturnType<typeof deriveToolPageReviewContextSignals>;
   } {
   const {
@@ -78,47 +81,49 @@ export function buildToolPageDataPrepRouteState(
       orderedAlternativesCount: orderedAlternatives?.length || 0,
     },
   });
-  const { reviewArtifactsState, evidenceSignalsState } =
-    buildToolPageReviewEvidenceStateFromRouteContext({
-      reviewArtifacts: {
-        canonicalFacts: canonicalFacts as any,
-        reviewSources: reviewContentLists.sources,
-        tool,
-      },
-      evidenceSignals: {
-        firstReview: firstReview as any,
-        toolLastVerifiedAt: tool.last_verified_at || null,
-        toolPricingVerifiedAt: tool.pricing_verified_at || null,
-        extractionDate: knowledgeCard?.meta?.extraction_date,
-        constraints: constraints as any,
-        isEligibleEvidenceUrl: input.isEligibleEvidenceUrl,
-        isDisallowedConClaim: decisionSectionState.decisionRuntime.isDisallowedConClaim,
-        reviewPros: reviewContentLists.pros as any,
-        reviewCons: reviewContentLists.cons as any,
-        globalPros: Array.isArray(globalPros) ? globalPros : [],
-        globalCons: Array.isArray(globalCons) ? globalCons : [],
-        toEvidenceBullet: prepState.toEvidenceBullet,
-        decisionSnapshotWatchOuts: decisionSectionState.decisionRuntime.decisionSnapshotWatchOuts,
-        decisionTradeoffSummaryInitial:
-          decisionSectionState.decisionRuntime.decisionTradeoffSummaryInitial,
-        hasPricing: decisionSectionState.decisionRuntime.hasPricing,
-        knowledgeCard,
-        sectionPricingStatus: decisionSectionState.qualityState.sectionStatus.pricing || 'hide',
-        budgetCostDrivers: reviewContextSignals.budgetCostDrivers,
-        budgetOneTimeFees: reviewContextSignals.budgetOneTimeFees,
-        budgetCommitmentTerms: reviewContextSignals.budgetCommitmentTerms,
-        budgetRoiThreshold: reviewContextSignals.budgetRoiThreshold,
-        faqItems: decisionSectionState.faqState.faqItems.map((item) => ({
-          question: typeof item.question === 'string' ? item.question : '',
-          answer: typeof item.answer === 'string' ? item.answer : '',
-          answer_source_url:
-            typeof item.answer_source_url === 'string' || item.answer_source_url === null
-              ? item.answer_source_url
-              : null,
-        })),
-        buildEvidenceBulletV2: prepState.buildEvidenceBulletV2,
-      },
-    });
+  const reviewArtifactsState = buildToolPageReviewArtifactsStateFromRouteContext({
+    canonicalFacts: canonicalFacts as any,
+    reviewSources: reviewContentLists.sources,
+    tool,
+  });
+  const evidenceSignalsState = buildToolPageEvidenceSignalsState(
+    buildToolPageEvidenceSignalsStateInputFromRouteContext({
+      firstReview: firstReview as any,
+      toolLastVerifiedAt: tool.last_verified_at || null,
+      toolPricingVerifiedAt: tool.pricing_verified_at || null,
+      extractionDate: knowledgeCard?.meta?.extraction_date,
+      constraints: constraints as any,
+      isEligibleEvidenceUrl: input.isEligibleEvidenceUrl,
+      isDisallowedConClaim: decisionSectionState.decisionRuntime.isDisallowedConClaim,
+      reviewPros: reviewContentLists.pros as any,
+      reviewCons: reviewContentLists.cons as any,
+      globalPros: Array.isArray(globalPros) ? globalPros : [],
+      globalCons: Array.isArray(globalCons) ? globalCons : [],
+      toEvidenceBullet: prepState.toEvidenceBullet,
+      decisionSnapshotWatchOuts: decisionSectionState.decisionRuntime.decisionSnapshotWatchOuts,
+      decisionTradeoffSummaryInitial:
+        decisionSectionState.decisionRuntime.decisionTradeoffSummaryInitial,
+      hasPricing: decisionSectionState.decisionRuntime.hasPricing,
+      knowledgeCard,
+      sectionPricingStatus: decisionSectionState.qualityState.sectionStatus.pricing || 'hide',
+      budgetCostDrivers: reviewContextSignals.budgetCostDrivers,
+      budgetOneTimeFees: reviewContextSignals.budgetOneTimeFees,
+      budgetCommitmentTerms: reviewContextSignals.budgetCommitmentTerms,
+      budgetRoiThreshold: reviewContextSignals.budgetRoiThreshold,
+      faqItems: decisionSectionState.faqState.faqItems.map((item) => ({
+        question: typeof item.question === 'string' ? item.question : '',
+        answer: typeof item.answer === 'string' ? item.answer : '',
+        answer_source_url:
+          typeof item.answer_source_url === 'string' || item.answer_source_url === null
+            ? item.answer_source_url
+            : null,
+      })),
+      buildEvidenceBulletV2: prepState.buildEvidenceBulletV2,
+      officialEvidenceLinks: reviewArtifactsState.officialEvidenceLinks,
+      evidenceLinksAll: reviewArtifactsState.evidenceLinksAll,
+      evidenceLinks: reviewArtifactsState.evidenceLinks,
+    })
+  );
 
   return {
     tool,
