@@ -280,6 +280,7 @@ Notes:
 - 2026-03-13 progress: moved prep/quality/decision/section/review/evidence display-field projection into `buildToolPageDisplayRouteState(...)`, removing another large route-local destructuring block from `tool/[slug].astro`.
 - 2026-03-13 progress: moved `runtimeNavigation` payload shaping into `buildToolPageRuntimeMidRouteStateFromRouteContext(...)`, so `tool/[slug]` no longer assembles that nested runtime object inline.
 - 2026-03-13 progress: moved page-assembly input shaping into `buildToolPagePageAssemblyRouteStateInputFromRouteContext(...)`, removing the remaining large `runtime/chrome/decision/navigation` object literal from `tool/[slug].astro`.
+- 2026-03-13 progress: added `buildToolPagePageAssemblyRouteStateFromPageContext(...)` to compose page-assembly input + state helpers in one route call and remove nested helper composition from `tool/[slug].astro`.
 
 ### Phase 3: Page compiler rebuild
 

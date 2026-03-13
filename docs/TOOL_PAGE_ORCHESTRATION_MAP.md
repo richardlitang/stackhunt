@@ -6,30 +6,28 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `buildToolPageRequestRouteState(...)` (frontmatter line 60)
-2. `getToolPageData(...)` (frontmatter line 65)
-3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 93)
-4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 108)
-5. `buildToolPageDisplayRouteState(...)` (frontmatter line 150)
-6. `buildToolPageRuntimeMidRouteStateFromRouteContext(...)` (frontmatter line 174)
-7. `buildToolPagePageAssemblyRouteStateFromRouteContext(...)` (frontmatter line 270)
-8. `buildToolPagePageAssemblyRouteStateInputFromRouteContext(...)` (frontmatter line 271)
-9. `applyToolPageResponseRouteState(...)` (frontmatter line 310)
+1. `buildToolPageRequestRouteState(...)` (frontmatter line 59)
+2. `getToolPageData(...)` (frontmatter line 64)
+3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 92)
+4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 107)
+5. `buildToolPageDisplayRouteState(...)` (frontmatter line 149)
+6. `buildToolPageRuntimeMidRouteStateFromRouteContext(...)` (frontmatter line 173)
+7. `buildToolPagePageAssemblyRouteStateFromPageContext(...)` (frontmatter line 269)
+8. `applyToolPageResponseRouteState(...)` (frontmatter line 307)
 
 ## Tool-Page Imports Used by Route
 
-| Symbol                                                     | Module                                          |
-| ---------------------------------------------------------- | ----------------------------------------------- |
-| `buildToolPagePricingLinkText`                             | `@/lib/tool-page/pricing-link-text`             |
-| `getToolPageData`                                          | `@/lib/tool-page/data`                          |
-| `buildToolPageDataPrepRouteState`                          | `@/lib/tool-page/data-prep-route-state`         |
-| `buildToolPageDecisionEvidenceRouteState`                  | `@/lib/tool-page/decision-evidence-route-state` |
-| `buildToolPageDisplayRouteState`                           | `@/lib/tool-page/display-route-state`           |
-| `buildToolPageRequestRouteState`                           | `@/lib/tool-page/request-response-route-state`  |
-| `applyToolPageResponseRouteState`                          | `@/lib/tool-page/request-response-route-state`  |
-| `buildToolPageRuntimeMidRouteStateFromRouteContext`        | `@/lib/tool-page/runtime-mid-route-state`       |
-| `buildToolPagePageAssemblyRouteStateInputFromRouteContext` | `@/lib/tool-page/page-assembly-route-input`     |
-| `buildToolPagePageAssemblyRouteStateFromRouteContext`      | `@/lib/tool-page/page-assembly-route-state`     |
+| Symbol                                               | Module                                          |
+| ---------------------------------------------------- | ----------------------------------------------- |
+| `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing-link-text`             |
+| `getToolPageData`                                    | `@/lib/tool-page/data`                          |
+| `buildToolPageDataPrepRouteState`                    | `@/lib/tool-page/data-prep-route-state`         |
+| `buildToolPageDecisionEvidenceRouteState`            | `@/lib/tool-page/decision-evidence-route-state` |
+| `buildToolPageDisplayRouteState`                     | `@/lib/tool-page/display-route-state`           |
+| `buildToolPageRequestRouteState`                     | `@/lib/tool-page/request-response-route-state`  |
+| `applyToolPageResponseRouteState`                    | `@/lib/tool-page/request-response-route-state`  |
+| `buildToolPageRuntimeMidRouteStateFromRouteContext`  | `@/lib/tool-page/runtime-mid-route-state`       |
+| `buildToolPagePageAssemblyRouteStateFromPageContext` | `@/lib/tool-page/page-assembly-route-context`   |
 
 ## One-Level Helper Dependencies
 
@@ -76,13 +74,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `buildToolPageSpecsCategoryRouteState(...)`
 - `buildToolPageRuntimeNavigationRouteState(...)`
 
-### `buildToolPagePageAssemblyRouteStateInputFromRouteContext`
+### `buildToolPagePageAssemblyRouteStateFromPageContext`
 
-- no nested `ToolPage*` helper calls detected
-
-### `buildToolPagePageAssemblyRouteStateFromRouteContext`
-
-- `buildToolPageRuntimeRouteState(...)`
-- `buildToolPageChromeAssemblyRouteState(...)`
-- `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)`
-- `buildToolPageDecisionNavigationRouteState(...)`
+- `buildToolPagePageAssemblyRouteStateFromRouteContext(...)`
+- `buildToolPagePageAssemblyRouteStateInputFromRouteContext(...)`
