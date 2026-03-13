@@ -229,6 +229,7 @@ export { buildToolPageSectionState } from '@/lib/tool-page/section-state';
 export { buildToolPageStrengthsSubtitle } from '@/lib/tool-page/strengths-subtitle';
 export { buildToolPageSpecsProps } from '@/lib/tool-page/specs-props';
 export { buildToolPageSpecsSectionState } from '@/lib/tool-page/specs-section';
+export { buildToolPageSpecsCategoryRouteState } from '@/lib/tool-page/specs-category-route-state';
 export { buildToolPageSpecsSignals } from '@/lib/tool-page/specs-signals';
 export { deriveToolPageSetupSignals } from '@/lib/tool-page/setup';
 export { buildToolPagePrimaryFunction } from '@/lib/tool-page/taxonomy';
