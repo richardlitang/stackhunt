@@ -304,6 +304,7 @@ Notes:
 - 2026-03-13 progress: removed `review-evidence-state` and wired `buildToolPageDataPrepRouteState(...)` directly to review-artifacts and evidence-signals canonical builders.
 - 2026-03-13 progress: removed `prep-decision-state` and wired `buildToolPageDataPrepRouteState(...)` directly to prep and decision-section canonical builders.
 - 2026-03-13 progress: removed `buildToolPageRuntimeAssemblyInputBundleFromRouteContext(...)` and wired page-context runtime assembly directly to `buildToolPageRuntimeAssemblyInputBundleFromRoute(...)`.
+- 2026-03-13 progress: removed `buildToolPageReviewArtifactsStateFromRouteContext(...)` and wired data prep directly to `buildToolPageReviewArtifactsStateFromRoute(...)`.
 
 ### Phase 3: Page compiler rebuild
 

@@ -5,7 +5,7 @@ import { buildToolPageDecisionSectionState } from '@/lib/tool-page/decision-sect
 import { buildToolPagePrepStateInputFromRouteContext } from '@/lib/tool-page/prep-input';
 import { buildToolPagePrepState } from '@/lib/tool-page/prep-state';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
-import { buildToolPageReviewArtifactsStateFromRouteContext } from '@/lib/tool-page/review-artifacts-state';
+import { buildToolPageReviewArtifactsStateFromRoute } from '@/lib/tool-page/review-artifacts-state';
 import type { ToolPageData } from '@/lib/tool-page/data';
 
 interface BuildToolPageDataPrepRouteStateInput {
@@ -20,7 +20,7 @@ export function buildToolPageDataPrepRouteState(
   ToolPageData['coreState'] & {
     prepState: ReturnType<typeof buildToolPagePrepState>;
     decisionSectionState: ReturnType<typeof buildToolPageDecisionSectionState>;
-    reviewArtifactsState: ReturnType<typeof buildToolPageReviewArtifactsStateFromRouteContext>;
+    reviewArtifactsState: ReturnType<typeof buildToolPageReviewArtifactsStateFromRoute>;
     evidenceSignalsState: ReturnType<typeof buildToolPageEvidenceSignalsState>;
     reviewContextSignals: ReturnType<typeof deriveToolPageReviewContextSignals>;
   } {
@@ -93,10 +93,10 @@ export function buildToolPageDataPrepRouteState(
       orderedAlternativesCount: orderedAlternatives?.length || 0,
     })
   );
-  const reviewArtifactsState = buildToolPageReviewArtifactsStateFromRouteContext({
+  const reviewArtifactsState = buildToolPageReviewArtifactsStateFromRoute({
     canonicalFacts: canonicalFacts as any,
     reviewSources: reviewContentLists.sources,
-    tool,
+    toolName: tool.name,
   });
   const evidenceSignalsState = buildToolPageEvidenceSignalsState(
     buildToolPageEvidenceSignalsStateInputFromRouteContext({

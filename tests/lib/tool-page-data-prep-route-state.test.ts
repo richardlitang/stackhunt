@@ -6,7 +6,7 @@ const {
   buildToolPagePrepStateMock,
   buildToolPageDecisionSectionStateInputFromRouteContextMock,
   buildToolPageDecisionSectionStateMock,
-  buildToolPageReviewArtifactsStateFromRouteContextMock,
+  buildToolPageReviewArtifactsStateFromRouteMock,
   buildToolPageEvidenceSignalsStateInputFromRouteContextMock,
   buildToolPageEvidenceSignalsStateMock,
 } = vi.hoisted(() => ({
@@ -26,7 +26,7 @@ const {
     qualityState: { sectionStatus: { pricing: 'hide' } },
     faqState: { faqItems: [] },
   })),
-  buildToolPageReviewArtifactsStateFromRouteContextMock: vi.fn(() => ({
+  buildToolPageReviewArtifactsStateFromRouteMock: vi.fn(() => ({
     evidenceBasis: [],
     officialEvidenceLinks: [],
     evidenceLinksAll: [],
@@ -61,8 +61,7 @@ vi.mock('@/lib/tool-page/decision-section-state', () => ({
 }));
 
 vi.mock('@/lib/tool-page/review-artifacts-state', () => ({
-  buildToolPageReviewArtifactsStateFromRouteContext:
-    buildToolPageReviewArtifactsStateFromRouteContextMock,
+  buildToolPageReviewArtifactsStateFromRoute: buildToolPageReviewArtifactsStateFromRouteMock,
 }));
 
 vi.mock('@/lib/tool-page/evidence-signals-route-input', () => ({
@@ -124,7 +123,7 @@ describe('tool page data prep route state', () => {
     expect(buildToolPagePrepStateMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageDecisionSectionStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageDecisionSectionStateMock).toHaveBeenCalledTimes(1);
-    expect(buildToolPageReviewArtifactsStateFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageReviewArtifactsStateFromRouteMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageEvidenceSignalsStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageEvidenceSignalsStateMock).toHaveBeenCalledTimes(1);
   });

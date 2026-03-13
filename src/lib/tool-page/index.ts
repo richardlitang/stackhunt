@@ -111,7 +111,6 @@ export { buildToolPageReviewArtifacts } from '@/lib/tool-page/review-artifacts';
 export {
   buildToolPageReviewArtifactsState,
   buildToolPageReviewArtifactsStateFromRoute,
-  buildToolPageReviewArtifactsStateFromRouteContext,
 } from '@/lib/tool-page/review-artifacts-state';
 export { buildToolPageResearchStatusView } from '@/lib/tool-page/research-status';
 export { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';

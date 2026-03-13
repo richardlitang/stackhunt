@@ -92,15 +92,3 @@ export function buildToolPageReviewArtifactsStateFromRoute(input: {
     toolName: input.toolName,
   });
 }
-
-export function buildToolPageReviewArtifactsStateFromRouteContext(input: {
-  canonicalFacts: unknown;
-  reviewSources: unknown;
-  tool: { name: string };
-}): ReturnType<typeof buildToolPageReviewArtifactsState> {
-  return buildToolPageReviewArtifactsStateFromRoute({
-    canonicalFacts: input.canonicalFacts,
-    reviewSources: input.reviewSources,
-    toolName: input.tool.name,
-  });
-}

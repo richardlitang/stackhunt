@@ -3,7 +3,6 @@ import { buildToolPageReviewArtifacts } from '@/lib/tool-page/review-artifacts';
 import {
   buildToolPageReviewArtifactsState,
   buildToolPageReviewArtifactsStateFromRoute,
-  buildToolPageReviewArtifactsStateFromRouteContext,
 } from '@/lib/tool-page/review-artifacts-state';
 
 describe('tool page review artifacts state', () => {
@@ -68,33 +67,6 @@ describe('tool page review artifacts state', () => {
         },
       ],
       toolName: 'Acme',
-    });
-
-    expect(state.evaluationDepth).toBeTruthy();
-    expect(state.evidenceLinksAll.length).toBeGreaterThanOrEqual(0);
-  });
-
-  it('builds review artifact state from flattened route context', () => {
-    const state = buildToolPageReviewArtifactsStateFromRouteContext({
-      canonicalFacts: {
-        tested_on: {
-          environment: { os: 'macOS' },
-          steps: ['Create workspace'],
-          findings: ['Fast setup'],
-          tested_at: '2026-03-05',
-        },
-      },
-      reviewSources: [
-        {
-          title: 'Docs',
-          url: 'https://example.com/docs',
-          domain: 'example.com',
-          basis: 'official_docs',
-          quality: 'high',
-          inclusionReason: 'official',
-        },
-      ],
-      tool: { name: 'Acme' },
     });
 
     expect(state.evaluationDepth).toBeTruthy();
