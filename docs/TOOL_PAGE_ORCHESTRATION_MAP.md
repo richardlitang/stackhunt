@@ -6,13 +6,14 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `buildToolPageRequestRouteState(...)` (frontmatter line 58)
-2. `getToolPageData(...)` (frontmatter line 63)
-3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 91)
-4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 106)
-5. `buildToolPageRuntimeMidRouteState(...)` (frontmatter line 167)
-6. `buildToolPagePageAssemblyRouteStateFromRouteContext(...)` (frontmatter line 265)
-7. `applyToolPageResponseRouteState(...)` (frontmatter line 325)
+1. `buildToolPageRequestRouteState(...)` (frontmatter line 59)
+2. `getToolPageData(...)` (frontmatter line 64)
+3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 92)
+4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 107)
+5. `buildToolPageDisplayRouteState(...)` (frontmatter line 149)
+6. `buildToolPageRuntimeMidRouteState(...)` (frontmatter line 173)
+7. `buildToolPagePageAssemblyRouteStateFromRouteContext(...)` (frontmatter line 271)
+8. `applyToolPageResponseRouteState(...)` (frontmatter line 331)
 
 ## Tool-Page Imports Used by Route
 
@@ -22,6 +23,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `getToolPageData`                                     | `@/lib/tool-page/data`                          |
 | `buildToolPageDataPrepRouteState`                     | `@/lib/tool-page/data-prep-route-state`         |
 | `buildToolPageDecisionEvidenceRouteState`             | `@/lib/tool-page/decision-evidence-route-state` |
+| `buildToolPageDisplayRouteState`                      | `@/lib/tool-page/display-route-state`           |
 | `buildToolPageRequestRouteState`                      | `@/lib/tool-page/request-response-route-state`  |
 | `applyToolPageResponseRouteState`                     | `@/lib/tool-page/request-response-route-state`  |
 | `buildToolPageRuntimeMidRouteState`                   | `@/lib/tool-page/runtime-mid-route-state`       |
@@ -44,6 +46,10 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)`
 
 ### `buildToolPageDecisionEvidenceRouteState`
+
+- no nested `ToolPage*` helper calls detected
+
+### `buildToolPageDisplayRouteState`
 
 - no nested `ToolPage*` helper calls detected
 

@@ -45,6 +45,7 @@ import {
   buildToolPageDataPrepRouteState,
   isEligibleEvidenceUrl,
   buildToolPageDecisionEvidenceRouteState,
+  buildToolPageDisplayRouteState,
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
   buildToolPageRuntimeMidRouteState,
@@ -108,18 +109,17 @@ const {
   reviewArtifactsState: decisionReviewArtifactsState,
   evidenceSignalsState,
 });
-const { comparableAlternatives, hasComparableAlternatives, canCompareByAlternativeSlug } =
-  prepState;
-const { showReviewInProgressBanner } = qualityState;
 const {
+  comparableAlternatives,
+  hasComparableAlternatives,
+  canCompareByAlternativeSlug,
+  showReviewInProgressBanner,
   hasAbout,
   comparativeFeaturePeerCount,
   hasPricing,
   renderVerdictSafe,
   hasVerdict,
   decisionSnapshotSummary,
-} = decisionRuntime;
-const {
   hasFeatures,
   hasAlternatives,
   hasFAQ,
@@ -127,9 +127,8 @@ const {
   hasSpecs,
   hasCommunity,
   hasOperationalDetails,
-} = sectionFlags;
-const { showProceduralVerdict, showProceduralSpecs } = presentationGates;
-const {
+  showProceduralVerdict,
+  showProceduralSpecs,
   handsOnTestEnvironment,
   handsOnTestSteps,
   handsOnTestFindings,
@@ -138,9 +137,7 @@ const {
   testedItems,
   notTestedItems,
   showWeTestedIt,
-} = reviewArtifactsState;
-const { communityVerifiedLabel } = reviewSignalsView;
-const {
+  communityVerifiedLabel,
   hasStrengths,
   canonicalHardLimits,
   officialPricingSource,
@@ -149,7 +146,16 @@ const {
   pricingNarrativeLead,
   pricingNarrativeLabel,
   hasCollectedSources,
-} = evidenceRuntime;
+} = buildToolPageDisplayRouteState({
+  prepState,
+  qualityState,
+  decisionRuntime,
+  sectionFlags,
+  presentationGates,
+  reviewArtifactsState,
+  reviewSignalsView,
+  evidenceRuntime,
+});
 const {
   lensRankedHardLimits,
   topLensHardLimit,
