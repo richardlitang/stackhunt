@@ -47,11 +47,8 @@ import {
   buildToolPageDecisionEvidenceRouteState,
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
-  buildToolPageChromeAssemblyRouteState,
-  buildToolPageDecisionAssemblyRouteStateFromRouteContext,
-  buildToolPageDecisionNavigationRouteState,
   buildToolPageRuntimeMidRouteState,
-  buildToolPageRuntimeRouteState,
+  buildToolPagePageAssemblyRouteStateFromRouteContext,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
@@ -111,41 +108,24 @@ const {
   reviewArtifactsState: decisionReviewArtifactsState,
   evidenceSignalsState,
 });
-const {
-  sourceEvidenceDomains: _sourceEvidenceDomains,
-  toEvidenceBullet: _toEvidenceBullet,
-  comparableAlternatives,
-  hasComparableAlternatives,
-  canCompareByAlternativeSlug,
-} = prepState;
-const {
-  sectionStatus: _sectionStatus,
-  gateReasons: _gateReasons,
-  showReviewInProgressBanner,
-} = qualityState;
+const { comparableAlternatives, hasComparableAlternatives, canCompareByAlternativeSlug } =
+  prepState;
+const { showReviewInProgressBanner } = qualityState;
 const {
   hasAbout,
   comparativeFeaturePeerCount,
   hasPricing,
   renderVerdictSafe,
-  isDisallowedConClaim: _isDisallowedConClaim,
   hasVerdict,
   decisionSnapshotSummary,
 } = decisionRuntime;
 const {
-  hasFAQRaw: _hasFAQRaw,
   hasFeatures,
-  hasSpecsRaw: _hasSpecsRaw,
-  hasPlatformRaw: _hasPlatformRaw,
   hasAlternatives,
-  hasCommunityRaw: _hasCommunityRaw,
   hasFAQ,
   hasGettingStarted,
   hasSpecs,
   hasCommunity,
-  hasPlatform: _hasPlatform,
-  hasSecurity: _hasSecurity,
-  hasPortability: _hasPortability,
   hasOperationalDetails,
 } = sectionFlags;
 const { showProceduralVerdict, showProceduralSpecs } = presentationGates;
@@ -161,17 +141,13 @@ const {
 } = reviewArtifactsState;
 const { communityVerifiedLabel } = reviewSignalsView;
 const {
-  effectiveEvidencePros: _effectiveEvidencePros,
-  effectiveEvidenceCons: _effectiveEvidenceCons,
   hasStrengths,
   canonicalHardLimits,
-  decisionTradeoffSummary: _decisionTradeoffSummaryResolved,
   officialPricingSource,
   pricingEvidenceLinks,
   showPricingSection,
   pricingNarrativeLead,
   pricingNarrativeLabel,
-  collectedSourcesBySection: _collectedSourcesBySection,
   hasCollectedSources,
 } = evidenceRuntime;
 const {
@@ -227,14 +203,6 @@ const {
   toolReviewHeading,
   lensLabelMap,
   sourceAriaLabel,
-  lensRuntime,
-} = buildToolPageRuntimeRouteState({
-  runtimeViewBundle,
-  firstReview,
-  tool,
-  categoryName: tool.category?.name || null,
-});
-const {
   lensHrefs,
   focusSwitchOptions,
   lensDefaultFocus,
@@ -243,9 +211,6 @@ const {
   verdictLabelRationale,
   reviewDek,
   readerFocusNote,
-  lensBestFitLine,
-  lensWeakFitLine,
-  lensTradeoffLine,
   scoreDrivers,
   workflowFitHighlights,
   workflowFitCards,
@@ -278,66 +243,10 @@ const {
   pricingEvidenceState,
   pricingNotice,
   operationalDetailsState,
-} = buildToolPageChromeAssemblyRouteState({
-  activeReviewLens,
-  alternativesLabel: alternativesLabel as 'Alternatives' | 'Related Tools',
-  toolCategoryRef,
-  orderedAlternatives,
-  comparableAlternatives,
-  canCompareByAlternativeSlug,
-  tool,
-  knowledgeCard,
-  parentTool,
-  setupTracks,
-  displayCategorySpecificData,
-  vipSpecifics,
-  userReportedPros,
-  userReportedCons,
-  laneOutputs,
-  decisionRuntime,
-  sectionFlags,
-  evidenceRuntime,
-  reviewArtifactsState,
-  reviewSignalsView,
-  reviewContextSignals,
-  qualityState,
-  lensRuntime,
-  websiteHostLabel,
-  runtimeViewBundle,
-  evaluationDepth,
-});
-const {
   decisionUtilityState,
   decisionHardLimitEvidence,
   pricingScenarioState,
   showEarlySnapshotToneBanner,
-} = buildToolPageDecisionAssemblyRouteStateFromRouteContext({
-  tool: {
-    name: tool.name,
-    categorySlug: tool.category?.slug || null,
-    pricingType: tool.pricing_type,
-  },
-  resolvedSubject: {
-    subjectType: resolvedSubject?.subjectType || null,
-    entityScope: resolvedSubject?.entityScope || null,
-  },
-  activeReviewLens,
-  hasApi: Boolean(knowledgeCard?.integrations?.has_api),
-  hasParentTool: Boolean(parentTool),
-  audiences: tags.audiences,
-  lensBestFitLine,
-  lensWeakFitLine,
-  lensTradeoffLine,
-  topLensHardLimit,
-  pricingEvidenceLinks,
-  officialPricingSourceUrl: officialPricingSource?.url || null,
-  contentConfidenceLabel: qualityState.contentConfidenceLabel,
-  trustBar: {
-    confidence: trustBarProps.confidence,
-    pendingCount: trustBarProps.pendingCount,
-  },
-});
-const {
   sourcesSectionState,
   lowConfidenceSourcesState,
   faqItemsView,
@@ -347,22 +256,72 @@ const {
   shouldShowPracticalOutcomes,
   hasUserSignalProsCons,
   quickJumpLinksView,
-} = buildToolPageDecisionNavigationRouteState({
-  navigationState,
-  categorySlug: tool.category?.slug || null,
-  workflowFitCardsCount: workflowFitCards.length,
-  workflowFitHighlightsCount: workflowFitHighlights.length,
-  decisionUtilityState,
-  prosConsView,
-});
-const {
   compareButtonProps,
   addToStackProps,
   priceVerificationProps,
   videoState,
   videoProps,
   verdictContent,
-} = ctaMediaState;
+} = buildToolPagePageAssemblyRouteStateFromRouteContext({
+  runtime: {
+    runtimeViewBundle,
+    firstReview,
+    tool,
+    categoryName: tool.category?.name || null,
+  },
+  chrome: {
+    activeReviewLens,
+    alternativesLabel,
+    toolCategoryRef,
+    orderedAlternatives,
+    comparableAlternatives,
+    canCompareByAlternativeSlug,
+    tool,
+    knowledgeCard,
+    parentTool,
+    setupTracks,
+    displayCategorySpecificData,
+    vipSpecifics,
+    userReportedPros,
+    userReportedCons,
+    laneOutputs,
+    decisionRuntime,
+    sectionFlags,
+    evidenceRuntime,
+    reviewArtifactsState,
+    reviewSignalsView,
+    reviewContextSignals,
+    qualityState,
+    lensRuntime: runtimeViewBundle.lensRuntime,
+    websiteHostLabel,
+    runtimeViewBundle,
+    evaluationDepth,
+  },
+  decision: {
+    tool: {
+      name: tool.name,
+      categorySlug: tool.category?.slug || null,
+      pricingType: tool.pricing_type,
+    },
+    resolvedSubject: {
+      subjectType: resolvedSubject?.subjectType || null,
+      entityScope: resolvedSubject?.entityScope || null,
+    },
+    activeReviewLens,
+    hasApi: Boolean(knowledgeCard?.integrations?.has_api),
+    hasParentTool: Boolean(parentTool),
+    audiences: tags.audiences,
+    topLensHardLimit,
+    pricingEvidenceLinks,
+    officialPricingSourceUrl: officialPricingSource?.url || null,
+    contentConfidenceLabel: qualityState.contentConfidenceLabel,
+  },
+  navigation: {
+    navigationState,
+    categorySlug: tool.category?.slug || null,
+  },
+  ctaMediaState,
+});
 applyToolPageResponseRouteState({
   response: Astro.response,
   robotsTag: indexPolicy.robotsTag,

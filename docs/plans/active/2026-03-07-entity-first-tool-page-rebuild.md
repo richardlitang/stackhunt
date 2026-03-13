@@ -276,6 +276,7 @@ Notes:
 - 2026-03-13 progress: moved `toolPageData` flattening plus prep/evidence input shaping into `buildToolPageDataPrepRouteState(...)`, removing the largest early-frontmatter assembly block from `tool/[slug].astro`.
 - 2026-03-13 progress: moved decision/evidence flattening (`faqItems`, `pricingTypeLabel`, decision runtime, section flags, review signals, evidence runtime) into `buildToolPageDecisionEvidenceRouteState(...)` to reduce route destructuring churn.
 - 2026-03-13 progress: moved lens/spec/runtime-meta mid-route assembly into `buildToolPageRuntimeMidRouteState(...)`, so `tool/[slug]` no longer manually chains `buildToolPageLensHardLimitRouteState(...)`, `buildToolPageSpecsCategoryRouteState(...)`, and `buildToolPageRuntimeNavigationRouteState(...)`.
+- 2026-03-13 progress: moved runtime/chrome/decision/navigation composition plus CTA extraction into `buildToolPagePageAssemblyRouteStateFromRouteContext(...)`, collapsing the largest remaining mid-frontmatter helper chain in `tool/[slug].astro`.
 
 ### Phase 3: Page compiler rebuild
 

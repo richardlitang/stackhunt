@@ -137,6 +137,7 @@ export { buildToolPagePricingLinkText } from '@/lib/tool-page/pricing-link-text'
 export { buildToolPagePricingNotice } from '@/lib/tool-page/pricing-notice';
 export { buildToolPagePricingScenarioState } from '@/lib/tool-page/pricing-scenarios';
 export { buildToolPagePageSchemaRouteState } from '@/lib/tool-page/page-schema-route-state';
+export { buildToolPagePageAssemblyRouteStateFromRouteContext } from '@/lib/tool-page/page-assembly-route-state';
 export {
   buildToolPagePrepState,
   buildToolPagePrepStateFromRoute,

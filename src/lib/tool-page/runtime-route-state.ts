@@ -19,7 +19,6 @@ export function buildToolPageRuntimeRouteState(input: BuildToolPageRuntimeRouteS
   toolReviewHeading: BuildToolPageRuntimeRouteStateInput['runtimeViewBundle']['toolReviewHeading'];
   lensLabelMap: BuildToolPageRuntimeRouteStateInput['runtimeViewBundle']['lensLabelMap'];
   sourceAriaLabel: BuildToolPageRuntimeRouteStateInput['runtimeViewBundle']['sourceAriaLabel'];
-  lensRuntime: BuildToolPageRuntimeRouteStateInput['runtimeViewBundle']['lensRuntime'];
 } {
   const { pageSchemas } = buildToolPagePageSchemaRouteState({
     schemas: input.runtimeViewBundle.schemas,
@@ -37,6 +36,5 @@ export function buildToolPageRuntimeRouteState(input: BuildToolPageRuntimeRouteS
     toolReviewHeading: input.runtimeViewBundle.toolReviewHeading,
     lensLabelMap: input.runtimeViewBundle.lensLabelMap,
     sourceAriaLabel: input.runtimeViewBundle.sourceAriaLabel,
-    lensRuntime: input.runtimeViewBundle.lensRuntime,
   };
 }
