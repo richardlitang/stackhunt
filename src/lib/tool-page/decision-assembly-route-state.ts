@@ -12,9 +12,15 @@ interface BuildToolPageDecisionAssemblyRouteStateInput {
   lensWeakFitLine: Parameters<typeof buildToolPageDecisionRouteState>[0]['lensWeakFitLine'];
   lensTradeoffLine: Parameters<typeof buildToolPageDecisionRouteState>[0]['lensTradeoffLine'];
   topLensHardLimit: Parameters<typeof buildToolPageDecisionRouteState>[0]['topLensHardLimit'];
-  pricingEvidenceSourceUrl: Parameters<typeof buildToolPageDecisionRouteState>[0]['pricingEvidenceSourceUrl'];
-  pricingEvidenceSummary: Parameters<typeof buildToolPageDecisionRouteState>[0]['pricingEvidenceSummary'];
-  contentConfidenceLabel: Parameters<typeof buildToolPageDecisionRouteState>[0]['contentConfidenceLabel'];
+  pricingEvidenceSourceUrl: Parameters<
+    typeof buildToolPageDecisionRouteState
+  >[0]['pricingEvidenceSourceUrl'];
+  pricingEvidenceSummary: Parameters<
+    typeof buildToolPageDecisionRouteState
+  >[0]['pricingEvidenceSummary'];
+  contentConfidenceLabel: Parameters<
+    typeof buildToolPageDecisionRouteState
+  >[0]['contentConfidenceLabel'];
   trustBar: {
     confidence: 'Low' | 'Medium' | 'High';
     pendingCount: number;

@@ -16,7 +16,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 8. `buildToolPageRuntimeNavigationRouteState(...)` (frontmatter line 259)
 9. `buildToolPageRuntimeRouteState(...)` (frontmatter line 295)
 10. `buildToolPageChromeAssemblyRouteState(...)` (frontmatter line 345)
-11. `buildToolPageDecisionRouteState(...)` (frontmatter line 378)
+11. `buildToolPageDecisionAssemblyRouteState(...)` (frontmatter line 378)
 12. `buildToolPageDecisionNavigationRouteState(...)` (frontmatter line 415)
 13. `applyToolPageRobotsHeader(...)` (frontmatter line 431)
 
@@ -33,7 +33,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `buildToolPageRuntimeNavigationRouteState`                | `@/lib/tool-page/runtime-navigation-route-state`        |
 | `buildToolPageChromeAssemblyRouteState`                   | `@/lib/tool-page/chrome-assembly-route-state`           |
 | `buildToolPagePrepReviewEvidenceStateFromDecisionContext` | `@/lib/tool-page/prep-review-evidence-decision-context` |
-| `buildToolPageDecisionRouteState`                         | `@/lib/tool-page/decision-route-state`                  |
+| `buildToolPageDecisionAssemblyRouteState`                 | `@/lib/tool-page/decision-assembly-route-state`         |
 | `buildToolPageDecisionNavigationRouteState`               | `@/lib/tool-page/decision-navigation-route-state`       |
 | `buildToolPageLensHardLimitRouteState`                    | `@/lib/tool-page/lens-hard-limit-route-state`           |
 | `buildToolPageRuntimeRouteState`                          | `@/lib/tool-page/runtime-route-state`                   |
@@ -79,10 +79,9 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `buildToolPagePrepDecisionStateFromDecisionContext(...)`
 - `buildToolPageReviewEvidenceStateFromDecisionContext(...)`
 
-### `buildToolPageDecisionRouteState`
+### `buildToolPageDecisionAssemblyRouteState`
 
-- `buildToolPageDecisionUtilityState(...)`
-- `buildToolPagePricingScenarioState(...)`
+- `buildToolPageDecisionRouteState(...)`
 
 ### `buildToolPageDecisionNavigationRouteState`
 

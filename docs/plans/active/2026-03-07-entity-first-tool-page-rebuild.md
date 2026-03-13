@@ -270,6 +270,7 @@ Notes:
 - 2026-03-13 progress: moved nested runtime+navigation payload assembly into `buildToolPageRuntimeNavigationRouteState(...)`, removing direct route-level object graph construction.
 - 2026-03-13 progress: moved chrome/content alternatives assembly wiring into `buildToolPageChromeAssemblyRouteState(...)`, keeping `tool/[slug]` focused on orchestration.
 - 2026-03-13 progress: moved navigation + decision-presentation flattening into `buildToolPageDecisionNavigationRouteState(...)` to reduce route-local state threading.
+- 2026-03-13 progress: moved decision-route assembly wiring into `buildToolPageDecisionAssemblyRouteState(...)`, centralizing subject/lens/pricing/trust input composition outside the route template.
 
 ### Phase 3: Page compiler rebuild
 
