@@ -45,8 +45,7 @@ import {
   isEligibleEvidenceUrl,
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
-  buildToolPageRouteDataPipelineStateFromPageContext,
-  buildToolPagePageAssemblyStateFromRouteDataContext,
+  buildToolPagePageCompilerRouteStateFromPageContext,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
@@ -62,7 +61,7 @@ const toolPageData = await getToolPageData(slug);
 if (!toolPageData || !toolPageData.tool) {
   return Astro.redirect('/404');
 }
-const routeDataState = buildToolPageRouteDataPipelineStateFromPageContext({
+const { routeDataState, pageAssemblyState } = buildToolPagePageCompilerRouteStateFromPageContext({
   toolPageData,
   isEligibleEvidenceUrl,
   activeReviewLens,
@@ -190,10 +189,7 @@ const {
   videoState,
   videoProps,
   verdictContent,
-} = buildToolPagePageAssemblyStateFromRouteDataContext({
-  routeDataState,
-  activeReviewLens,
-});
+} = pageAssemblyState;
 applyToolPageResponseRouteState({
   response: Astro.response,
   robotsTag: indexPolicy.robotsTag,

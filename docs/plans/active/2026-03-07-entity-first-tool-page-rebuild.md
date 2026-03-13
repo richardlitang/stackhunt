@@ -325,6 +325,7 @@ Notes:
 - 2026-03-13 progress: removed local content-sections wrapper and wired chrome-route directly to `buildToolPageContentSectionsStateInputFromRoute(...)` with explicit fallback website, affiliate offers, and tribal-knowledge mapping.
 - 2026-03-13 progress: de-duplicated pricing presentation by suppressing the separate pricing mental-model panel when factual budget-mechanics signals are present in `PricingInsights`.
 - 2026-03-13 progress: reduced evidence UI noise in strengths/limitations by hiding per-claim source-detail toggles in block mode and keeping source discoverability in the dedicated sources summary panel.
+- 2026-03-13 progress: added `buildToolPagePageCompilerRouteStateFromPageContext(...)` so `tool/[slug]` composes route-data pipeline plus page assembly through one compiler entrypoint call.
 
 ### Phase 3: Page compiler rebuild
 
