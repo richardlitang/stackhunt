@@ -477,7 +477,7 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
     {
       label: 'qa_gate_wired',
       pattern:
-        /\b(buildToolPagePageAssemblyRouteStateFromPageContext|buildToolPagePageAssemblyRouteStateFromRouteContext|buildToolPageRuntimeMidRouteState|buildToolPageRuntimeNavigationRouteState|buildToolPageRuntimeRouteState|buildToolPageRuntimeNavigationStateFromDecisionContext|buildToolPageRuntimeViewBundleFromDecisionContext|buildToolPageRuntimeViewBundleFromPageContext|buildToolPageRuntimeAssemblyFromRoute|buildToolPageRuntimeAssembly|buildToolPageRuntimeContext|evaluateToolPageQaGate)\(/,
+        /\b(buildToolPageRouteDataPipelineStateFromPageContext|buildToolPageRoutePipelineStateFromDataPrepContext|buildToolPagePageAssemblyRouteStateFromPageContext|buildToolPagePageAssemblyRouteStateFromRouteContext|buildToolPageRuntimeMidRouteState|buildToolPageRuntimeNavigationRouteState|buildToolPageRuntimeRouteState|buildToolPageRuntimeNavigationStateFromDecisionContext|buildToolPageRuntimeViewBundleFromDecisionContext|buildToolPageRuntimeViewBundleFromPageContext|buildToolPageRuntimeAssemblyFromRoute|buildToolPageRuntimeAssembly|buildToolPageRuntimeContext|evaluateToolPageQaGate)\(/,
     },
     {
       label: 'how_we_evaluated_heading',

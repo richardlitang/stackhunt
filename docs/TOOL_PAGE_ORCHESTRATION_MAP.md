@@ -8,20 +8,20 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 1. `buildToolPageRequestRouteState(...)` (frontmatter line 56)
 2. `getToolPageData(...)` (frontmatter line 61)
-3. `buildToolPageRouteDataPipelineStateFromPageContext(...)` (frontmatter line 139)
-4. `buildToolPagePageAssemblyRouteStateFromPageContext(...)` (frontmatter line 214)
-5. `applyToolPageResponseRouteState(...)` (frontmatter line 252)
+3. `buildToolPageRouteDataPipelineStateFromPageContext(...)` (frontmatter line 65)
+4. `buildToolPagePageAssemblyStateFromRouteDataContext(...)` (frontmatter line 193)
+5. `applyToolPageResponseRouteState(...)` (frontmatter line 197)
 
 ## Tool-Page Imports Used by Route
 
-| Symbol                                               | Module                                         |
-| ---------------------------------------------------- | ---------------------------------------------- |
-| `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing-link-text`            |
-| `getToolPageData`                                    | `@/lib/tool-page/data`                         |
-| `buildToolPageRequestRouteState`                     | `@/lib/tool-page/request-response-route-state` |
-| `applyToolPageResponseRouteState`                    | `@/lib/tool-page/request-response-route-state` |
-| `buildToolPageRouteDataPipelineStateFromPageContext` | `@/lib/tool-page/route-data-pipeline-state`    |
-| `buildToolPagePageAssemblyRouteStateFromPageContext` | `@/lib/tool-page/page-assembly-route-context`  |
+| Symbol                                               | Module                                                |
+| ---------------------------------------------------- | ----------------------------------------------------- |
+| `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing-link-text`                   |
+| `getToolPageData`                                    | `@/lib/tool-page/data`                                |
+| `buildToolPageRequestRouteState`                     | `@/lib/tool-page/request-response-route-state`        |
+| `applyToolPageResponseRouteState`                    | `@/lib/tool-page/request-response-route-state`        |
+| `buildToolPageRouteDataPipelineStateFromPageContext` | `@/lib/tool-page/route-data-pipeline-state`           |
+| `buildToolPagePageAssemblyStateFromRouteDataContext` | `@/lib/tool-page/page-assembly-from-route-data-state` |
 
 ## One-Level Helper Dependencies
 
@@ -53,7 +53,6 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `buildToolPageDataPrepRouteState(...)`
 - `buildToolPageRoutePipelineStateFromDataPrepContext(...)`
 
-### `buildToolPagePageAssemblyRouteStateFromPageContext`
+### `buildToolPagePageAssemblyStateFromRouteDataContext`
 
-- `buildToolPagePageAssemblyRouteStateFromRouteContext(...)`
-- `buildToolPagePageAssemblyRouteStateInputFromRouteContext(...)`
+- `buildToolPagePageAssemblyRouteStateFromPageContext(...)`

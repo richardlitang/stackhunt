@@ -283,6 +283,7 @@ Notes:
 - 2026-03-13 progress: added `buildToolPagePageAssemblyRouteStateFromPageContext(...)` to compose page-assembly input + state helpers in one route call and remove nested helper composition from `tool/[slug].astro`.
 - 2026-03-13 progress: added `buildToolPageRoutePipelineStateFromDataPrepContext(...)` to compose decision-evidence, display projection, and runtime-mid assembly in one route call.
 - 2026-03-13 progress: added `buildToolPageRouteDataPipelineStateFromPageContext(...)` so `tool/[slug]` now calls one helper for data-prep + pipeline composition.
+- 2026-03-13 progress: added `buildToolPagePageAssemblyStateFromRouteDataContext(...)` so page-assembly wiring now consumes the combined route-data pipeline state via one wrapper call.
 
 ### Phase 3: Page compiler rebuild
 

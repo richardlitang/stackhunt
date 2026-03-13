@@ -46,7 +46,7 @@ import {
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
   buildToolPageRouteDataPipelineStateFromPageContext,
-  buildToolPagePageAssemblyRouteStateFromPageContext,
+  buildToolPagePageAssemblyStateFromRouteDataContext,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
@@ -62,36 +62,25 @@ const toolPageData = await getToolPageData(slug);
 if (!toolPageData || !toolPageData.tool) {
   return Astro.redirect('/404');
 }
+const routeDataState = buildToolPageRouteDataPipelineStateFromPageContext({
+  toolPageData,
+  isEligibleEvidenceUrl,
+  activeReviewLens,
+  pathname: Astro.url.pathname,
+  searchParams: Astro.url.searchParams,
+});
+
 const {
   tool,
   parentTool,
-  resolvedSubject,
-  laneOutputs,
-  tags,
   primaryOffer,
-  firstReview,
-  orderedAlternatives,
   alternativesLabel,
   microDiffs,
   curatedVerdictEntries,
   knowledgeCard,
-  setupTracks,
-  displayCategorySpecificData,
-  websiteHostLabel,
-  vipSpecifics,
-  userReportedPros,
-  userReportedCons,
-  reviewContextSignals,
   qualityState,
   pricingTypeLabel,
-  decisionRuntime,
-  sectionFlags,
-  reviewArtifactsState,
-  reviewSignalsView,
-  evidenceRuntime,
-  comparableAlternatives,
   hasComparableAlternatives,
-  canCompareByAlternativeSlug,
   showReviewInProgressBanner,
   hasAbout,
   comparativeFeaturePeerCount,
@@ -132,17 +121,7 @@ const {
   activeLensPricingPlanCount,
   activeLensConstraintCount,
   activeLensIntegrationCount,
-  toolCategoryRef,
-  runtimeViewBundle,
-  navigationState,
-  ctaMediaState,
-} = buildToolPageRouteDataPipelineStateFromPageContext({
-  toolPageData,
-  isEligibleEvidenceUrl,
-  activeReviewLens,
-  pathname: Astro.url.pathname,
-  searchParams: Astro.url.searchParams,
-});
+} = routeDataState;
 const {
   pageSchemas,
   updateHistoryLabels,
@@ -211,43 +190,9 @@ const {
   videoState,
   videoProps,
   verdictContent,
-} = buildToolPagePageAssemblyRouteStateFromPageContext({
-  runtimeViewBundle,
-  firstReview,
-  tool,
+} = buildToolPagePageAssemblyStateFromRouteDataContext({
+  routeDataState,
   activeReviewLens,
-  alternativesLabel,
-  toolCategoryRef,
-  orderedAlternatives,
-  comparableAlternatives,
-  canCompareByAlternativeSlug,
-  knowledgeCard,
-  parentTool,
-  setupTracks,
-  displayCategorySpecificData,
-  vipSpecifics,
-  userReportedPros,
-  userReportedCons,
-  laneOutputs,
-  decisionRuntime,
-  sectionFlags,
-  evidenceRuntime,
-  reviewArtifactsState,
-  reviewSignalsView,
-  reviewContextSignals,
-  qualityState,
-  websiteHostLabel,
-  evaluationDepth,
-  resolvedSubject: {
-    subjectType: resolvedSubject?.subjectType || null,
-    entityScope: resolvedSubject?.entityScope || null,
-  },
-  audiences: tags.audiences,
-  topLensHardLimit,
-  pricingEvidenceLinks,
-  officialPricingSourceUrl: officialPricingSource?.url || null,
-  navigationState,
-  ctaMediaState,
 });
 applyToolPageResponseRouteState({
   response: Astro.response,
