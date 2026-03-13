@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageRuntimeAssemblySignalsInputFromRouteContext } from '@/lib/tool-page/runtime-assembly-signals-input';
+import { buildToolPageRuntimeAssemblySignalsInputFromRoute } from '@/lib/tool-page/runtime-assembly-signals-input';
 
 describe('tool page runtime assembly signals input', () => {
   it('groups runtime assembly route signals into nested runtime sections', () => {
-    const result = buildToolPageRuntimeAssemblySignalsInputFromRouteContext({
+    const result = buildToolPageRuntimeAssemblySignalsInputFromRoute({
       hasVerdict: true,
       showProceduralVerdict: false,
       showPricingSection: true,

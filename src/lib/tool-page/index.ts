@@ -151,7 +151,7 @@ export {
 } from '@/lib/tool-page/runtime-assembly-route-input';
 export { buildToolPageRuntimeLensContentInputFromRoute } from '@/lib/tool-page/runtime-lens-content-input';
 export { buildToolPageRuntimeMetaSignalsInputFromRoute } from '@/lib/tool-page/runtime-meta-signals-input';
-export { buildToolPageRuntimeAssemblySignalsInputFromRouteContext } from '@/lib/tool-page/runtime-assembly-signals-input';
+export { buildToolPageRuntimeAssemblySignalsInputFromRoute } from '@/lib/tool-page/runtime-assembly-signals-input';
 export {
   buildToolPageRuntimeSchemasInputFromRoute,
   buildToolPageRuntimeUpdateHistoryInputFromRoute,

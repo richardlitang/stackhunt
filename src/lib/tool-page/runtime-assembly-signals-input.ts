@@ -4,7 +4,7 @@ type ToolPageRuntimeAssemblyPageContextInput = Parameters<
   typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext
 >[0];
 
-interface BuildToolPageRuntimeAssemblySignalsInputFromRouteContextInput {
+interface BuildToolPageRuntimeAssemblySignalsInputFromRouteInput {
   hasVerdict: boolean;
   showProceduralVerdict: boolean;
   showPricingSection: boolean;
@@ -44,8 +44,8 @@ interface BuildToolPageRuntimeAssemblySignalsInputFromRouteContextInput {
   introLooksSpecSheet: boolean;
 }
 
-export function buildToolPageRuntimeAssemblySignalsInputFromRouteContext(
-  input: BuildToolPageRuntimeAssemblySignalsInputFromRouteContextInput
+export function buildToolPageRuntimeAssemblySignalsInputFromRoute(
+  input: BuildToolPageRuntimeAssemblySignalsInputFromRouteInput
 ): Pick<
   ToolPageRuntimeAssemblyPageContextInput,
   'viewModel' | 'lensContent' | 'trust' | 'metaSignals' | 'updateHistory'

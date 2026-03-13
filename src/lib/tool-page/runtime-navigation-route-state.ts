@@ -12,7 +12,7 @@ import { buildToolPageNavigationStateInputFromRouteContext } from '@/lib/tool-pa
 import { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
 import { buildToolPageRuntimeAssembly } from '@/lib/tool-page/runtime-assembly';
 import { buildToolPageRuntimeAssemblyInputBundleFromPageContext } from '@/lib/tool-page/runtime-assembly-route-input';
-import { buildToolPageRuntimeAssemblySignalsInputFromRouteContext } from '@/lib/tool-page/runtime-assembly-signals-input';
+import { buildToolPageRuntimeAssemblySignalsInputFromRoute } from '@/lib/tool-page/runtime-assembly-signals-input';
 
 interface BuildToolPageRuntimeNavigationRouteStateInput {
   pathname: string;
@@ -62,7 +62,7 @@ export function buildToolPageRuntimeNavigationRouteState(
   navigationState: ReturnType<typeof buildToolPageNavigationState>;
   ctaMediaState: ReturnType<typeof buildToolPageCtaMediaState>;
 } {
-  const runtimeAssemblySignals = buildToolPageRuntimeAssemblySignalsInputFromRouteContext({
+  const runtimeAssemblySignals = buildToolPageRuntimeAssemblySignalsInputFromRoute({
     hasVerdict: input.decisionRuntime.hasVerdict,
     showProceduralVerdict: input.presentationGates.showProceduralVerdict,
     showPricingSection: input.evidenceRuntime.showPricingSection,
