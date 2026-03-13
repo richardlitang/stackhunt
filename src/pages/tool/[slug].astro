@@ -71,28 +71,16 @@ const { routeDataState, pageAssemblyState } = buildToolPagePageCompilerRouteStat
 
 const {
   tool,
-  parentTool,
   primaryOffer,
-  alternativesLabel,
   microDiffs,
   curatedVerdictEntries,
   knowledgeCard,
   qualityState,
-  pricingTypeLabel,
   hasComparableAlternatives,
-  comparativeFeaturePeerCount,
   hasPricing,
-  hasVerdict,
   decisionSnapshotSummary,
   hasAlternatives,
-  hasSpecs,
-  handsOnTestEnvironment,
-  handsOnTestSteps,
-  handsOnTestFindings,
-  handsOnTestedAtLabel,
   evaluationDepth,
-  testedItems,
-  notTestedItems,
   communityVerifiedLabel,
   hasCollectedSources,
   lensRankedHardLimits,
@@ -261,7 +249,7 @@ applyToolPageResponseRouteState({
           >
             <div>
               <span class="text-xs uppercase tracking-wide text-zinc-500">Pricing</span>
-              <p class="mt-1 font-medium text-zinc-100">{pricingTypeLabel}</p>
+              <p class="mt-1 font-medium text-zinc-100">{routeDataState.pricingTypeLabel}</p>
             </div>
             {
               tool.category && (
@@ -617,7 +605,7 @@ applyToolPageResponseRouteState({
       <div class="space-y-8 lg:col-span-2">
         {/* Our Verdict - Quick summary with key points */}
         {
-          hasVerdict && (
+          routeDataState.hasVerdict && (
             <section
               id="verdict"
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -1003,7 +991,7 @@ applyToolPageResponseRouteState({
                 features={knowledgeCard.features}
                 toolName={tool.name}
                 sectionId="features"
-                peerCount={comparativeFeaturePeerCount}
+                peerCount={routeDataState.comparativeFeaturePeerCount}
                 practicalOutcomesVisible={pageAssemblyState.shouldShowPracticalOutcomes}
               />
             </div>
@@ -1012,7 +1000,7 @@ applyToolPageResponseRouteState({
 
         {/* Technical Specs - Category-specific and VIP tool details */}
         {
-          hasSpecs && (
+          routeDataState.hasSpecs && (
             <section id="specs" data-focus-target data-focus-groups="all capabilities">
               {specsSectionState.checkedLead && (
                 <p class="mb-3 text-xs text-zinc-500">{specsSectionState.checkedLead}</p>
@@ -1167,8 +1155,8 @@ applyToolPageResponseRouteState({
                 {operationalDetailsState.showSuiteNavigation && (
                   <SuiteNavigation
                     currentToolId={tool.id}
-                    parentId={parentTool.id}
-                    parentName={parentTool.name}
+                    parentId={routeDataState.parentTool.id}
+                    parentName={routeDataState.parentTool.name}
                   />
                 )}
 
@@ -1301,7 +1289,7 @@ applyToolPageResponseRouteState({
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 class="text-2xl font-semibold text-zinc-100">
-                  {alternativesLabel} to {tool.name}
+                  {routeDataState.alternativesLabel} to {tool.name}
                 </h2>
                 {alternativesIntroText && (
                   <p class="mt-1 text-sm text-zinc-400">{alternativesIntroText}</p>
@@ -1374,17 +1362,17 @@ applyToolPageResponseRouteState({
     <ToolHowWeEvaluateSection
       evaluationDepth={evaluationDepth}
       hasCollectedSources={hasCollectedSources}
-      testedItems={testedItems}
-      notTestedItems={notTestedItems}
+      testedItems={routeDataState.testedItems}
+      notTestedItems={routeDataState.notTestedItems}
     />
 
     {
       routeDataState.showWeTestedIt && (
         <ToolWeTestedSection
-          testedAtLabel={handsOnTestedAtLabel}
-          testEnvironment={handsOnTestEnvironment}
-          testSteps={handsOnTestSteps}
-          testFindings={handsOnTestFindings}
+          testedAtLabel={routeDataState.handsOnTestedAtLabel}
+          testEnvironment={routeDataState.handsOnTestEnvironment}
+          testSteps={routeDataState.handsOnTestSteps}
+          testFindings={routeDataState.handsOnTestFindings}
         />
       )
     }
