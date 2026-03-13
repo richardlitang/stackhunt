@@ -13,12 +13,12 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 5. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 110)
 6. `buildToolPageLensHardLimitRouteState(...)` (frontmatter line 237)
 7. `buildToolPageSpecsCategoryRouteState(...)` (frontmatter line 250)
-8. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 259)
-9. `buildToolPageRuntimeRouteState(...)` (frontmatter line 312)
-10. `buildToolPageChromeRouteStateFromDecisionContext(...)` (frontmatter line 362)
-11. `buildToolPageDecisionRouteState(...)` (frontmatter line 405)
-12. `buildToolPageDecisionPresentationState(...)` (frontmatter line 445)
-13. `applyToolPageRobotsHeader(...)` (frontmatter line 461)
+8. `buildToolPageRuntimeNavigationRouteState(...)` (frontmatter line 259)
+9. `buildToolPageRuntimeRouteState(...)` (frontmatter line 295)
+10. `buildToolPageChromeAssemblyRouteState(...)` (frontmatter line 345)
+11. `buildToolPageDecisionRouteState(...)` (frontmatter line 378)
+12. `buildToolPageDecisionNavigationRouteState(...)` (frontmatter line 415)
+13. `applyToolPageRobotsHeader(...)` (frontmatter line 431)
 
 ## Tool-Page Imports Used by Route
 
@@ -30,11 +30,11 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `deriveToolPageRequestState`                              | `@/lib/tool-page/request-state`                         |
 | `applyToolPageVersionBypassCacheHeaders`                  | `@/lib/tool-page/request-cache`                         |
 | `applyToolPageRobotsHeader`                               | `@/lib/tool-page/response-headers`                      |
-| `buildToolPageRuntimeNavigationStateFromDecisionContext`  | `@/lib/tool-page/runtime-navigation-decision-context`   |
-| `buildToolPageChromeRouteStateFromDecisionContext`        | `@/lib/tool-page/chrome-route-state`                    |
+| `buildToolPageRuntimeNavigationRouteState`                | `@/lib/tool-page/runtime-navigation-route-state`        |
+| `buildToolPageChromeAssemblyRouteState`                   | `@/lib/tool-page/chrome-assembly-route-state`           |
 | `buildToolPagePrepReviewEvidenceStateFromDecisionContext` | `@/lib/tool-page/prep-review-evidence-decision-context` |
 | `buildToolPageDecisionRouteState`                         | `@/lib/tool-page/decision-route-state`                  |
-| `buildToolPageDecisionPresentationState`                  | `@/lib/tool-page/decision-presentation-state`           |
+| `buildToolPageDecisionNavigationRouteState`               | `@/lib/tool-page/decision-navigation-route-state`       |
 | `buildToolPageLensHardLimitRouteState`                    | `@/lib/tool-page/lens-hard-limit-route-state`           |
 | `buildToolPageRuntimeRouteState`                          | `@/lib/tool-page/runtime-route-state`                   |
 | `buildToolPageSpecsCategoryRouteState`                    | `@/lib/tool-page/specs-category-route-state`            |
@@ -66,14 +66,13 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 - no nested `ToolPage*` helper calls detected
 
-### `buildToolPageRuntimeNavigationStateFromDecisionContext`
+### `buildToolPageRuntimeNavigationRouteState`
 
-- `buildToolPageRuntimeViewBundleFromDecisionContext(...)`
-- `buildToolPageNavigationMediaStateFromDecisionContext(...)`
+- `buildToolPageRuntimeNavigationStateFromDecisionContext(...)`
 
-### `buildToolPageChromeRouteStateFromDecisionContext`
+### `buildToolPageChromeAssemblyRouteState`
 
-- `buildToolPageChromeContentStateFromDecisionContext(...)`
+- `buildToolPageChromeRouteStateFromDecisionContext(...)`
 
 ### `buildToolPagePrepReviewEvidenceStateFromDecisionContext`
 
@@ -85,10 +84,9 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `buildToolPageDecisionUtilityState(...)`
 - `buildToolPagePricingScenarioState(...)`
 
-### `buildToolPageDecisionPresentationState`
+### `buildToolPageDecisionNavigationRouteState`
 
-- `buildToolPageWorkflowFitVisibility(...)`
-- `buildToolPageQuickJumpLinksView(...)`
+- `buildToolPageDecisionPresentationState(...)`
 
 ### `buildToolPageLensHardLimitRouteState`
 

@@ -32,20 +32,32 @@ describe('tool page chrome assembly route state', () => {
       userReportedPros: [],
       userReportedCons: [],
       laneOutputs: null,
-      decisionRuntime: {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['decisionRuntime'],
-      sectionFlags: {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['sectionFlags'],
-      evidenceRuntime: {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['evidenceRuntime'],
-      reviewArtifactsState:
-        {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['reviewArtifactsState'],
-      reviewSignalsView:
-        {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['reviewSignalsView'],
-      reviewContextSignals:
-        {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['reviewContextSignals'],
-      qualityState: {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['qualityState'],
+      decisionRuntime: {} as Parameters<
+        typeof buildToolPageChromeAssemblyRouteState
+      >[0]['decisionRuntime'],
+      sectionFlags: {} as Parameters<
+        typeof buildToolPageChromeAssemblyRouteState
+      >[0]['sectionFlags'],
+      evidenceRuntime: {} as Parameters<
+        typeof buildToolPageChromeAssemblyRouteState
+      >[0]['evidenceRuntime'],
+      reviewArtifactsState: {} as Parameters<
+        typeof buildToolPageChromeAssemblyRouteState
+      >[0]['reviewArtifactsState'],
+      reviewSignalsView: {} as Parameters<
+        typeof buildToolPageChromeAssemblyRouteState
+      >[0]['reviewSignalsView'],
+      reviewContextSignals: {} as Parameters<
+        typeof buildToolPageChromeAssemblyRouteState
+      >[0]['reviewContextSignals'],
+      qualityState: {} as Parameters<
+        typeof buildToolPageChromeAssemblyRouteState
+      >[0]['qualityState'],
       lensRuntime: {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['lensRuntime'],
       websiteHostLabel: 'acme.com',
-      runtimeViewBundle:
-        {} as Parameters<typeof buildToolPageChromeAssemblyRouteState>[0]['runtimeViewBundle'],
+      runtimeViewBundle: {} as Parameters<
+        typeof buildToolPageChromeAssemblyRouteState
+      >[0]['runtimeViewBundle'],
       evaluationDepth: null,
     });
 

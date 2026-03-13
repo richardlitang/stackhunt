@@ -25,11 +25,15 @@ interface BuildToolPageChromeAssemblyRouteStateInput {
   canCompareByAlternativeSlug: Parameters<
     typeof buildToolPageChromeRouteStateFromDecisionContext
   >[0]['contentAlternatives']['canCompareByAlternativeSlug'];
-  tool: Parameters<typeof buildToolPageChromeRouteStateFromDecisionContext>[0]['contentAlternatives']['tool'];
+  tool: Parameters<
+    typeof buildToolPageChromeRouteStateFromDecisionContext
+  >[0]['contentAlternatives']['tool'];
   knowledgeCard: Parameters<
     typeof buildToolPageChromeRouteStateFromDecisionContext
   >[0]['contentAlternatives']['knowledgeCard'];
-  parentTool: Parameters<typeof buildToolPageChromeRouteStateFromDecisionContext>[0]['contentAlternatives']['parentTool'];
+  parentTool: Parameters<
+    typeof buildToolPageChromeRouteStateFromDecisionContext
+  >[0]['contentAlternatives']['parentTool'];
   setupTracks: Parameters<
     typeof buildToolPageChromeRouteStateFromDecisionContext
   >[0]['contentAlternatives']['setupTracks'];

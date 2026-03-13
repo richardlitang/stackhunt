@@ -15,14 +15,18 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
   tool: Parameters<
     typeof buildToolPageRuntimeNavigationStateFromDecisionContext
   >[0]['runtime']['tool'] &
-    Parameters<typeof buildToolPageRuntimeNavigationStateFromDecisionContext>[0]['navigation']['media']['tool'];
+    Parameters<
+      typeof buildToolPageRuntimeNavigationStateFromDecisionContext
+    >[0]['navigation']['media']['tool'];
   primaryOffer: Parameters<
     typeof buildToolPageRuntimeNavigationStateFromDecisionContext
   >[0]['runtime']['primaryOffer'];
   faqSchema: Parameters<
     typeof buildToolPageRuntimeNavigationStateFromDecisionContext
   >[0]['runtime']['faqSchema'];
-  toolMeta: Parameters<typeof buildToolPageRuntimeNavigationStateFromDecisionContext>[0]['runtime']['toolMeta'];
+  toolMeta: Parameters<
+    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
+  >[0]['runtime']['toolMeta'];
   canonicalHardLimits: Parameters<
     typeof buildToolPageRuntimeNavigationStateFromDecisionContext
   >[0]['runtime']['canonicalHardLimits'];
@@ -55,8 +59,12 @@ export function buildToolPageRuntimeNavigationRouteState(
   input: BuildToolPageRuntimeNavigationRouteStateInput
 ): {
   runtimeViewBundle: ReturnType<typeof buildToolPageRuntimeViewBundle>;
-  navigationState: ReturnType<typeof buildToolPageRuntimeNavigationStateFromDecisionContext>['navigationState'];
-  ctaMediaState: ReturnType<typeof buildToolPageRuntimeNavigationStateFromDecisionContext>['ctaMediaState'];
+  navigationState: ReturnType<
+    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
+  >['navigationState'];
+  ctaMediaState: ReturnType<
+    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
+  >['ctaMediaState'];
 } {
   return buildToolPageRuntimeNavigationStateFromDecisionContext({
     runtime: {

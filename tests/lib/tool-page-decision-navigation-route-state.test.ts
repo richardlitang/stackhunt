@@ -7,7 +7,9 @@ describe('tool page decision navigation route state', () => {
       navigationState: {
         sourcesSectionState: { hasSources: true },
         lowConfidenceSourcesState: { show: false, title: 'Low-confidence secondary sources (0)' },
-        faqItemsView: [{ question: 'Q1', answer: 'A1', answer_source_url: null, hasSourceLink: false }],
+        faqItemsView: [
+          { question: 'Q1', answer: 'A1', answer_source_url: null, hasSourceLink: false },
+        ],
         updateHistoryState: { hasUpdates: true },
         quickJumpLinks: [{ href: '#verdict', label: 'Verdict', key: 'verdict' }],
       },
