@@ -202,53 +202,6 @@ interface BuildToolPageContentSectionsStateInputFromRouteDataInput {
   };
 }
 
-function buildToolPageContentSectionsStateInputFromRouteData(
-  input: BuildToolPageContentSectionsStateInputFromRouteDataInput
-): Parameters<typeof buildToolPageContentSectionsState>[0] {
-  return buildToolPageContentSectionsStateInputFromRoute({
-    evidenceLinks: input.evidenceLinks,
-    lowConfidenceEvidenceLinks: input.lowConfidenceEvidenceLinks,
-    effectiveEvidencePros: input.effectiveEvidencePros,
-    effectiveEvidenceCons: input.effectiveEvidenceCons,
-    userReportedPros: input.userReportedPros,
-    userReportedCons: input.userReportedCons,
-    laneOutputs: input.laneOutputs,
-    knowledgeCard: input.knowledgeCard,
-    fallbackWebsiteUrl: input.tool.website || null,
-    setupTracks: input.setupTracks,
-    gettingStartedCtaUrl: input.gettingStartedCtaUrl,
-    toolName: input.tool.name,
-    prosConsSourcesCount: input.prosConsSourcesCount,
-    communityCorroborationCount: input.communityCorroborationCount || 0,
-    userSignalClaimsCount: input.userSignalClaimsCount || 0,
-    affiliateOffers: input.tool.affiliate_offers || [],
-    evidenceBasis: input.evidenceBasis,
-    tribalKnowledge: {
-      hasCommunity: input.hasCommunity,
-      userAdvocate: input.userAdvocate,
-      guardedHumanVerdict: input.guardedHumanVerdict,
-      vibe: input.vibe,
-      originStory: input.originStory,
-      idealFor: input.idealFor,
-      guardedAvoidIf: input.guardedAvoidIf,
-      powerTip: input.powerTip,
-      delighters: input.delighters,
-      frustrations: input.frustrations,
-    },
-    displayCategorySpecificData: input.displayCategorySpecificData,
-    vipSpecifics: input.vipSpecifics,
-    categoryName: input.categoryName,
-    specsVerifiedLabel: input.specsVerifiedLabel,
-    longDescription: input.tool.long_description,
-    pricingCheckedLabel: input.pricingCheckedLabel,
-    hasOfficialPricingSource: input.hasOfficialPricingSource,
-    pricingEvidenceCount: input.pricingEvidenceCount,
-    hasSecurity: input.hasSecurity,
-    hasPortability: input.hasPortability,
-    hasParentTool: input.hasParentTool,
-  });
-}
-
 interface BuildToolPageChromeRouteStateFromDecisionContextInput {
   chromeLens: {
     lensRuntime: Parameters<typeof buildToolPageLensViewFields>[0];
@@ -288,131 +241,67 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
     comparableAlternatives: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['comparableAlternatives'];
     canCompareByAlternativeSlug: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['canCompareByAlternativeSlug'];
     tool: {
-      name: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['tool']['name'];
+      name: BuildToolPageContentSectionsStateInputFromRouteDataInput['tool']['name'];
       slug: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['tool']['slug'];
       specs: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['tool']['specs'];
-      website: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['tool']['website'];
-      long_description: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['tool']['long_description'];
-      affiliate_offers: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['tool']['affiliate_offers'];
+      website: BuildToolPageContentSectionsStateInputFromRouteDataInput['tool']['website'];
+      long_description: BuildToolPageContentSectionsStateInputFromRouteDataInput['tool']['long_description'];
+      affiliate_offers: BuildToolPageContentSectionsStateInputFromRouteDataInput['tool']['affiliate_offers'];
     };
-    knowledgeCard: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteData
-    >[0]['knowledgeCard'];
+    knowledgeCard: BuildToolPageContentSectionsStateInputFromRouteDataInput['knowledgeCard'];
     parentTool: unknown;
     setupTracks: unknown;
-    displayCategorySpecificData: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteData
-    >[0]['displayCategorySpecificData'];
-    vipSpecifics: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteData
-    >[0]['vipSpecifics'];
-    userReportedPros: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteData
-    >[0]['userReportedPros'];
-    userReportedCons: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteData
-    >[0]['userReportedCons'];
-    laneOutputs?: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteData
-    >[0]['laneOutputs'];
+    displayCategorySpecificData: BuildToolPageContentSectionsStateInputFromRouteDataInput['displayCategorySpecificData'];
+    vipSpecifics: BuildToolPageContentSectionsStateInputFromRouteDataInput['vipSpecifics'];
+    userReportedPros: BuildToolPageContentSectionsStateInputFromRouteDataInput['userReportedPros'];
+    userReportedCons: BuildToolPageContentSectionsStateInputFromRouteDataInput['userReportedCons'];
+    laneOutputs?: BuildToolPageContentSectionsStateInputFromRouteDataInput['laneOutputs'];
     decisionRuntime: {
       setupSignals: {
-        gettingStartedCtaUrl: Parameters<
-          typeof buildToolPageContentSectionsStateInputFromRouteData
-        >[0]['gettingStartedCtaUrl'];
+        gettingStartedCtaUrl: BuildToolPageContentSectionsStateInputFromRouteDataInput['gettingStartedCtaUrl'];
       };
-      guardedHumanVerdict: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['guardedHumanVerdict'];
-      guardedAvoidIf: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['guardedAvoidIf'];
+      guardedHumanVerdict: BuildToolPageContentSectionsStateInputFromRouteDataInput['guardedHumanVerdict'];
+      guardedAvoidIf: BuildToolPageContentSectionsStateInputFromRouteDataInput['guardedAvoidIf'];
     };
     sectionFlags: {
-      hasCommunity: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['hasCommunity'];
-      hasSecurity: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['hasSecurity'];
-      hasPortability: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['hasPortability'];
+      hasCommunity: BuildToolPageContentSectionsStateInputFromRouteDataInput['hasCommunity'];
+      hasSecurity: BuildToolPageContentSectionsStateInputFromRouteDataInput['hasSecurity'];
+      hasPortability: BuildToolPageContentSectionsStateInputFromRouteDataInput['hasPortability'];
     };
     evidenceRuntime: {
-      effectiveEvidencePros: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['effectiveEvidencePros'];
-      effectiveEvidenceCons: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['effectiveEvidenceCons'];
+      effectiveEvidencePros: BuildToolPageContentSectionsStateInputFromRouteDataInput['effectiveEvidencePros'];
+      effectiveEvidenceCons: BuildToolPageContentSectionsStateInputFromRouteDataInput['effectiveEvidenceCons'];
       collectedSourcesBySection: {
-        pros_cons: Parameters<
-          typeof buildToolPageContentSectionsStateInputFromRouteData
-        >[0]['prosConsSourcesCount'];
+        pros_cons: BuildToolPageContentSectionsStateInputFromRouteDataInput['prosConsSourcesCount'];
       };
-      pricingCheckedLabel: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['pricingCheckedLabel'];
+      pricingCheckedLabel: BuildToolPageContentSectionsStateInputFromRouteDataInput['pricingCheckedLabel'];
       officialPricingSource: { url?: string | null } | null;
       pricingEvidenceLinks: Array<unknown>;
     };
     reviewArtifactsState: {
-      evidenceLinks: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['evidenceLinks'];
-      lowConfidenceEvidenceLinks: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['lowConfidenceEvidenceLinks'];
-      evidenceBasis: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['evidenceBasis'];
+      evidenceLinks: BuildToolPageContentSectionsStateInputFromRouteDataInput['evidenceLinks'];
+      lowConfidenceEvidenceLinks: BuildToolPageContentSectionsStateInputFromRouteDataInput['lowConfidenceEvidenceLinks'];
+      evidenceBasis: BuildToolPageContentSectionsStateInputFromRouteDataInput['evidenceBasis'];
     };
     reviewSignalsView: {
-      specsVerifiedLabel: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['specsVerifiedLabel'];
+      specsVerifiedLabel: BuildToolPageContentSectionsStateInputFromRouteDataInput['specsVerifiedLabel'];
     };
     reviewContextSignals: {
       budgetCostDrivers: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['budgetCostDrivers'];
       budgetOneTimeFees: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['budgetOneTimeFees'];
       budgetCommitmentTerms: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['budgetCommitmentTerms'];
       budgetRoiThreshold: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['budgetRoiThreshold'];
-      userAdvocate: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['userAdvocate'];
-      vibe: Parameters<typeof buildToolPageContentSectionsStateInputFromRouteData>[0]['vibe'];
-      originStory: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['originStory'];
-      idealFor: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['idealFor'];
-      powerTip: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['powerTip'];
-      delighters: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['delighters'];
-      frustrations: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['frustrations'];
+      userAdvocate: BuildToolPageContentSectionsStateInputFromRouteDataInput['userAdvocate'];
+      vibe: BuildToolPageContentSectionsStateInputFromRouteDataInput['vibe'];
+      originStory: BuildToolPageContentSectionsStateInputFromRouteDataInput['originStory'];
+      idealFor: BuildToolPageContentSectionsStateInputFromRouteDataInput['idealFor'];
+      powerTip: BuildToolPageContentSectionsStateInputFromRouteDataInput['powerTip'];
+      delighters: BuildToolPageContentSectionsStateInputFromRouteDataInput['delighters'];
+      frustrations: BuildToolPageContentSectionsStateInputFromRouteDataInput['frustrations'];
     };
     qualityState: {
-      communityCorroborationCount: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['communityCorroborationCount'];
-      userSignalClaimsCount?: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteData
-      >[0]['userSignalClaimsCount'];
+      communityCorroborationCount: BuildToolPageContentSectionsStateInputFromRouteDataInput['communityCorroborationCount'];
+      userSignalClaimsCount?: BuildToolPageContentSectionsStateInputFromRouteDataInput['userSignalClaimsCount'];
     };
   };
 }
@@ -468,7 +357,7 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
     })
   );
   const contentSectionsState = buildToolPageContentSectionsState(
-    buildToolPageContentSectionsStateInputFromRouteData({
+    buildToolPageContentSectionsStateInputFromRoute({
       evidenceLinks: input.contentAlternatives.reviewArtifactsState.evidenceLinks,
       lowConfidenceEvidenceLinks:
         input.contentAlternatives.reviewArtifactsState.lowConfidenceEvidenceLinks,
@@ -478,29 +367,35 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
       userReportedCons: input.contentAlternatives.userReportedCons,
       laneOutputs: input.contentAlternatives.laneOutputs,
       knowledgeCard: input.contentAlternatives.knowledgeCard,
+      fallbackWebsiteUrl: input.contentAlternatives.tool.website || null,
       setupTracks: toToolPageObjectArray(input.contentAlternatives.setupTracks),
       gettingStartedCtaUrl:
         input.contentAlternatives.decisionRuntime.setupSignals.gettingStartedCtaUrl,
+      toolName: input.contentAlternatives.tool.name,
       prosConsSourcesCount:
         input.contentAlternatives.evidenceRuntime.collectedSourcesBySection.pros_cons,
       communityCorroborationCount:
         input.contentAlternatives.qualityState.communityCorroborationCount,
       userSignalClaimsCount: input.contentAlternatives.qualityState.userSignalClaimsCount,
+      affiliateOffers: input.contentAlternatives.tool.affiliate_offers || [],
       evidenceBasis: input.contentAlternatives.reviewArtifactsState.evidenceBasis,
-      hasCommunity: input.contentAlternatives.sectionFlags.hasCommunity,
-      userAdvocate: input.contentAlternatives.reviewContextSignals.userAdvocate,
-      guardedHumanVerdict: input.contentAlternatives.decisionRuntime.guardedHumanVerdict,
-      vibe: input.contentAlternatives.reviewContextSignals.vibe,
-      originStory: input.contentAlternatives.reviewContextSignals.originStory,
-      idealFor: input.contentAlternatives.reviewContextSignals.idealFor,
-      guardedAvoidIf: input.contentAlternatives.decisionRuntime.guardedAvoidIf,
-      powerTip: input.contentAlternatives.reviewContextSignals.powerTip,
-      delighters: input.contentAlternatives.reviewContextSignals.delighters,
-      frustrations: input.contentAlternatives.reviewContextSignals.frustrations,
+      tribalKnowledge: {
+        hasCommunity: input.contentAlternatives.sectionFlags.hasCommunity,
+        userAdvocate: input.contentAlternatives.reviewContextSignals.userAdvocate,
+        guardedHumanVerdict: input.contentAlternatives.decisionRuntime.guardedHumanVerdict,
+        vibe: input.contentAlternatives.reviewContextSignals.vibe,
+        originStory: input.contentAlternatives.reviewContextSignals.originStory,
+        idealFor: input.contentAlternatives.reviewContextSignals.idealFor,
+        guardedAvoidIf: input.contentAlternatives.decisionRuntime.guardedAvoidIf,
+        powerTip: input.contentAlternatives.reviewContextSignals.powerTip,
+        delighters: input.contentAlternatives.reviewContextSignals.delighters,
+        frustrations: input.contentAlternatives.reviewContextSignals.frustrations,
+      },
       displayCategorySpecificData: input.contentAlternatives.displayCategorySpecificData,
       vipSpecifics: input.contentAlternatives.vipSpecifics,
       categoryName: input.contentAlternatives.toolCategoryRef?.name || null,
       specsVerifiedLabel: input.contentAlternatives.reviewSignalsView.specsVerifiedLabel,
+      longDescription: input.contentAlternatives.tool.long_description,
       pricingCheckedLabel: input.contentAlternatives.evidenceRuntime.pricingCheckedLabel,
       hasOfficialPricingSource: Boolean(
         input.contentAlternatives.evidenceRuntime.officialPricingSource
@@ -509,12 +404,6 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
       hasSecurity: input.contentAlternatives.sectionFlags.hasSecurity,
       hasPortability: input.contentAlternatives.sectionFlags.hasPortability,
       hasParentTool: Boolean(input.contentAlternatives.parentTool),
-      tool: {
-        name: input.contentAlternatives.tool.name,
-        website: input.contentAlternatives.tool.website,
-        long_description: input.contentAlternatives.tool.long_description,
-        affiliate_offers: input.contentAlternatives.tool.affiliate_offers,
-      },
     })
   );
   const {
