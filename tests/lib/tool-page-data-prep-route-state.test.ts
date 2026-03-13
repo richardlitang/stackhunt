@@ -1,18 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const { deriveToolPageReviewContextSignalsMock, buildToolPagePrepReviewEvidenceStateFromDecisionContextMock } =
-  vi.hoisted(() => ({
-    deriveToolPageReviewContextSignalsMock: vi.fn(() => ({
-      delighters: ['Fast setup'],
-      frustrations: ['Seat caps'],
-    })),
-    buildToolPagePrepReviewEvidenceStateFromDecisionContextMock: vi.fn(() => ({
-      prepState: { comparableAlternatives: [] },
-      decisionSectionState: { qualityState: {}, faqState: { faqItems: [] } },
-      reviewArtifactsState: { evidenceBasis: [] },
-      evidenceSignalsState: { reviewSignalsView: {}, evidenceRuntime: {} },
-    })),
-  }));
+const {
+  deriveToolPageReviewContextSignalsMock,
+  buildToolPagePrepReviewEvidenceStateFromDecisionContextMock,
+} = vi.hoisted(() => ({
+  deriveToolPageReviewContextSignalsMock: vi.fn(() => ({
+    delighters: ['Fast setup'],
+    frustrations: ['Seat caps'],
+  })),
+  buildToolPagePrepReviewEvidenceStateFromDecisionContextMock: vi.fn(() => ({
+    prepState: { comparableAlternatives: [] },
+    decisionSectionState: { qualityState: {}, faqState: { faqItems: [] } },
+    reviewArtifactsState: { evidenceBasis: [] },
+    evidenceSignalsState: { reviewSignalsView: {}, evidenceRuntime: {} },
+  })),
+}));
 
 vi.mock('@/lib/tool-page/review-context', () => ({
   deriveToolPageReviewContextSignals: deriveToolPageReviewContextSignalsMock,

@@ -13,7 +13,9 @@ export function buildToolPageDecisionEvidenceRouteState(
 ): {
   qualityState: ReturnType<typeof buildToolPageDecisionSectionState>['qualityState'];
   faqItems: ReturnType<typeof buildToolPageDecisionSectionState>['faqState']['faqItems'];
-  pricingTypeLabel: ReturnType<typeof buildToolPageDecisionSectionState>['displaySignals']['pricingTypeLabel'];
+  pricingTypeLabel: ReturnType<
+    typeof buildToolPageDecisionSectionState
+  >['displaySignals']['pricingTypeLabel'];
   decisionRuntime: ReturnType<typeof buildToolPageDecisionSectionState>['decisionRuntime'];
   sectionFlags: ReturnType<typeof buildToolPageDecisionSectionState>['sectionFlags'];
   presentationGates: ReturnType<typeof buildToolPageDecisionSectionState>['presentationGates'];

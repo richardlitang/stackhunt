@@ -41,12 +41,8 @@ export function buildToolPageDataPrepRouteState(
     canonicalFacts,
     setupTracks,
     categorySpecificData,
-    displayCategorySpecificData,
-    websiteHostLabel,
     vipSpecifics,
     reviewContext,
-    userReportedPros,
-    userReportedCons,
   } = coreState;
   const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
   const { prepState, decisionSectionState, reviewArtifactsState, evidenceSignalsState } =

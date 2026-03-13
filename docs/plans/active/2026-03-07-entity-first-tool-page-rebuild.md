@@ -273,6 +273,8 @@ Notes:
 - 2026-03-13 progress: moved decision-route assembly wiring into `buildToolPageDecisionAssemblyRouteState(...)`, centralizing subject/lens/pricing/trust input composition outside the route template.
 - 2026-03-13 progress: moved request parsing and response header wiring into `buildToolPageRequestRouteState(...)` and `applyToolPageResponseRouteState(...)`, removing direct route-level cache/robots header mutation calls.
 - 2026-03-13 progress: moved audience and pricing-evidence input derivation into `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)`, reducing route-local mapping and fallback branching.
+- 2026-03-13 progress: moved `toolPageData` flattening plus prep/evidence input shaping into `buildToolPageDataPrepRouteState(...)`, removing the largest early-frontmatter assembly block from `tool/[slug].astro`.
+- 2026-03-13 progress: moved decision/evidence flattening (`faqItems`, `pricingTypeLabel`, decision runtime, section flags, review signals, evidence runtime) into `buildToolPageDecisionEvidenceRouteState(...)` to reduce route destructuring churn.
 
 ### Phase 3: Page compiler rebuild
 

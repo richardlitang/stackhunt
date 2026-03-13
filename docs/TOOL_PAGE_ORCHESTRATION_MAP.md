@@ -8,34 +8,34 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 1. `buildToolPageRequestRouteState(...)` (frontmatter line 64)
 2. `getToolPageData(...)` (frontmatter line 69)
-3. `deriveToolPageReviewContextSignals(...)` (frontmatter line 106)
-4. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 108)
-5. `buildToolPageLensHardLimitRouteState(...)` (frontmatter line 235)
-6. `buildToolPageSpecsCategoryRouteState(...)` (frontmatter line 248)
-7. `buildToolPageRuntimeNavigationRouteState(...)` (frontmatter line 257)
-8. `buildToolPageRuntimeRouteState(...)` (frontmatter line 293)
-9. `buildToolPageChromeAssemblyRouteState(...)` (frontmatter line 343)
-10. `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)` (frontmatter line 376)
-11. `buildToolPageDecisionNavigationRouteState(...)` (frontmatter line 412)
-12. `applyToolPageResponseRouteState(...)` (frontmatter line 428)
+3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 97)
+4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 112)
+5. `buildToolPageLensHardLimitRouteState(...)` (frontmatter line 180)
+6. `buildToolPageSpecsCategoryRouteState(...)` (frontmatter line 193)
+7. `buildToolPageRuntimeNavigationRouteState(...)` (frontmatter line 202)
+8. `buildToolPageRuntimeRouteState(...)` (frontmatter line 238)
+9. `buildToolPageChromeAssemblyRouteState(...)` (frontmatter line 288)
+10. `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)` (frontmatter line 321)
+11. `buildToolPageDecisionNavigationRouteState(...)` (frontmatter line 357)
+12. `applyToolPageResponseRouteState(...)` (frontmatter line 373)
 
 ## Tool-Page Imports Used by Route
 
-| Symbol                                                    | Module                                                  |
-| --------------------------------------------------------- | ------------------------------------------------------- |
-| `buildToolPagePricingLinkText`                            | `@/lib/tool-page/pricing-link-text`                     |
-| `getToolPageData`                                         | `@/lib/tool-page/data`                                  |
-| `deriveToolPageReviewContextSignals`                      | `@/lib/tool-page/review-context`                        |
-| `buildToolPageRequestRouteState`                          | `@/lib/tool-page/request-response-route-state`          |
-| `applyToolPageResponseRouteState`                         | `@/lib/tool-page/request-response-route-state`          |
-| `buildToolPageRuntimeNavigationRouteState`                | `@/lib/tool-page/runtime-navigation-route-state`        |
-| `buildToolPageChromeAssemblyRouteState`                   | `@/lib/tool-page/chrome-assembly-route-state`           |
-| `buildToolPagePrepReviewEvidenceStateFromDecisionContext` | `@/lib/tool-page/prep-review-evidence-decision-context` |
-| `buildToolPageDecisionAssemblyRouteStateFromRouteContext` | `@/lib/tool-page/decision-assembly-route-state`         |
-| `buildToolPageDecisionNavigationRouteState`               | `@/lib/tool-page/decision-navigation-route-state`       |
-| `buildToolPageLensHardLimitRouteState`                    | `@/lib/tool-page/lens-hard-limit-route-state`           |
-| `buildToolPageRuntimeRouteState`                          | `@/lib/tool-page/runtime-route-state`                   |
-| `buildToolPageSpecsCategoryRouteState`                    | `@/lib/tool-page/specs-category-route-state`            |
+| Symbol                                                    | Module                                            |
+| --------------------------------------------------------- | ------------------------------------------------- |
+| `buildToolPagePricingLinkText`                            | `@/lib/tool-page/pricing-link-text`               |
+| `getToolPageData`                                         | `@/lib/tool-page/data`                            |
+| `buildToolPageDataPrepRouteState`                         | `@/lib/tool-page/data-prep-route-state`           |
+| `buildToolPageDecisionEvidenceRouteState`                 | `@/lib/tool-page/decision-evidence-route-state`   |
+| `buildToolPageRequestRouteState`                          | `@/lib/tool-page/request-response-route-state`    |
+| `applyToolPageResponseRouteState`                         | `@/lib/tool-page/request-response-route-state`    |
+| `buildToolPageRuntimeNavigationRouteState`                | `@/lib/tool-page/runtime-navigation-route-state`  |
+| `buildToolPageChromeAssemblyRouteState`                   | `@/lib/tool-page/chrome-assembly-route-state`     |
+| `buildToolPageDecisionAssemblyRouteStateFromRouteContext` | `@/lib/tool-page/decision-assembly-route-state`   |
+| `buildToolPageDecisionNavigationRouteState`               | `@/lib/tool-page/decision-navigation-route-state` |
+| `buildToolPageLensHardLimitRouteState`                    | `@/lib/tool-page/lens-hard-limit-route-state`     |
+| `buildToolPageRuntimeRouteState`                          | `@/lib/tool-page/runtime-route-state`             |
+| `buildToolPageSpecsCategoryRouteState`                    | `@/lib/tool-page/specs-category-route-state`      |
 
 ## One-Level Helper Dependencies
 
@@ -48,7 +48,12 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `deriveToolPageReviewContentLists(...)`
 - `deriveToolPageCoreState(...)`
 
-### `deriveToolPageReviewContextSignals`
+### `buildToolPageDataPrepRouteState`
+
+- `deriveToolPageReviewContextSignals(...)`
+- `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)`
+
+### `buildToolPageDecisionEvidenceRouteState`
 
 - no nested `ToolPage*` helper calls detected
 
@@ -73,11 +78,6 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 ### `buildToolPageChromeAssemblyRouteState`
 
 - `buildToolPageChromeRouteStateFromDecisionContext(...)`
-
-### `buildToolPagePrepReviewEvidenceStateFromDecisionContext`
-
-- `buildToolPagePrepDecisionStateFromDecisionContext(...)`
-- `buildToolPageReviewEvidenceStateFromDecisionContext(...)`
 
 ### `buildToolPageDecisionAssemblyRouteStateFromRouteContext`
 
