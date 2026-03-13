@@ -49,6 +49,7 @@ import {
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
   buildToolPageRuntimeMidRouteStateFromRouteContext,
+  buildToolPagePageAssemblyRouteStateInputFromRouteContext,
   buildToolPagePageAssemblyRouteStateFromRouteContext,
 } from '@/lib/tool-page';
 
@@ -266,21 +267,17 @@ const {
   videoState,
   videoProps,
   verdictContent,
-} = buildToolPagePageAssemblyRouteStateFromRouteContext({
-  runtime: {
+} = buildToolPagePageAssemblyRouteStateFromRouteContext(
+  buildToolPagePageAssemblyRouteStateInputFromRouteContext({
     runtimeViewBundle,
     firstReview,
     tool,
-    categoryName: tool.category?.name || null,
-  },
-  chrome: {
     activeReviewLens,
     alternativesLabel,
     toolCategoryRef,
     orderedAlternatives,
     comparableAlternatives,
     canCompareByAlternativeSlug,
-    tool,
     knowledgeCard,
     parentTool,
     setupTracks,
@@ -296,36 +293,20 @@ const {
     reviewSignalsView,
     reviewContextSignals,
     qualityState,
-    lensRuntime: runtimeViewBundle.lensRuntime,
     websiteHostLabel,
-    runtimeViewBundle,
     evaluationDepth,
-  },
-  decision: {
-    tool: {
-      name: tool.name,
-      categorySlug: tool.category?.slug || null,
-      pricingType: tool.pricing_type,
-    },
     resolvedSubject: {
       subjectType: resolvedSubject?.subjectType || null,
       entityScope: resolvedSubject?.entityScope || null,
     },
-    activeReviewLens,
-    hasApi: Boolean(knowledgeCard?.integrations?.has_api),
-    hasParentTool: Boolean(parentTool),
     audiences: tags.audiences,
     topLensHardLimit,
     pricingEvidenceLinks,
     officialPricingSourceUrl: officialPricingSource?.url || null,
-    contentConfidenceLabel: qualityState.contentConfidenceLabel,
-  },
-  navigation: {
     navigationState,
-    categorySlug: tool.category?.slug || null,
-  },
-  ctaMediaState,
-});
+    ctaMediaState,
+  })
+);
 applyToolPageResponseRouteState({
   response: Astro.response,
   robotsTag: indexPolicy.robotsTag,
