@@ -459,7 +459,9 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
       comparableAlternatives: toToolPageComparableAlternatives(
         input.contentAlternatives.comparableAlternatives
       ),
-      orderedAlternatives: toToolPageOrderedAlternatives(input.contentAlternatives.orderedAlternatives),
+      orderedAlternatives: toToolPageOrderedAlternatives(
+        input.contentAlternatives.orderedAlternatives
+      ),
       canCompareByAlternativeSlug: input.contentAlternatives.canCompareByAlternativeSlug,
       toolSlug: input.contentAlternatives.tool.slug,
       toolSpecs: toToolPageSpecsRecord(input.contentAlternatives.tool.specs),
