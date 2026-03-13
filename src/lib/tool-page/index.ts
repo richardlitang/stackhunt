@@ -187,7 +187,6 @@ export { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-r
 export { buildToolPageRuntimeViewModelInputFromRoute } from '@/lib/tool-page/runtime-viewmodel-input';
 export { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
 export { buildToolPageRuntimeViewBundleFromPageContext } from '@/lib/tool-page/runtime-view-bundle-context';
-export { buildToolPageRuntimeViewBundleFromDecisionContext } from '@/lib/tool-page/runtime-view-bundle-decision-context';
 export { buildToolPageRuntimeNavigationRouteState } from '@/lib/tool-page/runtime-navigation-route-state';
 export {
   buildToolPageChromeState,

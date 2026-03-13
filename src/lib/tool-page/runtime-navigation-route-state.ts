@@ -7,27 +7,21 @@ import type { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-vie
 import type { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
 import type { ReviewLens } from '@/lib/tool-page/view-model';
 import { buildToolPageNavigationMediaStateFromRouteContext } from '@/lib/tool-page/navigation-media-state';
-import { buildToolPageRuntimeViewBundleFromDecisionContext } from '@/lib/tool-page/runtime-view-bundle-decision-context';
+import { buildToolPageRuntimeViewBundleFromPageContext } from '@/lib/tool-page/runtime-view-bundle-context';
 
 interface BuildToolPageRuntimeNavigationRouteStateInput {
   pathname: string;
   searchParams: URLSearchParams;
   activeReviewLens: ReviewLens;
-  tool: Parameters<
-    typeof buildToolPageRuntimeViewBundleFromDecisionContext
-  >[0]['tool'] &
+  tool: Parameters<typeof buildToolPageRuntimeViewBundleFromPageContext>[0]['tool'] &
     Parameters<typeof buildToolPageNavigationMediaStateFromRouteContext>[0]['media']['tool'];
   primaryOffer: Parameters<
-    typeof buildToolPageRuntimeViewBundleFromDecisionContext
+    typeof buildToolPageRuntimeViewBundleFromPageContext
   >[0]['primaryOffer'];
-  faqSchema: Parameters<
-    typeof buildToolPageRuntimeViewBundleFromDecisionContext
-  >[0]['faqSchema'];
-  toolMeta: Parameters<
-    typeof buildToolPageRuntimeViewBundleFromDecisionContext
-  >[0]['toolMeta'];
+  faqSchema: Parameters<typeof buildToolPageRuntimeViewBundleFromPageContext>[0]['faqSchema'];
+  toolMeta: Parameters<typeof buildToolPageRuntimeViewBundleFromPageContext>[0]['toolMeta'];
   canonicalHardLimits: Parameters<
-    typeof buildToolPageRuntimeViewBundleFromDecisionContext
+    typeof buildToolPageRuntimeViewBundleFromPageContext
   >[0]['canonicalHardLimits'];
   decisionRuntime: ReturnType<typeof buildToolPageDecisionRuntime>;
   sectionFlags: ReturnType<typeof buildToolPageSectionFlags>;
@@ -61,7 +55,7 @@ export function buildToolPageRuntimeNavigationRouteState(
   navigationState: ReturnType<typeof buildToolPageNavigationMediaStateFromRouteContext>['navigationState'];
   ctaMediaState: ReturnType<typeof buildToolPageNavigationMediaStateFromRouteContext>['ctaMediaState'];
 } {
-  const { runtimeViewBundle } = buildToolPageRuntimeViewBundleFromDecisionContext({
+  const { runtimeViewBundle } = buildToolPageRuntimeViewBundleFromPageContext({
     pathname: input.pathname,
     searchParams: input.searchParams,
     activeReviewLens: input.activeReviewLens,
@@ -70,13 +64,45 @@ export function buildToolPageRuntimeNavigationRouteState(
     faqSchema: input.faqSchema,
     toolMeta: input.toolMeta,
     canonicalHardLimits: input.canonicalHardLimits,
-    decisionRuntime: input.decisionRuntime,
-    sectionFlags: input.sectionFlags,
-    evidenceRuntime: input.evidenceRuntime,
-    qualityState: input.qualityState,
-    reviewSignalsView: input.reviewSignalsView,
-    presentationGates: input.presentationGates,
-    evaluationDepth: input.evaluationDepth,
+    signals: {
+      hasVerdict: input.decisionRuntime.hasVerdict,
+      showProceduralVerdict: input.presentationGates.showProceduralVerdict,
+      showPricingSection: input.evidenceRuntime.showPricingSection,
+      hasGettingStarted: input.sectionFlags.hasGettingStarted,
+      hasFeatures: input.sectionFlags.hasFeatures,
+      hasSpecs: input.sectionFlags.hasSpecs,
+      showProceduralSpecs: input.presentationGates.showProceduralSpecs,
+      hasPlatform: input.sectionFlags.hasPlatform,
+      hasAlternatives: input.sectionFlags.hasAlternatives,
+      hasCollectedSources: input.evidenceRuntime.hasCollectedSources,
+      hasSecurity: input.sectionFlags.hasSecurity,
+      decisionSnapshotBestWhen: input.decisionRuntime.decisionSnapshotBestWhen,
+      decisionSnapshotWatchOuts: input.decisionRuntime.decisionSnapshotWatchOuts,
+      decisionSnapshotDifferentiators: input.decisionRuntime.decisionSnapshotDifferentiators,
+      decisionTradeoffSummary: input.evidenceRuntime.decisionTradeoffSummary,
+      baseEvidenceGrade: input.evidenceRuntime.baseEvidenceGrade,
+      avoidIfBullet: input.evidenceRuntime.avoidIfBullet,
+      tradeoffCons: input.evidenceRuntime.tradeoffCons,
+      decisionProofPoints: input.evidenceRuntime.decisionProofPoints,
+      contentConfidenceLevel: input.qualityState.contentConfidenceLevel,
+      hasPricingCheckedProof: input.evidenceRuntime.hasPricingCheckedProof,
+      pricingCheckedLabel: input.evidenceRuntime.pricingCheckedLabel || 'Not confirmed',
+      pricingSourceUrl: input.evidenceRuntime.pricingSourceUrl,
+      specsVerifiedLabel: input.reviewSignalsView.specsVerifiedLabel || 'Not confirmed',
+      officialDocsSourceUrl: input.evidenceRuntime.officialDocsSource?.url || null,
+      communityVerifiedLabel: input.reviewSignalsView.communityVerifiedLabel || 'Not confirmed',
+      officialPricingSourceUrl: input.evidenceRuntime.officialPricingSource?.url || null,
+      gateShouldIndex: input.qualityState.gateShouldIndex,
+      isDraftPage: input.qualityState.isDraftPage,
+      showReviewInProgressBanner: input.qualityState.showReviewInProgressBanner,
+      safeDraftDescription: input.qualityState.safeDraftDescription,
+      decisionSnapshotSummary: input.decisionRuntime.decisionSnapshotSummary,
+      renderVerdictSafe: input.decisionRuntime.renderVerdictSafe,
+      evaluationDepth: input.evaluationDepth,
+      hasFAQ: input.sectionFlags.hasFAQ,
+      faqSchema: input.faqSchema,
+      introLooksSpecSheet: input.decisionRuntime.introLooksSpecSheet,
+    },
   });
   const { navigationState, ctaMediaState } = buildToolPageNavigationMediaStateFromRouteContext({
     navigation: {
