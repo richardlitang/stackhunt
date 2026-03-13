@@ -1,20 +1,33 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const { buildToolPagePageAssemblyRouteStateFromPageContextMock } = vi.hoisted(() => ({
-  buildToolPagePageAssemblyRouteStateFromPageContextMock: vi.fn(() => ({
-    meta: { title: 'Acme review' },
-  })),
+const { buildToolPagePageAssemblyRouteStateInputFromRouteContextMock, buildToolPagePageAssemblyRouteStateFromRouteContextMock } =
+  vi.hoisted(() => ({
+    buildToolPagePageAssemblyRouteStateInputFromRouteContextMock: vi.fn(() => ({
+      runtime: {},
+      chrome: {},
+      decision: {},
+      navigation: {},
+      ctaMediaState: {},
+    })),
+    buildToolPagePageAssemblyRouteStateFromRouteContextMock: vi.fn(() => ({
+      meta: { title: 'Acme review' },
+    })),
+  }));
+
+vi.mock('@/lib/tool-page/page-assembly-route-input', () => ({
+  buildToolPagePageAssemblyRouteStateInputFromRouteContext:
+    buildToolPagePageAssemblyRouteStateInputFromRouteContextMock,
 }));
 
-vi.mock('@/lib/tool-page/page-assembly-route-context', () => ({
-  buildToolPagePageAssemblyRouteStateFromPageContext:
-    buildToolPagePageAssemblyRouteStateFromPageContextMock,
+vi.mock('@/lib/tool-page/page-assembly-route-state', () => ({
+  buildToolPagePageAssemblyRouteStateFromRouteContext:
+    buildToolPagePageAssemblyRouteStateFromRouteContextMock,
 }));
 
 import { buildToolPagePageAssemblyStateFromRouteDataContext } from '@/lib/tool-page/page-assembly-from-route-data-state';
 
 describe('tool page page assembly from route data state', () => {
-  it('maps route-data pipeline state into page-assembly page context', () => {
+  it('maps route-data pipeline state into page-assembly route input and state builders', () => {
     const result = buildToolPagePageAssemblyStateFromRouteDataContext({
       activeReviewLens: 'startup',
       routeDataState: {
@@ -53,7 +66,8 @@ describe('tool page page assembly from route data state', () => {
       } as any,
     });
 
-    expect(buildToolPagePageAssemblyRouteStateFromPageContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPagePageAssemblyRouteStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPagePageAssemblyRouteStateFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(result.meta.title).toBe('Acme review');
   });
 });
