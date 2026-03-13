@@ -43,7 +43,6 @@ export { buildToolPageContentAlternativesStateFromDecisionContext } from '@/lib/
 export { buildToolPageNavigationMediaStateFromDecisionContext } from '@/lib/tool-page/navigation-media-decision-context';
 export { buildToolPageChromeLensStateFromDecisionContext } from '@/lib/tool-page/chrome-lens-decision-context';
 export { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
-export { buildToolPageChromeAssemblyRouteState } from '@/lib/tool-page/chrome-assembly-route-state';
 export { buildToolPageChromeContentStateFromDecisionContext } from '@/lib/tool-page/chrome-content-decision-context';
 export {
   buildToolPageContentSectionsStateInputFromRoute,

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const {
   buildToolPageRuntimeRouteStateMock,
-  buildToolPageChromeAssemblyRouteStateMock,
+  buildToolPageChromeRouteStateFromDecisionContextMock,
   buildToolPageDecisionAssemblyRouteStateMock,
   buildToolPageDecisionNavigationRouteStateMock,
 } = vi.hoisted(() => ({
@@ -25,7 +25,7 @@ const {
       lensHrefs: [],
     },
   })),
-  buildToolPageChromeAssemblyRouteStateMock: vi.fn(() => ({
+  buildToolPageChromeRouteStateFromDecisionContextMock: vi.fn(() => ({
     trustBarProps: { confidence: 'High', pendingCount: 2 },
     prosConsView: { userSignalPros: [{ text: 'Fast' }], userSignalCons: [] },
     workflowFitCards: [{ title: 'Ops fit' }],
@@ -60,8 +60,9 @@ vi.mock('@/lib/tool-page/runtime-route-state', () => ({
   buildToolPageRuntimeRouteState: buildToolPageRuntimeRouteStateMock,
 }));
 
-vi.mock('@/lib/tool-page/chrome-assembly-route-state', () => ({
-  buildToolPageChromeAssemblyRouteState: buildToolPageChromeAssemblyRouteStateMock,
+vi.mock('@/lib/tool-page/chrome-route-state', () => ({
+  buildToolPageChromeRouteStateFromDecisionContext:
+    buildToolPageChromeRouteStateFromDecisionContextMock,
 }));
 
 vi.mock('@/lib/tool-page/decision-route-state', () => ({
@@ -84,32 +85,42 @@ describe('tool page page assembly route state', () => {
         categoryName: null,
       },
       chrome: {
-        activeReviewLens: 'startup',
-        alternativesLabel: 'Alternatives',
-        toolCategoryRef: null,
-        orderedAlternatives: [],
-        comparableAlternatives: [],
-        canCompareByAlternativeSlug: () => false,
-        tool: { name: 'Acme' } as never,
-        knowledgeCard: null,
-        parentTool: null,
-        setupTracks: [],
-        displayCategorySpecificData: null,
-        vipSpecifics: null,
-        userReportedPros: [],
-        userReportedCons: [],
-        laneOutputs: null,
-        decisionRuntime: {} as never,
-        sectionFlags: {} as never,
-        evidenceRuntime: {} as never,
-        reviewArtifactsState: {} as never,
-        reviewSignalsView: {} as never,
-        reviewContextSignals: { hasUserSignals: false, hasCommunitySignals: false },
-        qualityState: {} as never,
-        lensRuntime: {} as never,
-        websiteHostLabel: 'acme.com',
-        runtimeViewBundle: {} as never,
-        evaluationDepth: null,
+        chromeLens: {
+          lensRuntime: {} as never,
+          activeReviewLens: 'startup',
+          toolCategory: null,
+          tool: { name: 'Acme' } as never,
+          websiteHostLabel: 'acme.com',
+          runtimeViewBundle: {} as never,
+          evidenceRuntime: {} as never,
+          reviewSignalsView: {} as never,
+          evaluationDepth: null,
+          qualityState: {} as never,
+        },
+        contentAlternatives: {
+          activeReviewLens: 'startup',
+          alternativesLabel: 'Alternatives',
+          toolCategoryRef: null,
+          orderedAlternatives: [],
+          comparableAlternatives: [],
+          canCompareByAlternativeSlug: () => false,
+          tool: { name: 'Acme' } as never,
+          knowledgeCard: null,
+          parentTool: null,
+          setupTracks: [],
+          displayCategorySpecificData: null,
+          vipSpecifics: null,
+          userReportedPros: [],
+          userReportedCons: [],
+          laneOutputs: null,
+          decisionRuntime: {} as never,
+          sectionFlags: {} as never,
+          evidenceRuntime: {} as never,
+          reviewArtifactsState: {} as never,
+          reviewSignalsView: {} as never,
+          reviewContextSignals: { hasUserSignals: false, hasCommunitySignals: false },
+          qualityState: {} as never,
+        },
       },
       decision: {
         tool: { name: 'Acme', categorySlug: null, pricingType: null },

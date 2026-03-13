@@ -1,4 +1,4 @@
-import { buildToolPageChromeAssemblyRouteState } from '@/lib/tool-page/chrome-assembly-route-state';
+import { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
 import { buildToolPageDecisionNavigationRouteState } from '@/lib/tool-page/decision-navigation-route-state';
 import { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 import { buildToolPageRuntimeRouteState } from '@/lib/tool-page/runtime-route-state';
@@ -6,7 +6,7 @@ import type { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-
 
 interface BuildToolPagePageAssemblyRouteStateFromRouteContextInput {
   runtime: Parameters<typeof buildToolPageRuntimeRouteState>[0];
-  chrome: Parameters<typeof buildToolPageChromeAssemblyRouteState>[0];
+  chrome: Parameters<typeof buildToolPageChromeRouteStateFromDecisionContext>[0];
   decision: Omit<
     Parameters<typeof buildToolPageDecisionRouteState>[0],
     | 'trustBar'
@@ -31,7 +31,7 @@ interface BuildToolPagePageAssemblyRouteStateFromRouteContextInput {
 export function buildToolPagePageAssemblyRouteStateFromRouteContext(
   input: BuildToolPagePageAssemblyRouteStateFromRouteContextInput
 ): ReturnType<typeof buildToolPageRuntimeRouteState> &
-  ReturnType<typeof buildToolPageChromeAssemblyRouteState> &
+  ReturnType<typeof buildToolPageChromeRouteStateFromDecisionContext> &
   ReturnType<typeof buildToolPageDecisionRouteState> &
   ReturnType<typeof buildToolPageDecisionNavigationRouteState> &
   Pick<
@@ -44,7 +44,7 @@ export function buildToolPagePageAssemblyRouteStateFromRouteContext(
     | 'verdictContent'
   > {
   const runtimeState = buildToolPageRuntimeRouteState(input.runtime);
-  const chromeState = buildToolPageChromeAssemblyRouteState(input.chrome);
+  const chromeState = buildToolPageChromeRouteStateFromDecisionContext(input.chrome);
   const firstPricingEvidenceLink = input.decision.pricingEvidenceLinks[0];
   const decisionState = buildToolPageDecisionRouteState({
     tool: input.decision.tool,

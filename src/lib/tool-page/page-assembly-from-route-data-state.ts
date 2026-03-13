@@ -5,7 +5,7 @@ interface BuildToolPagePageAssemblyStateFromRouteDataContextInput {
   routeDataState: ReturnType<typeof buildToolPageRouteDataPipelineStateFromPageContext>;
   activeReviewLens: Parameters<
     typeof buildToolPagePageAssemblyRouteStateFromRouteContext
-  >[0]['chrome']['activeReviewLens'];
+  >[0]['decision']['activeReviewLens'];
 }
 
 function toDecisionConfidenceLabel(level: string): string {
@@ -33,38 +33,48 @@ export function buildToolPagePageAssemblyStateFromRouteDataContext(
       categoryName: routeDataState.tool.category?.name || null,
     },
     chrome: {
-      activeReviewLens: input.activeReviewLens,
-      alternativesLabel: routeDataState.alternativesLabel,
-      toolCategoryRef: routeDataState.toolCategoryRef,
-      orderedAlternatives: routeDataState.orderedAlternatives,
-      comparableAlternatives: routeDataState.comparableAlternatives,
-      canCompareByAlternativeSlug: routeDataState.canCompareByAlternativeSlug,
-      tool: routeDataState.tool as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateFromRouteContext
-      >[0]['chrome']['tool'],
-      knowledgeCard: routeDataState.knowledgeCard,
-      parentTool: routeDataState.parentTool,
-      setupTracks: routeDataState.setupTracks,
-      displayCategorySpecificData: routeDataState.displayCategorySpecificData || null,
-      vipSpecifics: routeDataState.vipSpecifics || null,
-      userReportedPros: routeDataState.userReportedPros,
-      userReportedCons: routeDataState.userReportedCons,
-      laneOutputs: routeDataState.laneOutputs as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateFromRouteContext
-      >[0]['chrome']['laneOutputs'],
-      decisionRuntime: routeDataState.decisionRuntime,
-      sectionFlags: routeDataState.sectionFlags,
-      evidenceRuntime: routeDataState.evidenceRuntime,
-      reviewArtifactsState: routeDataState.reviewArtifactsState,
-      reviewSignalsView: routeDataState.reviewSignalsView,
-      reviewContextSignals: routeDataState.reviewContextSignals,
-      qualityState: routeDataState.qualityState,
-      lensRuntime: routeDataState.runtimeViewBundle.lensRuntime,
-      websiteHostLabel: routeDataState.websiteHostLabel || '',
-      runtimeViewBundle: routeDataState.runtimeViewBundle as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateFromRouteContext
-      >[0]['chrome']['runtimeViewBundle'],
-      evaluationDepth: routeDataState.evaluationDepth,
+      chromeLens: {
+        lensRuntime: routeDataState.runtimeViewBundle.lensRuntime,
+        activeReviewLens: input.activeReviewLens,
+        toolCategory: routeDataState.toolCategoryRef,
+        tool: routeDataState.tool as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['chrome']['chromeLens']['tool'],
+        websiteHostLabel: routeDataState.websiteHostLabel || '',
+        runtimeViewBundle: routeDataState.runtimeViewBundle as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['chrome']['chromeLens']['runtimeViewBundle'],
+        evidenceRuntime: routeDataState.evidenceRuntime,
+        reviewSignalsView: routeDataState.reviewSignalsView,
+        evaluationDepth: routeDataState.evaluationDepth,
+        qualityState: routeDataState.qualityState,
+      },
+      contentAlternatives: {
+        activeReviewLens: input.activeReviewLens,
+        alternativesLabel: routeDataState.alternativesLabel,
+        toolCategoryRef: routeDataState.toolCategoryRef,
+        orderedAlternatives: routeDataState.orderedAlternatives,
+        comparableAlternatives: routeDataState.comparableAlternatives,
+        canCompareByAlternativeSlug: routeDataState.canCompareByAlternativeSlug,
+        tool: routeDataState.tool,
+        knowledgeCard: routeDataState.knowledgeCard,
+        parentTool: routeDataState.parentTool,
+        setupTracks: routeDataState.setupTracks,
+        displayCategorySpecificData: routeDataState.displayCategorySpecificData || null,
+        vipSpecifics: routeDataState.vipSpecifics || null,
+        userReportedPros: routeDataState.userReportedPros,
+        userReportedCons: routeDataState.userReportedCons,
+        laneOutputs: routeDataState.laneOutputs as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['chrome']['contentAlternatives']['laneOutputs'],
+        decisionRuntime: routeDataState.decisionRuntime,
+        sectionFlags: routeDataState.sectionFlags,
+        evidenceRuntime: routeDataState.evidenceRuntime,
+        reviewArtifactsState: routeDataState.reviewArtifactsState,
+        reviewSignalsView: routeDataState.reviewSignalsView,
+        reviewContextSignals: routeDataState.reviewContextSignals,
+        qualityState: routeDataState.qualityState,
+      },
     },
     decision: {
       tool: {
