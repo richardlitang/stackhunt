@@ -93,26 +93,6 @@ interface BuildToolPageAlternativesPricingStateInputFromRouteDataInput {
   };
 }
 
-function buildToolPageAlternativesPricingStateInputFromRouteData(
-  input: BuildToolPageAlternativesPricingStateInputFromRouteDataInput
-): Parameters<typeof buildToolPageAlternativesPricingState>[0] {
-  return buildToolPageAlternativesPricingStateInputFromRoute({
-    activeReviewLens: input.activeReviewLens,
-    budgetCostDrivers: input.budgetCostDrivers,
-    budgetOneTimeFees: input.budgetOneTimeFees,
-    budgetCommitmentTerms: input.budgetCommitmentTerms,
-    budgetRoiThreshold: input.budgetRoiThreshold,
-    toolSpecs: toToolPageSpecsRecord(input.tool.specs),
-    alternativesLabel: input.alternativesLabel,
-    categoryName: input.category?.name || null,
-    toolSlug: input.tool.slug,
-    comparableAlternatives: toToolPageComparableAlternatives(input.comparableAlternatives),
-    category: input.category,
-    orderedAlternatives: toToolPageOrderedAlternatives(input.orderedAlternatives),
-    canCompareByAlternativeSlug: input.canCompareByAlternativeSlug,
-  });
-}
-
 interface BuildToolPageContentSectionsStateInputFromRouteDataInput {
   evidenceLinks: Parameters<
     typeof buildToolPageContentSectionsStateInputFromRoute
@@ -301,34 +281,18 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
     };
   };
   contentAlternatives: {
-    activeReviewLens: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteData
-    >[0]['activeReviewLens'];
-    alternativesLabel: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteData
-    >[0]['alternativesLabel'];
-    toolCategoryRef: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteData
-    >[0]['category'];
-    orderedAlternatives: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteData
-    >[0]['orderedAlternatives'];
-    comparableAlternatives: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteData
-    >[0]['comparableAlternatives'];
-    canCompareByAlternativeSlug: Parameters<
-      typeof buildToolPageAlternativesPricingStateInputFromRouteData
-    >[0]['canCompareByAlternativeSlug'];
+    activeReviewLens: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['activeReviewLens'];
+    alternativesLabel: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['alternativesLabel'];
+    toolCategoryRef: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['category'];
+    orderedAlternatives: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['orderedAlternatives'];
+    comparableAlternatives: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['comparableAlternatives'];
+    canCompareByAlternativeSlug: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['canCompareByAlternativeSlug'];
     tool: {
       name: Parameters<
         typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['tool']['name'];
-      slug: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteData
-      >[0]['tool']['slug'];
-      specs: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteData
-      >[0]['tool']['specs'];
+      slug: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['tool']['slug'];
+      specs: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['tool']['specs'];
       website: Parameters<
         typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['tool']['website'];
@@ -418,18 +382,10 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
       >[0]['specsVerifiedLabel'];
     };
     reviewContextSignals: {
-      budgetCostDrivers: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteData
-      >[0]['budgetCostDrivers'];
-      budgetOneTimeFees: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteData
-      >[0]['budgetOneTimeFees'];
-      budgetCommitmentTerms: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteData
-      >[0]['budgetCommitmentTerms'];
-      budgetRoiThreshold: Parameters<
-        typeof buildToolPageAlternativesPricingStateInputFromRouteData
-      >[0]['budgetRoiThreshold'];
+      budgetCostDrivers: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['budgetCostDrivers'];
+      budgetOneTimeFees: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['budgetOneTimeFees'];
+      budgetCommitmentTerms: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['budgetCommitmentTerms'];
+      budgetRoiThreshold: BuildToolPageAlternativesPricingStateInputFromRouteDataInput['budgetRoiThreshold'];
       userAdvocate: Parameters<
         typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['userAdvocate'];
@@ -491,21 +447,22 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
     })
   );
   const alternativesPricingState = buildToolPageAlternativesPricingState(
-    buildToolPageAlternativesPricingStateInputFromRouteData({
+    buildToolPageAlternativesPricingStateInputFromRoute({
       activeReviewLens: input.contentAlternatives.activeReviewLens,
       budgetCostDrivers: input.contentAlternatives.reviewContextSignals.budgetCostDrivers,
       budgetOneTimeFees: input.contentAlternatives.reviewContextSignals.budgetOneTimeFees,
       budgetCommitmentTerms: input.contentAlternatives.reviewContextSignals.budgetCommitmentTerms,
       budgetRoiThreshold: input.contentAlternatives.reviewContextSignals.budgetRoiThreshold,
       alternativesLabel: input.contentAlternatives.alternativesLabel,
+      categoryName: input.contentAlternatives.toolCategoryRef?.name || null,
       category: input.contentAlternatives.toolCategoryRef,
-      comparableAlternatives: input.contentAlternatives.comparableAlternatives,
-      orderedAlternatives: input.contentAlternatives.orderedAlternatives,
+      comparableAlternatives: toToolPageComparableAlternatives(
+        input.contentAlternatives.comparableAlternatives
+      ),
+      orderedAlternatives: toToolPageOrderedAlternatives(input.contentAlternatives.orderedAlternatives),
       canCompareByAlternativeSlug: input.contentAlternatives.canCompareByAlternativeSlug,
-      tool: {
-        slug: input.contentAlternatives.tool.slug,
-        specs: input.contentAlternatives.tool.specs,
-      },
+      toolSlug: input.contentAlternatives.tool.slug,
+      toolSpecs: toToolPageSpecsRecord(input.contentAlternatives.tool.specs),
     })
   );
   const contentSectionsState = buildToolPageContentSectionsState(
