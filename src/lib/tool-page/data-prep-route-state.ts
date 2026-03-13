@@ -1,6 +1,9 @@
 import { buildToolPageEvidenceSignalsStateInputFromRouteContext } from '@/lib/tool-page/evidence-signals-route-input';
 import { buildToolPageEvidenceSignalsState } from '@/lib/tool-page/evidence-signals-state';
-import { buildToolPagePrepDecisionStateFromRouteContext } from '@/lib/tool-page/prep-decision-state';
+import { buildToolPageDecisionSectionStateInputFromRouteContext } from '@/lib/tool-page/decision-section-route-input';
+import { buildToolPageDecisionSectionState } from '@/lib/tool-page/decision-section-state';
+import { buildToolPagePrepStateInputFromRouteContext } from '@/lib/tool-page/prep-input';
+import { buildToolPagePrepState } from '@/lib/tool-page/prep-state';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 import { buildToolPageReviewArtifactsStateFromRouteContext } from '@/lib/tool-page/review-artifacts-state';
 import type { ToolPageData } from '@/lib/tool-page/data';
@@ -14,8 +17,9 @@ interface BuildToolPageDataPrepRouteStateInput {
 export function buildToolPageDataPrepRouteState(
   input: BuildToolPageDataPrepRouteStateInput
 ): ToolPageData &
-  ToolPageData['coreState'] &
-  ReturnType<typeof buildToolPagePrepDecisionStateFromRouteContext> & {
+  ToolPageData['coreState'] & {
+    prepState: ReturnType<typeof buildToolPagePrepState>;
+    decisionSectionState: ReturnType<typeof buildToolPageDecisionSectionState>;
     reviewArtifactsState: ReturnType<typeof buildToolPageReviewArtifactsStateFromRouteContext>;
     evidenceSignalsState: ReturnType<typeof buildToolPageEvidenceSignalsState>;
     reviewContextSignals: ReturnType<typeof deriveToolPageReviewContextSignals>;
@@ -50,26 +54,34 @@ export function buildToolPageDataPrepRouteState(
     reviewContext,
   } = coreState;
   const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
-  const { prepState, decisionSectionState } = buildToolPagePrepDecisionStateFromRouteContext({
-    prep: {
+  const prepState = buildToolPagePrepState(
+    buildToolPagePrepStateInputFromRouteContext({
       reviewSources: reviewContentLists.sources,
       isEligibleEvidenceUrl: input.isEligibleEvidenceUrl,
       tool,
       orderedAlternatives,
-    },
-    decision: {
+    })
+  );
+  const decisionSectionState = buildToolPageDecisionSectionState(
+    buildToolPageDecisionSectionStateInputFromRouteContext({
       tool,
       firstReview: firstReview as any,
       reviewSelection,
       canonicalFacts: canonicalFacts as any,
+      resolvedSubject,
+      subjectSelectionSuppressed,
+      subjectSelectionReason,
+      laneOutputs,
       knowledgeCard: (knowledgeCard as Record<string, unknown> | null) || null,
       setupTracks: setupTracks as any,
       reviewContentLists: reviewContentLists as any,
       audiences: tags.audiences,
       reviewContextSignals,
       globalCons: globalCons as any,
+      hasEligibleNegativeEvidence: prepState.hasEligibleNegativeEvidence,
       categorySpecificData: (categorySpecificData as Record<string, unknown> | null) || null,
       vipSpecifics: (vipSpecifics as Record<string, unknown> | null) || null,
+      eligibleSignalEvidenceCount: prepState.eligibleSignalEvidenceCount,
       idealFor: reviewContextSignals.idealFor,
       avoidIf: reviewContextSignals.avoidIf,
       delighters: reviewContextSignals.delighters,
@@ -79,8 +91,8 @@ export function buildToolPageDataPrepRouteState(
       hasParentTool: Boolean(parentTool),
       now: input.now || new Date(),
       orderedAlternativesCount: orderedAlternatives?.length || 0,
-    },
-  });
+    })
+  );
   const reviewArtifactsState = buildToolPageReviewArtifactsStateFromRouteContext({
     canonicalFacts: canonicalFacts as any,
     reviewSources: reviewContentLists.sources,

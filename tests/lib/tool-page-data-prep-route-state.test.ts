@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 const {
   deriveToolPageReviewContextSignalsMock,
-  buildToolPagePrepDecisionStateFromRouteContextMock,
+  buildToolPagePrepStateInputFromRouteContextMock,
+  buildToolPagePrepStateMock,
+  buildToolPageDecisionSectionStateInputFromRouteContextMock,
+  buildToolPageDecisionSectionStateMock,
   buildToolPageReviewArtifactsStateFromRouteContextMock,
   buildToolPageEvidenceSignalsStateInputFromRouteContextMock,
   buildToolPageEvidenceSignalsStateMock,
@@ -11,13 +14,17 @@ const {
     delighters: ['Fast setup'],
     frustrations: ['Seat caps'],
   })),
-  buildToolPagePrepDecisionStateFromRouteContextMock: vi.fn(() => ({
-    prepState: { comparableAlternatives: [] },
-    decisionSectionState: {
-      decisionRuntime: { hasPricing: false },
-      qualityState: { sectionStatus: { pricing: 'hide' } },
-      faqState: { faqItems: [] },
-    },
+  buildToolPagePrepStateInputFromRouteContextMock: vi.fn(() => ({})),
+  buildToolPagePrepStateMock: vi.fn(() => ({
+    comparableAlternatives: [],
+    hasEligibleNegativeEvidence: false,
+    eligibleSignalEvidenceCount: 0,
+  })),
+  buildToolPageDecisionSectionStateInputFromRouteContextMock: vi.fn(() => ({})),
+  buildToolPageDecisionSectionStateMock: vi.fn(() => ({
+    decisionRuntime: { hasPricing: false, decisionSnapshotWatchOuts: [] },
+    qualityState: { sectionStatus: { pricing: 'hide' } },
+    faqState: { faqItems: [] },
   })),
   buildToolPageReviewArtifactsStateFromRouteContextMock: vi.fn(() => ({
     evidenceBasis: [],
@@ -36,9 +43,21 @@ vi.mock('@/lib/tool-page/review-context', () => ({
   deriveToolPageReviewContextSignals: deriveToolPageReviewContextSignalsMock,
 }));
 
-vi.mock('@/lib/tool-page/prep-decision-state', () => ({
-  buildToolPagePrepDecisionStateFromRouteContext:
-    buildToolPagePrepDecisionStateFromRouteContextMock,
+vi.mock('@/lib/tool-page/prep-input', () => ({
+  buildToolPagePrepStateInputFromRouteContext: buildToolPagePrepStateInputFromRouteContextMock,
+}));
+
+vi.mock('@/lib/tool-page/prep-state', () => ({
+  buildToolPagePrepState: buildToolPagePrepStateMock,
+}));
+
+vi.mock('@/lib/tool-page/decision-section-route-input', () => ({
+  buildToolPageDecisionSectionStateInputFromRouteContext:
+    buildToolPageDecisionSectionStateInputFromRouteContextMock,
+}));
+
+vi.mock('@/lib/tool-page/decision-section-state', () => ({
+  buildToolPageDecisionSectionState: buildToolPageDecisionSectionStateMock,
 }));
 
 vi.mock('@/lib/tool-page/review-artifacts-state', () => ({
@@ -101,7 +120,10 @@ describe('tool page data prep route state', () => {
     expect(result.tool.name).toBe('Acme');
     expect(result.websiteHostLabel).toBe('acme.com');
     expect(result.reviewContextSignals.delighters).toEqual(['Fast setup']);
-    expect(buildToolPagePrepDecisionStateFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPagePrepStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPagePrepStateMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageDecisionSectionStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageDecisionSectionStateMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageReviewArtifactsStateFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageEvidenceSignalsStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageEvidenceSignalsStateMock).toHaveBeenCalledTimes(1);
