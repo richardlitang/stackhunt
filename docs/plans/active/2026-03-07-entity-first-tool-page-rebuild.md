@@ -284,6 +284,12 @@ Notes:
 - 2026-03-13 progress: added `buildToolPageRoutePipelineStateFromDataPrepContext(...)` to compose decision-evidence, display projection, and runtime-mid assembly in one route call.
 - 2026-03-13 progress: added `buildToolPageRouteDataPipelineStateFromPageContext(...)` so `tool/[slug]` now calls one helper for data-prep + pipeline composition.
 - 2026-03-13 progress: added `buildToolPagePageAssemblyStateFromRouteDataContext(...)` so page-assembly wiring now consumes the combined route-data pipeline state via one wrapper call.
+- 2026-03-13 progress: removed `page-assembly-route-context` pass-through and wired route-data page assembly directly to route input/state builders.
+- 2026-03-13 progress: inlined decision-evidence/display/runtime-mid composition into `buildToolPageRouteDataPipelineStateFromPageContext(...)` and removed `route-pipeline-state`.
+- 2026-03-13 progress: removed `buildToolPageRuntimeMidRouteStateFromRouteContext(...)` and standardized pipeline assembly on `buildToolPageRuntimeMidRouteState(...)` with explicit `runtimeNavigation`.
+- 2026-03-13 progress: collapsed decision assembly to a single entrypoint by removing `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)`.
+- 2026-03-13 progress: removed `page-assembly-route-input` and inlined route-data to page-assembly mapping in `page-assembly-from-route-data-state`.
+- 2026-03-13 progress: removed `decision-assembly-route-state` pass-through and wired page assembly directly to `buildToolPageDecisionRouteState(...)`.
 
 ### Phase 3: Page compiler rebuild
 

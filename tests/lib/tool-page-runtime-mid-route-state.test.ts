@@ -44,9 +44,7 @@ vi.mock('@/lib/tool-page/runtime-navigation-route-state', () => ({
   buildToolPageRuntimeNavigationRouteState: buildToolPageRuntimeNavigationRouteStateMock,
 }));
 
-import {
-  buildToolPageRuntimeMidRouteState,
-} from '@/lib/tool-page/runtime-mid-route-state';
+import { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-route-state';
 
 describe('tool page runtime mid route state', () => {
   it('combines lens, specs, and runtime navigation route slices', () => {

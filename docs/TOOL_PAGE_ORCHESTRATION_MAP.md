@@ -51,8 +51,10 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 ### `buildToolPageRouteDataPipelineStateFromPageContext`
 
 - `buildToolPageDataPrepRouteState(...)`
-- `buildToolPageRoutePipelineStateFromDataPrepContext(...)`
+- `buildToolPageDecisionEvidenceRouteState(...)`
+- `buildToolPageDisplayRouteState(...)`
+- `buildToolPageRuntimeMidRouteState(...)`
 
 ### `buildToolPagePageAssemblyStateFromRouteDataContext`
 
-- `buildToolPagePageAssemblyRouteStateFromPageContext(...)`
+- `buildToolPagePageAssemblyRouteStateFromRouteContext(...)`

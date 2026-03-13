@@ -9,8 +9,12 @@ interface BuildToolPageRouteDataPipelineStateFromPageContextInput {
     typeof buildToolPageDataPrepRouteState
   >[0]['isEligibleEvidenceUrl'];
   activeReviewLens: Parameters<typeof buildToolPageRuntimeMidRouteState>[0]['activeReviewLens'];
-  pathname: Parameters<typeof buildToolPageRuntimeMidRouteState>[0]['runtimeNavigation']['pathname'];
-  searchParams: Parameters<typeof buildToolPageRuntimeMidRouteState>[0]['runtimeNavigation']['searchParams'];
+  pathname: Parameters<
+    typeof buildToolPageRuntimeMidRouteState
+  >[0]['runtimeNavigation']['pathname'];
+  searchParams: Parameters<
+    typeof buildToolPageRuntimeMidRouteState
+  >[0]['runtimeNavigation']['searchParams'];
 }
 
 export function buildToolPageRouteDataPipelineStateFromPageContext(
