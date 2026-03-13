@@ -38,7 +38,6 @@ import ToolWorkflowFitSection from '@/components/ToolWorkflowFitSection.astro';
 import ToolDecisionUtilitySection from '@/components/ToolDecisionUtilitySection.astro';
 import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
-import { generateToolMeta } from '@/lib/seo';
 import { simpleMarkdown } from '@/lib/utils';
 import {
   buildToolPagePricingLinkText,
@@ -48,13 +47,11 @@ import {
   buildToolPageDecisionEvidenceRouteState,
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
-  buildToolPageRuntimeNavigationRouteState,
   buildToolPageChromeAssemblyRouteState,
   buildToolPageDecisionAssemblyRouteStateFromRouteContext,
   buildToolPageDecisionNavigationRouteState,
-  buildToolPageLensHardLimitRouteState,
+  buildToolPageRuntimeMidRouteState,
   buildToolPageRuntimeRouteState,
-  buildToolPageSpecsCategoryRouteState,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
@@ -177,11 +174,9 @@ const {
   collectedSourcesBySection: _collectedSourcesBySection,
   hasCollectedSources,
 } = evidenceRuntime;
-const { lensRankedHardLimits, topLensHardLimit } = buildToolPageLensHardLimitRouteState({
-  canonicalHardLimits,
-  activeReviewLens,
-});
 const {
+  lensRankedHardLimits,
+  topLensHardLimit,
   userSignalSummary,
   topUserReportedClaims,
   communityProsCount,
@@ -190,24 +185,22 @@ const {
   activeLensConstraintCount,
   activeLensIntegrationCount,
   toolCategoryRef,
-} = buildToolPageSpecsCategoryRouteState({
+  runtimeViewBundle,
+  navigationState,
+  ctaMediaState,
+} = buildToolPageRuntimeMidRouteState({
+  activeReviewLens,
+  canonicalHardLimits,
   specs: tool.specs,
   userReportedPros,
   userReportedCons,
-  activeReviewLens,
   category: tool.category,
-});
-const toolMeta = generateToolMeta(tool, tool.review_count);
-const { runtimeViewBundle, navigationState, ctaMediaState } =
-  buildToolPageRuntimeNavigationRouteState({
+  runtimeNavigation: {
     pathname: Astro.url.pathname,
     searchParams: Astro.url.searchParams,
-    activeReviewLens,
     tool,
     primaryOffer,
     faqSchema,
-    toolMeta,
-    canonicalHardLimits,
     decisionRuntime,
     sectionFlags,
     evidenceRuntime,
@@ -221,10 +214,10 @@ const { runtimeViewBundle, navigationState, ctaMediaState } =
     hasStrengths,
     faqItems,
     reviewArtifactsState,
-    category: toolCategoryRef,
     knowledgeCard,
     renderVerdictSafe,
-  });
+  },
+});
 const {
   pageSchemas,
   updateHistoryLabels,
