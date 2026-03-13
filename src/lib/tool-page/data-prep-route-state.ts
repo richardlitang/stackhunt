@@ -2,7 +2,7 @@ import { buildToolPageEvidenceSignalsStateInputFromRouteContext } from '@/lib/to
 import { buildToolPageEvidenceSignalsState } from '@/lib/tool-page/evidence-signals-state';
 import { buildToolPageDecisionSectionStateInputFromRouteContext } from '@/lib/tool-page/decision-section-route-input';
 import { buildToolPageDecisionSectionState } from '@/lib/tool-page/decision-section-state';
-import { buildToolPagePrepStateInputFromRouteContext } from '@/lib/tool-page/prep-input';
+import { buildToolPagePrepStateInputFromRoute } from '@/lib/tool-page/prep-input';
 import { buildToolPagePrepState } from '@/lib/tool-page/prep-state';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 import { buildToolPageReviewArtifactsStateFromRoute } from '@/lib/tool-page/review-artifacts-state';
@@ -55,11 +55,15 @@ export function buildToolPageDataPrepRouteState(
   } = coreState;
   const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
   const prepState = buildToolPagePrepState(
-    buildToolPagePrepStateInputFromRouteContext({
-      reviewSources: reviewContentLists.sources,
+    buildToolPagePrepStateInputFromRoute({
+      reviewSources: reviewContentLists.sources as Array<Record<string, unknown>>,
       isEligibleEvidenceUrl: input.isEligibleEvidenceUrl,
       tool,
-      orderedAlternatives,
+      orderedAlternatives: orderedAlternatives as Array<{
+        slug?: string | null;
+        metadata?: unknown;
+        item_category_links?: unknown;
+      }> | null,
     })
   );
   const decisionSectionState = buildToolPageDecisionSectionState(

@@ -131,10 +131,7 @@ export {
   buildToolPagePrepState,
   buildToolPagePrepStateFromRoute,
 } from '@/lib/tool-page/prep-state';
-export {
-  buildToolPagePrepStateInputFromRoute,
-  buildToolPagePrepStateInputFromRouteContext,
-} from '@/lib/tool-page/prep-input';
+export { buildToolPagePrepStateInputFromRoute } from '@/lib/tool-page/prep-input';
 export { buildToolPagePlatformSectionState } from '@/lib/tool-page/platform-section';
 export { buildToolPageProsConsView } from '@/lib/tool-page/pros-cons-view';
 export { buildToolPageFaqState, filterToolPageFaqItems } from '@/lib/tool-page/faq';

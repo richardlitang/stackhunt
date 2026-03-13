@@ -305,6 +305,7 @@ Notes:
 - 2026-03-13 progress: removed `prep-decision-state` and wired `buildToolPageDataPrepRouteState(...)` directly to prep and decision-section canonical builders.
 - 2026-03-13 progress: removed `buildToolPageRuntimeAssemblyInputBundleFromRouteContext(...)` and wired page-context runtime assembly directly to `buildToolPageRuntimeAssemblyInputBundleFromRoute(...)`.
 - 2026-03-13 progress: removed `buildToolPageReviewArtifactsStateFromRouteContext(...)` and wired data prep directly to `buildToolPageReviewArtifactsStateFromRoute(...)`.
+- 2026-03-13 progress: removed `buildToolPagePrepStateInputFromRouteContext(...)` and wired data prep directly to `buildToolPagePrepStateInputFromRoute(...)`.
 
 ### Phase 3: Page compiler rebuild
 

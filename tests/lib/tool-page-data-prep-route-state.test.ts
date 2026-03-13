@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const {
   deriveToolPageReviewContextSignalsMock,
-  buildToolPagePrepStateInputFromRouteContextMock,
+  buildToolPagePrepStateInputFromRouteMock,
   buildToolPagePrepStateMock,
   buildToolPageDecisionSectionStateInputFromRouteContextMock,
   buildToolPageDecisionSectionStateMock,
@@ -14,7 +14,7 @@ const {
     delighters: ['Fast setup'],
     frustrations: ['Seat caps'],
   })),
-  buildToolPagePrepStateInputFromRouteContextMock: vi.fn(() => ({})),
+  buildToolPagePrepStateInputFromRouteMock: vi.fn(() => ({})),
   buildToolPagePrepStateMock: vi.fn(() => ({
     comparableAlternatives: [],
     hasEligibleNegativeEvidence: false,
@@ -44,7 +44,7 @@ vi.mock('@/lib/tool-page/review-context', () => ({
 }));
 
 vi.mock('@/lib/tool-page/prep-input', () => ({
-  buildToolPagePrepStateInputFromRouteContext: buildToolPagePrepStateInputFromRouteContextMock,
+  buildToolPagePrepStateInputFromRoute: buildToolPagePrepStateInputFromRouteMock,
 }));
 
 vi.mock('@/lib/tool-page/prep-state', () => ({
@@ -119,7 +119,7 @@ describe('tool page data prep route state', () => {
     expect(result.tool.name).toBe('Acme');
     expect(result.websiteHostLabel).toBe('acme.com');
     expect(result.reviewContextSignals.delighters).toEqual(['Fast setup']);
-    expect(buildToolPagePrepStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPagePrepStateInputFromRouteMock).toHaveBeenCalledTimes(1);
     expect(buildToolPagePrepStateMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageDecisionSectionStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageDecisionSectionStateMock).toHaveBeenCalledTimes(1);
