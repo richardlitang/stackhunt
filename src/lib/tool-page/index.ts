@@ -158,7 +158,6 @@ export { buildToolPageRuntimeAssemblyInputFromRoute } from '@/lib/tool-page/runt
 export {
   buildToolPageRuntimeAssemblyInputBundleFromRoute,
   buildToolPageRuntimeAssemblyInputBundleFromPageContext,
-  buildToolPageRuntimeAssemblyInputBundleFromRouteContext,
 } from '@/lib/tool-page/runtime-assembly-route-input';
 export { buildToolPageRuntimeLensContentInputFromRoute } from '@/lib/tool-page/runtime-lens-content-input';
 export { buildToolPageRuntimeMetaSignalsInputFromRoute } from '@/lib/tool-page/runtime-meta-signals-input';

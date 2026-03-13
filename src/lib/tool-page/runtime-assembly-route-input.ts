@@ -88,30 +88,6 @@ interface BuildToolPageRuntimeAssemblyInputBundleFromRouteInput {
   };
 }
 
-interface BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput {
-  pathname: string;
-  searchParams: URLSearchParams;
-  activeReviewLens: BuildToolPageRuntimeParamsInput['request']['activeReviewLens'];
-  tool: {
-    name: string;
-    verdict: string | null;
-  };
-  toolMeta: {
-    title: string;
-    description: string;
-    canonical: string;
-    ogImage?: string;
-    ogType?: 'website' | 'article';
-  };
-  canonicalHardLimits: BuildToolPageRuntimeParamsInput['lens']['canonicalHardLimits'];
-  viewModel: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['viewModel'];
-  lensContent: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['lensContent'];
-  trust: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['trust'];
-  metaSignals: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['metaSignals'];
-  schemas: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['schemas'];
-  updateHistory: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['updateHistory'];
-}
-
 interface BuildToolPageRuntimeAssemblyInputBundleFromPageContextInput {
   pathname: string;
   searchParams: URLSearchParams;
@@ -119,13 +95,13 @@ interface BuildToolPageRuntimeAssemblyInputBundleFromPageContextInput {
   tool: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['schemas']['tool'];
   primaryOffer: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['schemas']['primaryOffer'];
   faqSchema: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['schemas']['faqSchema'];
-  toolMeta: BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput['toolMeta'];
-  canonicalHardLimits: BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput['canonicalHardLimits'];
-  viewModel: BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput['viewModel'];
-  lensContent: BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput['lensContent'];
-  trust: BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput['trust'];
-  metaSignals: BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput['metaSignals'];
-  updateHistory: BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput['updateHistory'];
+  toolMeta: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['toolMeta'];
+  canonicalHardLimits: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['canonicalHardLimits'];
+  viewModel: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['viewModel'];
+  lensContent: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['lensContent'];
+  trust: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['trust'];
+  metaSignals: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['metaSignals'];
+  updateHistory: BuildToolPageRuntimeAssemblyInputBundleFromRouteInput['updateHistory'];
 }
 
 export function buildToolPageRuntimeAssemblyInputBundleFromRoute(
@@ -153,38 +129,16 @@ export function buildToolPageRuntimeAssemblyInputBundleFromRoute(
   });
 }
 
-export function buildToolPageRuntimeAssemblyInputBundleFromRouteContext(
-  input: BuildToolPageRuntimeAssemblyInputBundleFromRouteContextInput
+export function buildToolPageRuntimeAssemblyInputBundleFromPageContext(
+  input: BuildToolPageRuntimeAssemblyInputBundleFromPageContextInput
 ): ReturnType<typeof buildToolPageRuntimeAssemblyInputFromRoute> {
+  const toolVerdict = typeof input.tool.verdict === 'string' ? input.tool.verdict : null;
   return buildToolPageRuntimeAssemblyInputBundleFromRoute({
     pathname: input.pathname,
     searchParams: input.searchParams,
     activeReviewLens: input.activeReviewLens,
     toolName: input.tool.name,
-    toolVerdict: input.tool.verdict,
-    toolMeta: input.toolMeta,
-    canonicalHardLimits: input.canonicalHardLimits,
-    viewModel: input.viewModel,
-    lensContent: input.lensContent,
-    trust: input.trust,
-    metaSignals: input.metaSignals,
-    schemas: input.schemas,
-    updateHistory: input.updateHistory,
-  });
-}
-
-export function buildToolPageRuntimeAssemblyInputBundleFromPageContext(
-  input: BuildToolPageRuntimeAssemblyInputBundleFromPageContextInput
-): ReturnType<typeof buildToolPageRuntimeAssemblyInputFromRoute> {
-  const toolVerdict = typeof input.tool.verdict === 'string' ? input.tool.verdict : null;
-  return buildToolPageRuntimeAssemblyInputBundleFromRouteContext({
-    pathname: input.pathname,
-    searchParams: input.searchParams,
-    activeReviewLens: input.activeReviewLens,
-    tool: {
-      name: input.tool.name,
-      verdict: toolVerdict,
-    },
+    toolVerdict,
     toolMeta: input.toolMeta,
     canonicalHardLimits: input.canonicalHardLimits,
     viewModel: input.viewModel,
