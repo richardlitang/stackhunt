@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 const {
   deriveToolPageReviewContextSignalsMock,
   buildToolPagePrepDecisionStateFromRouteContextMock,
-  buildToolPageReviewEvidenceStateFromDecisionContextMock,
+  buildToolPageReviewEvidenceStateFromRouteContextMock,
 } = vi.hoisted(() => ({
   deriveToolPageReviewContextSignalsMock: vi.fn(() => ({
     delighters: ['Fast setup'],
@@ -13,11 +13,11 @@ const {
     prepState: { comparableAlternatives: [] },
     decisionSectionState: {
       decisionRuntime: { hasPricing: false },
-      qualityState: {},
+      qualityState: { sectionStatus: { pricing: 'hide' } },
       faqState: { faqItems: [] },
     },
   })),
-  buildToolPageReviewEvidenceStateFromDecisionContextMock: vi.fn(() => ({
+  buildToolPageReviewEvidenceStateFromRouteContextMock: vi.fn(() => ({
     reviewArtifactsState: { evidenceBasis: [] },
     evidenceSignalsState: { reviewSignalsView: {}, evidenceRuntime: {} },
   })),
@@ -32,9 +32,9 @@ vi.mock('@/lib/tool-page/prep-decision-state', () => ({
     buildToolPagePrepDecisionStateFromRouteContextMock,
 }));
 
-vi.mock('@/lib/tool-page/review-evidence-decision-context', () => ({
-  buildToolPageReviewEvidenceStateFromDecisionContext:
-    buildToolPageReviewEvidenceStateFromDecisionContextMock,
+vi.mock('@/lib/tool-page/review-evidence-state', () => ({
+  buildToolPageReviewEvidenceStateFromRouteContext:
+    buildToolPageReviewEvidenceStateFromRouteContextMock,
 }));
 
 import { buildToolPageDataPrepRouteState } from '@/lib/tool-page/data-prep-route-state';
@@ -84,6 +84,6 @@ describe('tool page data prep route state', () => {
     expect(result.websiteHostLabel).toBe('acme.com');
     expect(result.reviewContextSignals.delighters).toEqual(['Fast setup']);
     expect(buildToolPagePrepDecisionStateFromRouteContextMock).toHaveBeenCalledTimes(1);
-    expect(buildToolPageReviewEvidenceStateFromDecisionContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageReviewEvidenceStateFromRouteContextMock).toHaveBeenCalledTimes(1);
   });
 });

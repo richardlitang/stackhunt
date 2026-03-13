@@ -1,6 +1,6 @@
 import { buildToolPagePrepDecisionStateFromRouteContext } from '@/lib/tool-page/prep-decision-state';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
-import { buildToolPageReviewEvidenceStateFromDecisionContext } from '@/lib/tool-page/review-evidence-decision-context';
+import { buildToolPageReviewEvidenceStateFromRouteContext } from '@/lib/tool-page/review-evidence-state';
 import type { ToolPageData } from '@/lib/tool-page/data';
 
 interface BuildToolPageDataPrepRouteStateInput {
@@ -14,7 +14,7 @@ export function buildToolPageDataPrepRouteState(
 ): ToolPageData &
   ToolPageData['coreState'] &
   ReturnType<typeof buildToolPagePrepDecisionStateFromRouteContext> &
-  ReturnType<typeof buildToolPageReviewEvidenceStateFromDecisionContext> & {
+  ReturnType<typeof buildToolPageReviewEvidenceStateFromRouteContext> & {
     reviewContextSignals: ReturnType<typeof deriveToolPageReviewContextSignals>;
   } {
   const {
@@ -78,27 +78,36 @@ export function buildToolPageDataPrepRouteState(
       orderedAlternativesCount: orderedAlternatives?.length || 0,
     },
   });
-  const { reviewArtifactsState, evidenceSignalsState } =
-    buildToolPageReviewEvidenceStateFromDecisionContext({
+  const { reviewArtifactsState, evidenceSignalsState } = buildToolPageReviewEvidenceStateFromRouteContext(
+    {
       reviewArtifacts: {
         canonicalFacts: canonicalFacts as any,
         reviewSources: reviewContentLists.sources,
         tool,
       },
-      evidenceContext: {
+      evidenceSignals: {
         firstReview: firstReview as any,
         toolLastVerifiedAt: tool.last_verified_at || null,
         toolPricingVerifiedAt: tool.pricing_verified_at || null,
         extractionDate: knowledgeCard?.meta?.extraction_date,
         constraints: constraints as any,
         isEligibleEvidenceUrl: input.isEligibleEvidenceUrl,
+        isDisallowedConClaim: decisionSectionState.decisionRuntime.isDisallowedConClaim,
         reviewPros: reviewContentLists.pros as any,
         reviewCons: reviewContentLists.cons as any,
         globalPros: Array.isArray(globalPros) ? globalPros : [],
         globalCons: Array.isArray(globalCons) ? globalCons : [],
         toEvidenceBullet: prepState.toEvidenceBullet,
+        decisionSnapshotWatchOuts: decisionSectionState.decisionRuntime.decisionSnapshotWatchOuts,
+        decisionTradeoffSummaryInitial:
+          decisionSectionState.decisionRuntime.decisionTradeoffSummaryInitial,
         hasPricing: decisionSectionState.decisionRuntime.hasPricing,
         knowledgeCard,
+        sectionPricingStatus: decisionSectionState.qualityState.sectionStatus.pricing || 'hide',
+        budgetCostDrivers: reviewContextSignals.budgetCostDrivers,
+        budgetOneTimeFees: reviewContextSignals.budgetOneTimeFees,
+        budgetCommitmentTerms: reviewContextSignals.budgetCommitmentTerms,
+        budgetRoiThreshold: reviewContextSignals.budgetRoiThreshold,
         faqItems: decisionSectionState.faqState.faqItems.map((item) => ({
           question: typeof item.question === 'string' ? item.question : '',
           answer: typeof item.answer === 'string' ? item.answer : '',
@@ -107,12 +116,10 @@ export function buildToolPageDataPrepRouteState(
               ? item.answer_source_url
               : null,
         })),
+        buildEvidenceBulletV2: prepState.buildEvidenceBulletV2,
       },
-      reviewContextSignals,
-      prepState,
-      decisionRuntime: decisionSectionState.decisionRuntime,
-      qualityState: decisionSectionState.qualityState,
-    });
+    }
+  );
 
   return {
     tool,
