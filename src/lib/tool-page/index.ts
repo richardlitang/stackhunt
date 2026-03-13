@@ -196,6 +196,7 @@ export {
   buildToolPageNavigationStateInputFromRouteContext,
 } from '@/lib/tool-page/navigation-input';
 export { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
+export { buildToolPageLensHardLimitRouteState } from '@/lib/tool-page/lens-hard-limit-route-state';
 export { buildToolPageLensPriorityLead } from '@/lib/tool-page/lens-priority-copy';
 export { buildToolPageLowConfidenceSourcesState } from '@/lib/tool-page/low-confidence-sources';
 export { buildToolPageSectionRuntime } from '@/lib/tool-page/section-runtime';

@@ -54,9 +54,9 @@ import {
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
   buildToolPageDecisionRouteState,
   buildToolPageDecisionPresentationState,
+  buildToolPageLensHardLimitRouteState,
   buildToolPageRuntimeRouteState,
   buildToolPageSpecsSignals,
-  rankConstraintsForLens,
 } from '@/lib/tool-page';
 
 // SSR: Compute live, cache at edge (s-maxage=3600, stale-while-revalidate=604800)
@@ -235,8 +235,10 @@ const {
   collectedSourcesBySection: _collectedSourcesBySection,
   hasCollectedSources,
 } = evidenceRuntime;
-const lensRankedHardLimits = rankConstraintsForLens(canonicalHardLimits, activeReviewLens);
-const topLensHardLimit = lensRankedHardLimits[0] || null;
+const { topLensHardLimit } = buildToolPageLensHardLimitRouteState({
+  canonicalHardLimits,
+  activeReviewLens,
+});
 const {
   userSignalSummary,
   topUserReportedClaims,
