@@ -6,7 +6,7 @@ import type { buildToolPageReviewSignalsView } from '@/lib/tool-page/review-sign
 import type { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
 import type { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
 import type { ReviewLens } from '@/lib/tool-page/view-model';
-import { buildToolPageNavigationMediaStateFromDecisionContext } from '@/lib/tool-page/navigation-media-decision-context';
+import { buildToolPageNavigationMediaStateFromRouteContext } from '@/lib/tool-page/navigation-media-state';
 import { buildToolPageRuntimeViewBundleFromDecisionContext } from '@/lib/tool-page/runtime-view-bundle-decision-context';
 
 interface BuildToolPageRuntimeNavigationRouteStateInput {
@@ -16,7 +16,7 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
   tool: Parameters<
     typeof buildToolPageRuntimeViewBundleFromDecisionContext
   >[0]['tool'] &
-    Parameters<typeof buildToolPageNavigationMediaStateFromDecisionContext>[0]['media']['tool'];
+    Parameters<typeof buildToolPageNavigationMediaStateFromRouteContext>[0]['media']['tool'];
   primaryOffer: Parameters<
     typeof buildToolPageRuntimeViewBundleFromDecisionContext
   >[0]['primaryOffer'];
@@ -46,10 +46,10 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
     'evidenceBasis' | 'lowConfidenceEvidenceLinks'
   >;
   category: Parameters<
-    typeof buildToolPageNavigationMediaStateFromDecisionContext
+    typeof buildToolPageNavigationMediaStateFromRouteContext
   >[0]['media']['category'];
   knowledgeCard: Parameters<
-    typeof buildToolPageNavigationMediaStateFromDecisionContext
+    typeof buildToolPageNavigationMediaStateFromRouteContext
   >[0]['media']['knowledgeCard'];
   renderVerdictSafe: string | null;
 }
@@ -58,12 +58,8 @@ export function buildToolPageRuntimeNavigationRouteState(
   input: BuildToolPageRuntimeNavigationRouteStateInput
 ): {
   runtimeViewBundle: ReturnType<typeof buildToolPageRuntimeViewBundle>;
-  navigationState: ReturnType<
-    typeof buildToolPageNavigationMediaStateFromDecisionContext
-  >['navigationState'];
-  ctaMediaState: ReturnType<
-    typeof buildToolPageNavigationMediaStateFromDecisionContext
-  >['ctaMediaState'];
+  navigationState: ReturnType<typeof buildToolPageNavigationMediaStateFromRouteContext>['navigationState'];
+  ctaMediaState: ReturnType<typeof buildToolPageNavigationMediaStateFromRouteContext>['ctaMediaState'];
 } {
   const { runtimeViewBundle } = buildToolPageRuntimeViewBundleFromDecisionContext({
     pathname: input.pathname,
@@ -82,17 +78,24 @@ export function buildToolPageRuntimeNavigationRouteState(
     presentationGates: input.presentationGates,
     evaluationDepth: input.evaluationDepth,
   });
-  const { navigationState, ctaMediaState } = buildToolPageNavigationMediaStateFromDecisionContext({
-    decisionRuntime: input.decisionRuntime,
-    sectionFlags: input.sectionFlags,
-    presentationGates: input.presentationGates,
-    evidenceSignals: {
+  const { navigationState, ctaMediaState } = buildToolPageNavigationMediaStateFromRouteContext({
+    navigation: {
+      hasVerdict: input.decisionRuntime.hasVerdict,
+      showProceduralVerdict: input.presentationGates.showProceduralVerdict,
+      hasGettingStarted: input.sectionFlags.hasGettingStarted,
       showPricingSection: input.evidenceRuntime.showPricingSection,
       hasStrengths: input.hasStrengths,
+      hasFeatures: input.sectionFlags.hasFeatures,
+      hasSpecs: input.sectionFlags.hasSpecs,
+      showProceduralSpecs: input.presentationGates.showProceduralSpecs,
+      hasPlatform: input.sectionFlags.hasPlatform,
+      hasFAQ: input.sectionFlags.hasFAQ,
+      hasAlternatives: input.sectionFlags.hasAlternatives,
+      faqItems: input.faqItems,
+      evidenceBasis: input.reviewArtifactsState.evidenceBasis,
+      lowConfidenceEvidenceLinks: input.reviewArtifactsState.lowConfidenceEvidenceLinks,
+      updateHistoryEntries: runtimeViewBundle.updateHistoryEntries,
     },
-    faqItems: input.faqItems,
-    reviewArtifactsState: input.reviewArtifactsState,
-    updateHistoryEntries: runtimeViewBundle.updateHistoryEntries,
     media: {
       tool: input.tool,
       category: input.category,
