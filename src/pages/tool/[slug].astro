@@ -54,7 +54,7 @@ import {
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
   buildToolPageDecisionRouteState,
   buildToolPageDecisionPresentationState,
-  buildToolPagePageSchemaRouteState,
+  buildToolPageRuntimeRouteState,
   buildToolPageSpecsSignals,
   rankConstraintsForLens,
 } from '@/lib/tool-page';
@@ -298,7 +298,7 @@ const { runtimeViewBundle, navigationState, ctaMediaState } =
     },
   });
 const {
-  schemas,
+  pageSchemas,
   updateHistoryLabels,
   meta,
   indexPolicy,
@@ -307,9 +307,8 @@ const {
   lensLabelMap,
   sourceAriaLabel,
   lensRuntime,
-} = runtimeViewBundle;
-const { pageSchemas } = buildToolPagePageSchemaRouteState({
-  schemas,
+} = buildToolPageRuntimeRouteState({
+  runtimeViewBundle,
   firstReview,
   tool,
   categoryName: tool.category?.name || null,

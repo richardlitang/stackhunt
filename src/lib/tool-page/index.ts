@@ -176,6 +176,7 @@ export { buildToolPageRuntimeContext } from '@/lib/tool-page/runtime-context';
 export { buildToolPageRuntimeInput } from '@/lib/tool-page/runtime-input';
 export { buildToolPageRuntimeInputParams } from '@/lib/tool-page/runtime-params';
 export { buildToolPageRuntimeParamsContext } from '@/lib/tool-page/runtime-params-context';
+export { buildToolPageRuntimeRouteState } from '@/lib/tool-page/runtime-route-state';
 export { buildToolPageRuntimeViewModelInputFromRoute } from '@/lib/tool-page/runtime-viewmodel-input';
 export { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
 export { buildToolPageRuntimeViewBundleFromPageContext } from '@/lib/tool-page/runtime-view-bundle-context';
