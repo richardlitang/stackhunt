@@ -52,7 +52,7 @@ import {
   buildToolPageChromeAssemblyRouteState,
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
   buildToolPageDecisionRouteState,
-  buildToolPageDecisionPresentationState,
+  buildToolPageDecisionNavigationRouteState,
   buildToolPageLensHardLimitRouteState,
   buildToolPageRuntimeRouteState,
   buildToolPageSpecsCategoryRouteState,
@@ -409,20 +409,18 @@ const {
   faqItemsView,
   updateHistoryState,
   quickJumpLinks,
-} = navigationState;
-const {
   showWorkflowFitSection,
   shouldShowDecisionUtilitySection,
   shouldShowPracticalOutcomes,
   hasUserSignalProsCons,
   quickJumpLinksView,
-} = buildToolPageDecisionPresentationState({
+} = buildToolPageDecisionNavigationRouteState({
+  navigationState,
   categorySlug: tool.category?.slug || null,
   workflowFitCardsCount: workflowFitCards.length,
   workflowFitHighlightsCount: workflowFitHighlights.length,
   decisionUtilityState,
   prosConsView,
-  quickJumpLinks,
 });
 const {
   compareButtonProps,

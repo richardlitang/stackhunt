@@ -70,6 +70,7 @@ export { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';
 export { buildToolPageDecisionRuntime } from '@/lib/tool-page/decision-runtime';
 export { buildToolPageDecisionRuntimeInput } from '@/lib/tool-page/decision-runtime-input';
 export { buildToolPageDecisionPresentationState } from '@/lib/tool-page/decision-presentation-state';
+export { buildToolPageDecisionNavigationRouteState } from '@/lib/tool-page/decision-navigation-route-state';
 export { buildToolPageDisplaySignals } from '@/lib/tool-page/display-signals';
 export {
   buildToolPageFallbackDecisionSummary,
