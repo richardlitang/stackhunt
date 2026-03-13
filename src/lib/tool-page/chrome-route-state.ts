@@ -301,9 +301,7 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
     activeReviewLens: Parameters<
       typeof buildToolPageChromeStateInputFromRouteData
     >[0]['activeReviewLens'];
-    toolCategory: Parameters<
-      typeof buildToolPageChromeStateInputFromRouteData
-    >[0]['toolCategory'];
+    toolCategory: Parameters<typeof buildToolPageChromeStateInputFromRouteData>[0]['toolCategory'];
     tool: Parameters<typeof buildToolPageChromeStateInputFromRouteData>[0]['tool'];
     websiteHostLabel: Parameters<
       typeof buildToolPageChromeStateInputFromRouteData
@@ -315,9 +313,7 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
       pendingVerificationCount: Parameters<
         typeof buildToolPageChromeStateInputFromRouteData
       >[0]['pendingVerificationCount'];
-      trustStatus: Parameters<
-        typeof buildToolPageChromeStateInputFromRouteData
-      >[0]['trustStatus'];
+      trustStatus: Parameters<typeof buildToolPageChromeStateInputFromRouteData>[0]['trustStatus'];
       lensLabelMap: Parameters<
         typeof buildToolPageChromeStateInputFromRouteData
       >[0]['lensLabelMap'];
