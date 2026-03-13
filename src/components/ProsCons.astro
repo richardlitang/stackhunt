@@ -415,28 +415,30 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                 <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
                 <div class="flex-1">
                   <p>{pro.displayText}</p>
-                  <details class="mt-1">
-                    <summary class="cursor-pointer text-xs text-zinc-500 hover:text-zinc-400">
-                      Source details
-                    </summary>
-                    <p class="mt-1 text-xs text-zinc-500">
-                      Source:{' '}
-                      <a
-                        href={pro.source_url}
-                        target="_blank"
-                        rel={getSourceRelAttribute(pro.source_type)}
-                        class="text-zinc-400 underline underline-offset-2 hover:text-hunt-400"
-                      >
-                        {getDomain(pro.source_url)}
-                      </a>
-                      {typeof pro.corroborating_source_count === 'number' &&
-                        pro.corroborating_source_count > 1 &&
-                        `, corroborated by ${pro.corroborating_source_count} sources`}
-                      {getSourceChannelLabel(pro.source_channel) &&
-                        `, ${getSourceChannelLabel(pro.source_channel)}`}
-                      {pro.claim_confidence_tier && `, confidence ${pro.claim_confidence_tier}`}
-                    </p>
-                  </details>
+                  {resolvedSourceDisplay !== 'block' && resolvedSourceDisplay !== 'hidden' && (
+                    <details class="mt-1">
+                      <summary class="cursor-pointer text-xs text-zinc-500 hover:text-zinc-400">
+                        Source details
+                      </summary>
+                      <p class="mt-1 text-xs text-zinc-500">
+                        Source:{' '}
+                        <a
+                          href={pro.source_url}
+                          target="_blank"
+                          rel={getSourceRelAttribute(pro.source_type)}
+                          class="text-zinc-400 underline underline-offset-2 hover:text-hunt-400"
+                        >
+                          {getDomain(pro.source_url)}
+                        </a>
+                        {typeof pro.corroborating_source_count === 'number' &&
+                          pro.corroborating_source_count > 1 &&
+                          `, corroborated by ${pro.corroborating_source_count} sources`}
+                        {getSourceChannelLabel(pro.source_channel) &&
+                          `, ${getSourceChannelLabel(pro.source_channel)}`}
+                        {pro.claim_confidence_tier && `, confidence ${pro.claim_confidence_tier}`}
+                      </p>
+                    </details>
+                  )}
                   {needsConfirmationChip(pro) && (
                     <p class="mt-1">
                       <span class="inline-flex items-center rounded-full border border-amber-700/70 bg-amber-950/40 px-1.5 py-0.5 text-[10px] text-amber-200">
@@ -496,28 +498,30 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                 <MinusIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
                 <div class="flex-1">
                   <p>{con.displayText}</p>
-                  <details class="mt-1">
-                    <summary class="cursor-pointer text-xs text-zinc-500 hover:text-zinc-400">
-                      Source details
-                    </summary>
-                    <p class="mt-1 text-xs text-zinc-500">
-                      Source:{' '}
-                      <a
-                        href={con.source_url}
-                        target="_blank"
-                        rel={getSourceRelAttribute(con.source_type)}
-                        class="text-zinc-400 underline underline-offset-2 hover:text-hunt-400"
-                      >
-                        {getDomain(con.source_url)}
-                      </a>
-                      {typeof con.corroborating_source_count === 'number' &&
-                        con.corroborating_source_count > 1 &&
-                        `, corroborated by ${con.corroborating_source_count} sources`}
-                      {getSourceChannelLabel(con.source_channel) &&
-                        `, ${getSourceChannelLabel(con.source_channel)}`}
-                      {con.claim_confidence_tier && `, confidence ${con.claim_confidence_tier}`}
-                    </p>
-                  </details>
+                  {resolvedSourceDisplay !== 'block' && resolvedSourceDisplay !== 'hidden' && (
+                    <details class="mt-1">
+                      <summary class="cursor-pointer text-xs text-zinc-500 hover:text-zinc-400">
+                        Source details
+                      </summary>
+                      <p class="mt-1 text-xs text-zinc-500">
+                        Source:{' '}
+                        <a
+                          href={con.source_url}
+                          target="_blank"
+                          rel={getSourceRelAttribute(con.source_type)}
+                          class="text-zinc-400 underline underline-offset-2 hover:text-hunt-400"
+                        >
+                          {getDomain(con.source_url)}
+                        </a>
+                        {typeof con.corroborating_source_count === 'number' &&
+                          con.corroborating_source_count > 1 &&
+                          `, corroborated by ${con.corroborating_source_count} sources`}
+                        {getSourceChannelLabel(con.source_channel) &&
+                          `, ${getSourceChannelLabel(con.source_channel)}`}
+                        {con.claim_confidence_tier && `, confidence ${con.claim_confidence_tier}`}
+                      </p>
+                    </details>
+                  )}
                   {needsConfirmationChip(con) && (
                     <p class="mt-1">
                       <span class="inline-flex items-center rounded-full border border-amber-700/70 bg-amber-950/40 px-1.5 py-0.5 text-[10px] text-amber-200">
