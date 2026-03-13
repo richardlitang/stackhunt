@@ -1,22 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const { buildToolPagePageAssemblyRouteStateInputFromRouteContextMock, buildToolPagePageAssemblyRouteStateFromRouteContextMock } =
-  vi.hoisted(() => ({
-    buildToolPagePageAssemblyRouteStateInputFromRouteContextMock: vi.fn(() => ({
-      runtime: {},
-      chrome: {},
-      decision: {},
-      navigation: {},
-      ctaMediaState: {},
-    })),
-    buildToolPagePageAssemblyRouteStateFromRouteContextMock: vi.fn(() => ({
-      meta: { title: 'Acme review' },
-    })),
-  }));
-
-vi.mock('@/lib/tool-page/page-assembly-route-input', () => ({
-  buildToolPagePageAssemblyRouteStateInputFromRouteContext:
-    buildToolPagePageAssemblyRouteStateInputFromRouteContextMock,
+const { buildToolPagePageAssemblyRouteStateFromRouteContextMock } = vi.hoisted(() => ({
+  buildToolPagePageAssemblyRouteStateFromRouteContextMock: vi.fn(() => ({
+    meta: { title: 'Acme review' },
+  })),
 }));
 
 vi.mock('@/lib/tool-page/page-assembly-route-state', () => ({
@@ -27,7 +14,7 @@ vi.mock('@/lib/tool-page/page-assembly-route-state', () => ({
 import { buildToolPagePageAssemblyStateFromRouteDataContext } from '@/lib/tool-page/page-assembly-from-route-data-state';
 
 describe('tool page page assembly from route data state', () => {
-  it('maps route-data pipeline state into page-assembly route input and state builders', () => {
+  it('maps route-data pipeline state directly into page-assembly state builder input', () => {
     const result = buildToolPagePageAssemblyStateFromRouteDataContext({
       activeReviewLens: 'startup',
       routeDataState: {
@@ -66,7 +53,6 @@ describe('tool page page assembly from route data state', () => {
       } as any,
     });
 
-    expect(buildToolPagePageAssemblyRouteStateInputFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(buildToolPagePageAssemblyRouteStateFromRouteContextMock).toHaveBeenCalledTimes(1);
     expect(result.meta.title).toBe('Acme review');
   });

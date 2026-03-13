@@ -1,63 +1,98 @@
-import { buildToolPagePageAssemblyRouteStateInputFromRouteContext } from '@/lib/tool-page/page-assembly-route-input';
 import { buildToolPagePageAssemblyRouteStateFromRouteContext } from '@/lib/tool-page/page-assembly-route-state';
 import type { buildToolPageRouteDataPipelineStateFromPageContext } from '@/lib/tool-page/route-data-pipeline-state';
 
 interface BuildToolPagePageAssemblyStateFromRouteDataContextInput {
   routeDataState: ReturnType<typeof buildToolPageRouteDataPipelineStateFromPageContext>;
-  activeReviewLens: Parameters<
-    typeof buildToolPagePageAssemblyRouteStateInputFromRouteContext
-  >[0]['activeReviewLens'];
+  activeReviewLens: Parameters<typeof buildToolPagePageAssemblyRouteStateFromRouteContext>[0]['chrome']['activeReviewLens'];
+}
+
+function toDecisionConfidenceLabel(level: string): string {
+  if (level === 'low') return 'Low';
+  if (level === 'medium') return 'Medium';
+  if (level === 'high') return 'High';
+  return level;
 }
 
 export function buildToolPagePageAssemblyStateFromRouteDataContext(
   input: BuildToolPagePageAssemblyStateFromRouteDataContextInput
 ): ReturnType<typeof buildToolPagePageAssemblyRouteStateFromRouteContext> {
   const { routeDataState } = input;
+  const hasApi = Boolean(routeDataState.knowledgeCard?.integrations?.has_api);
 
   return buildToolPagePageAssemblyRouteStateFromRouteContext(
-    buildToolPagePageAssemblyRouteStateInputFromRouteContext({
-      runtimeViewBundle: routeDataState.runtimeViewBundle,
-      firstReview: routeDataState.firstReview as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateInputFromRouteContext
-      >[0]['firstReview'],
-      tool: routeDataState.tool,
-      activeReviewLens: input.activeReviewLens,
-      alternativesLabel: routeDataState.alternativesLabel,
-      toolCategoryRef: routeDataState.toolCategoryRef,
-      orderedAlternatives: routeDataState.orderedAlternatives,
-      comparableAlternatives: routeDataState.comparableAlternatives,
-      canCompareByAlternativeSlug: routeDataState.canCompareByAlternativeSlug,
-      knowledgeCard: routeDataState.knowledgeCard,
-      parentTool: routeDataState.parentTool,
-      setupTracks: routeDataState.setupTracks,
-      displayCategorySpecificData: routeDataState.displayCategorySpecificData || null,
-      vipSpecifics: routeDataState.vipSpecifics || null,
-      userReportedPros: routeDataState.userReportedPros,
-      userReportedCons: routeDataState.userReportedCons,
-      laneOutputs: routeDataState.laneOutputs as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateInputFromRouteContext
-      >[0]['laneOutputs'],
-      decisionRuntime: routeDataState.decisionRuntime,
-      sectionFlags: routeDataState.sectionFlags,
-      evidenceRuntime: routeDataState.evidenceRuntime,
-      reviewArtifactsState: routeDataState.reviewArtifactsState,
-      reviewSignalsView: routeDataState.reviewSignalsView,
-      reviewContextSignals: routeDataState.reviewContextSignals,
-      qualityState: routeDataState.qualityState,
-      websiteHostLabel: routeDataState.websiteHostLabel || '',
-      evaluationDepth: routeDataState.evaluationDepth,
-      resolvedSubject: {
-        subjectType: routeDataState.resolvedSubject?.subjectType || null,
-        entityScope: routeDataState.resolvedSubject?.entityScope || null,
+    {
+      runtime: {
+        runtimeViewBundle: routeDataState.runtimeViewBundle,
+        firstReview: routeDataState.firstReview as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['runtime']['firstReview'],
+        tool: routeDataState.tool as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['runtime']['tool'],
+        categoryName: routeDataState.tool.category?.name || null,
       },
-      audiences: routeDataState.tags.audiences,
-      topLensHardLimit: routeDataState.topLensHardLimit as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateInputFromRouteContext
-      >[0]['topLensHardLimit'],
-      pricingEvidenceLinks: routeDataState.pricingEvidenceLinks,
-      officialPricingSourceUrl: routeDataState.officialPricingSource?.url || null,
-      navigationState: routeDataState.navigationState,
+      chrome: {
+        activeReviewLens: input.activeReviewLens,
+        alternativesLabel: routeDataState.alternativesLabel,
+        toolCategoryRef: routeDataState.toolCategoryRef,
+        orderedAlternatives: routeDataState.orderedAlternatives,
+        comparableAlternatives: routeDataState.comparableAlternatives,
+        canCompareByAlternativeSlug: routeDataState.canCompareByAlternativeSlug,
+        tool: routeDataState.tool as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['chrome']['tool'],
+        knowledgeCard: routeDataState.knowledgeCard,
+        parentTool: routeDataState.parentTool,
+        setupTracks: routeDataState.setupTracks,
+        displayCategorySpecificData: routeDataState.displayCategorySpecificData || null,
+        vipSpecifics: routeDataState.vipSpecifics || null,
+        userReportedPros: routeDataState.userReportedPros,
+        userReportedCons: routeDataState.userReportedCons,
+        laneOutputs: routeDataState.laneOutputs as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['chrome']['laneOutputs'],
+        decisionRuntime: routeDataState.decisionRuntime,
+        sectionFlags: routeDataState.sectionFlags,
+        evidenceRuntime: routeDataState.evidenceRuntime,
+        reviewArtifactsState: routeDataState.reviewArtifactsState,
+        reviewSignalsView: routeDataState.reviewSignalsView,
+        reviewContextSignals: routeDataState.reviewContextSignals,
+        qualityState: routeDataState.qualityState,
+        lensRuntime: routeDataState.runtimeViewBundle.lensRuntime,
+        websiteHostLabel: routeDataState.websiteHostLabel || '',
+        runtimeViewBundle: routeDataState.runtimeViewBundle as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['chrome']['runtimeViewBundle'],
+        evaluationDepth: routeDataState.evaluationDepth,
+      },
+      decision: {
+        tool: {
+          name: routeDataState.tool.name,
+          categorySlug: routeDataState.tool.category?.slug || null,
+          pricingType: routeDataState.tool.pricing_type || null,
+        },
+        resolvedSubject: {
+          subjectType: routeDataState.resolvedSubject?.subjectType || null,
+          entityScope: routeDataState.resolvedSubject?.entityScope || null,
+        },
+        activeReviewLens: input.activeReviewLens,
+        hasApi,
+        hasParentTool: Boolean(routeDataState.parentTool),
+        audiences: routeDataState.tags.audiences,
+        topLensHardLimit: routeDataState.topLensHardLimit as Parameters<
+          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        >[0]['decision']['topLensHardLimit'],
+        pricingEvidenceLinks: routeDataState.pricingEvidenceLinks,
+        officialPricingSourceUrl: routeDataState.officialPricingSource?.url || null,
+        contentConfidenceLabel: toDecisionConfidenceLabel(
+          routeDataState.qualityState.contentConfidenceLevel
+        ),
+      },
+      navigation: {
+        navigationState: routeDataState.navigationState,
+        categorySlug: routeDataState.tool.category?.slug || null,
+      },
       ctaMediaState: routeDataState.ctaMediaState,
-    })
+    }
   );
 }
