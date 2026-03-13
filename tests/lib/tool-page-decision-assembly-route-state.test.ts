@@ -64,7 +64,9 @@ describe('tool page decision assembly route state', () => {
         text: 'No offline mode',
         sourceUrl: 'https://example.com/docs',
       },
-      pricingEvidenceLinks: [{ sourceUrl: 'https://example.com/pricing', text: 'Pro plans add SSO' }],
+      pricingEvidenceLinks: [
+        { sourceUrl: 'https://example.com/pricing', text: 'Pro plans add SSO' },
+      ],
       officialPricingSourceUrl: 'https://example.com/official-pricing',
       contentConfidenceLabel: 'Low',
       trustBar: {

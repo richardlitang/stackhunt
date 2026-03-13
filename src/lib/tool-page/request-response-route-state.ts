@@ -20,9 +20,7 @@ export function buildToolPageRequestRouteState(
   return requestState;
 }
 
-export function applyToolPageResponseRouteState(
-  input: ApplyToolPageResponseRouteStateInput
-): void {
+export function applyToolPageResponseRouteState(input: ApplyToolPageResponseRouteStateInput): void {
   applyToolPageRobotsHeader({
     response: input.response,
     robotsTag: input.robotsTag,

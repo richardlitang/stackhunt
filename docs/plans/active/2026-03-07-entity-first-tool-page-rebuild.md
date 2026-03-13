@@ -271,6 +271,8 @@ Notes:
 - 2026-03-13 progress: moved chrome/content alternatives assembly wiring into `buildToolPageChromeAssemblyRouteState(...)`, keeping `tool/[slug]` focused on orchestration.
 - 2026-03-13 progress: moved navigation + decision-presentation flattening into `buildToolPageDecisionNavigationRouteState(...)` to reduce route-local state threading.
 - 2026-03-13 progress: moved decision-route assembly wiring into `buildToolPageDecisionAssemblyRouteState(...)`, centralizing subject/lens/pricing/trust input composition outside the route template.
+- 2026-03-13 progress: moved request parsing and response header wiring into `buildToolPageRequestRouteState(...)` and `applyToolPageResponseRouteState(...)`, removing direct route-level cache/robots header mutation calls.
+- 2026-03-13 progress: moved audience and pricing-evidence input derivation into `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)`, reducing route-local mapping and fallback branching.
 
 ### Phase 3: Page compiler rebuild
 

@@ -6,19 +6,18 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `deriveToolPageRequestState(...)` (frontmatter line 65)
-2. `applyToolPageVersionBypassCacheHeaders(...)` (frontmatter line 69)
-3. `getToolPageData(...)` (frontmatter line 71)
-4. `deriveToolPageReviewContextSignals(...)` (frontmatter line 108)
-5. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 110)
-6. `buildToolPageLensHardLimitRouteState(...)` (frontmatter line 237)
-7. `buildToolPageSpecsCategoryRouteState(...)` (frontmatter line 250)
-8. `buildToolPageRuntimeNavigationRouteState(...)` (frontmatter line 259)
-9. `buildToolPageRuntimeRouteState(...)` (frontmatter line 295)
-10. `buildToolPageChromeAssemblyRouteState(...)` (frontmatter line 345)
-11. `buildToolPageDecisionAssemblyRouteState(...)` (frontmatter line 378)
-12. `buildToolPageDecisionNavigationRouteState(...)` (frontmatter line 415)
-13. `applyToolPageRobotsHeader(...)` (frontmatter line 431)
+1. `buildToolPageRequestRouteState(...)` (frontmatter line 64)
+2. `getToolPageData(...)` (frontmatter line 69)
+3. `deriveToolPageReviewContextSignals(...)` (frontmatter line 106)
+4. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 108)
+5. `buildToolPageLensHardLimitRouteState(...)` (frontmatter line 235)
+6. `buildToolPageSpecsCategoryRouteState(...)` (frontmatter line 248)
+7. `buildToolPageRuntimeNavigationRouteState(...)` (frontmatter line 257)
+8. `buildToolPageRuntimeRouteState(...)` (frontmatter line 293)
+9. `buildToolPageChromeAssemblyRouteState(...)` (frontmatter line 343)
+10. `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)` (frontmatter line 376)
+11. `buildToolPageDecisionNavigationRouteState(...)` (frontmatter line 412)
+12. `applyToolPageResponseRouteState(...)` (frontmatter line 428)
 
 ## Tool-Page Imports Used by Route
 
@@ -27,13 +26,12 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `buildToolPagePricingLinkText`                            | `@/lib/tool-page/pricing-link-text`                     |
 | `getToolPageData`                                         | `@/lib/tool-page/data`                                  |
 | `deriveToolPageReviewContextSignals`                      | `@/lib/tool-page/review-context`                        |
-| `deriveToolPageRequestState`                              | `@/lib/tool-page/request-state`                         |
-| `applyToolPageVersionBypassCacheHeaders`                  | `@/lib/tool-page/request-cache`                         |
-| `applyToolPageRobotsHeader`                               | `@/lib/tool-page/response-headers`                      |
+| `buildToolPageRequestRouteState`                          | `@/lib/tool-page/request-response-route-state`          |
+| `applyToolPageResponseRouteState`                         | `@/lib/tool-page/request-response-route-state`          |
 | `buildToolPageRuntimeNavigationRouteState`                | `@/lib/tool-page/runtime-navigation-route-state`        |
 | `buildToolPageChromeAssemblyRouteState`                   | `@/lib/tool-page/chrome-assembly-route-state`           |
 | `buildToolPagePrepReviewEvidenceStateFromDecisionContext` | `@/lib/tool-page/prep-review-evidence-decision-context` |
-| `buildToolPageDecisionAssemblyRouteState`                 | `@/lib/tool-page/decision-assembly-route-state`         |
+| `buildToolPageDecisionAssemblyRouteStateFromRouteContext` | `@/lib/tool-page/decision-assembly-route-state`         |
 | `buildToolPageDecisionNavigationRouteState`               | `@/lib/tool-page/decision-navigation-route-state`       |
 | `buildToolPageLensHardLimitRouteState`                    | `@/lib/tool-page/lens-hard-limit-route-state`           |
 | `buildToolPageRuntimeRouteState`                          | `@/lib/tool-page/runtime-route-state`                   |
@@ -54,17 +52,19 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 - no nested `ToolPage*` helper calls detected
 
-### `deriveToolPageRequestState`
+### `buildToolPageRequestRouteState`
 
-- no nested `ToolPage*` helper calls detected
+- `deriveToolPageRequestState(...)`
+- `applyToolPageVersionBypassCacheHeaders(...)`
+- `applyToolPageResponseRouteState(...)`
+- `applyToolPageRobotsHeader(...)`
 
-### `applyToolPageVersionBypassCacheHeaders`
+### `applyToolPageResponseRouteState`
 
-- no nested `ToolPage*` helper calls detected
-
-### `applyToolPageRobotsHeader`
-
-- no nested `ToolPage*` helper calls detected
+- `buildToolPageRequestRouteState(...)`
+- `deriveToolPageRequestState(...)`
+- `applyToolPageVersionBypassCacheHeaders(...)`
+- `applyToolPageRobotsHeader(...)`
 
 ### `buildToolPageRuntimeNavigationRouteState`
 
@@ -79,8 +79,9 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `buildToolPagePrepDecisionStateFromDecisionContext(...)`
 - `buildToolPageReviewEvidenceStateFromDecisionContext(...)`
 
-### `buildToolPageDecisionAssemblyRouteState`
+### `buildToolPageDecisionAssemblyRouteStateFromRouteContext`
 
+- `buildToolPageDecisionAssemblyRouteState(...)`
 - `buildToolPageDecisionRouteState(...)`
 
 ### `buildToolPageDecisionNavigationRouteState`
