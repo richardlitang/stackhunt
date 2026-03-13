@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-page/alternatives-pricing-input';
 import { buildToolPageAlternativesPricingState } from '@/lib/tool-page/alternatives-pricing-state';
-import { buildToolPageChromeStateInputFromRouteContext } from '@/lib/tool-page/chrome-input';
+import { buildToolPageChromeStateInputFromRoute } from '@/lib/tool-page/chrome-input';
 import { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
 import { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
 import { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
@@ -129,7 +129,7 @@ describe('tool page chrome route state', () => {
     const expectedChromeLens = {
       lensViewFields: buildToolPageLensViewFields(input.chromeLens.lensRuntime as never),
       toolChromeState: buildToolPageChromeState(
-        buildToolPageChromeStateInputFromRouteContext({
+        buildToolPageChromeStateInputFromRoute({
           toolCategory: input.chromeLens.toolCategory,
           hasCollectedSources: input.chromeLens.evidenceRuntime.hasCollectedSources,
           evaluationDepth: input.chromeLens.evaluationDepth,
@@ -144,7 +144,7 @@ describe('tool page chrome route state', () => {
           trustStatus: input.chromeLens.runtimeViewBundle.trustStatus,
           activeReviewLens: input.chromeLens.activeReviewLens,
           lensLabelMap: input.chromeLens.runtimeViewBundle.lensLabelMap,
-          tool: input.chromeLens.tool,
+          website: input.chromeLens.tool.website,
           websiteHostLabel: input.chromeLens.websiteHostLabel,
         })
       ),

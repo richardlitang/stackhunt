@@ -313,6 +313,7 @@ Notes:
 - 2026-03-13 progress: removed `buildToolPageCtaMediaStateInputFromRouteContext(...)` and wired runtime navigation directly to CTA tool projection plus `buildToolPageCtaMediaStateInputFromTool(...)`.
 - 2026-03-13 progress: removed `buildToolPageAlternativesPricingStateInputFromRouteContext(...)` from the input module and localized route-shape normalization in `chrome-route-state`.
 - 2026-03-13 progress: removed `buildToolPageContentSectionsStateInputFromRouteContext(...)` from the input module and localized route-shape normalization in `chrome-route-state`.
+- 2026-03-13 progress: removed `buildToolPageChromeStateInputFromRouteContext(...)` from the input module and localized route-shape normalization in `chrome-route-state`.
 
 ### Phase 3: Page compiler rebuild
 

@@ -38,10 +38,7 @@ export {
 } from '@/lib/tool-page/content-sections-state';
 export { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
 export { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
-export {
-  buildToolPageChromeStateInputFromRoute,
-  buildToolPageChromeStateInputFromRouteContext,
-} from '@/lib/tool-page/chrome-input';
+export { buildToolPageChromeStateInputFromRoute } from '@/lib/tool-page/chrome-input';
 export { deriveToolPageCanonicalHardLimits } from '@/lib/tool-page/constraints';
 export { rankConstraintsForLens } from '@/lib/tool-page/constraints-lens';
 export { deriveToolPageCoreState } from '@/lib/tool-page/core-state';

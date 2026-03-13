@@ -1,6 +1,6 @@
 import { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-page/alternatives-pricing-input';
 import { buildToolPageAlternativesPricingState } from '@/lib/tool-page/alternatives-pricing-state';
-import { buildToolPageChromeStateInputFromRouteContext } from '@/lib/tool-page/chrome-input';
+import { buildToolPageChromeStateInputFromRoute } from '@/lib/tool-page/chrome-input';
 import { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
 import { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
 import { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
@@ -11,6 +11,82 @@ import {
   toToolPageOrderedAlternatives,
   toToolPageSpecsRecord,
 } from '@/lib/tool-page/route-normalizers';
+
+interface BuildToolPageChromeStateInputFromRouteContextInput {
+  toolCategory: Parameters<typeof buildToolPageChromeStateInputFromRoute>[0]['toolCategory'];
+  hasCollectedSources: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['hasCollectedSources'];
+  evaluationDepth: Parameters<typeof buildToolPageChromeStateInputFromRoute>[0]['evaluationDepth'];
+  collectedSourcesTotal: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['collectedSourcesTotal'];
+  trustConfidenceLabel: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['trustConfidenceLabel'];
+  pendingVerificationCount: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['pendingVerificationCount'];
+  communityCorroborationCount: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['communityCorroborationCount'];
+  userSignalCoveragePending?: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['userSignalCoveragePending'];
+  userSignalNeedsConfirmationCount?: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['userSignalNeedsConfirmationCount'];
+  userSignalChannelCoverageCount?: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['userSignalChannelCoverageCount'];
+  communityVerifiedLabel: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['communityVerifiedLabel'];
+  specsVerifiedLabel: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['specsVerifiedLabel'];
+  pricingCheckedLabel: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['pricingCheckedLabel'];
+  pricingVerifiedLabel: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['pricingVerifiedLabel'];
+  trustStatus: Parameters<typeof buildToolPageChromeStateInputFromRoute>[0]['trustStatus'];
+  activeReviewLens: Parameters<
+    typeof buildToolPageChromeStateInputFromRoute
+  >[0]['activeReviewLens'];
+  lensLabelMap: Parameters<typeof buildToolPageChromeStateInputFromRoute>[0]['lensLabelMap'];
+  tool: {
+    website: string | null;
+  };
+  websiteHostLabel: string | null;
+}
+
+function buildToolPageChromeStateInputFromRouteContext(
+  input: BuildToolPageChromeStateInputFromRouteContextInput
+): Parameters<typeof buildToolPageChromeState>[0] {
+  return buildToolPageChromeStateInputFromRoute({
+    toolCategory: input.toolCategory,
+    hasCollectedSources: input.hasCollectedSources,
+    evaluationDepth: input.evaluationDepth,
+    collectedSourcesTotal: input.collectedSourcesTotal,
+    trustConfidenceLabel: input.trustConfidenceLabel,
+    pendingVerificationCount: input.pendingVerificationCount,
+    communityCorroborationCount: input.communityCorroborationCount || 0,
+    userSignalCoveragePending: input.userSignalCoveragePending || false,
+    userSignalNeedsConfirmationCount: input.userSignalNeedsConfirmationCount || 0,
+    userSignalChannelCoverageCount: input.userSignalChannelCoverageCount || 0,
+    communityVerifiedLabel: input.communityVerifiedLabel,
+    specsVerifiedLabel: input.specsVerifiedLabel,
+    pricingCheckedLabel: input.pricingCheckedLabel,
+    pricingVerifiedLabel: input.pricingVerifiedLabel,
+    trustStatus: input.trustStatus,
+    website: input.tool.website || null,
+    websiteHostLabel: input.websiteHostLabel,
+    activeReviewLens: input.activeReviewLens,
+    lensLabelMap: input.lensLabelMap,
+  });
+}
 
 interface BuildToolPageAlternativesPricingStateInputFromRouteContextInput {
   activeReviewLens: Parameters<
