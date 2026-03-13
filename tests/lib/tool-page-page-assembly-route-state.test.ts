@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 const {
   buildToolPageRuntimeRouteStateMock,
   buildToolPageChromeAssemblyRouteStateMock,
-  buildToolPageDecisionAssemblyRouteStateFromRouteContextMock,
+  buildToolPageDecisionAssemblyRouteStateMock,
   buildToolPageDecisionNavigationRouteStateMock,
 } = vi.hoisted(() => ({
   buildToolPageRuntimeRouteStateMock: vi.fn(() => ({
@@ -31,7 +31,7 @@ const {
     workflowFitCards: [{ title: 'Ops fit' }],
     workflowFitHighlights: ['Fast setup'],
   })),
-  buildToolPageDecisionAssemblyRouteStateFromRouteContextMock: vi.fn(() => ({
+  buildToolPageDecisionAssemblyRouteStateMock: vi.fn(() => ({
     decisionUtilityState: {
       hasEvidenceAnchoredUtility: true,
       testChecklistItems: ['Pilot'],
@@ -65,8 +65,7 @@ vi.mock('@/lib/tool-page/chrome-assembly-route-state', () => ({
 }));
 
 vi.mock('@/lib/tool-page/decision-assembly-route-state', () => ({
-  buildToolPageDecisionAssemblyRouteStateFromRouteContext:
-    buildToolPageDecisionAssemblyRouteStateFromRouteContextMock,
+  buildToolPageDecisionAssemblyRouteState: buildToolPageDecisionAssemblyRouteStateMock,
 }));
 
 vi.mock('@/lib/tool-page/decision-navigation-route-state', () => ({
@@ -144,8 +143,11 @@ describe('tool page page assembly route state', () => {
       },
     });
 
-    expect(buildToolPageDecisionAssemblyRouteStateFromRouteContextMock).toHaveBeenCalledWith(
+    expect(buildToolPageDecisionAssemblyRouteStateMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        audienceSlugs: [],
+        pricingEvidenceSourceUrl: null,
+        pricingEvidenceSummary: null,
         trustBar: { confidence: 'High', pendingCount: 2 },
       })
     );

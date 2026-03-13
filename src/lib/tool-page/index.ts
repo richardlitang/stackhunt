@@ -82,7 +82,6 @@ export {
 } from '@/lib/tool-page/decision';
 export {
   buildToolPageDecisionAssemblyRouteState,
-  buildToolPageDecisionAssemblyRouteStateFromRouteContext,
 } from '@/lib/tool-page/decision-assembly-route-state';
 export { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 export { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision-utility';
