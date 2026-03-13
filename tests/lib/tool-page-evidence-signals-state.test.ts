@@ -7,7 +7,7 @@ import {
   buildToolPageEvidenceSignalsState,
   buildToolPageEvidenceSignalsStateFromRoute,
 } from '@/lib/tool-page/evidence-signals-state';
-import { buildToolPageEvidenceSignalsStateInputFromRouteContext } from '@/lib/tool-page/evidence-signals-route-input';
+import { buildToolPageEvidenceSignalsStateInputFromRoute } from '@/lib/tool-page/evidence-signals-route-input';
 import { buildToolPageReviewSignalsInput } from '@/lib/tool-page/review-signals-input';
 import { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
 import { buildToolPageReviewSignalsView } from '@/lib/tool-page/review-signals-view';
@@ -175,41 +175,50 @@ describe('tool page evidence signals state', () => {
 
   it('builds evidence signals wrapper input from flattened route context', () => {
     const state = buildToolPageEvidenceSignalsStateFromRoute(
-      buildToolPageEvidenceSignalsStateInputFromRouteContext({
-        firstReview: null,
-        toolLastVerifiedAt: '2026-03-04',
-        toolPricingVerifiedAt: '2026-03-05',
-        extractionDate: '2026-03-03',
-        constraints: {
-          hard_limits: [{ claim: 'No on-prem', source_url: 'https://example.com/docs' }],
-          hidden_cost_triggers: [
-            { claim: 'Seat minimums', source_url: 'https://example.com/pricing' },
-          ],
+      buildToolPageEvidenceSignalsStateInputFromRoute({
+        reviewSignalsInput: {
+          firstReview: null,
+          toolLastVerifiedAt: '2026-03-04',
+          toolPricingVerifiedAt: '2026-03-05',
+          extractionDate: '2026-03-03',
         },
-        isEligibleEvidenceUrl: (url: unknown) =>
-          typeof url === 'string' && url.startsWith('https://'),
-        isDisallowedConClaim: () => false,
-        reviewPros: ['Fast setup'],
-        reviewCons: ['No on-prem'],
-        globalPros: ['Integrates widely'],
-        globalCons: ['No on-prem'],
-        toEvidenceBullet: (value: unknown) =>
-          typeof value === 'string' ? { text: value, sourceUrl: null, unverified: false } : null,
-        decisionSnapshotWatchOuts: ['No on-prem'],
-        decisionTradeoffSummaryInitial: 'Great for cloud-first teams',
-        officialEvidenceLinks: [],
-        evidenceLinksAll: [],
-        evidenceLinks: [],
-        hasPricing: true,
-        knowledgeCard: null,
-        sectionPricingStatus: 'show',
-        budgetCostDrivers: [],
-        budgetOneTimeFees: [],
-        budgetCommitmentTerms: null,
-        budgetRoiThreshold: null,
-        faqItems: [],
-        buildEvidenceBulletV2: (value: unknown) =>
-          typeof value === 'string' ? { text: value, sourceUrl: null, unverified: false } : null,
+        constraintEvidenceInput: {
+          constraints: {
+            hard_limits: [{ claim: 'No on-prem', source_url: 'https://example.com/docs' }],
+            hidden_cost_triggers: [
+              { claim: 'Seat minimums', source_url: 'https://example.com/pricing' },
+            ],
+          },
+          isEligibleEvidenceUrl: (url: unknown) =>
+            typeof url === 'string' && url.startsWith('https://'),
+          isDisallowedConClaim: () => false,
+        },
+        evidenceRuntimeInput: {
+          reviewPros: ['Fast setup'],
+          reviewCons: ['No on-prem'],
+          globalPros: ['Integrates widely'],
+          globalCons: ['No on-prem'],
+          toEvidenceBullet: (value: unknown) =>
+            typeof value === 'string' ? { text: value, sourceUrl: null, unverified: false } : null,
+          isDisallowedConClaim: () => false,
+          decisionSnapshotWatchOuts: ['No on-prem'],
+          decisionTradeoffSummaryInitial: 'Great for cloud-first teams',
+          officialEvidenceLinks: [],
+          evidenceLinksAll: [],
+          evidenceLinks: [],
+          hasPricing: true,
+          knowledgeCard: null,
+          sectionPricingStatus: 'show',
+          budgetCostDrivers: [],
+          budgetOneTimeFees: [],
+          budgetCommitmentTerms: null,
+          budgetRoiThreshold: null,
+          faqItems: [],
+          buildEvidenceBulletV2: (value: unknown) =>
+            typeof value === 'string' ? { text: value, sourceUrl: null, unverified: false } : null,
+          isEligibleEvidenceUrl: (url: unknown) =>
+            typeof url === 'string' && url.startsWith('https://'),
+        },
       })
     );
 
