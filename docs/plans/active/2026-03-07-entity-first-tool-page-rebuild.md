@@ -264,6 +264,9 @@ Notes:
 - 2026-03-13 progress: moved route-local `tool.specs` parsing (user-signal summary, top user claims, lens coverage counters) into `buildToolPageSpecsSignals(...)` to reduce `tool/[slug]` orchestration sprawl.
 - 2026-03-13 progress: moved decision-route assembly (`buildToolPageDecisionUtilityState`, pricing scenario, and early-snapshot tone gating) into `buildToolPageDecisionRouteState(...)`.
 - 2026-03-13 progress: moved chrome/content flattening and route field unpacking into `buildToolPageChromeRouteStateFromDecisionContext(...)` to reduce direct destructuring churn in `tool/[slug].astro`.
+- 2026-03-13 progress: moved review-schema and runtime meta/index flattening into `buildToolPageRuntimeRouteState(...)` to keep SEO/schema composition out of route-local branching.
+- 2026-03-13 progress: moved lens-ranked top hard-limit selection into `buildToolPageLensHardLimitRouteState(...)` to shrink decision-route prep in `tool/[slug].astro`.
+- 2026-03-13 progress: moved specs-signals plus category-reference derivation into `buildToolPageSpecsCategoryRouteState(...)` so route wiring reads one cohesive state unit.
 
 ### Phase 3: Page compiler rebuild
 

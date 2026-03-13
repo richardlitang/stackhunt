@@ -11,19 +11,19 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 3. `getToolPageData(...)` (frontmatter line 71)
 4. `deriveToolPageReviewContextSignals(...)` (frontmatter line 108)
 5. `buildToolPagePrepReviewEvidenceStateFromDecisionContext(...)` (frontmatter line 110)
-6. `buildToolPageSpecsSignals(...)` (frontmatter line 247)
-7. `buildToolPageCategoryRef(...)` (frontmatter line 254)
-8. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 256)
-9. `buildToolPageChromeRouteStateFromDecisionContext(...)` (frontmatter line 357)
-10. `buildToolPageDecisionRouteState(...)` (frontmatter line 400)
-11. `buildToolPageDecisionPresentationState(...)` (frontmatter line 440)
-12. `applyToolPageRobotsHeader(...)` (frontmatter line 456)
+6. `buildToolPageLensHardLimitRouteState(...)` (frontmatter line 237)
+7. `buildToolPageSpecsCategoryRouteState(...)` (frontmatter line 250)
+8. `buildToolPageRuntimeNavigationStateFromDecisionContext(...)` (frontmatter line 259)
+9. `buildToolPageRuntimeRouteState(...)` (frontmatter line 312)
+10. `buildToolPageChromeRouteStateFromDecisionContext(...)` (frontmatter line 362)
+11. `buildToolPageDecisionRouteState(...)` (frontmatter line 405)
+12. `buildToolPageDecisionPresentationState(...)` (frontmatter line 445)
+13. `applyToolPageRobotsHeader(...)` (frontmatter line 461)
 
 ## Tool-Page Imports Used by Route
 
 | Symbol                                                    | Module                                                  |
 | --------------------------------------------------------- | ------------------------------------------------------- |
-| `buildToolPageCategoryRef`                                | `@/lib/tool-page/category-ref`                          |
 | `buildToolPagePricingLinkText`                            | `@/lib/tool-page/pricing-link-text`                     |
 | `getToolPageData`                                         | `@/lib/tool-page/data`                                  |
 | `deriveToolPageReviewContextSignals`                      | `@/lib/tool-page/review-context`                        |
@@ -35,13 +35,11 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `buildToolPagePrepReviewEvidenceStateFromDecisionContext` | `@/lib/tool-page/prep-review-evidence-decision-context` |
 | `buildToolPageDecisionRouteState`                         | `@/lib/tool-page/decision-route-state`                  |
 | `buildToolPageDecisionPresentationState`                  | `@/lib/tool-page/decision-presentation-state`           |
-| `buildToolPageSpecsSignals`                               | `@/lib/tool-page/specs-signals`                         |
+| `buildToolPageLensHardLimitRouteState`                    | `@/lib/tool-page/lens-hard-limit-route-state`           |
+| `buildToolPageRuntimeRouteState`                          | `@/lib/tool-page/runtime-route-state`                   |
+| `buildToolPageSpecsCategoryRouteState`                    | `@/lib/tool-page/specs-category-route-state`            |
 
 ## One-Level Helper Dependencies
-
-### `buildToolPageCategoryRef`
-
-- no nested `ToolPage*` helper calls detected
 
 ### `buildToolPagePricingLinkText`
 
@@ -92,6 +90,15 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `buildToolPageWorkflowFitVisibility(...)`
 - `buildToolPageQuickJumpLinksView(...)`
 
-### `buildToolPageSpecsSignals`
+### `buildToolPageLensHardLimitRouteState`
 
 - no nested `ToolPage*` helper calls detected
+
+### `buildToolPageRuntimeRouteState`
+
+- `buildToolPagePageSchemaRouteState(...)`
+
+### `buildToolPageSpecsCategoryRouteState`
+
+- `buildToolPageSpecsSignals(...)`
+- `buildToolPageCategoryRef(...)`

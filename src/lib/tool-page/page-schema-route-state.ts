@@ -7,9 +7,7 @@ interface BuildToolPagePageSchemaRouteStateInput {
   categoryName: string | null;
 }
 
-export function buildToolPagePageSchemaRouteState(
-  input: BuildToolPagePageSchemaRouteStateInput
-): {
+export function buildToolPagePageSchemaRouteState(input: BuildToolPagePageSchemaRouteStateInput): {
   pageSchemas: unknown[];
 } {
   if (!input.firstReview) {

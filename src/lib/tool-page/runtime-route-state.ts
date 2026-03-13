@@ -2,7 +2,9 @@ import type { buildToolPageRuntimeNavigationStateFromDecisionContext } from '@/l
 import { buildToolPagePageSchemaRouteState } from '@/lib/tool-page/page-schema-route-state';
 
 interface BuildToolPageRuntimeRouteStateInput {
-  runtimeViewBundle: ReturnType<typeof buildToolPageRuntimeNavigationStateFromDecisionContext>['runtimeViewBundle'];
+  runtimeViewBundle: ReturnType<
+    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
+  >['runtimeViewBundle'];
   firstReview: Parameters<typeof buildToolPagePageSchemaRouteState>[0]['firstReview'];
   tool: Parameters<typeof buildToolPagePageSchemaRouteState>[0]['tool'];
   categoryName: string | null;
