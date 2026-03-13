@@ -1,10 +1,10 @@
-import { buildToolPagePageAssemblyRouteStateFromRouteContext } from '@/lib/tool-page/page-assembly-route-state';
+import { buildToolPagePageAssemblyRouteStateFromRouteData } from '@/lib/tool-page/page-assembly-route-state';
 import type { buildToolPageRouteDataPipelineStateFromPageContext } from '@/lib/tool-page/route-data-pipeline-state';
 
 interface BuildToolPagePageAssemblyStateFromRouteDataContextInput {
   routeDataState: ReturnType<typeof buildToolPageRouteDataPipelineStateFromPageContext>;
   activeReviewLens: Parameters<
-    typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+    typeof buildToolPagePageAssemblyRouteStateFromRouteData
   >[0]['decision']['activeReviewLens'];
 }
 
@@ -17,18 +17,18 @@ function toDecisionConfidenceLabel(level: string): string {
 
 export function buildToolPagePageAssemblyStateFromRouteDataContext(
   input: BuildToolPagePageAssemblyStateFromRouteDataContextInput
-): ReturnType<typeof buildToolPagePageAssemblyRouteStateFromRouteContext> {
+): ReturnType<typeof buildToolPagePageAssemblyRouteStateFromRouteData> {
   const { routeDataState } = input;
   const hasApi = Boolean(routeDataState.knowledgeCard?.integrations?.has_api);
 
-  return buildToolPagePageAssemblyRouteStateFromRouteContext({
+  return buildToolPagePageAssemblyRouteStateFromRouteData({
     runtime: {
       runtimeViewBundle: routeDataState.runtimeViewBundle,
       firstReview: routeDataState.firstReview as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        typeof buildToolPagePageAssemblyRouteStateFromRouteData
       >[0]['runtime']['firstReview'],
       tool: routeDataState.tool as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        typeof buildToolPagePageAssemblyRouteStateFromRouteData
       >[0]['runtime']['tool'],
       categoryName: routeDataState.tool.category?.name || null,
     },
@@ -38,11 +38,11 @@ export function buildToolPagePageAssemblyStateFromRouteDataContext(
         activeReviewLens: input.activeReviewLens,
         toolCategory: routeDataState.toolCategoryRef,
         tool: routeDataState.tool as Parameters<
-          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+          typeof buildToolPagePageAssemblyRouteStateFromRouteData
         >[0]['chrome']['chromeLens']['tool'],
         websiteHostLabel: routeDataState.websiteHostLabel || '',
         runtimeViewBundle: routeDataState.runtimeViewBundle as Parameters<
-          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+          typeof buildToolPagePageAssemblyRouteStateFromRouteData
         >[0]['chrome']['chromeLens']['runtimeViewBundle'],
         evidenceRuntime: routeDataState.evidenceRuntime,
         reviewSignalsView: routeDataState.reviewSignalsView,
@@ -58,7 +58,7 @@ export function buildToolPagePageAssemblyStateFromRouteDataContext(
         canCompareByAlternativeSlug: routeDataState.canCompareByAlternativeSlug,
         tool: routeDataState.tool,
         knowledgeCard: routeDataState.knowledgeCard as Parameters<
-          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+          typeof buildToolPagePageAssemblyRouteStateFromRouteData
         >[0]['chrome']['contentAlternatives']['knowledgeCard'],
         parentTool: routeDataState.parentTool,
         setupTracks: routeDataState.setupTracks,
@@ -67,7 +67,7 @@ export function buildToolPagePageAssemblyStateFromRouteDataContext(
         userReportedPros: routeDataState.userReportedPros,
         userReportedCons: routeDataState.userReportedCons,
         laneOutputs: routeDataState.laneOutputs as Parameters<
-          typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+          typeof buildToolPagePageAssemblyRouteStateFromRouteData
         >[0]['chrome']['contentAlternatives']['laneOutputs'],
         decisionRuntime: routeDataState.decisionRuntime,
         sectionFlags: routeDataState.sectionFlags,
@@ -93,7 +93,7 @@ export function buildToolPagePageAssemblyStateFromRouteDataContext(
       hasParentTool: Boolean(routeDataState.parentTool),
       audiences: routeDataState.tags.audiences,
       topLensHardLimit: routeDataState.topLensHardLimit as Parameters<
-        typeof buildToolPagePageAssemblyRouteStateFromRouteContext
+        typeof buildToolPagePageAssemblyRouteStateFromRouteData
       >[0]['decision']['topLensHardLimit'],
       pricingEvidenceLinks: routeDataState.pricingEvidenceLinks,
       officialPricingSourceUrl: routeDataState.officialPricingSource?.url || null,

@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const { buildToolPagePageAssemblyRouteStateFromRouteContextMock } = vi.hoisted(() => ({
-  buildToolPagePageAssemblyRouteStateFromRouteContextMock: vi.fn(() => ({
+const { buildToolPagePageAssemblyRouteStateFromRouteDataMock } = vi.hoisted(() => ({
+  buildToolPagePageAssemblyRouteStateFromRouteDataMock: vi.fn(() => ({
     meta: { title: 'Acme review' },
   })),
 }));
 
 vi.mock('@/lib/tool-page/page-assembly-route-state', () => ({
-  buildToolPagePageAssemblyRouteStateFromRouteContext:
-    buildToolPagePageAssemblyRouteStateFromRouteContextMock,
+  buildToolPagePageAssemblyRouteStateFromRouteData:
+    buildToolPagePageAssemblyRouteStateFromRouteDataMock,
 }));
 
 import { buildToolPagePageAssemblyStateFromRouteDataContext } from '@/lib/tool-page/page-assembly-from-route-data-state';
@@ -53,7 +53,7 @@ describe('tool page page assembly from route data state', () => {
       } as any,
     });
 
-    expect(buildToolPagePageAssemblyRouteStateFromRouteContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPagePageAssemblyRouteStateFromRouteDataMock).toHaveBeenCalledTimes(1);
     expect(result.meta.title).toBe('Acme review');
   });
 });

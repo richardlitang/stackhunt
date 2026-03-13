@@ -4,7 +4,7 @@ import { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-
 import { buildToolPageRuntimeRouteState } from '@/lib/tool-page/runtime-route-state';
 import type { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-route-state';
 
-interface BuildToolPagePageAssemblyRouteStateFromRouteContextInput {
+interface BuildToolPagePageAssemblyRouteStateFromRouteDataInput {
   runtime: Parameters<typeof buildToolPageRuntimeRouteState>[0];
   chrome: Parameters<typeof buildToolPageChromeRouteStateFromDecisionContext>[0];
   decision: Omit<
@@ -28,14 +28,14 @@ interface BuildToolPagePageAssemblyRouteStateFromRouteContextInput {
   ctaMediaState: ReturnType<typeof buildToolPageRuntimeMidRouteState>['ctaMediaState'];
 }
 
-export function buildToolPagePageAssemblyRouteStateFromRouteContext(
-  input: BuildToolPagePageAssemblyRouteStateFromRouteContextInput
+export function buildToolPagePageAssemblyRouteStateFromRouteData(
+  input: BuildToolPagePageAssemblyRouteStateFromRouteDataInput
 ): ReturnType<typeof buildToolPageRuntimeRouteState> &
   ReturnType<typeof buildToolPageChromeRouteStateFromDecisionContext> &
   ReturnType<typeof buildToolPageDecisionRouteState> &
   ReturnType<typeof buildToolPageDecisionNavigationRouteState> &
   Pick<
-    BuildToolPagePageAssemblyRouteStateFromRouteContextInput['ctaMediaState'],
+    BuildToolPagePageAssemblyRouteStateFromRouteDataInput['ctaMediaState'],
     | 'compareButtonProps'
     | 'addToStackProps'
     | 'priceVerificationProps'

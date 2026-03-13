@@ -73,11 +73,11 @@ vi.mock('@/lib/tool-page/decision-navigation-route-state', () => ({
   buildToolPageDecisionNavigationRouteState: buildToolPageDecisionNavigationRouteStateMock,
 }));
 
-import { buildToolPagePageAssemblyRouteStateFromRouteContext } from '@/lib/tool-page/page-assembly-route-state';
+import { buildToolPagePageAssemblyRouteStateFromRouteData } from '@/lib/tool-page/page-assembly-route-state';
 
 describe('tool page page assembly route state', () => {
   it('assembles runtime, chrome, decision, navigation, and cta route slices', () => {
-    const result = buildToolPagePageAssemblyRouteStateFromRouteContext({
+    const result = buildToolPagePageAssemblyRouteStateFromRouteData({
       runtime: {
         runtimeViewBundle: {} as never,
         firstReview: null,

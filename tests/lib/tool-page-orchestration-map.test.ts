@@ -15,7 +15,7 @@ describe('tool page orchestration map', () => {
     expect(markdown).toContain('buildToolPageDecisionEvidenceRouteState');
     expect(markdown).toContain('buildToolPageDisplayRouteState');
     expect(markdown).toContain('buildToolPageRuntimeMidRouteState');
-    expect(markdown).toContain('buildToolPagePageAssemblyRouteStateFromRouteContext');
+    expect(markdown).toContain('buildToolPagePageAssemblyRouteStateFromRouteData');
   });
 
   it('does not leave unresolved route imports in the map', () => {

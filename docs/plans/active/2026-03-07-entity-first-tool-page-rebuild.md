@@ -314,6 +314,7 @@ Notes:
 - 2026-03-13 progress: removed `buildToolPageAlternativesPricingStateInputFromRouteContext(...)` from the input module and localized route-shape normalization in `chrome-route-state`.
 - 2026-03-13 progress: removed `buildToolPageContentSectionsStateInputFromRouteContext(...)` from the input module and localized route-shape normalization in `chrome-route-state`.
 - 2026-03-13 progress: removed `buildToolPageChromeStateInputFromRouteContext(...)` from the input module and localized route-shape normalization in `chrome-route-state`.
+- 2026-03-13 progress: renamed `buildToolPagePageAssemblyRouteStateFromRouteContext(...)` to `buildToolPagePageAssemblyRouteStateFromRouteData(...)` to align naming with route-data pipeline ownership.
 
 ### Phase 3: Page compiler rebuild
 
