@@ -56,7 +56,7 @@ vi.mock('@/lib/tool-page/display-route-state', () => ({
 }));
 
 vi.mock('@/lib/tool-page/runtime-mid-route-state', () => ({
-  buildToolPageRuntimeMidRouteStateFromRouteContext: buildRuntimeMidStateMock,
+  buildToolPageRuntimeMidRouteState: buildRuntimeMidStateMock,
 }));
 
 import { buildToolPageRouteDataPipelineStateFromPageContext } from '@/lib/tool-page/route-data-pipeline-state';

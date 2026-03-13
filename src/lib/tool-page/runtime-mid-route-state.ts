@@ -20,32 +20,6 @@ interface BuildToolPageRuntimeMidRouteStateInput {
   >;
 }
 
-interface BuildToolPageRuntimeMidRouteStateFromRouteContextInput {
-  activeReviewLens: BuildToolPageRuntimeMidRouteStateInput['activeReviewLens'];
-  canonicalHardLimits: BuildToolPageRuntimeMidRouteStateInput['canonicalHardLimits'];
-  specs: BuildToolPageRuntimeMidRouteStateInput['specs'];
-  userReportedPros: BuildToolPageRuntimeMidRouteStateInput['userReportedPros'];
-  userReportedCons: BuildToolPageRuntimeMidRouteStateInput['userReportedCons'];
-  category: BuildToolPageRuntimeMidRouteStateInput['category'];
-  pathname: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['pathname'];
-  searchParams: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['searchParams'];
-  tool: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['tool'];
-  primaryOffer: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['primaryOffer'];
-  faqSchema: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['faqSchema'];
-  decisionRuntime: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['decisionRuntime'];
-  sectionFlags: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['sectionFlags'];
-  evidenceRuntime: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['evidenceRuntime'];
-  qualityState: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['qualityState'];
-  reviewSignalsView: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['reviewSignalsView'];
-  presentationGates: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['presentationGates'];
-  evaluationDepth: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['evaluationDepth'];
-  hasStrengths: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['hasStrengths'];
-  faqItems: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['faqItems'];
-  reviewArtifactsState: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['reviewArtifactsState'];
-  knowledgeCard: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['knowledgeCard'];
-  renderVerdictSafe: BuildToolPageRuntimeMidRouteStateInput['runtimeNavigation']['renderVerdictSafe'];
-}
-
 export function buildToolPageRuntimeMidRouteState(
   input: BuildToolPageRuntimeMidRouteStateInput
 ): ReturnType<typeof buildToolPageLensHardLimitRouteState> &
@@ -79,36 +53,4 @@ export function buildToolPageRuntimeMidRouteState(
     ...specsCategoryState,
     ...runtimeNavigationState,
   };
-}
-
-export function buildToolPageRuntimeMidRouteStateFromRouteContext(
-  input: BuildToolPageRuntimeMidRouteStateFromRouteContextInput
-): ReturnType<typeof buildToolPageRuntimeMidRouteState> {
-  return buildToolPageRuntimeMidRouteState({
-    activeReviewLens: input.activeReviewLens,
-    canonicalHardLimits: input.canonicalHardLimits,
-    specs: input.specs,
-    userReportedPros: input.userReportedPros,
-    userReportedCons: input.userReportedCons,
-    category: input.category,
-    runtimeNavigation: {
-      pathname: input.pathname,
-      searchParams: input.searchParams,
-      tool: input.tool,
-      primaryOffer: input.primaryOffer,
-      faqSchema: input.faqSchema,
-      decisionRuntime: input.decisionRuntime,
-      sectionFlags: input.sectionFlags,
-      evidenceRuntime: input.evidenceRuntime,
-      qualityState: input.qualityState,
-      reviewSignalsView: input.reviewSignalsView,
-      presentationGates: input.presentationGates,
-      evaluationDepth: input.evaluationDepth,
-      hasStrengths: input.hasStrengths,
-      faqItems: input.faqItems,
-      reviewArtifactsState: input.reviewArtifactsState,
-      knowledgeCard: input.knowledgeCard,
-      renderVerdictSafe: input.renderVerdictSafe,
-    },
-  });
 }

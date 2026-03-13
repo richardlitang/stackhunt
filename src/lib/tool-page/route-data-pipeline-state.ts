@@ -1,18 +1,16 @@
 import { buildToolPageDataPrepRouteState } from '@/lib/tool-page/data-prep-route-state';
 import { buildToolPageDecisionEvidenceRouteState } from '@/lib/tool-page/decision-evidence-route-state';
 import { buildToolPageDisplayRouteState } from '@/lib/tool-page/display-route-state';
-import { buildToolPageRuntimeMidRouteStateFromRouteContext } from '@/lib/tool-page/runtime-mid-route-state';
+import { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-route-state';
 
 interface BuildToolPageRouteDataPipelineStateFromPageContextInput {
   toolPageData: Parameters<typeof buildToolPageDataPrepRouteState>[0]['toolPageData'];
   isEligibleEvidenceUrl: Parameters<
     typeof buildToolPageDataPrepRouteState
   >[0]['isEligibleEvidenceUrl'];
-  activeReviewLens: Parameters<
-    typeof buildToolPageRuntimeMidRouteStateFromRouteContext
-  >[0]['activeReviewLens'];
-  pathname: Parameters<typeof buildToolPageRuntimeMidRouteStateFromRouteContext>[0]['pathname'];
-  searchParams: Parameters<typeof buildToolPageRuntimeMidRouteStateFromRouteContext>[0]['searchParams'];
+  activeReviewLens: Parameters<typeof buildToolPageRuntimeMidRouteState>[0]['activeReviewLens'];
+  pathname: Parameters<typeof buildToolPageRuntimeMidRouteState>[0]['runtimeNavigation']['pathname'];
+  searchParams: Parameters<typeof buildToolPageRuntimeMidRouteState>[0]['runtimeNavigation']['searchParams'];
 }
 
 export function buildToolPageRouteDataPipelineStateFromPageContext(
@@ -20,7 +18,7 @@ export function buildToolPageRouteDataPipelineStateFromPageContext(
 ): ReturnType<typeof buildToolPageDataPrepRouteState> &
   ReturnType<typeof buildToolPageDecisionEvidenceRouteState> &
   ReturnType<typeof buildToolPageDisplayRouteState> &
-  ReturnType<typeof buildToolPageRuntimeMidRouteStateFromRouteContext> {
+  ReturnType<typeof buildToolPageRuntimeMidRouteState> {
   const dataPrepState = buildToolPageDataPrepRouteState({
     toolPageData: input.toolPageData,
     isEligibleEvidenceUrl: input.isEligibleEvidenceUrl,
@@ -41,37 +39,39 @@ export function buildToolPageRouteDataPipelineStateFromPageContext(
     reviewSignalsView: decisionEvidenceState.reviewSignalsView,
     evidenceRuntime: decisionEvidenceState.evidenceRuntime,
   });
-  const runtimeMidState = buildToolPageRuntimeMidRouteStateFromRouteContext({
+  const runtimeMidState = buildToolPageRuntimeMidRouteState({
     activeReviewLens: input.activeReviewLens,
-    tool: dataPrepState.tool,
-    primaryOffer: dataPrepState.primaryOffer,
-    knowledgeCard: dataPrepState.knowledgeCard as Parameters<
-      typeof buildToolPageRuntimeMidRouteStateFromRouteContext
-    >[0]['knowledgeCard'],
-    userReportedPros: dataPrepState.userReportedPros,
-    userReportedCons: dataPrepState.userReportedCons,
     canonicalHardLimits: displayState.canonicalHardLimits,
     specs: dataPrepState.tool.specs,
+    userReportedPros: dataPrepState.userReportedPros,
+    userReportedCons: dataPrepState.userReportedCons,
     category: dataPrepState.tool.category,
-    pathname: input.pathname,
-    searchParams: input.searchParams,
-    faqSchema: decisionEvidenceState.faqSchema,
-    decisionRuntime: decisionEvidenceState.decisionRuntime,
-    sectionFlags: decisionEvidenceState.sectionFlags,
-    evidenceRuntime: decisionEvidenceState.evidenceRuntime,
-    qualityState: decisionEvidenceState.qualityState,
-    reviewSignalsView: decisionEvidenceState.reviewSignalsView,
-    presentationGates: {
-      showProceduralVerdict: displayState.showProceduralVerdict,
-      showProceduralSpecs: displayState.showProceduralSpecs,
+    runtimeNavigation: {
+      pathname: input.pathname,
+      searchParams: input.searchParams,
+      tool: dataPrepState.tool,
+      primaryOffer: dataPrepState.primaryOffer,
+      faqSchema: decisionEvidenceState.faqSchema,
+      decisionRuntime: decisionEvidenceState.decisionRuntime,
+      sectionFlags: decisionEvidenceState.sectionFlags,
+      evidenceRuntime: decisionEvidenceState.evidenceRuntime,
+      qualityState: decisionEvidenceState.qualityState,
+      reviewSignalsView: decisionEvidenceState.reviewSignalsView,
+      presentationGates: {
+        showProceduralVerdict: displayState.showProceduralVerdict,
+        showProceduralSpecs: displayState.showProceduralSpecs,
+      },
+      evaluationDepth: displayState.evaluationDepth,
+      hasStrengths: displayState.hasStrengths,
+      faqItems: decisionEvidenceState.faqItems as Parameters<
+        typeof buildToolPageRuntimeMidRouteState
+      >[0]['runtimeNavigation']['faqItems'],
+      reviewArtifactsState: decisionEvidenceState.reviewArtifactsState,
+      knowledgeCard: dataPrepState.knowledgeCard as Parameters<
+        typeof buildToolPageRuntimeMidRouteState
+      >[0]['runtimeNavigation']['knowledgeCard'],
+      renderVerdictSafe: displayState.renderVerdictSafe,
     },
-    evaluationDepth: displayState.evaluationDepth,
-    hasStrengths: displayState.hasStrengths,
-    faqItems: decisionEvidenceState.faqItems as Parameters<
-      typeof buildToolPageRuntimeMidRouteStateFromRouteContext
-    >[0]['faqItems'],
-    reviewArtifactsState: decisionEvidenceState.reviewArtifactsState,
-    renderVerdictSafe: displayState.renderVerdictSafe,
   });
 
   return {
