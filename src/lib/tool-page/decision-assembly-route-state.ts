@@ -27,6 +27,23 @@ interface BuildToolPageDecisionAssemblyRouteStateInput {
   };
 }
 
+interface BuildToolPageDecisionAssemblyRouteStateFromRouteContextInput {
+  tool: BuildToolPageDecisionAssemblyRouteStateInput['tool'];
+  resolvedSubject: BuildToolPageDecisionAssemblyRouteStateInput['resolvedSubject'];
+  activeReviewLens: BuildToolPageDecisionAssemblyRouteStateInput['activeReviewLens'];
+  hasApi: boolean;
+  hasParentTool: boolean;
+  audiences: Array<{ slug?: string | null; name?: string | null }>;
+  lensBestFitLine: BuildToolPageDecisionAssemblyRouteStateInput['lensBestFitLine'];
+  lensWeakFitLine: BuildToolPageDecisionAssemblyRouteStateInput['lensWeakFitLine'];
+  lensTradeoffLine: BuildToolPageDecisionAssemblyRouteStateInput['lensTradeoffLine'];
+  topLensHardLimit: BuildToolPageDecisionAssemblyRouteStateInput['topLensHardLimit'];
+  pricingEvidenceLinks: Array<{ sourceUrl?: string | null; text?: string | null }>;
+  officialPricingSourceUrl: string | null;
+  contentConfidenceLabel: BuildToolPageDecisionAssemblyRouteStateInput['contentConfidenceLabel'];
+  trustBar: BuildToolPageDecisionAssemblyRouteStateInput['trustBar'];
+}
+
 export function buildToolPageDecisionAssemblyRouteState(
   input: BuildToolPageDecisionAssemblyRouteStateInput
 ): ReturnType<typeof buildToolPageDecisionRouteState> {
@@ -43,6 +60,28 @@ export function buildToolPageDecisionAssemblyRouteState(
     topLensHardLimit: input.topLensHardLimit,
     pricingEvidenceSourceUrl: input.pricingEvidenceSourceUrl,
     pricingEvidenceSummary: input.pricingEvidenceSummary,
+    contentConfidenceLabel: input.contentConfidenceLabel,
+    trustBar: input.trustBar,
+  });
+}
+
+export function buildToolPageDecisionAssemblyRouteStateFromRouteContext(
+  input: BuildToolPageDecisionAssemblyRouteStateFromRouteContextInput
+): ReturnType<typeof buildToolPageDecisionAssemblyRouteState> {
+  const firstPricingEvidenceLink = input.pricingEvidenceLinks[0];
+  return buildToolPageDecisionAssemblyRouteState({
+    tool: input.tool,
+    resolvedSubject: input.resolvedSubject,
+    activeReviewLens: input.activeReviewLens,
+    hasApi: input.hasApi,
+    hasParentTool: input.hasParentTool,
+    audienceSlugs: input.audiences.map((audience) => audience.slug || audience.name || ''),
+    lensBestFitLine: input.lensBestFitLine,
+    lensWeakFitLine: input.lensWeakFitLine,
+    lensTradeoffLine: input.lensTradeoffLine,
+    topLensHardLimit: input.topLensHardLimit,
+    pricingEvidenceSourceUrl: firstPricingEvidenceLink?.sourceUrl || input.officialPricingSourceUrl,
+    pricingEvidenceSummary: firstPricingEvidenceLink?.text || null,
     contentConfidenceLabel: input.contentConfidenceLabel,
     trustBar: input.trustBar,
   });

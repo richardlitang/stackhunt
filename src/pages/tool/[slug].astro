@@ -50,7 +50,7 @@ import {
   buildToolPageRuntimeNavigationRouteState,
   buildToolPageChromeAssemblyRouteState,
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
-  buildToolPageDecisionAssemblyRouteState,
+  buildToolPageDecisionAssemblyRouteStateFromRouteContext,
   buildToolPageDecisionNavigationRouteState,
   buildToolPageLensHardLimitRouteState,
   buildToolPageRuntimeRouteState,
@@ -373,7 +373,7 @@ const {
   decisionHardLimitEvidence,
   pricingScenarioState,
   showEarlySnapshotToneBanner,
-} = buildToolPageDecisionAssemblyRouteState({
+} = buildToolPageDecisionAssemblyRouteStateFromRouteContext({
   tool: {
     name: tool.name,
     categorySlug: tool.category?.slug || null,
@@ -386,14 +386,13 @@ const {
   activeReviewLens,
   hasApi: Boolean(knowledgeCard?.integrations?.has_api),
   hasParentTool: Boolean(parentTool),
-  audienceSlugs: tags.audiences.map((audience) => audience.slug || audience.name || ''),
+  audiences: tags.audiences,
   lensBestFitLine,
   lensWeakFitLine,
   lensTradeoffLine,
   topLensHardLimit,
-  pricingEvidenceSourceUrl:
-    pricingEvidenceLinks[0]?.sourceUrl || officialPricingSource?.url || null,
-  pricingEvidenceSummary: pricingEvidenceLinks[0]?.text || null,
+  pricingEvidenceLinks,
+  officialPricingSourceUrl: officialPricingSource?.url || null,
   contentConfidenceLabel: qualityState.contentConfidenceLabel,
   trustBar: {
     confidence: trustBarProps.confidence,
