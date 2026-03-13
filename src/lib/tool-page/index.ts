@@ -59,6 +59,7 @@ export { rankConstraintsForLens } from '@/lib/tool-page/constraints-lens';
 export { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
 export { getToolPageData } from '@/lib/tool-page/data';
 export { buildToolPageDataPrepRouteState } from '@/lib/tool-page/data-prep-route-state';
+export { buildToolPageDecisionEvidenceRouteState } from '@/lib/tool-page/decision-evidence-route-state';
 export {
   buildToolPageDecisionSectionState,
   buildToolPageDecisionSectionStateFromRoute,

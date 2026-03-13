@@ -45,6 +45,7 @@ import {
   getToolPageData,
   buildToolPageDataPrepRouteState,
   isEligibleEvidenceUrl,
+  buildToolPageDecisionEvidenceRouteState,
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
   buildToolPageRuntimeNavigationRouteState,
@@ -100,13 +101,29 @@ const {
   userReportedPros,
   userReportedCons,
   prepState,
-  decisionSectionState,
-  reviewArtifactsState,
-  evidenceSignalsState,
   reviewContextSignals,
+  decisionSectionState,
+  reviewArtifactsState: decisionReviewArtifactsState,
+  evidenceSignalsState,
 } = buildToolPageDataPrepRouteState({
   toolPageData,
   isEligibleEvidenceUrl,
+});
+const {
+  qualityState,
+  faqItems,
+  pricingTypeLabel,
+  decisionRuntime,
+  sectionFlags,
+  presentationGates,
+  faqSchema,
+  reviewArtifactsState,
+  reviewSignalsView,
+  evidenceRuntime,
+} = buildToolPageDecisionEvidenceRouteState({
+  decisionSectionState,
+  reviewArtifactsState: decisionReviewArtifactsState,
+  evidenceSignalsState,
 });
 const {
   sourceEvidenceDomains: _sourceEvidenceDomains,
@@ -116,21 +133,10 @@ const {
   canCompareByAlternativeSlug,
 } = prepState;
 const {
-  qualityState,
-  faqState,
-  displaySignals,
-  decisionRuntime,
-  sectionFlags,
-  presentationGates,
-  faqSchema,
-} = decisionSectionState;
-const {
   sectionStatus: _sectionStatus,
   gateReasons: _gateReasons,
   showReviewInProgressBanner,
 } = qualityState;
-const { faqItems } = faqState;
-const { pricingTypeLabel } = displaySignals;
 const {
   hasAbout,
   comparativeFeaturePeerCount,
@@ -167,7 +173,6 @@ const {
   notTestedItems,
   showWeTestedIt,
 } = reviewArtifactsState;
-const { reviewSignalsView, evidenceRuntime } = evidenceSignalsState;
 const { communityVerifiedLabel } = reviewSignalsView;
 const {
   effectiveEvidencePros: _effectiveEvidencePros,
