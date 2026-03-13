@@ -139,7 +139,7 @@ function buildToolPageAlternativesPricingStateInputFromRouteData(
   });
 }
 
-interface BuildToolPageContentSectionsStateInputFromRouteContextInput {
+interface BuildToolPageContentSectionsStateInputFromRouteDataInput {
   evidenceLinks: Parameters<
     typeof buildToolPageContentSectionsStateInputFromRoute
   >[0]['evidenceLinks'];
@@ -248,8 +248,8 @@ interface BuildToolPageContentSectionsStateInputFromRouteContextInput {
   };
 }
 
-function buildToolPageContentSectionsStateInputFromRouteContext(
-  input: BuildToolPageContentSectionsStateInputFromRouteContextInput
+function buildToolPageContentSectionsStateInputFromRouteData(
+  input: BuildToolPageContentSectionsStateInputFromRouteDataInput
 ): Parameters<typeof buildToolPageContentSectionsState>[0] {
   return buildToolPageContentSectionsStateInputFromRoute({
     evidenceLinks: input.evidenceLinks,
@@ -371,7 +371,7 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
     >[0]['canCompareByAlternativeSlug'];
     tool: {
       name: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['tool']['name'];
       slug: Parameters<
         typeof buildToolPageAlternativesPricingStateInputFromRouteData
@@ -380,91 +380,91 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
         typeof buildToolPageAlternativesPricingStateInputFromRouteData
       >[0]['tool']['specs'];
       website: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['tool']['website'];
       long_description: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['tool']['long_description'];
       affiliate_offers: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['tool']['affiliate_offers'];
     };
     knowledgeCard: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteContext
+      typeof buildToolPageContentSectionsStateInputFromRouteData
     >[0]['knowledgeCard'];
     parentTool: unknown;
     setupTracks: unknown;
     displayCategorySpecificData: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteContext
+      typeof buildToolPageContentSectionsStateInputFromRouteData
     >[0]['displayCategorySpecificData'];
     vipSpecifics: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteContext
+      typeof buildToolPageContentSectionsStateInputFromRouteData
     >[0]['vipSpecifics'];
     userReportedPros: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteContext
+      typeof buildToolPageContentSectionsStateInputFromRouteData
     >[0]['userReportedPros'];
     userReportedCons: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteContext
+      typeof buildToolPageContentSectionsStateInputFromRouteData
     >[0]['userReportedCons'];
     laneOutputs?: Parameters<
-      typeof buildToolPageContentSectionsStateInputFromRouteContext
+      typeof buildToolPageContentSectionsStateInputFromRouteData
     >[0]['laneOutputs'];
     decisionRuntime: {
       setupSignals: {
         gettingStartedCtaUrl: Parameters<
-          typeof buildToolPageContentSectionsStateInputFromRouteContext
+          typeof buildToolPageContentSectionsStateInputFromRouteData
         >[0]['gettingStartedCtaUrl'];
       };
       guardedHumanVerdict: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['guardedHumanVerdict'];
       guardedAvoidIf: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['guardedAvoidIf'];
     };
     sectionFlags: {
       hasCommunity: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['hasCommunity'];
       hasSecurity: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['hasSecurity'];
       hasPortability: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['hasPortability'];
     };
     evidenceRuntime: {
       effectiveEvidencePros: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['effectiveEvidencePros'];
       effectiveEvidenceCons: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['effectiveEvidenceCons'];
       collectedSourcesBySection: {
         pros_cons: Parameters<
-          typeof buildToolPageContentSectionsStateInputFromRouteContext
+          typeof buildToolPageContentSectionsStateInputFromRouteData
         >[0]['prosConsSourcesCount'];
       };
       pricingCheckedLabel: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['pricingCheckedLabel'];
       officialPricingSource: { url?: string | null } | null;
       pricingEvidenceLinks: Array<unknown>;
     };
     reviewArtifactsState: {
       evidenceLinks: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['evidenceLinks'];
       lowConfidenceEvidenceLinks: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['lowConfidenceEvidenceLinks'];
       evidenceBasis: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['evidenceBasis'];
     };
     reviewSignalsView: {
       specsVerifiedLabel: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['specsVerifiedLabel'];
     };
     reviewContextSignals: {
@@ -481,31 +481,31 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
         typeof buildToolPageAlternativesPricingStateInputFromRouteData
       >[0]['budgetRoiThreshold'];
       userAdvocate: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['userAdvocate'];
-      vibe: Parameters<typeof buildToolPageContentSectionsStateInputFromRouteContext>[0]['vibe'];
+      vibe: Parameters<typeof buildToolPageContentSectionsStateInputFromRouteData>[0]['vibe'];
       originStory: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['originStory'];
       idealFor: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['idealFor'];
       powerTip: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['powerTip'];
       delighters: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['delighters'];
       frustrations: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['frustrations'];
     };
     qualityState: {
       communityCorroborationCount: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['communityCorroborationCount'];
       userSignalClaimsCount?: Parameters<
-        typeof buildToolPageContentSectionsStateInputFromRouteContext
+        typeof buildToolPageContentSectionsStateInputFromRouteData
       >[0]['userSignalClaimsCount'];
     };
   };
@@ -559,7 +559,7 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
     })
   );
   const contentSectionsState = buildToolPageContentSectionsState(
-    buildToolPageContentSectionsStateInputFromRouteContext({
+    buildToolPageContentSectionsStateInputFromRouteData({
       evidenceLinks: input.contentAlternatives.reviewArtifactsState.evidenceLinks,
       lowConfidenceEvidenceLinks:
         input.contentAlternatives.reviewArtifactsState.lowConfidenceEvidenceLinks,
