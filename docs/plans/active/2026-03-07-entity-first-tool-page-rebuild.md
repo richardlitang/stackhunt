@@ -295,6 +295,8 @@ Notes:
 - 2026-03-13 progress: inlined runtime-navigation decision composition into `buildToolPageRuntimeNavigationRouteState(...)`, removing `runtime-navigation-decision-context`.
 - 2026-03-13 progress: removed `navigation-media-decision-context` and mapped runtime-navigation signals directly into `buildToolPageNavigationMediaStateFromRouteContext(...)`.
 - 2026-03-13 progress: removed `runtime-view-bundle-decision-context` and mapped runtime signals directly into `buildToolPageRuntimeViewBundleFromPageContext(...)`.
+- 2026-03-13 progress: removed `prep-review-evidence-decision-context` and wired `buildToolPageDataPrepRouteState(...)` to compose prep-decision and review-evidence builders directly.
+- 2026-03-13 progress: removed `prep-decision-decision-context` and mapped review-context signals directly into `buildToolPagePrepDecisionStateFromRouteContext(...)`.
 
 ### Phase 3: Page compiler rebuild
 
