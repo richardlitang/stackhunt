@@ -228,6 +228,10 @@ export {
 } from '@/lib/tool-page/route-normalizers';
 export { applyToolPageVersionBypassCacheHeaders } from '@/lib/tool-page/request-cache';
 export { applyToolPageRobotsHeader } from '@/lib/tool-page/response-headers';
+export {
+  buildToolPageRequestRouteState,
+  applyToolPageResponseRouteState,
+} from '@/lib/tool-page/request-response-route-state';
 export { deriveToolPageSectionSignals } from '@/lib/tool-page/section-signals';
 export { buildToolPageSectionState } from '@/lib/tool-page/section-state';
 export { buildToolPageStrengthsSubtitle } from '@/lib/tool-page/strengths-subtitle';

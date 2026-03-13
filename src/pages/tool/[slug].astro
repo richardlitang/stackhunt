@@ -45,9 +45,8 @@ import {
   getToolPageData,
   isEligibleEvidenceUrl,
   deriveToolPageReviewContextSignals,
-  deriveToolPageRequestState,
-  applyToolPageVersionBypassCacheHeaders,
-  applyToolPageRobotsHeader,
+  buildToolPageRequestRouteState,
+  applyToolPageResponseRouteState,
   buildToolPageRuntimeNavigationRouteState,
   buildToolPageChromeAssemblyRouteState,
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
@@ -62,11 +61,10 @@ import {
 export const prerender = false;
 
 const { slug } = Astro.params;
-const { activeReviewLens, hasVersionBypassParam } = deriveToolPageRequestState(
-  Astro.url.searchParams
-);
-// Cache-bust requests like ?v=34 should always skip CDN/page cache.
-applyToolPageVersionBypassCacheHeaders(Astro.response, hasVersionBypassParam);
+const { activeReviewLens } = buildToolPageRequestRouteState({
+  searchParams: Astro.url.searchParams,
+  response: Astro.response,
+});
 
 const toolPageData = await getToolPageData(slug);
 if (!toolPageData || !toolPageData.tool) {
@@ -428,7 +426,7 @@ const {
   videoProps,
   verdictContent,
 } = ctaMediaState;
-applyToolPageRobotsHeader({
+applyToolPageResponseRouteState({
   response: Astro.response,
   robotsTag: indexPolicy.robotsTag,
 });
