@@ -327,6 +327,7 @@ Notes:
 - 2026-03-13 progress: reduced evidence UI noise in strengths/limitations by hiding per-claim source-detail toggles in block mode and keeping source discoverability in the dedicated sources summary panel.
 - 2026-03-13 progress: added `buildToolPagePageCompilerRouteStateFromPageContext(...)` so `tool/[slug]` composes route-data pipeline plus page assembly through one compiler entrypoint call.
 - 2026-03-13 progress: updated rendered tool-page QA template marker detection to recognize `buildToolPagePageCompilerRouteStateFromPageContext(...)` as a valid gate-wired orchestration entrypoint.
+- 2026-03-13 progress: added regression coverage for the page compiler entrypoint in `tests/lib/tool-page-page-compiler-route-state.test.ts`.
 
 ### Phase 3: Page compiler rebuild
 
