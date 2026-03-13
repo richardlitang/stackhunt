@@ -38,7 +38,7 @@ import ToolWorkflowFitSection from '@/components/ToolWorkflowFitSection.astro';
 import ToolDecisionUtilitySection from '@/components/ToolDecisionUtilitySection.astro';
 import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
-import { generateReviewSchema, generateToolMeta } from '@/lib/seo';
+import { generateToolMeta } from '@/lib/seo';
 import { simpleMarkdown } from '@/lib/utils';
 import {
   buildToolPageCategoryRef,
@@ -54,6 +54,7 @@ import {
   buildToolPagePrepReviewEvidenceStateFromDecisionContext,
   buildToolPageDecisionRouteState,
   buildToolPageDecisionPresentationState,
+  buildToolPagePageSchemaRouteState,
   buildToolPageSpecsSignals,
   rankConstraintsForLens,
 } from '@/lib/tool-page';
@@ -307,9 +308,12 @@ const {
   sourceAriaLabel,
   lensRuntime,
 } = runtimeViewBundle;
-const pageSchemas = firstReview
-  ? [...schemas, generateReviewSchema(tool, firstReview, tool.category?.name || 'General software')]
-  : schemas;
+const { pageSchemas } = buildToolPagePageSchemaRouteState({
+  schemas,
+  firstReview,
+  tool,
+  categoryName: tool.category?.name || null,
+});
 const {
   lensHrefs,
   focusSwitchOptions,
