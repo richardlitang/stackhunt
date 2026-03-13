@@ -2,15 +2,22 @@ import { describe, expect, it, vi } from 'vitest';
 
 const {
   deriveToolPageReviewContextSignalsMock,
-  buildToolPagePrepReviewEvidenceStateFromDecisionContextMock,
+  buildToolPagePrepDecisionStateFromDecisionContextMock,
+  buildToolPageReviewEvidenceStateFromDecisionContextMock,
 } = vi.hoisted(() => ({
   deriveToolPageReviewContextSignalsMock: vi.fn(() => ({
     delighters: ['Fast setup'],
     frustrations: ['Seat caps'],
   })),
-  buildToolPagePrepReviewEvidenceStateFromDecisionContextMock: vi.fn(() => ({
+  buildToolPagePrepDecisionStateFromDecisionContextMock: vi.fn(() => ({
     prepState: { comparableAlternatives: [] },
-    decisionSectionState: { qualityState: {}, faqState: { faqItems: [] } },
+    decisionSectionState: {
+      decisionRuntime: { hasPricing: false },
+      qualityState: {},
+      faqState: { faqItems: [] },
+    },
+  })),
+  buildToolPageReviewEvidenceStateFromDecisionContextMock: vi.fn(() => ({
     reviewArtifactsState: { evidenceBasis: [] },
     evidenceSignalsState: { reviewSignalsView: {}, evidenceRuntime: {} },
   })),
@@ -20,9 +27,14 @@ vi.mock('@/lib/tool-page/review-context', () => ({
   deriveToolPageReviewContextSignals: deriveToolPageReviewContextSignalsMock,
 }));
 
-vi.mock('@/lib/tool-page/prep-review-evidence-decision-context', () => ({
-  buildToolPagePrepReviewEvidenceStateFromDecisionContext:
-    buildToolPagePrepReviewEvidenceStateFromDecisionContextMock,
+vi.mock('@/lib/tool-page/prep-decision-decision-context', () => ({
+  buildToolPagePrepDecisionStateFromDecisionContext:
+    buildToolPagePrepDecisionStateFromDecisionContextMock,
+}));
+
+vi.mock('@/lib/tool-page/review-evidence-decision-context', () => ({
+  buildToolPageReviewEvidenceStateFromDecisionContext:
+    buildToolPageReviewEvidenceStateFromDecisionContextMock,
 }));
 
 import { buildToolPageDataPrepRouteState } from '@/lib/tool-page/data-prep-route-state';
@@ -71,6 +83,7 @@ describe('tool page data prep route state', () => {
     expect(result.tool.name).toBe('Acme');
     expect(result.websiteHostLabel).toBe('acme.com');
     expect(result.reviewContextSignals.delighters).toEqual(['Fast setup']);
-    expect(buildToolPagePrepReviewEvidenceStateFromDecisionContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPagePrepDecisionStateFromDecisionContextMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageReviewEvidenceStateFromDecisionContextMock).toHaveBeenCalledTimes(1);
   });
 });
