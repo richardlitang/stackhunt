@@ -78,8 +78,8 @@ export function buildToolPageDataPrepRouteState(
       orderedAlternativesCount: orderedAlternatives?.length || 0,
     },
   });
-  const { reviewArtifactsState, evidenceSignalsState } = buildToolPageReviewEvidenceStateFromRouteContext(
-    {
+  const { reviewArtifactsState, evidenceSignalsState } =
+    buildToolPageReviewEvidenceStateFromRouteContext({
       reviewArtifacts: {
         canonicalFacts: canonicalFacts as any,
         reviewSources: reviewContentLists.sources,
@@ -118,8 +118,7 @@ export function buildToolPageDataPrepRouteState(
         })),
         buildEvidenceBulletV2: prepState.buildEvidenceBulletV2,
       },
-    }
-  );
+    });
 
   return {
     tool,

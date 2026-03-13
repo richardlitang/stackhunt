@@ -8,7 +8,9 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
     activeReviewLens: Parameters<
       typeof buildToolPageChromeLensStateFromRouteContext
     >[0]['chrome']['activeReviewLens'];
-    toolCategory: Parameters<typeof buildToolPageChromeLensStateFromRouteContext>[0]['chrome']['toolCategory'];
+    toolCategory: Parameters<
+      typeof buildToolPageChromeLensStateFromRouteContext
+    >[0]['chrome']['toolCategory'];
     tool: Parameters<typeof buildToolPageChromeLensStateFromRouteContext>[0]['chrome']['tool'];
     websiteHostLabel: Parameters<
       typeof buildToolPageChromeLensStateFromRouteContext
@@ -194,7 +196,9 @@ interface BuildToolPageChromeRouteStateFromDecisionContextInput {
       userAdvocate: Parameters<
         typeof buildToolPageContentAlternativesStateFromRouteContext
       >[0]['contentSections']['userAdvocate'];
-      vibe: Parameters<typeof buildToolPageContentAlternativesStateFromRouteContext>[0]['contentSections']['vibe'];
+      vibe: Parameters<
+        typeof buildToolPageContentAlternativesStateFromRouteContext
+      >[0]['contentSections']['vibe'];
       originStory: Parameters<
         typeof buildToolPageContentAlternativesStateFromRouteContext
       >[0]['contentSections']['originStory'];
@@ -271,7 +275,8 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
       },
       contentSections: {
         evidenceLinks: input.contentAlternatives.reviewArtifactsState.evidenceLinks,
-        lowConfidenceEvidenceLinks: input.contentAlternatives.reviewArtifactsState.lowConfidenceEvidenceLinks,
+        lowConfidenceEvidenceLinks:
+          input.contentAlternatives.reviewArtifactsState.lowConfidenceEvidenceLinks,
         effectiveEvidencePros: input.contentAlternatives.evidenceRuntime.effectiveEvidencePros,
         effectiveEvidenceCons: input.contentAlternatives.evidenceRuntime.effectiveEvidenceCons,
         userReportedPros: input.contentAlternatives.userReportedPros,
@@ -279,9 +284,12 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
         laneOutputs: input.contentAlternatives.laneOutputs,
         knowledgeCard: input.contentAlternatives.knowledgeCard,
         setupTracks: toToolPageObjectArray(input.contentAlternatives.setupTracks),
-        gettingStartedCtaUrl: input.contentAlternatives.decisionRuntime.setupSignals.gettingStartedCtaUrl,
-        prosConsSourcesCount: input.contentAlternatives.evidenceRuntime.collectedSourcesBySection.pros_cons,
-        communityCorroborationCount: input.contentAlternatives.qualityState.communityCorroborationCount,
+        gettingStartedCtaUrl:
+          input.contentAlternatives.decisionRuntime.setupSignals.gettingStartedCtaUrl,
+        prosConsSourcesCount:
+          input.contentAlternatives.evidenceRuntime.collectedSourcesBySection.pros_cons,
+        communityCorroborationCount:
+          input.contentAlternatives.qualityState.communityCorroborationCount,
         userSignalClaimsCount: input.contentAlternatives.qualityState.userSignalClaimsCount,
         evidenceBasis: input.contentAlternatives.reviewArtifactsState.evidenceBasis,
         hasCommunity: input.contentAlternatives.sectionFlags.hasCommunity,
@@ -299,7 +307,9 @@ export function buildToolPageChromeRouteStateFromDecisionContext(
         categoryName: input.contentAlternatives.toolCategoryRef?.name || null,
         specsVerifiedLabel: input.contentAlternatives.reviewSignalsView.specsVerifiedLabel,
         pricingCheckedLabel: input.contentAlternatives.evidenceRuntime.pricingCheckedLabel,
-        hasOfficialPricingSource: Boolean(input.contentAlternatives.evidenceRuntime.officialPricingSource),
+        hasOfficialPricingSource: Boolean(
+          input.contentAlternatives.evidenceRuntime.officialPricingSource
+        ),
         pricingEvidenceCount: input.contentAlternatives.evidenceRuntime.pricingEvidenceLinks.length,
         hasSecurity: input.contentAlternatives.sectionFlags.hasSecurity,
         hasPortability: input.contentAlternatives.sectionFlags.hasPortability,

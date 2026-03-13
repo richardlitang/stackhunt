@@ -297,6 +297,8 @@ Notes:
 - 2026-03-13 progress: removed `runtime-view-bundle-decision-context` and mapped runtime signals directly into `buildToolPageRuntimeViewBundleFromPageContext(...)`.
 - 2026-03-13 progress: removed `prep-review-evidence-decision-context` and wired `buildToolPageDataPrepRouteState(...)` to compose prep-decision and review-evidence builders directly.
 - 2026-03-13 progress: removed `prep-decision-decision-context` and mapped review-context signals directly into `buildToolPagePrepDecisionStateFromRouteContext(...)`.
+- 2026-03-13 progress: removed `chrome-content-decision-context`, `chrome-lens-decision-context`, and `content-alternatives-decision-context`, and wired `buildToolPageChromeRouteStateFromDecisionContext(...)` directly to route-context builders.
+- 2026-03-13 progress: removed `review-evidence-decision-context` and wired `buildToolPageDataPrepRouteState(...)` directly to `buildToolPageReviewEvidenceStateFromRouteContext(...)`.
 
 ### Phase 3: Page compiler rebuild
 
