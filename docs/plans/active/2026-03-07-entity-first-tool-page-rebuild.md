@@ -311,6 +311,7 @@ Notes:
 - 2026-03-13 progress: renamed `buildToolPageRuntimeAssemblySignalsInputFromRouteContext(...)` to `buildToolPageRuntimeAssemblySignalsInputFromRoute(...)` and rewired runtime navigation composition.
 - 2026-03-13 progress: removed `buildToolPageNavigationStateInputFromRouteContext(...)` and wired runtime navigation directly to `buildToolPageNavigationStateInputFromRoute(...)`.
 - 2026-03-13 progress: removed `buildToolPageCtaMediaStateInputFromRouteContext(...)` and wired runtime navigation directly to CTA tool projection plus `buildToolPageCtaMediaStateInputFromTool(...)`.
+- 2026-03-13 progress: removed `buildToolPageAlternativesPricingStateInputFromRouteContext(...)` from the input module and localized route-shape normalization in `chrome-route-state`.
 
 ### Phase 3: Page compiler rebuild
 

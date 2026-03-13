@@ -1,11 +1,67 @@
-import { buildToolPageAlternativesPricingStateInputFromRouteContext } from '@/lib/tool-page/alternatives-pricing-input';
+import { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-page/alternatives-pricing-input';
 import { buildToolPageAlternativesPricingState } from '@/lib/tool-page/alternatives-pricing-state';
 import { buildToolPageChromeStateInputFromRouteContext } from '@/lib/tool-page/chrome-input';
 import { buildToolPageContentSectionsStateInputFromRouteContext } from '@/lib/tool-page/content-sections-input';
 import { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
 import { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
 import { buildToolPageChromeState } from '@/lib/tool-page/page-chrome-state';
-import { toToolPageObjectArray } from '@/lib/tool-page/route-normalizers';
+import {
+  toToolPageComparableAlternatives,
+  toToolPageObjectArray,
+  toToolPageOrderedAlternatives,
+  toToolPageSpecsRecord,
+} from '@/lib/tool-page/route-normalizers';
+
+interface BuildToolPageAlternativesPricingStateInputFromRouteContextInput {
+  activeReviewLens: Parameters<
+    typeof buildToolPageAlternativesPricingStateInputFromRoute
+  >[0]['activeReviewLens'];
+  budgetCostDrivers: Parameters<
+    typeof buildToolPageAlternativesPricingStateInputFromRoute
+  >[0]['budgetCostDrivers'];
+  budgetOneTimeFees: Parameters<
+    typeof buildToolPageAlternativesPricingStateInputFromRoute
+  >[0]['budgetOneTimeFees'];
+  budgetCommitmentTerms: Parameters<
+    typeof buildToolPageAlternativesPricingStateInputFromRoute
+  >[0]['budgetCommitmentTerms'];
+  budgetRoiThreshold: Parameters<
+    typeof buildToolPageAlternativesPricingStateInputFromRoute
+  >[0]['budgetRoiThreshold'];
+  alternativesLabel: Parameters<
+    typeof buildToolPageAlternativesPricingStateInputFromRoute
+  >[0]['alternativesLabel'];
+  category: Parameters<typeof buildToolPageAlternativesPricingStateInputFromRoute>[0]['category'];
+  comparableAlternatives: unknown;
+  orderedAlternatives: unknown;
+  canCompareByAlternativeSlug: Parameters<
+    typeof buildToolPageAlternativesPricingStateInputFromRoute
+  >[0]['canCompareByAlternativeSlug'];
+  tool: {
+    slug: string;
+    specs: unknown;
+  };
+}
+
+function buildToolPageAlternativesPricingStateInputFromRouteContext(
+  input: BuildToolPageAlternativesPricingStateInputFromRouteContextInput
+): Parameters<typeof buildToolPageAlternativesPricingState>[0] {
+  return buildToolPageAlternativesPricingStateInputFromRoute({
+    activeReviewLens: input.activeReviewLens,
+    budgetCostDrivers: input.budgetCostDrivers,
+    budgetOneTimeFees: input.budgetOneTimeFees,
+    budgetCommitmentTerms: input.budgetCommitmentTerms,
+    budgetRoiThreshold: input.budgetRoiThreshold,
+    toolSpecs: toToolPageSpecsRecord(input.tool.specs),
+    alternativesLabel: input.alternativesLabel,
+    categoryName: input.category?.name || null,
+    toolSlug: input.tool.slug,
+    comparableAlternatives: toToolPageComparableAlternatives(input.comparableAlternatives),
+    category: input.category,
+    orderedAlternatives: toToolPageOrderedAlternatives(input.orderedAlternatives),
+    canCompareByAlternativeSlug: input.canCompareByAlternativeSlug,
+  });
+}
 
 interface BuildToolPageChromeRouteStateFromDecisionContextInput {
   chromeLens: {

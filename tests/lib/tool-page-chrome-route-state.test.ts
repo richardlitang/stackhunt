@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildToolPageAlternativesPricingStateInputFromRouteContext } from '@/lib/tool-page/alternatives-pricing-input';
+import { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-page/alternatives-pricing-input';
 import { buildToolPageAlternativesPricingState } from '@/lib/tool-page/alternatives-pricing-state';
 import { buildToolPageChromeStateInputFromRouteContext } from '@/lib/tool-page/chrome-input';
 import { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
@@ -7,7 +7,12 @@ import { buildToolPageContentSectionsStateInputFromRouteContext } from '@/lib/to
 import { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
 import { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
 import { buildToolPageChromeState } from '@/lib/tool-page/page-chrome-state';
-import { toToolPageObjectArray } from '@/lib/tool-page/route-normalizers';
+import {
+  toToolPageComparableAlternatives,
+  toToolPageObjectArray,
+  toToolPageOrderedAlternatives,
+  toToolPageSpecsRecord,
+} from '@/lib/tool-page/route-normalizers';
 
 describe('tool page chrome route state', () => {
   it('matches explicit chrome-lens and content-alternatives route-context wiring', () => {
@@ -146,22 +151,25 @@ describe('tool page chrome route state', () => {
     };
     const expectedContentAlternatives = {
       alternativesPricingState: buildToolPageAlternativesPricingState(
-        buildToolPageAlternativesPricingStateInputFromRouteContext({
+        buildToolPageAlternativesPricingStateInputFromRoute({
           activeReviewLens: input.contentAlternatives.activeReviewLens,
           budgetCostDrivers: input.contentAlternatives.reviewContextSignals.budgetCostDrivers,
           budgetOneTimeFees: input.contentAlternatives.reviewContextSignals.budgetOneTimeFees,
           budgetCommitmentTerms:
             input.contentAlternatives.reviewContextSignals.budgetCommitmentTerms,
           budgetRoiThreshold: input.contentAlternatives.reviewContextSignals.budgetRoiThreshold,
+          toolSpecs: toToolPageSpecsRecord(input.contentAlternatives.tool.specs),
           alternativesLabel: input.contentAlternatives.alternativesLabel,
+          categoryName: input.contentAlternatives.toolCategoryRef?.name || null,
+          toolSlug: input.contentAlternatives.tool.slug,
+          comparableAlternatives: toToolPageComparableAlternatives(
+            input.contentAlternatives.comparableAlternatives
+          ),
           category: input.contentAlternatives.toolCategoryRef,
-          comparableAlternatives: input.contentAlternatives.comparableAlternatives,
-          orderedAlternatives: input.contentAlternatives.orderedAlternatives,
+          orderedAlternatives: toToolPageOrderedAlternatives(
+            input.contentAlternatives.orderedAlternatives
+          ),
           canCompareByAlternativeSlug: input.contentAlternatives.canCompareByAlternativeSlug,
-          tool: {
-            slug: input.contentAlternatives.tool.slug,
-            specs: input.contentAlternatives.tool.specs,
-          },
         })
       ),
       contentSectionsState: buildToolPageContentSectionsState(

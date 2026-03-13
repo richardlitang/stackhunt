@@ -4,7 +4,6 @@ export {
   buildToolPageAlternativesPricingStateFromRoute,
 } from '@/lib/tool-page/alternatives-pricing-state';
 export { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-page/alternatives-pricing-input';
-export { buildToolPageAlternativesPricingStateInputFromRouteContext } from '@/lib/tool-page/alternatives-pricing-input';
 export { buildToolPageAffiliateOffersView } from '@/lib/tool-page/affiliate-offers';
 export { buildToolPageAddToStackProps } from '@/lib/tool-page/add-to-stack-props';
 export { buildToolPageCategoryBreadcrumb } from '@/lib/tool-page/breadcrumbs';
