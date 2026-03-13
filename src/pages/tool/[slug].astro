@@ -43,13 +43,12 @@ import { simpleMarkdown } from '@/lib/utils';
 import {
   buildToolPagePricingLinkText,
   getToolPageData,
+  buildToolPageDataPrepRouteState,
   isEligibleEvidenceUrl,
-  deriveToolPageReviewContextSignals,
   buildToolPageRequestRouteState,
   applyToolPageResponseRouteState,
   buildToolPageRuntimeNavigationRouteState,
   buildToolPageChromeAssemblyRouteState,
-  buildToolPagePrepReviewEvidenceStateFromDecisionContext,
   buildToolPageDecisionAssemblyRouteStateFromRouteContext,
   buildToolPageDecisionNavigationRouteState,
   buildToolPageLensHardLimitRouteState,
@@ -87,8 +86,6 @@ const {
   alternativesLabel,
   microDiffs,
   curatedVerdictEntries,
-} = toolPageData;
-const {
   knowledgeCard,
   globalPros,
   globalCons,
@@ -102,61 +99,15 @@ const {
   reviewContext,
   userReportedPros,
   userReportedCons,
-} = coreState;
-const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
-const { prepState, decisionSectionState, reviewArtifactsState, evidenceSignalsState } =
-  buildToolPagePrepReviewEvidenceStateFromDecisionContext({
-    prepDecision: {
-      prep: {
-        reviewSources: reviewContentLists.sources,
-        isEligibleEvidenceUrl,
-        tool,
-        orderedAlternatives,
-      },
-      decision: {
-        tool,
-        firstReview,
-        reviewSelection,
-        canonicalFacts,
-        resolvedSubject,
-        subjectSelectionSuppressed,
-        subjectSelectionReason,
-        laneOutputs,
-        knowledgeCard,
-        setupTracks,
-        reviewContentLists,
-        audiences: tags.audiences,
-        reviewContextSignals,
-        globalCons,
-        categorySpecificData,
-        vipSpecifics,
-        hasParentTool: Boolean(parentTool),
-        now: new Date(),
-        orderedAlternativesCount: orderedAlternatives?.length || 0,
-      },
-    },
-    reviewEvidence: {
-      reviewArtifacts: {
-        canonicalFacts,
-        reviewSources: reviewContentLists.sources,
-        tool,
-      },
-      evidenceContext: {
-        firstReview,
-        toolLastVerifiedAt: tool.last_verified_at || null,
-        toolPricingVerifiedAt: tool.pricing_verified_at || null,
-        extractionDate: knowledgeCard?.meta?.extraction_date,
-        constraints,
-        isEligibleEvidenceUrl,
-        reviewPros: reviewContentLists.pros,
-        reviewCons: reviewContentLists.cons,
-        globalPros: Array.isArray(globalPros) ? globalPros : [],
-        globalCons: Array.isArray(globalCons) ? globalCons : [],
-        knowledgeCard,
-      },
-      reviewContextSignals,
-    },
-  });
+  prepState,
+  decisionSectionState,
+  reviewArtifactsState,
+  evidenceSignalsState,
+  reviewContextSignals,
+} = buildToolPageDataPrepRouteState({
+  toolPageData,
+  isEligibleEvidenceUrl,
+});
 const {
   sourceEvidenceDomains: _sourceEvidenceDomains,
   toEvidenceBullet: _toEvidenceBullet,
