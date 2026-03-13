@@ -92,51 +92,6 @@ interface BuildToolPageContentSectionsStateInputFromRouteInput {
   hasParentTool: boolean;
 }
 
-interface BuildToolPageContentSectionsStateInputFromRouteContextInput {
-  evidenceLinks: BuildToolPageContentSectionsStateInputFromRouteInput['evidenceLinks'];
-  lowConfidenceEvidenceLinks: BuildToolPageContentSectionsStateInputFromRouteInput['lowConfidenceEvidenceLinks'];
-  effectiveEvidencePros: BuildToolPageContentSectionsStateInputFromRouteInput['effectiveEvidencePros'];
-  effectiveEvidenceCons: BuildToolPageContentSectionsStateInputFromRouteInput['effectiveEvidenceCons'];
-  userReportedPros: BuildToolPageContentSectionsStateInputFromRouteInput['userReportedPros'];
-  userReportedCons: BuildToolPageContentSectionsStateInputFromRouteInput['userReportedCons'];
-  laneOutputs?: BuildToolPageContentSectionsStateInputFromRouteInput['laneOutputs'];
-  knowledgeCard: BuildToolPageContentSectionsStateInputFromRouteInput['knowledgeCard'];
-  setupTracks: BuildToolPageContentSectionsStateInputFromRouteInput['setupTracks'];
-  gettingStartedCtaUrl: BuildToolPageContentSectionsStateInputFromRouteInput['gettingStartedCtaUrl'];
-  prosConsSourcesCount: BuildToolPageContentSectionsStateInputFromRouteInput['prosConsSourcesCount'];
-  communityCorroborationCount: BuildToolPageContentSectionsStateInputFromRouteInput['communityCorroborationCount'];
-  userSignalClaimsCount?: BuildToolPageContentSectionsStateInputFromRouteInput['userSignalClaimsCount'];
-  evidenceBasis: BuildToolPageContentSectionsStateInputFromRouteInput['evidenceBasis'];
-  hasCommunity: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['hasCommunity'];
-  userAdvocate: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['userAdvocate'];
-  guardedHumanVerdict: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['guardedHumanVerdict'];
-  vibe: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['vibe'];
-  originStory: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['originStory'];
-  idealFor: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['idealFor'];
-  guardedAvoidIf: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['guardedAvoidIf'];
-  powerTip: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['powerTip'];
-  delighters: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['delighters'];
-  frustrations: BuildToolPageContentSectionsStateInputFromRouteInput['tribalKnowledge']['frustrations'];
-  displayCategorySpecificData: BuildToolPageContentSectionsStateInputFromRouteInput['displayCategorySpecificData'];
-  vipSpecifics: BuildToolPageContentSectionsStateInputFromRouteInput['vipSpecifics'];
-  categoryName: BuildToolPageContentSectionsStateInputFromRouteInput['categoryName'];
-  specsVerifiedLabel: BuildToolPageContentSectionsStateInputFromRouteInput['specsVerifiedLabel'];
-  pricingCheckedLabel: BuildToolPageContentSectionsStateInputFromRouteInput['pricingCheckedLabel'];
-  hasOfficialPricingSource: BuildToolPageContentSectionsStateInputFromRouteInput['hasOfficialPricingSource'];
-  pricingEvidenceCount: BuildToolPageContentSectionsStateInputFromRouteInput['pricingEvidenceCount'];
-  hasSecurity: BuildToolPageContentSectionsStateInputFromRouteInput['hasSecurity'];
-  hasPortability: BuildToolPageContentSectionsStateInputFromRouteInput['hasPortability'];
-  hasParentTool: BuildToolPageContentSectionsStateInputFromRouteInput['hasParentTool'];
-  tool: {
-    name: string;
-    website: string | null;
-    long_description: string | null;
-    affiliate_offers:
-      | BuildToolPageContentSectionsStateInputFromRouteInput['affiliateOffers']
-      | undefined;
-  };
-}
-
 function readLaneUserSignalEntries(
   laneOutputs: BuildToolPageContentSectionsStateInputFromRouteInput['laneOutputs']
 ): {
@@ -268,51 +223,4 @@ export function buildToolPageContentSectionsStateInputFromRoute(
       hasPortabilityData: Boolean(input.knowledgeCard?.smp_portability),
     },
   };
-}
-
-export function buildToolPageContentSectionsStateInputFromRouteContext(
-  input: BuildToolPageContentSectionsStateInputFromRouteContextInput
-): Parameters<typeof buildToolPageContentSectionsState>[0] {
-  return buildToolPageContentSectionsStateInputFromRoute({
-    evidenceLinks: input.evidenceLinks,
-    lowConfidenceEvidenceLinks: input.lowConfidenceEvidenceLinks,
-    effectiveEvidencePros: input.effectiveEvidencePros,
-    effectiveEvidenceCons: input.effectiveEvidenceCons,
-    userReportedPros: input.userReportedPros,
-    userReportedCons: input.userReportedCons,
-    laneOutputs: input.laneOutputs,
-    knowledgeCard: input.knowledgeCard,
-    fallbackWebsiteUrl: input.tool.website || null,
-    setupTracks: input.setupTracks,
-    gettingStartedCtaUrl: input.gettingStartedCtaUrl,
-    toolName: input.tool.name,
-    prosConsSourcesCount: input.prosConsSourcesCount,
-    communityCorroborationCount: input.communityCorroborationCount || 0,
-    userSignalClaimsCount: input.userSignalClaimsCount || 0,
-    affiliateOffers: input.tool.affiliate_offers || [],
-    evidenceBasis: input.evidenceBasis,
-    tribalKnowledge: {
-      hasCommunity: input.hasCommunity,
-      userAdvocate: input.userAdvocate,
-      guardedHumanVerdict: input.guardedHumanVerdict,
-      vibe: input.vibe,
-      originStory: input.originStory,
-      idealFor: input.idealFor,
-      guardedAvoidIf: input.guardedAvoidIf,
-      powerTip: input.powerTip,
-      delighters: input.delighters,
-      frustrations: input.frustrations,
-    },
-    displayCategorySpecificData: input.displayCategorySpecificData,
-    vipSpecifics: input.vipSpecifics,
-    categoryName: input.categoryName,
-    specsVerifiedLabel: input.specsVerifiedLabel,
-    longDescription: input.tool.long_description,
-    pricingCheckedLabel: input.pricingCheckedLabel,
-    hasOfficialPricingSource: input.hasOfficialPricingSource,
-    pricingEvidenceCount: input.pricingEvidenceCount,
-    hasSecurity: input.hasSecurity,
-    hasPortability: input.hasPortability,
-    hasParentTool: input.hasParentTool,
-  });
 }

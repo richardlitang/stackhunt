@@ -37,10 +37,7 @@ export {
   buildToolPageContentSectionsStateFromRoute,
 } from '@/lib/tool-page/content-sections-state';
 export { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
-export {
-  buildToolPageContentSectionsStateInputFromRoute,
-  buildToolPageContentSectionsStateInputFromRouteContext,
-} from '@/lib/tool-page/content-sections-input';
+export { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
 export {
   buildToolPageChromeStateInputFromRoute,
   buildToolPageChromeStateInputFromRouteContext,

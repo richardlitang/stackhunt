@@ -1,7 +1,7 @@
 import { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-page/alternatives-pricing-input';
 import { buildToolPageAlternativesPricingState } from '@/lib/tool-page/alternatives-pricing-state';
 import { buildToolPageChromeStateInputFromRouteContext } from '@/lib/tool-page/chrome-input';
-import { buildToolPageContentSectionsStateInputFromRouteContext } from '@/lib/tool-page/content-sections-input';
+import { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
 import { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
 import { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
 import { buildToolPageChromeState } from '@/lib/tool-page/page-chrome-state';
@@ -60,6 +60,162 @@ function buildToolPageAlternativesPricingStateInputFromRouteContext(
     category: input.category,
     orderedAlternatives: toToolPageOrderedAlternatives(input.orderedAlternatives),
     canCompareByAlternativeSlug: input.canCompareByAlternativeSlug,
+  });
+}
+
+interface BuildToolPageContentSectionsStateInputFromRouteContextInput {
+  evidenceLinks: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['evidenceLinks'];
+  lowConfidenceEvidenceLinks: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['lowConfidenceEvidenceLinks'];
+  effectiveEvidencePros: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['effectiveEvidencePros'];
+  effectiveEvidenceCons: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['effectiveEvidenceCons'];
+  userReportedPros: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['userReportedPros'];
+  userReportedCons: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['userReportedCons'];
+  laneOutputs?: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['laneOutputs'];
+  knowledgeCard: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['knowledgeCard'];
+  setupTracks: Parameters<typeof buildToolPageContentSectionsStateInputFromRoute>[0]['setupTracks'];
+  gettingStartedCtaUrl: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['gettingStartedCtaUrl'];
+  prosConsSourcesCount: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['prosConsSourcesCount'];
+  communityCorroborationCount: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['communityCorroborationCount'];
+  userSignalClaimsCount?: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['userSignalClaimsCount'];
+  evidenceBasis: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['evidenceBasis'];
+  hasCommunity: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['hasCommunity'];
+  userAdvocate: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['userAdvocate'];
+  guardedHumanVerdict: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['guardedHumanVerdict'];
+  vibe: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['vibe'];
+  originStory: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['originStory'];
+  idealFor: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['idealFor'];
+  guardedAvoidIf: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['guardedAvoidIf'];
+  powerTip: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['powerTip'];
+  delighters: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['delighters'];
+  frustrations: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['tribalKnowledge']['frustrations'];
+  displayCategorySpecificData: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['displayCategorySpecificData'];
+  vipSpecifics: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['vipSpecifics'];
+  categoryName: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['categoryName'];
+  specsVerifiedLabel: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['specsVerifiedLabel'];
+  pricingCheckedLabel: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['pricingCheckedLabel'];
+  hasOfficialPricingSource: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['hasOfficialPricingSource'];
+  pricingEvidenceCount: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['pricingEvidenceCount'];
+  hasSecurity: Parameters<typeof buildToolPageContentSectionsStateInputFromRoute>[0]['hasSecurity'];
+  hasPortability: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['hasPortability'];
+  hasParentTool: Parameters<
+    typeof buildToolPageContentSectionsStateInputFromRoute
+  >[0]['hasParentTool'];
+  tool: {
+    name: string;
+    website: string | null;
+    long_description: string | null;
+    affiliate_offers:
+      | Parameters<typeof buildToolPageContentSectionsStateInputFromRoute>[0]['affiliateOffers']
+      | undefined;
+  };
+}
+
+function buildToolPageContentSectionsStateInputFromRouteContext(
+  input: BuildToolPageContentSectionsStateInputFromRouteContextInput
+): Parameters<typeof buildToolPageContentSectionsState>[0] {
+  return buildToolPageContentSectionsStateInputFromRoute({
+    evidenceLinks: input.evidenceLinks,
+    lowConfidenceEvidenceLinks: input.lowConfidenceEvidenceLinks,
+    effectiveEvidencePros: input.effectiveEvidencePros,
+    effectiveEvidenceCons: input.effectiveEvidenceCons,
+    userReportedPros: input.userReportedPros,
+    userReportedCons: input.userReportedCons,
+    laneOutputs: input.laneOutputs,
+    knowledgeCard: input.knowledgeCard,
+    fallbackWebsiteUrl: input.tool.website || null,
+    setupTracks: input.setupTracks,
+    gettingStartedCtaUrl: input.gettingStartedCtaUrl,
+    toolName: input.tool.name,
+    prosConsSourcesCount: input.prosConsSourcesCount,
+    communityCorroborationCount: input.communityCorroborationCount || 0,
+    userSignalClaimsCount: input.userSignalClaimsCount || 0,
+    affiliateOffers: input.tool.affiliate_offers || [],
+    evidenceBasis: input.evidenceBasis,
+    tribalKnowledge: {
+      hasCommunity: input.hasCommunity,
+      userAdvocate: input.userAdvocate,
+      guardedHumanVerdict: input.guardedHumanVerdict,
+      vibe: input.vibe,
+      originStory: input.originStory,
+      idealFor: input.idealFor,
+      guardedAvoidIf: input.guardedAvoidIf,
+      powerTip: input.powerTip,
+      delighters: input.delighters,
+      frustrations: input.frustrations,
+    },
+    displayCategorySpecificData: input.displayCategorySpecificData,
+    vipSpecifics: input.vipSpecifics,
+    categoryName: input.categoryName,
+    specsVerifiedLabel: input.specsVerifiedLabel,
+    longDescription: input.tool.long_description,
+    pricingCheckedLabel: input.pricingCheckedLabel,
+    hasOfficialPricingSource: input.hasOfficialPricingSource,
+    pricingEvidenceCount: input.pricingEvidenceCount,
+    hasSecurity: input.hasSecurity,
+    hasPortability: input.hasPortability,
+    hasParentTool: input.hasParentTool,
   });
 }
 

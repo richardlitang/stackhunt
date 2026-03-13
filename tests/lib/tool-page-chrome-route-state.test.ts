@@ -3,7 +3,7 @@ import { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-
 import { buildToolPageAlternativesPricingState } from '@/lib/tool-page/alternatives-pricing-state';
 import { buildToolPageChromeStateInputFromRouteContext } from '@/lib/tool-page/chrome-input';
 import { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
-import { buildToolPageContentSectionsStateInputFromRouteContext } from '@/lib/tool-page/content-sections-input';
+import { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
 import { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
 import { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
 import { buildToolPageChromeState } from '@/lib/tool-page/page-chrome-state';
@@ -173,7 +173,7 @@ describe('tool page chrome route state', () => {
         })
       ),
       contentSectionsState: buildToolPageContentSectionsState(
-        buildToolPageContentSectionsStateInputFromRouteContext({
+        buildToolPageContentSectionsStateInputFromRoute({
           evidenceLinks: input.contentAlternatives.reviewArtifactsState.evidenceLinks,
           lowConfidenceEvidenceLinks:
             input.contentAlternatives.reviewArtifactsState.lowConfidenceEvidenceLinks,
@@ -183,29 +183,35 @@ describe('tool page chrome route state', () => {
           userReportedCons: input.contentAlternatives.userReportedCons,
           laneOutputs: input.contentAlternatives.laneOutputs,
           knowledgeCard: input.contentAlternatives.knowledgeCard,
+          fallbackWebsiteUrl: input.contentAlternatives.tool.website,
           setupTracks: toToolPageObjectArray(input.contentAlternatives.setupTracks),
           gettingStartedCtaUrl:
             input.contentAlternatives.decisionRuntime.setupSignals.gettingStartedCtaUrl,
+          toolName: input.contentAlternatives.tool.name,
           prosConsSourcesCount:
             input.contentAlternatives.evidenceRuntime.collectedSourcesBySection.pros_cons,
           communityCorroborationCount:
             input.contentAlternatives.qualityState.communityCorroborationCount,
           userSignalClaimsCount: input.contentAlternatives.qualityState.userSignalClaimsCount,
+          affiliateOffers: input.contentAlternatives.tool.affiliate_offers,
           evidenceBasis: input.contentAlternatives.reviewArtifactsState.evidenceBasis,
-          hasCommunity: input.contentAlternatives.sectionFlags.hasCommunity,
-          userAdvocate: input.contentAlternatives.reviewContextSignals.userAdvocate,
-          guardedHumanVerdict: input.contentAlternatives.decisionRuntime.guardedHumanVerdict,
-          vibe: input.contentAlternatives.reviewContextSignals.vibe,
-          originStory: input.contentAlternatives.reviewContextSignals.originStory,
-          idealFor: input.contentAlternatives.reviewContextSignals.idealFor,
-          guardedAvoidIf: input.contentAlternatives.decisionRuntime.guardedAvoidIf,
-          powerTip: input.contentAlternatives.reviewContextSignals.powerTip,
-          delighters: input.contentAlternatives.reviewContextSignals.delighters,
-          frustrations: input.contentAlternatives.reviewContextSignals.frustrations,
+          tribalKnowledge: {
+            hasCommunity: input.contentAlternatives.sectionFlags.hasCommunity,
+            userAdvocate: input.contentAlternatives.reviewContextSignals.userAdvocate,
+            guardedHumanVerdict: input.contentAlternatives.decisionRuntime.guardedHumanVerdict,
+            vibe: input.contentAlternatives.reviewContextSignals.vibe,
+            originStory: input.contentAlternatives.reviewContextSignals.originStory,
+            idealFor: input.contentAlternatives.reviewContextSignals.idealFor,
+            guardedAvoidIf: input.contentAlternatives.decisionRuntime.guardedAvoidIf,
+            powerTip: input.contentAlternatives.reviewContextSignals.powerTip,
+            delighters: input.contentAlternatives.reviewContextSignals.delighters,
+            frustrations: input.contentAlternatives.reviewContextSignals.frustrations,
+          },
           displayCategorySpecificData: input.contentAlternatives.displayCategorySpecificData,
           vipSpecifics: input.contentAlternatives.vipSpecifics,
           categoryName: input.contentAlternatives.toolCategoryRef?.name || null,
           specsVerifiedLabel: input.contentAlternatives.reviewSignalsView.specsVerifiedLabel,
+          longDescription: input.contentAlternatives.tool.long_description,
           pricingCheckedLabel: input.contentAlternatives.evidenceRuntime.pricingCheckedLabel,
           hasOfficialPricingSource: Boolean(
             input.contentAlternatives.evidenceRuntime.officialPricingSource
@@ -215,12 +221,6 @@ describe('tool page chrome route state', () => {
           hasSecurity: input.contentAlternatives.sectionFlags.hasSecurity,
           hasPortability: input.contentAlternatives.sectionFlags.hasPortability,
           hasParentTool: Boolean(input.contentAlternatives.parentTool),
-          tool: {
-            name: input.contentAlternatives.tool.name,
-            website: input.contentAlternatives.tool.website,
-            long_description: input.contentAlternatives.tool.long_description,
-            affiliate_offers: input.contentAlternatives.tool.affiliate_offers,
-          },
         })
       ),
     };
