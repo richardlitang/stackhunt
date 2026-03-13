@@ -275,6 +275,7 @@ Notes:
 - 2026-03-13 progress: moved audience and pricing-evidence input derivation into `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)`, reducing route-local mapping and fallback branching.
 - 2026-03-13 progress: moved `toolPageData` flattening plus prep/evidence input shaping into `buildToolPageDataPrepRouteState(...)`, removing the largest early-frontmatter assembly block from `tool/[slug].astro`.
 - 2026-03-13 progress: moved decision/evidence flattening (`faqItems`, `pricingTypeLabel`, decision runtime, section flags, review signals, evidence runtime) into `buildToolPageDecisionEvidenceRouteState(...)` to reduce route destructuring churn.
+- 2026-03-13 progress: moved lens/spec/runtime-meta mid-route assembly into `buildToolPageRuntimeMidRouteState(...)`, so `tool/[slug]` no longer manually chains `buildToolPageLensHardLimitRouteState(...)`, `buildToolPageSpecsCategoryRouteState(...)`, and `buildToolPageRuntimeNavigationRouteState(...)`.
 
 ### Phase 3: Page compiler rebuild
 

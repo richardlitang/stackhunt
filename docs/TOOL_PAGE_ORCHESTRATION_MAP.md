@@ -6,18 +6,16 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `buildToolPageRequestRouteState(...)` (frontmatter line 64)
-2. `getToolPageData(...)` (frontmatter line 69)
-3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 97)
-4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 112)
-5. `buildToolPageLensHardLimitRouteState(...)` (frontmatter line 180)
-6. `buildToolPageSpecsCategoryRouteState(...)` (frontmatter line 193)
-7. `buildToolPageRuntimeNavigationRouteState(...)` (frontmatter line 202)
-8. `buildToolPageRuntimeRouteState(...)` (frontmatter line 238)
-9. `buildToolPageChromeAssemblyRouteState(...)` (frontmatter line 288)
-10. `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)` (frontmatter line 321)
-11. `buildToolPageDecisionNavigationRouteState(...)` (frontmatter line 357)
-12. `applyToolPageResponseRouteState(...)` (frontmatter line 373)
+1. `buildToolPageRequestRouteState(...)` (frontmatter line 61)
+2. `getToolPageData(...)` (frontmatter line 66)
+3. `buildToolPageDataPrepRouteState(...)` (frontmatter line 94)
+4. `buildToolPageDecisionEvidenceRouteState(...)` (frontmatter line 109)
+5. `buildToolPageRuntimeMidRouteState(...)` (frontmatter line 191)
+6. `buildToolPageRuntimeRouteState(...)` (frontmatter line 231)
+7. `buildToolPageChromeAssemblyRouteState(...)` (frontmatter line 281)
+8. `buildToolPageDecisionAssemblyRouteStateFromRouteContext(...)` (frontmatter line 314)
+9. `buildToolPageDecisionNavigationRouteState(...)` (frontmatter line 350)
+10. `applyToolPageResponseRouteState(...)` (frontmatter line 366)
 
 ## Tool-Page Imports Used by Route
 
@@ -29,13 +27,11 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 | `buildToolPageDecisionEvidenceRouteState`                 | `@/lib/tool-page/decision-evidence-route-state`   |
 | `buildToolPageRequestRouteState`                          | `@/lib/tool-page/request-response-route-state`    |
 | `applyToolPageResponseRouteState`                         | `@/lib/tool-page/request-response-route-state`    |
-| `buildToolPageRuntimeNavigationRouteState`                | `@/lib/tool-page/runtime-navigation-route-state`  |
 | `buildToolPageChromeAssemblyRouteState`                   | `@/lib/tool-page/chrome-assembly-route-state`     |
 | `buildToolPageDecisionAssemblyRouteStateFromRouteContext` | `@/lib/tool-page/decision-assembly-route-state`   |
 | `buildToolPageDecisionNavigationRouteState`               | `@/lib/tool-page/decision-navigation-route-state` |
-| `buildToolPageLensHardLimitRouteState`                    | `@/lib/tool-page/lens-hard-limit-route-state`     |
+| `buildToolPageRuntimeMidRouteState`                       | `@/lib/tool-page/runtime-mid-route-state`         |
 | `buildToolPageRuntimeRouteState`                          | `@/lib/tool-page/runtime-route-state`             |
-| `buildToolPageSpecsCategoryRouteState`                    | `@/lib/tool-page/specs-category-route-state`      |
 
 ## One-Level Helper Dependencies
 
@@ -71,10 +67,6 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 - `applyToolPageVersionBypassCacheHeaders(...)`
 - `applyToolPageRobotsHeader(...)`
 
-### `buildToolPageRuntimeNavigationRouteState`
-
-- `buildToolPageRuntimeNavigationStateFromDecisionContext(...)`
-
 ### `buildToolPageChromeAssemblyRouteState`
 
 - `buildToolPageChromeRouteStateFromDecisionContext(...)`
@@ -88,15 +80,12 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 - `buildToolPageDecisionPresentationState(...)`
 
-### `buildToolPageLensHardLimitRouteState`
+### `buildToolPageRuntimeMidRouteState`
 
-- no nested `ToolPage*` helper calls detected
+- `buildToolPageLensHardLimitRouteState(...)`
+- `buildToolPageSpecsCategoryRouteState(...)`
+- `buildToolPageRuntimeNavigationRouteState(...)`
 
 ### `buildToolPageRuntimeRouteState`
 
 - `buildToolPagePageSchemaRouteState(...)`
-
-### `buildToolPageSpecsCategoryRouteState`
-
-- `buildToolPageSpecsSignals(...)`
-- `buildToolPageCategoryRef(...)`

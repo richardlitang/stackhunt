@@ -4,8 +4,12 @@ import { buildToolPageRuntimeNavigationRouteState } from '@/lib/tool-page/runtim
 import { buildToolPageSpecsCategoryRouteState } from '@/lib/tool-page/specs-category-route-state';
 
 interface BuildToolPageRuntimeMidRouteStateInput {
-  activeReviewLens: Parameters<typeof buildToolPageRuntimeNavigationRouteState>[0]['activeReviewLens'];
-  canonicalHardLimits: Parameters<typeof buildToolPageLensHardLimitRouteState>[0]['canonicalHardLimits'];
+  activeReviewLens: Parameters<
+    typeof buildToolPageRuntimeNavigationRouteState
+  >[0]['activeReviewLens'];
+  canonicalHardLimits: Parameters<
+    typeof buildToolPageLensHardLimitRouteState
+  >[0]['canonicalHardLimits'];
   specs: Parameters<typeof buildToolPageSpecsCategoryRouteState>[0]['specs'];
   userReportedPros: Parameters<typeof buildToolPageSpecsCategoryRouteState>[0]['userReportedPros'];
   userReportedCons: Parameters<typeof buildToolPageSpecsCategoryRouteState>[0]['userReportedCons'];
