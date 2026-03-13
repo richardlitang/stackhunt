@@ -6,30 +6,29 @@ import type { buildToolPageReviewSignalsView } from '@/lib/tool-page/review-sign
 import type { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
 import type { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
 import type { ReviewLens } from '@/lib/tool-page/view-model';
-import { buildToolPageRuntimeNavigationStateFromDecisionContext } from '@/lib/tool-page/runtime-navigation-decision-context';
+import { buildToolPageNavigationMediaStateFromDecisionContext } from '@/lib/tool-page/navigation-media-decision-context';
+import { buildToolPageRuntimeViewBundleFromDecisionContext } from '@/lib/tool-page/runtime-view-bundle-decision-context';
 
 interface BuildToolPageRuntimeNavigationRouteStateInput {
   pathname: string;
   searchParams: URLSearchParams;
   activeReviewLens: ReviewLens;
   tool: Parameters<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
-  >[0]['runtime']['tool'] &
-    Parameters<
-      typeof buildToolPageRuntimeNavigationStateFromDecisionContext
-    >[0]['navigation']['media']['tool'];
+    typeof buildToolPageRuntimeViewBundleFromDecisionContext
+  >[0]['tool'] &
+    Parameters<typeof buildToolPageNavigationMediaStateFromDecisionContext>[0]['media']['tool'];
   primaryOffer: Parameters<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
-  >[0]['runtime']['primaryOffer'];
+    typeof buildToolPageRuntimeViewBundleFromDecisionContext
+  >[0]['primaryOffer'];
   faqSchema: Parameters<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
-  >[0]['runtime']['faqSchema'];
+    typeof buildToolPageRuntimeViewBundleFromDecisionContext
+  >[0]['faqSchema'];
   toolMeta: Parameters<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
-  >[0]['runtime']['toolMeta'];
+    typeof buildToolPageRuntimeViewBundleFromDecisionContext
+  >[0]['toolMeta'];
   canonicalHardLimits: Parameters<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
-  >[0]['runtime']['canonicalHardLimits'];
+    typeof buildToolPageRuntimeViewBundleFromDecisionContext
+  >[0]['canonicalHardLimits'];
   decisionRuntime: ReturnType<typeof buildToolPageDecisionRuntime>;
   sectionFlags: ReturnType<typeof buildToolPageSectionFlags>;
   evidenceRuntime: ReturnType<typeof buildToolPageEvidenceRuntime>;
@@ -47,11 +46,11 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
     'evidenceBasis' | 'lowConfidenceEvidenceLinks'
   >;
   category: Parameters<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
-  >[0]['navigation']['media']['category'];
+    typeof buildToolPageNavigationMediaStateFromDecisionContext
+  >[0]['media']['category'];
   knowledgeCard: Parameters<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
-  >[0]['navigation']['media']['knowledgeCard'];
+    typeof buildToolPageNavigationMediaStateFromDecisionContext
+  >[0]['media']['knowledgeCard'];
   renderVerdictSafe: string | null;
 }
 
@@ -60,47 +59,52 @@ export function buildToolPageRuntimeNavigationRouteState(
 ): {
   runtimeViewBundle: ReturnType<typeof buildToolPageRuntimeViewBundle>;
   navigationState: ReturnType<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
+    typeof buildToolPageNavigationMediaStateFromDecisionContext
   >['navigationState'];
   ctaMediaState: ReturnType<
-    typeof buildToolPageRuntimeNavigationStateFromDecisionContext
+    typeof buildToolPageNavigationMediaStateFromDecisionContext
   >['ctaMediaState'];
 } {
-  return buildToolPageRuntimeNavigationStateFromDecisionContext({
-    runtime: {
-      pathname: input.pathname,
-      searchParams: input.searchParams,
-      activeReviewLens: input.activeReviewLens,
-      tool: input.tool,
-      primaryOffer: input.primaryOffer,
-      faqSchema: input.faqSchema,
-      toolMeta: input.toolMeta,
-      canonicalHardLimits: input.canonicalHardLimits,
-      decisionRuntime: input.decisionRuntime,
-      sectionFlags: input.sectionFlags,
-      evidenceRuntime: input.evidenceRuntime,
-      qualityState: input.qualityState,
-      reviewSignalsView: input.reviewSignalsView,
-      presentationGates: input.presentationGates,
-      evaluationDepth: input.evaluationDepth,
+  const { runtimeViewBundle } = buildToolPageRuntimeViewBundleFromDecisionContext({
+    pathname: input.pathname,
+    searchParams: input.searchParams,
+    activeReviewLens: input.activeReviewLens,
+    tool: input.tool,
+    primaryOffer: input.primaryOffer,
+    faqSchema: input.faqSchema,
+    toolMeta: input.toolMeta,
+    canonicalHardLimits: input.canonicalHardLimits,
+    decisionRuntime: input.decisionRuntime,
+    sectionFlags: input.sectionFlags,
+    evidenceRuntime: input.evidenceRuntime,
+    qualityState: input.qualityState,
+    reviewSignalsView: input.reviewSignalsView,
+    presentationGates: input.presentationGates,
+    evaluationDepth: input.evaluationDepth,
+  });
+  const { navigationState, ctaMediaState } = buildToolPageNavigationMediaStateFromDecisionContext({
+    decisionRuntime: input.decisionRuntime,
+    sectionFlags: input.sectionFlags,
+    presentationGates: input.presentationGates,
+    evidenceSignals: {
+      showPricingSection: input.evidenceRuntime.showPricingSection,
+      hasStrengths: input.hasStrengths,
     },
-    navigation: {
-      decisionRuntime: input.decisionRuntime,
-      sectionFlags: input.sectionFlags,
-      presentationGates: input.presentationGates,
-      evidenceSignals: {
-        showPricingSection: input.evidenceRuntime.showPricingSection,
-        hasStrengths: input.hasStrengths,
-      },
-      faqItems: input.faqItems,
-      reviewArtifactsState: input.reviewArtifactsState,
-      media: {
-        tool: input.tool,
-        category: input.category,
-        knowledgeCard: input.knowledgeCard,
-        renderVerdictSafe: input.renderVerdictSafe,
-        activeReviewLens: input.activeReviewLens,
-      },
+    faqItems: input.faqItems,
+    reviewArtifactsState: input.reviewArtifactsState,
+    updateHistoryEntries: runtimeViewBundle.updateHistoryEntries,
+    media: {
+      tool: input.tool,
+      category: input.category,
+      knowledgeCard: input.knowledgeCard,
+      renderVerdictSafe: input.renderVerdictSafe,
+      activeReviewLens: input.activeReviewLens,
     },
   });
+
+  return {
+    runtimeViewBundle,
+    navigationState,
+    ctaMediaState,
+  };
 }

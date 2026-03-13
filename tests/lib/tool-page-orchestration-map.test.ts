@@ -10,11 +10,12 @@ describe('tool page orchestration map', () => {
     expect(markdown).toContain('## One-Level Helper Dependencies');
   });
 
-  it('includes decision-context composition helpers in current route map', () => {
+  it('includes current pipeline and assembly helpers in route map', () => {
     const markdown = generateToolPageOrchestrationMapMarkdown(process.cwd());
-    expect(markdown).toContain('buildToolPageRuntimeNavigationStateFromDecisionContext');
-    expect(markdown).toContain('buildToolPageChromeContentStateFromDecisionContext');
-    expect(markdown).toContain('buildToolPagePrepReviewEvidenceStateFromDecisionContext');
+    expect(markdown).toContain('buildToolPageDecisionEvidenceRouteState');
+    expect(markdown).toContain('buildToolPageDisplayRouteState');
+    expect(markdown).toContain('buildToolPageRuntimeMidRouteState');
+    expect(markdown).toContain('buildToolPagePageAssemblyRouteStateFromRouteContext');
   });
 
   it('does not leave unresolved route imports in the map', () => {
