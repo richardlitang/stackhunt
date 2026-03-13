@@ -112,11 +112,17 @@ const safeRoiThreshold =
   !subjectiveRoiPattern.test(normalizedRoiThreshold)
     ? normalizedRoiThreshold
     : '';
+const hasFactualMechanicsSignals =
+  factualCostDrivers.length > 0 ||
+  factualOneTimeFees.length > 0 ||
+  Boolean(normalizedCommitmentTerms) ||
+  Boolean(safeRoiThreshold);
+const mentalModelItemsForDisplay = hasFactualMechanicsSignals ? [] : normalizedMentalModelItems;
 
 const hasMechanicsData = Boolean(
   factualCostDrivers.length > 0 ||
   factualOneTimeFees.length > 0 ||
-  normalizedMentalModelItems.length > 0 ||
+  mentalModelItemsForDisplay.length > 0 ||
   normalizedCostModelExamples.length > 0 ||
   normalizedCommitmentTerms ||
   safeRoiThreshold
@@ -177,13 +183,13 @@ if (!normalizedSummaryLead && !normalizedSummaryLabel && !hasMechanicsData) {
     }
 
     {
-      normalizedMentalModelItems.length > 0 && (
+      mentalModelItemsForDisplay.length > 0 && (
         <div class="rounded border border-zinc-800 bg-zinc-950/40 px-2 py-2">
           <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Pricing mental model
           </p>
           <ul class="space-y-1">
-            {normalizedMentalModelItems.map((item) => (
+            {mentalModelItemsForDisplay.map((item) => (
               <li class="flex flex-wrap items-center gap-1.5 text-xs text-zinc-300">
                 <span>- {item.text}</span>
                 {item.evidenceHref ? (
