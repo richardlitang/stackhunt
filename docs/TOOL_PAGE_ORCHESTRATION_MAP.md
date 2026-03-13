@@ -9,7 +9,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 1. `buildToolPageRequestRouteState(...)` (frontmatter line 55)
 2. `getToolPageData(...)` (frontmatter line 60)
 3. `buildToolPagePageCompilerRouteStateFromPageContext(...)` (frontmatter line 64)
-4. `applyToolPageResponseRouteState(...)` (frontmatter line 159)
+4. `applyToolPageResponseRouteState(...)` (frontmatter line 149)
 
 ## Tool-Page Imports Used by Route
 

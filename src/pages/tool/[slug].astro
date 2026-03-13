@@ -80,20 +80,12 @@ const {
   qualityState,
   pricingTypeLabel,
   hasComparableAlternatives,
-  hasAbout,
   comparativeFeaturePeerCount,
   hasPricing,
   hasVerdict,
   decisionSnapshotSummary,
-  hasFeatures,
   hasAlternatives,
-  hasFAQ,
-  hasGettingStarted,
   hasSpecs,
-  hasCommunity,
-  hasOperationalDetails,
-  showProceduralVerdict,
-  showProceduralSpecs,
   handsOnTestEnvironment,
   handsOnTestSteps,
   handsOnTestFindings,
@@ -101,9 +93,7 @@ const {
   evaluationDepth,
   testedItems,
   notTestedItems,
-  showWeTestedIt,
   communityVerifiedLabel,
-  hasStrengths,
   hasCollectedSources,
   lensRankedHardLimits,
   topLensHardLimit,
@@ -693,7 +683,7 @@ applyToolPageResponseRouteState({
             </section>
           )
         }
-        {showProceduralVerdict && <ToolDecisionConditionsSection />}
+        {routeDataState.showProceduralVerdict && <ToolDecisionConditionsSection />}
         {
           pageAssemblyState.showWorkflowFitSection && (
             <ToolWorkflowFitSection cards={workflowFitCards} highlights={workflowFitHighlights} />
@@ -876,7 +866,7 @@ applyToolPageResponseRouteState({
 
         {/* Getting Started - Setup guide with friction score and actual steps */}
         {
-          hasGettingStarted && (
+          routeDataState.hasGettingStarted && (
             <div id="getting-started" data-focus-target data-focus-groups="all setup">
               <GettingStarted
                 setupComplexity={gettingStartedProps.setupComplexity}
@@ -892,7 +882,7 @@ applyToolPageResponseRouteState({
 
         {/* Strengths & Weaknesses - Prefer contextual over global */}
         {
-          hasStrengths && (
+          routeDataState.hasStrengths && (
             <details
               id="strengths"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -1007,7 +997,7 @@ applyToolPageResponseRouteState({
 
         {/* Features Showcase */}
         {
-          hasFeatures && (
+          routeDataState.hasFeatures && (
             <div data-focus-target data-focus-groups="all capabilities">
               <FeaturesShowcase
                 features={knowledgeCard.features}
@@ -1037,7 +1027,7 @@ applyToolPageResponseRouteState({
           )
         }
         {
-          showProceduralSpecs && (
+          routeDataState.showProceduralSpecs && (
             <section
               id="specs"
               class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
@@ -1094,7 +1084,7 @@ applyToolPageResponseRouteState({
 
         {/* About - Deep context after decision, pricing, and rollout guidance */}
         {
-          hasAbout && (
+          routeDataState.hasAbout && (
             <details
               id="about"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -1150,7 +1140,7 @@ applyToolPageResponseRouteState({
       <!-- Sidebar -->
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start">
         {
-          hasOperationalDetails && (
+          routeDataState.hasOperationalDetails && (
             <details
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
               data-focus-target
@@ -1244,7 +1234,7 @@ applyToolPageResponseRouteState({
 
     {/* FAQ - Visible content to match FAQ schema */}
     {
-      hasFAQ && (
+      routeDataState.hasFAQ && (
         <section
           id="faq"
           class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
@@ -1389,7 +1379,7 @@ applyToolPageResponseRouteState({
     />
 
     {
-      showWeTestedIt && (
+      routeDataState.showWeTestedIt && (
         <ToolWeTestedSection
           testedAtLabel={handsOnTestedAtLabel}
           testEnvironment={handsOnTestEnvironment}
@@ -1538,7 +1528,7 @@ applyToolPageResponseRouteState({
   <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
     {/* Community Feedback - Compact consolidated section */}
     {
-      hasCommunity && (
+      routeDataState.hasCommunity && (
         <section
           id="community"
           class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
