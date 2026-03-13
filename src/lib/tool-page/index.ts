@@ -180,7 +180,6 @@ export { buildToolPageRuntimeRouteState } from '@/lib/tool-page/runtime-route-st
 export { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-route-state';
 export { buildToolPageRuntimeViewModelInputFromRoute } from '@/lib/tool-page/runtime-viewmodel-input';
 export { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
-export { buildToolPageRuntimeViewBundleFromPageContext } from '@/lib/tool-page/runtime-view-bundle-context';
 export { buildToolPageRuntimeNavigationRouteState } from '@/lib/tool-page/runtime-navigation-route-state';
 export {
   buildToolPageChromeState,
@@ -190,7 +189,6 @@ export {
   buildToolPageNavigationState,
   buildToolPageNavigationStateFromRoute,
 } from '@/lib/tool-page/navigation-state';
-export { buildToolPageNavigationMediaStateFromRouteContext } from '@/lib/tool-page/navigation-media-state';
 export {
   buildToolPageNavigationStateInputFromRoute,
   buildToolPageNavigationStateInputFromRouteContext,
