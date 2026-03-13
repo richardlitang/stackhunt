@@ -35,14 +35,6 @@ interface BuildToolPageCtaMediaToolFromRouteToolInput {
   video_title: string | null;
 }
 
-interface BuildToolPageCtaMediaStateInputFromRouteContextInput {
-  tool: BuildToolPageCtaMediaToolFromRouteToolInput;
-  category: { slug: string; name: string } | null;
-  knowledgeCard: BuildToolPageCtaMediaStateInputFromToolInput['knowledgeCard'];
-  renderVerdictSafe: BuildToolPageCtaMediaStateInputFromToolInput['renderVerdictSafe'];
-  activeReviewLens?: PricingReviewLens;
-}
-
 export function buildToolPageCtaMediaToolFromRouteTool(
   tool: BuildToolPageCtaMediaToolFromRouteToolInput,
   category: { slug: string; name: string } | null
@@ -85,15 +77,4 @@ export function buildToolPageCtaMediaStateInputFromTool(
     renderVerdictSafe: input.renderVerdictSafe,
     activeReviewLens: input.activeReviewLens || 'general',
   };
-}
-
-export function buildToolPageCtaMediaStateInputFromRouteContext(
-  input: BuildToolPageCtaMediaStateInputFromRouteContextInput
-): BuildToolPageCtaMediaStateInput {
-  return buildToolPageCtaMediaStateInputFromTool({
-    tool: buildToolPageCtaMediaToolFromRouteTool(input.tool, input.category),
-    knowledgeCard: input.knowledgeCard,
-    renderVerdictSafe: input.renderVerdictSafe,
-    activeReviewLens: input.activeReviewLens,
-  });
 }

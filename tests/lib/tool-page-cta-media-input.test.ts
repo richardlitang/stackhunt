@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildToolPageCtaMediaStateInputFromTool,
-  buildToolPageCtaMediaStateInputFromRouteContext,
   buildToolPageCtaMediaToolFromRouteTool,
 } from '@/lib/tool-page/cta-media-input';
 
@@ -85,33 +84,5 @@ describe('tool page cta media input', () => {
 
     expect(result.slug).toBe('gamma');
     expect(result.category).toEqual({ slug: 'analytics', name: 'Analytics' });
-  });
-
-  it('builds cta media input from flattened route context', () => {
-    const result = buildToolPageCtaMediaStateInputFromRouteContext({
-      tool: {
-        id: 'tool_3',
-        slug: 'gamma',
-        name: 'Gamma',
-        logo_url: null,
-        pricing_type: 'subscription',
-        user_verifications_this_week: 3,
-        video_id: 'vid_9',
-        video_title: 'Gamma walkthrough',
-      },
-      category: { slug: 'analytics', name: 'Analytics' },
-      knowledgeCard: {
-        pricing: { starting_price: 49 },
-        smp_pricing: { model: 'subscription', plans: [{ name: 'Team' }] },
-      },
-      renderVerdictSafe: 'Strong option',
-      activeReviewLens: 'startup',
-    });
-
-    expect(result.tool.slug).toBe('gamma');
-    expect(result.tool.category).toEqual({ slug: 'analytics', name: 'Analytics' });
-    expect(result.knowledgeCardPricing.startingPrice).toBe(49);
-    expect(result.activeReviewLens).toBe('startup');
-    expect(result.renderVerdictSafe).toBe('Strong option');
   });
 });

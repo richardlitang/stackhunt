@@ -27,7 +27,6 @@ export { buildToolPageCompareButtonProps } from '@/lib/tool-page/compare-button-
 export { buildToolPageConstraintEvidenceView } from '@/lib/tool-page/constraint-evidence-view';
 export {
   buildToolPageCtaMediaStateInputFromTool,
-  buildToolPageCtaMediaStateInputFromRouteContext,
   buildToolPageCtaMediaToolFromRouteTool,
 } from '@/lib/tool-page/cta-media-input';
 export {

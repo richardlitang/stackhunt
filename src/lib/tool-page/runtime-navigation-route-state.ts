@@ -6,7 +6,10 @@ import type { buildToolPageReviewSignalsView } from '@/lib/tool-page/review-sign
 import type { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
 import type { buildToolPageSectionFlags } from '@/lib/tool-page/section-flags';
 import type { ReviewLens } from '@/lib/tool-page/view-model';
-import { buildToolPageCtaMediaStateInputFromRouteContext } from '@/lib/tool-page/cta-media-input';
+import {
+  buildToolPageCtaMediaStateInputFromTool,
+  buildToolPageCtaMediaToolFromRouteTool,
+} from '@/lib/tool-page/cta-media-input';
 import { buildToolPageCtaMediaState } from '@/lib/tool-page/cta-media-state';
 import { buildToolPageNavigationStateInputFromRoute } from '@/lib/tool-page/navigation-input';
 import { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
@@ -19,7 +22,7 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
   searchParams: URLSearchParams;
   activeReviewLens: ReviewLens;
   tool: Parameters<typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext>[0]['tool'] &
-    Parameters<typeof buildToolPageCtaMediaStateInputFromRouteContext>[0]['tool'];
+    Parameters<typeof buildToolPageCtaMediaToolFromRouteTool>[0];
   primaryOffer: Parameters<
     typeof buildToolPageRuntimeAssemblyInputBundleFromPageContext
   >[0]['primaryOffer'];
@@ -48,10 +51,8 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
     ReturnType<typeof buildToolPageReviewArtifactsState>,
     'evidenceBasis' | 'lowConfidenceEvidenceLinks'
   >;
-  category: Parameters<typeof buildToolPageCtaMediaStateInputFromRouteContext>[0]['category'];
-  knowledgeCard: Parameters<
-    typeof buildToolPageCtaMediaStateInputFromRouteContext
-  >[0]['knowledgeCard'];
+  category: Parameters<typeof buildToolPageCtaMediaToolFromRouteTool>[1];
+  knowledgeCard: Parameters<typeof buildToolPageCtaMediaStateInputFromTool>[0]['knowledgeCard'];
   renderVerdictSafe: string | null;
 }
 
@@ -134,9 +135,8 @@ export function buildToolPageRuntimeNavigationRouteState(
     })
   );
   const ctaMediaState = buildToolPageCtaMediaState(
-    buildToolPageCtaMediaStateInputFromRouteContext({
-      tool: input.tool,
-      category: input.category,
+    buildToolPageCtaMediaStateInputFromTool({
+      tool: buildToolPageCtaMediaToolFromRouteTool(input.tool, input.category),
       knowledgeCard: input.knowledgeCard,
       renderVerdictSafe: input.renderVerdictSafe,
       activeReviewLens: input.activeReviewLens,
