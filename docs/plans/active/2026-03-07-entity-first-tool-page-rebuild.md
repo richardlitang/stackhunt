@@ -320,6 +320,7 @@ Notes:
 - 2026-03-13 progress: renamed local chrome-route helper `buildToolPageChromeStateInputFromRouteContext(...)` to `buildToolPageChromeStateInputFromRouteData(...)`.
 - 2026-03-13 progress: renamed local chrome-route helper `buildToolPageAlternativesPricingStateInputFromRouteContext(...)` to `buildToolPageAlternativesPricingStateInputFromRouteData(...)`.
 - 2026-03-13 progress: renamed local chrome-route helper `buildToolPageContentSectionsStateInputFromRouteContext(...)` to `buildToolPageContentSectionsStateInputFromRouteData(...)`.
+- 2026-03-13 progress: removed local `buildToolPageChromeStateInputFromRouteData(...)` wrapper and wired chrome-route directly to `buildToolPageChromeStateInputFromRoute(...)`.
 
 ### Phase 3: Page compiler rebuild
 
