@@ -1,6 +1,5 @@
 import { buildToolPageAlternativeCardsView } from '@/lib/tool-page/alternatives-cards';
 import { buildToolPageAlternativesIntroText } from '@/lib/tool-page/alternatives-intro';
-import { buildToolPageAlternativesPricingStateInputFromRoute } from '@/lib/tool-page/alternatives-pricing-input';
 import { buildToolPageAlternativesSectionState } from '@/lib/tool-page/alternatives-section';
 import { buildToolPageCompareTeaserLinks } from '@/lib/tool-page/compare-teasers';
 import { buildToolPagePricingInsightsBudgetAnalyst } from '@/lib/tool-page/pricing-insights-input';
@@ -60,12 +59,4 @@ export function buildToolPageAlternativesPricingState(
     alternativesSectionState,
     alternativeCardsView,
   };
-}
-
-export function buildToolPageAlternativesPricingStateFromRoute(
-  input: Parameters<typeof buildToolPageAlternativesPricingStateInputFromRoute>[0]
-): ReturnType<typeof buildToolPageAlternativesPricingState> {
-  return buildToolPageAlternativesPricingState(
-    buildToolPageAlternativesPricingStateInputFromRoute(input)
-  );
 }
