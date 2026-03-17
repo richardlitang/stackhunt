@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  findInvalidToolPageRuntimeAssemblyChains,
-  findMalformedToolPageRouteCallWrappers,
-} from '@/../scripts/lib/tool-page-route-call-shape-guard.mjs';
+import { findMalformedToolPageRouteCallWrappers } from '@/../scripts/lib/tool-page-route-call-shape-guard.mjs';
 
 describe('tool page route call shape guard', () => {
   it('finds malformed wrapped route helper calls', () => {
@@ -56,30 +53,4 @@ const real = buildToolPageDecisionSectionStateFromRoute(
     expect(result).toHaveLength(0);
   });
 
-  it('finds invalid runtime assembly chaining from page-context bundle', () => {
-    const source = `
-const runtime = buildToolPageRuntimeAssemblyFromRoute(
-  buildToolPageRuntimeAssemblyInputBundleFromPageContext({
-    pathname: '/tool/acme'
-  })
-);
-`;
-
-    const result = findInvalidToolPageRuntimeAssemblyChains(source);
-    expect(result).toHaveLength(1);
-    expect(result[0].line).toBe(2);
-  });
-
-  it('does not flag runtime assembly chaining when pattern is in comments or strings', () => {
-    const source = `
-// buildToolPageRuntimeAssemblyFromRoute(buildToolPageRuntimeAssemblyInputBundleFromPageContext(...)
-const s = "buildToolPageRuntimeAssemblyFromRoute(buildToolPageRuntimeAssemblyInputBundleFromPageContext(...)";
-const runtime = buildToolPageRuntimeAssemblyFromRoute({
-  pathname: '/tool/acme'
-});
-`;
-
-    const result = findInvalidToolPageRuntimeAssemblyChains(source);
-    expect(result).toHaveLength(0);
-  });
 });

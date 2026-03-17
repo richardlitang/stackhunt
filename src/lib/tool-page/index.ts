@@ -118,7 +118,6 @@ export { buildToolPageQualityStateInput } from '@/lib/tool-page/quality-state-in
 export { buildToolPageRuntime } from '@/lib/tool-page/runtime';
 export {
   buildToolPageRuntimeAssembly,
-  buildToolPageRuntimeAssemblyFromRoute,
 } from '@/lib/tool-page/runtime-assembly';
 export { buildToolPageRuntimeAssemblyBaseInputFromRoute } from '@/lib/tool-page/runtime-assembly-base-input';
 export { buildToolPageRuntimeAssemblyInputFromRoute } from '@/lib/tool-page/runtime-assembly-input';

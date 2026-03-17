@@ -1,5 +1,4 @@
 import { buildToolPageRuntimeContext } from '@/lib/tool-page/runtime-context';
-import { buildToolPageRuntimeAssemblyInputBundleFromRoute } from '@/lib/tool-page/runtime-assembly-route-input';
 import { buildToolPageRuntimeParamsContext } from '@/lib/tool-page/runtime-params-context';
 import type { BuildToolPageRuntimeParamsInput } from '@/lib/tool-page/runtime-params';
 import { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
@@ -50,10 +49,4 @@ export function buildToolPageRuntimeAssembly(input: BuildToolPageRuntimeAssembly
   });
 
   return { runtimeViewBundle };
-}
-
-export function buildToolPageRuntimeAssemblyFromRoute(
-  input: Parameters<typeof buildToolPageRuntimeAssemblyInputBundleFromRoute>[0]
-): ReturnType<typeof buildToolPageRuntimeAssembly> {
-  return buildToolPageRuntimeAssembly(buildToolPageRuntimeAssemblyInputBundleFromRoute(input));
 }
