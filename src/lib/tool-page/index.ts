@@ -113,10 +113,7 @@ export { buildToolPagePricingNotice } from '@/lib/tool-page/pricing-notice';
 export { buildToolPagePricingScenarioState } from '@/lib/tool-page/pricing-scenarios';
 export { buildToolPagePageSchemaRouteState } from '@/lib/tool-page/page-schema-route-state';
 export { buildToolPagePageAssemblyRouteStateFromRouteData } from '@/lib/tool-page/page-assembly-route-state';
-export {
-  buildToolPagePrepState,
-  buildToolPagePrepStateFromRoute,
-} from '@/lib/tool-page/prep-state';
+export { buildToolPagePrepState } from '@/lib/tool-page/prep-state';
 export { buildToolPagePrepStateInputFromRoute } from '@/lib/tool-page/prep-input';
 export { buildToolPagePlatformSectionState } from '@/lib/tool-page/platform-section';
 export { buildToolPageProsConsView } from '@/lib/tool-page/pros-cons-view';

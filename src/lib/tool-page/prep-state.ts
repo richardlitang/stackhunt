@@ -2,7 +2,6 @@ import { buildToolPageAlternativesRuntimeFromItems } from '@/lib/tool-page/alter
 import { buildToolPageAlternativesViewFields } from '@/lib/tool-page/alternatives-view-fields';
 import { createToolPageEvidenceBulletAdapters } from '@/lib/tool-page/evidence-bullet-adapters';
 import { countEligibleEvidenceDomains } from '@/lib/tool-page/evidence-policy';
-import { buildToolPagePrepStateInputFromRoute } from '@/lib/tool-page/prep-input';
 import {
   deriveToolPageSourceEvidenceDomains,
   type ToolPageReviewSourceLike,
@@ -63,10 +62,4 @@ export function buildToolPagePrepState(input: BuildToolPagePrepStateInput): {
     hasComparableAlternatives,
     canCompareByAlternativeSlug,
   };
-}
-
-export function buildToolPagePrepStateFromRoute(
-  input: Parameters<typeof buildToolPagePrepStateInputFromRoute>[0]
-): ReturnType<typeof buildToolPagePrepState> {
-  return buildToolPagePrepState(buildToolPagePrepStateInputFromRoute(input));
 }
