@@ -175,6 +175,41 @@ function buildSubjectSpecificChecklist(input: {
   return null;
 }
 
+function buildSubjectSpecificPricingMentalModelItems(input: {
+  subjectType: 'product' | 'product_surface' | 'plan_family' | 'deployment_mode';
+  entityScope: 'core' | 'copilot' | 'actions' | 'enterprise_cloud' | 'enterprise_server' | null;
+  lens: ReviewLens;
+}): string[] | null {
+  if (input.subjectType === 'product_surface') {
+    return [
+      'Price and limits should be validated for this exact product surface, not inferred from adjacent suite products.',
+      'Model the first paid threshold for the surface-level workflow your team will run first.',
+      'Confirm which permissions, automation depth, and support controls are tied to this surface only.',
+    ];
+  }
+  if (input.subjectType === 'plan_family') {
+    return [
+      'Primary budget risk is plan mismatch, map required capabilities to exact tiers before rollout.',
+      'Validate seat minimums, annual commitments, and plan-level gating in writing.',
+      'Model upgrade timing around compliance and governance requirements, not only headcount growth.',
+    ];
+  }
+  if (input.subjectType === 'deployment_mode') {
+    const deploymentLabel =
+      input.entityScope === 'enterprise_server'
+        ? 'self-hosted/server deployment'
+        : 'cloud deployment';
+    return [
+      `Total cost should include operational ownership for the selected ${deploymentLabel}.`,
+      'Confirm who owns identity, networking, backup, and upgrade operations before expansion.',
+      input.lens === 'enterprise'
+        ? 'Procurement and governance controls should be validated for this deployment mode before commitment.'
+        : 'Model when operational overhead outweighs the initial licensing or seat savings.',
+    ];
+  }
+  return null;
+}
+
 export function buildToolPageDecisionUtilityState(
   input: BuildToolPageDecisionUtilityInput
 ): ToolPageDecisionUtilityState {
@@ -229,8 +264,16 @@ export function buildToolPageDecisionUtilityState(
         : buildArchetypeChecklist(productArchetype, input.toolName, input.activeReviewLens)
     : [];
 
+  const subjectSpecificPricingMentalModelItems = input.resolvedSubjectType
+    ? buildSubjectSpecificPricingMentalModelItems({
+        subjectType: input.resolvedSubjectType,
+        entityScope: input.resolvedEntityScope || null,
+        lens: input.activeReviewLens,
+      })
+    : null;
   const basePricingMentalModelItems =
-    input.activeReviewLens === 'startup'
+    subjectSpecificPricingMentalModelItems ||
+    (input.activeReviewLens === 'startup'
       ? [
           'Cost normally scales with seats, workspace count, and plan tier.',
           'Expect upgrades when team size or required automation depth grows.',
@@ -246,7 +289,7 @@ export function buildToolPageDecisionUtilityState(
             'Primary cost drivers are seats, workspace count, and plan tier.',
             'The first paid threshold is usually headcount or feature-gating, not usage volume alone.',
             'Confirm billing behavior before rollout so team growth does not surprise budget owners.',
-          ];
+          ]);
   const pricingMentalModelItemsRaw: ToolPageDecisionUtilityState['pricingMentalModelItems'] = [
     ...(input.hardLimitText
       ? [

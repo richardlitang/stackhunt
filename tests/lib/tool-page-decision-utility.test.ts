@@ -68,6 +68,9 @@ describe('tool page decision utility state', () => {
 
     expect(result.testChecklistItems[0]).toMatch(/surface only/i);
     expect(result.verdictLeadOverride).toMatch(/specific product surface/i);
+    expect(
+      result.pricingMentalModelItems.some((item) => /exact product surface/i.test(item.text))
+    ).toBe(true);
   });
 
   it('uses subject-specific plan-family guidance when plan family is resolved', () => {
@@ -91,5 +94,34 @@ describe('tool page decision utility state', () => {
 
     expect(result.testChecklistItems[0]).toMatch(/exact plans/i);
     expect(result.verdictLeadOverride).toMatch(/exact plan fit/i);
+    expect(result.pricingMentalModelItems.some((item) => /plan mismatch/i.test(item.text))).toBe(
+      true
+    );
+  });
+
+  it('uses subject-specific deployment pricing guidance for deployment-mode subjects', () => {
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'Acme Deploy',
+      categorySlug: 'developer-tools',
+      resolvedSubjectType: 'deployment_mode',
+      resolvedEntityScope: 'enterprise_server',
+      activeReviewLens: 'enterprise',
+      hasApi: true,
+      hasParentTool: false,
+      hasEnterpriseSignals: true,
+      lensBestFitLine: 'Best fit for teams that need environment control.',
+      lensWeakFitLine: 'Weak fit for teams that need self-serve onboarding.',
+      lensTradeoffLine: 'Tradeoff is control versus operational ownership.',
+      hardLimitText: 'Self-hosted mode requires dedicated infrastructure ownership.',
+      pricingEvidenceSourceUrl: 'https://example.com/pricing',
+      pricingEvidenceSummary: 'Deployment mode and support tiers affect cost.',
+      lowConfidenceMode: false,
+    });
+
+    expect(
+      result.pricingMentalModelItems.some((item) =>
+        /self-hosted\/server deployment/i.test(item.text)
+      )
+    ).toBe(true);
   });
 });
