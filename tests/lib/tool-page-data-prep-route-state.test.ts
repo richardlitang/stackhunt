@@ -6,7 +6,9 @@ const {
   buildToolPagePrepStateMock,
   buildToolPageDecisionSectionStateInputFromRouteMock,
   buildToolPageDecisionSectionStateMock,
-  buildToolPageReviewArtifactsStateFromRouteMock,
+  buildToolPageReviewArtifactsStateMock,
+  toToolPageOptionalRecordMock,
+  toToolPageReviewSourcesMock,
   buildToolPageEvidenceSignalsStateInputFromRouteMock,
   buildToolPageEvidenceSignalsStateMock,
 } = vi.hoisted(() => ({
@@ -26,12 +28,14 @@ const {
     qualityState: { sectionStatus: { pricing: 'hide' } },
     faqState: { faqItems: [] },
   })),
-  buildToolPageReviewArtifactsStateFromRouteMock: vi.fn(() => ({
+  buildToolPageReviewArtifactsStateMock: vi.fn(() => ({
     evidenceBasis: [],
     officialEvidenceLinks: [],
     evidenceLinksAll: [],
     evidenceLinks: [],
   })),
+  toToolPageOptionalRecordMock: vi.fn(() => ({})),
+  toToolPageReviewSourcesMock: vi.fn(() => []),
   buildToolPageEvidenceSignalsStateInputFromRouteMock: vi.fn(() => ({})),
   buildToolPageEvidenceSignalsStateMock: vi.fn(() => ({
     reviewSignalsView: {},
@@ -61,7 +65,12 @@ vi.mock('@/lib/tool-page/decision-section-state', () => ({
 }));
 
 vi.mock('@/lib/tool-page/review-artifacts-state', () => ({
-  buildToolPageReviewArtifactsStateFromRoute: buildToolPageReviewArtifactsStateFromRouteMock,
+  buildToolPageReviewArtifactsState: buildToolPageReviewArtifactsStateMock,
+}));
+
+vi.mock('@/lib/tool-page/route-normalizers', () => ({
+  toToolPageOptionalRecord: toToolPageOptionalRecordMock,
+  toToolPageReviewSources: toToolPageReviewSourcesMock,
 }));
 
 vi.mock('@/lib/tool-page/evidence-signals-route-input', () => ({
@@ -123,7 +132,9 @@ describe('tool page data prep route state', () => {
     expect(buildToolPagePrepStateMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageDecisionSectionStateInputFromRouteMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageDecisionSectionStateMock).toHaveBeenCalledTimes(1);
-    expect(buildToolPageReviewArtifactsStateFromRouteMock).toHaveBeenCalledTimes(1);
+    expect(toToolPageOptionalRecordMock).toHaveBeenCalledTimes(1);
+    expect(toToolPageReviewSourcesMock).toHaveBeenCalledTimes(1);
+    expect(buildToolPageReviewArtifactsStateMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageEvidenceSignalsStateInputFromRouteMock).toHaveBeenCalledTimes(1);
     expect(buildToolPageEvidenceSignalsStateMock).toHaveBeenCalledTimes(1);
   });

@@ -1,8 +1,4 @@
 import { buildToolPageReviewArtifacts } from '@/lib/tool-page/review-artifacts';
-import {
-  toToolPageOptionalRecord,
-  toToolPageReviewSources,
-} from '@/lib/tool-page/route-normalizers';
 
 interface BuildToolPageReviewArtifactsStateInput {
   canonicalFacts: Parameters<typeof buildToolPageReviewArtifacts>[0]['canonicalFacts'];
@@ -79,16 +75,4 @@ export function buildToolPageReviewArtifactsState(input: BuildToolPageReviewArti
     evidenceBasis: evidenceLinksViewModel.evidenceBasis,
     officialEvidenceLinks: evidenceLinksViewModel.officialEvidenceLinks,
   };
-}
-
-export function buildToolPageReviewArtifactsStateFromRoute(input: {
-  canonicalFacts: unknown;
-  reviewSources: unknown;
-  toolName: string;
-}): ReturnType<typeof buildToolPageReviewArtifactsState> {
-  return buildToolPageReviewArtifactsState({
-    canonicalFacts: toToolPageOptionalRecord(input.canonicalFacts),
-    reviewSources: toToolPageReviewSources(input.reviewSources),
-    toolName: input.toolName,
-  });
 }

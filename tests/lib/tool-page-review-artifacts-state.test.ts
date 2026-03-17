@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildToolPageReviewArtifacts } from '@/lib/tool-page/review-artifacts';
-import {
-  buildToolPageReviewArtifactsState,
-  buildToolPageReviewArtifactsStateFromRoute,
-} from '@/lib/tool-page/review-artifacts-state';
+import { buildToolPageReviewArtifactsState } from '@/lib/tool-page/review-artifacts-state';
+import { toToolPageOptionalRecord, toToolPageReviewSources } from '@/lib/tool-page/route-normalizers';
 
 describe('tool page review artifacts state', () => {
   it('matches evaluation and evidence link fields from review artifacts', () => {
@@ -47,16 +45,16 @@ describe('tool page review artifacts state', () => {
   });
 
   it('builds review artifact state directly from route-level fields', () => {
-    const state = buildToolPageReviewArtifactsStateFromRoute({
-      canonicalFacts: {
+    const state = buildToolPageReviewArtifactsState({
+      canonicalFacts: toToolPageOptionalRecord({
         tested_on: {
           environment: { os: 'macOS' },
           steps: ['Create workspace'],
           findings: ['Fast setup'],
           tested_at: '2026-03-05',
         },
-      },
-      reviewSources: [
+      }),
+      reviewSources: toToolPageReviewSources([
         {
           title: 'Docs',
           url: 'https://example.com/docs',
@@ -65,7 +63,7 @@ describe('tool page review artifacts state', () => {
           quality: 'high',
           inclusionReason: 'official',
         },
-      ],
+      ]),
       toolName: 'Acme',
     });
 

@@ -86,7 +86,6 @@ export { buildToolPageReviewBannerText } from '@/lib/tool-page/review-banner';
 export { buildToolPageReviewArtifacts } from '@/lib/tool-page/review-artifacts';
 export {
   buildToolPageReviewArtifactsState,
-  buildToolPageReviewArtifactsStateFromRoute,
 } from '@/lib/tool-page/review-artifacts-state';
 export { buildToolPageResearchStatusView } from '@/lib/tool-page/research-status';
 export { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
