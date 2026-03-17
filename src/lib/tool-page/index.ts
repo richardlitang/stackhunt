@@ -69,10 +69,7 @@ export { createToolPageEvidenceBulletAdapters } from '@/lib/tool-page/evidence-b
 export { deriveToolPageBaseEvidenceGrade } from '@/lib/tool-page/evidence-grade';
 export { buildToolPageEvidenceLinks } from '@/lib/tool-page/evidence-links';
 export { buildToolPageEvidenceBasisChips } from '@/lib/tool-page/evidence-basis-chips';
-export {
-  buildToolPageEvidenceSignalsState,
-  buildToolPageEvidenceSignalsStateFromRoute,
-} from '@/lib/tool-page/evidence-signals-state';
+export { buildToolPageEvidenceSignalsState } from '@/lib/tool-page/evidence-signals-state';
 export { buildToolPageEvidenceSignalsStateInputFromRoute } from '@/lib/tool-page/evidence-signals-route-input';
 export { buildToolPageEvidenceRuntime } from '@/lib/tool-page/evidence-runtime';
 export { buildToolPageEvidenceRuntimeInput } from '@/lib/tool-page/evidence-runtime-input';

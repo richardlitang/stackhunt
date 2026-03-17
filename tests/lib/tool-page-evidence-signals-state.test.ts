@@ -3,10 +3,7 @@ import { buildToolPageConstraintEvidence } from '@/lib/tool-page/constraint-evid
 import { buildToolPageConstraintEvidenceView } from '@/lib/tool-page/constraint-evidence-view';
 import { buildToolPageEvidenceRuntimeInput } from '@/lib/tool-page/evidence-runtime-input';
 import { buildToolPageEvidenceRuntime } from '@/lib/tool-page/evidence-runtime';
-import {
-  buildToolPageEvidenceSignalsState,
-  buildToolPageEvidenceSignalsStateFromRoute,
-} from '@/lib/tool-page/evidence-signals-state';
+import { buildToolPageEvidenceSignalsState } from '@/lib/tool-page/evidence-signals-state';
 import { buildToolPageEvidenceSignalsStateInputFromRoute } from '@/lib/tool-page/evidence-signals-route-input';
 import { buildToolPageReviewSignalsInput } from '@/lib/tool-page/review-signals-input';
 import { deriveToolPageReviewSignals } from '@/lib/tool-page/review-signals';
@@ -123,7 +120,7 @@ describe('tool page evidence signals state', () => {
   });
 
   it('builds evidence signals state from route wrapper input', () => {
-    const state = buildToolPageEvidenceSignalsStateFromRoute({
+    const state = buildToolPageEvidenceSignalsState({
       reviewSignalsInput: {
         firstReview: null,
         toolLastVerifiedAt: '2026-03-04',
@@ -174,7 +171,7 @@ describe('tool page evidence signals state', () => {
   });
 
   it('builds evidence signals wrapper input from flattened route context', () => {
-    const state = buildToolPageEvidenceSignalsStateFromRoute(
+    const state = buildToolPageEvidenceSignalsState(
       buildToolPageEvidenceSignalsStateInputFromRoute({
         reviewSignalsInput: {
           firstReview: null,

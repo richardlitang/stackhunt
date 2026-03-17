@@ -1,6 +1,5 @@
 import { buildToolPageConstraintEvidence } from '@/lib/tool-page/constraint-evidence';
 import { buildToolPageConstraintEvidenceView } from '@/lib/tool-page/constraint-evidence-view';
-import { buildToolPageEvidenceSignalsStateInputFromRoute } from '@/lib/tool-page/evidence-signals-route-input';
 import { buildToolPageEvidenceRuntimeInput } from '@/lib/tool-page/evidence-runtime-input';
 import { buildToolPageEvidenceRuntime } from '@/lib/tool-page/evidence-runtime';
 import { buildToolPageReviewSignalsInput } from '@/lib/tool-page/review-signals-input';
@@ -48,10 +47,4 @@ export function buildToolPageEvidenceSignalsState(input: BuildToolPageEvidenceSi
     reviewSignalsView,
     evidenceRuntime,
   };
-}
-
-export function buildToolPageEvidenceSignalsStateFromRoute(
-  input: Parameters<typeof buildToolPageEvidenceSignalsStateInputFromRoute>[0]
-): ReturnType<typeof buildToolPageEvidenceSignalsState> {
-  return buildToolPageEvidenceSignalsState(buildToolPageEvidenceSignalsStateInputFromRoute(input));
 }
