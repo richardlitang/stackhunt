@@ -159,10 +159,7 @@ export {
   buildToolPageChromeState,
   buildToolPageChromeStateFromRoute,
 } from '@/lib/tool-page/page-chrome-state';
-export {
-  buildToolPageNavigationState,
-  buildToolPageNavigationStateFromRoute,
-} from '@/lib/tool-page/navigation-state';
+export { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
 export { buildToolPageNavigationStateInputFromRoute } from '@/lib/tool-page/navigation-input';
 export { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
 export { buildToolPageLensHardLimitRouteState } from '@/lib/tool-page/lens-hard-limit-route-state';
