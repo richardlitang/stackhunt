@@ -69,25 +69,10 @@ const { routeDataState, pageAssemblyState } = buildToolPagePageCompilerRouteStat
   searchParams: Astro.url.searchParams,
 });
 
-const {
-  tool,
-  knowledgeCard,
-  qualityState,
-  curatedVerdictEntries,
-  lensRankedHardLimits,
-  topLensHardLimit,
-  userSignalSummary,
-  topUserReportedClaims,
-  communityProsCount,
-  communityConsCount,
-  activeLensPricingPlanCount,
-  activeLensConstraintCount,
-  activeLensIntegrationCount,
-} = routeDataState;
-const { indexPolicy } = pageAssemblyState;
+const { tool } = routeDataState;
 applyToolPageResponseRouteState({
   response: Astro.response,
-  robotsTag: indexPolicy.robotsTag,
+  robotsTag: pageAssemblyState.indexPolicy.robotsTag,
 });
 ---
 
@@ -174,11 +159,12 @@ applyToolPageResponseRouteState({
                 {tool.name}: {pageAssemblyState.reviewDek}
               </p>
               {
-                qualityState.subjectScopePending && qualityState.subjectScopeMessage && (
-                  <p class="mt-2 rounded-lg border border-orange-700/40 bg-orange-950/20 px-3 py-2 text-sm text-orange-100">
-                    {qualityState.subjectScopeMessage}
-                  </p>
-                )
+                routeDataState.qualityState.subjectScopePending &&
+                  routeDataState.qualityState.subjectScopeMessage && (
+                    <p class="mt-2 rounded-lg border border-orange-700/40 bg-orange-950/20 px-3 py-2 text-sm text-orange-100">
+                      {routeDataState.qualityState.subjectScopeMessage}
+                    </p>
+                  )
               }
               {
                 pageAssemblyState.showEarlySnapshotToneBanner && (
@@ -591,11 +577,11 @@ applyToolPageResponseRouteState({
                   set:html={simpleMarkdown(pageAssemblyState.verdictContent.body)}
                 />
               </div>
-              {lensRankedHardLimits.length > 0 && (
+              {routeDataState.lensRankedHardLimits.length > 0 && (
                 <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
                   <h3 class="text-sm font-semibold text-zinc-200">Hard limits / dealbreakers</h3>
                   <ul class="mt-2 space-y-2 text-sm text-zinc-300">
-                    {lensRankedHardLimits.slice(0, 4).map((item) => (
+                    {routeDataState.lensRankedHardLimits.slice(0, 4).map((item) => (
                       <li>
                         - {item.text}{' '}
                         <a
@@ -669,19 +655,22 @@ applyToolPageResponseRouteState({
                       {pageAssemblyState.pricingSectionState.checkedLead}
                     </p>
                   )}
-                  {activeReviewLens !== 'general' && activeLensPricingPlanCount !== null && (
-                    <p class="mt-1 text-xs text-zinc-500">
-                      Lens coverage, {pageAssemblyState.lensLabelMap[activeReviewLens]}:{' '}
-                      {activeLensPricingPlanCount} plan{activeLensPricingPlanCount === 1 ? '' : 's'}{' '}
-                      tagged.
-                    </p>
-                  )}
-                  {activeReviewLens !== 'general' && activeLensConstraintCount !== null && (
-                    <p class="mt-1 text-xs text-zinc-500">
-                      Constraint coverage, {activeLensConstraintCount} limit
-                      {activeLensConstraintCount === 1 ? '' : 's'} tagged for this lens.
-                    </p>
-                  )}
+                  {activeReviewLens !== 'general' &&
+                    routeDataState.activeLensPricingPlanCount !== null && (
+                      <p class="mt-1 text-xs text-zinc-500">
+                        Lens coverage, {pageAssemblyState.lensLabelMap[activeReviewLens]}:{' '}
+                        {routeDataState.activeLensPricingPlanCount} plan
+                        {routeDataState.activeLensPricingPlanCount === 1 ? '' : 's'} tagged.
+                      </p>
+                    )}
+                  {activeReviewLens !== 'general' &&
+                    routeDataState.activeLensConstraintCount !== null && (
+                      <p class="mt-1 text-xs text-zinc-500">
+                        Constraint coverage, {routeDataState.activeLensConstraintCount} limit
+                        {routeDataState.activeLensConstraintCount === 1 ? '' : 's'} tagged for this
+                        lens.
+                      </p>
+                    )}
                 </div>
                 <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
                   <span class="group-open:hidden">Expand</span>
@@ -710,15 +699,15 @@ applyToolPageResponseRouteState({
                   mentalModelItems={pageAssemblyState.decisionUtilityState.pricingMentalModelItems}
                   costModelExamples={pageAssemblyState.pricingScenarioState.examples}
                 />
-                {topLensHardLimit && (
+                {routeDataState.topLensHardLimit && (
                   <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                       {tool.name} free plan limits and hard constraints
                     </h3>
                     <p class="mt-2 text-xs text-zinc-300">
-                      {topLensHardLimit.text}{' '}
+                      {routeDataState.topLensHardLimit.text}{' '}
                       <a
-                        href={topLensHardLimit.sourceUrl}
+                        href={routeDataState.topLensHardLimit.sourceUrl}
                         target="_blank"
                         rel="noopener"
                         data-outbound="source"
@@ -735,8 +724,8 @@ applyToolPageResponseRouteState({
                 {routeDataState.hasPricing ? (
                   <>
                     <PricingPlansGrid
-                      smp_pricing={knowledgeCard?.smp_pricing}
-                      legacy_pricing={knowledgeCard?.pricing}
+                      legacy_pricing={routeDataState.knowledgeCard?.pricing}
+                      smp_pricing={routeDataState.knowledgeCard?.smp_pricing}
                       toolName={tool.name}
                       activeReviewLens={activeReviewLens}
                     >
@@ -810,7 +799,7 @@ applyToolPageResponseRouteState({
                     </p>
                   </div>
                 )}
-                {lensRankedHardLimits.length > 0 && (
+                {routeDataState.lensRankedHardLimits.length > 0 && (
                   <p class="mt-4 text-sm text-zinc-400">
                     Canonical constraints live in{' '}
                     <a href="#verdict" class="text-hunt-500 hover:text-hunt-400">
@@ -854,45 +843,50 @@ applyToolPageResponseRouteState({
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
                   <p class="mt-1 text-sm text-zinc-400">{pageAssemblyState.strengthsSubtitle}</p>
-                  {(communityProsCount || 0) + (communityConsCount || 0) > 0 && (
+                  {(routeDataState.communityProsCount || 0) +
+                    (routeDataState.communityConsCount || 0) >
+                    0 && (
                     <p class="mt-1 text-xs text-zinc-500">
-                      Community-backed signals in this section: {communityProsCount || 0} pros,{' '}
-                      {communityConsCount || 0} cons.
+                      Community-backed signals in this section:{' '}
+                      {routeDataState.communityProsCount || 0} pros,{' '}
+                      {routeDataState.communityConsCount || 0} cons.
                     </p>
                   )}
-                  {qualityState.userSignalCoveragePending && (
+                  {routeDataState.qualityState.userSignalCoveragePending && (
                     <p class="mt-1 text-xs text-amber-300">
                       Community sources were found, but not enough source-backed user claims were
                       extracted yet.
                     </p>
                   )}
-                  {userSignalSummary &&
-                    ((userSignalSummary.reddit_claims || 0) +
-                      (userSignalSummary.forum_claims || 0) +
-                      (userSignalSummary.hn_claims || 0) >
+                  {routeDataState.userSignalSummary &&
+                    ((routeDataState.userSignalSummary.reddit_claims || 0) +
+                      (routeDataState.userSignalSummary.forum_claims || 0) +
+                      (routeDataState.userSignalSummary.hn_claims || 0) >
                       0 ||
-                      (userSignalSummary.community_domains || []).length > 0) && (
+                      (routeDataState.userSignalSummary.community_domains || []).length > 0) && (
                       <p class="mt-1 text-xs text-zinc-500">
                         User-voice mix:{' '}
                         {[
-                          userSignalSummary.reddit_claims
-                            ? `${userSignalSummary.reddit_claims} Reddit`
+                          routeDataState.userSignalSummary.reddit_claims
+                            ? `${routeDataState.userSignalSummary.reddit_claims} Reddit`
                             : null,
-                          userSignalSummary.forum_claims
-                            ? `${userSignalSummary.forum_claims} forum`
+                          routeDataState.userSignalSummary.forum_claims
+                            ? `${routeDataState.userSignalSummary.forum_claims} forum`
                             : null,
-                          userSignalSummary.hn_claims ? `${userSignalSummary.hn_claims} HN` : null,
+                          routeDataState.userSignalSummary.hn_claims
+                            ? `${routeDataState.userSignalSummary.hn_claims} HN`
+                            : null,
                         ]
                           .filter(Boolean)
                           .join(', ') || 'community sources'}
-                        {(userSignalSummary.community_domains || []).length > 0
-                          ? ` across ${(userSignalSummary.community_domains || []).length} domains.`
+                        {(routeDataState.userSignalSummary.community_domains || []).length > 0
+                          ? ` across ${(routeDataState.userSignalSummary.community_domains || []).length} domains.`
                           : '.'}
                       </p>
                     )}
-                  {topUserReportedClaims.length > 0 && (
+                  {routeDataState.topUserReportedClaims.length > 0 && (
                     <ul class="mt-2 space-y-1 text-xs text-zinc-500">
-                      {topUserReportedClaims.map((claim) => (
+                      {routeDataState.topUserReportedClaims.map((claim) => (
                         <li>
                           - {claim.text}
                           {claim.source_domain ? ` (${claim.source_domain})` : ''}
@@ -964,7 +958,7 @@ applyToolPageResponseRouteState({
           routeDataState.hasFeatures && (
             <div data-focus-target data-focus-groups="all capabilities">
               <FeaturesShowcase
-                features={knowledgeCard.features}
+                features={routeDataState.knowledgeCard.features}
                 toolName={tool.name}
                 sectionId="features"
                 peerCount={routeDataState.comparativeFeaturePeerCount}
@@ -1030,13 +1024,14 @@ applyToolPageResponseRouteState({
         {
           pageAssemblyState.platformSectionState.shouldShow && (
             <div data-focus-target data-focus-groups="all integrations capabilities">
-              {activeReviewLens !== 'general' && activeLensIntegrationCount !== null && (
-                <p class="mb-2 text-xs text-zinc-500">
-                  Lens coverage, {pageAssemblyState.lensLabelMap[activeReviewLens]}:{' '}
-                  {activeLensIntegrationCount} integration
-                  {activeLensIntegrationCount === 1 ? '' : 's'} tagged.
-                </p>
-              )}
+              {activeReviewLens !== 'general' &&
+                routeDataState.activeLensIntegrationCount !== null && (
+                  <p class="mb-2 text-xs text-zinc-500">
+                    Lens coverage, {pageAssemblyState.lensLabelMap[activeReviewLens]}:{' '}
+                    {routeDataState.activeLensIntegrationCount} integration
+                    {routeDataState.activeLensIntegrationCount === 1 ? '' : 's'} tagged.
+                  </p>
+                )}
               <PlatformIntegrations
                 platforms={pageAssemblyState.platformSectionState.platforms}
                 integrations={pageAssemblyState.platformSectionState.integrations}
@@ -1123,8 +1118,8 @@ applyToolPageResponseRouteState({
                 {/* Company Info */}
                 {pageAssemblyState.operationalDetailsState.showCompanyInfo && (
                   <CompanyInfo
-                    company={knowledgeCard.company}
-                    audience={knowledgeCard.audience}
+                    company={routeDataState.knowledgeCard.company}
+                    audience={routeDataState.knowledgeCard.audience}
                     learningCurve={tool.learning_curve}
                   />
                 )}
@@ -1140,18 +1135,18 @@ applyToolPageResponseRouteState({
 
                 {/* Security & Compliance */}
                 {pageAssemblyState.operationalDetailsState.showSecurity && (
-                  <SecurityCompliance security={knowledgeCard.security} />
+                  <SecurityCompliance security={routeDataState.knowledgeCard.security} />
                 )}
 
                 {/* Support Options */}
                 {pageAssemblyState.operationalDetailsState.showSupport && (
-                  <SupportOptions support={knowledgeCard.support} />
+                  <SupportOptions support={routeDataState.knowledgeCard.support} />
                 )}
 
                 {/* Portability */}
                 {pageAssemblyState.operationalDetailsState.showPortability && (
                   <PortabilityCard
-                    portability={knowledgeCard.smp_portability}
+                    portability={routeDataState.knowledgeCard.smp_portability}
                     toolName={tool.name}
                   />
                 )}
@@ -1279,10 +1274,10 @@ applyToolPageResponseRouteState({
                     Alternatives are prioritized for the current review lens.
                   </p>
                 )}
-                {qualityState.communityCorroborationCount > 0 && (
+                {routeDataState.qualityState.communityCorroborationCount > 0 && (
                   <p class="mt-1 text-xs text-zinc-500">
-                    Includes signals corroborated across {qualityState.communityCorroborationCount}{' '}
-                    community domains.
+                    Includes signals corroborated across{' '}
+                    {routeDataState.qualityState.communityCorroborationCount} community domains.
                   </p>
                 )}
               </div>
@@ -1309,7 +1304,8 @@ applyToolPageResponseRouteState({
               slug: entry.alt.slug,
               pricing_type: entry.alt.pricing_type,
               learning_curve: entry.alt.learning_curve,
-              curatedVerdict: curatedVerdictEntries.get(entry.alt.slug)?.verdict || null,
+              curatedVerdict:
+                routeDataState.curatedVerdictEntries.get(entry.alt.slug)?.verdict || null,
               computedDiff: routeDataState.microDiffs.get(entry.alt.slug) || null,
             }))}
             asOfLabel={pageAssemblyState.freshnessLabels.verdictAsOfLabel}
@@ -1326,9 +1322,11 @@ applyToolPageResponseRouteState({
                   base_score: tool.base_score,
                 }}
                 alt={entry.alt}
-                curatedVerdict={curatedVerdictEntries.get(entry.alt.slug)?.verdict || null}
+                curatedVerdict={
+                  routeDataState.curatedVerdictEntries.get(entry.alt.slug)?.verdict || null
+                }
                 curatedVerdictUpdatedAt={
-                  curatedVerdictEntries.get(entry.alt.slug)?.updatedAt || null
+                  routeDataState.curatedVerdictEntries.get(entry.alt.slug)?.updatedAt || null
                 }
                 computedDiff={routeDataState.microDiffs.get(entry.alt.slug)}
                 showCompareLink={entry.showCompareLink}
