@@ -1,5 +1,4 @@
 import { buildToolPageCategoryBreadcrumb } from '@/lib/tool-page/breadcrumbs';
-import { buildToolPageChromeStateInputFromRoute } from '@/lib/tool-page/chrome-input';
 import { buildToolPageFreshnessLabels } from '@/lib/tool-page/freshness-labels';
 import { buildToolPageLensPriorityLead } from '@/lib/tool-page/lens-priority-copy';
 import { buildToolPageResearchStatusView } from '@/lib/tool-page/research-status';
@@ -101,10 +100,4 @@ export function buildToolPageChromeState(input: BuildToolPageChromeStateInput): 
     lensPriorityLead,
     freshnessLabels,
   };
-}
-
-export function buildToolPageChromeStateFromRoute(
-  input: Parameters<typeof buildToolPageChromeStateInputFromRoute>[0]
-): ReturnType<typeof buildToolPageChromeState> {
-  return buildToolPageChromeState(buildToolPageChromeStateInputFromRoute(input));
 }

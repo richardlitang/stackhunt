@@ -155,10 +155,7 @@ export { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-r
 export { buildToolPageRuntimeViewModelInputFromRoute } from '@/lib/tool-page/runtime-viewmodel-input';
 export { buildToolPageRuntimeViewBundle } from '@/lib/tool-page/runtime-view-bundle';
 export { buildToolPageRuntimeNavigationRouteState } from '@/lib/tool-page/runtime-navigation-route-state';
-export {
-  buildToolPageChromeState,
-  buildToolPageChromeStateFromRoute,
-} from '@/lib/tool-page/page-chrome-state';
+export { buildToolPageChromeState } from '@/lib/tool-page/page-chrome-state';
 export { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
 export { buildToolPageNavigationStateInputFromRoute } from '@/lib/tool-page/navigation-input';
 export { buildToolPageLensViewFields } from '@/lib/tool-page/lens-view-fields';
