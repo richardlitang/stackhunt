@@ -147,4 +147,21 @@ describe('tool page pros/cons view', () => {
     expect(result.userSignalPros).toHaveLength(1);
     expect(result.userSignalCons).toHaveLength(1);
   });
+
+  it('reroutes claims tagged with community channels even when source type is missing', () => {
+    const result = buildToolPageProsConsView({
+      pros: [
+        {
+          text: 'Teams on Reddit report easier onboarding with templates.',
+          sourceUrl: 'https://www.reddit.com/r/saas/comments/abc',
+          sourceChannel: 'reddit',
+        },
+      ],
+      cons: [],
+    });
+
+    expect(result.pros).toHaveLength(0);
+    expect(result.userSignalPros).toHaveLength(1);
+    expect(result.userSignalPros[0]?.source_channel).toBe('reddit');
+  });
 });

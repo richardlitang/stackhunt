@@ -167,7 +167,12 @@ function normalizeFactualEntry(
 
 function isUserSignalContamination(entry: ToolPageProsConsEntry): boolean {
   if (entry.claim_type === 'opinion') return true;
-  return entry.source_type === 'community';
+  if (entry.source_type === 'community') return true;
+  return (
+    entry.source_channel === 'reddit' ||
+    entry.source_channel === 'forum' ||
+    entry.source_channel === 'hn'
+  );
 }
 
 export function buildToolPageProsConsView(input: BuildToolPageProsConsViewInput): {
