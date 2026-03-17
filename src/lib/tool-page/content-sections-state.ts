@@ -1,6 +1,5 @@
 import { buildToolPageAboutContent } from '@/lib/tool-page/about-content';
 import { buildToolPageAffiliateOffersView } from '@/lib/tool-page/affiliate-offers';
-import { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
 import { buildToolPageEvidenceBasisChips } from '@/lib/tool-page/evidence-basis-chips';
 import { buildToolPageGettingStartedProps } from '@/lib/tool-page/getting-started-props';
 import { buildToolPageOperationalDetailsState } from '@/lib/tool-page/operational-details';
@@ -85,10 +84,4 @@ export function buildToolPageContentSectionsState(input: BuildToolPageContentSec
     pricingNotice,
     operationalDetailsState,
   };
-}
-
-export function buildToolPageContentSectionsStateFromRoute(
-  input: Parameters<typeof buildToolPageContentSectionsStateInputFromRoute>[0]
-): ReturnType<typeof buildToolPageContentSectionsState> {
-  return buildToolPageContentSectionsState(buildToolPageContentSectionsStateInputFromRoute(input));
 }

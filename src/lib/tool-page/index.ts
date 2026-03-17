@@ -29,10 +29,7 @@ export {
   buildToolPageCtaMediaState,
   buildToolPageCtaMediaStateFromRoute,
 } from '@/lib/tool-page/cta-media-state';
-export {
-  buildToolPageContentSectionsState,
-  buildToolPageContentSectionsStateFromRoute,
-} from '@/lib/tool-page/content-sections-state';
+export { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
 export { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
 export { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
 export { buildToolPageChromeStateInputFromRoute } from '@/lib/tool-page/chrome-input';

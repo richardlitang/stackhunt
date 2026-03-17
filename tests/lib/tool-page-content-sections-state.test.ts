@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildToolPageContentSectionsState,
-  buildToolPageContentSectionsStateFromRoute,
-} from '@/lib/tool-page/content-sections-state';
+import { buildToolPageContentSectionsStateInputFromRoute } from '@/lib/tool-page/content-sections-input';
+import { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
 
 describe('tool page content sections state', () => {
   it('builds section props in one composition call', () => {
@@ -113,57 +111,59 @@ describe('tool page content sections state', () => {
   });
 
   it('builds content section state directly from route-level fields', () => {
-    const state = buildToolPageContentSectionsStateFromRoute({
-      evidenceLinks: [
-        {
-          title: 'Docs',
-          url: 'https://example.com/docs',
-          domain: 'example.com',
-          basis: 'official_docs',
-          quality: 'high',
-          inclusionReason: 'official',
+    const state = buildToolPageContentSectionsState(
+      buildToolPageContentSectionsStateInputFromRoute({
+        evidenceLinks: [
+          {
+            title: 'Docs',
+            url: 'https://example.com/docs',
+            domain: 'example.com',
+            basis: 'official_docs',
+            quality: 'high',
+            inclusionReason: 'official',
+          },
+        ],
+        lowConfidenceEvidenceLinks: [],
+        effectiveEvidencePros: [{ text: 'Fast setup', sourceUrl: 'https://example.com/docs' }],
+        effectiveEvidenceCons: [{ text: 'No on-prem', sourceUrl: 'https://example.com/docs' }],
+        knowledgeCard: {
+          setup_complexity: 'Low',
+          integrations: { has_api: true },
+          website_url: 'https://example.com',
+          platforms: ['web'],
         },
-      ],
-      lowConfidenceEvidenceLinks: [],
-      effectiveEvidencePros: [{ text: 'Fast setup', sourceUrl: 'https://example.com/docs' }],
-      effectiveEvidenceCons: [{ text: 'No on-prem', sourceUrl: 'https://example.com/docs' }],
-      knowledgeCard: {
-        setup_complexity: 'Low',
-        integrations: { has_api: true },
-        website_url: 'https://example.com',
-        platforms: ['web'],
-      },
-      fallbackWebsiteUrl: 'https://example.com',
-      setupTracks: [],
-      gettingStartedCtaUrl: 'https://example.com/start',
-      toolName: 'Acme',
-      prosConsSourcesCount: 2,
-      affiliateOffers: [{ url: 'https://example.com/offer', cta_text: 'Get started' }],
-      evidenceBasis: [{ label: 'docs_checked', count: 1 }],
-      tribalKnowledge: {
-        hasCommunity: true,
-        userAdvocate: { ideal_for: ['Startups'] },
-        guardedHumanVerdict: 'Strong shortlist',
-        vibe: 'Clean UX',
-        originStory: 'Built for speed',
-        idealFor: ['Startups'],
-        guardedAvoidIf: ['Need on-prem'],
-        powerTip: 'Use templates',
-        delighters: ['Fast setup'],
-        frustrations: ['No on-prem'],
-      },
-      displayCategorySpecificData: { seats: 'unlimited' },
-      vipSpecifics: {},
-      categoryName: 'Project Management',
-      specsVerifiedLabel: '2026-03-05',
-      longDescription: 'Long description',
-      pricingCheckedLabel: '2026-03-05',
-      hasOfficialPricingSource: true,
-      pricingEvidenceCount: 1,
-      hasSecurity: true,
-      hasPortability: true,
-      hasParentTool: false,
-    });
+        fallbackWebsiteUrl: 'https://example.com',
+        setupTracks: [],
+        gettingStartedCtaUrl: 'https://example.com/start',
+        toolName: 'Acme',
+        prosConsSourcesCount: 2,
+        affiliateOffers: [{ url: 'https://example.com/offer', cta_text: 'Get started' }],
+        evidenceBasis: [{ label: 'docs_checked', count: 1 }],
+        tribalKnowledge: {
+          hasCommunity: true,
+          userAdvocate: { ideal_for: ['Startups'] },
+          guardedHumanVerdict: 'Strong shortlist',
+          vibe: 'Clean UX',
+          originStory: 'Built for speed',
+          idealFor: ['Startups'],
+          guardedAvoidIf: ['Need on-prem'],
+          powerTip: 'Use templates',
+          delighters: ['Fast setup'],
+          frustrations: ['No on-prem'],
+        },
+        displayCategorySpecificData: { seats: 'unlimited' },
+        vipSpecifics: {},
+        categoryName: 'Project Management',
+        specsVerifiedLabel: '2026-03-05',
+        longDescription: 'Long description',
+        pricingCheckedLabel: '2026-03-05',
+        hasOfficialPricingSource: true,
+        pricingEvidenceCount: 1,
+        hasSecurity: true,
+        hasPortability: true,
+        hasParentTool: false,
+      })
+    );
 
     expect(state.sourceListsView.methodologyLinks.length).toBe(1);
     expect(state.prosConsView.pros.length).toBe(1);
