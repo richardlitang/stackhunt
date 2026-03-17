@@ -205,6 +205,49 @@ export function mapLaneSubjectProfileToResolvedSubject(
   };
 }
 
+interface ResolveToolPageCanonicalSubjectInput {
+  laneSubject: ToolPageResolvedSubject | null;
+  heuristicSubject: ToolPageResolvedSubject;
+}
+
+export function resolveToolPageCanonicalSubject(
+  input: ResolveToolPageCanonicalSubjectInput
+): ToolPageResolvedSubject {
+  const laneSubject = input.laneSubject;
+  if (!laneSubject) return input.heuristicSubject;
+
+  if (laneSubject.confidence === 'high') return laneSubject;
+
+  if (laneSubject.confidence === 'medium') {
+    if (laneSubject.entityScope) return laneSubject;
+    if (
+      input.heuristicSubject.confidence === 'high' &&
+      input.heuristicSubject.entityScope &&
+      input.heuristicSubject.entityScope !== 'core'
+    ) {
+      return input.heuristicSubject;
+    }
+    return laneSubject;
+  }
+
+  if (
+    input.heuristicSubject.confidence === 'high' &&
+    input.heuristicSubject.entityScope &&
+    input.heuristicSubject.entityScope !== 'core'
+  ) {
+    return input.heuristicSubject;
+  }
+  if (
+    input.heuristicSubject.confidence === 'medium' &&
+    input.heuristicSubject.entityScope &&
+    input.heuristicSubject.entityScope !== 'core'
+  ) {
+    return input.heuristicSubject;
+  }
+
+  return laneSubject;
+}
+
 export function collectReviewEntityScopes(review: unknown): HunterEntityScope[] {
   const reviewScope =
     review && typeof review === 'object'

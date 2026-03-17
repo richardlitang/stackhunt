@@ -248,4 +248,57 @@ describe('getToolPageData subject-resolution selection', () => {
     expect(result?.subjectSelectionReason).toContain('missing canonical entity scope');
     expect(result?.firstReview).toBeNull();
   });
+
+  it('falls back to heuristic subject when persisted lane subject is low confidence', async () => {
+    getToolBySlugAndTypeMock.mockResolvedValue(
+      baseTool({
+        name: 'GitHub Copilot',
+        slug: 'github-copilot',
+        reviews: [
+          {
+            status: 'published',
+            updated_at: '2026-03-10T00:00:00.000Z',
+            sources: [{ entity_scope: 'copilot' }],
+          },
+        ],
+        specs: {
+          canonical: {
+            entity_first_lane_outputs: {
+              subject_profile: {
+                subject_type: 'plan_family',
+                subject_key: 'github-copilot:enterprise',
+                display_name: 'GitHub Enterprise',
+                entity_scope: null,
+                confidence: 'low',
+              },
+              fact_sheet: {
+                official_facts: [],
+                official_pricing_facts: [],
+                official_limit_facts: [],
+              },
+              user_signal_sheet: {
+                user_signal_pros: [],
+                user_signal_cons: [],
+              },
+              editorial_decision: {
+                summary: null,
+                best_for: null,
+                not_for: null,
+                main_tradeoff: null,
+                human_verdict: null,
+              },
+            },
+          },
+        },
+      })
+    );
+
+    const result = await getToolPageData('github-copilot');
+    expect(result).not.toBeNull();
+    expect(result?.resolvedSubject.subjectType).toBe('product_surface');
+    expect(result?.resolvedSubject.entityScope).toBe('copilot');
+    expect(result?.resolvedSubject.confidence).toBe('high');
+    expect(result?.subjectSelectionSuppressed).toBe(false);
+    expect(result?.firstReview).not.toBeNull();
+  });
 });

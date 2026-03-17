@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   collectReviewEntityScopes,
   mapLaneSubjectProfileToResolvedSubject,
+  resolveToolPageCanonicalSubject,
   resolveToolPageReviewSubject,
   scoreToolPageReviewSubjectMatch,
   shouldUseSubjectMatchedReview,
@@ -311,5 +312,79 @@ describe('tool page review subject', () => {
     expect(mapped?.entityScope).toBeNull();
     expect(mapped?.confidence).toBe('low');
     expect(mapped?.ambiguityReason).toContain('missing canonical entity scope');
+  });
+
+  it('falls back to high-confidence heuristic subject when lane subject is low confidence', () => {
+    const canonical = resolveToolPageCanonicalSubject({
+      laneSubject: {
+        subjectType: 'plan_family',
+        subjectKey: 'github:enterprise',
+        displayName: 'GitHub Enterprise',
+        entityScope: null,
+        confidence: 'low',
+        ambiguityReason: 'needs scope',
+      },
+      heuristicSubject: {
+        subjectType: 'product_surface',
+        subjectKey: 'github-copilot:copilot',
+        displayName: 'GitHub Copilot',
+        entityScope: 'copilot',
+        confidence: 'high',
+        ambiguityReason: null,
+      },
+    });
+
+    expect(canonical.subjectType).toBe('product_surface');
+    expect(canonical.entityScope).toBe('copilot');
+    expect(canonical.confidence).toBe('high');
+  });
+
+  it('keeps medium-confidence lane subject when it has canonical scope', () => {
+    const canonical = resolveToolPageCanonicalSubject({
+      laneSubject: {
+        subjectType: 'deployment_mode',
+        subjectKey: 'acme:enterprise_cloud',
+        displayName: 'Acme Enterprise Cloud',
+        entityScope: 'enterprise_cloud',
+        confidence: 'medium',
+        ambiguityReason: null,
+      },
+      heuristicSubject: {
+        subjectType: 'product',
+        subjectKey: 'acme:core',
+        displayName: 'Acme',
+        entityScope: 'core',
+        confidence: 'high',
+        ambiguityReason: null,
+      },
+    });
+
+    expect(canonical.subjectType).toBe('deployment_mode');
+    expect(canonical.entityScope).toBe('enterprise_cloud');
+  });
+
+  it('keeps low-confidence lane subject when heuristic only resolves to generic core', () => {
+    const canonical = resolveToolPageCanonicalSubject({
+      laneSubject: {
+        subjectType: 'product_surface',
+        subjectKey: 'acme:unresolved-surface',
+        displayName: 'Acme Surface',
+        entityScope: null,
+        confidence: 'low',
+        ambiguityReason: 'needs explicit scope',
+      },
+      heuristicSubject: {
+        subjectType: 'product',
+        subjectKey: 'acme:core',
+        displayName: 'Acme',
+        entityScope: 'core',
+        confidence: 'high',
+        ambiguityReason: null,
+      },
+    });
+
+    expect(canonical.subjectType).toBe('product_surface');
+    expect(canonical.entityScope).toBeNull();
+    expect(canonical.confidence).toBe('low');
   });
 });
