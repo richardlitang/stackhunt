@@ -68,7 +68,10 @@ function normalizeLaneEntityScope(
   value: unknown
 ): ToolPageLaneOutputs['subject_profile']['entity_scope'] {
   if (typeof value !== 'string') return null;
-  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
   if (
     normalized === 'core' ||
     normalized === 'copilot' ||

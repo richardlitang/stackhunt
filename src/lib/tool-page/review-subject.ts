@@ -180,7 +180,8 @@ export function mapLaneSubjectProfileToResolvedSubject(
     const inferredSubjectType = ENTITY_SCOPE_SUBJECT_TYPE[entityScope];
     if (subjectType !== inferredSubjectType) {
       subjectType = inferredSubjectType;
-      ambiguityReason = 'Persisted lane subject type was corrected to match canonical entity scope.';
+      ambiguityReason =
+        'Persisted lane subject type was corrected to match canonical entity scope.';
     }
   } else if (subjectType === 'product') {
     entityScope = 'core';
@@ -207,7 +208,10 @@ export function mapLaneSubjectProfileToResolvedSubject(
 export function collectReviewEntityScopes(review: unknown): HunterEntityScope[] {
   const reviewScope =
     review && typeof review === 'object'
-      ? normalizeEntityScope((review as ReviewScopeSourceLike).entity_scope || (review as ReviewScopeSourceLike).entityScope)
+      ? normalizeEntityScope(
+          (review as ReviewScopeSourceLike).entity_scope ||
+            (review as ReviewScopeSourceLike).entityScope
+        )
       : null;
   const sourceScopes = readReviewSources(review)
     .map((source) => {

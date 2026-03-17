@@ -341,6 +341,8 @@ Notes:
 - 2026-03-17 progress: removed remaining route-state pass-through wrappers (`decision-section`, `cta-media`, `review-artifacts`, `runtime-assembly`) and standardized tests on explicit `inputFromRoute(...) -> builder(...)` composition.
 - 2026-03-17 progress: data-prep now normalizes review artifact inputs inline via `toToolPageOptionalRecord(...)` and `toToolPageReviewSources(...)` before calling `buildToolPageReviewArtifactsState(...)`.
 - 2026-03-17 progress: retired the wrapper-specific runtime-assembly chain guard path from route call-shape QA after deleting `buildToolPageRuntimeAssemblyFromRoute(...)`.
+- 2026-03-17 progress: hardened persisted subject-profile mapping by normalizing malformed lane `subject_type`/`confidence`, reconciling scope/type mismatches, and forcing low-confidence fallback when non-plan subjects are missing canonical scope.
+- 2026-03-17 progress: subject match scoring now includes review-level `entity_scope` when source-level scopes are missing, reducing false suppression of valid published reviews.
 
 ### Phase 3: Page compiler rebuild
 
