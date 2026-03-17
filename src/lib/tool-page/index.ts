@@ -27,7 +27,6 @@ export {
 } from '@/lib/tool-page/cta-media-input';
 export {
   buildToolPageCtaMediaState,
-  buildToolPageCtaMediaStateFromRoute,
 } from '@/lib/tool-page/cta-media-state';
 export { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
 export { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
