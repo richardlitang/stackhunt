@@ -343,6 +343,7 @@ Notes:
 - 2026-03-17 progress: retired the wrapper-specific runtime-assembly chain guard path from route call-shape QA after deleting `buildToolPageRuntimeAssemblyFromRoute(...)`.
 - 2026-03-17 progress: hardened persisted subject-profile mapping by normalizing malformed lane `subject_type`/`confidence`, reconciling scope/type mismatches, and forcing low-confidence fallback when non-plan subjects are missing canonical scope.
 - 2026-03-17 progress: subject match scoring now includes review-level `entity_scope` when source-level scopes are missing, reducing false suppression of valid published reviews.
+- 2026-03-17 progress: added `getToolPageData(...)` boundary regression coverage for persisted lane-subject edge cases (missing core scope recovery, scope/type mismatch correction, and missing-surface-scope suppression).
 
 ### Phase 3: Page compiler rebuild
 
