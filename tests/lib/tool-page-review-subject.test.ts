@@ -47,6 +47,15 @@ describe('tool page review subject', () => {
     expect(scopes).toEqual(['copilot', 'enterprise_cloud']);
   });
 
+  it('includes review-level entity scope even when sources are missing', () => {
+    const scopes = collectReviewEntityScopes({
+      entity_scope: 'enterprise-server',
+      sources: [],
+    });
+
+    expect(scopes).toEqual(['enterprise_server']);
+  });
+
   it('scores exact subject matches higher than unknown-scope reviews', () => {
     const subject = resolveToolPageReviewSubject({
       tool: {

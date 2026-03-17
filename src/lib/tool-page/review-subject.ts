@@ -205,7 +205,11 @@ export function mapLaneSubjectProfileToResolvedSubject(
 }
 
 export function collectReviewEntityScopes(review: unknown): HunterEntityScope[] {
-  const scopes = readReviewSources(review)
+  const reviewScope =
+    review && typeof review === 'object'
+      ? normalizeEntityScope((review as ReviewScopeSourceLike).entity_scope || (review as ReviewScopeSourceLike).entityScope)
+      : null;
+  const sourceScopes = readReviewSources(review)
     .map((source) => {
       if (!source || typeof source !== 'object') return null;
       const scopeSource = source as ReviewScopeSourceLike;
@@ -213,6 +217,7 @@ export function collectReviewEntityScopes(review: unknown): HunterEntityScope[] 
     })
     .filter((scope): scope is HunterEntityScope => Boolean(scope));
 
+  const scopes = reviewScope ? [reviewScope, ...sourceScopes] : sourceScopes;
   return Array.from(new Set(scopes));
 }
 
