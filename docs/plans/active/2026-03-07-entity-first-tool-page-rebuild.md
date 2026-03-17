@@ -334,6 +334,10 @@ Notes:
 - 2026-03-13 progress: reduced remaining pricing/evidence/update-history alias churn in `tool/[slug]` by binding those fields directly from `routeDataState` and `pageAssemblyState`.
 - 2026-03-13 progress: reduced section-gate alias churn in `tool/[slug]` by binding `has*/show*` booleans directly from `routeDataState`.
 - 2026-03-13 progress: reduced low-fanout route alias churn in `tool/[slug]` by binding pricing/header/spec/testing inputs directly from `routeDataState`.
+- 2026-03-17 progress: reduced medium-fanout alias churn in `tool/[slug]` by binding alternatives/source-trust/lens-signal fields directly from `routeDataState` and `pageAssemblyState`.
+- 2026-03-17 progress: removed the remaining frontmatter `tool` alias in `tool/[slug]` and wired all tool references to `routeDataState.tool`.
+- 2026-03-17 progress: decision utility pricing guidance now prefers subject-specific mental-model lines for `product_surface`, `plan_family`, and `deployment_mode`, with regression coverage in `tests/lib/tool-page-decision-utility.test.ts`.
+- 2026-03-17 progress: pros/cons lane isolation now reroutes community-channel (`reddit`, `forum`, `hn`) claims into user-signal lanes even when `source_type` is missing.
 
 ### Phase 3: Page compiler rebuild
 
