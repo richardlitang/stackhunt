@@ -71,18 +71,9 @@ const { routeDataState, pageAssemblyState } = buildToolPagePageCompilerRouteStat
 
 const {
   tool,
-  primaryOffer,
-  microDiffs,
-  curatedVerdictEntries,
   knowledgeCard,
   qualityState,
-  hasComparableAlternatives,
-  hasPricing,
-  decisionSnapshotSummary,
-  hasAlternatives,
-  evaluationDepth,
-  communityVerifiedLabel,
-  hasCollectedSources,
+  curatedVerdictEntries,
   lensRankedHardLimits,
   topLensHardLimit,
   userSignalSummary,
@@ -93,55 +84,18 @@ const {
   activeLensConstraintCount,
   activeLensIntegrationCount,
 } = routeDataState;
-const {
-  pageSchemas,
-  meta,
-  indexPolicy,
-  lensLabelMap,
-  sourceAriaLabel,
-  lensHrefs,
-  focusSwitchOptions,
-  lensDefaultFocus,
-  showFocusSwitch,
-  lensPriorityLinks,
-  verdictLabelRationale,
-  readerFocusNote,
-  scoreDrivers,
-  workflowFitHighlights,
-  workflowFitCards,
-  trustBarProps,
-  alternativesIntroText,
-  compareTeaserLinks,
-  alternativesSectionState,
-  alternativeCardsView,
-  sourceListsView,
-  prosConsView,
-  gettingStartedProps,
-  strengthsSubtitle,
-  affiliateOffersView,
-  evidenceBasisChips,
-  tribalKnowledgeProps,
-  platformSectionState,
-  specsProps,
-  specsSectionState,
-  aboutContent,
-  operationalDetailsState,
-  decisionUtilityState,
-  decisionHardLimitEvidence,
-  pricingScenarioState,
-  showEarlySnapshotToneBanner,
-  sourcesSectionState,
-  lowConfidenceSourcesState,
-  faqItemsView,
-} = pageAssemblyState;
+const { indexPolicy } = pageAssemblyState;
 applyToolPageResponseRouteState({
   response: Astro.response,
   robotsTag: indexPolicy.robotsTag,
 });
 ---
 
-<BaseLayout meta={meta} schemas={pageSchemas}>
-  <AffiliateDisclosure variant="banner" hasAffiliateLinks={primaryOffer?.is_affiliate || false} />
+<BaseLayout meta={pageAssemblyState.meta} schemas={pageAssemblyState.pageSchemas}>
+  <AffiliateDisclosure
+    variant="banner"
+    hasAffiliateLinks={routeDataState.primaryOffer?.is_affiliate || false}
+  />
 
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
     <!-- Breadcrumbs -->
@@ -227,7 +181,7 @@ applyToolPageResponseRouteState({
                 )
               }
               {
-                showEarlySnapshotToneBanner && (
+                pageAssemblyState.showEarlySnapshotToneBanner && (
                   <p class="mt-2 rounded-lg border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-sm text-amber-100">
                     This is an early, docs-only snapshot. Some claims are pending confirmation. Use
                     this page to shortlist, then verify in a demo.
@@ -235,9 +189,9 @@ applyToolPageResponseRouteState({
                 )
               }
               {
-                decisionSnapshotSummary && (
+                routeDataState.decisionSnapshotSummary && (
                   <div class="mt-2 space-y-1">
-                    <p class="text-zinc-200">{decisionSnapshotSummary}</p>
+                    <p class="text-zinc-200">{routeDataState.decisionSnapshotSummary}</p>
                   </div>
                 )
               }
@@ -301,8 +255,12 @@ applyToolPageResponseRouteState({
 
           <div class="flex flex-wrap gap-3">
             {
-              primaryOffer && (
-                <AffiliateButton offer={primaryOffer} toolName={tool.name} size="lg" />
+              routeDataState.primaryOffer && (
+                <AffiliateButton
+                  offer={routeDataState.primaryOffer}
+                  toolName={tool.name}
+                  size="lg"
+                />
               )
             }
             <CompareButton
@@ -410,7 +368,7 @@ applyToolPageResponseRouteState({
               )
             }
             {
-              hasAlternatives && (
+              routeDataState.hasAlternatives && (
                 <a
                   href="#alternatives"
                   class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -430,37 +388,41 @@ applyToolPageResponseRouteState({
       data-focus-groups="all verdict"
     >
       <h2 class="text-lg font-semibold text-zinc-100">Decision in 60 Seconds</h2>
-      <p class="mt-1 text-sm leading-relaxed text-zinc-300">{verdictLabelRationale}</p>
+      <p class="mt-1 text-sm leading-relaxed text-zinc-300">
+        {pageAssemblyState.verdictLabelRationale}
+      </p>
       <p class="mt-2 text-xs text-zinc-500">
         Summary of linked sources as of {pageAssemblyState.freshnessLabels.verdictAsOfLabel}.
       </p>
       {
-        decisionUtilityState.hasDecisionBullets ? (
+        pageAssemblyState.decisionUtilityState.hasDecisionBullets ? (
           <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-            {decisionUtilityState.decisionUseIf && (
+            {pageAssemblyState.decisionUtilityState.decisionUseIf && (
               <li>
                 <span class="font-medium text-zinc-100">Use if:</span>{' '}
-                {decisionUtilityState.decisionUseIf}
+                {pageAssemblyState.decisionUtilityState.decisionUseIf}
               </li>
             )}
-            {decisionUtilityState.decisionAvoidIf && (
+            {pageAssemblyState.decisionUtilityState.decisionAvoidIf && (
               <li>
                 <span class="font-medium text-zinc-100">Avoid if:</span>{' '}
-                {decisionUtilityState.decisionAvoidIf}
+                {pageAssemblyState.decisionUtilityState.decisionAvoidIf}
               </li>
             )}
-            {decisionUtilityState.decisionWatchOut && (
+            {pageAssemblyState.decisionUtilityState.decisionWatchOut && (
               <li>
                 <span class="font-medium text-zinc-100">Watch out:</span>{' '}
-                {decisionUtilityState.decisionWatchOut}
-                {decisionHardLimitEvidence && (
+                {pageAssemblyState.decisionUtilityState.decisionWatchOut}
+                {pageAssemblyState.decisionHardLimitEvidence && (
                   <>
                     {' '}
                     <a
-                      href={decisionHardLimitEvidence.sourceUrl}
+                      href={pageAssemblyState.decisionHardLimitEvidence.sourceUrl}
                       target="_blank"
                       rel="noopener"
-                      aria-label={sourceAriaLabel(decisionHardLimitEvidence.text)}
+                      aria-label={pageAssemblyState.sourceAriaLabel(
+                        pageAssemblyState.decisionHardLimitEvidence.text
+                      )}
                       data-outbound="source"
                       data-location="decision-watchout"
                       data-tool={tool.slug}
@@ -492,10 +454,10 @@ applyToolPageResponseRouteState({
     {
       pageAssemblyState.shouldShowDecisionUtilitySection && (
         <ToolDecisionUtilitySection
-          checklistTitle={decisionUtilityState.testChecklistTitle}
-          checklistItems={decisionUtilityState.testChecklistItems}
-          commonSetupsTitle={decisionUtilityState.commonSetupsTitle}
-          commonSetups={decisionUtilityState.commonSetups}
+          checklistTitle={pageAssemblyState.decisionUtilityState.testChecklistTitle}
+          checklistItems={pageAssemblyState.decisionUtilityState.testChecklistItems}
+          commonSetupsTitle={pageAssemblyState.decisionUtilityState.commonSetupsTitle}
+          commonSetups={pageAssemblyState.decisionUtilityState.commonSetups}
         />
       )
     }
@@ -505,19 +467,23 @@ applyToolPageResponseRouteState({
       aria-label="Reader controls"
     >
       <h3 class="text-sm font-semibold text-zinc-100">Reader controls</h3>
-      {readerFocusNote && <p class="mt-1 text-xs text-zinc-500">{readerFocusNote}</p>}
+      {
+        pageAssemblyState.readerFocusNote && (
+          <p class="mt-1 text-xs text-zinc-500">{pageAssemblyState.readerFocusNote}</p>
+        )
+      }
       <div class="mt-3 space-y-3">
         <ReviewLensSwitch
           activeLens={activeReviewLens}
-          hrefs={lensHrefs}
+          hrefs={pageAssemblyState.lensHrefs}
           compact
           showNote={false}
         />
         {
-          showFocusSwitch && (
+          pageAssemblyState.showFocusSwitch && (
             <ReviewFocusSwitch
-              options={focusSwitchOptions}
-              defaultFocus={lensDefaultFocus}
+              options={pageAssemblyState.focusSwitchOptions}
+              defaultFocus={pageAssemblyState.lensDefaultFocus}
               storageScope={activeReviewLens}
               compact
               showNote={false}
@@ -526,11 +492,11 @@ applyToolPageResponseRouteState({
         }
       </div>
       {
-        lensPriorityLinks.length > 0 && (
+        pageAssemblyState.lensPriorityLinks.length > 0 && (
           <div class="mt-3 border-t border-zinc-800 pt-3">
             <p class="text-xs text-zinc-500">{pageAssemblyState.lensPriorityLead}</p>
             <div class="mt-2 flex flex-wrap gap-2">
-              {lensPriorityLinks.map((item) => (
+              {pageAssemblyState.lensPriorityLinks.map((item) => (
                 <a
                   href={item.href}
                   class="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -575,8 +541,8 @@ applyToolPageResponseRouteState({
           )
         }
         {
-          hasComparableAlternatives &&
-            compareTeaserLinks.map((link) => (
+          routeDataState.hasComparableAlternatives &&
+            pageAssemblyState.compareTeaserLinks.map((link) => (
               <a
                 href={link.href}
                 class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
@@ -613,7 +579,9 @@ applyToolPageResponseRouteState({
               data-focus-groups="all verdict"
             >
               <h2 class="mb-2 text-lg font-semibold text-zinc-100">Why This Verdict</h2>
-              <p class="text-sm text-zinc-300">{decisionUtilityState.verdictLeadOverride}</p>
+              <p class="text-sm text-zinc-300">
+                {pageAssemblyState.decisionUtilityState.verdictLeadOverride}
+              </p>
               <p class="text-sm text-zinc-400">
                 As of {pageAssemblyState.freshnessLabels.verdictAsOfLabel}.
               </p>
@@ -634,7 +602,7 @@ applyToolPageResponseRouteState({
                           href={item.sourceUrl}
                           target="_blank"
                           rel="noopener"
-                          aria-label={sourceAriaLabel(item.text)}
+                          aria-label={pageAssemblyState.sourceAriaLabel(item.text)}
                           data-outbound="source"
                           data-location="verdict-hard-limits"
                           data-tool={tool.slug}
@@ -648,11 +616,11 @@ applyToolPageResponseRouteState({
                   </ul>
                 </div>
               )}
-              {scoreDrivers.length > 0 && (
+              {pageAssemblyState.scoreDrivers.length > 0 && (
                 <div class="mt-5">
                   <h3 class="text-sm font-semibold text-zinc-200">Recommendation drivers</h3>
                   <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-                    {scoreDrivers.map((item) => (
+                    {pageAssemblyState.scoreDrivers.map((item) => (
                       <li>- {item}</li>
                     ))}
                   </ul>
@@ -674,7 +642,10 @@ applyToolPageResponseRouteState({
         {routeDataState.showProceduralVerdict && <ToolDecisionConditionsSection />}
         {
           pageAssemblyState.showWorkflowFitSection && (
-            <ToolWorkflowFitSection cards={workflowFitCards} highlights={workflowFitHighlights} />
+            <ToolWorkflowFitSection
+              cards={pageAssemblyState.workflowFitCards}
+              highlights={pageAssemblyState.workflowFitHighlights}
+            />
           )
         }
 
@@ -684,7 +655,7 @@ applyToolPageResponseRouteState({
             <details
               id="pricing-plans"
               class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
-              open={hasPricing}
+              open={routeDataState.hasPricing}
               data-focus-target
               data-focus-groups="all pricing"
             >
@@ -700,8 +671,9 @@ applyToolPageResponseRouteState({
                   )}
                   {activeReviewLens !== 'general' && activeLensPricingPlanCount !== null && (
                     <p class="mt-1 text-xs text-zinc-500">
-                      Lens coverage, {lensLabelMap[activeReviewLens]}: {activeLensPricingPlanCount}{' '}
-                      plan{activeLensPricingPlanCount === 1 ? '' : 's'} tagged.
+                      Lens coverage, {pageAssemblyState.lensLabelMap[activeReviewLens]}:{' '}
+                      {activeLensPricingPlanCount} plan{activeLensPricingPlanCount === 1 ? '' : 's'}{' '}
+                      tagged.
                     </p>
                   )}
                   {activeReviewLens !== 'general' && activeLensConstraintCount !== null && (
@@ -735,8 +707,8 @@ applyToolPageResponseRouteState({
                   summaryLead={routeDataState.pricingNarrativeLead}
                   summaryLabel={routeDataState.pricingNarrativeLabel}
                   budgetAnalyst={pageAssemblyState.pricingInsightsBudgetAnalyst}
-                  mentalModelItems={decisionUtilityState.pricingMentalModelItems}
-                  costModelExamples={pricingScenarioState.examples}
+                  mentalModelItems={pageAssemblyState.decisionUtilityState.pricingMentalModelItems}
+                  costModelExamples={pageAssemblyState.pricingScenarioState.examples}
                 />
                 {topLensHardLimit && (
                   <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
@@ -760,7 +732,7 @@ applyToolPageResponseRouteState({
                   </div>
                 )}
                 <p class="mb-4 text-xs text-zinc-500">{pageAssemblyState.pricingNotice}</p>
-                {hasPricing ? (
+                {routeDataState.hasPricing ? (
                   <>
                     <PricingPlansGrid
                       smp_pricing={knowledgeCard?.smp_pricing}
@@ -819,7 +791,7 @@ applyToolPageResponseRouteState({
                                 href={entry.sourceUrl}
                                 target="_blank"
                                 rel="noopener"
-                                aria-label={sourceAriaLabel(entry.text)}
+                                aria-label={pageAssemblyState.sourceAriaLabel(entry.text)}
                                 data-outbound="source"
                                 data-location="pricing-unconfirmed"
                                 data-tool={tool.slug}
@@ -857,12 +829,12 @@ applyToolPageResponseRouteState({
           routeDataState.hasGettingStarted && (
             <div id="getting-started" data-focus-target data-focus-groups="all setup">
               <GettingStarted
-                setupComplexity={gettingStartedProps.setupComplexity}
-                toolName={gettingStartedProps.toolName}
-                hasApi={gettingStartedProps.hasApi}
-                websiteUrl={gettingStartedProps.websiteUrl}
-                setupTracks={gettingStartedProps.setupTracks}
-                setupUrl={gettingStartedProps.setupUrl}
+                setupComplexity={pageAssemblyState.gettingStartedProps.setupComplexity}
+                toolName={pageAssemblyState.gettingStartedProps.toolName}
+                hasApi={pageAssemblyState.gettingStartedProps.hasApi}
+                websiteUrl={pageAssemblyState.gettingStartedProps.websiteUrl}
+                setupTracks={pageAssemblyState.gettingStartedProps.setupTracks}
+                setupUrl={pageAssemblyState.gettingStartedProps.setupUrl}
               />
             </div>
           )
@@ -881,7 +853,7 @@ applyToolPageResponseRouteState({
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
                   <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
-                  <p class="mt-1 text-sm text-zinc-400">{strengthsSubtitle}</p>
+                  <p class="mt-1 text-sm text-zinc-400">{pageAssemblyState.strengthsSubtitle}</p>
                   {(communityProsCount || 0) + (communityConsCount || 0) > 0 && (
                     <p class="mt-1 text-xs text-zinc-500">
                       Community-backed signals in this section: {communityProsCount || 0} pros,{' '}
@@ -952,7 +924,11 @@ applyToolPageResponseRouteState({
               </summary>
 
               <div class="mt-4">
-                <ProsCons pros={prosConsView.pros} cons={prosConsView.cons} sourceDisplay="block" />
+                <ProsCons
+                  pros={pageAssemblyState.prosConsView.pros}
+                  cons={pageAssemblyState.prosConsView.cons}
+                  sourceDisplay="block"
+                />
               </div>
               {pageAssemblyState.hasUserSignalProsCons && (
                 <div class="mt-6 rounded-lg border border-zinc-700/70 bg-zinc-950/40 p-4">
@@ -964,8 +940,8 @@ applyToolPageResponseRouteState({
                   <div class="mt-3">
                     <ProsCons
                       title="What Users Report"
-                      pros={prosConsView.userSignalPros}
-                      cons={prosConsView.userSignalCons}
+                      pros={pageAssemblyState.prosConsView.userSignalPros}
+                      cons={pageAssemblyState.prosConsView.userSignalCons}
                       sourceDisplay="block"
                     />
                   </div>
@@ -977,8 +953,8 @@ applyToolPageResponseRouteState({
         {
           pageAssemblyState.shouldShowPracticalOutcomes && (
             <ToolPracticalOutcomesSection
-              title={decisionUtilityState.practicalOutcomesTitle}
-              outcomes={decisionUtilityState.practicalOutcomes}
+              title={pageAssemblyState.decisionUtilityState.practicalOutcomesTitle}
+              outcomes={pageAssemblyState.decisionUtilityState.practicalOutcomes}
             />
           )
         }
@@ -1002,14 +978,16 @@ applyToolPageResponseRouteState({
         {
           routeDataState.hasSpecs && (
             <section id="specs" data-focus-target data-focus-groups="all capabilities">
-              {specsSectionState.checkedLead && (
-                <p class="mb-3 text-xs text-zinc-500">{specsSectionState.checkedLead}</p>
+              {pageAssemblyState.specsSectionState.checkedLead && (
+                <p class="mb-3 text-xs text-zinc-500">
+                  {pageAssemblyState.specsSectionState.checkedLead}
+                </p>
               )}
               <DynamicSpecs
-                categorySpecificData={specsProps.categorySpecificData}
-                specifics={specsProps.specifics}
-                toolName={specsProps.toolName}
-                categoryName={specsProps.categoryName}
+                categorySpecificData={pageAssemblyState.specsProps.categorySpecificData}
+                specifics={pageAssemblyState.specsProps.specifics}
+                toolName={pageAssemblyState.specsProps.toolName}
+                categoryName={pageAssemblyState.specsProps.categoryName}
               />
             </section>
           )
@@ -1038,11 +1016,11 @@ applyToolPageResponseRouteState({
         }
         {/* Field Notes (source-backed user signal summary) */}
         {
-          tribalKnowledgeProps.shouldShow && (
+          pageAssemblyState.tribalKnowledgeProps.shouldShow && (
             <div data-focus-target data-focus-groups="all verdict capabilities">
               <TribalKnowledge
-                userAdvocate={tribalKnowledgeProps.userAdvocate}
-                humanVerdict={tribalKnowledgeProps.humanVerdict}
+                userAdvocate={pageAssemblyState.tribalKnowledgeProps.userAdvocate}
+                humanVerdict={pageAssemblyState.tribalKnowledgeProps.humanVerdict}
               />
             </div>
           )
@@ -1050,18 +1028,18 @@ applyToolPageResponseRouteState({
 
         {/* Platform Support & Integrations */}
         {
-          platformSectionState.shouldShow && (
+          pageAssemblyState.platformSectionState.shouldShow && (
             <div data-focus-target data-focus-groups="all integrations capabilities">
               {activeReviewLens !== 'general' && activeLensIntegrationCount !== null && (
                 <p class="mb-2 text-xs text-zinc-500">
-                  Lens coverage, {lensLabelMap[activeReviewLens]}: {activeLensIntegrationCount}{' '}
-                  integration
+                  Lens coverage, {pageAssemblyState.lensLabelMap[activeReviewLens]}:{' '}
+                  {activeLensIntegrationCount} integration
                   {activeLensIntegrationCount === 1 ? '' : 's'} tagged.
                 </p>
               )}
               <PlatformIntegrations
-                platforms={platformSectionState.platforms}
-                integrations={platformSectionState.integrations}
+                platforms={pageAssemblyState.platformSectionState.platforms}
+                integrations={pageAssemblyState.platformSectionState.integrations}
                 toolName={tool.name}
                 sectionId="platform-integrations"
                 activeReviewLens={activeReviewLens}
@@ -1101,7 +1079,7 @@ applyToolPageResponseRouteState({
               </summary>
               <div
                 class="mt-4 prose prose-slate max-w-none text-zinc-300 leading-relaxed"
-                set:html={simpleMarkdown(aboutContent.body)}
+                set:html={simpleMarkdown(pageAssemblyState.aboutContent.body)}
               />
             </details>
           )
@@ -1143,7 +1121,7 @@ applyToolPageResponseRouteState({
               </summary>
               <div class="mt-4 space-y-6">
                 {/* Company Info */}
-                {operationalDetailsState.showCompanyInfo && (
+                {pageAssemblyState.operationalDetailsState.showCompanyInfo && (
                   <CompanyInfo
                     company={knowledgeCard.company}
                     audience={knowledgeCard.audience}
@@ -1152,7 +1130,7 @@ applyToolPageResponseRouteState({
                 )}
 
                 {/* Suite Navigation (if part of a bundle) */}
-                {operationalDetailsState.showSuiteNavigation && (
+                {pageAssemblyState.operationalDetailsState.showSuiteNavigation && (
                   <SuiteNavigation
                     currentToolId={tool.id}
                     parentId={routeDataState.parentTool.id}
@@ -1161,17 +1139,17 @@ applyToolPageResponseRouteState({
                 )}
 
                 {/* Security & Compliance */}
-                {operationalDetailsState.showSecurity && (
+                {pageAssemblyState.operationalDetailsState.showSecurity && (
                   <SecurityCompliance security={knowledgeCard.security} />
                 )}
 
                 {/* Support Options */}
-                {operationalDetailsState.showSupport && (
+                {pageAssemblyState.operationalDetailsState.showSupport && (
                   <SupportOptions support={knowledgeCard.support} />
                 )}
 
                 {/* Portability */}
-                {operationalDetailsState.showPortability && (
+                {pageAssemblyState.operationalDetailsState.showPortability && (
                   <PortabilityCard
                     portability={knowledgeCard.smp_portability}
                     toolName={tool.name}
@@ -1183,11 +1161,11 @@ applyToolPageResponseRouteState({
         }
 
         {
-          affiliateOffersView.shouldShow && (
+          pageAssemblyState.affiliateOffersView.shouldShow && (
             <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
               <h3 class="mb-4 font-semibold text-zinc-100">Get {tool.name}</h3>
               <div class="space-y-3">
-                {affiliateOffersView.offers.map((offer) => (
+                {pageAssemblyState.affiliateOffersView.offers.map((offer) => (
                   <a
                     href={offer.url}
                     target="_blank"
@@ -1231,7 +1209,7 @@ applyToolPageResponseRouteState({
         >
           <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
           <div class="space-y-4">
-            {faqItemsView.map((item) => (
+            {pageAssemblyState.faqItemsView.map((item) => (
               <details class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4">
                 <summary class="flex items-center justify-between cursor-pointer">
                   <h3 class="text-sm font-semibold text-zinc-100">{item.question}</h3>
@@ -1256,7 +1234,7 @@ applyToolPageResponseRouteState({
                       href={item.answer_source_url}
                       target="_blank"
                       rel="noopener"
-                      aria-label={sourceAriaLabel(item.question)}
+                      aria-label={pageAssemblyState.sourceAriaLabel(item.question)}
                       data-outbound="source"
                       data-location="faq"
                       data-tool={tool.slug}
@@ -1283,7 +1261,7 @@ applyToolPageResponseRouteState({
 
     {/* Alternatives Section - Hybrid Search Strategy */}
     {
-      hasAlternatives && (
+      routeDataState.hasAlternatives && (
         <section id="alternatives" class="mt-16" data-focus-target data-focus-groups="all verdict">
           <header class="mb-6">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -1291,8 +1269,10 @@ applyToolPageResponseRouteState({
                 <h2 class="text-2xl font-semibold text-zinc-100">
                   {routeDataState.alternativesLabel} to {tool.name}
                 </h2>
-                {alternativesIntroText && (
-                  <p class="mt-1 text-sm text-zinc-400">{alternativesIntroText}</p>
+                {pageAssemblyState.alternativesIntroText && (
+                  <p class="mt-1 text-sm text-zinc-400">
+                    {pageAssemblyState.alternativesIntroText}
+                  </p>
                 )}
                 {activeReviewLens !== 'general' && (
                   <p class="mt-1 text-xs text-zinc-500">
@@ -1306,9 +1286,9 @@ applyToolPageResponseRouteState({
                   </p>
                 )}
               </div>
-              {alternativesSectionState.viewAllHref && (
+              {pageAssemblyState.alternativesSectionState.viewAllHref && (
                 <a
-                  href={alternativesSectionState.viewAllHref}
+                  href={pageAssemblyState.alternativesSectionState.viewAllHref}
                   class="text-sm text-hunt-500 hover:text-hunt-400 transition shrink-0"
                 >
                   View all →
@@ -1324,19 +1304,19 @@ applyToolPageResponseRouteState({
               pricing_type: tool.pricing_type,
               learning_curve: tool.learning_curve,
             }}
-            alternatives={alternativeCardsView.map((entry) => ({
+            alternatives={pageAssemblyState.alternativeCardsView.map((entry) => ({
               name: entry.alt.name,
               slug: entry.alt.slug,
               pricing_type: entry.alt.pricing_type,
               learning_curve: entry.alt.learning_curve,
               curatedVerdict: curatedVerdictEntries.get(entry.alt.slug)?.verdict || null,
-              computedDiff: microDiffs.get(entry.alt.slug) || null,
+              computedDiff: routeDataState.microDiffs.get(entry.alt.slug) || null,
             }))}
             asOfLabel={pageAssemblyState.freshnessLabels.verdictAsOfLabel}
             activeReviewLens={activeReviewLens}
           />
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {alternativeCardsView.map((entry) => (
+            {pageAssemblyState.alternativeCardsView.map((entry) => (
               <AlternativeCard
                 main={{
                   slug: tool.slug,
@@ -1350,7 +1330,7 @@ applyToolPageResponseRouteState({
                 curatedVerdictUpdatedAt={
                   curatedVerdictEntries.get(entry.alt.slug)?.updatedAt || null
                 }
-                computedDiff={microDiffs.get(entry.alt.slug)}
+                computedDiff={routeDataState.microDiffs.get(entry.alt.slug)}
                 showCompareLink={entry.showCompareLink}
               />
             ))}
@@ -1360,8 +1340,8 @@ applyToolPageResponseRouteState({
     }
 
     <ToolHowWeEvaluateSection
-      evaluationDepth={evaluationDepth}
-      hasCollectedSources={hasCollectedSources}
+      evaluationDepth={routeDataState.evaluationDepth}
+      hasCollectedSources={routeDataState.hasCollectedSources}
       testedItems={routeDataState.testedItems}
       notTestedItems={routeDataState.notTestedItems}
     />
@@ -1378,7 +1358,7 @@ applyToolPageResponseRouteState({
     }
 
     {
-      sourcesSectionState.hasSources && (
+      pageAssemblyState.sourcesSectionState.hasSources && (
         <section
           id="sources"
           class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
@@ -1402,24 +1382,26 @@ applyToolPageResponseRouteState({
               </span>
             </summary>
             <p class="mt-3 text-xs text-zinc-500">
-              Trust status: {trustBarProps.status}. Confidence: {trustBarProps.confidence}. Sources:{' '}
-              {trustBarProps.sourcesCount}. Last checked: {trustBarProps.lastChecked || 'Unknown'}.
+              Trust status: {pageAssemblyState.trustBarProps.status}. Confidence:{' '}
+              {pageAssemblyState.trustBarProps.confidence}. Sources:{' '}
+              {pageAssemblyState.trustBarProps.sourcesCount}. Last checked:{' '}
+              {pageAssemblyState.trustBarProps.lastChecked || 'Unknown'}.
             </p>
             <details class="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
               <summary class="cursor-pointer text-sm text-zinc-300">Verification snapshot</summary>
               <div class="mt-3">
                 <TrustBar
-                  status={trustBarProps.status}
-                  pendingCount={trustBarProps.pendingCount}
-                  evaluationDepth={trustBarProps.evaluationDepth}
-                  lastChecked={trustBarProps.lastChecked}
-                  confidence={trustBarProps.confidence}
-                  sourcesCount={trustBarProps.sourcesCount}
+                  status={pageAssemblyState.trustBarProps.status}
+                  pendingCount={pageAssemblyState.trustBarProps.pendingCount}
+                  evaluationDepth={pageAssemblyState.trustBarProps.evaluationDepth}
+                  lastChecked={pageAssemblyState.trustBarProps.lastChecked}
+                  confidence={pageAssemblyState.trustBarProps.confidence}
+                  sourcesCount={pageAssemblyState.trustBarProps.sourcesCount}
                 />
               </div>
             </details>
             <div class="mt-3 flex flex-wrap gap-2">
-              {evidenceBasisChips.map((chip) => (
+              {pageAssemblyState.evidenceBasisChips.map((chip) => (
                 <span class="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
                   {chip.text}
                 </span>
@@ -1428,7 +1410,7 @@ applyToolPageResponseRouteState({
             <details class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
               <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
               <ul class="mt-3 space-y-2 text-sm">
-                {sourceListsView.methodologyLinks.map((source) => (
+                {pageAssemblyState.sourceListsView.methodologyLinks.map((source) => (
                   <li>
                     <a
                       href={source.url}
@@ -1448,13 +1430,13 @@ applyToolPageResponseRouteState({
                   </li>
                 ))}
               </ul>
-              {lowConfidenceSourcesState.show && (
+              {pageAssemblyState.lowConfidenceSourcesState.show && (
                 <div class="mt-4 rounded-lg border border-amber-700/30 bg-amber-950/20 p-3">
                   <p class="text-xs font-semibold uppercase tracking-wide text-amber-300">
-                    {lowConfidenceSourcesState.title}
+                    {pageAssemblyState.lowConfidenceSourcesState.title}
                   </p>
                   <ul class="mt-2 space-y-1 text-xs text-zinc-400">
-                    {sourceListsView.lowConfidenceLinks.map((source) => (
+                    {pageAssemblyState.sourceListsView.lowConfidenceLinks.map((source) => (
                       <li>
                         {source.domain} · {source.inclusionReason}
                       </li>
@@ -1523,9 +1505,9 @@ applyToolPageResponseRouteState({
           data-focus-target
           data-focus-groups="all trust verdict"
         >
-          {communityVerifiedLabel && (
+          {routeDataState.communityVerifiedLabel && (
             <p class="mb-3 text-xs text-zinc-500">
-              Community signals checked {communityVerifiedLabel}
+              Community signals checked {routeDataState.communityVerifiedLabel}
             </p>
           )}
           <SignalReportWidget client:visible itemId={tool.id} itemName={tool.name} phase={1} />
