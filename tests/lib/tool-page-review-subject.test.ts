@@ -187,4 +187,120 @@ describe('tool page review subject', () => {
     expect(mapped?.confidence).toBe('low');
     expect(mapped?.ambiguityReason).toContain('low confidence');
   });
+
+  it('fills core scope for persisted product lane subject when entity scope is missing', () => {
+    const mapped = mapLaneSubjectProfileToResolvedSubject(
+      {
+        subject_profile: {
+          subject_type: 'product',
+          subject_key: 'github:core',
+          display_name: 'GitHub',
+          entity_scope: null,
+          confidence: 'high',
+        },
+        fact_sheet: {
+          official_facts: [],
+          official_pricing_facts: [],
+          official_limit_facts: [],
+        },
+        user_signal_sheet: {
+          user_signal_pros: [],
+          user_signal_cons: [],
+        },
+        editorial_decision: {
+          summary: null,
+          best_for: null,
+          not_for: null,
+          main_tradeoff: null,
+          human_verdict: null,
+        },
+      },
+      {
+        name: 'GitHub',
+        slug: 'github',
+      }
+    );
+
+    expect(mapped?.subjectType).toBe('product');
+    expect(mapped?.entityScope).toBe('core');
+    expect(mapped?.confidence).toBe('high');
+    expect(mapped?.ambiguityReason).toBeNull();
+  });
+
+  it('corrects mismatched lane subject type from canonical entity scope', () => {
+    const mapped = mapLaneSubjectProfileToResolvedSubject(
+      {
+        subject_profile: {
+          subject_type: 'product',
+          subject_key: 'github:copilot',
+          display_name: 'GitHub Copilot',
+          entity_scope: 'copilot',
+          confidence: 'high',
+        },
+        fact_sheet: {
+          official_facts: [],
+          official_pricing_facts: [],
+          official_limit_facts: [],
+        },
+        user_signal_sheet: {
+          user_signal_pros: [],
+          user_signal_cons: [],
+        },
+        editorial_decision: {
+          summary: null,
+          best_for: null,
+          not_for: null,
+          main_tradeoff: null,
+          human_verdict: null,
+        },
+      },
+      {
+        name: 'GitHub Copilot',
+        slug: 'github-copilot',
+      }
+    );
+
+    expect(mapped?.subjectType).toBe('product_surface');
+    expect(mapped?.entityScope).toBe('copilot');
+    expect(mapped?.ambiguityReason).toContain('corrected');
+  });
+
+  it('downgrades persisted surface subjects without scope to low confidence', () => {
+    const mapped = mapLaneSubjectProfileToResolvedSubject(
+      {
+        subject_profile: {
+          subject_type: 'product_surface',
+          subject_key: 'github:copilot',
+          display_name: 'GitHub Copilot',
+          entity_scope: null,
+          confidence: 'high',
+        },
+        fact_sheet: {
+          official_facts: [],
+          official_pricing_facts: [],
+          official_limit_facts: [],
+        },
+        user_signal_sheet: {
+          user_signal_pros: [],
+          user_signal_cons: [],
+        },
+        editorial_decision: {
+          summary: null,
+          best_for: null,
+          not_for: null,
+          main_tradeoff: null,
+          human_verdict: null,
+        },
+      },
+      {
+        name: 'GitHub Copilot',
+        slug: 'github-copilot',
+      }
+    );
+
+    expect(mapped?.subjectType).toBe('product_surface');
+    expect(mapped?.entityScope).toBeNull();
+    expect(mapped?.confidence).toBe('low');
+    expect(mapped?.ambiguityReason).toContain('missing canonical entity scope');
+  });
 });

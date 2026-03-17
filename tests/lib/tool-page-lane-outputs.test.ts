@@ -57,4 +57,44 @@ describe('tool page lane outputs', () => {
     expect(laneOutputs).toBeNull();
     expect(countToolPageLaneUserSignals(laneOutputs)).toBe(0);
   });
+
+  it('normalizes malformed subject profile fields from persisted lane payloads', () => {
+    const tool = {
+      name: 'Acme',
+      specs: {
+        canonical: {
+          entity_first_lane_outputs: {
+            subject_profile: {
+              subject_type: 'unsupported_subject',
+              subject_key: 'acme:unknown',
+              display_name: 'Acme Unknown',
+              entity_scope: 'enterprise cloud',
+              confidence: 'confident',
+            },
+            fact_sheet: {
+              official_facts: [],
+              official_pricing_facts: [],
+              official_limit_facts: [],
+            },
+            user_signal_sheet: {
+              user_signal_pros: [],
+              user_signal_cons: [],
+            },
+            editorial_decision: {
+              summary: null,
+              best_for: null,
+              not_for: null,
+              main_tradeoff: null,
+              human_verdict: null,
+            },
+          },
+        },
+      },
+    } as any;
+
+    const laneOutputs = readToolPageLaneOutputs(tool);
+    expect(laneOutputs?.subject_profile.subject_type).toBe('product');
+    expect(laneOutputs?.subject_profile.entity_scope).toBe('enterprise_cloud');
+    expect(laneOutputs?.subject_profile.confidence).toBe('medium');
+  });
 });

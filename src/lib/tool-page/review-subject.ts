@@ -73,6 +73,14 @@ const KNOWN_ENTITY_SCOPES = new Set<HunterEntityScope>([
   'enterprise_server',
 ]);
 
+const ENTITY_SCOPE_SUBJECT_TYPE: Record<HunterEntityScope, ToolPageReviewSubjectType> = {
+  core: 'product',
+  copilot: 'product_surface',
+  actions: 'product_surface',
+  enterprise_cloud: 'deployment_mode',
+  enterprise_server: 'deployment_mode',
+};
+
 function normalizeEntityScope(value: unknown): HunterEntityScope | null {
   if (typeof value !== 'string') return null;
   const normalized = value
@@ -163,17 +171,36 @@ export function mapLaneSubjectProfileToResolvedSubject(
   const profile = laneOutputs.subject_profile;
   if (!profile || typeof profile.subject_key !== 'string') return null;
 
-  const entityScope = normalizeEntityScope(profile.entity_scope);
+  let subjectType = profile.subject_type;
+  let entityScope = normalizeEntityScope(profile.entity_scope);
+  let confidence = profile.confidence;
+  let ambiguityReason: string | null = null;
+
+  if (entityScope) {
+    const inferredSubjectType = ENTITY_SCOPE_SUBJECT_TYPE[entityScope];
+    if (subjectType !== inferredSubjectType) {
+      subjectType = inferredSubjectType;
+      ambiguityReason = 'Persisted lane subject type was corrected to match canonical entity scope.';
+    }
+  } else if (subjectType === 'product') {
+    entityScope = 'core';
+  } else if (subjectType !== 'plan_family') {
+    confidence = 'low';
+    ambiguityReason =
+      'Persisted lane subject is missing canonical entity scope and needs explicit surface resolution.';
+  }
+
   return {
-    subjectType: profile.subject_type,
+    subjectType,
     subjectKey: profile.subject_key || `${tool.slug}:core`,
     displayName: profile.display_name || tool.name,
     entityScope,
-    confidence: profile.confidence,
+    confidence,
     ambiguityReason:
-      profile.confidence === 'low'
+      ambiguityReason ||
+      (confidence === 'low'
         ? 'Persisted lane subject is low confidence and needs explicit surface resolution.'
-        : null,
+        : null),
   };
 }
 

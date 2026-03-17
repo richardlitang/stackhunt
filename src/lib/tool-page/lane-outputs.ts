@@ -33,6 +33,54 @@ export interface ToolPageLaneOutputs {
   };
 }
 
+const SUBJECT_TYPES = new Set<ToolPageLaneOutputs['subject_profile']['subject_type']>([
+  'product',
+  'product_surface',
+  'plan_family',
+  'deployment_mode',
+]);
+
+const SUBJECT_CONFIDENCE_LEVELS = new Set<ToolPageLaneOutputs['subject_profile']['confidence']>([
+  'high',
+  'medium',
+  'low',
+]);
+
+function normalizeLaneSubjectType(
+  value: unknown
+): ToolPageLaneOutputs['subject_profile']['subject_type'] {
+  return typeof value === 'string' &&
+    SUBJECT_TYPES.has(value as ToolPageLaneOutputs['subject_profile']['subject_type'])
+    ? (value as ToolPageLaneOutputs['subject_profile']['subject_type'])
+    : 'product';
+}
+
+function normalizeLaneSubjectConfidence(
+  value: unknown
+): ToolPageLaneOutputs['subject_profile']['confidence'] {
+  return typeof value === 'string' &&
+    SUBJECT_CONFIDENCE_LEVELS.has(value as ToolPageLaneOutputs['subject_profile']['confidence'])
+    ? (value as ToolPageLaneOutputs['subject_profile']['confidence'])
+    : 'medium';
+}
+
+function normalizeLaneEntityScope(
+  value: unknown
+): ToolPageLaneOutputs['subject_profile']['entity_scope'] {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (
+    normalized === 'core' ||
+    normalized === 'copilot' ||
+    normalized === 'actions' ||
+    normalized === 'enterprise_cloud' ||
+    normalized === 'enterprise_server'
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
 function isClaimArray(value: unknown): value is ToolPageLaneClaim[] {
   return (
     Array.isArray(value) &&
@@ -75,15 +123,11 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
 
   return {
     subject_profile: {
-      subject_type:
-        (subject.subject_type as ToolPageLaneOutputs['subject_profile']['subject_type']) ||
-        'product',
+      subject_type: normalizeLaneSubjectType(subject.subject_type),
       subject_key: subject.subject_key,
       display_name: typeof subject.display_name === 'string' ? subject.display_name : tool.name,
-      entity_scope:
-        (subject.entity_scope as ToolPageLaneOutputs['subject_profile']['entity_scope']) || null,
-      confidence:
-        (subject.confidence as ToolPageLaneOutputs['subject_profile']['confidence']) || 'medium',
+      entity_scope: normalizeLaneEntityScope(subject.entity_scope),
+      confidence: normalizeLaneSubjectConfidence(subject.confidence),
     },
     fact_sheet: {
       official_facts: officialFacts,
