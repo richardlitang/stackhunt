@@ -52,5 +52,4 @@ const real = buildToolPageDecisionSectionStateFromRoute(
     const result = findMalformedToolPageRouteCallWrappers(source);
     expect(result).toHaveLength(0);
   });
-
 });

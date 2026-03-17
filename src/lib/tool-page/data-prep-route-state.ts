@@ -6,7 +6,10 @@ import { buildToolPagePrepStateInputFromRoute } from '@/lib/tool-page/prep-input
 import { buildToolPagePrepState } from '@/lib/tool-page/prep-state';
 import { deriveToolPageReviewContextSignals } from '@/lib/tool-page/review-context';
 import { buildToolPageReviewArtifactsState } from '@/lib/tool-page/review-artifacts-state';
-import { toToolPageOptionalRecord, toToolPageReviewSources } from '@/lib/tool-page/route-normalizers';
+import {
+  toToolPageOptionalRecord,
+  toToolPageReviewSources,
+} from '@/lib/tool-page/route-normalizers';
 import type { ToolPageData } from '@/lib/tool-page/data';
 
 interface BuildToolPageDataPrepRouteStateInput {

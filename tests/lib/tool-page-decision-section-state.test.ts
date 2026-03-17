@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildToolPageDecisionSectionState,
-} from '@/lib/tool-page/decision-section-state';
+import { buildToolPageDecisionSectionState } from '@/lib/tool-page/decision-section-state';
 import { buildToolPageDecisionSectionStateInputFromRoute } from '@/lib/tool-page/decision-section-route-input';
 import { buildToolPageDecisionRuntime } from '@/lib/tool-page/decision-runtime';
 import { buildToolPageDecisionRuntimeInput } from '@/lib/tool-page/decision-runtime-input';

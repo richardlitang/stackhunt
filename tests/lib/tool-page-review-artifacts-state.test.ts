@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { buildToolPageReviewArtifacts } from '@/lib/tool-page/review-artifacts';
 import { buildToolPageReviewArtifactsState } from '@/lib/tool-page/review-artifacts-state';
-import { toToolPageOptionalRecord, toToolPageReviewSources } from '@/lib/tool-page/route-normalizers';
+import {
+  toToolPageOptionalRecord,
+  toToolPageReviewSources,
+} from '@/lib/tool-page/route-normalizers';
 
 describe('tool page review artifacts state', () => {
   it('matches evaluation and evidence link fields from review artifacts', () => {
