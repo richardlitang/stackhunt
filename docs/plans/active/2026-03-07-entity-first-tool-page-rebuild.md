@@ -338,6 +338,9 @@ Notes:
 - 2026-03-17 progress: removed the remaining frontmatter `tool` alias in `tool/[slug]` and wired all tool references to `routeDataState.tool`.
 - 2026-03-17 progress: decision utility pricing guidance now prefers subject-specific mental-model lines for `product_surface`, `plan_family`, and `deployment_mode`, with regression coverage in `tests/lib/tool-page-decision-utility.test.ts`.
 - 2026-03-17 progress: pros/cons lane isolation now reroutes community-channel (`reddit`, `forum`, `hn`) claims into user-signal lanes even when `source_type` is missing.
+- 2026-03-17 progress: removed remaining route-state pass-through wrappers (`decision-section`, `cta-media`, `review-artifacts`, `runtime-assembly`) and standardized tests on explicit `inputFromRoute(...) -> builder(...)` composition.
+- 2026-03-17 progress: data-prep now normalizes review artifact inputs inline via `toToolPageOptionalRecord(...)` and `toToolPageReviewSources(...)` before calling `buildToolPageReviewArtifactsState(...)`.
+- 2026-03-17 progress: retired the wrapper-specific runtime-assembly chain guard path from route call-shape QA after deleting `buildToolPageRuntimeAssemblyFromRoute(...)`.
 
 ### Phase 3: Page compiler rebuild
 

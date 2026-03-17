@@ -36,7 +36,7 @@ Track architecture, pipeline, and SEO debt as small, agent-executable items.
 
 - `tool-page-helper-reference-regressions` (partially closed 2026-03-05): pre-push QA now detects malformed wrapper call shapes and missing/unbound tool-page helper symbols while ignoring comment/string noise.
   - Evidence: `scripts/check-tool-page-route-call-shapes.mjs`, `scripts/lib/tool-page-route-call-shape-guard.mjs`, `scripts/check-tool-page-helper-imports.mjs`, `scripts/lib/tool-page-helper-import-guard.mjs`, `eslint.config.js` (`no-undef` for `*.astro`), `scripts/check-format-changed.mjs` (includes branch, working tree, index, and untracked files)
-  - Note: includes dedicated detection for invalid runtime assembly chaining (`buildToolPageRuntimeAssemblyFromRoute(buildToolPageRuntimeAssemblyInputBundleFromPageContext(...))`).
+  - Note: the dedicated invalid runtime-assembly wrapper chain detection was retired on 2026-03-17 after removing `buildToolPageRuntimeAssemblyFromRoute(...)`.
 - `tool-page-inline-template-transforms` (partially closed 2026-03-05): route no longer performs several inline mappings/fallbacks for compare chips, source list caps, pros/cons shape adaptation, strengths subtitle, affiliate offers rel policy, and trust-bar prop composition.
   - Evidence: `src/lib/tool-page/compare-teasers.ts`, `source-lists.ts`, `pros-cons-view.ts`, `strengths-subtitle.ts`, `affiliate-offers.ts`, `trust-bar-props.ts`
 - `tool-page-quick-jump-conditional-bloat` (partially closed 2026-03-05): quick-jump link branching and multiple section visibility checks moved into dedicated view/state helpers.
