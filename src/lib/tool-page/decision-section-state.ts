@@ -1,6 +1,5 @@
 import { buildToolPageDecisionRuntime } from '@/lib/tool-page/decision-runtime';
 import { buildToolPageDecisionRuntimeInput } from '@/lib/tool-page/decision-runtime-input';
-import { buildToolPageDecisionSectionStateInputFromRoute } from '@/lib/tool-page/decision-section-route-input';
 import { buildToolPageDisplaySignals } from '@/lib/tool-page/display-signals';
 import { buildToolPageFaqSchema } from '@/lib/tool-page/faq-schema';
 import { buildToolPageFaqState } from '@/lib/tool-page/faq';
@@ -101,10 +100,4 @@ export function buildToolPageDecisionSectionState(input: BuildToolPageDecisionSe
     presentationGates,
     faqSchema,
   };
-}
-
-export function buildToolPageDecisionSectionStateFromRoute(
-  input: Parameters<typeof buildToolPageDecisionSectionStateInputFromRoute>[0]
-): ReturnType<typeof buildToolPageDecisionSectionState> {
-  return buildToolPageDecisionSectionState(buildToolPageDecisionSectionStateInputFromRoute(input));
 }

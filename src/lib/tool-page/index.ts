@@ -44,7 +44,6 @@ export { buildToolPageRouteDataPipelineStateFromPageContext } from '@/lib/tool-p
 export { buildToolPagePageCompilerRouteStateFromPageContext } from '@/lib/tool-page/page-compiler-route-state';
 export {
   buildToolPageDecisionSectionState,
-  buildToolPageDecisionSectionStateFromRoute,
 } from '@/lib/tool-page/decision-section-state';
 export { buildToolPageDecisionSectionStateInputFromRoute } from '@/lib/tool-page/decision-section-route-input';
 export { buildToolPageDecisionSnapshot } from '@/lib/tool-page/decision';

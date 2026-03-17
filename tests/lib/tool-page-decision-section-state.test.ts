@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildToolPageDecisionSectionState,
-  buildToolPageDecisionSectionStateFromRoute,
 } from '@/lib/tool-page/decision-section-state';
+import { buildToolPageDecisionSectionStateInputFromRoute } from '@/lib/tool-page/decision-section-route-input';
 import { buildToolPageDecisionRuntime } from '@/lib/tool-page/decision-runtime';
 import { buildToolPageDecisionRuntimeInput } from '@/lib/tool-page/decision-runtime-input';
 import { buildToolPageDisplaySignals } from '@/lib/tool-page/display-signals';
@@ -258,7 +258,9 @@ describe('tool page decision section state', () => {
       },
     };
 
-    const state = buildToolPageDecisionSectionStateFromRoute(input);
+    const state = buildToolPageDecisionSectionState(
+      buildToolPageDecisionSectionStateInputFromRoute(input)
+    );
     expect(state.sectionFlags.hasFAQ).toBeTypeOf('boolean');
     expect(state.presentationGates.showProceduralVerdict).toBeTypeOf('boolean');
   });
