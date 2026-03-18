@@ -61,6 +61,7 @@ type ReviewRow = {
   cons: unknown;
   sources: unknown;
   generation_quality: Record<string, unknown> | null;
+  created_at: string;
   updated_at: string;
   item: {
     id: string;
@@ -402,6 +403,7 @@ async function main() {
       summary_markdown,
       cons,
       sources,
+      created_at,
       updated_at,
       item:items(
         id,
@@ -427,6 +429,7 @@ async function main() {
       cons,
       sources,
       generation_quality,
+      created_at,
       updated_at,
       item:items(
         id,
@@ -453,7 +456,7 @@ async function main() {
       .select(withGenerationQualitySelect)
       .in('status', reviewStatuses)
       .not('item_id', 'is', null)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(limit);
     data = (result.data as ReviewRow[] | null) || null;
     error = result.error ? { message: result.error.message } : null;
@@ -464,7 +467,7 @@ async function main() {
       .select(baseSelect)
       .in('status', reviewStatuses)
       .not('item_id', 'is', null)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(limit);
     data = ((fallback.data || []) as Array<Omit<ReviewRow, 'generation_quality'>>).map((row) => ({
       ...row,

@@ -106,7 +106,7 @@ async function main() {
       )
       .in('status', statuses)
       .not('item_id', 'is', null)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .range(from, to);
 
     if (error) {

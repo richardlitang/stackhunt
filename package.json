@@ -55,6 +55,7 @@
     "qa:backfill-decision-intro": "node --import tsx scripts/backfill-decision-intro.ts",
     "qa:queue-volatile-refresh": "npx tsx scripts/queue-volatile-refresh.ts",
     "qa:recompute-quality": "node --import tsx scripts/recompute-quality-snapshots.ts",
+    "qa:backfill-generation-quality-scores": "node --import tsx scripts/backfill-generation-quality-scores.ts",
     "qa:backfill-item-fact-packs": "npx tsx scripts/backfill-item-fact-packs.ts",
     "qa:diff-runtime-snapshot": "npx tsx scripts/diff-runtime-vs-snapshot.ts",
     "qa:diff-compare-snapshot": "npx tsx scripts/diff-compare-runtime-vs-snapshot.ts",

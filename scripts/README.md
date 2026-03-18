@@ -56,6 +56,9 @@ Minimal operational scripts for the live content pipeline.
 - Cron-safe apply run: `npm run qa:autopilot:cron`
 - Draft gate audit now reports `actionability` metrics (min threshold, average, below-threshold, missing) via `npm run qa:gates`.
 - Draft gate audit can fail fast on strict tool-page QA blockers: `npm run qa:gates -- --max-strict-qa-gate-blockers=0`.
+- Published noindex drift audit (fails if any published row still carries `draft_review`): `npm run qa:gates:published-drift`.
+- Backfill missing generation quality scores on latest reviews (dry run): `npm run qa:backfill-generation-quality-scores -- --limit=500`
+- Backfill missing generation quality scores on latest reviews (apply): `npm run qa:backfill-generation-quality-scores -- --apply --limit=500`
 - `qa:autopilot` fail-fast: set `--max-missing-actionability=<n>` (default `0`) to stop runs when `missing_actionability_score` blockers exceed your tolerance.
 - `qa:autopilot` also supports `--max-strict-qa-gate-blockers=<n>` (default `0`) to stop runs when strict QA gate blockers appear.
 - Pricing fallback report: `npm run qa:pricing-fallback`
