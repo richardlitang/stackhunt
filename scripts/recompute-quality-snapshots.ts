@@ -19,6 +19,7 @@ type ReviewWithItem = {
   updated_at: string;
   item: {
     id: string;
+    slug: string;
     metadata: Record<string, unknown> | null;
     specs: Record<string, unknown> | null;
     pricing_verified_at: string | null;
@@ -38,6 +39,15 @@ function getArgValue(name: string): string | null {
   return match.split('=').slice(1).join('=').trim();
 }
 
+function parseCsvArg(name: string): string[] {
+  const raw = getArgValue(name);
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+}
+
 function toReasonCounts(reasons: string[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const reason of reasons) {
@@ -49,6 +59,7 @@ function toReasonCounts(reasons: string[]): Map<string, number> {
 async function main() {
   const apply = hasFlag('apply');
   const includePublished = hasFlag('include-published');
+  const slugFilter = new Set(parseCsvArg('slug'));
   const pageSizeArg = Number(getArgValue('page-size') || 250);
   const limitArg = Number(getArgValue('limit') || 500);
   const pageSize = Number.isFinite(pageSizeArg) ? Math.max(50, Math.min(pageSizeArg, 1000)) : 250;
@@ -83,6 +94,7 @@ async function main() {
         updated_at,
         item:items(
           id,
+          slug,
           metadata,
           specs,
           pricing_verified_at,
@@ -107,6 +119,13 @@ async function main() {
 
     for (const row of rows) {
       if (!row.item || latestByItem.has(row.item_id)) continue;
+      if (slugFilter.size > 0) {
+        const itemSlug =
+          typeof (row.item as { slug?: unknown }).slug === 'string'
+            ? ((row.item as { slug?: string }).slug || '').toLowerCase()
+            : '';
+        if (!slugFilter.has(itemSlug)) continue;
+      }
       latestByItem.set(row.item_id, row);
       if (latestByItem.size >= limit) break;
     }
@@ -128,6 +147,9 @@ async function main() {
   console.log('\nQuality Snapshot Recompute');
   console.log(`Mode: ${apply ? 'APPLY' : 'DRY RUN'}`);
   console.log(`Statuses: ${statuses.join(', ')}`);
+  if (slugFilter.size > 0) {
+    console.log(`Slug filter: ${Array.from(slugFilter).join(', ')}`);
+  }
   console.log(`Candidate items: ${candidates.length}`);
 
   for (const row of candidates) {
@@ -190,13 +212,18 @@ async function main() {
     changedRows += 1;
 
     if (!apply) continue;
-    const { error: updateError } = await supabase.from('items').update({ specs: nextSpecs }).eq('id', item.id);
+    const { error: updateError } = await supabase
+      .from('items')
+      .update({ specs: nextSpecs })
+      .eq('id', item.id);
     if (updateError) {
       console.error(`Failed to update ${item.id}: ${updateError.message}`);
     }
   }
 
-  const reasonCounts = Array.from(toReasonCounts(reasonAccumulator).entries()).sort((a, b) => b[1] - a[1]);
+  const reasonCounts = Array.from(toReasonCounts(reasonAccumulator).entries()).sort(
+    (a, b) => b[1] - a[1]
+  );
   console.log(`Items with changed quality snapshot: ${changedRows}`);
   console.log(`Items eligible for index now: ${shouldIndexCount}`);
   if (reasonCounts.length > 0) {
