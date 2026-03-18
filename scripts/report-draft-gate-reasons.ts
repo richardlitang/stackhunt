@@ -87,6 +87,15 @@ function getArgValue(name: string): string | null {
   return found.split('=').slice(1).join('=').trim();
 }
 
+function parseCsvArg(name: string): string[] {
+  const raw = getArgValue(name);
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+}
+
 function normalizeDomain(input?: string): string | null {
   if (!input) return null;
   const trimmed = input.trim().toLowerCase().replace(/^www\./, '');
@@ -194,7 +203,12 @@ function resolveReviewDataQuality(review: ReviewRow): 'high' | 'medium' | 'low' 
   return null;
 }
 
-function analyzeReview(review: ReviewRow): {
+function analyzeReview(
+  review: ReviewRow,
+  options: {
+    isLatestForItem: boolean;
+  }
+): {
   knownBlockers: string[];
   popularityTier: PopularityTier;
   evidenceGrade: 'A' | 'B' | 'C';
@@ -225,10 +239,18 @@ function analyzeReview(review: ReviewRow): {
   const profile = POPULARITY_PROFILES[popularityTier];
   const gateScore = getGateScore(review.item?.specs || null);
   const requiredSectionsComplete = getRequiredSectionsComplete(review.item?.specs || null);
-  const noindexReasons = getNoindexReasons(review.item?.specs || null).filter(
+  const rawNoindexReasons = getNoindexReasons(review.item?.specs || null);
+  const noindexReasons = rawNoindexReasons.filter(
     (reason) => reason !== 'draft_review'
   );
   knownBlockers.push(...noindexReasons.map((reason) => `quality_gate:${reason}`));
+  if (
+    options.isLatestForItem &&
+    review.status === 'published' &&
+    rawNoindexReasons.includes('draft_review')
+  ) {
+    knownBlockers.push('quality_gate:stale_draft_review_noindex_on_published');
+  }
 
   const score = review.score ?? 0;
   if (score < 70) knownBlockers.push('score_below_70');
@@ -336,10 +358,13 @@ function analyzeReview(review: ReviewRow): {
 async function main() {
   const publishSafe = hasFlag('publish-safe');
   const apply = hasFlag('apply');
+  const includePublished = hasFlag('include-published');
+  const slugFilter = new Set(parseCsvArg('slug'));
   const maxPublishArg = Number(getArgValue('max-publish') || 25);
   const maxStrictQaGateArg = Number(
     getArgValue('max-strict-qa-gate-blockers') || getArgValue('max-strict-qa-gate') || -1
   );
+  const maxStaleDraftNoindexArg = Number(getArgValue('max-stale-draft-review') || -1);
   const limitArg = Number(getArgValue('limit') || 50);
   const minReviewsArg = Number(getArgValue('min-reviews') || 2);
   const limit = Number.isFinite(limitArg) ? Math.max(1, Math.min(limitArg, 200)) : 50;
@@ -347,6 +372,9 @@ async function main() {
   const maxPublish = Number.isFinite(maxPublishArg) ? Math.max(1, Math.min(maxPublishArg, 200)) : 25;
   const maxStrictQaGateBlockers = Number.isFinite(maxStrictQaGateArg)
     ? Math.max(-1, Math.floor(maxStrictQaGateArg))
+    : -1;
+  const maxStaleDraftNoindex = Number.isFinite(maxStaleDraftNoindexArg)
+    ? Math.max(-1, Math.floor(maxStaleDraftNoindexArg))
     : -1;
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -409,13 +437,15 @@ async function main() {
       )
     `;
 
+  const reviewStatuses = includePublished ? ['draft', 'review', 'published'] : ['draft', 'review'];
+
   let data: ReviewRow[] | null = null;
   let error: { message: string } | null = null;
   {
     const result = await supabase
       .from('reviews')
       .select(withGenerationQualitySelect)
-      .in('status', ['draft', 'review'])
+      .in('status', reviewStatuses)
       .not('item_id', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(limit);
@@ -426,7 +456,7 @@ async function main() {
     const fallback = await supabase
       .from('reviews')
       .select(baseSelect)
-      .in('status', ['draft', 'review'])
+      .in('status', reviewStatuses)
       .not('item_id', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(limit);
@@ -444,8 +474,17 @@ async function main() {
 
   const rows = ((data || []) as ReviewRow[]).filter((row) => {
     const reviewCount = row.item?.review_count ?? 0;
-    return reviewCount >= minReviews;
+    if (reviewCount < minReviews) return false;
+    if (slugFilter.size === 0) return true;
+    const itemSlug = (row.item?.slug || '').toLowerCase();
+    return slugFilter.has(itemSlug);
   });
+  const latestReviewIdByItem = new Map<string, string>();
+  for (const row of rows) {
+    if (!latestReviewIdByItem.has(row.item_id)) {
+      latestReviewIdByItem.set(row.item_id, row.id);
+    }
+  }
 
   const blockerCounts = new Map<string, number>();
   const latestByItem = new Map<string, ReviewRow>();
@@ -464,13 +503,19 @@ async function main() {
   const minCopyQualityScore = 60;
 
   console.log('\nDraft Gate Audit');
+  console.log(`Statuses: ${reviewStatuses.join(', ')}`);
+  if (slugFilter.size > 0) {
+    console.log(`Slug filter: ${Array.from(slugFilter).join(', ')}`);
+  }
   console.log(`Rows fetched: ${data?.length || 0}`);
   console.log(`Rows analyzed (item.review_count >= ${minReviews}): ${rows.length}`);
   console.log('');
 
   for (const row of rows) {
     const reviewCount = row.item?.review_count ?? 0;
-    const analysis = analyzeReview(row);
+    const analysis = analyzeReview(row, {
+      isLatestForItem: latestReviewIdByItem.get(row.item_id) === row.id,
+    });
     if (analysis.actionabilityScore !== null) {
       actionabilityValues.push(analysis.actionabilityScore);
       if (analysis.actionabilityScore < analysis.minActionabilityScore) {
@@ -568,6 +613,8 @@ async function main() {
     .filter(([blocker]) => blocker.startsWith('strict:qa_gate:'))
     .reduce((sum, [, count]) => sum + count, 0);
   const strictQaGateKinds = sorted.filter(([blocker]) => blocker.startsWith('strict:qa_gate:')).length;
+  const staleDraftNoindexCount =
+    blockerCounts.get('quality_gate:stale_draft_review_noindex_on_published') || 0;
   console.log('\nStrict QA gate blockers:');
   console.log(`  total: ${strictQaGateBlockers}`);
   console.log(`  unique kinds: ${strictQaGateKinds}`);
@@ -578,6 +625,18 @@ async function main() {
   if (maxStrictQaGateBlockers >= 0 && strictQaGateBlockers > maxStrictQaGateBlockers) {
     console.error(
       `\nFail-fast: strict_qa_gate_blockers=${strictQaGateBlockers} exceeds max=${maxStrictQaGateBlockers}`
+    );
+    process.exit(1);
+  }
+
+  console.log('\nPublished noindex drift:');
+  console.log(`  stale draft_review reasons on published rows: ${staleDraftNoindexCount}`);
+  console.log(
+    `  threshold: ${maxStaleDraftNoindex < 0 ? 'disabled' : maxStaleDraftNoindex}`
+  );
+  if (maxStaleDraftNoindex >= 0 && staleDraftNoindexCount > maxStaleDraftNoindex) {
+    console.error(
+      `\nFail-fast: stale_draft_review_noindex=${staleDraftNoindexCount} exceeds max=${maxStaleDraftNoindex}`
     );
     process.exit(1);
   }
