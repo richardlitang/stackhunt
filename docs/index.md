@@ -14,6 +14,7 @@ This file is the entry point for repository knowledge. Start here, then open the
 
 ## Content and Quality
 
+- [Tool Page Blueprint V1](TOOL_PAGE_BLUEPRINT_V1.md)
 - [Tool Page Standard V1](TOOL_PAGE_STANDARD_V1.md)
 - [Tool Page QA Gate V1](TOOL_PAGE_QA_GATE_V1.md)
 - [Testing Quickstart](TESTING_QUICKSTART.md)
