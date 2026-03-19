@@ -100,7 +100,7 @@ export function buildToolPageQualityState(
     gateReasons.includes('missing_required_sections') || gateReasons.includes('mvup_incomplete');
   const hasProceduralGuidance = hasProceduralSignals && !gateBlocksFoundations;
   const contentConfidenceLevel = gateBlocksFoundations ? 'low' : contentConfidenceLevelRaw;
-  const safeDraftDescription = `${input.tool.name} is currently in editorial verification. This page is not finalized yet.`;
+  const safeDraftDescription = `${input.tool.name} review with pricing, fit, and tradeoffs under editorial verification.`;
   const reviewProgress = deriveToolPageReviewProgress({
     tool: input.tool,
     firstReview: input.firstReview,

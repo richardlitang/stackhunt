@@ -32,7 +32,7 @@ export function buildAlternativeChooseLine(input: BuildAlternativeChooseLineInpu
     return `Choose ${input.altName} instead if: capability fit is the main driver (${cleanSignal(input.computedDiff.featureDiff)}).`;
   }
 
-  return `Choose ${input.altName} instead if: its workflow and rollout profile fit your team better than ${input.mainName}.`;
+  return `Choose ${input.altName} instead if: you need a meaningfully different pricing model, rollout speed, or capability mix than ${input.mainName}.`;
 }
 
 export function buildAlternativeRationaleSourceLabel(curatedVerdict?: string | null): string {

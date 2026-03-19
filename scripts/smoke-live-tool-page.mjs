@@ -28,7 +28,9 @@ const specSheetMarkers = [
   'Community Insights',
   'TL;DR',
 ];
-const requiredMarkers = ['How We Evaluated', 'Decision in 60 Seconds'];
+const decisionHeadingPattern =
+  /\b(?:Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger)\b/i;
+const requiredMarkers = ['How We Evaluated'];
 const blockedPhrases = ['across pricing, fit, and rollout risk'];
 const genericNarrativePhrases = [
   'best value threshold',
@@ -55,6 +57,14 @@ function stripHtml(input) {
 function countMatches(input, pattern) {
   const matches = input.match(pattern);
   return matches ? matches.length : 0;
+}
+
+function hasRequiredMarkers(html) {
+  const missing = requiredMarkers.filter((marker) => !html.includes(marker));
+  if (!decisionHeadingPattern.test(stripHtml(html))) {
+    missing.push('Decision section');
+  }
+  return missing;
 }
 
 function snippetAround(text, phrase, radius = 140) {
@@ -104,8 +114,8 @@ async function main() {
     const bustedText = stripHtml(busted.html);
     const plainSpecSheet = specSheetMarkers.filter((marker) => plain.html.includes(marker));
     const bustedSpecSheet = specSheetMarkers.filter((marker) => busted.html.includes(marker));
-    const plainMissingRequired = requiredMarkers.filter((marker) => !plain.html.includes(marker));
-    const bustedMissingRequired = requiredMarkers.filter((marker) => !busted.html.includes(marker));
+    const plainMissingRequired = hasRequiredMarkers(plain.html);
+    const bustedMissingRequired = hasRequiredMarkers(busted.html);
     const plainBlockedPhrases = blockedPhrases.filter((phrase) => plain.html.includes(phrase));
     const bustedBlockedPhrases = blockedPhrases.filter((phrase) => busted.html.includes(phrase));
     const plainGenericNarrative = genericNarrativePhrases.filter((phrase) =>
@@ -114,8 +124,14 @@ async function main() {
     const bustedGenericNarrative = genericNarrativePhrases.filter((phrase) =>
       bustedText.toLowerCase().includes(phrase)
     );
-    const plainDecisionHeadingCount = countMatches(plainText, /\bDecision in 60 Seconds\b/gi);
-    const bustedDecisionHeadingCount = countMatches(bustedText, /\bDecision in 60 Seconds\b/gi);
+    const plainDecisionHeadingCount = countMatches(
+      plainText,
+      new RegExp(decisionHeadingPattern, 'gi')
+    );
+    const bustedDecisionHeadingCount = countMatches(
+      bustedText,
+      new RegExp(decisionHeadingPattern, 'gi')
+    );
     const plainQuickJumpCount = countMatches(plain.html, />\s*Quick jump\s*</gi);
     const bustedQuickJumpCount = countMatches(busted.html, />\s*Quick jump\s*</gi);
     const plainReaderControlsCount = countMatches(
@@ -135,7 +151,10 @@ async function main() {
     const bustedContradictoryPlatform =
       nonWebPlatformPattern.test(bustedText) && webOnlyPattern.test(bustedText);
     const h1Match = plain.html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-    const h1Text = (h1Match?.[1] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const h1Text = (h1Match?.[1] || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
     console.log(`\n=== ${slug} ===`);
     console.log(`plain: ${plain.url} [${plain.status}] cache-control="${plain.cacheControl}"`);
@@ -187,7 +206,9 @@ async function main() {
       );
     }
     if (plainQuickJumpCount > 1 || bustedQuickJumpCount > 1) {
-      console.log(`quick jump duplicated: plain=${plainQuickJumpCount} bust=${bustedQuickJumpCount}`);
+      console.log(
+        `quick jump duplicated: plain=${plainQuickJumpCount} bust=${bustedQuickJumpCount}`
+      );
     }
     if (plainReaderControlsCount > 1 || bustedReaderControlsCount > 1) {
       console.log(

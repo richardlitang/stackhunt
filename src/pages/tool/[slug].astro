@@ -23,7 +23,6 @@ import FeaturesShowcase from '@/components/FeaturesShowcase.astro';
 import GettingStarted from '@/components/GettingStarted.astro';
 import PricingPlansGrid from '@/components/PricingPlansGrid.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
-import ReviewFocusSwitch from '@/components/ReviewFocusSwitch.astro';
 import ReviewLensSwitch from '@/components/ReviewLensSwitch.astro';
 import TribalKnowledge from '@/components/TribalKnowledge.astro';
 import TrustBar from '@/components/TrustBar.astro';
@@ -34,7 +33,6 @@ import IncludedTools from '@/components/IncludedTools.astro';
 import ToolHowWeEvaluateSection from '@/components/ToolHowWeEvaluateSection.astro';
 import ToolWeTestedSection from '@/components/ToolWeTestedSection.astro';
 import ToolDecisionConditionsSection from '@/components/ToolDecisionConditionsSection.astro';
-import ToolWorkflowFitSection from '@/components/ToolWorkflowFitSection.astro';
 import ToolDecisionUtilitySection from '@/components/ToolDecisionUtilitySection.astro';
 import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
@@ -173,13 +171,6 @@ applyToolPageResponseRouteState({
                   </p>
                 )
               }
-              {
-                routeDataState.decisionSnapshotSummary && (
-                  <div class="mt-2 space-y-1">
-                    <p class="text-zinc-200">{routeDataState.decisionSnapshotSummary}</p>
-                  </div>
-                )
-              }
             </div>
           </div>
 
@@ -270,71 +261,44 @@ applyToolPageResponseRouteState({
         <aside
           class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner"
         >
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-            Research Status
-          </p>
-          <div class="mt-3 space-y-1 text-xs text-zinc-400">
-            <p>
-              <span class="text-zinc-300"
-                >{pageAssemblyState.researchStatusView.reviewMethodLabel}</span
-              >
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Trust</p>
+          <div class="mt-3 rounded-xl border border-zinc-800 bg-zinc-950/50 p-4">
+            <p class="text-sm font-medium text-zinc-100">
+              {pageAssemblyState.trustBarProps.confidence} confidence,{' '}
+              {pageAssemblyState.trustBarProps.sourcesCount} linked sources
             </p>
-            <p>
-              <span class="text-zinc-300"
-                >{pageAssemblyState.researchStatusView.linkedSourcesLabel}</span
-              >
+            <p class="mt-1 text-xs text-zinc-400">
+              {pageAssemblyState.researchStatusView.reviewMethodLabel}. Last checked{' '}
+              {pageAssemblyState.trustBarProps.lastChecked || 'Unknown'}.
             </p>
             {
               pageAssemblyState.researchStatusView.pendingConfirmationLabel && (
-                <p>
-                  <span class="text-amber-300">
-                    {pageAssemblyState.researchStatusView.pendingConfirmationLabel}
-                  </span>
+                <p class="mt-2 text-xs text-amber-300">
+                  {pageAssemblyState.researchStatusView.pendingConfirmationLabel}
                 </p>
               )
             }
-            {
-              pageAssemblyState.researchStatusView.communityCorroborationLabel && (
-                <p>
-                  <span class="text-zinc-300">
-                    {pageAssemblyState.researchStatusView.communityCorroborationLabel}
-                  </span>
-                </p>
-              )
-            }
-            {
-              pageAssemblyState.researchStatusView.userSignalCoverageLabel && (
-                <p>
-                  <span class="text-amber-300">
-                    {pageAssemblyState.researchStatusView.userSignalCoverageLabel}
-                  </span>
-                </p>
-              )
-            }
-            {
-              pageAssemblyState.researchStatusView.userSignalNeedsConfirmationLabel && (
-                <p>
-                  <span class="text-amber-300">
-                    {pageAssemblyState.researchStatusView.userSignalNeedsConfirmationLabel}
-                  </span>
-                </p>
-              )
-            }
-            {
-              pageAssemblyState.researchStatusView.userSignalChannelCoverageLabel && (
-                <p>
-                  <span class="text-zinc-300">
-                    {pageAssemblyState.researchStatusView.userSignalChannelCoverageLabel}
-                  </span>
-                </p>
-              )
-            }
-            <p class="text-zinc-500">
-              Last checked{' '}
-              <span class="text-zinc-300">
-                {pageAssemblyState.researchStatusView.lastCheckedLabel}
-              </span>
+            <p class="mt-2 text-xs text-zinc-500">
+              Full sourcing and methodology live in{' '}
+              <a
+                href="#sources"
+                class="text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
+              >
+                Evidence and methodology
+              </a>
+              .
             </p>
+          </div>
+          <div class="mt-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">View</p>
+            <div class="mt-2">
+              <ReviewLensSwitch
+                activeLens={activeReviewLens}
+                hrefs={pageAssemblyState.lensHrefs}
+                compact
+                showNote={false}
+              />
+            </div>
           </div>
           <div class="mt-4 space-y-2">
             {
@@ -372,68 +336,85 @@ applyToolPageResponseRouteState({
       data-focus-target
       data-focus-groups="all verdict"
     >
-      <h2 class="text-lg font-semibold text-zinc-100">Decision in 60 Seconds</h2>
+      <h2 class="text-lg font-semibold text-zinc-100">Best fit, main risk, and upgrade trigger</h2>
       <p class="mt-1 text-sm leading-relaxed text-zinc-300">
-        {pageAssemblyState.verdictLabelRationale}
+        {routeDataState.decisionSnapshotSummary || pageAssemblyState.verdictLabelRationale}
       </p>
       <p class="mt-2 text-xs text-zinc-500">
         Summary of linked sources as of {pageAssemblyState.freshnessLabels.verdictAsOfLabel}.
       </p>
       {
         pageAssemblyState.decisionUtilityState.hasDecisionBullets ? (
-          <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+          <div class="mt-4 grid gap-3 md:grid-cols-2">
             {pageAssemblyState.decisionUtilityState.decisionUseIf && (
-              <li>
-                <span class="font-medium text-zinc-100">Use if:</span>{' '}
-                {pageAssemblyState.decisionUtilityState.decisionUseIf}
-              </li>
+              <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Best for</p>
+                <p class="mt-2 text-sm text-zinc-200">
+                  {pageAssemblyState.decisionUtilityState.decisionUseIf}
+                </p>
+              </article>
             )}
             {pageAssemblyState.decisionUtilityState.decisionAvoidIf && (
-              <li>
-                <span class="font-medium text-zinc-100">Avoid if:</span>{' '}
-                {pageAssemblyState.decisionUtilityState.decisionAvoidIf}
-              </li>
+              <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Not for</p>
+                <p class="mt-2 text-sm text-zinc-200">
+                  {pageAssemblyState.decisionUtilityState.decisionAvoidIf}
+                </p>
+              </article>
             )}
             {pageAssemblyState.decisionUtilityState.decisionWatchOut && (
-              <li>
-                <span class="font-medium text-zinc-100">Watch out:</span>{' '}
-                {pageAssemblyState.decisionUtilityState.decisionWatchOut}
-                {pageAssemblyState.decisionHardLimitEvidence && (
-                  <>
-                    {' '}
-                    <a
-                      href={pageAssemblyState.decisionHardLimitEvidence.sourceUrl}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={pageAssemblyState.sourceAriaLabel(
-                        pageAssemblyState.decisionHardLimitEvidence.text
-                      )}
-                      data-outbound="source"
-                      data-location="decision-watchout"
-                      data-tool={routeDataState.tool.slug}
-                      class="text-xs text-zinc-500 underline underline-offset-2 hover:text-hunt-500"
-                      title="Open source"
-                    >
-                      Source
-                    </a>
-                  </>
-                )}
-              </li>
+              <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Main tradeoff
+                </p>
+                <p class="mt-2 text-sm text-zinc-200">
+                  {pageAssemblyState.decisionUtilityState.decisionWatchOut}
+                  {pageAssemblyState.decisionHardLimitEvidence && (
+                    <>
+                      {' '}
+                      <a
+                        href={pageAssemblyState.decisionHardLimitEvidence.sourceUrl}
+                        target="_blank"
+                        rel="noopener"
+                        aria-label={pageAssemblyState.sourceAriaLabel(
+                          pageAssemblyState.decisionHardLimitEvidence.text
+                        )}
+                        data-outbound="source"
+                        data-location="decision-watchout"
+                        data-tool={routeDataState.tool.slug}
+                        class="text-xs text-zinc-400 underline underline-offset-2 hover:text-hunt-500"
+                        title="Open source"
+                      >
+                        Source
+                      </a>
+                    </>
+                  )}
+                </p>
+              </article>
             )}
-          </ul>
+            {pageAssemblyState.decisionUtilityState.decisionUpgradeTrigger && (
+              <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  First serious upgrade trigger
+                </p>
+                <p class="mt-2 text-sm text-zinc-200">
+                  {pageAssemblyState.decisionUtilityState.decisionUpgradeTrigger}
+                </p>
+              </article>
+            )}
+          </div>
         ) : (
           <p class="mt-3 text-sm text-zinc-400">
-            Source-backed decision bullets are still being assembled for this review.
+            Source-backed fit and tradeoff guidance is still being assembled for this review.
           </p>
         )
       }
       <p class="mt-4 text-xs text-zinc-500">
-        Full evidence detail lives in{' '}
+        Full evidence and methodology live in{' '}
         <a href="#verdict" class="text-hunt-500 hover:text-hunt-400"> Why This Verdict </a>
+        {' '}and{' '}
+        <a href="#sources" class="text-hunt-500 hover:text-hunt-400"> Evidence and methodology </a>
         .
-      </p>
-      <p class="mt-1 text-xs text-zinc-500">
-        Use-if, avoid-if, and watch-out summarize the linked evidence.
       </p>
     </section>
     {
@@ -446,110 +427,6 @@ applyToolPageResponseRouteState({
         />
       )
     }
-
-    <section
-      class="mb-6 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm"
-      aria-label="Reader controls"
-    >
-      <h3 class="text-sm font-semibold text-zinc-100">Reader controls</h3>
-      {
-        pageAssemblyState.readerFocusNote && (
-          <p class="mt-1 text-xs text-zinc-500">{pageAssemblyState.readerFocusNote}</p>
-        )
-      }
-      <div class="mt-3 space-y-3">
-        <ReviewLensSwitch
-          activeLens={activeReviewLens}
-          hrefs={pageAssemblyState.lensHrefs}
-          compact
-          showNote={false}
-        />
-        {
-          pageAssemblyState.showFocusSwitch && (
-            <ReviewFocusSwitch
-              options={pageAssemblyState.focusSwitchOptions}
-              defaultFocus={pageAssemblyState.lensDefaultFocus}
-              storageScope={activeReviewLens}
-              compact
-              showNote={false}
-            />
-          )
-        }
-      </div>
-      {
-        pageAssemblyState.lensPriorityLinks.length > 0 && (
-          <div class="mt-3 border-t border-zinc-800 pt-3">
-            <p class="text-xs text-zinc-500">{pageAssemblyState.lensPriorityLead}</p>
-            <div class="mt-2 flex flex-wrap gap-2">
-              {pageAssemblyState.lensPriorityLinks.map((item) => (
-                <a
-                  href={item.href}
-                  class="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-          </div>
-        )
-      }
-      <p class="mt-3 text-xs text-zinc-500">
-        This changes decision framing, rollout checklist emphasis, and pricing interpretation, not
-        the underlying facts.
-      </p>
-    </section>
-
-    {/* Quick jump links (collapsed by default) */}
-    <details
-      class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
-      aria-label="On this page"
-    >
-      <summary class="cursor-pointer list-none">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-400 inline">
-          Quick jump
-        </h2>
-      </summary>
-      <div class="mt-3 flex flex-wrap items-center gap-2">
-        {
-          pageAssemblyState.websiteState.hasWebsite && (
-            <a
-              href={routeDataState.tool.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-outbound="vendor"
-              data-location="toc"
-              data-tool={routeDataState.tool.slug}
-              class="inline-flex items-center rounded-lg bg-hunt-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-hunt-700 transition"
-            >
-              Visit {routeDataState.tool.name}
-            </a>
-          )
-        }
-        {
-          routeDataState.hasComparableAlternatives &&
-            pageAssemblyState.compareTeaserLinks.map((link) => (
-              <a
-                href={link.href}
-                class="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-              >
-                {link.label}
-              </a>
-            ))
-        }
-      </div>
-      <div class="mt-3 flex flex-wrap gap-2 text-sm">
-        {
-          pageAssemblyState.quickJumpLinksView.map((link) => (
-            <a
-              href={link.href}
-              class="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 hover:border-hunt-500 hover:text-hunt-400 transition"
-            >
-              {link.label}
-            </a>
-          ))
-        }
-      </div>
-    </details>
 
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
@@ -625,15 +502,6 @@ applyToolPageResponseRouteState({
           )
         }
         {routeDataState.showProceduralVerdict && <ToolDecisionConditionsSection />}
-        {
-          pageAssemblyState.showWorkflowFitSection && (
-            <ToolWorkflowFitSection
-              cards={pageAssemblyState.workflowFitCards}
-              highlights={pageAssemblyState.workflowFitHighlights}
-            />
-          )
-        }
-
         {/* Pricing Plans */}
         {
           routeDataState.showPricingSection && (

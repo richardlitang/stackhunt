@@ -29,6 +29,7 @@ describe('tool page decision utility state', () => {
     const result = buildToolPageDecisionUtilityState({
       toolName: 'Acme Tool',
       categorySlug: 'crm-sales',
+      pricingType: 'freemium',
       activeReviewLens: 'startup',
       hasApi: true,
       hasParentTool: false,
@@ -45,6 +46,7 @@ describe('tool page decision utility state', () => {
     expect(result.pricingMentalModelItems.length).toBeGreaterThan(0);
     expect(result.commonSetups.length).toBeGreaterThan(0);
     expect(result.practicalOutcomes.length).toBeGreaterThan(0);
+    expect(result.decisionUpgradeTrigger).toMatch(/seat-based pricing|advanced controls require/i);
   });
 
   it('uses subject-specific checklist and verdict lead for product surfaces', () => {

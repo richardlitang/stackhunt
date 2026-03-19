@@ -49,7 +49,8 @@ export interface ToolPagePricingViewModel {
   pricingNarrativeLabel: string;
 }
 
-const PRICING_SUBJECTIVE_ROI_PATTERN = /\b(justified|productivity|best value|worth it|excellent|great)\b/i;
+const PRICING_SUBJECTIVE_ROI_PATTERN =
+  /\b(justified|productivity|best value|worth it|excellent|great)\b/i;
 const PRICING_OBJECTIVE_ROI_PATTERN =
   /\b(\d+|team|seat|user|plan|tier|enterprise|business|sso|api|compliance|usage|volume|monthly|annual)\b/i;
 
@@ -75,7 +76,9 @@ function hasRenderablePricingPlan(plan: unknown): boolean {
     hasRenderablePlanPrice(planRecord.price_annual) ||
     hasRenderablePlanPrice(planRecord.price_per_unit);
   const isEnterprise = planRecord.is_enterprise === true;
-  return hasMeaningfulPricingPlanName(planName) || (hasNamedTier && (hasPriceSignal || isEnterprise));
+  return (
+    hasMeaningfulPricingPlanName(planName) || (hasNamedTier && (hasPriceSignal || isEnterprise))
+  );
 }
 
 function normalizeNarrativeSentence(value: string): string {
@@ -118,7 +121,9 @@ export function deriveToolPagePricingSignals(
 ): ToolPagePricingSignals {
   const plans = Array.isArray(input.smpPlans) ? input.smpPlans : [];
   const hasRenderableSmpPlans = plans.some((plan) => hasRenderablePricingPlan(plan));
-  const legacyTierCount = Array.isArray(input.legacyPricingTiers) ? input.legacyPricingTiers.length : 0;
+  const legacyTierCount = Array.isArray(input.legacyPricingTiers)
+    ? input.legacyPricingTiers.length
+    : 0;
 
   const hasPricing = Boolean(
     (hasRenderableSmpPlans || legacyTierCount > 0) && input.pricingSectionStatus === 'show'
@@ -126,15 +131,16 @@ export function deriveToolPagePricingSignals(
 
   const hasFreePlanSignal = Boolean(
     String(input.toolPricingType || '').toLowerCase() === 'freemium' ||
-      (typeof input.pricingStartingPrice === 'string' && /\bfree\b/i.test(input.pricingStartingPrice)) ||
-      plans.some((plan) => {
-        if (!plan || typeof plan !== 'object') return false;
-        const record = plan as Record<string, unknown>;
-        const monthly = typeof record.price_monthly === 'number' ? record.price_monthly : null;
-        const annual = typeof record.price_annual === 'number' ? record.price_annual : null;
-        const name = typeof record.name === 'string' ? record.name : '';
-        return monthly === 0 || annual === 0 || /\bfree\b/i.test(name);
-      })
+    (typeof input.pricingStartingPrice === 'string' &&
+      /\bfree\b/i.test(input.pricingStartingPrice)) ||
+    plans.some((plan) => {
+      if (!plan || typeof plan !== 'object') return false;
+      const record = plan as Record<string, unknown>;
+      const monthly = typeof record.price_monthly === 'number' ? record.price_monthly : null;
+      const annual = typeof record.price_annual === 'number' ? record.price_annual : null;
+      const name = typeof record.name === 'string' ? record.name : '';
+      return monthly === 0 || annual === 0 || /\bfree\b/i.test(name);
+    })
   );
 
   return {
@@ -150,14 +156,18 @@ export function buildToolPagePricingViewModel(
     input.officialEvidenceLinks.find((entry) => entry.basis === 'Official pricing pages') || null;
 
   const pricingSourceUrl =
-    normalizeSourceUrl(officialPricingSource?.url) || normalizeSourceUrl(input.directPricingPageSource);
+    normalizeSourceUrl(officialPricingSource?.url) ||
+    normalizeSourceUrl(input.directPricingPageSource);
 
   const pricingSnapshotBullets = withUniqueText(
-    [...input.hardLimitFromConstraints, ...input.effectiveEvidenceCons, ...input.hiddenCostBullets].filter(
-      (item) =>
-        /\$|\/\s*(mo|month|yr|year)|\b(price|pricing|plan|tier|seat|monthly|annual|enterprise|max)\b/i.test(
-          item.text
-        )
+    [
+      ...input.hardLimitFromConstraints,
+      ...input.effectiveEvidenceCons,
+      ...input.hiddenCostBullets,
+    ].filter((item) =>
+      /\$|\/\s*(mo|month|yr|year)|\b(price|pricing|plan|tier|seat|monthly|annual|enterprise|max)\b/i.test(
+        item.text
+      )
     )
   ).slice(0, 5);
 
@@ -170,10 +180,10 @@ export function buildToolPagePricingViewModel(
 
   const showPricingSection = Boolean(
     input.sectionPricingStatus !== 'hide' &&
-      (input.hasPricing ||
-        officialPricingSource ||
-        pricingEvidenceLinks.length > 0 ||
-        input.canonicalHardLimitsCount > 0)
+    (input.hasPricing ||
+      officialPricingSource ||
+      pricingEvidenceLinks.length > 0 ||
+      input.canonicalHardLimitsCount > 0)
   );
 
   const budgetMechanicsSignals = [
@@ -215,6 +225,6 @@ export function buildToolPagePricingViewModel(
     showPricingSection,
     pricingNarrativeLead,
     pricingNarrativeLabel:
-      'This pricing section combines editorial context with source-backed mechanics and numeric plan details.',
+      'Use this block to separate plan facts from the first upgrade or cost-risk trigger.',
   };
 }

@@ -132,6 +132,11 @@ const NON_WEB_PLATFORM_PATTERN = /\b(ios|android|windows|mac(?:os)?|desktop app|
 const SUBJECT_SCOPE_PENDING_PATTERN =
   /\b(Published review content is hidden until this page resolves (?:one product surface|a single review subject)|waiting for clearer subject resolution)\b/i;
 const HERO_DEK_GENERIC_PATTERN = /^Pricing,\s*tradeoffs,\s*best for,\s*and alternatives\.?$/i;
+const DECISION_SECTION_HEADING_PATTERN =
+  /\b(?:Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger)\b/i;
+const DECISION_SECTION_PATTERN =
+  /<section[^>]*>[\s\S]*?<h2[^>]*>\s*(?:Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger)\s*<\/h2>[\s\S]*?<\/section>/i;
+const ALLOWED_DECISION_SECTION_LINKS = new Set(['#verdict', '#sources']);
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -156,21 +161,22 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   const bestFitHits = (text.match(/\bBest fit:\b/gi) || []).length;
   const weakFitHits = (text.match(/\bWeak fit:\b/gi) || []).length;
   const tradeoffHits = (text.match(/\bTradeoff:\b/gi) || []).length;
-  const decisionHeadingHits = (text.match(/\bDecision in 60 Seconds\b/gi) || []).length;
+  const decisionHeadingHits = (text.match(new RegExp(DECISION_SECTION_HEADING_PATTERN, 'gi')) || [])
+    .length;
   const readerControlsHits = (html.match(/<h[1-6][^>]*>\s*Reader controls\s*<\/h[1-6]>/gi) || [])
     .length;
   const quickJumpHits = (html.match(/>\s*Quick jump\s*</gi) || []).length;
   const canonicalVerdictPointerHits = (
     text.match(/\bCanonical constraints live in\s+Why This Verdict\b/gi) || []
   ).length;
-  const decisionSectionMatch = html.match(
-    /<section[^>]*>[\s\S]*?<h2[^>]*>\s*Decision in 60 Seconds\s*<\/h2>[\s\S]*?<\/section>/i
-  );
+  const decisionSectionMatch = html.match(DECISION_SECTION_PATTERN);
   if (decisionSectionMatch) {
     const hrefMatches = Array.from(decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)).map(
       (match) => match[1]
     );
-    const disallowedDecisionLinks = hrefMatches.filter((href) => href !== '#verdict');
+    const disallowedDecisionLinks = hrefMatches.filter(
+      (href) => !ALLOWED_DECISION_SECTION_LINKS.has(href)
+    );
     if (disallowedDecisionLinks.length > 0) {
       failures.push(
         `decision_section_has_extra_cta_links:${Array.from(new Set(disallowedDecisionLinks)).join(',')}`
@@ -227,7 +233,7 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   if (NON_WEB_PLATFORM_PATTERN.test(text) && WEB_ONLY_PATTERN.test(text)) {
     failures.push('contradictory_platform_claims');
   }
-  if (SUBJECT_SCOPE_PENDING_PATTERN.test(text) && /\bDecision in 60 Seconds\b/i.test(text)) {
+  if (SUBJECT_SCOPE_PENDING_PATTERN.test(text) && DECISION_SECTION_HEADING_PATTERN.test(text)) {
     failures.push('entity_confusion_unresolved_subject_exposes_verdict');
   }
 
@@ -483,7 +489,11 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
       label: 'how_we_evaluated_heading',
       pattern: /(How We Evaluated|ToolHowWeEvaluateSection|buildToolPageHowWeEvaluatedTitle)/,
     },
-    { label: 'verdict_heading', pattern: /(Decision in 60 Seconds|Should You Shortlist|Verdict:)/ },
+    {
+      label: 'verdict_heading',
+      pattern:
+        /(Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger|Verdict:)/,
+    },
     { label: 'review_dek', pattern: /Pricing,\s*tradeoffs,\s*best for,\s*and alternatives\.?/i },
     {
       label: 'decision_intro_tradeoff',
@@ -525,7 +535,9 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   if (tradeoffHits > 1) {
     failures.push(`template_duplicate_tradeoff_label:${tradeoffHits}`);
   }
-  const decisionHeadingHits = (source.match(/\bDecision in 60 Seconds\b/gi) || []).length;
+  const decisionHeadingHits = (
+    source.match(new RegExp(DECISION_SECTION_HEADING_PATTERN, 'gi')) || []
+  ).length;
   if (decisionHeadingHits > 1) {
     failures.push(`template_duplicate_decision_heading:${decisionHeadingHits}`);
   }
@@ -550,14 +562,14 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   if (canonicalVerdictPointerHits > 1) {
     failures.push(`template_duplicate_verdict_pointer_copy:${canonicalVerdictPointerHits}`);
   }
-  const decisionSectionMatch = source.match(
-    /<section[\s\S]*?<h2[^>]*>\s*Decision in 60 Seconds\s*<\/h2>[\s\S]*?<\/section>/i
-  );
+  const decisionSectionMatch = source.match(DECISION_SECTION_PATTERN);
   if (decisionSectionMatch) {
     const hrefMatches = Array.from(decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)).map(
       (match) => match[1]
     );
-    const disallowedDecisionLinks = hrefMatches.filter((href) => href !== '#verdict');
+    const disallowedDecisionLinks = hrefMatches.filter(
+      (href) => !ALLOWED_DECISION_SECTION_LINKS.has(href)
+    );
     if (disallowedDecisionLinks.length > 0) {
       failures.push(
         `template_decision_section_has_extra_cta_links:${Array.from(
@@ -570,7 +582,7 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   }
   if (
     SUBJECT_SCOPE_PENDING_PATTERN.test(source) &&
-    /\bDecision in 60 Seconds\b/i.test(source) &&
+    DECISION_SECTION_HEADING_PATTERN.test(source) &&
     !/showReviewInProgressBanner/.test(source)
   ) {
     failures.push('template_entity_confusion_unresolved_subject_exposes_verdict');

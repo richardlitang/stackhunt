@@ -18,6 +18,7 @@ export interface ToolPageDecisionUtilitySetup {
 export interface BuildToolPageDecisionUtilityInput {
   toolName: string;
   categorySlug: string | null;
+  pricingType?: string | null;
   resolvedSubjectType?: 'product' | 'product_surface' | 'plan_family' | 'deployment_mode' | null;
   resolvedEntityScope?:
     | 'core'
@@ -43,6 +44,7 @@ export interface ToolPageDecisionUtilityState {
   decisionUseIf: string;
   decisionAvoidIf: string;
   decisionWatchOut: string;
+  decisionUpgradeTrigger: string;
   hasDecisionBullets: boolean;
   verdictLeadOverride: string;
   testChecklistTitle: string;
@@ -214,6 +216,8 @@ export function buildToolPageDecisionUtilityState(
   input: BuildToolPageDecisionUtilityInput
 ): ToolPageDecisionUtilityState {
   const lowConfidenceMode = Boolean(input.lowConfidenceMode);
+  const pricingType = (input.pricingType || '').toLowerCase();
+  const hasFreeOrFreemiumPlan = pricingType.includes('free') || pricingType.includes('freemium');
   const hasEvidenceAnchoredUtility = Boolean(
     input.hardLimitText || input.pricingEvidenceSourceUrl || input.pricingEvidenceSummary
   );
@@ -245,7 +249,6 @@ export function buildToolPageDecisionUtilityState(
       ? `${watchOutBase} (Pending claims remain.)`
       : watchOutBase
     : '';
-  const hasDecisionBullets = useIf.length > 0 || avoidIf.length > 0 || watchOut.length > 0;
 
   const isCrm = isCrmCategory(input.categorySlug);
   const subjectSpecificChecklist = input.resolvedSubjectType
@@ -275,21 +278,46 @@ export function buildToolPageDecisionUtilityState(
     subjectSpecificPricingMentalModelItems ||
     (input.activeReviewLens === 'startup'
       ? [
-          'Cost normally scales with seats, workspace count, and plan tier.',
-          'Expect upgrades when team size or required automation depth grows.',
-          'Model 6 to 12 month seat growth before committing migration effort.',
+          hasFreeOrFreemiumPlan
+            ? 'Free or entry tier is usually enough only until the first live workflow needs deeper automation, approvals, or admin control.'
+            : 'Entry-tier fit should be judged on the first live workflow, not on feature-list breadth.',
+          'Expect the first serious upgrade when team size, automation depth, or permissions become operational blockers.',
+          'Model 6 to 12 month team growth before committing migration effort or tool-switching cost.',
         ]
       : input.activeReviewLens === 'enterprise'
         ? [
-            'Budget risk usually comes from seat volume, workspace policy, and enterprise controls.',
-            'Confirm procurement features early (identity, governance, auditability) to avoid rework.',
-            'Treat contract terms as part of implementation scope, not just finance scope.',
+            'Budget risk usually starts when governance, procurement controls, or multi-team policy move you into enterprise packaging.',
+            'Confirm identity, governance, auditability, and admin boundaries early to avoid rollout rework.',
+            'Treat contract terms, seat minimums, and support model as implementation scope, not finance-only detail.',
           ]
         : [
-            'Primary cost drivers are seats, workspace count, and plan tier.',
-            'The first paid threshold is usually headcount or feature-gating, not usage volume alone.',
-            'Confirm billing behavior before rollout so team growth does not surprise budget owners.',
+            hasFreeOrFreemiumPlan
+              ? 'Free is usually enough until seat count, approvals, or automation depth start blocking the real workflow.'
+              : 'Primary cost fit usually depends on seats, plan tier, and required controls.',
+            'The first serious upgrade usually comes from plan gating or team complexity, not usage volume alone.',
+            'Confirm billing mechanics before rollout so user growth, entity growth, or workspace sprawl do not surprise budget owners.',
           ]);
+  const decisionUpgradeTriggerBase =
+    (typeof input.hardLimitText === 'string' && input.hardLimitText.trim().length > 0
+      ? input.hardLimitText.trim()
+      : '') ||
+    (typeof input.pricingEvidenceSummary === 'string' &&
+    input.pricingEvidenceSummary.trim().length > 0
+      ? input.pricingEvidenceSummary.trim()
+      : '') ||
+    basePricingMentalModelItems[1] ||
+    basePricingMentalModelItems[0] ||
+    '';
+  const decisionUpgradeTrigger = decisionUpgradeTriggerBase
+    ? lowConfidenceMode
+      ? `${decisionUpgradeTriggerBase} (Verify exact tier gating before rollout.)`
+      : decisionUpgradeTriggerBase
+    : '';
+  const hasDecisionBullets =
+    useIf.length > 0 ||
+    avoidIf.length > 0 ||
+    watchOut.length > 0 ||
+    decisionUpgradeTrigger.length > 0;
   const pricingMentalModelItemsRaw: ToolPageDecisionUtilityState['pricingMentalModelItems'] = [
     ...(input.hardLimitText
       ? [
@@ -417,6 +445,7 @@ export function buildToolPageDecisionUtilityState(
     decisionUseIf: useIf,
     decisionAvoidIf: avoidIf,
     decisionWatchOut: watchOut,
+    decisionUpgradeTrigger,
     hasDecisionBullets,
     verdictLeadOverride,
     testChecklistTitle: isCrm ? 'What to test in 30 minutes' : 'What to test before rollout',

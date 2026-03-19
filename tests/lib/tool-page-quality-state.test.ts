@@ -51,7 +51,9 @@ describe('tool page quality state', () => {
     expect(result.gateReasons).toEqual(['missing_required_sections']);
     expect(result.hasProceduralGuidance).toBe(false);
     expect(result.isDraftPage).toBe(false);
-    expect(result.safeDraftDescription).toContain('Acme is currently in editorial verification');
+    expect(result.safeDraftDescription).toBe(
+      'Acme review with pricing, fit, and tradeoffs under editorial verification.'
+    );
     expect(result.communityCorroborationCount).toBe(4);
     expect(result.userSignalClaimsCount).toBe(2);
     expect(result.userSignalCoveragePending).toBe(false);

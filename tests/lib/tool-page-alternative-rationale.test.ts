@@ -28,14 +28,14 @@ describe('buildAlternativeChooseLine', () => {
     expect(result).toContain('Free vs $29/user');
   });
 
-  it('falls back to generic rollout fit line when no evidence exists', () => {
+  it('falls back to a decision-oriented choose line when no evidence exists', () => {
     const result = buildAlternativeChooseLine({
       altName: 'HubSpot',
       mainName: 'Attio',
       computedDiff: null,
     });
 
-    expect(result).toContain('workflow and rollout profile');
+    expect(result).toContain('pricing model, rollout speed, or capability mix');
   });
 });
 

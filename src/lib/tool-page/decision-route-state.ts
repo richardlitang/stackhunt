@@ -40,6 +40,7 @@ export function buildToolPageDecisionRouteState(input: BuildToolPageDecisionRout
   const decisionUtilityState = buildToolPageDecisionUtilityState({
     toolName: input.tool.name,
     categorySlug: input.tool.categorySlug,
+    pricingType: input.tool.pricingType,
     resolvedSubjectType: input.resolvedSubject.subjectType,
     resolvedEntityScope: input.resolvedSubject.entityScope,
     activeReviewLens: input.activeReviewLens,

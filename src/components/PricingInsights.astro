@@ -153,8 +153,10 @@ if (!normalizedSummaryLead && !normalizedSummaryLabel && !hasMechanicsData) {
         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
     </svg>
     <div class="flex-1">
-      <h4 class="text-sm font-medium text-blue-300">Pricing summary & mechanics</h4>
-      <p class="mt-0.5 text-xs text-zinc-400">What affects your bill and how costs scale</p>
+      <h4 class="text-sm font-medium text-blue-300">Pricing fit and upgrade triggers</h4>
+      <p class="mt-0.5 text-xs text-zinc-400">
+        What changes the recommendation as plans, seats, and controls change
+      </p>
     </div>
   </div>
 
@@ -164,7 +166,11 @@ if (!normalizedSummaryLead && !normalizedSummaryLabel && !hasMechanicsData) {
         <p class="text-sm leading-relaxed text-zinc-200">{normalizedSummaryLead}</p>
       )
     }
-    {normalizedSummaryLabel && <p class="text-xs text-zinc-500">{normalizedSummaryLabel}</p>}
+    {
+      normalizedSummaryLabel && !mentalModelItemsForDisplay.length && (
+        <p class="text-xs text-zinc-500">{normalizedSummaryLabel}</p>
+      )
+    }
 
     {/* Cost Drivers */}
     {
@@ -186,7 +192,7 @@ if (!normalizedSummaryLead && !normalizedSummaryLabel && !hasMechanicsData) {
       mentalModelItemsForDisplay.length > 0 && (
         <div class="rounded border border-zinc-800 bg-zinc-950/40 px-2 py-2">
           <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Pricing mental model
+            Tier fit and upgrade triggers
           </p>
           <ul class="space-y-1">
             {mentalModelItemsForDisplay.map((item) => (
