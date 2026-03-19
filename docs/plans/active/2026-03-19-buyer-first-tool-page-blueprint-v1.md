@@ -628,3 +628,23 @@ npm run qa:prepush
 - Do not keep both the current decision utility section and the new three-test section.
 - Do not add a new generic fallback layer to patch missing evidence.
 - If data is missing for a blueprint field, render an explicit unknown state or suppress the field.
+
+## Execution Checkpoint (2026-03-19)
+
+Completed in code:
+
+- blueprint doc and standard cross-linking
+- typed buyer decision contract and blueprint runtime scaffolding
+- hero right column replaced with immediate verdict card + compact trust strip + unified toolbar
+- fit matrix section wired below hero
+- before-you-buy section now renders exactly three cards from decision utility input
+- pricing reality summary added ahead of detailed pricing tables
+- alternatives section heading reframed for rebuttal decision context
+- capability inventory collapsed by default
+- FAQ filter tightened to decision-supportive prompts
+
+Remaining high-priority work:
+
+- move fit matrix and before-you-buy card content from heuristics to lane-native fields
+- upgrade alternatives cards to explicit `choose_instead_if` structured fields
+- enforce decision-support FAQ gate in QA policy docs and checks
