@@ -54,6 +54,8 @@ export {
 export { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 export { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision-utility';
 export { buildToolPageBuyerDecisionLayer } from '@/lib/tool-page/blueprint-contract';
+export { buildToolPageBlueprintRuntimeFromRouteData } from '@/lib/tool-page/blueprint-runtime';
+export { buildToolPageBlueprintRuntimeInputFromRouteData } from '@/lib/tool-page/blueprint-runtime-input';
 export {
   buildToolPageEvidenceBulletV2,
   toToolPageEvidenceBullet,
