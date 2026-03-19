@@ -23,6 +23,7 @@ import FeaturesShowcase from '@/components/FeaturesShowcase.astro';
 import GettingStarted from '@/components/GettingStarted.astro';
 import PricingPlansGrid from '@/components/PricingPlansGrid.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
+import ToolPricingRealitySummary from '@/components/ToolPricingRealitySummary.astro';
 import TribalKnowledge from '@/components/TribalKnowledge.astro';
 import TrustBar from '@/components/TrustBar.astro';
 import PriceVerification from '@/components/PriceVerification';
@@ -32,10 +33,11 @@ import IncludedTools from '@/components/IncludedTools.astro';
 import ToolHowWeEvaluateSection from '@/components/ToolHowWeEvaluateSection.astro';
 import ToolWeTestedSection from '@/components/ToolWeTestedSection.astro';
 import ToolDecisionConditionsSection from '@/components/ToolDecisionConditionsSection.astro';
-import ToolDecisionUtilitySection from '@/components/ToolDecisionUtilitySection.astro';
 import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
+import ToolBeforeYouBuyTests from '@/components/ToolBeforeYouBuyTests.astro';
 import ToolCompactTrustStrip from '@/components/ToolCompactTrustStrip.astro';
 import ToolDecisionToolbar from '@/components/ToolDecisionToolbar.astro';
+import ToolFitMatrix from '@/components/ToolFitMatrix.astro';
 import ToolImmediateVerdictCard from '@/components/ToolImmediateVerdictCard.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import { simpleMarkdown } from '@/lib/utils';
@@ -310,102 +312,8 @@ applyToolPageResponseRouteState({
       </div>
     </header>
 
-    <section
-      class="mb-8 rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-5 shadow-sm"
-      data-focus-target
-      data-focus-groups="all verdict"
-    >
-      <h2 class="text-lg font-semibold text-zinc-100">Best fit, main risk, and upgrade trigger</h2>
-      <p class="mt-1 text-sm leading-relaxed text-zinc-300">
-        {routeDataState.decisionSnapshotSummary || pageAssemblyState.verdictLabelRationale}
-      </p>
-      <p class="mt-2 text-xs text-zinc-500">
-        Decision summary as of {pageAssemblyState.freshnessLabels.verdictAsOfLabel}.
-      </p>
-      {
-        pageAssemblyState.decisionUtilityState.hasDecisionBullets ? (
-          <div class="mt-4 grid gap-3 md:grid-cols-2">
-            {pageAssemblyState.decisionUtilityState.decisionUseIf && (
-              <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Best for</p>
-                <p class="mt-2 text-sm text-zinc-200">
-                  {pageAssemblyState.decisionUtilityState.decisionUseIf}
-                </p>
-              </article>
-            )}
-            {pageAssemblyState.decisionUtilityState.decisionAvoidIf && (
-              <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Not for</p>
-                <p class="mt-2 text-sm text-zinc-200">
-                  {pageAssemblyState.decisionUtilityState.decisionAvoidIf}
-                </p>
-              </article>
-            )}
-            {pageAssemblyState.decisionUtilityState.decisionWatchOut && (
-              <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Main tradeoff
-                </p>
-                <p class="mt-2 text-sm text-zinc-200">
-                  {pageAssemblyState.decisionUtilityState.decisionWatchOut}
-                  {pageAssemblyState.decisionHardLimitEvidence && (
-                    <>
-                      {' '}
-                      <a
-                        href={pageAssemblyState.decisionHardLimitEvidence.sourceUrl}
-                        target="_blank"
-                        rel="noopener"
-                        aria-label={pageAssemblyState.sourceAriaLabel(
-                          pageAssemblyState.decisionHardLimitEvidence.text
-                        )}
-                        data-outbound="source"
-                        data-location="decision-watchout"
-                        data-tool={routeDataState.tool.slug}
-                        class="text-xs text-zinc-400 underline underline-offset-2 hover:text-hunt-500"
-                        title="Open source"
-                      >
-                        Source
-                      </a>
-                    </>
-                  )}
-                </p>
-              </article>
-            )}
-            {pageAssemblyState.decisionUtilityState.decisionUpgradeTrigger && (
-              <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  First serious upgrade trigger
-                </p>
-                <p class="mt-2 text-sm text-zinc-200">
-                  {pageAssemblyState.decisionUtilityState.decisionUpgradeTrigger}
-                </p>
-              </article>
-            )}
-          </div>
-        ) : (
-          <p class="mt-3 text-sm text-zinc-400">
-            Source-backed fit and tradeoff guidance is still being assembled for this review.
-          </p>
-        )
-      }
-      <p class="mt-4 text-xs text-zinc-500">
-        Full evidence and methodology live in{' '}
-        <a href="#verdict" class="text-hunt-500 hover:text-hunt-400"> Why This Verdict </a>
-        {' '}and{' '}
-        <a href="#sources" class="text-hunt-500 hover:text-hunt-400"> Evidence and methodology </a>
-        .
-      </p>
-    </section>
-    {
-      pageAssemblyState.shouldShowDecisionUtilitySection && (
-        <ToolDecisionUtilitySection
-          checklistTitle={pageAssemblyState.decisionUtilityState.testChecklistTitle}
-          checklistItems={pageAssemblyState.decisionUtilityState.testChecklistItems}
-          commonSetupsTitle={pageAssemblyState.decisionUtilityState.commonSetupsTitle}
-          commonSetups={pageAssemblyState.decisionUtilityState.commonSetups}
-        />
-      )
-    }
+    <ToolFitMatrix fitMatrix={pageAssemblyState.buyerDecisionLayer.fitMatrix} />
+    <ToolBeforeYouBuyTests tests={pageAssemblyState.buyerDecisionLayer.beforeYouBuyTests} />
 
     <!-- Main Content Grid -->
     <div class="grid gap-12 lg:grid-cols-3">
@@ -537,6 +445,13 @@ applyToolPageResponseRouteState({
                 </span>
               </summary>
               <div class="mt-4">
+                <ToolPricingRealitySummary
+                  freeWorksIf={pageAssemblyState.buyerDecisionLayer.pricingReality.freeWorksIf}
+                  paidNeededWhen={pageAssemblyState.buyerDecisionLayer.pricingReality.paidNeededWhen}
+                  hiddenCostTriggers={
+                    pageAssemblyState.buyerDecisionLayer.pricingReality.hiddenCostTriggers
+                  }
+                />
                 <PricingInsights
                   variant="compact"
                   summaryLead={routeDataState.pricingNarrativeLead}
@@ -818,17 +733,33 @@ applyToolPageResponseRouteState({
         {
           routeDataState.hasSpecs && (
             <section id="specs" data-focus-target data-focus-groups="all capabilities">
-              {pageAssemblyState.specsSectionState.checkedLead && (
-                <p class="mb-3 text-xs text-zinc-500">
-                  {pageAssemblyState.specsSectionState.checkedLead}
-                </p>
-              )}
-              <DynamicSpecs
-                categorySpecificData={pageAssemblyState.specsProps.categorySpecificData}
-                specifics={pageAssemblyState.specsProps.specifics}
-                toolName={pageAssemblyState.specsProps.toolName}
-                categoryName={pageAssemblyState.specsProps.categoryName}
-              />
+              <details class="group rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+                <summary class="flex cursor-pointer list-none items-center justify-between">
+                  <div>
+                    <h3 class="text-base font-semibold text-zinc-100">Capability inventory</h3>
+                    <p class="mt-1 text-xs text-zinc-500">
+                      Reference section, collapsed by default.
+                    </p>
+                  </div>
+                  <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
+                    <span class="group-open:hidden">Expand</span>
+                    <span class="hidden group-open:inline">Collapse</span>
+                  </span>
+                </summary>
+                <div class="mt-4">
+                  {pageAssemblyState.specsSectionState.checkedLead && (
+                    <p class="mb-3 text-xs text-zinc-500">
+                      {pageAssemblyState.specsSectionState.checkedLead}
+                    </p>
+                  )}
+                  <DynamicSpecs
+                    categorySpecificData={pageAssemblyState.specsProps.categorySpecificData}
+                    specifics={pageAssemblyState.specsProps.specifics}
+                    toolName={pageAssemblyState.specsProps.toolName}
+                    categoryName={pageAssemblyState.specsProps.categoryName}
+                  />
+                </div>
+              </details>
             </section>
           )
         }
@@ -1112,7 +1043,7 @@ applyToolPageResponseRouteState({
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 class="text-2xl font-semibold text-zinc-100">
-                  {routeDataState.alternativesLabel} to {routeDataState.tool.name}
+                  Choose these instead if {routeDataState.tool.name} is not the right fit
                 </h2>
                 {pageAssemblyState.alternativesIntroText && (
                   <p class="mt-1 text-sm text-zinc-400">
