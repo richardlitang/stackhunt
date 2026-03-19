@@ -1,8 +1,10 @@
 import { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
+import { buildToolPageBlueprintRuntimeFromRouteData } from '@/lib/tool-page/blueprint-runtime';
 import { buildToolPageDecisionNavigationRouteState } from '@/lib/tool-page/decision-navigation-route-state';
 import { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 import { buildToolPageRuntimeRouteState } from '@/lib/tool-page/runtime-route-state';
 import type { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-route-state';
+import type { ReviewLens } from '@/lib/tool-page/view-model';
 
 interface BuildToolPagePageAssemblyRouteStateFromRouteDataInput {
   runtime: Parameters<typeof buildToolPageRuntimeRouteState>[0];
@@ -26,6 +28,7 @@ interface BuildToolPagePageAssemblyRouteStateFromRouteDataInput {
     'decisionUtilityState' | 'prosConsView' | 'workflowFitCardsCount' | 'workflowFitHighlightsCount'
   >;
   ctaMediaState: ReturnType<typeof buildToolPageRuntimeMidRouteState>['ctaMediaState'];
+  activeReviewLens: ReviewLens;
 }
 
 export function buildToolPagePageAssemblyRouteStateFromRouteData(
@@ -34,6 +37,7 @@ export function buildToolPagePageAssemblyRouteStateFromRouteData(
   ReturnType<typeof buildToolPageChromeRouteStateFromDecisionContext> &
   ReturnType<typeof buildToolPageDecisionRouteState> &
   ReturnType<typeof buildToolPageDecisionNavigationRouteState> &
+  ReturnType<typeof buildToolPageBlueprintRuntimeFromRouteData> &
   Pick<
     BuildToolPagePageAssemblyRouteStateFromRouteDataInput['ctaMediaState'],
     | 'compareButtonProps'
@@ -73,6 +77,20 @@ export function buildToolPagePageAssemblyRouteStateFromRouteData(
     decisionUtilityState: decisionState.decisionUtilityState,
     prosConsView: chromeState.prosConsView,
   });
+  const blueprintRuntime = buildToolPageBlueprintRuntimeFromRouteData({
+    activeReviewLens: input.activeReviewLens,
+    lensHrefs: chromeState.lensHrefs,
+    chromeState: {
+      trustBarProps: chromeState.trustBarProps,
+      gettingStartedProps: chromeState.gettingStartedProps,
+    },
+    decisionState: {
+      decisionUtilityState: decisionState.decisionUtilityState,
+    },
+    navigationState: {
+      quickJumpLinksView: navigationState.quickJumpLinksView,
+    },
+  });
   const {
     compareButtonProps,
     addToStackProps,
@@ -87,6 +105,7 @@ export function buildToolPagePageAssemblyRouteStateFromRouteData(
     ...chromeState,
     ...decisionState,
     ...navigationState,
+    ...blueprintRuntime,
     compareButtonProps,
     addToStackProps,
     priceVerificationProps,
