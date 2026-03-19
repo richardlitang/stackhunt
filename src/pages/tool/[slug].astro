@@ -23,7 +23,6 @@ import FeaturesShowcase from '@/components/FeaturesShowcase.astro';
 import GettingStarted from '@/components/GettingStarted.astro';
 import PricingPlansGrid from '@/components/PricingPlansGrid.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
-import ReviewLensSwitch from '@/components/ReviewLensSwitch.astro';
 import TribalKnowledge from '@/components/TribalKnowledge.astro';
 import TrustBar from '@/components/TrustBar.astro';
 import PriceVerification from '@/components/PriceVerification';
@@ -35,6 +34,9 @@ import ToolWeTestedSection from '@/components/ToolWeTestedSection.astro';
 import ToolDecisionConditionsSection from '@/components/ToolDecisionConditionsSection.astro';
 import ToolDecisionUtilitySection from '@/components/ToolDecisionUtilitySection.astro';
 import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
+import ToolCompactTrustStrip from '@/components/ToolCompactTrustStrip.astro';
+import ToolDecisionToolbar from '@/components/ToolDecisionToolbar.astro';
+import ToolImmediateVerdictCard from '@/components/ToolImmediateVerdictCard.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import { simpleMarkdown } from '@/lib/utils';
 import {
@@ -257,55 +259,25 @@ applyToolPageResponseRouteState({
           </div>
         </div>
 
-        <aside
-          class="rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-900/95 via-zinc-900/80 to-zinc-950/95 p-5 shadow-inner"
-        >
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-            Decision context
-          </p>
-          <div class="mt-3 rounded-xl border border-zinc-800 bg-zinc-950/50 p-4">
-            {
-              routeDataState.tags?.audiences?.length > 0 && (
-                <p class="text-xs text-zinc-300">
-                  Best matched teams:{' '}
-                  {routeDataState.tags.audiences
-                    .slice(0, 3)
-                    .map((audience) => audience.name || audience.slug || '')
-                    .filter(Boolean)
-                    .join(', ')}
-                </p>
-              )
-            }
-            <p class="mt-1 text-sm font-medium text-zinc-100">
-              Main decision axis: free-tier fit vs first paid complexity trigger.
-            </p>
-            <p class="mt-1 text-xs text-zinc-400">
-              Confidence {pageAssemblyState.trustBarProps.confidence}. Last checked{' '}
-              {pageAssemblyState.trustBarProps.lastChecked || 'unknown'}.
-            </p>
-            <p class="mt-2 text-xs text-zinc-500">
-              Full sourcing and methodology are available in{' '}
-              <a
-                href="#sources"
-                class="text-zinc-300 underline underline-offset-2 hover:text-hunt-500"
-              >
-                Evidence and methodology
-              </a>
-              .
-            </p>
-          </div>
-          <div class="mt-4">
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">View</p>
-            <div class="mt-2">
-              <ReviewLensSwitch
-                activeLens={activeReviewLens}
-                hrefs={pageAssemblyState.lensHrefs}
-                compact
-                showNote={false}
-              />
-            </div>
-          </div>
-          <div class="mt-4 space-y-2">
+        <aside class="space-y-3">
+          <ToolImmediateVerdictCard
+            bestFor={pageAssemblyState.decisionUtilityState.decisionUseIf || null}
+            notFor={pageAssemblyState.decisionUtilityState.decisionAvoidIf || null}
+            mainRisk={pageAssemblyState.decisionUtilityState.decisionWatchOut || null}
+            upgradeTrigger={pageAssemblyState.decisionUtilityState.decisionUpgradeTrigger || null}
+            implementationFriction={pageAssemblyState.gettingStartedProps.setupComplexity || null}
+          />
+          <ToolCompactTrustStrip
+            status={pageAssemblyState.trustBarProps.status}
+            confidence={pageAssemblyState.trustBarProps.confidence}
+            lastChecked={pageAssemblyState.trustBarProps.lastChecked}
+          />
+          <ToolDecisionToolbar
+            activeLens={activeReviewLens}
+            lensHrefs={pageAssemblyState.lensHrefs}
+            jumpLinks={pageAssemblyState.quickJumpLinksView}
+          />
+          <div class="space-y-2">
             {
               pageAssemblyState.websiteState.hasWebsite && (
                 <a
