@@ -209,6 +209,12 @@ export interface HunterFactSheet {
   official_facts: HunterLaneClaim[];
   official_pricing_facts: HunterLaneClaim[];
   official_limit_facts: HunterLaneClaim[];
+  pricing_reality?: {
+    free_works_if: string | null;
+    paid_needed_when: string | null;
+    hidden_cost_triggers: string[];
+    main_cost_drivers: string[];
+  };
 }
 
 export interface HunterUserSignalSheet {
@@ -222,6 +228,34 @@ export interface HunterEditorialDecision {
   not_for: string | null;
   main_tradeoff: string | null;
   human_verdict: string | null;
+  main_risk?: string | null;
+  upgrade_trigger?: string | null;
+  implementation_friction_level?: 'low' | 'medium' | 'high' | null;
+  fit_matrix?: {
+    solo: { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } | null;
+    startup: {
+      fit: 'weak' | 'mixed' | 'strong';
+      caveat: string | null;
+      reason: string | null;
+    } | null;
+    mid_market: {
+      fit: 'weak' | 'mixed' | 'strong';
+      caveat: string | null;
+      reason: string | null;
+    } | null;
+    enterprise: {
+      fit: 'weak' | 'mixed' | 'strong';
+      caveat: string | null;
+      reason: string | null;
+    } | null;
+  };
+  test_before_buy?: Array<{
+    name: string;
+    why_it_matters: string | null;
+    test: string | null;
+    pass_condition: string | null;
+    common_failure: string | null;
+  }>;
 }
 
 export interface HunterLaneOutputs {
@@ -904,6 +938,14 @@ export const AnalysisSchema = z.object({
             claim_type: ClaimTypeSchema.nullable().optional(),
           })
         ),
+        pricing_reality: z
+          .object({
+            free_works_if: z.string().nullable().optional(),
+            paid_needed_when: z.string().nullable().optional(),
+            hidden_cost_triggers: z.array(z.string()).default([]),
+            main_cost_drivers: z.array(z.string()).default([]),
+          })
+          .optional(),
       }),
       user_signal_sheet: z.object({
         user_signal_pros: z.array(
@@ -927,6 +969,52 @@ export const AnalysisSchema = z.object({
         not_for: z.string().nullable(),
         main_tradeoff: z.string().nullable(),
         human_verdict: z.string().nullable(),
+        main_risk: z.string().nullable().optional(),
+        upgrade_trigger: z.string().nullable().optional(),
+        implementation_friction_level: z.enum(['low', 'medium', 'high']).nullable().optional(),
+        fit_matrix: z
+          .object({
+            solo: z
+              .object({
+                fit: z.enum(['weak', 'mixed', 'strong']),
+                caveat: z.string().nullable(),
+                reason: z.string().nullable(),
+              })
+              .nullable(),
+            startup: z
+              .object({
+                fit: z.enum(['weak', 'mixed', 'strong']),
+                caveat: z.string().nullable(),
+                reason: z.string().nullable(),
+              })
+              .nullable(),
+            mid_market: z
+              .object({
+                fit: z.enum(['weak', 'mixed', 'strong']),
+                caveat: z.string().nullable(),
+                reason: z.string().nullable(),
+              })
+              .nullable(),
+            enterprise: z
+              .object({
+                fit: z.enum(['weak', 'mixed', 'strong']),
+                caveat: z.string().nullable(),
+                reason: z.string().nullable(),
+              })
+              .nullable(),
+          })
+          .optional(),
+        test_before_buy: z
+          .array(
+            z.object({
+              name: z.string(),
+              why_it_matters: z.string().nullable(),
+              test: z.string().nullable(),
+              pass_condition: z.string().nullable(),
+              common_failure: z.string().nullable(),
+            })
+          )
+          .optional(),
       }),
     })
     .optional(),
