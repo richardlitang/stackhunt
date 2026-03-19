@@ -221,6 +221,30 @@ function inferSubjectConfidence(entityScope?: HunterEntityScope): 'high' | 'medi
   return 'high';
 }
 
+function buildLaneFitRow(
+  fit: 'weak' | 'mixed' | 'strong',
+  reason: string | null,
+  caveat: string | null
+): { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } {
+  return {
+    fit,
+    caveat,
+    reason,
+  };
+}
+
+function toUpgradeTriggerFromFacts(input: {
+  officialLimitFacts: HunterLaneClaim[];
+  officialPricingFacts: HunterLaneClaim[];
+  mainTradeoff: string | null;
+}): string | null {
+  const fromLimits = input.officialLimitFacts.find((claim) => claim.text.trim().length > 0)?.text;
+  if (fromLimits) return fromLimits;
+  const fromPricing = input.officialPricingFacts.find((claim) => claim.text.trim().length > 0)?.text;
+  if (fromPricing) return fromPricing;
+  return input.mainTradeoff;
+}
+
 export function buildHunterLaneOutputs(input: {
   toolName: string;
   toolSlug: string;
@@ -261,6 +285,48 @@ export function buildHunterLaneOutputs(input: {
       : typeof input.analysis.summary === 'string'
         ? input.analysis.summary.trim()
         : null;
+  const bestFor =
+    typeof decisionIntro?.best_for === 'string' && decisionIntro.best_for.trim().length > 0
+      ? decisionIntro.best_for.trim()
+      : null;
+  const notFor =
+    typeof decisionIntro?.not_for === 'string' && decisionIntro.not_for.trim().length > 0
+      ? decisionIntro.not_for.trim()
+      : null;
+  const mainTradeoff =
+    typeof decisionIntro?.main_tradeoff === 'string' && decisionIntro.main_tradeoff.trim().length > 0
+      ? decisionIntro.main_tradeoff.trim()
+      : null;
+  const mainRisk = mainTradeoff;
+  const upgradeTrigger = toUpgradeTriggerFromFacts({
+    officialLimitFacts,
+    officialPricingFacts,
+    mainTradeoff,
+  });
+  const fitMatrix = {
+    solo: buildLaneFitRow('mixed', bestFor, upgradeTrigger),
+    startup: buildLaneFitRow('mixed', bestFor, upgradeTrigger),
+    mid_market: buildLaneFitRow('mixed', mainTradeoff, upgradeTrigger),
+    enterprise: buildLaneFitRow('weak', notFor, mainTradeoff),
+  };
+  const checklistItems = [...officialLimitFacts, ...officialFacts]
+    .map((entry) => entry.text.trim())
+    .filter((entry) => entry.length > 0)
+    .slice(0, 3);
+  const testBeforeBuy = checklistItems.map((item, index) => ({
+    name:
+      index === 0 ? 'Daily workflow test' : index === 1 ? 'Admin/setup test' : 'Failure/export test',
+    why_it_matters: item,
+    test: item,
+    pass_condition: 'The workflow passes without plan, ownership, or permission blockers.',
+    common_failure: 'A critical step depends on an unsupported tier, integration, or control model.',
+  }));
+  const pricingReality = {
+    free_works_if: officialPricingFacts[0]?.text || null,
+    paid_needed_when: upgradeTrigger,
+    hidden_cost_triggers: officialLimitFacts.slice(0, 3).map((claim) => claim.text),
+    main_cost_drivers: officialPricingFacts.slice(0, 3).map((claim) => claim.text),
+  };
 
   return {
     subject_profile: {
@@ -274,6 +340,7 @@ export function buildHunterLaneOutputs(input: {
       official_facts: officialFacts.slice(0, 12),
       official_pricing_facts: officialPricingFacts.slice(0, 6),
       official_limit_facts: officialLimitFacts.slice(0, 6),
+      pricing_reality: pricingReality,
     },
     user_signal_sheet: {
       user_signal_pros: mappedUserSignalPros.slice(0, 8),
@@ -281,24 +348,19 @@ export function buildHunterLaneOutputs(input: {
     },
     editorial_decision: {
       summary: editorialSummary,
-      best_for:
-        typeof decisionIntro?.best_for === 'string' && decisionIntro.best_for.trim().length > 0
-          ? decisionIntro.best_for.trim()
-          : null,
-      not_for:
-        typeof decisionIntro?.not_for === 'string' && decisionIntro.not_for.trim().length > 0
-          ? decisionIntro.not_for.trim()
-          : null,
-      main_tradeoff:
-        typeof decisionIntro?.main_tradeoff === 'string' &&
-        decisionIntro.main_tradeoff.trim().length > 0
-          ? decisionIntro.main_tradeoff.trim()
-          : null,
+      best_for: bestFor,
+      not_for: notFor,
+      main_tradeoff: mainTradeoff,
       human_verdict:
         typeof input.analysis.reviewContext?.humanVerdict === 'string' &&
         input.analysis.reviewContext.humanVerdict.trim().length > 0
           ? input.analysis.reviewContext.humanVerdict.trim()
           : null,
+      main_risk: mainRisk,
+      upgrade_trigger: upgradeTrigger,
+      implementation_friction_level: null,
+      fit_matrix: fitMatrix,
+      test_before_buy: testBeforeBuy,
     },
   };
 }
