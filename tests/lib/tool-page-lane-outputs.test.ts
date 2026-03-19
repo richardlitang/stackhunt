@@ -22,6 +22,12 @@ describe('tool page lane outputs', () => {
               official_facts: [{ text: 'Official docs confirm SSO.' }],
               official_pricing_facts: [{ text: 'Pricing starts at $19.' }],
               official_limit_facts: [{ text: 'Seat cap applies on starter plan.' }],
+              pricing_reality: {
+                free_works_if: 'Free works for single-team pilots.',
+                paid_needed_when: 'Paid needed for approvals and automation.',
+                hidden_cost_triggers: ['Seat growth past pilot threshold.'],
+                main_cost_drivers: ['Per-seat pricing and admin controls.'],
+              },
             },
             user_signal_sheet: {
               user_signal_pros: [{ text: 'Users report fast onboarding.' }],
@@ -33,6 +39,24 @@ describe('tool page lane outputs', () => {
               not_for: 'Heavy compliance orgs',
               main_tradeoff: 'Speed versus controls',
               human_verdict: 'Strong shortlist',
+              main_risk: 'Approval depth is plan-gated.',
+              upgrade_trigger: 'Upgrade when automation depth is required.',
+              implementation_friction_level: 'medium',
+              fit_matrix: {
+                solo: { fit: 'mixed', caveat: 'Admin overhead grows quickly.', reason: 'Fast setup for one owner.' },
+                startup: null,
+                mid_market: null,
+                enterprise: null,
+              },
+              test_before_buy: [
+                {
+                  name: 'Daily workflow test',
+                  why_it_matters: 'Validate operator throughput.',
+                  test: 'Run a complete workflow from intake to outcome.',
+                  pass_condition: 'No blocked step on required plan.',
+                  common_failure: 'Automation feature is gated.',
+                },
+              ],
             },
           },
         },
@@ -44,6 +68,10 @@ describe('tool page lane outputs', () => {
     expect(laneOutputs?.subject_profile.subject_key).toBe('acme:copilot');
     expect(laneOutputs?.fact_sheet.official_facts.length).toBe(1);
     expect(laneOutputs?.user_signal_sheet.user_signal_pros.length).toBe(1);
+    expect(laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when).toContain('Paid needed');
+    expect(laneOutputs?.editorial_decision.main_risk).toContain('plan-gated');
+    expect(laneOutputs?.editorial_decision.fit_matrix?.solo?.fit).toBe('mixed');
+    expect(laneOutputs?.editorial_decision.test_before_buy?.[0]?.name).toBe('Daily workflow test');
     expect(countToolPageLaneUserSignals(laneOutputs)).toBe(2);
   });
 
