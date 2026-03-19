@@ -20,8 +20,8 @@ export interface ToolPageSectionLink {
 }
 
 const TOOL_PAGE_SECTION_LINKS: Record<ToolPageSectionKey, ToolPageSectionLink> = {
-  verdict: { href: '#verdict', label: 'Verdict' },
-  workflow_fit: { href: '#workflow-fit', label: 'Rollout checkpoints' },
+  verdict: { href: '#verdict', label: 'Risks' },
+  workflow_fit: { href: '#workflow-fit', label: 'Tests' },
   how_we_evaluated: { href: '#how-we-evaluate', label: 'How we evaluated' },
   pricing: { href: '#pricing-plans', label: 'Pricing' },
   getting_started: { href: '#getting-started', label: 'Getting started' },
