@@ -1,0 +1,53 @@
+---
+import type { ToolPageBeforeYouBuyTest } from '@/types/tool-page-blueprint';
+
+interface Props {
+  tests: ToolPageBeforeYouBuyTest[];
+}
+
+const { tests } = Astro.props;
+---
+
+{
+  tests.length > 0 && (
+    <section
+      id="before-you-buy-tests"
+      class="mb-8 rounded-2xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+      data-focus-target
+      data-focus-groups="all verdict setup pricing"
+    >
+      <h2 class="text-lg font-semibold text-zinc-100">Before you buy, test these 3 things</h2>
+      <p class="mt-1 text-sm text-zinc-400">
+        Run these checks before committing rollout effort.
+      </p>
+      <div class="mt-4 grid gap-3 md:grid-cols-3">
+        {tests.slice(0, 3).map((test) => (
+          <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+            <h3 class="text-sm font-semibold text-zinc-100">{test.name}</h3>
+            {test.whyItMatters && (
+              <p class="mt-2 text-xs text-zinc-300">
+                <span class="font-medium text-zinc-200">Why this matters:</span> {test.whyItMatters}
+              </p>
+            )}
+            {test.whatToDo && (
+              <p class="mt-2 text-xs text-zinc-300">
+                <span class="font-medium text-zinc-200">What to do:</span> {test.whatToDo}
+              </p>
+            )}
+            {test.passCondition && (
+              <p class="mt-2 text-xs text-zinc-300">
+                <span class="font-medium text-zinc-200">Pass condition:</span> {test.passCondition}
+              </p>
+            )}
+            {test.commonFailure && (
+              <p class="mt-2 text-xs text-zinc-500">
+                <span class="font-medium text-zinc-400">Common failure:</span> {test.commonFailure}
+              </p>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
