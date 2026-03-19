@@ -68,6 +68,23 @@ Refactor route composition and components around the new decision/reference spli
 
 Add acceptance tests, QA checks, and route-map updates.
 
+## Gap Table (Current Lane Coverage)
+
+| Blueprint field | Current owner | Status | Notes |
+| --- | --- | --- | --- |
+| `best_for`, `not_for`, `main_risk/tradeoff` | `editorial_decision` | Present | Already available via lane outputs and decision utility mapping. |
+| `upgrade_trigger` | runtime heuristics (`decision_utility`) | Needs canonical field | Should move into persisted lane output to avoid heuristic-only fallbacks. |
+| `implementation_friction` | setup/runtime hints | Partial | Needs explicit level plus evidence-backed drivers. |
+| `fit_matrix` (solo/startup/mid-market/enterprise) | none | Missing | Requires explicit lane structure, do not infer from one active lens line. |
+| `pricing_reality.free_works_if` | pricing/runtime prose | Partial | Convert from narrative to typed field. |
+| `pricing_reality.paid_needed_when` | pricing/runtime prose | Partial | Convert from narrative to typed field. |
+| `pricing_reality.hidden_cost_triggers` | limits + pricing hints | Partial | Should be canonical field list with evidence references. |
+| `test_before_buy` (exactly 3 cards) | decision utility checklist | Partial | Existing checklist exists, but lacks strict 3-card typed contract. |
+| `alternatives.choose_instead_if` rebuttal | alternatives runtime | Partial | Existing cards need explicit rebuttal field and confidence. |
+| capability inventory states (gated/partial/unavailable) | specs/runtime | Partial | Needs normalized display-state labels and collapse behavior. |
+| decision-support FAQ filtering | FAQ runtime | Partial | Add explicit classifier/suppression logic for low-value prompts. |
+| compact trust strip + full trust footer | trust runtime | Present | Render split exists conceptually, needs consistent prominence rules. |
+
 ## Tasks
 
 ### Task 1: Freeze the buyer-first blueprint doc
