@@ -53,6 +53,7 @@ export {
 } from '@/lib/tool-page/decision';
 export { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 export { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision-utility';
+export { buildToolPageBuyerDecisionLayer } from '@/lib/tool-page/blueprint-contract';
 export {
   buildToolPageEvidenceBulletV2,
   toToolPageEvidenceBullet,
