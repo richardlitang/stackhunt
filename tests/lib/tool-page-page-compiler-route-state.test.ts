@@ -62,7 +62,8 @@ describe('tool page page compiler route state', () => {
 
     expect(buildRouteDataPipelineMock).toHaveBeenCalledTimes(1);
     expect(buildPageAssemblyMock).toHaveBeenCalledTimes(1);
-    expect(buildPageAssemblyMock).toHaveBeenCalledWith({
+    expect(buildPageAssemblyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
       runtime: expect.objectContaining({
         tool: expect.objectContaining({ slug: 'acme' }),
       }),
@@ -72,7 +73,8 @@ describe('tool page page compiler route state', () => {
       navigation: expect.any(Object),
       chrome: expect.any(Object),
       ctaMediaState: expect.any(Object),
-    });
+      })
+    );
     expect(result.routeDataState.runtimeViewBundle.meta.title).toBe('Acme Review');
     expect(result.pageAssemblyState.meta.title).toBe('Acme Review');
   });

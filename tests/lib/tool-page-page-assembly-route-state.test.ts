@@ -5,6 +5,7 @@ const {
   buildToolPageChromeRouteStateFromDecisionContextMock,
   buildToolPageDecisionAssemblyRouteStateMock,
   buildToolPageDecisionNavigationRouteStateMock,
+  buildToolPageBlueprintRuntimeFromRouteDataMock,
 } = vi.hoisted(() => ({
   buildToolPageRuntimeRouteStateMock: vi.fn(() => ({
     pageSchemas: [{ '@type': 'BreadcrumbList' }],
@@ -54,6 +55,44 @@ const {
     quickJumpLinksView: [{ href: '#verdict', label: 'Verdict', key: 'verdict' }],
     quickJumpLinks: [{ href: '#verdict', label: 'Verdict', key: 'verdict' }],
   })),
+  buildToolPageBlueprintRuntimeFromRouteDataMock: vi.fn(() => ({
+    buyerDecisionLayer: {
+      heroDecisionCard: {
+        bestFor: null,
+        notFor: null,
+        mainRisk: null,
+        upgradeTrigger: null,
+        implementationFriction: { level: 'unknown', summary: null, drivers: [] },
+        evidence: { evidenceType: 'unknown', confidence: 'low', lastChecked: null, sourceUrl: null },
+      },
+      fitMatrix: { solo: null, startup: null, midMarket: null, enterprise: null },
+      pricingReality: {
+        freeWorksIf: null,
+        paidNeededWhen: null,
+        hiddenCostTriggers: [],
+        mainCostDrivers: [],
+        evidence: { evidenceType: 'unknown', confidence: 'low', lastChecked: null, sourceUrl: null },
+      },
+      beforeYouBuyTests: [],
+      alternativesRebuttals: [],
+      compactTrustStrip: {
+        status: 'Needs confirmation',
+        confidence: 'Low',
+        lastChecked: null,
+        pendingCount: 0,
+      },
+      toolbar: {
+        activeLens: 'startup',
+        lensHrefs: {
+          general: '/tool/acme',
+          personal: '/tool/acme?lens=personal',
+          startup: '/tool/acme?lens=startup',
+          enterprise: '/tool/acme?lens=enterprise',
+        },
+        jumpLinks: [],
+      },
+    },
+  })),
 }));
 
 vi.mock('@/lib/tool-page/runtime-route-state', () => ({
@@ -71,6 +110,10 @@ vi.mock('@/lib/tool-page/decision-route-state', () => ({
 
 vi.mock('@/lib/tool-page/decision-navigation-route-state', () => ({
   buildToolPageDecisionNavigationRouteState: buildToolPageDecisionNavigationRouteStateMock,
+}));
+
+vi.mock('@/lib/tool-page/blueprint-runtime', () => ({
+  buildToolPageBlueprintRuntimeFromRouteData: buildToolPageBlueprintRuntimeFromRouteDataMock,
 }));
 
 import { buildToolPagePageAssemblyRouteStateFromRouteData } from '@/lib/tool-page/page-assembly-route-state';
@@ -152,6 +195,8 @@ describe('tool page page assembly route state', () => {
         videoProps: null,
         verdictContent: null,
       },
+      activeReviewLens: 'startup',
+      laneOutputs: null,
     });
 
     expect(buildToolPageDecisionAssemblyRouteStateMock).toHaveBeenCalledWith(
