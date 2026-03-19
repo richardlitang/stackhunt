@@ -25,13 +25,13 @@ describe('tool page decision presentation state', () => {
     });
 
     expect(result.showWorkflowFitSection).toBe(false);
-    expect(result.shouldShowDecisionUtilitySection).toBe(true);
+    expect(result.shouldShowDecisionUtilitySection).toBe(false);
     expect(result.shouldShowPracticalOutcomes).toBe(true);
     expect(result.hasUserSignalProsCons).toBe(true);
     expect(result.quickJumpLinksView.map((entry) => entry.href)).toEqual(['#pricing-plans']);
   });
 
-  it('suppresses decision utility when setup guidance is already visible', () => {
+  it('keeps decision utility suppressed when setup guidance is visible', () => {
     const result = buildToolPageDecisionPresentationState({
       categorySlug: 'project-management',
       hasGettingStarted: true,

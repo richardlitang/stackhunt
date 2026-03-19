@@ -28,13 +28,7 @@ export function buildToolPageDecisionPresentationState(
     hasWorkflowCards: input.workflowFitCardsCount > 0,
     hasWorkflowHighlights: input.workflowFitHighlightsCount > 0,
   });
-  // Keep one rollout orientation block near the top. If a full setup section exists,
-  // suppress the extra decision utility block to avoid duplicate orientation content.
-  const shouldShowDecisionUtilitySection =
-    !input.hasGettingStarted &&
-    input.decisionUtilityState.hasEvidenceAnchoredUtility &&
-    (input.decisionUtilityState.testChecklistItems.length > 0 ||
-      input.decisionUtilityState.commonSetups.length > 0);
+  const shouldShowDecisionUtilitySection = false;
   const shouldShowPracticalOutcomes = input.decisionUtilityState.practicalOutcomes.length > 0;
   const hasUserSignalProsCons =
     input.prosConsView.userSignalPros.length > 0 || input.prosConsView.userSignalCons.length > 0;
