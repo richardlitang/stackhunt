@@ -126,6 +126,7 @@ export function buildToolPagePageCompilerRouteStateFromPageContext(
     },
     ctaMediaState: routeDataState.ctaMediaState,
     activeReviewLens: input.activeReviewLens,
+    laneOutputs: routeDataState.laneOutputs,
   });
 
   return {

@@ -5,6 +5,7 @@ import { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-
 import { buildToolPageRuntimeRouteState } from '@/lib/tool-page/runtime-route-state';
 import type { buildToolPageRuntimeMidRouteState } from '@/lib/tool-page/runtime-mid-route-state';
 import type { ReviewLens } from '@/lib/tool-page/view-model';
+import type { ToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
 
 interface BuildToolPagePageAssemblyRouteStateFromRouteDataInput {
   runtime: Parameters<typeof buildToolPageRuntimeRouteState>[0];
@@ -29,6 +30,7 @@ interface BuildToolPagePageAssemblyRouteStateFromRouteDataInput {
   >;
   ctaMediaState: ReturnType<typeof buildToolPageRuntimeMidRouteState>['ctaMediaState'];
   activeReviewLens: ReviewLens;
+  laneOutputs: ToolPageLaneOutputs | null;
 }
 
 export function buildToolPagePageAssemblyRouteStateFromRouteData(
@@ -90,6 +92,7 @@ export function buildToolPagePageAssemblyRouteStateFromRouteData(
     navigationState: {
       quickJumpLinksView: navigationState.quickJumpLinksView,
     },
+    laneOutputs: input.laneOutputs,
   });
   const {
     compareButtonProps,
