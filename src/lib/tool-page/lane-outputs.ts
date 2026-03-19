@@ -19,6 +19,12 @@ export interface ToolPageLaneOutputs {
     official_facts: ToolPageLaneClaim[];
     official_pricing_facts: ToolPageLaneClaim[];
     official_limit_facts: ToolPageLaneClaim[];
+    pricing_reality?: {
+      free_works_if: string | null;
+      paid_needed_when: string | null;
+      hidden_cost_triggers: string[];
+      main_cost_drivers: string[];
+    };
   };
   user_signal_sheet: {
     user_signal_pros: ToolPageLaneClaim[];
@@ -30,6 +36,34 @@ export interface ToolPageLaneOutputs {
     not_for: string | null;
     main_tradeoff: string | null;
     human_verdict: string | null;
+    main_risk?: string | null;
+    upgrade_trigger?: string | null;
+    implementation_friction_level?: 'low' | 'medium' | 'high' | null;
+    fit_matrix?: {
+      solo: { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } | null;
+      startup: {
+        fit: 'weak' | 'mixed' | 'strong';
+        caveat: string | null;
+        reason: string | null;
+      } | null;
+      mid_market: {
+        fit: 'weak' | 'mixed' | 'strong';
+        caveat: string | null;
+        reason: string | null;
+      } | null;
+      enterprise: {
+        fit: 'weak' | 'mixed' | 'strong';
+        caveat: string | null;
+        reason: string | null;
+      } | null;
+    };
+    test_before_buy?: Array<{
+      name: string;
+      why_it_matters: string | null;
+      test: string | null;
+      pass_condition: string | null;
+      common_failure: string | null;
+    }>;
   };
 }
 
@@ -93,6 +127,68 @@ function isClaimArray(value: unknown): value is ToolPageLaneClaim[] {
   );
 }
 
+function toStringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+    .filter((entry) => entry.length > 0);
+}
+
+function toFitRow(
+  value: unknown
+): { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const fit = row.fit;
+  if (fit !== 'weak' && fit !== 'mixed' && fit !== 'strong') return null;
+  return {
+    fit,
+    caveat: toStringOrNull(row.caveat),
+    reason: toStringOrNull(row.reason),
+  };
+}
+
+function toTestBeforeBuy(
+  value: unknown
+): Array<{
+  name: string;
+  why_it_matters: string | null;
+  test: string | null;
+  pass_condition: string | null;
+  common_failure: string | null;
+}> {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const row = entry as Record<string, unknown>;
+      if (typeof row.name !== 'string' || row.name.trim().length === 0) return null;
+      return {
+        name: row.name.trim(),
+        why_it_matters: toStringOrNull(row.why_it_matters),
+        test: toStringOrNull(row.test),
+        pass_condition: toStringOrNull(row.pass_condition),
+        common_failure: toStringOrNull(row.common_failure),
+      };
+    })
+    .filter(
+      (
+        row
+      ): row is {
+        name: string;
+        why_it_matters: string | null;
+        test: string | null;
+        pass_condition: string | null;
+        common_failure: string | null;
+      } => Boolean(row)
+    )
+    .slice(0, 3);
+}
+
 export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null {
   const specs =
     tool?.specs && typeof tool.specs === 'object' ? (tool.specs as Record<string, unknown>) : null;
@@ -123,6 +219,14 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
   const userSignalCons = isClaimArray(userSignalSheet.user_signal_cons)
     ? userSignalSheet.user_signal_cons
     : [];
+  const pricingReality =
+    factSheet.pricing_reality && typeof factSheet.pricing_reality === 'object'
+      ? (factSheet.pricing_reality as Record<string, unknown>)
+      : null;
+  const fitMatrix =
+    editorial.fit_matrix && typeof editorial.fit_matrix === 'object'
+      ? (editorial.fit_matrix as Record<string, unknown>)
+      : null;
 
   return {
     subject_profile: {
@@ -136,6 +240,16 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
       official_facts: officialFacts,
       official_pricing_facts: officialPricingFacts,
       official_limit_facts: officialLimitFacts,
+      ...(pricingReality
+        ? {
+            pricing_reality: {
+              free_works_if: toStringOrNull(pricingReality.free_works_if),
+              paid_needed_when: toStringOrNull(pricingReality.paid_needed_when),
+              hidden_cost_triggers: toStringArray(pricingReality.hidden_cost_triggers),
+              main_cost_drivers: toStringArray(pricingReality.main_cost_drivers),
+            },
+          }
+        : {}),
     },
     user_signal_sheet: {
       user_signal_pros: userSignalPros,
@@ -147,6 +261,25 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
       not_for: typeof editorial.not_for === 'string' ? editorial.not_for : null,
       main_tradeoff: typeof editorial.main_tradeoff === 'string' ? editorial.main_tradeoff : null,
       human_verdict: typeof editorial.human_verdict === 'string' ? editorial.human_verdict : null,
+      main_risk: toStringOrNull(editorial.main_risk),
+      upgrade_trigger: toStringOrNull(editorial.upgrade_trigger),
+      implementation_friction_level:
+        editorial.implementation_friction_level === 'low' ||
+        editorial.implementation_friction_level === 'medium' ||
+        editorial.implementation_friction_level === 'high'
+          ? editorial.implementation_friction_level
+          : null,
+      ...(fitMatrix
+        ? {
+            fit_matrix: {
+              solo: toFitRow(fitMatrix.solo),
+              startup: toFitRow(fitMatrix.startup),
+              mid_market: toFitRow(fitMatrix.mid_market),
+              enterprise: toFitRow(fitMatrix.enterprise),
+            },
+          }
+        : {}),
+      test_before_buy: toTestBeforeBuy(editorial.test_before_buy),
     },
   };
 }
