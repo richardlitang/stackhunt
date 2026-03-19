@@ -9,7 +9,7 @@ describe('tool page section order', () => {
 
     expect(links.map((link) => link.href)).toEqual([
       '#verdict',
-      '#workflow-fit',
+      '#before-you-buy-tests',
       '#pricing-plans',
       '#sources',
       '/disclosure',
