@@ -458,6 +458,12 @@ export interface ToolCanonicalFacts {
         source_type?: 'official' | 'editorial' | 'community' | null;
         claim_type?: 'fact' | 'opinion' | null;
       }>;
+      pricing_reality?: {
+        free_works_if?: string | null;
+        paid_needed_when?: string | null;
+        hidden_cost_triggers?: string[];
+        main_cost_drivers?: string[];
+      };
     };
     user_signal_sheet: {
       user_signal_pros: Array<{
@@ -479,6 +485,34 @@ export interface ToolCanonicalFacts {
       not_for: string | null;
       main_tradeoff: string | null;
       human_verdict: string | null;
+      main_risk?: string | null;
+      upgrade_trigger?: string | null;
+      implementation_friction_level?: 'low' | 'medium' | 'high' | null;
+      fit_matrix?: {
+        solo: { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } | null;
+        startup: {
+          fit: 'weak' | 'mixed' | 'strong';
+          caveat: string | null;
+          reason: string | null;
+        } | null;
+        mid_market: {
+          fit: 'weak' | 'mixed' | 'strong';
+          caveat: string | null;
+          reason: string | null;
+        } | null;
+        enterprise: {
+          fit: 'weak' | 'mixed' | 'strong';
+          caveat: string | null;
+          reason: string | null;
+        } | null;
+      };
+      test_before_buy?: Array<{
+        name: string;
+        why_it_matters: string | null;
+        test: string | null;
+        pass_condition: string | null;
+        common_failure: string | null;
+      }>;
     };
   };
   entity_first_lane_outputs_version?: string;
