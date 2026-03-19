@@ -6,6 +6,8 @@ Status: Draft
 Owner: StackHunt Editorial + Product
 Scope: `/tool/[slug]` pages only (v1). Built to extend to `/best` and `/compare`.
 
+Layout and section-order implementation details live in [Tool Page Blueprint v1](./TOOL_PAGE_BLUEPRINT_V1.md).
+
 ## 1) Purpose
 
 A tool page exists to help one buyer decide whether to shortlist or skip one specific tool.
