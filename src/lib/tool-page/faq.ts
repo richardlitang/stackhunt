@@ -9,6 +9,10 @@ const VOLATILE_FAQ_TERMS =
   /\b(model|version|pricing|price|plan|quota|limit|token|tokens|rate limit|context window|deprecated|deprecation|gpt|claude|opus|sonnet|haiku|o[1-9])\b/i;
 const PRICING_TERMS =
   /\b(price|pricing|plan|tier|monthly|annual|enterprise|max plan|models? available|what models?)\b/i;
+const DECISION_SUPPORTIVE_TERMS =
+  /\b(integration|integrations|export|exports|implementation|migrat|migration|control|controls|data ownership|ownership|limit|limits|contract|contracts|security|compliance|sso|scim|api|retention)\b/i;
+const LOW_VALUE_FAQ_TERMS =
+  /\b(what is|is .* good|who owns|overview|history)\b/i;
 
 export function filterToolPageFaqItems(items: unknown): ToolPageFaqItemLike[] {
   if (!Array.isArray(items)) return [];
@@ -28,6 +32,8 @@ export function filterToolPageFaqItems(items: unknown): ToolPageFaqItemLike[] {
       return false;
     }
     if (PRICING_TERMS.test(combined)) return false;
+    if (LOW_VALUE_FAQ_TERMS.test(combined.toLowerCase())) return false;
+    if (!DECISION_SUPPORTIVE_TERMS.test(combined.toLowerCase())) return false;
     return true;
   });
 }

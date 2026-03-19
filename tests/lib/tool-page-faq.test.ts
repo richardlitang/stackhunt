@@ -5,8 +5,8 @@ describe('tool page faq filtering', () => {
   it('keeps stable source-backed FAQ items', () => {
     const result = filterToolPageFaqItems([
       {
-        question: 'How long does setup take?',
-        answer: 'Most teams can set up in under a day.',
+        question: 'How does migration work from another CRM?',
+        answer: 'Import records first, then validate ownership mappings and required fields.',
         answer_source_url: 'https://example.com/docs/setup',
         answer_source_type: 'official',
       },
@@ -42,8 +42,8 @@ describe('tool page faq filtering', () => {
     const knowledgeCard = {
       faqs: [
         {
-          question: 'How long does setup take?',
-          answer: 'Most teams can set up in under a day.',
+          question: 'How does migration work from another CRM?',
+          answer: 'Import records first, then validate ownership mappings and required fields.',
           answer_source_url: 'https://example.com/docs/setup',
           answer_source_type: 'official',
         },
@@ -59,5 +59,17 @@ describe('tool page faq filtering', () => {
     expect(result.faqItems).toHaveLength(1);
     expect(Array.isArray(result.knowledgeCardForSeo?.faqs)).toBe(true);
     expect((result.knowledgeCardForSeo?.faqs as unknown[]).length).toBe(1);
+  });
+
+  it('drops low-value generic faq prompts', () => {
+    const result = filterToolPageFaqItems([
+      {
+        question: 'What is this tool?',
+        answer: 'It is a project management tool.',
+        answer_source_url: 'https://example.com/docs/overview',
+        answer_source_type: 'official',
+      },
+    ]);
+    expect(result).toHaveLength(0);
   });
 });
