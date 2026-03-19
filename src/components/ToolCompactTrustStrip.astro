@@ -1,0 +1,18 @@
+---
+interface Props {
+  status: 'Source-backed' | 'Needs confirmation' | 'Needs recheck';
+  confidence: 'High' | 'Medium' | 'Low';
+  lastChecked?: string | null;
+}
+
+const { status, confidence, lastChecked = null } = Astro.props;
+---
+
+<div class="rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-xs text-zinc-300">
+  <span class="font-medium text-zinc-100">{status}</span>
+  <span class="mx-1 text-zinc-500">|</span>
+  <span>Confidence {confidence}</span>
+  <span class="mx-1 text-zinc-500">|</span>
+  <span>Last checked {lastChecked || 'unknown'}</span>
+</div>
+
