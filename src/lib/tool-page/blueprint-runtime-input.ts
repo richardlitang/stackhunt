@@ -4,6 +4,7 @@ import type { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-r
 import type { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/tool-page/chrome-route-state';
 import type { ReviewLens } from '@/lib/tool-page/view-model';
 import type { ToolPageBeforeYouBuyTest, ToolPageFitMatrix } from '@/types/tool-page-blueprint';
+import type { ToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
 
 interface BuildToolPageBlueprintRuntimeInputFromRouteDataInput {
   activeReviewLens: ReviewLens;
@@ -17,13 +18,26 @@ interface BuildToolPageBlueprintRuntimeInputFromRouteDataInput {
     ReturnType<typeof buildToolPageDecisionNavigationRouteState>,
     'quickJumpLinksView'
   >;
+  laneOutputs: ToolPageLaneOutputs | null;
 }
 
 export function buildToolPageBlueprintRuntimeInputFromRouteData(
   input: BuildToolPageBlueprintRuntimeInputFromRouteDataInput
 ): Parameters<typeof buildToolPageBuyerDecisionLayer>[0] {
+  const fitEvidence = {
+    evidenceType: 'editorial_inference' as const,
+    confidence: 'medium' as const,
+    lastChecked: input.chromeState.trustBarProps.lastChecked,
+  };
+  const toFitRowWithEvidence = (
+    row:
+      | { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null }
+      | null
+      | undefined
+  ) => (row ? { ...row, evidence: fitEvidence } : null);
+
   const fitMatrix: ToolPageFitMatrix = {
-    solo: {
+    solo: toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.solo) || {
       fit: input.activeReviewLens === 'personal' ? 'strong' : 'mixed',
       caveat:
         input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
@@ -37,7 +51,7 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
         lastChecked: input.chromeState.trustBarProps.lastChecked,
       },
     },
-    startup: {
+    startup: toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.startup) || {
       fit: input.activeReviewLens === 'startup' ? 'strong' : 'mixed',
       caveat:
         input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
@@ -51,7 +65,7 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
         lastChecked: input.chromeState.trustBarProps.lastChecked,
       },
     },
-    midMarket: {
+    midMarket: toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.mid_market) || {
       fit: 'mixed',
       caveat:
         input.decisionState.decisionUtilityState.decisionWatchOut ||
@@ -63,7 +77,7 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
         lastChecked: input.chromeState.trustBarProps.lastChecked,
       },
     },
-    enterprise: {
+    enterprise: toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.enterprise) || {
       fit: input.activeReviewLens === 'enterprise' ? 'mixed' : 'weak',
       caveat:
         input.decisionState.decisionUtilityState.decisionAvoidIf ||
@@ -78,8 +92,28 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
     },
   };
 
+  const laneTests = input.laneOutputs?.editorial_decision.test_before_buy || [];
   const checklistItems = input.decisionState.decisionUtilityState.testChecklistItems.slice(0, 3);
-  const beforeYouBuyTests: ToolPageBeforeYouBuyTest[] = checklistItems.map((item, index) => {
+  const beforeYouBuyTests: ToolPageBeforeYouBuyTest[] = (laneTests.length > 0
+    ? laneTests.map((item) => ({
+        testType:
+          item.name.toLowerCase().includes('admin')
+            ? ('admin_setup' as const)
+            : item.name.toLowerCase().includes('failure') || item.name.toLowerCase().includes('export')
+              ? ('failure_export' as const)
+              : ('daily_workflow' as const),
+        name: item.name,
+        whyItMatters: item.why_it_matters,
+        whatToDo: item.test,
+        passCondition: item.pass_condition,
+        commonFailure: item.common_failure,
+        evidence: {
+          evidenceType: 'editorial_inference' as const,
+          confidence: 'medium' as const,
+          lastChecked: input.chromeState.trustBarProps.lastChecked,
+        },
+      }))
+    : checklistItems.map((item, index) => {
     const testType: ToolPageBeforeYouBuyTest['testType'] =
       index === 0 ? 'daily_workflow' : index === 1 ? 'admin_setup' : 'failure_export';
     const testLabel =
@@ -97,12 +131,12 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
       passCondition: 'The workflow completes without role, plan, or handoff blockers.',
       commonFailure: 'A key step depends on a gated feature, hidden limit, or missing ownership.',
       evidence: {
-        evidenceType: 'editorial_inference',
-        confidence: 'medium',
+        evidenceType: 'editorial_inference' as const,
+        confidence: 'medium' as const,
         lastChecked: input.chromeState.trustBarProps.lastChecked,
       },
     };
-  });
+  })).slice(0, 3);
 
   return {
     activeLens: input.activeReviewLens,
@@ -117,10 +151,16 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
     heroDecisionCard: {
       bestFor: input.decisionState.decisionUtilityState.decisionUseIf || null,
       notFor: input.decisionState.decisionUtilityState.decisionAvoidIf || null,
-      mainRisk: input.decisionState.decisionUtilityState.decisionWatchOut || null,
-      upgradeTrigger: input.decisionState.decisionUtilityState.decisionUpgradeTrigger || null,
+      mainRisk:
+        input.laneOutputs?.editorial_decision.main_risk ||
+        input.decisionState.decisionUtilityState.decisionWatchOut ||
+        null,
+      upgradeTrigger:
+        input.laneOutputs?.editorial_decision.upgrade_trigger ||
+        input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
+        null,
       implementationFriction: {
-        level: 'unknown',
+        level: input.laneOutputs?.editorial_decision.implementation_friction_level || 'unknown',
         summary: input.chromeState.gettingStartedProps.setupComplexity || null,
         drivers: [],
       },
@@ -133,20 +173,26 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
     },
     fitMatrix,
     pricingReality: {
-      freeWorksIf:
+      freeWorksIf: input.laneOutputs?.fact_sheet.pricing_reality?.free_works_if ||
         input.decisionState.decisionUtilityState.pricingMentalModelItems[0]?.text ||
         input.decisionState.decisionUtilityState.decisionUseIf ||
         null,
-      paidNeededWhen:
+      paidNeededWhen: input.laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when ||
         input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
         input.decisionState.decisionUtilityState.pricingMentalModelItems[1]?.text ||
         null,
-      hiddenCostTriggers: input.decisionState.decisionUtilityState.pricingMentalModelItems
-        .slice(0, 3)
-        .map((entry) => entry.text),
-      mainCostDrivers: input.decisionState.decisionUtilityState.pricingMentalModelItems
-        .slice(0, 2)
-        .map((entry) => entry.text),
+      hiddenCostTriggers:
+        input.laneOutputs?.fact_sheet.pricing_reality?.hidden_cost_triggers?.length
+          ? input.laneOutputs.fact_sheet.pricing_reality.hidden_cost_triggers
+          : input.decisionState.decisionUtilityState.pricingMentalModelItems
+              .slice(0, 3)
+              .map((entry) => entry.text),
+      mainCostDrivers:
+        input.laneOutputs?.fact_sheet.pricing_reality?.main_cost_drivers?.length
+          ? input.laneOutputs.fact_sheet.pricing_reality.main_cost_drivers
+          : input.decisionState.decisionUtilityState.pricingMentalModelItems
+              .slice(0, 2)
+              .map((entry) => entry.text),
       evidence: {
         evidenceType: 'editorial_inference',
         confidence: 'medium',
