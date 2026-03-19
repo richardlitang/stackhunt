@@ -44,8 +44,12 @@ describe('tool page pricing', () => {
         { basis: 'Official pricing pages', url: 'https://acme.com/pricing?ref=ad#tier' },
       ],
       directPricingPageSource: null,
-      hardLimitFromConstraints: [{ text: 'Plan cap: 100 seats', sourceUrl: 'https://acme.com/pricing' }],
-      effectiveEvidenceCons: [{ text: 'Annual contract required above 50 seats', sourceUrl: 'https://acme.com/pricing' }],
+      hardLimitFromConstraints: [
+        { text: 'Plan cap: 100 seats', sourceUrl: 'https://acme.com/pricing' },
+      ],
+      effectiveEvidenceCons: [
+        { text: 'Annual contract required above 50 seats', sourceUrl: 'https://acme.com/pricing' },
+      ],
       hiddenCostBullets: [],
       canonicalHardLimitsCount: 1,
       sectionPricingStatus: 'show',
@@ -62,7 +66,9 @@ describe('tool page pricing', () => {
     expect(result.hasPricingCheckedProof).toBe(true);
     expect(result.pricingCheckedLabel).toBe('Mar 4, 2026');
     expect(result.showPricingSection).toBe(true);
-    expect(result.pricingNarrativeLead).toContain('Pricing depends on plan, seats, and usage');
+    expect(result.pricingNarrativeLead).toContain(
+      'free or entry tier is enough now, what forces a Plus or Enterprise move'
+    );
   });
 
   it('falls back to first pricing signal when structured pricing is incomplete', () => {
@@ -72,7 +78,9 @@ describe('tool page pricing', () => {
       officialEvidenceLinks: [],
       directPricingPageSource: 'https://acme.com/plans',
       hardLimitFromConstraints: [],
-      effectiveEvidenceCons: [{ text: 'Enterprise tier starts at $99 per month', sourceUrl: 'https://acme.com/plans' }],
+      effectiveEvidenceCons: [
+        { text: 'Enterprise tier starts at $99 per month', sourceUrl: 'https://acme.com/plans' },
+      ],
       hiddenCostBullets: [],
       canonicalHardLimitsCount: 0,
       sectionPricingStatus: 'show',

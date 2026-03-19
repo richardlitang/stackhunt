@@ -94,6 +94,19 @@ function sanitizeRoiThresholdForPricingLead(value: unknown): string {
   return normalized;
 }
 
+function startsWithSameSignal(first: string, second: string): boolean {
+  const normalize = (value: string): string =>
+    value
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const left = normalize(first);
+  const right = normalize(second);
+  if (!left || !right) return false;
+  return left === right || left.startsWith(right) || right.startsWith(left);
+}
+
 function normalizeSourceUrl(value?: string | null): string | null {
   if (!value) return null;
   try {
@@ -200,9 +213,9 @@ export function buildToolPagePricingViewModel(
   const pricingNarrativeLead = (() => {
     if (input.hasPricing) {
       if (hasBudgetMechanicsSignal) {
-        return 'Pricing depends on plan, seats, and usage. Use this section to evaluate budget drivers, contract terms, and published plan pricing together.';
+        return 'Use this section to decide whether the free or entry tier is enough now, what forces a Plus or Enterprise move, and which complexity thresholds change total cost.';
       }
-      return 'Pricing scales with plan and usage, so model your real team shape before committing.';
+      return 'Use this section to map team shape to tier fit, then identify the first upgrade threshold before rollout.';
     }
 
     if (pricingSnapshotBullets.length > 0) {
@@ -212,8 +225,15 @@ export function buildToolPagePricingViewModel(
       }
     }
 
-    return 'Published pricing details are still incomplete; verify budget assumptions on the official pricing page.';
+    return 'Published pricing detail is incomplete. Verify tier fit, upgrade triggers, and contract terms on the official pricing page before migration.';
   })();
+
+  const pricingNarrativeLabel = startsWithSameSignal(
+    pricingNarrativeLead,
+    'Use this section to decide whether the free or entry tier is enough now'
+  )
+    ? 'Prioritize tier-fit and first upgrade trigger, then sanity-check contract and billing mechanics.'
+    : 'Use this block to separate plan facts from the first upgrade or cost-risk trigger.';
 
   return {
     officialPricingSource,
@@ -224,7 +244,6 @@ export function buildToolPagePricingViewModel(
     pricingCheckedLabel,
     showPricingSection,
     pricingNarrativeLead,
-    pricingNarrativeLabel:
-      'Use this block to separate plan facts from the first upgrade or cost-risk trigger.',
+    pricingNarrativeLabel,
   };
 }

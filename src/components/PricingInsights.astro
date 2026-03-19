@@ -40,6 +40,11 @@ const normalizedSummaryLabel = typeof summaryLabel === 'string' ? summaryLabel.t
 const { costDrivers = [], oneTimeFees = [], commitmentTerms, roiThreshold } = budgetAnalyst || {};
 
 const normalize = (value: string): string => value.replace(/\s+/g, ' ').trim();
+const normalizedSummaryLeadKey = normalize(normalizedSummaryLead)
+  .toLowerCase()
+  .replace(/[^\w\s]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
 const dedupe = (items: string[]): string[] => {
   const seen = new Set<string>();
   const cleaned: string[] = [];
@@ -77,6 +82,7 @@ const dedupeMentalModelItems = (
     if (!normalizedText) continue;
     const key = normalizedText.toLowerCase();
     if (seen.has(key)) continue;
+    if (normalizedSummaryLeadKey && key === normalizedSummaryLeadKey) continue;
     seen.add(key);
     cleaned.push({ ...item, text: normalizedText });
   }
@@ -155,7 +161,7 @@ if (!normalizedSummaryLead && !normalizedSummaryLabel && !hasMechanicsData) {
     <div class="flex-1">
       <h4 class="text-sm font-medium text-blue-300">Pricing fit and upgrade triggers</h4>
       <p class="mt-0.5 text-xs text-zinc-400">
-        What changes the recommendation as plans, seats, and controls change
+        What keeps teams on free or entry tier, and what forces paid complexity
       </p>
     </div>
   </div>

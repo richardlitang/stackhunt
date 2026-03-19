@@ -6,6 +6,7 @@ import type { buildToolPageChromeRouteStateFromDecisionContext } from '@/lib/too
 interface BuildToolPageDecisionNavigationRouteStateInput {
   navigationState: ReturnType<typeof buildToolPageNavigationState>;
   categorySlug: string | null;
+  hasGettingStarted: boolean;
   workflowFitCardsCount: number;
   workflowFitHighlightsCount: number;
   decisionUtilityState: ReturnType<typeof buildToolPageDecisionRouteState>['decisionUtilityState'];
@@ -35,6 +36,7 @@ export function buildToolPageDecisionNavigationRouteState(
     quickJumpLinks,
     ...buildToolPageDecisionPresentationState({
       categorySlug: input.categorySlug,
+      hasGettingStarted: input.hasGettingStarted,
       workflowFitCardsCount: input.workflowFitCardsCount,
       workflowFitHighlightsCount: input.workflowFitHighlightsCount,
       decisionUtilityState: input.decisionUtilityState,

@@ -122,6 +122,7 @@ export function buildToolPagePageCompilerRouteStateFromPageContext(
     navigation: {
       navigationState: routeDataState.navigationState,
       categorySlug: routeDataState.tool.category?.slug || null,
+      hasGettingStarted: routeDataState.hasGettingStarted,
     },
     ctaMediaState: routeDataState.ctaMediaState,
   });

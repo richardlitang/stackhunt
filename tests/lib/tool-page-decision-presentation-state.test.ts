@@ -5,6 +5,7 @@ describe('tool page decision presentation state', () => {
   it('derives workflow visibility, decision utility visibility, and quick-jump filtering', () => {
     const result = buildToolPageDecisionPresentationState({
       categorySlug: 'project-management',
+      hasGettingStarted: false,
       workflowFitCardsCount: 0,
       workflowFitHighlightsCount: 0,
       decisionUtilityState: {
@@ -28,5 +29,27 @@ describe('tool page decision presentation state', () => {
     expect(result.shouldShowPracticalOutcomes).toBe(true);
     expect(result.hasUserSignalProsCons).toBe(true);
     expect(result.quickJumpLinksView.map((entry) => entry.href)).toEqual(['#pricing-plans']);
+  });
+
+  it('suppresses decision utility when setup guidance is already visible', () => {
+    const result = buildToolPageDecisionPresentationState({
+      categorySlug: 'project-management',
+      hasGettingStarted: true,
+      workflowFitCardsCount: 0,
+      workflowFitHighlightsCount: 0,
+      decisionUtilityState: {
+        hasEvidenceAnchoredUtility: true,
+        testChecklistItems: ['Run one setup sprint'],
+        commonSetups: [],
+        practicalOutcomes: [],
+      } as never,
+      prosConsView: {
+        userSignalPros: [],
+        userSignalCons: [],
+      } as never,
+      quickJumpLinks: [{ href: '#pricing-plans', label: 'Pricing' }],
+    });
+
+    expect(result.shouldShowDecisionUtilitySection).toBe(false);
   });
 });
