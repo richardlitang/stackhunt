@@ -60,10 +60,10 @@ function buildBaseLayer(): ToolPageBuyerDecisionLayer {
       {
         testType: 'daily_workflow',
         name: 'Daily workflow test',
-        whyItMatters: 'Validates core flow.',
-        whatToDo: 'Run one full workflow.',
-        passCondition: 'No manual workaround.',
-        commonFailure: 'Role mismatch.',
+        whyItMatters: 'Matters most when this directly improves a workflow you run every day.',
+        whatToDo: 'Daily workflow test',
+        passCondition: 'The workflow completes without role, plan, or handoff blockers.',
+        commonFailure: 'A key step depends on a gated feature, hidden limit, or missing ownership.',
         evidence: {
           evidenceType: 'editorial_inference',
           confidence: 'medium',
@@ -73,10 +73,10 @@ function buildBaseLayer(): ToolPageBuyerDecisionLayer {
       {
         testType: 'daily_workflow',
         name: 'Daily workflow test',
-        whyItMatters: 'Validates core flow.',
-        whatToDo: 'Run one full workflow.',
-        passCondition: 'No manual workaround.',
-        commonFailure: 'Role mismatch.',
+        whyItMatters: 'Matters most when this directly improves a workflow you run every day.',
+        whatToDo: 'Daily workflow test',
+        passCondition: 'The workflow completes without role, plan, or handoff blockers.',
+        commonFailure: 'A key step depends on a gated feature, hidden limit, or missing ownership.',
         evidence: {
           evidenceType: 'editorial_inference',
           confidence: 'medium',
@@ -88,7 +88,7 @@ function buildBaseLayer(): ToolPageBuyerDecisionLayer {
       {
         slug: 'allowed-alt',
         toolName: 'Allowed Alt',
-        chooseInsteadIf: 'Stricter governance controls are mandatory.',
+        chooseInsteadIf: 'Workflow fit is stronger for your team than Acme.',
         differentiator: 'Stronger governance',
         confidence: 'high',
       },
@@ -131,10 +131,9 @@ describe('tool page decision layer integrity', () => {
       'High rollout friction'
     );
     expect(result.pricingReality.paidNeededWhen).toBeNull();
-    expect(result.beforeYouBuyTests).toHaveLength(1);
+    expect(result.beforeYouBuyTests).toHaveLength(0);
     expect(result.fitMatrix.solo).toBeNull();
     expect(result.fitMatrix.startup).toBeNull();
-    expect(result.alternativesRebuttals).toHaveLength(1);
-    expect(result.alternativesRebuttals[0]?.slug).toBe('allowed-alt');
+    expect(result.alternativesRebuttals).toHaveLength(0);
   });
 });

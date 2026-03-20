@@ -147,4 +147,68 @@ describe('review publish gate copy quality', () => {
 
     expect(result.blockers).toContain('strict:qa_gate:pricing_visible_without_checked_proof');
   });
+
+  it('blocks contradictory lane decision signals when lane outputs are present', () => {
+    const result = evaluateStrictPublishGate(
+      baseItem({
+        specs: {
+          canonical: {
+            quality: {
+              required_sections_complete: true,
+              conflicts_count: 0,
+              score: 120,
+              noindex_reasons: [],
+            },
+            entity_first_lane_outputs: {
+              subject_profile: {
+                subject_type: 'product',
+                subject_key: 'tool:acme',
+                display_name: 'Acme',
+                entity_scope: 'core',
+                confidence: 'high',
+              },
+              fact_sheet: {
+                official_facts: [],
+                official_pricing_facts: [],
+                official_limit_facts: [],
+                pricing_reality: {
+                  free_works_if: 'Free for pilots',
+                  paid_needed_when: 'Free for pilots',
+                  hidden_cost_triggers: [],
+                  main_cost_drivers: [],
+                },
+              },
+              user_signal_sheet: {
+                user_signal_pros: [],
+                user_signal_cons: [],
+              },
+              editorial_decision: {
+                best_for: 'That need enterprise controls without rollout planning',
+                not_for: null,
+                main_tradeoff: null,
+                summary: null,
+                human_verdict: null,
+                main_risk: null,
+                upgrade_trigger: null,
+                implementation_friction_level: 'medium',
+                fit_matrix: {
+                  solo: { fit: 'mixed', reason: 'Same', caveat: 'Same' },
+                  startup: { fit: 'mixed', reason: 'Same', caveat: 'Same' },
+                  mid_market: null,
+                  enterprise: null,
+                },
+                test_before_buy: [],
+                alternatives_rebuttals: [],
+              },
+            },
+          },
+        },
+      }),
+      baseReview()
+    );
+
+    expect(result.blockers).toContain('strict:qa_gate:malformed_decision_layer_signal');
+    expect(result.blockers).toContain('strict:qa_gate:duplicate_pricing_reality_signal');
+    expect(result.blockers).toContain('strict:qa_gate:duplicate_fit_matrix_rows_signal');
+  });
 });

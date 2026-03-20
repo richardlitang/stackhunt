@@ -7,6 +7,9 @@ import {
   isClaimStale,
 } from '@/lib/claim-policy';
 import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
+import { deriveToolPageDecisionLayerConsistencySignals } from '@/lib/tool-page/decision-layer-consistency-signals';
+import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/lane-decision-signals';
+import { readToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
 import type { Review, Tool } from '@/types/database';
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
@@ -58,7 +61,6 @@ type ParsedClaim = {
   volatility: 'high' | 'medium' | 'low' | null;
   scope: string | null;
 };
-
 
 type PublishableItemFields = Pick<
   Tool,
@@ -264,15 +266,15 @@ export function evaluateStrictPublishGate(
   }
 
   const evidenceGrade: 'A' | 'B' | 'C' =
-    ((authoritativeDomains.size >= 2 &&
+    (authoritativeDomains.size >= 2 &&
       hasOfficialPricingSource &&
       hasOfficialDocOrHelpSource &&
       sources.length >= 3) ||
-      (authoritativeDomains.size >= 1 &&
-        hasOfficialPricingSource &&
-        hasOfficialDocOrHelpSource &&
-        sources.length >= 5) ||
-      (authoritativeDomains.size >= 2 && authoritativeSources >= 5 && sources.length >= 8))
+    (authoritativeDomains.size >= 1 &&
+      hasOfficialPricingSource &&
+      hasOfficialDocOrHelpSource &&
+      sources.length >= 5) ||
+    (authoritativeDomains.size >= 2 && authoritativeSources >= 5 && sources.length >= 8)
       ? 'A'
       : authoritativeDomains.size >= 1 && (hasOfficialPricingSource || hasOfficialDocOrHelpSource)
         ? 'B'
@@ -292,6 +294,14 @@ export function evaluateStrictPublishGate(
   const summaryText = normalizeText(review.summary_markdown || '');
   const verdictText = normalizeText(item.verdict || '');
   const shortDescriptionText = normalizeText(item.short_description || '');
+  const laneOutputs = readToolPageLaneOutputs(item as Tool);
+  const laneDecisionSignals = deriveToolPageLaneDecisionEvidenceSignals(laneOutputs);
+  const laneConsistencySignals = deriveToolPageDecisionLayerConsistencySignals({
+    decisionSnapshotBestWhen: [],
+    decisionSnapshotWatchOuts: [],
+    decisionTradeoffSummary: summaryText || null,
+    laneOutputs,
+  });
   let riskFlagsCount = 0;
   if (RISKY_ABSOLUTE_TERMS.test(summaryText)) riskFlagsCount += 1;
   if (COMPARATOR_TERMS.test(summaryText) && sources.length < 2) riskFlagsCount += 1;
@@ -319,7 +329,7 @@ export function evaluateStrictPublishGate(
     new Set(
       [summaryText, ...consClaims.map((claim) => claim.text)]
         .flatMap((text) => detectRiskyCopyTerms(text))
-      .filter(Boolean)
+        .filter(Boolean)
     )
   );
   const hasClaimLevelPricingProof = consClaims.some((claim) => {
@@ -328,11 +338,7 @@ export function evaluateStrictPublishGate(
     if (OFFICIAL_PRICING_PATH.test(lowerSourceUrl)) return true;
     return PRICING_NUMERIC_TERMS.test(claim.text) && Boolean(claim.checkedAt);
   });
-  const narrativeCorpus = [
-    summaryText,
-    verdictText,
-    shortDescriptionText,
-  ]
+  const narrativeCorpus = [summaryText, verdictText, shortDescriptionText]
     .filter(Boolean)
     .join(' ');
   const genericPhraseCount = GENERIC_COPY_PATTERNS.reduce(
@@ -369,7 +375,9 @@ export function evaluateStrictPublishGate(
     blockers.push('strict:copy_missing_scenario_recommendation');
   }
   if (copyQualityScore < MIN_COPY_QUALITY_SCORE) {
-    blockers.push(`strict:copy_quality_score_below_min:${copyQualityScore}<${MIN_COPY_QUALITY_SCORE}`);
+    blockers.push(
+      `strict:copy_quality_score_below_min:${copyQualityScore}<${MIN_COPY_QUALITY_SCORE}`
+    );
   }
 
   const hasPricingProofForGate = Boolean(
@@ -384,6 +392,16 @@ export function evaluateStrictPublishGate(
     pricingSectionVisible: hasNumericPricingClaims,
     hasPricingCheckedProof: hasPricingProofForGate,
     schemaMatchesVisibleContent: true,
+    requiresSourceBackedDecisionLayer: Boolean(laneOutputs),
+    hasSourceBackedMainRiskSignal: laneDecisionSignals.hasSourceBackedMainRiskSignal,
+    hasSourceBackedUpgradeTriggerSignal: laneDecisionSignals.hasSourceBackedUpgradeTriggerSignal,
+    hasSourceBackedImplementationFrictionSignal:
+      laneDecisionSignals.hasSourceBackedImplementationFrictionSignal,
+    hasSourceBackedFitMatrixSignal: laneDecisionSignals.hasSourceBackedFitMatrixSignal,
+    hasSourceBackedTestBeforeBuySignal: laneDecisionSignals.hasSourceBackedTestBeforeBuySignal,
+    hasMalformedDecisionLayerSignal: laneConsistencySignals.hasMalformedDecisionLayerSignal,
+    hasDuplicatePricingRealitySignal: laneConsistencySignals.hasDuplicatePricingRealitySignal,
+    hasDuplicateFitMatrixRowsSignal: laneConsistencySignals.hasDuplicateFitMatrixRowsSignal,
   });
   if (!qaGate.pass) {
     for (const blocker of qaGate.blockers) {

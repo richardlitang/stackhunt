@@ -21,6 +21,32 @@ function sanitizeText(value: string | null | undefined): string | null {
   return cleaned;
 }
 
+const GENERIC_TEST_PATTERNS = [
+  /\bmatters most when this directly improves a workflow you run every day\b/i,
+  /\bworkflow completes without role, plan, or handoff blockers\b/i,
+  /\ba key step depends on a gated feature, hidden limit, or missing ownership\b/i,
+  /\bdaily workflow test\b/i,
+  /\badmin\/setup test\b/i,
+  /\bfailure and export test\b/i,
+];
+
+function isGenericTestText(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return GENERIC_TEST_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+const GENERIC_ALTERNATIVE_PATTERNS = [
+  /\bworkflow fit differs materially\b/i,
+  /\bpricing model differences are decisive\b/i,
+  /\bsetup speed is your top priority\b/i,
+  /\bworkflow fit is stronger for your team\b/i,
+];
+
+function isGenericAlternativeReason(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return GENERIC_ALTERNATIVE_PATTERNS.some((pattern) => pattern.test(value));
+}
+
 function fallbackImplementationSummary(
   level: ToolPageBuyerDecisionLayer['heroDecisionCard']['implementationFriction']['level']
 ): string {
@@ -143,6 +169,16 @@ export function enforceToolPageDecisionLayerIntegrity(
       seenTests.add(key);
       return true;
     })
+    .filter((test) => {
+      const genericSignals = [
+        isGenericTestText(test.name),
+        isGenericTestText(test.whyItMatters),
+        isGenericTestText(test.whatToDo),
+        isGenericTestText(test.passCondition),
+        isGenericTestText(test.commonFailure),
+      ].filter(Boolean).length;
+      return genericSignals < 3;
+    })
     .slice(0, 3);
 
   const alternativesRebuttals = layer.alternativesRebuttals
@@ -152,7 +188,7 @@ export function enforceToolPageDecisionLayerIntegrity(
       toolName: sanitizeText(entry.toolName) || entry.toolName,
       chooseInsteadIf: cleanToolPageDecisionText(entry.chooseInsteadIf),
     }))
-    .filter((entry) => entry.chooseInsteadIf)
+    .filter((entry) => entry.chooseInsteadIf && !isGenericAlternativeReason(entry.chooseInsteadIf))
     .filter(
       (entry, index, list) => list.findIndex((candidate) => candidate.slug === entry.slug) === index
     );
