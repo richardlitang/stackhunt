@@ -61,6 +61,9 @@ export interface BuildToolPageRuntimeParamsInput {
     hasSourceBackedImplementationFrictionSignal?: boolean;
     hasSourceBackedFitMatrixSignal?: boolean;
     hasSourceBackedTestBeforeBuySignal?: boolean;
+    hasMalformedDecisionLayerSignal?: boolean;
+    hasDuplicatePricingRealitySignal?: boolean;
+    hasDuplicateFitMatrixRowsSignal?: boolean;
   };
   schemas: {
     tool: BuildToolPageRuntimeInputParams['schemasInput']['tool'];
@@ -131,6 +134,9 @@ export function buildToolPageRuntimeInputParams(
       ),
       hasSourceBackedFitMatrixSignal: Boolean(input.meta.hasSourceBackedFitMatrixSignal),
       hasSourceBackedTestBeforeBuySignal: Boolean(input.meta.hasSourceBackedTestBeforeBuySignal),
+      hasMalformedDecisionLayerSignal: Boolean(input.meta.hasMalformedDecisionLayerSignal),
+      hasDuplicatePricingRealitySignal: Boolean(input.meta.hasDuplicatePricingRealitySignal),
+      hasDuplicateFitMatrixRowsSignal: Boolean(input.meta.hasDuplicateFitMatrixRowsSignal),
     },
     indexInput: {
       gateShouldIndex: input.meta.gateShouldIndex,

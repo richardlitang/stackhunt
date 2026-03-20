@@ -16,6 +16,7 @@ import { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
 import { buildToolPageRuntimeAssembly } from '@/lib/tool-page/runtime-assembly';
 import { buildToolPageRuntimeAssemblyInputBundleFromPageContext } from '@/lib/tool-page/runtime-assembly-route-input';
 import { buildToolPageRuntimeAssemblySignalsInputFromRoute } from '@/lib/tool-page/runtime-assembly-signals-input';
+import { deriveToolPageDecisionLayerConsistencySignals } from '@/lib/tool-page/decision-layer-consistency-signals';
 import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/lane-decision-signals';
 import type { ToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
 
@@ -67,6 +68,12 @@ export function buildToolPageRuntimeNavigationRouteState(
   ctaMediaState: ReturnType<typeof buildToolPageCtaMediaState>;
 } {
   const laneDecisionSignals = deriveToolPageLaneDecisionEvidenceSignals(input.laneOutputs);
+  const decisionLayerConsistencySignals = deriveToolPageDecisionLayerConsistencySignals({
+    decisionSnapshotBestWhen: input.decisionRuntime.decisionSnapshotBestWhen,
+    decisionSnapshotWatchOuts: input.decisionRuntime.decisionSnapshotWatchOuts,
+    decisionTradeoffSummary: input.evidenceRuntime.decisionTradeoffSummary,
+    laneOutputs: input.laneOutputs,
+  });
   const runtimeAssemblySignals = buildToolPageRuntimeAssemblySignalsInputFromRoute({
     hasVerdict: input.decisionRuntime.hasVerdict,
     showProceduralVerdict: input.presentationGates.showProceduralVerdict,
@@ -111,6 +118,12 @@ export function buildToolPageRuntimeNavigationRouteState(
       laneDecisionSignals.hasSourceBackedImplementationFrictionSignal,
     hasSourceBackedFitMatrixSignal: laneDecisionSignals.hasSourceBackedFitMatrixSignal,
     hasSourceBackedTestBeforeBuySignal: laneDecisionSignals.hasSourceBackedTestBeforeBuySignal,
+    hasMalformedDecisionLayerSignal:
+      decisionLayerConsistencySignals.hasMalformedDecisionLayerSignal,
+    hasDuplicatePricingRealitySignal:
+      decisionLayerConsistencySignals.hasDuplicatePricingRealitySignal,
+    hasDuplicateFitMatrixRowsSignal:
+      decisionLayerConsistencySignals.hasDuplicateFitMatrixRowsSignal,
   });
   const { runtimeViewBundle } = buildToolPageRuntimeAssembly(
     buildToolPageRuntimeAssemblyInputBundleFromPageContext({

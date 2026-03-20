@@ -168,4 +168,36 @@ describe('tool page qa gate', () => {
     expect(result.blockers).toContain('missing_source_backed_fit_matrix_signal');
     expect(result.blockers).toContain('missing_source_backed_test_before_buy_signal');
   });
+
+  it('fails when decision-layer consistency signals show malformed or contradictory content', () => {
+    const result = evaluateToolPageQaGate({
+      title: 'Tool T Review (2026) | StackHunt',
+      h1: 'Tool T Review',
+      intro: 'Tool T helps teams route approvals and controls.',
+      verdict: 'Best for approval-heavy teams.',
+      evaluationDepth: 'docs_only',
+      pricingSectionVisible: true,
+      hasPricingCheckedProof: true,
+      schemaMatchesVisibleContent: true,
+      hasBestForSignal: true,
+      hasNotForSignal: true,
+      hasTradeoffSignal: true,
+      hasDecisionSummaryBlock: true,
+      introLooksSpecSheet: false,
+      requiresSourceBackedDecisionLayer: true,
+      hasSourceBackedMainRiskSignal: true,
+      hasSourceBackedUpgradeTriggerSignal: true,
+      hasSourceBackedImplementationFrictionSignal: true,
+      hasSourceBackedFitMatrixSignal: true,
+      hasSourceBackedTestBeforeBuySignal: true,
+      hasMalformedDecisionLayerSignal: true,
+      hasDuplicatePricingRealitySignal: true,
+      hasDuplicateFitMatrixRowsSignal: true,
+    });
+
+    expect(result.pass).toBe(false);
+    expect(result.blockers).toContain('malformed_decision_layer_signal');
+    expect(result.blockers).toContain('duplicate_pricing_reality_signal');
+    expect(result.blockers).toContain('duplicate_fit_matrix_rows_signal');
+  });
 });

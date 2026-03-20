@@ -55,6 +55,7 @@ import { applyToolPageFreshnessPolicy } from '@/lib/tool-page/freshness-policy';
 import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
 import { readToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
 import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/lane-decision-signals';
+import { deriveToolPageDecisionLayerConsistencySignals } from '@/lib/tool-page/decision-layer-consistency-signals';
 import { computeToolPageSectionContract } from '@/lib/tool-page/standard';
 import { sanitizeUrl } from '@/lib/utils/url';
 import { buildFallbackUserSignalClaimsFromSources } from '@/lib/hunter/user-signal-fallback';
@@ -2747,6 +2748,12 @@ async function persistQualityGateSnapshot(
   const reviewContext = (itemRow.review_context as Record<string, unknown> | null) || null;
   const laneOutputs = readToolPageLaneOutputs(itemRow as any);
   const laneDecisionSignals = deriveToolPageLaneDecisionEvidenceSignals(laneOutputs);
+  const laneConsistencySignals = deriveToolPageDecisionLayerConsistencySignals({
+    decisionSnapshotBestWhen: [],
+    decisionSnapshotWatchOuts: [],
+    decisionTradeoffSummary: null,
+    laneOutputs,
+  });
   const decisionIntro =
     (reviewContext?.decisionIntro as Record<string, unknown> | undefined) ||
     (reviewContext?.decision_intro as Record<string, unknown> | undefined);
@@ -2794,6 +2801,9 @@ async function persistQualityGateSnapshot(
       laneDecisionSignals.hasSourceBackedImplementationFrictionSignal,
     hasSourceBackedFitMatrixSignal: laneDecisionSignals.hasSourceBackedFitMatrixSignal,
     hasSourceBackedTestBeforeBuySignal: laneDecisionSignals.hasSourceBackedTestBeforeBuySignal,
+    hasMalformedDecisionLayerSignal: laneConsistencySignals.hasMalformedDecisionLayerSignal,
+    hasDuplicatePricingRealitySignal: laneConsistencySignals.hasDuplicatePricingRealitySignal,
+    hasDuplicateFitMatrixRowsSignal: laneConsistencySignals.hasDuplicateFitMatrixRowsSignal,
   });
   if (!qaGate.pass) {
     shouldIndex = false;

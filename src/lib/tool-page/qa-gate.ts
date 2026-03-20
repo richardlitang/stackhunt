@@ -18,6 +18,9 @@ export interface ToolPageQaGateInput {
   hasSourceBackedImplementationFrictionSignal?: boolean;
   hasSourceBackedFitMatrixSignal?: boolean;
   hasSourceBackedTestBeforeBuySignal?: boolean;
+  hasMalformedDecisionLayerSignal?: boolean;
+  hasDuplicatePricingRealitySignal?: boolean;
+  hasDuplicateFitMatrixRowsSignal?: boolean;
 }
 
 export interface ToolPageQaGateResult {
@@ -103,6 +106,15 @@ export function evaluateToolPageQaGate(input: ToolPageQaGateInput): ToolPageQaGa
     }
     if (!input.hasSourceBackedTestBeforeBuySignal) {
       blockers.push('missing_source_backed_test_before_buy_signal');
+    }
+    if (input.hasMalformedDecisionLayerSignal) {
+      blockers.push('malformed_decision_layer_signal');
+    }
+    if (input.hasDuplicatePricingRealitySignal) {
+      blockers.push('duplicate_pricing_reality_signal');
+    }
+    if (input.hasDuplicateFitMatrixRowsSignal) {
+      blockers.push('duplicate_fit_matrix_rows_signal');
     }
   }
 

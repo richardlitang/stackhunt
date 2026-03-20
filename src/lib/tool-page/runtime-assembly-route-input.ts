@@ -79,6 +79,9 @@ interface BuildToolPageRuntimeAssemblyInputBundleFromRouteInput {
     hasSourceBackedImplementationFrictionSignal?: boolean;
     hasSourceBackedFitMatrixSignal?: boolean;
     hasSourceBackedTestBeforeBuySignal?: boolean;
+    hasMalformedDecisionLayerSignal?: boolean;
+    hasDuplicatePricingRealitySignal?: boolean;
+    hasDuplicateFitMatrixRowsSignal?: boolean;
   };
   schemas: {
     tool: BuildToolPageRuntimeParamsInput['schemas']['tool'];
