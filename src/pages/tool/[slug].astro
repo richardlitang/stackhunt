@@ -1101,16 +1101,19 @@ applyToolPageResponseRouteState({
           />
           {pageAssemblyState.buyerDecisionLayer.alternativesRebuttals.length > 0 && (
             <div class="mb-4 grid gap-2 sm:grid-cols-2">
-              {pageAssemblyState.buyerDecisionLayer.alternativesRebuttals.slice(0, 4).map((item) => (
-                <article class="rounded border border-zinc-800 bg-zinc-950/40 p-3">
-                  <p class="text-[11px] uppercase tracking-wide text-zinc-500">
-                    Rebuttal angle: {item.differentiator}
-                  </p>
-                  <p class="mt-1 text-xs text-zinc-200">
-                    Choose {item.toolName} instead if {item.chooseInsteadIf || 'workflow fit differs materially.'}
-                  </p>
-                </article>
-              ))}
+              {pageAssemblyState.buyerDecisionLayer.alternativesRebuttals
+                .slice(0, 4)
+                .map((item) => (
+                  <article class="rounded border border-zinc-800 bg-zinc-950/40 p-3">
+                    <p class="text-[11px] uppercase tracking-wide text-zinc-500">
+                      Rebuttal angle: {item.differentiator}
+                    </p>
+                    <p class="mt-1 text-xs text-zinc-200">
+                      Choose {item.toolName} instead if{' '}
+                      {item.chooseInsteadIf || 'workflow fit differs materially.'}
+                    </p>
+                  </article>
+                ))}
             </div>
           )}
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
