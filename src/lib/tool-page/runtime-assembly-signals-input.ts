@@ -50,6 +50,7 @@ interface BuildToolPageRuntimeAssemblySignalsInputFromRouteInput {
   hasMalformedDecisionLayerSignal?: boolean;
   hasDuplicatePricingRealitySignal?: boolean;
   hasDuplicateFitMatrixRowsSignal?: boolean;
+  hasEnterpriseFitContradictionSignal?: boolean;
 }
 
 export function buildToolPageRuntimeAssemblySignalsInputFromRoute(
@@ -121,6 +122,7 @@ export function buildToolPageRuntimeAssemblySignalsInputFromRoute(
       hasMalformedDecisionLayerSignal: Boolean(input.hasMalformedDecisionLayerSignal),
       hasDuplicatePricingRealitySignal: Boolean(input.hasDuplicatePricingRealitySignal),
       hasDuplicateFitMatrixRowsSignal: Boolean(input.hasDuplicateFitMatrixRowsSignal),
+      hasEnterpriseFitContradictionSignal: Boolean(input.hasEnterpriseFitContradictionSignal),
     },
     updateHistory: {
       communityVerifiedLabel: input.communityVerifiedLabel,

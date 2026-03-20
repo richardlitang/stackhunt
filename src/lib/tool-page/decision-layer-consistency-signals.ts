@@ -38,12 +38,31 @@ function hasDuplicatePricingReality(laneOutputs: ToolPageLaneOutputs | null): bo
   return a.length > 0 && a === b;
 }
 
+const ENTERPRISE_CONTROL_HINT =
+  /\b(sso|scim|soc ?2|audit|compliance|governance|access control|procurement)\b/i;
+const ENTERPRISE_CAVEAT_HINT =
+  /\b(depends|unless|without|only if|requires|require|missing|limited|gap|constraint|tradeoff|procurement|rollout)\b/i;
+
+function hasEnterpriseFitContradiction(laneOutputs: ToolPageLaneOutputs | null): boolean {
+  const enterpriseRow = laneOutputs?.editorial_decision.fit_matrix?.enterprise;
+  if (!enterpriseRow || enterpriseRow.fit !== 'weak') return false;
+  const enterpriseSignalsText = [
+    laneOutputs?.editorial_decision.best_for || '',
+    laneOutputs?.editorial_decision.summary || '',
+    ...(laneOutputs?.fact_sheet.official_facts || []).map((claim) => claim.text || ''),
+  ].join(' ');
+  if (!ENTERPRISE_CONTROL_HINT.test(enterpriseSignalsText)) return false;
+  const caveatText = `${enterpriseRow.reason || ''} ${enterpriseRow.caveat || ''}`.trim();
+  return !ENTERPRISE_CAVEAT_HINT.test(caveatText);
+}
+
 export function deriveToolPageDecisionLayerConsistencySignals(
   input: DecisionLayerTextSignalsInput
 ): {
   hasMalformedDecisionLayerSignal: boolean;
   hasDuplicatePricingRealitySignal: boolean;
   hasDuplicateFitMatrixRowsSignal: boolean;
+  hasEnterpriseFitContradictionSignal: boolean;
 } {
   const hasMalformedDecisionLayerSignal = Boolean(
     input.decisionSnapshotBestWhen.some((item) => hasMalformedText(item)) ||
@@ -58,5 +77,6 @@ export function deriveToolPageDecisionLayerConsistencySignals(
     hasMalformedDecisionLayerSignal,
     hasDuplicatePricingRealitySignal: hasDuplicatePricingReality(input.laneOutputs),
     hasDuplicateFitMatrixRowsSignal: hasDuplicateFitMatrixRows(input.laneOutputs),
+    hasEnterpriseFitContradictionSignal: hasEnterpriseFitContradiction(input.laneOutputs),
   };
 }

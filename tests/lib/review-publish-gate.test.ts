@@ -168,7 +168,13 @@ describe('review publish gate copy quality', () => {
                 confidence: 'high',
               },
               fact_sheet: {
-                official_facts: [],
+                official_facts: [
+                  {
+                    text: 'Enterprise tier includes SSO and SCIM.',
+                    source_type: 'official',
+                    source_url: 'https://example.com/security',
+                  },
+                ],
                 official_pricing_facts: [],
                 official_limit_facts: [],
                 pricing_reality: {
@@ -195,7 +201,7 @@ describe('review publish gate copy quality', () => {
                   solo: { fit: 'mixed', reason: 'Same', caveat: 'Same' },
                   startup: { fit: 'mixed', reason: 'Same', caveat: 'Same' },
                   mid_market: null,
-                  enterprise: null,
+                  enterprise: { fit: 'weak', reason: 'Same', caveat: 'Same' },
                 },
                 test_before_buy: [],
                 alternatives_rebuttals: [],
@@ -210,5 +216,6 @@ describe('review publish gate copy quality', () => {
     expect(result.blockers).toContain('strict:qa_gate:malformed_decision_layer_signal');
     expect(result.blockers).toContain('strict:qa_gate:duplicate_pricing_reality_signal');
     expect(result.blockers).toContain('strict:qa_gate:duplicate_fit_matrix_rows_signal');
+    expect(result.blockers).toContain('strict:qa_gate:enterprise_fit_contradiction_signal');
   });
 });

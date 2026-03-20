@@ -2804,6 +2804,7 @@ async function persistQualityGateSnapshot(
     hasMalformedDecisionLayerSignal: laneConsistencySignals.hasMalformedDecisionLayerSignal,
     hasDuplicatePricingRealitySignal: laneConsistencySignals.hasDuplicatePricingRealitySignal,
     hasDuplicateFitMatrixRowsSignal: laneConsistencySignals.hasDuplicateFitMatrixRowsSignal,
+    hasEnterpriseFitContradictionSignal: laneConsistencySignals.hasEnterpriseFitContradictionSignal,
   });
   if (!qaGate.pass) {
     shouldIndex = false;

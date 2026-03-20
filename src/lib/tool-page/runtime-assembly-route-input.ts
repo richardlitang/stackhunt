@@ -82,6 +82,7 @@ interface BuildToolPageRuntimeAssemblyInputBundleFromRouteInput {
     hasMalformedDecisionLayerSignal?: boolean;
     hasDuplicatePricingRealitySignal?: boolean;
     hasDuplicateFitMatrixRowsSignal?: boolean;
+    hasEnterpriseFitContradictionSignal?: boolean;
   };
   schemas: {
     tool: BuildToolPageRuntimeParamsInput['schemas']['tool'];

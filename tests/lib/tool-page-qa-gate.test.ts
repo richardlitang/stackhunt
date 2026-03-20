@@ -193,11 +193,13 @@ describe('tool page qa gate', () => {
       hasMalformedDecisionLayerSignal: true,
       hasDuplicatePricingRealitySignal: true,
       hasDuplicateFitMatrixRowsSignal: true,
+      hasEnterpriseFitContradictionSignal: true,
     });
 
     expect(result.pass).toBe(false);
     expect(result.blockers).toContain('malformed_decision_layer_signal');
     expect(result.blockers).toContain('duplicate_pricing_reality_signal');
     expect(result.blockers).toContain('duplicate_fit_matrix_rows_signal');
+    expect(result.blockers).toContain('enterprise_fit_contradiction_signal');
   });
 });

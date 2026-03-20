@@ -24,6 +24,7 @@ interface BuildToolPageRuntimeMetaSignalsInputFromRouteInput {
   hasMalformedDecisionLayerSignal?: boolean;
   hasDuplicatePricingRealitySignal?: boolean;
   hasDuplicateFitMatrixRowsSignal?: boolean;
+  hasEnterpriseFitContradictionSignal?: boolean;
 }
 
 export function buildToolPageRuntimeMetaSignalsInputFromRoute(
@@ -55,5 +56,6 @@ export function buildToolPageRuntimeMetaSignalsInputFromRoute(
     hasMalformedDecisionLayerSignal: Boolean(input.hasMalformedDecisionLayerSignal),
     hasDuplicatePricingRealitySignal: Boolean(input.hasDuplicatePricingRealitySignal),
     hasDuplicateFitMatrixRowsSignal: Boolean(input.hasDuplicateFitMatrixRowsSignal),
+    hasEnterpriseFitContradictionSignal: Boolean(input.hasEnterpriseFitContradictionSignal),
   };
 }

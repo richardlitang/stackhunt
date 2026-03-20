@@ -21,6 +21,7 @@ export interface ToolPageQaGateInput {
   hasMalformedDecisionLayerSignal?: boolean;
   hasDuplicatePricingRealitySignal?: boolean;
   hasDuplicateFitMatrixRowsSignal?: boolean;
+  hasEnterpriseFitContradictionSignal?: boolean;
 }
 
 export interface ToolPageQaGateResult {
@@ -115,6 +116,9 @@ export function evaluateToolPageQaGate(input: ToolPageQaGateInput): ToolPageQaGa
     }
     if (input.hasDuplicateFitMatrixRowsSignal) {
       blockers.push('duplicate_fit_matrix_rows_signal');
+    }
+    if (input.hasEnterpriseFitContradictionSignal) {
+      blockers.push('enterprise_fit_contradiction_signal');
     }
   }
 

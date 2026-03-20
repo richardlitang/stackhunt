@@ -16,7 +16,14 @@ describe('tool page decision layer consistency signals', () => {
           confidence: 'high',
         },
         fact_sheet: {
-          official_facts: [],
+          official_facts: [
+            {
+              text: 'Enterprise plan includes SSO and SCIM controls.',
+              source_type: 'official',
+              source_url: 'https://example.com/security',
+              checked_at: '2026-03-20',
+            },
+          ],
           official_pricing_facts: [],
           official_limit_facts: [],
           pricing_reality: {
@@ -45,7 +52,7 @@ describe('tool page decision layer consistency signals', () => {
             solo: { fit: 'mixed', reason: 'Same reason', caveat: 'Same caveat' },
             startup: { fit: 'mixed', reason: 'Same reason', caveat: 'Same caveat' },
             mid_market: null,
-            enterprise: null,
+            enterprise: { fit: 'weak', reason: 'Same reason', caveat: 'Same caveat' },
           },
           test_before_buy: [],
           alternatives_rebuttals: [],
@@ -56,5 +63,6 @@ describe('tool page decision layer consistency signals', () => {
     expect(result.hasMalformedDecisionLayerSignal).toBe(true);
     expect(result.hasDuplicatePricingRealitySignal).toBe(true);
     expect(result.hasDuplicateFitMatrixRowsSignal).toBe(true);
+    expect(result.hasEnterpriseFitContradictionSignal).toBe(true);
   });
 });

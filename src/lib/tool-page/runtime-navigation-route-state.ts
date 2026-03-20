@@ -124,6 +124,8 @@ export function buildToolPageRuntimeNavigationRouteState(
       decisionLayerConsistencySignals.hasDuplicatePricingRealitySignal,
     hasDuplicateFitMatrixRowsSignal:
       decisionLayerConsistencySignals.hasDuplicateFitMatrixRowsSignal,
+    hasEnterpriseFitContradictionSignal:
+      decisionLayerConsistencySignals.hasEnterpriseFitContradictionSignal,
   });
   const { runtimeViewBundle } = buildToolPageRuntimeAssembly(
     buildToolPageRuntimeAssemblyInputBundleFromPageContext({
