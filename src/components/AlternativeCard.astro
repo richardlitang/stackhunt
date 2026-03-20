@@ -21,6 +21,7 @@ import {
 import {
   buildAlternativeChooseLine,
   buildAlternativeComparisonAxisLabel,
+  buildAlternativeRebuttalAngle,
 } from '@/lib/tool-page/alternative-rationale';
 
 interface Props {
@@ -93,6 +94,10 @@ const chooseInsteadLine = buildAlternativeChooseLine({
   computedDiff,
 });
 const comparisonAxisLabel = buildAlternativeComparisonAxisLabel({
+  curatedVerdict,
+  computedDiff,
+});
+const rebuttalAngleLabel = buildAlternativeRebuttalAngle({
   curatedVerdict,
   computedDiff,
 });
@@ -175,6 +180,8 @@ const recommendationEvidenceChipClass =
   {/* Layer 3: Fallback */}
   {showFallback && <p class="mb-3 text-xs text-zinc-400 line-clamp-2">{fallbackDescription}</p>}
   <div class="mb-3 rounded border border-zinc-800 bg-zinc-950/40 px-2.5 py-2">
+    <p class="text-[11px] uppercase tracking-wide text-zinc-500">Rebuttal angle</p>
+    <p class="mt-1 text-xs text-zinc-300">{rebuttalAngleLabel}</p>
     <p class="text-[11px] uppercase tracking-wide text-zinc-500">Comparison axis</p>
     <p class="mt-1 text-xs text-zinc-300">{comparisonAxisLabel}</p>
     <p class="text-[11px] uppercase tracking-wide text-zinc-500">Choose this instead if</p>

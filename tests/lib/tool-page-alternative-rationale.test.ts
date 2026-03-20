@@ -1,77 +1,20 @@
 import { describe, expect, it } from 'vitest';
+import { buildAlternativeRebuttalAngle } from '@/lib/tool-page/alternative-rationale';
 
-import {
-  buildAlternativeComparisonAxisLabel,
-  buildAlternativeChooseLine,
-  buildAlternativeRationaleSourceLabel,
-} from '@/lib/tool-page/alternative-rationale';
-
-describe('buildAlternativeChooseLine', () => {
-  it('uses curated verdict when available', () => {
-    const result = buildAlternativeChooseLine({
-      altName: 'Salesforce',
-      mainName: 'Attio',
-      curatedVerdict: 'you need enterprise governance controls',
-      computedDiff: { priceDiff: 'Higher seat cost' },
+describe('tool page alternative rationale', () => {
+  it('maps pricing diffs to cheaper-at-scale rebuttal angle', () => {
+    const result = buildAlternativeRebuttalAngle({
+      curatedVerdict: null,
+      computedDiff: { priceDiff: 'Free vs $29 per seat' },
     });
-
-    expect(result).toBe('Choose Salesforce instead if: you need enterprise governance controls');
+    expect(result).toBe('Cheaper at scale');
   });
 
-  it('includes concrete computed pricing signal when curated verdict is absent', () => {
-    const result = buildAlternativeChooseLine({
-      altName: 'Pipedrive',
-      mainName: 'Attio',
-      computedDiff: { priceDiff: 'Free vs $29/user.' },
-    });
-
-    expect(result).toContain('Free vs $29/user');
-  });
-
-  it('falls back to a decision-oriented choose line when no evidence exists', () => {
-    const result = buildAlternativeChooseLine({
-      altName: 'HubSpot',
-      mainName: 'Attio',
+  it('maps governance language in curated verdict to governance angle', () => {
+    const result = buildAlternativeRebuttalAngle({
+      curatedVerdict: 'Choose this for stricter governance and audit controls.',
       computedDiff: null,
     });
-
-    expect(result).toContain('pricing model, rollout speed, or capability mix');
-  });
-});
-
-describe('buildAlternativeRationaleSourceLabel', () => {
-  it('returns comparison brief when curated verdict exists', () => {
-    expect(buildAlternativeRationaleSourceLabel('Enterprise fit')).toBe('Comparison brief');
-  });
-
-  it('returns pending verification without curated verdict', () => {
-    expect(buildAlternativeRationaleSourceLabel(null)).toBe('Pending verification');
-  });
-});
-
-describe('buildAlternativeComparisonAxisLabel', () => {
-  it('returns comparison brief when curated verdict exists', () => {
-    expect(
-      buildAlternativeComparisonAxisLabel({
-        curatedVerdict: 'Enterprise controls are stronger',
-        computedDiff: { priceDiff: 'Higher seat cost' },
-      })
-    ).toBe('Comparison brief');
-  });
-
-  it('returns pricing model when pricing diff drives recommendation', () => {
-    expect(
-      buildAlternativeComparisonAxisLabel({
-        computedDiff: { priceDiff: 'Free vs $29/user' },
-      })
-    ).toBe('Pricing model');
-  });
-
-  it('returns workflow fit fallback when no explicit diff exists', () => {
-    expect(
-      buildAlternativeComparisonAxisLabel({
-        computedDiff: null,
-      })
-    ).toBe('Workflow fit');
+    expect(result).toBe('Stronger governance');
   });
 });

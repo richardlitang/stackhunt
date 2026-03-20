@@ -42,6 +42,8 @@ describe('tool page lane outputs', () => {
               main_risk: 'Approval depth is plan-gated.',
               upgrade_trigger: 'Upgrade when automation depth is required.',
               implementation_friction_level: 'medium',
+              implementation_friction_drivers: ['Role mapping', 'Approval routing'],
+              implementation_friction_stakeholders: ['operations', 'finance'],
               fit_matrix: {
                 solo: {
                   fit: 'mixed',
@@ -61,6 +63,15 @@ describe('tool page lane outputs', () => {
                   common_failure: 'Automation feature is gated.',
                 },
               ],
+              alternatives_rebuttals: [
+                {
+                  slug: 'budgetflow',
+                  tool_name: 'BudgetFlow',
+                  choose_instead_if: 'Budget is fixed and strict',
+                  differentiator: 'cheaper_at_scale',
+                  confidence: 'high',
+                },
+              ],
             },
           },
         },
@@ -74,8 +85,15 @@ describe('tool page lane outputs', () => {
     expect(laneOutputs?.user_signal_sheet.user_signal_pros.length).toBe(1);
     expect(laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when).toContain('Paid needed');
     expect(laneOutputs?.editorial_decision.main_risk).toContain('plan-gated');
+    expect(laneOutputs?.editorial_decision.implementation_friction_drivers?.length).toBe(2);
+    expect(laneOutputs?.editorial_decision.implementation_friction_stakeholders?.[0]).toBe(
+      'operations'
+    );
     expect(laneOutputs?.editorial_decision.fit_matrix?.solo?.fit).toBe('mixed');
     expect(laneOutputs?.editorial_decision.test_before_buy?.[0]?.name).toBe('Daily workflow test');
+    expect(laneOutputs?.editorial_decision.alternatives_rebuttals?.[0]?.differentiator).toBe(
+      'cheaper_at_scale'
+    );
     expect(countToolPageLaneUserSignals(laneOutputs)).toBe(2);
   });
 

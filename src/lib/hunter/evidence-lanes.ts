@@ -247,6 +247,58 @@ function toUpgradeTriggerFromFacts(input: {
   return input.mainTradeoff;
 }
 
+function inferImplementationFrictionLevel(input: {
+  officialLimitFacts: HunterLaneClaim[];
+  mainTradeoff: string | null;
+}): 'low' | 'medium' | 'high' | null {
+  const limitCount = input.officialLimitFacts.length;
+  const tradeoffText = (input.mainTradeoff || '').toLowerCase();
+  if (
+    limitCount >= 3 ||
+    /\b(migration|procurement|governance|approval|compliance|admin)\b/.test(tradeoffText)
+  ) {
+    return 'high';
+  }
+  if (limitCount >= 1 || /\b(setup|integration|handoff|permissions|roles)\b/.test(tradeoffText)) {
+    return 'medium';
+  }
+  return null;
+}
+
+function inferImplementationFrictionStakeholders(input: {
+  bestFor: string | null;
+  notFor: string | null;
+}): string[] {
+  const text = `${input.bestFor || ''} ${input.notFor || ''}`.toLowerCase();
+  const stakeholders: string[] = [];
+  if (/\b(engineer|developer|devops|it)\b/.test(text)) stakeholders.push('engineering');
+  if (/\b(finance|procurement|controller|audit)\b/.test(text)) stakeholders.push('finance');
+  if (/\b(security|compliance|governance|risk)\b/.test(text)) stakeholders.push('security');
+  if (/\b(manager|ops|operations|admin)\b/.test(text)) stakeholders.push('operations');
+  if (stakeholders.length === 0) stakeholders.push('operations');
+  return stakeholders.slice(0, 3);
+}
+
+type AlternativeDifferentiator =
+  | 'cheaper_at_scale'
+  | 'faster_setup'
+  | 'deeper_automation'
+  | 'stronger_governance'
+  | 'better_developer_control'
+  | 'better_reporting'
+  | 'workflow_fit';
+
+function inferAlternativeDifferentiator(reason: string): AlternativeDifferentiator {
+  const text = reason.toLowerCase();
+  if (/\b(price|pricing|cost|cheaper|budget|seat)\b/.test(text)) return 'cheaper_at_scale';
+  if (/\b(fast|faster|quick|setup|onboard|rollout)\b/.test(text)) return 'faster_setup';
+  if (/\b(automation|workflow|orchestrat)\b/.test(text)) return 'deeper_automation';
+  if (/\b(governance|compliance|audit|control|policy)\b/.test(text)) return 'stronger_governance';
+  if (/\b(api|sdk|developer|extensib|code)\b/.test(text)) return 'better_developer_control';
+  if (/\b(report|analytics|dashboard|insight)\b/.test(text)) return 'better_reporting';
+  return 'workflow_fit';
+}
+
 export function buildHunterLaneOutputs(input: {
   toolName: string;
   toolSlug: string;
@@ -306,6 +358,15 @@ export function buildHunterLaneOutputs(input: {
     officialPricingFacts,
     mainTradeoff,
   });
+  const implementationFrictionLevel = inferImplementationFrictionLevel({
+    officialLimitFacts,
+    mainTradeoff,
+  });
+  const implementationFrictionDrivers = officialLimitFacts.slice(0, 3).map((claim) => claim.text);
+  const implementationFrictionStakeholders = inferImplementationFrictionStakeholders({
+    bestFor,
+    notFor,
+  });
   const fitMatrix = {
     solo: buildLaneFitRow('mixed', bestFor, upgradeTrigger),
     startup: buildLaneFitRow('mixed', bestFor, upgradeTrigger),
@@ -335,6 +396,46 @@ export function buildHunterLaneOutputs(input: {
     hidden_cost_triggers: officialLimitFacts.slice(0, 3).map((claim) => claim.text),
     main_cost_drivers: officialPricingFacts.slice(0, 3).map((claim) => claim.text),
   };
+  const alternativesRebuttals = Array.isArray(input.analysis.vetoLogic)
+    ? input.analysis.vetoLogic
+        .map((row) => {
+          const alternative = (row.alternative || '').trim();
+          if (!alternative) return null;
+          const slug = alternative
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+          if (!slug) return null;
+          const chooseInsteadIf = (row.condition || row.text || '').trim() || null;
+          const reason = (row.reason || '').trim();
+          return {
+            slug,
+            tool_name: alternative,
+            choose_instead_if: chooseInsteadIf,
+            differentiator: inferAlternativeDifferentiator(reason || chooseInsteadIf || ''),
+            confidence: row.source_url ? 'high' : 'medium',
+          };
+        })
+        .filter(
+          (
+            row
+          ): row is {
+            slug: string;
+            tool_name: string;
+            choose_instead_if: string | null;
+            differentiator:
+              | 'cheaper_at_scale'
+              | 'faster_setup'
+              | 'deeper_automation'
+              | 'stronger_governance'
+              | 'better_developer_control'
+              | 'better_reporting'
+              | 'workflow_fit';
+            confidence: 'high' | 'medium' | 'low';
+          } => Boolean(row)
+        )
+        .slice(0, 6)
+    : [];
 
   return {
     subject_profile: {
@@ -366,9 +467,12 @@ export function buildHunterLaneOutputs(input: {
           : null,
       main_risk: mainRisk,
       upgrade_trigger: upgradeTrigger,
-      implementation_friction_level: null,
+      implementation_friction_level: implementationFrictionLevel,
+      implementation_friction_drivers: implementationFrictionDrivers,
+      implementation_friction_stakeholders: implementationFrictionStakeholders,
       fit_matrix: fitMatrix,
       test_before_buy: testBeforeBuy,
+      alternatives_rebuttals: alternativesRebuttals,
     },
   };
 }

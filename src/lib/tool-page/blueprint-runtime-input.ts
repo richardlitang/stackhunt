@@ -21,6 +21,25 @@ interface BuildToolPageBlueprintRuntimeInputFromRouteDataInput {
   laneOutputs: ToolPageLaneOutputs | null;
 }
 
+function toAlternativeRebuttalDifferentiatorLabel(
+  value:
+    | 'cheaper_at_scale'
+    | 'faster_setup'
+    | 'deeper_automation'
+    | 'stronger_governance'
+    | 'better_developer_control'
+    | 'better_reporting'
+    | 'workflow_fit'
+): string {
+  if (value === 'cheaper_at_scale') return 'Cheaper at scale';
+  if (value === 'faster_setup') return 'Faster setup';
+  if (value === 'deeper_automation') return 'Deeper automation';
+  if (value === 'stronger_governance') return 'Stronger governance';
+  if (value === 'better_developer_control') return 'Better developer control';
+  if (value === 'better_reporting') return 'Better reporting';
+  return 'Workflow fit';
+}
+
 export function buildToolPageBlueprintRuntimeInputFromRouteData(
   input: BuildToolPageBlueprintRuntimeInputFromRouteDataInput
 ): Parameters<typeof buildToolPageBuyerDecisionLayer>[0] {
@@ -170,7 +189,9 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
       implementationFriction: {
         level: input.laneOutputs?.editorial_decision.implementation_friction_level || 'unknown',
         summary: input.chromeState.gettingStartedProps.setupComplexity || null,
-        drivers: [],
+        drivers: input.laneOutputs?.editorial_decision.implementation_friction_drivers || [],
+        stakeholders:
+          input.laneOutputs?.editorial_decision.implementation_friction_stakeholders || [],
       },
       evidence: {
         evidenceType: 'editorial_inference',
@@ -209,6 +230,14 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
       },
     },
     beforeYouBuyTests,
-    alternativesRebuttals: [],
+    alternativesRebuttals: (input.laneOutputs?.editorial_decision.alternatives_rebuttals || []).map(
+      (entry) => ({
+        slug: entry.slug,
+        toolName: entry.tool_name,
+        chooseInsteadIf: entry.choose_instead_if,
+        differentiator: toAlternativeRebuttalDifferentiatorLabel(entry.differentiator),
+        confidence: entry.confidence,
+      })
+    ),
   };
 }

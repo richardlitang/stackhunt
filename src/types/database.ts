@@ -488,6 +488,8 @@ export interface ToolCanonicalFacts {
       main_risk?: string | null;
       upgrade_trigger?: string | null;
       implementation_friction_level?: 'low' | 'medium' | 'high' | null;
+      implementation_friction_drivers?: string[];
+      implementation_friction_stakeholders?: string[];
       fit_matrix?: {
         solo: {
           fit: 'weak' | 'mixed' | 'strong';
@@ -516,6 +518,20 @@ export interface ToolCanonicalFacts {
         test: string | null;
         pass_condition: string | null;
         common_failure: string | null;
+      }>;
+      alternatives_rebuttals?: Array<{
+        slug: string;
+        tool_name: string;
+        choose_instead_if: string | null;
+        differentiator:
+          | 'cheaper_at_scale'
+          | 'faster_setup'
+          | 'deeper_automation'
+          | 'stronger_governance'
+          | 'better_developer_control'
+          | 'better_reporting'
+          | 'workflow_fit';
+        confidence: 'high' | 'medium' | 'low';
       }>;
     };
   };

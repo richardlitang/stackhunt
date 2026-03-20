@@ -62,7 +62,7 @@ const {
         notFor: null,
         mainRisk: null,
         upgradeTrigger: null,
-        implementationFriction: { level: 'unknown', summary: null, drivers: [] },
+        implementationFriction: { level: 'unknown', summary: null, drivers: [], stakeholders: [] },
         evidence: {
           evidenceType: 'unknown',
           confidence: 'low',

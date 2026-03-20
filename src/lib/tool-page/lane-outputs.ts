@@ -39,6 +39,8 @@ export interface ToolPageLaneOutputs {
     main_risk?: string | null;
     upgrade_trigger?: string | null;
     implementation_friction_level?: 'low' | 'medium' | 'high' | null;
+    implementation_friction_drivers?: string[];
+    implementation_friction_stakeholders?: string[];
     fit_matrix?: {
       solo: {
         fit: 'weak' | 'mixed' | 'strong';
@@ -67,6 +69,20 @@ export interface ToolPageLaneOutputs {
       test: string | null;
       pass_condition: string | null;
       common_failure: string | null;
+    }>;
+    alternatives_rebuttals?: Array<{
+      slug: string;
+      tool_name: string;
+      choose_instead_if: string | null;
+      differentiator:
+        | 'cheaper_at_scale'
+        | 'faster_setup'
+        | 'deeper_automation'
+        | 'stronger_governance'
+        | 'better_developer_control'
+        | 'better_reporting'
+        | 'workflow_fit';
+      confidence: 'high' | 'medium' | 'low';
     }>;
   };
 }
@@ -140,6 +156,34 @@ function toStringArray(value: unknown): string[] {
   return value
     .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
     .filter((entry) => entry.length > 0);
+}
+
+function toDifferentiatorOrWorkflow(
+  value: unknown
+):
+  | 'cheaper_at_scale'
+  | 'faster_setup'
+  | 'deeper_automation'
+  | 'stronger_governance'
+  | 'better_developer_control'
+  | 'better_reporting'
+  | 'workflow_fit' {
+  if (
+    value === 'cheaper_at_scale' ||
+    value === 'faster_setup' ||
+    value === 'deeper_automation' ||
+    value === 'stronger_governance' ||
+    value === 'better_developer_control' ||
+    value === 'better_reporting'
+  ) {
+    return value;
+  }
+  return 'workflow_fit';
+}
+
+function toConfidenceOrMedium(value: unknown): 'high' | 'medium' | 'low' {
+  if (value === 'high' || value === 'medium' || value === 'low') return value;
+  return 'medium';
 }
 
 function toFitRow(
@@ -271,6 +315,10 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
         editorial.implementation_friction_level === 'high'
           ? editorial.implementation_friction_level
           : null,
+      implementation_friction_drivers: toStringArray(editorial.implementation_friction_drivers),
+      implementation_friction_stakeholders: toStringArray(
+        editorial.implementation_friction_stakeholders
+      ),
       ...(fitMatrix
         ? {
             fit_matrix: {
@@ -282,6 +330,42 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
           }
         : {}),
       test_before_buy: toTestBeforeBuy(editorial.test_before_buy),
+      alternatives_rebuttals: Array.isArray(editorial.alternatives_rebuttals)
+        ? editorial.alternatives_rebuttals
+            .map((entry) => {
+              if (!entry || typeof entry !== 'object') return null;
+              const row = entry as Record<string, unknown>;
+              if (typeof row.slug !== 'string' || row.slug.trim().length === 0) return null;
+              if (typeof row.tool_name !== 'string' || row.tool_name.trim().length === 0)
+                return null;
+              return {
+                slug: row.slug.trim(),
+                tool_name: row.tool_name.trim(),
+                choose_instead_if: toStringOrNull(row.choose_instead_if),
+                differentiator: toDifferentiatorOrWorkflow(row.differentiator),
+                confidence: toConfidenceOrMedium(row.confidence),
+              };
+            })
+            .filter(
+              (
+                row
+              ): row is {
+                slug: string;
+                tool_name: string;
+                choose_instead_if: string | null;
+                differentiator:
+                  | 'cheaper_at_scale'
+                  | 'faster_setup'
+                  | 'deeper_automation'
+                  | 'stronger_governance'
+                  | 'better_developer_control'
+                  | 'better_reporting'
+                  | 'workflow_fit';
+                confidence: 'high' | 'medium' | 'low';
+              } => Boolean(row)
+            )
+            .slice(0, 6)
+        : [],
     },
   };
 }

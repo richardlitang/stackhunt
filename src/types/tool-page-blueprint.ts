@@ -26,6 +26,7 @@ export interface ToolPageHeroDecisionCard {
     level: ToolPageImplementationFrictionLevel;
     summary: string | null;
     drivers: string[];
+    stakeholders: string[];
   };
   evidence: ToolPageEvidenceMarker;
 }

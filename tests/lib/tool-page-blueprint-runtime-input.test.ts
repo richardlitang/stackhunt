@@ -64,6 +64,8 @@ describe('tool page blueprint runtime input', () => {
     expect(result.beforeYouBuyTests).toHaveLength(3);
     expect(result.beforeYouBuyTests[0].name).toBe('Daily workflow test');
     expect(result.beforeYouBuyTests[2].name).toBe('Failure and export test');
+    expect(result.heroDecisionCard.implementationFriction.stakeholders).toEqual([]);
+    expect(result.alternativesRebuttals).toEqual([]);
   });
 
   it('prefers lane-native decision fields when available', () => {
@@ -138,6 +140,8 @@ describe('tool page blueprint runtime input', () => {
           main_risk: 'Lane risk',
           upgrade_trigger: 'Lane upgrade',
           implementation_friction_level: 'high',
+          implementation_friction_drivers: ['Role mapping complexity'],
+          implementation_friction_stakeholders: ['security', 'operations'],
           fit_matrix: {
             solo: { fit: 'strong', caveat: 'Lane caveat', reason: 'Lane reason' },
             startup: null,
@@ -153,6 +157,15 @@ describe('tool page blueprint runtime input', () => {
               common_failure: 'Lane fail',
             },
           ],
+          alternatives_rebuttals: [
+            {
+              slug: 'budgetflow',
+              tool_name: 'BudgetFlow',
+              choose_instead_if: 'Budget predictability is mandatory',
+              differentiator: 'cheaper_at_scale',
+              confidence: 'high',
+            },
+          ],
         },
       },
     });
@@ -163,5 +176,11 @@ describe('tool page blueprint runtime input', () => {
     expect(result.fitMatrix.solo?.reason).toBe('Lane reason');
     expect(result.pricingReality?.freeWorksIf).toBe('Lane free condition');
     expect(result.beforeYouBuyTests[0].name).toBe('Lane test');
+    expect(result.heroDecisionCard.implementationFriction.drivers[0]).toBe(
+      'Role mapping complexity'
+    );
+    expect(result.heroDecisionCard.implementationFriction.stakeholders[0]).toBe('security');
+    expect(result.alternativesRebuttals[0].toolName).toBe('BudgetFlow');
+    expect(result.alternativesRebuttals[0].differentiator).toBe('Cheaper at scale');
   });
 });

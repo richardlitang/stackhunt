@@ -231,6 +231,8 @@ export interface HunterEditorialDecision {
   main_risk?: string | null;
   upgrade_trigger?: string | null;
   implementation_friction_level?: 'low' | 'medium' | 'high' | null;
+  implementation_friction_drivers?: string[];
+  implementation_friction_stakeholders?: string[];
   fit_matrix?: {
     solo: { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } | null;
     startup: {
@@ -255,6 +257,20 @@ export interface HunterEditorialDecision {
     test: string | null;
     pass_condition: string | null;
     common_failure: string | null;
+  }>;
+  alternatives_rebuttals?: Array<{
+    slug: string;
+    tool_name: string;
+    choose_instead_if: string | null;
+    differentiator:
+      | 'cheaper_at_scale'
+      | 'faster_setup'
+      | 'deeper_automation'
+      | 'stronger_governance'
+      | 'better_developer_control'
+      | 'better_reporting'
+      | 'workflow_fit';
+    confidence: 'high' | 'medium' | 'low';
   }>;
 }
 
@@ -972,6 +988,8 @@ export const AnalysisSchema = z.object({
         main_risk: z.string().nullable().optional(),
         upgrade_trigger: z.string().nullable().optional(),
         implementation_friction_level: z.enum(['low', 'medium', 'high']).nullable().optional(),
+        implementation_friction_drivers: z.array(z.string()).default([]).optional(),
+        implementation_friction_stakeholders: z.array(z.string()).default([]).optional(),
         fit_matrix: z
           .object({
             solo: z
@@ -1012,6 +1030,25 @@ export const AnalysisSchema = z.object({
               test: z.string().nullable(),
               pass_condition: z.string().nullable(),
               common_failure: z.string().nullable(),
+            })
+          )
+          .optional(),
+        alternatives_rebuttals: z
+          .array(
+            z.object({
+              slug: z.string().min(1),
+              tool_name: z.string().min(1),
+              choose_instead_if: z.string().nullable(),
+              differentiator: z.enum([
+                'cheaper_at_scale',
+                'faster_setup',
+                'deeper_automation',
+                'stronger_governance',
+                'better_developer_control',
+                'better_reporting',
+                'workflow_fit',
+              ]),
+              confidence: z.enum(['high', 'medium', 'low']),
             })
           )
           .optional(),

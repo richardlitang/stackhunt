@@ -76,6 +76,14 @@ function makeAnalysis(): HunterAnalysis {
         source_url: 'https://acme.com/pricing',
       },
     ],
+    vetoLogic: [
+      {
+        condition: 'Budget is under $500 per month',
+        alternative: 'BudgetFlow',
+        reason: 'Lower seat pricing and predictable scaling costs',
+        source_url: 'https://acme.com/pricing',
+      },
+    ],
   };
 }
 
@@ -94,8 +102,15 @@ describe('hunter evidence lanes', () => {
     expect(laneOutputs.user_signal_sheet.user_signal_pros.length).toBeGreaterThan(0);
     expect(laneOutputs.editorial_decision.best_for).toContain('Teams scaling automation');
     expect(laneOutputs.editorial_decision.main_risk).toBeTruthy();
+    expect(laneOutputs.editorial_decision.implementation_friction_drivers?.length).toBeGreaterThan(
+      0
+    );
+    expect(
+      laneOutputs.editorial_decision.implementation_friction_stakeholders?.length
+    ).toBeGreaterThan(0);
     expect(laneOutputs.editorial_decision.fit_matrix?.solo.fit).toBe('mixed');
     expect(laneOutputs.editorial_decision.test_before_buy?.length).toBeGreaterThan(0);
+    expect(laneOutputs.editorial_decision.alternatives_rebuttals?.length).toBeGreaterThan(0);
   });
 
   it('categorizes official pricing and limit facts separately', () => {
