@@ -6,10 +6,10 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `buildToolPageRequestRouteState(...)` (frontmatter line 53)
-2. `getToolPageData(...)` (frontmatter line 58)
-3. `buildToolPagePageCompilerRouteStateFromPageContext(...)` (frontmatter line 62)
-4. `applyToolPageResponseRouteState(...)` (frontmatter line 70)
+1. `buildToolPageRequestRouteState(...)` (frontmatter line 57)
+2. `getToolPageData(...)` (frontmatter line 62)
+3. `buildToolPagePageCompilerRouteStateFromPageContext(...)` (frontmatter line 66)
+4. `applyToolPageResponseRouteState(...)` (frontmatter line 74)
 
 ## Tool-Page Imports Used by Route
 
