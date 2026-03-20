@@ -70,30 +70,32 @@ Add acceptance tests, QA checks, and route-map updates.
 
 ## Gap Table (Current Lane Coverage)
 
-| Blueprint field | Current owner | Status | Notes |
-| --- | --- | --- | --- |
-| `best_for`, `not_for`, `main_risk/tradeoff` | `editorial_decision` | Present | Already available via lane outputs and decision utility mapping. |
-| `upgrade_trigger` | runtime heuristics (`decision_utility`) | Needs canonical field | Should move into persisted lane output to avoid heuristic-only fallbacks. |
-| `implementation_friction` | setup/runtime hints | Partial | Needs explicit level plus evidence-backed drivers. |
-| `fit_matrix` (solo/startup/mid-market/enterprise) | none | Missing | Requires explicit lane structure, do not infer from one active lens line. |
-| `pricing_reality.free_works_if` | pricing/runtime prose | Partial | Convert from narrative to typed field. |
-| `pricing_reality.paid_needed_when` | pricing/runtime prose | Partial | Convert from narrative to typed field. |
-| `pricing_reality.hidden_cost_triggers` | limits + pricing hints | Partial | Should be canonical field list with evidence references. |
-| `test_before_buy` (exactly 3 cards) | decision utility checklist | Partial | Existing checklist exists, but lacks strict 3-card typed contract. |
-| `alternatives.choose_instead_if` rebuttal | alternatives runtime | Partial | Existing cards need explicit rebuttal field and confidence. |
-| capability inventory states (gated/partial/unavailable) | specs/runtime | Partial | Needs normalized display-state labels and collapse behavior. |
-| decision-support FAQ filtering | FAQ runtime | Partial | Add explicit classifier/suppression logic for low-value prompts. |
-| compact trust strip + full trust footer | trust runtime | Present | Render split exists conceptually, needs consistent prominence rules. |
+| Blueprint field                                         | Current owner                           | Status                | Notes                                                                     |
+| ------------------------------------------------------- | --------------------------------------- | --------------------- | ------------------------------------------------------------------------- |
+| `best_for`, `not_for`, `main_risk/tradeoff`             | `editorial_decision`                    | Present               | Already available via lane outputs and decision utility mapping.          |
+| `upgrade_trigger`                                       | runtime heuristics (`decision_utility`) | Needs canonical field | Should move into persisted lane output to avoid heuristic-only fallbacks. |
+| `implementation_friction`                               | setup/runtime hints                     | Partial               | Needs explicit level plus evidence-backed drivers.                        |
+| `fit_matrix` (solo/startup/mid-market/enterprise)       | none                                    | Missing               | Requires explicit lane structure, do not infer from one active lens line. |
+| `pricing_reality.free_works_if`                         | pricing/runtime prose                   | Partial               | Convert from narrative to typed field.                                    |
+| `pricing_reality.paid_needed_when`                      | pricing/runtime prose                   | Partial               | Convert from narrative to typed field.                                    |
+| `pricing_reality.hidden_cost_triggers`                  | limits + pricing hints                  | Partial               | Should be canonical field list with evidence references.                  |
+| `test_before_buy` (exactly 3 cards)                     | decision utility checklist              | Partial               | Existing checklist exists, but lacks strict 3-card typed contract.        |
+| `alternatives.choose_instead_if` rebuttal               | alternatives runtime                    | Partial               | Existing cards need explicit rebuttal field and confidence.               |
+| capability inventory states (gated/partial/unavailable) | specs/runtime                           | Partial               | Needs normalized display-state labels and collapse behavior.              |
+| decision-support FAQ filtering                          | FAQ runtime                             | Partial               | Add explicit classifier/suppression logic for low-value prompts.          |
+| compact trust strip + full trust footer                 | trust runtime                           | Present               | Render split exists conceptually, needs consistent prominence rules.      |
 
 ## Tasks
 
 ### Task 1: Freeze the buyer-first blueprint doc
 
 **Files:**
+
 - Create: `docs/TOOL_PAGE_BLUEPRINT_V1.md`
 - Modify: `docs/index.md`
 
 **Action:**
+
 - Write the durable spec for section order, required fields, suppression rules, badge vocabulary, and default open/closed states.
 - Fold in the six required buyer questions:
   - best for
@@ -105,6 +107,7 @@ Add acceptance tests, QA checks, and route-map updates.
 - Make the doc explicitly state `decision layer` vs `reference layer`.
 
 **Verify:**
+
 ```bash
 rg -n "decision layer|reference layer|fit matrix|pricing reality|test before buy" docs/TOOL_PAGE_BLUEPRINT_V1.md
 ```
@@ -116,14 +119,17 @@ rg -n "decision layer|reference layer|fit matrix|pricing reality|test before buy
 ### Task 2: Tighten the existing standard doc to point at the blueprint
 
 **Files:**
+
 - Modify: `docs/TOOL_PAGE_STANDARD_V1.md`
 
 **Action:**
+
 - Keep `TOOL_PAGE_STANDARD_V1.md` as the normative quality standard.
 - Add a short cross-reference to `docs/TOOL_PAGE_BLUEPRINT_V1.md` for layout and render-contract details.
 - Avoid duplicating long prose between the two docs.
 
 **Verify:**
+
 ```bash
 rg -n "TOOL_PAGE_BLUEPRINT_V1" docs/TOOL_PAGE_STANDARD_V1.md
 ```
@@ -135,11 +141,13 @@ rg -n "TOOL_PAGE_BLUEPRINT_V1" docs/TOOL_PAGE_STANDARD_V1.md
 ### Task 3: Add a typed buyer render contract
 
 **Files:**
+
 - Create: `src/types/tool-page-blueprint.ts`
 - Create: `src/lib/tool-page/blueprint-contract.ts`
 - Modify: `src/lib/tool-page/index.ts`
 
 **Action:**
+
 - Define typed render shapes for:
   - `heroDecisionCard`
   - `fitMatrix`
@@ -157,6 +165,7 @@ rg -n "TOOL_PAGE_BLUEPRINT_V1" docs/TOOL_PAGE_STANDARD_V1.md
 - Keep this as a compiler output contract, not a persistence schema.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 ```
@@ -168,9 +177,11 @@ npm run typecheck
 ### Task 4: Audit current lane coverage against the blueprint
 
 **Files:**
+
 - Modify: `docs/plans/active/2026-03-19-buyer-first-tool-page-blueprint-v1.md`
 
 **Action:**
+
 - Add a gap table mapping blueprint fields to current lane owners:
   - already present
   - derivable
@@ -183,6 +194,7 @@ npm run typecheck
   - alternatives rebuttal framing
 
 **Verify:**
+
 ```bash
 rg -n "Gap table|needs new field|fit by buyer type" docs/plans/active/2026-03-19-buyer-first-tool-page-blueprint-v1.md
 ```
@@ -194,12 +206,14 @@ rg -n "Gap table|needs new field|fit by buyer type" docs/plans/active/2026-03-19
 ### Task 5: Extend hunter lane types for missing buyer fields
 
 **Files:**
+
 - Modify: `src/lib/hunter/types.ts`
 - Modify: `src/lib/hunter/evidence-lanes.ts`
 - Modify: `src/types/database.ts`
 - Modify: `src/lib/tool-page/lane-outputs.ts`
 
 **Action:**
+
 - Extend `editorial_decision` and `fact_sheet` with the minimum new fields needed:
   - `upgrade_trigger`
   - `main_risk`
@@ -213,6 +227,7 @@ rg -n "Gap table|needs new field|fit by buyer type" docs/plans/active/2026-03-19
 - Do not store a second duplicated prose summary if the data is already expressible via typed fields.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 ```
@@ -224,15 +239,18 @@ npm run typecheck
 ### Task 6: Persist the new lane fields without widening fallback behavior
 
 **Files:**
+
 - Modify: `src/lib/hunter/phases/persistence.ts`
 
 **Action:**
+
 - Persist the new lane fields into `entity_first_lane_outputs`.
 - Reuse existing evidence-lane discipline.
 - Keep nulls when evidence is insufficient.
 - Do not add fallback prose generators in persistence.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run test -- tests/lib/tool-page* 2>/dev/null || true
@@ -245,12 +263,14 @@ npm run test -- tests/lib/tool-page* 2>/dev/null || true
 ### Task 7: Add a blueprint compiler from route data to view state
 
 **Files:**
+
 - Create: `src/lib/tool-page/blueprint-runtime.ts`
 - Create: `src/lib/tool-page/blueprint-runtime-input.ts`
 - Modify: `src/lib/tool-page/page-assembly-route-state.ts`
 - Modify: `src/lib/tool-page/page-compiler-route-state.ts`
 
 **Action:**
+
 - Compile the new lane fields plus existing route state into one blueprint runtime output.
 - Centralize section suppression here, not in the route template.
 - Emit:
@@ -260,6 +280,7 @@ npm run test -- tests/lib/tool-page* 2>/dev/null || true
   - merged navigation state
 
 **Verify:**
+
 ```bash
 npm run typecheck
 ```
@@ -271,6 +292,7 @@ npm run typecheck
 ### Task 8: Merge reader controls and quick jump into one navigation module
 
 **Files:**
+
 - Create: `src/components/ToolDecisionToolbar.astro`
 - Modify: `src/lib/tool-page/navigation-state.ts`
 - Modify: `src/lib/tool-page/quick-jump-links.ts`
@@ -278,6 +300,7 @@ npm run typecheck
 - Modify: `src/lib/tool-page/section-order.ts`
 
 **Action:**
+
 - Replace the current split between lens controls and jump links with one toolbar:
   - `View as: General / Solo / Startup / Enterprise`
   - `Jump to: Pricing / Risks / Tests / Alternatives / FAQ`
@@ -285,6 +308,7 @@ npm run typecheck
 - Keep a single mobile-safe compact module.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -297,12 +321,14 @@ npm run build
 ### Task 9: Rebuild the above-the-fold area around one dominant decision card
 
 **Files:**
+
 - Modify: `src/pages/tool/[slug].astro`
 - Create: `src/components/ToolImmediateVerdictCard.astro`
 - Create: `src/components/ToolCompactTrustStrip.astro`
 - Modify: `src/lib/tool-page/trust-bar-props.ts`
 
 **Action:**
+
 - Keep the left side to:
   - tool name
   - one-line description
@@ -318,6 +344,7 @@ npm run build
 - Remove above-the-fold generic axis copy such as `free-tier fit vs first paid complexity trigger` unless the lane output actually supports it.
 
 **Verify:**
+
 ```bash
 npm run build
 ```
@@ -329,11 +356,13 @@ npm run build
 ### Task 10: Replace the early decision utility block with a fit matrix
 
 **Files:**
+
 - Create: `src/components/ToolFitMatrix.astro`
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: `src/lib/tool-page/decision-utility.ts`
 
 **Action:**
+
 - Remove the current early summary block as the primary section below the hero.
 - Render a buyer-type fit matrix with text plus signal state:
   - solo
@@ -344,6 +373,7 @@ npm run build
 - If fit evidence is weak, suppress specific rows instead of filling them with template-safe language.
 
 **Verify:**
+
 ```bash
 npm run build
 ```
@@ -355,6 +385,7 @@ npm run build
 ### Task 11: Refactor pricing into pricing reality
 
 **Files:**
+
 - Create: `src/components/ToolPricingRealitySection.astro`
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: `src/lib/tool-page/pricing-section.ts`
@@ -362,6 +393,7 @@ npm run build
 - Modify: `src/lib/tool-page/pricing-scenarios.ts`
 
 **Action:**
+
 - Replace the current pricing framing with explicit buyer questions:
   - `Free works if...`
   - `Paid becomes necessary when...`
@@ -373,6 +405,7 @@ npm run build
 - Make hidden triggers and upgrade triggers source-backed or explicitly unconfirmed.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -385,12 +418,14 @@ npm run build
 ### Task 12: Replace generic rollout content with exactly three test cards
 
 **Files:**
+
 - Create: `src/components/ToolBeforeYouBuyTests.astro`
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: `src/lib/tool-page/decision-utility.ts`
 - Modify: `src/components/ToolDecisionUtilitySection.astro`
 
 **Action:**
+
 - Remove the current checklist/common-setup framing as the primary rollout module.
 - Render exactly three cards when present:
   - daily workflow test
@@ -404,6 +439,7 @@ npm run build
 - If fewer than three evidence-backed tests exist, show the section only in non-indexable or pending mode, or suppress it.
 
 **Verify:**
+
 ```bash
 npm run build
 ```
@@ -415,6 +451,7 @@ npm run build
 ### Task 13: Reframe alternatives as rebuttals
 
 **Files:**
+
 - Modify: `src/components/AlternativeCard.astro`
 - Modify: `src/components/AlternativesCompareGrid.astro`
 - Modify: `src/lib/tool-page/alternatives-intro.ts`
@@ -422,6 +459,7 @@ npm run build
 - Modify: `src/pages/tool/[slug].astro`
 
 **Action:**
+
 - Replace generic `Alternatives to X` positioning with buyer rebuttal framing:
   - `Choose X instead if...`
 - Require each alternative card to render one concrete angle:
@@ -434,6 +472,7 @@ npm run build
 - Downgrade heuristic-only alternative claims to pending or suppress them.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -446,17 +485,20 @@ npm run build
 ### Task 14: Move capability inventory into the reference basement
 
 **Files:**
+
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: `src/components/DynamicSpecs.astro`
 - Modify: `src/lib/tool-page/section-flags.ts`
 
 **Action:**
+
 - Move features/specs/platform-heavy content after alternatives and strengths/weaknesses.
 - Collapse the capability inventory by default.
 - Group capability content by buyer job where possible.
 - Label gated/partial/unconfirmed states explicitly.
 
 **Verify:**
+
 ```bash
 npm run build
 ```
@@ -468,11 +510,13 @@ npm run build
 ### Task 15: Filter FAQ to decision-support only
 
 **Files:**
+
 - Modify: `src/lib/tool-page/faq-items-view.ts`
 - Modify: `src/lib/tool-page/faq.ts`
 - Modify: `src/pages/tool/[slug].astro`
 
 **Action:**
+
 - Add filtering rules so FAQ only renders if questions materially support:
   - integrations
   - exports
@@ -486,6 +530,7 @@ npm run build
 - Keep FAQ schema aligned only with visible questions.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -498,12 +543,14 @@ npm run build
 ### Task 16: Build the quieter trust footer and dual trust presentation
 
 **Files:**
+
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: `src/components/TrustBar.astro`
 - Modify: `src/components/ToolHowWeEvaluateSection.astro`
 - Modify: `src/components/ToolWeTestedSection.astro`
 
 **Action:**
+
 - Keep a compact trust strip near the verdict.
 - Keep the full trust footer near the bottom with:
   - what we tested
@@ -515,6 +562,7 @@ npm run build
 - Ensure trust is visually quieter than verdict/pricing/tests.
 
 **Verify:**
+
 ```bash
 npm run build
 ```
@@ -526,12 +574,14 @@ npm run build
 ### Task 17: Update SEO and schema parity for the new blueprint
 
 **Files:**
+
 - Modify: `src/lib/tool-page/meta-runtime.ts`
 - Modify: `src/lib/tool-page/schemas.ts`
 - Modify: `src/pages/tool/[slug].astro`
 - Modify: `docs/TOOL_PAGE_QA_GATE_V1.md`
 
 **Action:**
+
 - Ensure page title stays descriptive and concise.
 - Ensure meta description reads like a short relevant pitch.
 - Verify noindex behavior still respects production publish/index rules.
@@ -539,6 +589,7 @@ npm run build
 - Do not emit FAQ schema when FAQ is suppressed.
 
 **Verify:**
+
 ```bash
 npm run typecheck
 npm run build
@@ -552,11 +603,13 @@ npm run qa:prepush
 ### Task 18: Add regression coverage for blueprint acceptance criteria
 
 **Files:**
+
 - Create: `tests/lib/tool-page-blueprint-runtime.test.ts`
 - Modify: `tests/lib/tool-page-qa-gate.test.ts`
 - Modify: `docs/TOOL_PAGE_ORCHESTRATION_MAP.md` if route composition changes
 
 **Action:**
+
 - Add tests for:
   - immediate verdict card fields
   - merged navigation module
@@ -568,6 +621,7 @@ npm run qa:prepush
 - Regenerate or update orchestration docs if the route composition changes.
 
 **Verify:**
+
 ```bash
 npm run test -- tests/lib/tool-page-blueprint-runtime.test.ts
 npm run qa:tool-page-map

@@ -99,8 +99,9 @@ export function buildToolPageRuntimeAssemblyInputFromRoute(
       hasSourceBackedUpgradeTriggerSignal: Boolean(
         input.metaSignals.hasSourceBackedUpgradeTriggerSignal
       ),
-      hasSourceBackedImplementationFrictionSignal:
-        Boolean(input.metaSignals.hasSourceBackedImplementationFrictionSignal),
+      hasSourceBackedImplementationFrictionSignal: Boolean(
+        input.metaSignals.hasSourceBackedImplementationFrictionSignal
+      ),
       hasSourceBackedFitMatrixSignal: Boolean(input.metaSignals.hasSourceBackedFitMatrixSignal),
       hasSourceBackedTestBeforeBuySignal: Boolean(
         input.metaSignals.hasSourceBackedTestBeforeBuySignal

@@ -489,7 +489,11 @@ export interface ToolCanonicalFacts {
       upgrade_trigger?: string | null;
       implementation_friction_level?: 'low' | 'medium' | 'high' | null;
       fit_matrix?: {
-        solo: { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } | null;
+        solo: {
+          fit: 'weak' | 'mixed' | 'strong';
+          caveat: string | null;
+          reason: string | null;
+        } | null;
         startup: {
           fit: 'weak' | 'mixed' | 'strong';
           caveat: string | null;

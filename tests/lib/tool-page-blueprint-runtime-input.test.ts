@@ -37,7 +37,10 @@ describe('tool page blueprint runtime input', () => {
           decisionUpgradeTrigger: 'Upgrade when approvals and automation depth become blockers.',
           pricingMentalModelItems: [
             { text: 'Free works for one pilot workflow only.', status: 'Source-backed' },
-            { text: 'Paid needed when approvals and automations are required.', status: 'Source-backed' },
+            {
+              text: 'Paid needed when approvals and automations are required.',
+              status: 'Source-backed',
+            },
             { text: 'Seat growth can trigger a fast tier jump.', status: 'Needs confirmation' },
           ],
           testChecklistItems: [

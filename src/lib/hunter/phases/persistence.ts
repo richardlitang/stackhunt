@@ -2755,21 +2755,21 @@ async function persistQualityGateSnapshot(
   const laneTradeoff = laneOutputs?.editorial_decision.main_tradeoff || null;
   const hasBestForSignal = Boolean(
     (typeof laneBestFor === 'string' && laneBestFor.trim().length >= 12) ||
-      (decisionIntro &&
-        typeof decisionIntro.best_for === 'string' &&
-        decisionIntro.best_for.trim().length >= 12)
+    (decisionIntro &&
+      typeof decisionIntro.best_for === 'string' &&
+      decisionIntro.best_for.trim().length >= 12)
   );
   const hasNotForSignal = Boolean(
     (typeof laneNotFor === 'string' && laneNotFor.trim().length >= 12) ||
-      (decisionIntro &&
-        typeof decisionIntro.not_for === 'string' &&
-        decisionIntro.not_for.trim().length >= 12)
+    (decisionIntro &&
+      typeof decisionIntro.not_for === 'string' &&
+      decisionIntro.not_for.trim().length >= 12)
   );
   const hasTradeoffSignal = Boolean(
     (typeof laneTradeoff === 'string' && laneTradeoff.trim().length >= 12) ||
-      (decisionIntro &&
-        typeof decisionIntro.main_tradeoff === 'string' &&
-        decisionIntro.main_tradeoff.trim().length >= 12)
+    (decisionIntro &&
+      typeof decisionIntro.main_tradeoff === 'string' &&
+      decisionIntro.main_tradeoff.trim().length >= 12)
   );
   const qaGate = evaluateToolPageQaGate({
     title: `${itemRow.name || 'Tool'} Review | StackHunt`,

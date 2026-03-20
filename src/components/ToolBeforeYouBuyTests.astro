@@ -17,9 +17,7 @@ const { tests } = Astro.props;
       data-focus-groups="all verdict setup pricing"
     >
       <h2 class="text-lg font-semibold text-zinc-100">Before you buy, test these 3 things</h2>
-      <p class="mt-1 text-sm text-zinc-400">
-        Run these checks before committing rollout effort.
-      </p>
+      <p class="mt-1 text-sm text-zinc-400">Run these checks before committing rollout effort.</p>
       <div class="mt-4 grid gap-3 md:grid-cols-3">
         {tests.slice(0, 3).map((test) => (
           <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
@@ -50,4 +48,3 @@ const { tests } = Astro.props;
     </section>
   )
 }
-

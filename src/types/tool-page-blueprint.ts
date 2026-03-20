@@ -4,7 +4,14 @@ export type ToolPageBuyerFitStrength = 'weak' | 'mixed' | 'strong';
 export type ToolPageImplementationFrictionLevel = 'low' | 'medium' | 'high' | 'unknown';
 
 export interface ToolPageEvidenceMarker {
-  evidenceType: 'official_fact' | 'official_pricing' | 'official_limit' | 'hands_on' | 'user_signal' | 'editorial_inference' | 'unknown';
+  evidenceType:
+    | 'official_fact'
+    | 'official_pricing'
+    | 'official_limit'
+    | 'hands_on'
+    | 'user_signal'
+    | 'editorial_inference'
+    | 'unknown';
   confidence: 'high' | 'medium' | 'low';
   lastChecked: string | null;
   sourceUrl?: string | null;
@@ -85,4 +92,3 @@ export interface ToolPageBuyerDecisionLayer {
   compactTrustStrip: ToolPageCompactTrustStrip;
   toolbar: ToolPageDecisionToolbar;
 }
-

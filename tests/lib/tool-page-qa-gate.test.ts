@@ -4,7 +4,8 @@ import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
 describe('tool page qa gate', () => {
   it('passes for valid review page input', () => {
     const result = evaluateToolPageQaGate({
-      title: 'GitHub Copilot Review (2026): Pricing, Best For, Tradeoffs & Alternatives | StackHunt',
+      title:
+        'GitHub Copilot Review (2026): Pricing, Best For, Tradeoffs & Alternatives | StackHunt',
       h1: 'GitHub Copilot Review',
       intro: 'GitHub Copilot is an AI coding assistant for teams using GitHub workflows.',
       verdict:

@@ -63,7 +63,12 @@ const {
         mainRisk: null,
         upgradeTrigger: null,
         implementationFriction: { level: 'unknown', summary: null, drivers: [] },
-        evidence: { evidenceType: 'unknown', confidence: 'low', lastChecked: null, sourceUrl: null },
+        evidence: {
+          evidenceType: 'unknown',
+          confidence: 'low',
+          lastChecked: null,
+          sourceUrl: null,
+        },
       },
       fitMatrix: { solo: null, startup: null, midMarket: null, enterprise: null },
       pricingReality: {
@@ -71,7 +76,12 @@ const {
         paidNeededWhen: null,
         hiddenCostTriggers: [],
         mainCostDrivers: [],
-        evidence: { evidenceType: 'unknown', confidence: 'low', lastChecked: null, sourceUrl: null },
+        evidence: {
+          evidenceType: 'unknown',
+          confidence: 'low',
+          lastChecked: null,
+          sourceUrl: null,
+        },
       },
       beforeYouBuyTests: [],
       alternativesRebuttals: [],

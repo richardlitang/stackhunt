@@ -267,9 +267,8 @@ applyToolPageResponseRouteState({
             notFor={pageAssemblyState.buyerDecisionLayer.heroDecisionCard.notFor}
             mainRisk={pageAssemblyState.buyerDecisionLayer.heroDecisionCard.mainRisk}
             upgradeTrigger={pageAssemblyState.buyerDecisionLayer.heroDecisionCard.upgradeTrigger}
-            implementationFriction={
-              pageAssemblyState.buyerDecisionLayer.heroDecisionCard.implementationFriction.summary
-            }
+            implementationFriction={pageAssemblyState.buyerDecisionLayer.heroDecisionCard
+              .implementationFriction.summary}
           />
           <ToolCompactTrustStrip
             status={pageAssemblyState.buyerDecisionLayer.compactTrustStrip.status}
@@ -447,7 +446,9 @@ applyToolPageResponseRouteState({
               <div class="mt-4">
                 <ToolPricingRealitySummary
                   freeWorksIf={pageAssemblyState.buyerDecisionLayer.pricingReality.freeWorksIf}
-                  paidNeededWhen={pageAssemblyState.buyerDecisionLayer.pricingReality.paidNeededWhen}
+                  paidNeededWhen={
+                    pageAssemblyState.buyerDecisionLayer.pricingReality.paidNeededWhen
+                  }
                   hiddenCostTriggers={
                     pageAssemblyState.buyerDecisionLayer.pricingReality.hiddenCostTriggers
                   }

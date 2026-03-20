@@ -43,7 +43,11 @@ describe('tool page lane outputs', () => {
               upgrade_trigger: 'Upgrade when automation depth is required.',
               implementation_friction_level: 'medium',
               fit_matrix: {
-                solo: { fit: 'mixed', caveat: 'Admin overhead grows quickly.', reason: 'Fast setup for one owner.' },
+                solo: {
+                  fit: 'mixed',
+                  caveat: 'Admin overhead grows quickly.',
+                  reason: 'Fast setup for one owner.',
+                },
                 startup: null,
                 mid_market: null,
                 enterprise: null,

@@ -13,7 +13,10 @@ export interface BuildToolPageRuntimeParamsInput {
   };
   lens: {
     viewModelInput: BuildToolPageRuntimeInputParams['viewModelInput'];
-    contentInput: Omit<BuildToolPageRuntimeInputParams['lensContentInput'], 'enterpriseTradeoffOverride' | 'hardLimitCount'>;
+    contentInput: Omit<
+      BuildToolPageRuntimeInputParams['lensContentInput'],
+      'enterpriseTradeoffOverride' | 'hardLimitCount'
+    >;
     canonicalHardLimits: Array<{ text: string }>;
   };
   trust: {
@@ -108,7 +111,9 @@ export function buildToolPageRuntimeInputParams(
       title: `${input.meta.toolName} Review | StackHunt`,
       h1: `${input.meta.toolName} Review`,
       intro: stripToolPageControlChars(input.meta.decisionSnapshotSummary || ''),
-      verdict: stripToolPageControlChars(input.meta.renderVerdictSafe || input.meta.toolVerdict || ''),
+      verdict: stripToolPageControlChars(
+        input.meta.renderVerdictSafe || input.meta.toolVerdict || ''
+      ),
       evaluationDepth: input.meta.evaluationDepth === 'Docs-only' ? 'docs_only' : 'hands_on',
       pricingSectionVisible: input.meta.showPricingSection,
       hasPricingCheckedProof: input.meta.hasPricingCheckedProof,
@@ -121,8 +126,9 @@ export function buildToolPageRuntimeInputParams(
       requiresSourceBackedDecisionLayer: true,
       hasSourceBackedMainRiskSignal: Boolean(input.meta.hasSourceBackedMainRiskSignal),
       hasSourceBackedUpgradeTriggerSignal: Boolean(input.meta.hasSourceBackedUpgradeTriggerSignal),
-      hasSourceBackedImplementationFrictionSignal:
-        Boolean(input.meta.hasSourceBackedImplementationFrictionSignal),
+      hasSourceBackedImplementationFrictionSignal: Boolean(
+        input.meta.hasSourceBackedImplementationFrictionSignal
+      ),
       hasSourceBackedFitMatrixSignal: Boolean(input.meta.hasSourceBackedFitMatrixSignal),
       hasSourceBackedTestBeforeBuySignal: Boolean(input.meta.hasSourceBackedTestBeforeBuySignal),
     },

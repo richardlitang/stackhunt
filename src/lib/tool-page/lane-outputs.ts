@@ -40,7 +40,11 @@ export interface ToolPageLaneOutputs {
     upgrade_trigger?: string | null;
     implementation_friction_level?: 'low' | 'medium' | 'high' | null;
     fit_matrix?: {
-      solo: { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } | null;
+      solo: {
+        fit: 'weak' | 'mixed' | 'strong';
+        caveat: string | null;
+        reason: string | null;
+      } | null;
       startup: {
         fit: 'weak' | 'mixed' | 'strong';
         caveat: string | null;
@@ -152,9 +156,7 @@ function toFitRow(
   };
 }
 
-function toTestBeforeBuy(
-  value: unknown
-): Array<{
+function toTestBeforeBuy(value: unknown): Array<{
   name: string;
   why_it_matters: string | null;
   test: string | null;

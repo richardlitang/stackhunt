@@ -64,15 +64,15 @@ describe('tool page page compiler route state', () => {
     expect(buildPageAssemblyMock).toHaveBeenCalledTimes(1);
     expect(buildPageAssemblyMock).toHaveBeenCalledWith(
       expect.objectContaining({
-      runtime: expect.objectContaining({
-        tool: expect.objectContaining({ slug: 'acme' }),
-      }),
-      decision: expect.objectContaining({
-        activeReviewLens: 'startup',
-      }),
-      navigation: expect.any(Object),
-      chrome: expect.any(Object),
-      ctaMediaState: expect.any(Object),
+        runtime: expect.objectContaining({
+          tool: expect.objectContaining({ slug: 'acme' }),
+        }),
+        decision: expect.objectContaining({
+          activeReviewLens: 'startup',
+        }),
+        navigation: expect.any(Object),
+        chrome: expect.any(Object),
+        ctaMediaState: expect.any(Object),
       })
     );
     expect(result.routeDataState.runtimeViewBundle.meta.title).toBe('Acme Review');

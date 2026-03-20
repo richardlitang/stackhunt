@@ -110,8 +110,9 @@ export function buildToolPageRuntimeAssemblySignalsInputFromRoute(
       introLooksSpecSheet: input.introLooksSpecSheet,
       hasSourceBackedMainRiskSignal: Boolean(input.hasSourceBackedMainRiskSignal),
       hasSourceBackedUpgradeTriggerSignal: Boolean(input.hasSourceBackedUpgradeTriggerSignal),
-      hasSourceBackedImplementationFrictionSignal:
-        Boolean(input.hasSourceBackedImplementationFrictionSignal),
+      hasSourceBackedImplementationFrictionSignal: Boolean(
+        input.hasSourceBackedImplementationFrictionSignal
+      ),
       hasSourceBackedFitMatrixSignal: Boolean(input.hasSourceBackedFitMatrixSignal),
       hasSourceBackedTestBeforeBuySignal: Boolean(input.hasSourceBackedTestBeforeBuySignal),
     },

@@ -65,19 +65,24 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
         lastChecked: input.chromeState.trustBarProps.lastChecked,
       },
     },
-    midMarket: toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.mid_market) || {
+    midMarket: toFitRowWithEvidence(
+      input.laneOutputs?.editorial_decision.fit_matrix?.mid_market
+    ) || {
       fit: 'mixed',
       caveat:
         input.decisionState.decisionUtilityState.decisionWatchOut ||
         'Governance and reporting requirements should be validated before expansion.',
-      reason: 'Depends on role model, approval flow, and reporting depth for operational decisions.',
+      reason:
+        'Depends on role model, approval flow, and reporting depth for operational decisions.',
       evidence: {
         evidenceType: 'editorial_inference',
         confidence: 'medium',
         lastChecked: input.chromeState.trustBarProps.lastChecked,
       },
     },
-    enterprise: toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.enterprise) || {
+    enterprise: toFitRowWithEvidence(
+      input.laneOutputs?.editorial_decision.fit_matrix?.enterprise
+    ) || {
       fit: input.activeReviewLens === 'enterprise' ? 'mixed' : 'weak',
       caveat:
         input.decisionState.decisionUtilityState.decisionAvoidIf ||
@@ -94,49 +99,52 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
 
   const laneTests = input.laneOutputs?.editorial_decision.test_before_buy || [];
   const checklistItems = input.decisionState.decisionUtilityState.testChecklistItems.slice(0, 3);
-  const beforeYouBuyTests: ToolPageBeforeYouBuyTest[] = (laneTests.length > 0
-    ? laneTests.map((item) => ({
-        testType:
-          item.name.toLowerCase().includes('admin')
+  const beforeYouBuyTests: ToolPageBeforeYouBuyTest[] = (
+    laneTests.length > 0
+      ? laneTests.map((item) => ({
+          testType: item.name.toLowerCase().includes('admin')
             ? ('admin_setup' as const)
-            : item.name.toLowerCase().includes('failure') || item.name.toLowerCase().includes('export')
+            : item.name.toLowerCase().includes('failure') ||
+                item.name.toLowerCase().includes('export')
               ? ('failure_export' as const)
               : ('daily_workflow' as const),
-        name: item.name,
-        whyItMatters: item.why_it_matters,
-        whatToDo: item.test,
-        passCondition: item.pass_condition,
-        commonFailure: item.common_failure,
-        evidence: {
-          evidenceType: 'editorial_inference' as const,
-          confidence: 'medium' as const,
-          lastChecked: input.chromeState.trustBarProps.lastChecked,
-        },
-      }))
-    : checklistItems.map((item, index) => {
-    const testType: ToolPageBeforeYouBuyTest['testType'] =
-      index === 0 ? 'daily_workflow' : index === 1 ? 'admin_setup' : 'failure_export';
-    const testLabel =
-      testType === 'daily_workflow'
-        ? 'Daily workflow test'
-        : testType === 'admin_setup'
-          ? 'Admin/setup test'
-          : 'Failure and export test';
+          name: item.name,
+          whyItMatters: item.why_it_matters,
+          whatToDo: item.test,
+          passCondition: item.pass_condition,
+          commonFailure: item.common_failure,
+          evidence: {
+            evidenceType: 'editorial_inference' as const,
+            confidence: 'medium' as const,
+            lastChecked: input.chromeState.trustBarProps.lastChecked,
+          },
+        }))
+      : checklistItems.map((item, index) => {
+          const testType: ToolPageBeforeYouBuyTest['testType'] =
+            index === 0 ? 'daily_workflow' : index === 1 ? 'admin_setup' : 'failure_export';
+          const testLabel =
+            testType === 'daily_workflow'
+              ? 'Daily workflow test'
+              : testType === 'admin_setup'
+                ? 'Admin/setup test'
+                : 'Failure and export test';
 
-    return {
-      testType,
-      name: testLabel,
-      whyItMatters: item,
-      whatToDo: item,
-      passCondition: 'The workflow completes without role, plan, or handoff blockers.',
-      commonFailure: 'A key step depends on a gated feature, hidden limit, or missing ownership.',
-      evidence: {
-        evidenceType: 'editorial_inference' as const,
-        confidence: 'medium' as const,
-        lastChecked: input.chromeState.trustBarProps.lastChecked,
-      },
-    };
-  })).slice(0, 3);
+          return {
+            testType,
+            name: testLabel,
+            whyItMatters: item,
+            whatToDo: item,
+            passCondition: 'The workflow completes without role, plan, or handoff blockers.',
+            commonFailure:
+              'A key step depends on a gated feature, hidden limit, or missing ownership.',
+            evidence: {
+              evidenceType: 'editorial_inference' as const,
+              confidence: 'medium' as const,
+              lastChecked: input.chromeState.trustBarProps.lastChecked,
+            },
+          };
+        })
+  ).slice(0, 3);
 
   return {
     activeLens: input.activeReviewLens,
@@ -173,26 +181,27 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
     },
     fitMatrix,
     pricingReality: {
-      freeWorksIf: input.laneOutputs?.fact_sheet.pricing_reality?.free_works_if ||
+      freeWorksIf:
+        input.laneOutputs?.fact_sheet.pricing_reality?.free_works_if ||
         input.decisionState.decisionUtilityState.pricingMentalModelItems[0]?.text ||
         input.decisionState.decisionUtilityState.decisionUseIf ||
         null,
-      paidNeededWhen: input.laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when ||
+      paidNeededWhen:
+        input.laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when ||
         input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
         input.decisionState.decisionUtilityState.pricingMentalModelItems[1]?.text ||
         null,
-      hiddenCostTriggers:
-        input.laneOutputs?.fact_sheet.pricing_reality?.hidden_cost_triggers?.length
-          ? input.laneOutputs.fact_sheet.pricing_reality.hidden_cost_triggers
-          : input.decisionState.decisionUtilityState.pricingMentalModelItems
-              .slice(0, 3)
-              .map((entry) => entry.text),
-      mainCostDrivers:
-        input.laneOutputs?.fact_sheet.pricing_reality?.main_cost_drivers?.length
-          ? input.laneOutputs.fact_sheet.pricing_reality.main_cost_drivers
-          : input.decisionState.decisionUtilityState.pricingMentalModelItems
-              .slice(0, 2)
-              .map((entry) => entry.text),
+      hiddenCostTriggers: input.laneOutputs?.fact_sheet.pricing_reality?.hidden_cost_triggers
+        ?.length
+        ? input.laneOutputs.fact_sheet.pricing_reality.hidden_cost_triggers
+        : input.decisionState.decisionUtilityState.pricingMentalModelItems
+            .slice(0, 3)
+            .map((entry) => entry.text),
+      mainCostDrivers: input.laneOutputs?.fact_sheet.pricing_reality?.main_cost_drivers?.length
+        ? input.laneOutputs.fact_sheet.pricing_reality.main_cost_drivers
+        : input.decisionState.decisionUtilityState.pricingMentalModelItems
+            .slice(0, 2)
+            .map((entry) => entry.text),
       evidence: {
         evidenceType: 'editorial_inference',
         confidence: 'medium',

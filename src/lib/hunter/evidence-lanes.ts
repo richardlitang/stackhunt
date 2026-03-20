@@ -240,7 +240,9 @@ function toUpgradeTriggerFromFacts(input: {
 }): string | null {
   const fromLimits = input.officialLimitFacts.find((claim) => claim.text.trim().length > 0)?.text;
   if (fromLimits) return fromLimits;
-  const fromPricing = input.officialPricingFacts.find((claim) => claim.text.trim().length > 0)?.text;
+  const fromPricing = input.officialPricingFacts.find(
+    (claim) => claim.text.trim().length > 0
+  )?.text;
   if (fromPricing) return fromPricing;
   return input.mainTradeoff;
 }
@@ -294,7 +296,8 @@ export function buildHunterLaneOutputs(input: {
       ? decisionIntro.not_for.trim()
       : null;
   const mainTradeoff =
-    typeof decisionIntro?.main_tradeoff === 'string' && decisionIntro.main_tradeoff.trim().length > 0
+    typeof decisionIntro?.main_tradeoff === 'string' &&
+    decisionIntro.main_tradeoff.trim().length > 0
       ? decisionIntro.main_tradeoff.trim()
       : null;
   const mainRisk = mainTradeoff;
@@ -315,11 +318,16 @@ export function buildHunterLaneOutputs(input: {
     .slice(0, 3);
   const testBeforeBuy = checklistItems.map((item, index) => ({
     name:
-      index === 0 ? 'Daily workflow test' : index === 1 ? 'Admin/setup test' : 'Failure/export test',
+      index === 0
+        ? 'Daily workflow test'
+        : index === 1
+          ? 'Admin/setup test'
+          : 'Failure/export test',
     why_it_matters: item,
     test: item,
     pass_condition: 'The workflow passes without plan, ownership, or permission blockers.',
-    common_failure: 'A critical step depends on an unsupported tier, integration, or control model.',
+    common_failure:
+      'A critical step depends on an unsupported tier, integration, or control model.',
   }));
   const pricingReality = {
     free_works_if: officialPricingFacts[0]?.text || null,
