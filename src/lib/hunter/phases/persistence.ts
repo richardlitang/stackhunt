@@ -53,6 +53,8 @@ import {
 import { createToolPageEvidenceContract } from '@/lib/tool-page/evidence-contract';
 import { applyToolPageFreshnessPolicy } from '@/lib/tool-page/freshness-policy';
 import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
+import { readToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
+import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/lane-decision-signals';
 import { computeToolPageSectionContract } from '@/lib/tool-page/standard';
 import { sanitizeUrl } from '@/lib/utils/url';
 import { buildFallbackUserSignalClaimsFromSources } from '@/lib/hunter/user-signal-fallback';
@@ -2743,23 +2745,31 @@ async function persistQualityGateSnapshot(
     community: sectionContract.sectionOmissionReasons.community ? 1 : 0,
   };
   const reviewContext = (itemRow.review_context as Record<string, unknown> | null) || null;
+  const laneOutputs = readToolPageLaneOutputs(itemRow as any);
+  const laneDecisionSignals = deriveToolPageLaneDecisionEvidenceSignals(laneOutputs);
   const decisionIntro =
     (reviewContext?.decisionIntro as Record<string, unknown> | undefined) ||
     (reviewContext?.decision_intro as Record<string, unknown> | undefined);
+  const laneBestFor = laneOutputs?.editorial_decision.best_for || null;
+  const laneNotFor = laneOutputs?.editorial_decision.not_for || null;
+  const laneTradeoff = laneOutputs?.editorial_decision.main_tradeoff || null;
   const hasBestForSignal = Boolean(
-    decisionIntro &&
-    typeof decisionIntro.best_for === 'string' &&
-    decisionIntro.best_for.trim().length >= 12
+    (typeof laneBestFor === 'string' && laneBestFor.trim().length >= 12) ||
+      (decisionIntro &&
+        typeof decisionIntro.best_for === 'string' &&
+        decisionIntro.best_for.trim().length >= 12)
   );
   const hasNotForSignal = Boolean(
-    decisionIntro &&
-    typeof decisionIntro.not_for === 'string' &&
-    decisionIntro.not_for.trim().length >= 12
+    (typeof laneNotFor === 'string' && laneNotFor.trim().length >= 12) ||
+      (decisionIntro &&
+        typeof decisionIntro.not_for === 'string' &&
+        decisionIntro.not_for.trim().length >= 12)
   );
   const hasTradeoffSignal = Boolean(
-    decisionIntro &&
-    typeof decisionIntro.main_tradeoff === 'string' &&
-    decisionIntro.main_tradeoff.trim().length >= 12
+    (typeof laneTradeoff === 'string' && laneTradeoff.trim().length >= 12) ||
+      (decisionIntro &&
+        typeof decisionIntro.main_tradeoff === 'string' &&
+        decisionIntro.main_tradeoff.trim().length >= 12)
   );
   const qaGate = evaluateToolPageQaGate({
     title: `${itemRow.name || 'Tool'} Review | StackHunt`,
@@ -2777,6 +2787,13 @@ async function persistQualityGateSnapshot(
     introLooksSpecSheet: /\bacross pricing,\s*fit,\s*and rollout risk\b/i.test(
       String(itemRow.short_description || '')
     ),
+    requiresSourceBackedDecisionLayer: true,
+    hasSourceBackedMainRiskSignal: laneDecisionSignals.hasSourceBackedMainRiskSignal,
+    hasSourceBackedUpgradeTriggerSignal: laneDecisionSignals.hasSourceBackedUpgradeTriggerSignal,
+    hasSourceBackedImplementationFrictionSignal:
+      laneDecisionSignals.hasSourceBackedImplementationFrictionSignal,
+    hasSourceBackedFitMatrixSignal: laneDecisionSignals.hasSourceBackedFitMatrixSignal,
+    hasSourceBackedTestBeforeBuySignal: laneDecisionSignals.hasSourceBackedTestBeforeBuySignal,
   });
   if (!qaGate.pass) {
     shouldIndex = false;

@@ -42,6 +42,11 @@ interface BuildToolPageRuntimeAssemblySignalsInputFromRouteInput {
   hasFAQ: boolean;
   faqSchema: ToolPageRuntimeAssemblyPageContextInput['metaSignals']['faqSchema'];
   introLooksSpecSheet: boolean;
+  hasSourceBackedMainRiskSignal?: boolean;
+  hasSourceBackedUpgradeTriggerSignal?: boolean;
+  hasSourceBackedImplementationFrictionSignal?: boolean;
+  hasSourceBackedFitMatrixSignal?: boolean;
+  hasSourceBackedTestBeforeBuySignal?: boolean;
 }
 
 export function buildToolPageRuntimeAssemblySignalsInputFromRoute(
@@ -103,6 +108,12 @@ export function buildToolPageRuntimeAssemblySignalsInputFromRoute(
       decisionSnapshotWatchOuts: input.decisionSnapshotWatchOuts,
       decisionTradeoffSummary: input.decisionTradeoffSummary,
       introLooksSpecSheet: input.introLooksSpecSheet,
+      hasSourceBackedMainRiskSignal: Boolean(input.hasSourceBackedMainRiskSignal),
+      hasSourceBackedUpgradeTriggerSignal: Boolean(input.hasSourceBackedUpgradeTriggerSignal),
+      hasSourceBackedImplementationFrictionSignal:
+        Boolean(input.hasSourceBackedImplementationFrictionSignal),
+      hasSourceBackedFitMatrixSignal: Boolean(input.hasSourceBackedFitMatrixSignal),
+      hasSourceBackedTestBeforeBuySignal: Boolean(input.hasSourceBackedTestBeforeBuySignal),
     },
     updateHistory: {
       communityVerifiedLabel: input.communityVerifiedLabel,

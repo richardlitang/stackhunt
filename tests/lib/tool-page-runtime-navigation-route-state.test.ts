@@ -92,6 +92,7 @@ describe('tool page runtime navigation route state', () => {
       },
       knowledgeCard: null,
       renderVerdictSafe: 'Strong fit for startup teams.',
+      laneOutputs: null,
     });
 
     expect(result.runtimeViewBundle.meta.title).toBe('Acme Review');

@@ -71,6 +71,11 @@ describe('tool page runtime params builder', () => {
         decisionSnapshotWatchOuts: ['Watch out'],
         decisionTradeoffSummary: 'Tradeoff',
         introLooksSpecSheet: false,
+        hasSourceBackedMainRiskSignal: true,
+        hasSourceBackedUpgradeTriggerSignal: true,
+        hasSourceBackedImplementationFrictionSignal: true,
+        hasSourceBackedFitMatrixSignal: true,
+        hasSourceBackedTestBeforeBuySignal: true,
       },
       schemas: {
         tool: { name: 'Acme', slug: 'acme' },
@@ -88,5 +93,8 @@ describe('tool page runtime params builder', () => {
     expect(result.lensContentInput.hardLimitCount).toBe(1);
     expect(result.indexInput.fallbackCanonicalUrl).toContain('/tools');
     expect(result.qaInput.evaluationDepth).toBe('docs_only');
+    expect(result.qaInput.requiresSourceBackedDecisionLayer).toBe(true);
+    expect(result.qaInput.hasSourceBackedMainRiskSignal).toBe(true);
+    expect(result.qaInput.hasSourceBackedTestBeforeBuySignal).toBe(true);
   });
 });

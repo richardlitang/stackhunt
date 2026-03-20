@@ -74,6 +74,11 @@ interface BuildToolPageRuntimeAssemblyInputBundleFromRouteInput {
     decisionSnapshotWatchOuts: string[];
     decisionTradeoffSummary: string | null;
     introLooksSpecSheet: boolean;
+    hasSourceBackedMainRiskSignal?: boolean;
+    hasSourceBackedUpgradeTriggerSignal?: boolean;
+    hasSourceBackedImplementationFrictionSignal?: boolean;
+    hasSourceBackedFitMatrixSignal?: boolean;
+    hasSourceBackedTestBeforeBuySignal?: boolean;
   };
   schemas: {
     tool: BuildToolPageRuntimeParamsInput['schemas']['tool'];

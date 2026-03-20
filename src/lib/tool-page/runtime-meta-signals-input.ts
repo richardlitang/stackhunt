@@ -16,6 +16,11 @@ interface BuildToolPageRuntimeMetaSignalsInputFromRouteInput {
   decisionSnapshotWatchOuts: string[];
   decisionTradeoffSummary: string | null;
   introLooksSpecSheet: boolean;
+  hasSourceBackedMainRiskSignal?: boolean;
+  hasSourceBackedUpgradeTriggerSignal?: boolean;
+  hasSourceBackedImplementationFrictionSignal?: boolean;
+  hasSourceBackedFitMatrixSignal?: boolean;
+  hasSourceBackedTestBeforeBuySignal?: boolean;
 }
 
 export function buildToolPageRuntimeMetaSignalsInputFromRoute(
@@ -37,5 +42,12 @@ export function buildToolPageRuntimeMetaSignalsInputFromRoute(
     decisionSnapshotWatchOuts: input.decisionSnapshotWatchOuts,
     decisionTradeoffSummary: input.decisionTradeoffSummary,
     introLooksSpecSheet: input.introLooksSpecSheet,
+    hasSourceBackedMainRiskSignal: Boolean(input.hasSourceBackedMainRiskSignal),
+    hasSourceBackedUpgradeTriggerSignal: Boolean(input.hasSourceBackedUpgradeTriggerSignal),
+    hasSourceBackedImplementationFrictionSignal: Boolean(
+      input.hasSourceBackedImplementationFrictionSignal
+    ),
+    hasSourceBackedFitMatrixSignal: Boolean(input.hasSourceBackedFitMatrixSignal),
+    hasSourceBackedTestBeforeBuySignal: Boolean(input.hasSourceBackedTestBeforeBuySignal),
   };
 }

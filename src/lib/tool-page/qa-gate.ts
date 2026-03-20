@@ -12,6 +12,12 @@ export interface ToolPageQaGateInput {
   hasTradeoffSignal?: boolean;
   hasDecisionSummaryBlock?: boolean;
   introLooksSpecSheet?: boolean;
+  requiresSourceBackedDecisionLayer?: boolean;
+  hasSourceBackedMainRiskSignal?: boolean;
+  hasSourceBackedUpgradeTriggerSignal?: boolean;
+  hasSourceBackedImplementationFrictionSignal?: boolean;
+  hasSourceBackedFitMatrixSignal?: boolean;
+  hasSourceBackedTestBeforeBuySignal?: boolean;
 }
 
 export interface ToolPageQaGateResult {
@@ -80,6 +86,24 @@ export function evaluateToolPageQaGate(input: ToolPageQaGateInput): ToolPageQaGa
 
   if (input.introLooksSpecSheet) {
     blockers.push('spec_sheet_intro_pattern_detected');
+  }
+
+  if (input.requiresSourceBackedDecisionLayer) {
+    if (!input.hasSourceBackedMainRiskSignal) {
+      blockers.push('missing_source_backed_main_risk_signal');
+    }
+    if (!input.hasSourceBackedUpgradeTriggerSignal) {
+      blockers.push('missing_source_backed_upgrade_trigger_signal');
+    }
+    if (!input.hasSourceBackedImplementationFrictionSignal) {
+      blockers.push('missing_source_backed_implementation_friction_signal');
+    }
+    if (!input.hasSourceBackedFitMatrixSignal) {
+      blockers.push('missing_source_backed_fit_matrix_signal');
+    }
+    if (!input.hasSourceBackedTestBeforeBuySignal) {
+      blockers.push('missing_source_backed_test_before_buy_signal');
+    }
   }
 
   if (input.pricingSectionVisible && !input.hasPricingCheckedProof) {

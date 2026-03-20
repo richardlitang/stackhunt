@@ -33,6 +33,11 @@ interface BuildToolPageRuntimeAssemblyInputFromRouteInput {
     decisionSnapshotWatchOuts: string[];
     decisionTradeoffSummary: string | null;
     introLooksSpecSheet: boolean;
+    hasSourceBackedMainRiskSignal?: boolean;
+    hasSourceBackedUpgradeTriggerSignal?: boolean;
+    hasSourceBackedImplementationFrictionSignal?: boolean;
+    hasSourceBackedFitMatrixSignal?: boolean;
+    hasSourceBackedTestBeforeBuySignal?: boolean;
   };
   schemasInput: BuildToolPageRuntimeParamsInput['schemas'];
   updateHistoryInput: BuildToolPageRuntimeParamsInput['updateHistory'];
@@ -90,6 +95,16 @@ export function buildToolPageRuntimeAssemblyInputFromRoute(
       decisionTradeoffSummary:
         input.metaSignals.decisionTradeoffSummary || 'Tradeoff not confirmed yet.',
       introLooksSpecSheet: input.metaSignals.introLooksSpecSheet,
+      hasSourceBackedMainRiskSignal: Boolean(input.metaSignals.hasSourceBackedMainRiskSignal),
+      hasSourceBackedUpgradeTriggerSignal: Boolean(
+        input.metaSignals.hasSourceBackedUpgradeTriggerSignal
+      ),
+      hasSourceBackedImplementationFrictionSignal:
+        Boolean(input.metaSignals.hasSourceBackedImplementationFrictionSignal),
+      hasSourceBackedFitMatrixSignal: Boolean(input.metaSignals.hasSourceBackedFitMatrixSignal),
+      hasSourceBackedTestBeforeBuySignal: Boolean(
+        input.metaSignals.hasSourceBackedTestBeforeBuySignal
+      ),
     },
     schemas: input.schemasInput,
     updateHistory: input.updateHistoryInput,

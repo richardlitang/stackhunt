@@ -16,6 +16,8 @@ import { buildToolPageNavigationState } from '@/lib/tool-page/navigation-state';
 import { buildToolPageRuntimeAssembly } from '@/lib/tool-page/runtime-assembly';
 import { buildToolPageRuntimeAssemblyInputBundleFromPageContext } from '@/lib/tool-page/runtime-assembly-route-input';
 import { buildToolPageRuntimeAssemblySignalsInputFromRoute } from '@/lib/tool-page/runtime-assembly-signals-input';
+import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/lane-decision-signals';
+import type { ToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
 
 interface BuildToolPageRuntimeNavigationRouteStateInput {
   pathname: string;
@@ -54,6 +56,7 @@ interface BuildToolPageRuntimeNavigationRouteStateInput {
   category: Parameters<typeof buildToolPageCtaMediaToolFromRouteTool>[1];
   knowledgeCard: Parameters<typeof buildToolPageCtaMediaStateInputFromTool>[0]['knowledgeCard'];
   renderVerdictSafe: string | null;
+  laneOutputs: ToolPageLaneOutputs | null;
 }
 
 export function buildToolPageRuntimeNavigationRouteState(
@@ -63,6 +66,7 @@ export function buildToolPageRuntimeNavigationRouteState(
   navigationState: ReturnType<typeof buildToolPageNavigationState>;
   ctaMediaState: ReturnType<typeof buildToolPageCtaMediaState>;
 } {
+  const laneDecisionSignals = deriveToolPageLaneDecisionEvidenceSignals(input.laneOutputs);
   const runtimeAssemblySignals = buildToolPageRuntimeAssemblySignalsInputFromRoute({
     hasVerdict: input.decisionRuntime.hasVerdict,
     showProceduralVerdict: input.presentationGates.showProceduralVerdict,
@@ -101,6 +105,12 @@ export function buildToolPageRuntimeNavigationRouteState(
     hasFAQ: input.sectionFlags.hasFAQ,
     faqSchema: input.faqSchema,
     introLooksSpecSheet: input.decisionRuntime.introLooksSpecSheet,
+    hasSourceBackedMainRiskSignal: laneDecisionSignals.hasSourceBackedMainRiskSignal,
+    hasSourceBackedUpgradeTriggerSignal: laneDecisionSignals.hasSourceBackedUpgradeTriggerSignal,
+    hasSourceBackedImplementationFrictionSignal:
+      laneDecisionSignals.hasSourceBackedImplementationFrictionSignal,
+    hasSourceBackedFitMatrixSignal: laneDecisionSignals.hasSourceBackedFitMatrixSignal,
+    hasSourceBackedTestBeforeBuySignal: laneDecisionSignals.hasSourceBackedTestBeforeBuySignal,
   });
   const { runtimeViewBundle } = buildToolPageRuntimeAssembly(
     buildToolPageRuntimeAssemblyInputBundleFromPageContext({

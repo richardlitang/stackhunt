@@ -73,6 +73,7 @@ describe('tool page runtime mid route state', () => {
         reviewArtifactsState: { evidenceBasis: [], lowConfidenceEvidenceLinks: [] },
         knowledgeCard: null,
         renderVerdictSafe: null,
+        laneOutputs: null,
       },
     });
 

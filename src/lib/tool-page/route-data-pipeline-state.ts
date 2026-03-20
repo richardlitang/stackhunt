@@ -75,6 +75,7 @@ export function buildToolPageRouteDataPipelineStateFromPageContext(
         typeof buildToolPageRuntimeMidRouteState
       >[0]['runtimeNavigation']['knowledgeCard'],
       renderVerdictSafe: displayState.renderVerdictSafe,
+      laneOutputs: dataPrepState.laneOutputs,
     },
   });
 

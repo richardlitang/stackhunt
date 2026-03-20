@@ -53,6 +53,11 @@ export interface BuildToolPageRuntimeParamsInput {
     decisionSnapshotWatchOuts: string[];
     decisionTradeoffSummary: string;
     introLooksSpecSheet: boolean;
+    hasSourceBackedMainRiskSignal?: boolean;
+    hasSourceBackedUpgradeTriggerSignal?: boolean;
+    hasSourceBackedImplementationFrictionSignal?: boolean;
+    hasSourceBackedFitMatrixSignal?: boolean;
+    hasSourceBackedTestBeforeBuySignal?: boolean;
   };
   schemas: {
     tool: BuildToolPageRuntimeInputParams['schemasInput']['tool'];
@@ -113,6 +118,13 @@ export function buildToolPageRuntimeInputParams(
       hasTradeoffSignal: input.meta.decisionTradeoffSummary !== 'Tradeoff not confirmed yet.',
       hasDecisionSummaryBlock: true,
       introLooksSpecSheet: input.meta.introLooksSpecSheet,
+      requiresSourceBackedDecisionLayer: true,
+      hasSourceBackedMainRiskSignal: Boolean(input.meta.hasSourceBackedMainRiskSignal),
+      hasSourceBackedUpgradeTriggerSignal: Boolean(input.meta.hasSourceBackedUpgradeTriggerSignal),
+      hasSourceBackedImplementationFrictionSignal:
+        Boolean(input.meta.hasSourceBackedImplementationFrictionSignal),
+      hasSourceBackedFitMatrixSignal: Boolean(input.meta.hasSourceBackedFitMatrixSignal),
+      hasSourceBackedTestBeforeBuySignal: Boolean(input.meta.hasSourceBackedTestBeforeBuySignal),
     },
     indexInput: {
       gateShouldIndex: input.meta.gateShouldIndex,

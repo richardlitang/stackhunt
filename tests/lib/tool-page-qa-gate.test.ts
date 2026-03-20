@@ -18,6 +18,12 @@ describe('tool page qa gate', () => {
       hasTradeoffSignal: true,
       hasDecisionSummaryBlock: true,
       introLooksSpecSheet: false,
+      requiresSourceBackedDecisionLayer: true,
+      hasSourceBackedMainRiskSignal: true,
+      hasSourceBackedUpgradeTriggerSignal: true,
+      hasSourceBackedImplementationFrictionSignal: true,
+      hasSourceBackedFitMatrixSignal: true,
+      hasSourceBackedTestBeforeBuySignal: true,
     });
 
     expect(result.pass).toBe(true);
@@ -129,5 +135,36 @@ describe('tool page qa gate', () => {
     expect(result.pass).toBe(false);
     expect(result.blockers).toContain('missing_decision_summary_block');
     expect(result.blockers).toContain('spec_sheet_intro_pattern_detected');
+  });
+
+  it('fails when source-backed decision signals are required but missing', () => {
+    const result = evaluateToolPageQaGate({
+      title: 'Tool S Review (2026) | StackHunt',
+      h1: 'Tool S Review',
+      intro: 'Tool S helps teams align approvals and spending policies.',
+      verdict: 'Best for teams with strong approval controls.',
+      evaluationDepth: 'docs_only',
+      pricingSectionVisible: false,
+      hasPricingCheckedProof: false,
+      schemaMatchesVisibleContent: true,
+      hasBestForSignal: true,
+      hasNotForSignal: true,
+      hasTradeoffSignal: true,
+      hasDecisionSummaryBlock: true,
+      introLooksSpecSheet: false,
+      requiresSourceBackedDecisionLayer: true,
+      hasSourceBackedMainRiskSignal: false,
+      hasSourceBackedUpgradeTriggerSignal: false,
+      hasSourceBackedImplementationFrictionSignal: false,
+      hasSourceBackedFitMatrixSignal: false,
+      hasSourceBackedTestBeforeBuySignal: false,
+    });
+
+    expect(result.pass).toBe(false);
+    expect(result.blockers).toContain('missing_source_backed_main_risk_signal');
+    expect(result.blockers).toContain('missing_source_backed_upgrade_trigger_signal');
+    expect(result.blockers).toContain('missing_source_backed_implementation_friction_signal');
+    expect(result.blockers).toContain('missing_source_backed_fit_matrix_signal');
+    expect(result.blockers).toContain('missing_source_backed_test_before_buy_signal');
   });
 });
