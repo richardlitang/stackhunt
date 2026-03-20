@@ -41,7 +41,7 @@ describe('tool page alternatives pricing state', () => {
             item_category_links: [{ relevance_score: 0.8 }],
           },
         ],
-        canCompareByAlternativeSlug: () => true,
+        canCompareByAlternativeSlug: { beta: true },
       },
     });
 
@@ -130,5 +130,39 @@ describe('tool page alternatives pricing state', () => {
     });
 
     expect(state.alternativeCardsView[0]?.alt.slug).toBe('enterprise');
+  });
+
+  it('suppresses non-comparable alternatives from cards', () => {
+    const state = buildToolPageAlternativesPricingState({
+      activeReviewLens: 'general',
+      pricingInsightsInput: {
+        budgetCostDrivers: [],
+        budgetOneTimeFees: [],
+        budgetCommitmentTerms: null,
+        budgetRoiThreshold: null,
+      },
+      primaryFunctionInput: { specs: null },
+      alternativesIntroInput: {
+        alternativesLabel: 'Alternatives',
+        categoryName: 'CRM',
+      },
+      compareTeaserInput: {
+        toolSlug: 'acme',
+        alternatives: [],
+      },
+      alternativesSectionInput: {
+        category: { slug: 'crm-sales', name: 'CRM' },
+      },
+      alternativeCardsInput: {
+        alternatives: [
+          { slug: 'comparable', name: 'Comparable CRM', pricing_type: 'freemium' },
+          { slug: 'mismatch', name: 'Different Category Tool', pricing_type: 'paid' },
+        ],
+        canCompareByAlternativeSlug: { comparable: true, mismatch: false },
+      },
+    });
+
+    expect(state.alternativeCardsView).toHaveLength(1);
+    expect(state.alternativeCardsView[0]?.alt.slug).toBe('comparable');
   });
 });

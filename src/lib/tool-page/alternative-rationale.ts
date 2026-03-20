@@ -24,24 +24,33 @@ function cleanSignal(value: string): string {
   return value.replace(/[.]+$/g, '').trim();
 }
 
+function sanitizeChooseInsteadIf(value: string): string | null {
+  const cleaned = value.trim().replace(/\s+/g, ' ');
+  if (!cleaned) return null;
+  if (cleaned.toLowerCase().includes('[object object]')) return null;
+  if (/^that need\b/i.test(cleaned)) return null;
+  return cleaned;
+}
+
 export function buildAlternativeChooseLine(input: BuildAlternativeChooseLineInput): string {
   if (input.curatedVerdict) {
-    return `Choose ${input.altName} instead if: ${input.curatedVerdict}`;
+    const sanitized = sanitizeChooseInsteadIf(input.curatedVerdict);
+    if (sanitized) return `Choose ${input.altName} instead if ${sanitized}`;
   }
 
   if (input.computedDiff?.priceDiff) {
-    return `Choose ${input.altName} instead if: pricing model differences are decisive for your team (${cleanSignal(input.computedDiff.priceDiff)}).`;
+    return `Choose ${input.altName} instead if price model differences are decisive (${cleanSignal(input.computedDiff.priceDiff)}).`;
   }
 
   if (input.computedDiff?.learningDiff) {
-    return `Choose ${input.altName} instead if: rollout speed matters most (${cleanSignal(input.computedDiff.learningDiff)}).`;
+    return `Choose ${input.altName} instead if setup speed is your top priority (${cleanSignal(input.computedDiff.learningDiff)}).`;
   }
 
   if (input.computedDiff?.featureDiff) {
-    return `Choose ${input.altName} instead if: capability fit is the main driver (${cleanSignal(input.computedDiff.featureDiff)}).`;
+    return `Choose ${input.altName} instead if this capability gap matters most (${cleanSignal(input.computedDiff.featureDiff)}).`;
   }
 
-  return `Choose ${input.altName} instead if: you need a meaningfully different pricing model, rollout speed, or capability mix than ${input.mainName}.`;
+  return `Choose ${input.altName} instead if workflow fit is stronger for your team than ${input.mainName}.`;
 }
 
 export function buildAlternativeRationaleSourceLabel(curatedVerdict?: string | null): string {

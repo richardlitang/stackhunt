@@ -30,6 +30,7 @@ interface BuildToolPagePageAssemblyRouteStateFromRouteDataInput {
   >;
   ctaMediaState: ReturnType<typeof buildToolPageRuntimeMidRouteState>['ctaMediaState'];
   activeReviewLens: ReviewLens;
+  comparableAlternativeSlugs?: string[];
   laneOutputs: ToolPageLaneOutputs | null;
 }
 
@@ -92,6 +93,11 @@ export function buildToolPagePageAssemblyRouteStateFromRouteData(
     navigationState: {
       quickJumpLinksView: navigationState.quickJumpLinksView,
     },
+    allowedAlternativeSlugs:
+      input.comparableAlternativeSlugs ||
+      chromeState.alternativeCardsView
+        .filter((entry) => entry.showCompareLink)
+        .map((entry) => entry.alt.slug),
     laneOutputs: input.laneOutputs,
   });
   const {

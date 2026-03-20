@@ -52,6 +52,8 @@ export function cleanToolPageDecisionText(value: unknown): string | null {
       .replace(/\s+/g, ' ')
   );
   if (!cleaned || isLikelyIncompleteToolPageClause(cleaned)) return null;
+  if (cleaned.toLowerCase().includes('[object object]')) return null;
+  if (/^that need\b/i.test(cleaned)) return null;
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
@@ -64,6 +66,8 @@ export function cleanToolPageNarrativeText(value: unknown): string | null {
       .replace(/\s+/g, ' ')
   );
   if (!cleaned || isLikelyIncompleteToolPageClause(cleaned)) return null;
+  if (cleaned.toLowerCase().includes('[object object]')) return null;
+  if (/^that need\b/i.test(cleaned)) return null;
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 

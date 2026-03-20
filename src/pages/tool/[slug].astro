@@ -301,14 +301,15 @@ applyToolPageResponseRouteState({
               )
             }
             {
-              routeDataState.hasAlternatives && (
-                <a
-                  href="#alternatives"
-                  class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
-                >
-                  Compare alternatives
-                </a>
-              )
+              routeDataState.hasAlternatives &&
+                pageAssemblyState.alternativeCardsView.length > 0 && (
+                  <a
+                    href="#alternatives"
+                    class="inline-flex w-full items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/70 px-3 py-2 text-sm font-medium text-zinc-200 hover:border-hunt-500 hover:text-hunt-400 transition"
+                  >
+                    Compare alternatives
+                  </a>
+                )
             }
           </div>
         </aside>
@@ -1044,7 +1045,7 @@ applyToolPageResponseRouteState({
 
     {/* Alternatives Section - Hybrid Search Strategy */}
     {
-      routeDataState.hasAlternatives && (
+      routeDataState.hasAlternatives && pageAssemblyState.alternativeCardsView.length > 0 && (
         <section id="alternatives" class="mt-16" data-focus-target data-focus-groups="all verdict">
           <header class="mb-6">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

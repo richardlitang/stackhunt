@@ -18,6 +18,7 @@ interface BuildToolPageBlueprintRuntimeInputFromRouteDataInput {
     ReturnType<typeof buildToolPageDecisionNavigationRouteState>,
     'quickJumpLinksView'
   >;
+  allowedAlternativeSlugs?: string[];
   laneOutputs: ToolPageLaneOutputs | null;
 }
 
@@ -43,6 +44,22 @@ function toAlternativeRebuttalDifferentiatorLabel(
 export function buildToolPageBlueprintRuntimeInputFromRouteData(
   input: BuildToolPageBlueprintRuntimeInputFromRouteDataInput
 ): Parameters<typeof buildToolPageBuyerDecisionLayer>[0] {
+  const setupComplexitySummary = (() => {
+    const setupComplexity = input.chromeState.gettingStartedProps.setupComplexity as unknown;
+    if (typeof setupComplexity === 'string' && setupComplexity.trim().length > 0) {
+      return setupComplexity;
+    }
+    if (setupComplexity && typeof setupComplexity === 'object') {
+      const record = setupComplexity as Record<string, unknown>;
+      if (typeof record.estimated_setup_time === 'string' && record.estimated_setup_time.trim()) {
+        return `Estimated setup time: ${record.estimated_setup_time.trim()}.`;
+      }
+      if (typeof record.setup_type === 'string' && record.setup_type.trim()) {
+        return `Setup path: ${record.setup_type.trim().replace(/_/g, ' ')}.`;
+      }
+    }
+    return null;
+  })();
   const fitEvidence = {
     evidenceType: 'editorial_inference' as const,
     confidence: 'medium' as const,
@@ -188,7 +205,7 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
         null,
       implementationFriction: {
         level: input.laneOutputs?.editorial_decision.implementation_friction_level || 'unknown',
-        summary: input.chromeState.gettingStartedProps.setupComplexity || null,
+        summary: setupComplexitySummary,
         drivers: input.laneOutputs?.editorial_decision.implementation_friction_drivers || [],
         stakeholders:
           input.laneOutputs?.editorial_decision.implementation_friction_stakeholders || [],
@@ -230,14 +247,18 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
       },
     },
     beforeYouBuyTests,
-    alternativesRebuttals: (input.laneOutputs?.editorial_decision.alternatives_rebuttals || []).map(
-      (entry) => ({
+    alternativesRebuttals: (input.laneOutputs?.editorial_decision.alternatives_rebuttals || [])
+      .filter((entry) =>
+        input.allowedAlternativeSlugs?.length
+          ? input.allowedAlternativeSlugs.includes(entry.slug)
+          : true
+      )
+      .map((entry) => ({
         slug: entry.slug,
         toolName: entry.tool_name,
         chooseInsteadIf: entry.choose_instead_if,
         differentiator: toAlternativeRebuttalDifferentiatorLabel(entry.differentiator),
         confidence: entry.confidence,
-      })
-    ),
+      })),
   };
 }

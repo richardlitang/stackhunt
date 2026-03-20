@@ -13,6 +13,10 @@ const rows: Array<{ label: string; row: ToolPageFitMatrix['solo'] }> = [
   { label: 'Mid-market', row: fitMatrix.midMarket },
   { label: 'Enterprise', row: fitMatrix.enterprise },
 ];
+const visibleRows = rows.filter(
+  (entry): entry is { label: string; row: NonNullable<ToolPageFitMatrix['solo']> } =>
+    Boolean(entry.row)
+);
 
 function fitToneClass(fit: 'weak' | 'mixed' | 'strong'): string {
   if (fit === 'strong') return 'text-emerald-300 border-emerald-700/60 bg-emerald-950/20';
@@ -21,15 +25,18 @@ function fitToneClass(fit: 'weak' | 'mixed' | 'strong'): string {
 }
 ---
 
-<section id="fit-matrix" class="mb-8 rounded-2xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
-  <h2 class="text-lg font-semibold text-zinc-100">Fit matrix by buyer type</h2>
-  <p class="mt-1 text-sm text-zinc-400">
-    Use this to pressure-test fit before deeper rollout and procurement work.
-  </p>
-  <div class="mt-4 space-y-3">
-    {
-      rows.map((entry) =>
-        entry.row ? (
+{
+  visibleRows.length > 0 && (
+    <section
+      id="fit-matrix"
+      class="mb-8 rounded-2xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+    >
+      <h2 class="text-lg font-semibold text-zinc-100">Fit matrix by buyer type</h2>
+      <p class="mt-1 text-sm text-zinc-400">
+        Use this to pressure-test fit before deeper rollout and procurement work.
+      </p>
+      <div class="mt-4 space-y-3">
+        {visibleRows.map((entry) => (
           <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
             <div class="flex flex-wrap items-center gap-2">
               <h3 class="text-sm font-semibold text-zinc-100">{entry.label}</h3>
@@ -44,8 +51,8 @@ function fitToneClass(fit: 'weak' | 'mixed' | 'strong'): string {
               <p class="mt-1 text-xs text-zinc-500">Caveat: {entry.row.caveat}</p>
             )}
           </article>
-        ) : null
-      )
-    }
-  </div>
-</section>
+        ))}
+      </div>
+    </section>
+  )
+}

@@ -42,6 +42,7 @@ describe('tool page blueprint runtime', () => {
       navigationState: {
         quickJumpLinksView: [{ href: '#pricing-plans', label: 'Pricing' }],
       },
+      allowedAlternativeSlugs: ['budgetflow'],
       laneOutputs: {
         subject_profile: {
           subject_type: 'product',
@@ -116,11 +117,99 @@ describe('tool page blueprint runtime', () => {
     expect(result.buyerDecisionLayer.beforeYouBuyTests).toHaveLength(3);
     expect(result.buyerDecisionLayer.heroDecisionCard.mainRisk).toBe('Lane risk');
     expect(result.buyerDecisionLayer.heroDecisionCard.implementationFriction.stakeholders).toEqual([
-      'security',
+      'Security',
     ]);
     expect(result.buyerDecisionLayer.alternativesRebuttals[0].toolName).toBe('BudgetFlow');
     expect(result.buyerDecisionLayer.alternativesRebuttals[0].differentiator).toBe(
       'Cheaper at scale'
     );
+  });
+
+  it('drops alternatives rebuttals outside comparable slug set', () => {
+    const result = buildToolPageBlueprintRuntimeFromRouteData({
+      activeReviewLens: 'general',
+      lensHrefs: {
+        general: '/tool/acme',
+        personal: '/tool/acme?lens=personal',
+        startup: '/tool/acme?lens=startup',
+        enterprise: '/tool/acme?lens=enterprise',
+      },
+      chromeState: {
+        trustBarProps: {
+          status: 'Source-backed',
+          confidence: 'High',
+          lastChecked: '2026-03-20',
+          pendingCount: 0,
+          evaluationDepth: 'Deep hands-on',
+          sourcesCount: 14,
+        },
+        gettingStartedProps: {
+          setupComplexity: 'High',
+          toolName: 'Acme',
+          hasApi: true,
+          websiteUrl: 'https://example.com',
+          setupTracks: [],
+          setupUrl: null,
+        },
+      } as never,
+      decisionState: {
+        decisionUtilityState: {
+          decisionUseIf: 'Fallback best-for',
+          decisionAvoidIf: 'Fallback not-for',
+          decisionWatchOut: 'Fallback risk',
+          decisionUpgradeTrigger: 'Fallback trigger',
+          pricingMentalModelItems: [],
+          testChecklistItems: ['A', 'B', 'C'],
+        },
+      } as never,
+      navigationState: {
+        quickJumpLinksView: [{ href: '#pricing-plans', label: 'Pricing' }],
+      },
+      allowedAlternativeSlugs: ['other-tool'],
+      laneOutputs: {
+        subject_profile: {
+          subject_type: 'product',
+          subject_key: 'acme:core',
+          display_name: 'Acme',
+          entity_scope: 'core',
+          confidence: 'high',
+        },
+        fact_sheet: {
+          official_facts: [],
+          official_pricing_facts: [],
+          official_limit_facts: [],
+          pricing_reality: null,
+        },
+        user_signal_sheet: {
+          user_signal_pros: [],
+          user_signal_cons: [],
+        },
+        editorial_decision: {
+          summary: null,
+          best_for: null,
+          not_for: null,
+          main_tradeoff: null,
+          human_verdict: null,
+          main_risk: 'Lane risk',
+          upgrade_trigger: 'Lane upgrade',
+          implementation_friction_level: 'medium',
+          implementation_friction_drivers: [],
+          implementation_friction_stakeholders: [],
+          fit_matrix: null,
+          test_before_buy: [],
+          alternatives_rebuttals: [
+            {
+              slug: 'budgetflow',
+              tool_name: 'BudgetFlow',
+              choose_instead_if: 'Budget predictability is mandatory',
+              differentiator: 'cheaper_at_scale',
+              confidence: 'high',
+            },
+          ],
+        },
+      },
+    });
+
+    expect(result.buyerDecisionLayer.alternativesRebuttals).toHaveLength(0);
   });
 });

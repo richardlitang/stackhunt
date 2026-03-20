@@ -42,9 +42,12 @@ export function buildToolPageAlternativesPricingState(
   const alternativesSectionState = buildToolPageAlternativesSectionState(
     input.alternativesSectionInput
   );
-  const alternatives = rankAlternativesForLens(
+  const lensRankedAlternatives = rankAlternativesForLens(
     input.alternativeCardsInput.alternatives,
     input.activeReviewLens
+  );
+  const alternatives = lensRankedAlternatives.filter((alternative) =>
+    Boolean(input.alternativeCardsInput.canCompareByAlternativeSlug[alternative.slug])
   );
   const alternativeCardsView = buildToolPageAlternativeCardsView({
     ...input.alternativeCardsInput,

@@ -126,6 +126,9 @@ export function buildToolPagePageCompilerRouteStateFromPageContext(
     },
     ctaMediaState: routeDataState.ctaMediaState,
     activeReviewLens: input.activeReviewLens,
+    comparableAlternativeSlugs: routeDataState.comparableAlternatives
+      .map((item) => item.slug || '')
+      .filter((slug): slug is string => Boolean(slug)),
     laneOutputs: routeDataState.laneOutputs,
   });
 
