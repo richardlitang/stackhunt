@@ -18,6 +18,12 @@ export interface DiscoveredTool {
   confidence: 'high' | 'medium' | 'low';
 }
 
+interface SearchResultLike {
+  title?: string;
+  snippet?: string;
+  link?: string;
+}
+
 const SCOUT_EXTRACTION_PROMPT = `You are a tool discovery agent for a software review platform.
 
 Given search results about software tools, extract a list of SPECIFIC SOFTWARE TOOLS mentioned.
@@ -31,7 +37,7 @@ RULES:
    - Services without software ("Training", "Consulting")
 3. For each tool, extract:
    - name: The tool's exact name
-   - domain: The website domain (guess from context if not explicit)
+   - domain: The website domain (leave empty if not explicit)
    - confidence: high (explicit mention + domain), medium (tool mentioned), low (unclear)
 
 EXAMPLES OF VALID TOOLS:
@@ -112,12 +118,79 @@ export async function discoverTools(
       })
       .filter((t): t is DiscoveredTool => t !== null);
 
-    // Filter out low confidence results
-    return validated.filter((t) => t.confidence !== 'low');
+    const resolved = resolveDiscoveredToolDomains(validated, searchResults);
+
+    // Keep only resolvable, non-low-confidence tools
+    return resolved.filter((t) => t.confidence !== 'low');
   } catch (error) {
     console.error('[Scout] Error discovering tools:', error);
     return [];
   }
+}
+
+function normalizeDomain(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0];
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function resolveDomainFromSearchResults(
+  toolName: string,
+  searchResults: SearchResultLike[]
+): string | null {
+  const name = toolName.trim();
+  if (!name) return null;
+  const exactPattern = new RegExp(`\\b${escapeRegex(name)}\\b`, 'i');
+  const loosePattern = new RegExp(escapeRegex(name), 'i');
+
+  for (const result of searchResults) {
+    const haystack = `${result.title || ''} ${result.snippet || ''}`.trim();
+    if (!haystack || !result.link) continue;
+    if (!exactPattern.test(haystack) && !loosePattern.test(haystack)) continue;
+    const resolved = extractDomainFromUrl(result.link);
+    if (resolved) return resolved;
+  }
+
+  return null;
+}
+
+export function resolveDiscoveredToolDomains(
+  discovered: DiscoveredTool[],
+  searchResults: SearchResultLike[]
+): DiscoveredTool[] {
+  const dedupedByDomain = new Map<string, DiscoveredTool>();
+
+  for (const tool of discovered) {
+    const modelDomain = normalizeDomain(tool.domain || '');
+    const resolvedDomain = resolveDomainFromSearchResults(tool.name, searchResults);
+    const finalDomain = modelDomain || resolvedDomain || '';
+    if (!finalDomain) continue;
+
+    const confidence: DiscoveredTool['confidence'] =
+      modelDomain && resolvedDomain && modelDomain === resolvedDomain
+        ? 'high'
+        : resolvedDomain
+          ? 'medium'
+          : tool.confidence;
+
+    const existing = dedupedByDomain.get(finalDomain);
+    if (!existing || (existing.confidence !== 'high' && confidence === 'high')) {
+      dedupedByDomain.set(finalDomain, {
+        name: tool.name.trim(),
+        domain: finalDomain,
+        confidence,
+      });
+    }
+  }
+
+  return Array.from(dedupedByDomain.values());
 }
 
 /**
