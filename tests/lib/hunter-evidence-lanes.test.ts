@@ -111,6 +111,8 @@ describe('hunter evidence lanes', () => {
     expect(laneOutputs.editorial_decision.fit_matrix?.solo.fit).toBe('mixed');
     expect(laneOutputs.editorial_decision.test_before_buy?.length).toBeGreaterThan(0);
     expect(laneOutputs.editorial_decision.alternatives_rebuttals?.length).toBeGreaterThan(0);
+    expect(laneOutputs.editorial_decision.generation_mode?.main_risk).toBe('deterministic');
+    expect(laneOutputs.editorial_decision.generation_mode?.upgrade_trigger).toBe('deterministic');
   });
 
   it('categorizes official pricing and limit facts separately', () => {
@@ -124,6 +126,9 @@ describe('hunter evidence lanes', () => {
     expect(laneOutputs.fact_sheet.official_pricing_facts.length).toBeGreaterThan(0);
     expect(laneOutputs.fact_sheet.official_limit_facts.length).toBeGreaterThan(0);
     expect(laneOutputs.fact_sheet.pricing_reality?.hidden_cost_triggers.length).toBeGreaterThan(0);
+    expect(laneOutputs.fact_sheet.pricing_reality?.generation_mode?.free_works_if).toBe(
+      'deterministic'
+    );
   });
 
   it('normalizes mixed factual and user-signal claims into the correct lanes', () => {

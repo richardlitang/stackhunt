@@ -64,5 +64,61 @@ describe('tool page decision layer consistency signals', () => {
     expect(result.hasDuplicatePricingRealitySignal).toBe(true);
     expect(result.hasDuplicateFitMatrixRowsSignal).toBe(true);
     expect(result.hasEnterpriseFitContradictionSignal).toBe(true);
+    expect(result.hasUnsupportedGenerationModeSignal).toBe(false);
+  });
+
+  it('flags unsupported llm-only generation mode for critical decision fields', () => {
+    const result = deriveToolPageDecisionLayerConsistencySignals({
+      decisionSnapshotBestWhen: [],
+      decisionSnapshotWatchOuts: [],
+      decisionTradeoffSummary: null,
+      laneOutputs: {
+        subject_profile: {
+          subject_type: 'product',
+          subject_key: 'acme:core',
+          display_name: 'Acme',
+          entity_scope: 'core',
+          confidence: 'high',
+        },
+        fact_sheet: {
+          official_facts: [],
+          official_pricing_facts: [],
+          official_limit_facts: [],
+          pricing_reality: {
+            free_works_if: null,
+            paid_needed_when: 'Paid starts when limits hit.',
+            hidden_cost_triggers: [],
+            main_cost_drivers: [],
+            generation_mode: {
+              paid_needed_when: 'llm_phrase_only',
+            },
+          },
+        },
+        user_signal_sheet: {
+          user_signal_pros: [],
+          user_signal_cons: [],
+        },
+        editorial_decision: {
+          summary: null,
+          best_for: null,
+          not_for: null,
+          main_tradeoff: null,
+          human_verdict: null,
+          main_risk: 'Risk depends on unclear wording.',
+          upgrade_trigger: null,
+          implementation_friction_level: null,
+          implementation_friction_drivers: [],
+          implementation_friction_stakeholders: [],
+          fit_matrix: null,
+          test_before_buy: [],
+          alternatives_rebuttals: [],
+          generation_mode: {
+            main_risk: 'llm_phrase_only',
+          },
+        },
+      },
+    });
+
+    expect(result.hasUnsupportedGenerationModeSignal).toBe(true);
   });
 });

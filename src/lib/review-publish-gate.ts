@@ -403,6 +403,7 @@ export function evaluateStrictPublishGate(
     hasDuplicatePricingRealitySignal: laneConsistencySignals.hasDuplicatePricingRealitySignal,
     hasDuplicateFitMatrixRowsSignal: laneConsistencySignals.hasDuplicateFitMatrixRowsSignal,
     hasEnterpriseFitContradictionSignal: laneConsistencySignals.hasEnterpriseFitContradictionSignal,
+    hasUnsupportedGenerationModeSignal: laneConsistencySignals.hasUnsupportedGenerationModeSignal,
   });
   if (!qaGate.pass) {
     for (const blocker of qaGate.blockers) {

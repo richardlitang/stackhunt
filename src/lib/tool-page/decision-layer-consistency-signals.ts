@@ -63,7 +63,21 @@ export function deriveToolPageDecisionLayerConsistencySignals(
   hasDuplicatePricingRealitySignal: boolean;
   hasDuplicateFitMatrixRowsSignal: boolean;
   hasEnterpriseFitContradictionSignal: boolean;
+  hasUnsupportedGenerationModeSignal: boolean;
 } {
+  const generationMode = input.laneOutputs?.editorial_decision.generation_mode;
+  const pricingRealityMode = input.laneOutputs?.fact_sheet.pricing_reality?.generation_mode;
+  const hasUnsupportedGenerationModeSignal = Boolean(
+    (generationMode?.main_risk === 'llm_phrase_only' &&
+      (input.laneOutputs?.editorial_decision.main_risk || '').trim().length > 0) ||
+    (generationMode?.upgrade_trigger === 'llm_phrase_only' &&
+      (input.laneOutputs?.editorial_decision.upgrade_trigger || '').trim().length > 0) ||
+    (pricingRealityMode?.free_works_if === 'llm_phrase_only' &&
+      (input.laneOutputs?.fact_sheet.pricing_reality?.free_works_if || '').trim().length > 0) ||
+    (pricingRealityMode?.paid_needed_when === 'llm_phrase_only' &&
+      (input.laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when || '').trim().length > 0)
+  );
+
   const hasMalformedDecisionLayerSignal = Boolean(
     input.decisionSnapshotBestWhen.some((item) => hasMalformedText(item)) ||
     input.decisionSnapshotWatchOuts.some((item) => hasMalformedText(item)) ||
@@ -78,5 +92,6 @@ export function deriveToolPageDecisionLayerConsistencySignals(
     hasDuplicatePricingRealitySignal: hasDuplicatePricingReality(input.laneOutputs),
     hasDuplicateFitMatrixRowsSignal: hasDuplicateFitMatrixRows(input.laneOutputs),
     hasEnterpriseFitContradictionSignal: hasEnterpriseFitContradiction(input.laneOutputs),
+    hasUnsupportedGenerationModeSignal,
   };
 }

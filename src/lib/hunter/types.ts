@@ -272,6 +272,18 @@ export interface HunterEditorialDecision {
       | 'workflow_fit';
     confidence: 'high' | 'medium' | 'low';
   }>;
+  generation_mode?: {
+    summary?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    best_for?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    not_for?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    main_tradeoff?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    main_risk?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    upgrade_trigger?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    implementation_friction?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    fit_matrix?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    test_before_buy?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    alternatives_rebuttals?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+  };
 }
 
 export interface HunterLaneOutputs {
@@ -960,6 +972,22 @@ export const AnalysisSchema = z.object({
             paid_needed_when: z.string().nullable().optional(),
             hidden_cost_triggers: z.array(z.string()).default([]),
             main_cost_drivers: z.array(z.string()).default([]),
+            generation_mode: z
+              .object({
+                free_works_if: z
+                  .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+                  .optional(),
+                paid_needed_when: z
+                  .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+                  .optional(),
+                hidden_cost_triggers: z
+                  .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+                  .optional(),
+                main_cost_drivers: z
+                  .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+                  .optional(),
+              })
+              .optional(),
           })
           .optional(),
       }),
@@ -1051,6 +1079,40 @@ export const AnalysisSchema = z.object({
               confidence: z.enum(['high', 'medium', 'low']),
             })
           )
+          .optional(),
+        generation_mode: z
+          .object({
+            summary: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            best_for: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            not_for: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            main_tradeoff: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            main_risk: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            upgrade_trigger: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            implementation_friction: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            fit_matrix: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            test_before_buy: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+            alternatives_rebuttals: z
+              .enum(['deterministic', 'extractive', 'llm_phrase_only', 'suppress'])
+              .optional(),
+          })
           .optional(),
       }),
     })

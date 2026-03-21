@@ -24,6 +24,12 @@ export interface ToolPageLaneOutputs {
       paid_needed_when: string | null;
       hidden_cost_triggers: string[];
       main_cost_drivers: string[];
+      generation_mode?: {
+        free_works_if?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+        paid_needed_when?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+        hidden_cost_triggers?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+        main_cost_drivers?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      };
     };
   };
   user_signal_sheet: {
@@ -84,6 +90,18 @@ export interface ToolPageLaneOutputs {
         | 'workflow_fit';
       confidence: 'high' | 'medium' | 'low';
     }>;
+    generation_mode?: {
+      summary?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      best_for?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      not_for?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      main_tradeoff?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      main_risk?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      upgrade_trigger?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      implementation_friction?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      fit_matrix?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      test_before_buy?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+      alternatives_rebuttals?: 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress';
+    };
   };
 }
 
@@ -200,6 +218,17 @@ function toFitRow(
   };
 }
 
+function toGenerationMode(
+  value: unknown
+): 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress' | undefined {
+  return value === 'deterministic' ||
+    value === 'extractive' ||
+    value === 'llm_phrase_only' ||
+    value === 'suppress'
+    ? value
+    : undefined;
+}
+
 function toTestBeforeBuy(value: unknown): Array<{
   name: string;
   why_it_matters: string | null;
@@ -293,6 +322,25 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
               paid_needed_when: toStringOrNull(pricingReality.paid_needed_when),
               hidden_cost_triggers: toStringArray(pricingReality.hidden_cost_triggers),
               main_cost_drivers: toStringArray(pricingReality.main_cost_drivers),
+              generation_mode:
+                pricingReality.generation_mode && typeof pricingReality.generation_mode === 'object'
+                  ? {
+                      free_works_if: toGenerationMode(
+                        (pricingReality.generation_mode as Record<string, unknown>).free_works_if
+                      ),
+                      paid_needed_when: toGenerationMode(
+                        (pricingReality.generation_mode as Record<string, unknown>).paid_needed_when
+                      ),
+                      hidden_cost_triggers: toGenerationMode(
+                        (pricingReality.generation_mode as Record<string, unknown>)
+                          .hidden_cost_triggers
+                      ),
+                      main_cost_drivers: toGenerationMode(
+                        (pricingReality.generation_mode as Record<string, unknown>)
+                          .main_cost_drivers
+                      ),
+                    }
+                  : undefined,
             },
           }
         : {}),
@@ -366,6 +414,41 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
             )
             .slice(0, 6)
         : [],
+      generation_mode:
+        editorial.generation_mode && typeof editorial.generation_mode === 'object'
+          ? {
+              summary: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).summary
+              ),
+              best_for: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).best_for
+              ),
+              not_for: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).not_for
+              ),
+              main_tradeoff: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).main_tradeoff
+              ),
+              main_risk: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).main_risk
+              ),
+              upgrade_trigger: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).upgrade_trigger
+              ),
+              implementation_friction: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).implementation_friction
+              ),
+              fit_matrix: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).fit_matrix
+              ),
+              test_before_buy: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).test_before_buy
+              ),
+              alternatives_rebuttals: toGenerationMode(
+                (editorial.generation_mode as Record<string, unknown>).alternatives_rebuttals
+              ),
+            }
+          : undefined,
     },
   };
 }

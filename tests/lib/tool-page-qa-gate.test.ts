@@ -194,6 +194,7 @@ describe('tool page qa gate', () => {
       hasDuplicatePricingRealitySignal: true,
       hasDuplicateFitMatrixRowsSignal: true,
       hasEnterpriseFitContradictionSignal: true,
+      hasUnsupportedGenerationModeSignal: true,
     });
 
     expect(result.pass).toBe(false);
@@ -201,5 +202,6 @@ describe('tool page qa gate', () => {
     expect(result.blockers).toContain('duplicate_pricing_reality_signal');
     expect(result.blockers).toContain('duplicate_fit_matrix_rows_signal');
     expect(result.blockers).toContain('enterprise_fit_contradiction_signal');
+    expect(result.blockers).toContain('unsupported_generation_mode_signal');
   });
 });

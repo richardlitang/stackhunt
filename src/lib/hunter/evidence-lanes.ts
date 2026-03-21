@@ -247,6 +247,20 @@ function toUpgradeTriggerFromFacts(input: {
   return input.mainTradeoff;
 }
 
+function toMainRiskFromFacts(input: {
+  officialLimitFacts: HunterLaneClaim[];
+  officialPricingFacts: HunterLaneClaim[];
+  mainTradeoff: string | null;
+}): string | null {
+  const fromLimits = input.officialLimitFacts.find((claim) => claim.text.trim().length > 0)?.text;
+  if (fromLimits) return fromLimits;
+  const fromPricing = input.officialPricingFacts.find(
+    (claim) => claim.text.trim().length > 0
+  )?.text;
+  if (fromPricing) return fromPricing;
+  return input.mainTradeoff;
+}
+
 function inferImplementationFrictionLevel(input: {
   officialLimitFacts: HunterLaneClaim[];
   mainTradeoff: string | null;
@@ -352,7 +366,11 @@ export function buildHunterLaneOutputs(input: {
     decisionIntro.main_tradeoff.trim().length > 0
       ? decisionIntro.main_tradeoff.trim()
       : null;
-  const mainRisk = mainTradeoff;
+  const mainRisk = toMainRiskFromFacts({
+    officialLimitFacts,
+    officialPricingFacts,
+    mainTradeoff,
+  });
   const upgradeTrigger = toUpgradeTriggerFromFacts({
     officialLimitFacts,
     officialPricingFacts,
@@ -395,6 +413,17 @@ export function buildHunterLaneOutputs(input: {
     paid_needed_when: upgradeTrigger,
     hidden_cost_triggers: officialLimitFacts.slice(0, 3).map((claim) => claim.text),
     main_cost_drivers: officialPricingFacts.slice(0, 3).map((claim) => claim.text),
+    generation_mode: {
+      free_works_if: officialPricingFacts[0]?.text ? 'deterministic' : 'suppress',
+      paid_needed_when:
+        officialLimitFacts.length > 0 || officialPricingFacts.length > 0
+          ? 'deterministic'
+          : upgradeTrigger
+            ? 'llm_phrase_only'
+            : 'suppress',
+      hidden_cost_triggers: officialLimitFacts.length > 0 ? 'deterministic' : 'suppress',
+      main_cost_drivers: officialPricingFacts.length > 0 ? 'deterministic' : 'suppress',
+    },
   };
   const alternativesRebuttals = Array.isArray(input.analysis.vetoLogic)
     ? input.analysis.vetoLogic
@@ -473,6 +502,37 @@ export function buildHunterLaneOutputs(input: {
       fit_matrix: fitMatrix,
       test_before_buy: testBeforeBuy,
       alternatives_rebuttals: alternativesRebuttals,
+      generation_mode: {
+        summary: editorialSummary ? 'llm_phrase_only' : 'suppress',
+        best_for: bestFor ? 'llm_phrase_only' : 'suppress',
+        not_for: notFor ? 'llm_phrase_only' : 'suppress',
+        main_tradeoff: mainTradeoff ? 'llm_phrase_only' : 'suppress',
+        main_risk:
+          officialLimitFacts.length > 0 || officialPricingFacts.length > 0
+            ? 'deterministic'
+            : mainRisk
+              ? 'llm_phrase_only'
+              : 'suppress',
+        upgrade_trigger:
+          officialLimitFacts.length > 0 || officialPricingFacts.length > 0
+            ? 'deterministic'
+            : upgradeTrigger
+              ? 'llm_phrase_only'
+              : 'suppress',
+        implementation_friction:
+          implementationFrictionLevel && officialLimitFacts.length > 0
+            ? 'deterministic'
+            : implementationFrictionLevel
+              ? 'llm_phrase_only'
+              : 'suppress',
+        fit_matrix: 'llm_phrase_only',
+        test_before_buy: testBeforeBuy.length > 0 ? 'deterministic' : 'suppress',
+        alternatives_rebuttals: alternativesRebuttals.some((row) => row.confidence === 'high')
+          ? 'extractive'
+          : alternativesRebuttals.length > 0
+            ? 'llm_phrase_only'
+            : 'suppress',
+      },
     },
   };
 }
