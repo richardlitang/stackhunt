@@ -8,10 +8,12 @@ interface Props {
 const { status, confidence, lastChecked = null } = Astro.props;
 ---
 
-<div class="rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-xs text-zinc-300">
-  <span class="font-medium text-zinc-100">{status}</span>
-  <span class="mx-1 text-zinc-500">|</span>
-  <span>Confidence {confidence}</span>
-  <span class="mx-1 text-zinc-500">|</span>
-  <span>Last checked {lastChecked || 'unknown'}</span>
+<div class="tool-review-panel-muted rounded-2xl px-4 py-3 text-xs text-zinc-300">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="tool-review-chip border-emerald-700/50 bg-emerald-950/30 text-emerald-200">
+      {status}
+    </span>
+    <span class="tool-review-chip">Confidence {confidence}</span>
+    <span class="tool-review-chip">Last checked {lastChecked || 'unknown'}</span>
+  </div>
 </div>

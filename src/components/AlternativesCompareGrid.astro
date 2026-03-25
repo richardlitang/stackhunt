@@ -36,8 +36,8 @@ function evidenceChipLabel(cell: ToolCompareGridCell): string {
 
 {
   alternatives.length > 0 && visibleRows.length > 0 && (
-    <div class="mb-5 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
-      <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+    <div class="tool-review-table mb-5 overflow-x-auto rounded-[1.5rem] p-4">
+      <p class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
         Quick compare grid
       </p>
       <table class="min-w-full text-left text-xs text-zinc-300">
@@ -52,7 +52,7 @@ function evidenceChipLabel(cell: ToolCompareGridCell): string {
         </thead>
         <tbody>
           {visibleRows.map((row) => (
-            <tr class="border-b border-zinc-900/80 last:border-b-0">
+            <tr class="border-b border-zinc-900/80 last:border-b-0 hover:bg-zinc-900/40">
               <td class="px-2 py-2 text-zinc-400">{row}</td>
               <td class="px-2 py-2">
                 {(() => {

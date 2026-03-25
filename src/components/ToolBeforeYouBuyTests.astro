@@ -6,44 +6,76 @@ interface Props {
 }
 
 const { tests } = Astro.props;
+
+const testAccents = [
+  {
+    badge: 'bg-indigo-500/15 text-indigo-200',
+    panel: 'border-indigo-500/20 bg-indigo-500/10 text-indigo-100',
+  },
+  {
+    badge: 'bg-cyan-500/15 text-cyan-200',
+    panel: 'border-cyan-500/20 bg-cyan-500/10 text-cyan-100',
+  },
+  {
+    badge: 'bg-rose-500/15 text-rose-200',
+    panel: 'border-rose-500/20 bg-rose-500/10 text-rose-100',
+  },
+];
 ---
 
 {
   tests.length > 0 && (
     <section
       id="before-you-buy-tests"
-      class="mb-8 rounded-2xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+      class="mb-12"
       data-focus-target
       data-focus-groups="all verdict setup pricing"
     >
-      <h2 class="text-lg font-semibold text-zinc-100">Before you buy, test these 3 things</h2>
-      <p class="mt-1 text-sm text-zinc-400">Run these checks before committing rollout effort.</p>
-      <div class="mt-4 grid gap-3 md:grid-cols-3">
-        {tests.slice(0, 3).map((test) => (
-          <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
-            <h3 class="text-sm font-semibold text-zinc-100">{test.name}</h3>
-            {test.whyItMatters && (
-              <p class="mt-2 text-xs text-zinc-300">
-                <span class="font-medium text-zinc-200">Why this matters:</span> {test.whyItMatters}
-              </p>
-            )}
-            {test.whatToDo && (
-              <p class="mt-2 text-xs text-zinc-300">
-                <span class="font-medium text-zinc-200">What to do:</span> {test.whatToDo}
-              </p>
-            )}
-            {test.passCondition && (
-              <p class="mt-2 text-xs text-zinc-300">
-                <span class="font-medium text-zinc-200">Pass condition:</span> {test.passCondition}
-              </p>
-            )}
-            {test.commonFailure && (
-              <p class="mt-2 text-xs text-zinc-500">
-                <span class="font-medium text-zinc-400">Common failure:</span> {test.commonFailure}
-              </p>
-            )}
-          </article>
-        ))}
+      <h2 class="tool-review-section-title text-3xl">Before you buy, test these 3 things</h2>
+      <p class="mt-2 text-sm text-zinc-400">
+        Run these checks during the trial, before rollout effort hardens into vendor commitment.
+      </p>
+      <div class="mt-6 grid gap-6 lg:grid-cols-3">
+        {tests.slice(0, 3).map((test, index) => {
+          const accent = testAccents[index] || testAccents[0];
+
+          return (
+            <article class="tool-review-panel-muted rounded-[1.5rem] p-6">
+              <div
+                class={`inline-flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-bold ${accent.badge}`}
+              >
+                0{index + 1}
+              </div>
+              <h3 class="mt-5 font-headline text-2xl font-bold tracking-tight text-zinc-50">
+                {test.name}
+              </h3>
+              {test.whyItMatters && (
+                <div class="mt-6">
+                  <p class="tool-review-micro-label">Why it matters</p>
+                  <p class="mt-2 text-sm leading-6 text-zinc-300">{test.whyItMatters}</p>
+                </div>
+              )}
+              {test.whatToDo && (
+                <div class="mt-5">
+                  <p class="tool-review-micro-label">What to do</p>
+                  <p class="mt-2 text-sm leading-6 text-zinc-200">{test.whatToDo}</p>
+                </div>
+              )}
+              {test.passCondition && (
+                <div class={`mt-5 rounded-2xl border p-4 ${accent.panel}`}>
+                  <p class="text-[10px] font-bold uppercase tracking-[0.18em]">Pass condition</p>
+                  <p class="mt-2 text-sm leading-6">{test.passCondition}</p>
+                </div>
+              )}
+              {test.commonFailure && (
+                <div class="mt-5 border-t border-zinc-800 pt-4">
+                  <p class="tool-review-micro-label">Common failure</p>
+                  <p class="mt-2 text-xs leading-6 text-zinc-500">{test.commonFailure}</p>
+                </div>
+              )}
+            </article>
+          );
+        })}
       </div>
     </section>
   )

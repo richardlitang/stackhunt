@@ -19,36 +19,39 @@ const visibleRows = rows.filter(
 );
 
 function fitToneClass(fit: 'weak' | 'mixed' | 'strong'): string {
-  if (fit === 'strong') return 'text-emerald-300 border-emerald-700/60 bg-emerald-950/20';
-  if (fit === 'mixed') return 'text-amber-200 border-amber-700/60 bg-amber-950/20';
-  return 'text-rose-200 border-rose-700/60 bg-rose-950/20';
+  if (fit === 'strong') return 'text-emerald-200 border-emerald-700/50 bg-emerald-950/30';
+  if (fit === 'mixed') return 'text-amber-200 border-amber-700/50 bg-amber-950/30';
+  return 'text-rose-200 border-rose-700/50 bg-rose-950/30';
 }
 ---
 
 {
   visibleRows.length > 0 && (
-    <section
-      id="fit-matrix"
-      class="mb-8 rounded-2xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
-    >
-      <h2 class="text-lg font-semibold text-zinc-100">Fit matrix by buyer type</h2>
-      <p class="mt-1 text-sm text-zinc-400">
+    <section id="fit-matrix" class="mb-10">
+      <h2 class="tool-review-section-title text-3xl">Market fit matrix</h2>
+      <p class="mt-2 max-w-2xl text-sm text-zinc-400">
         Use this to pressure-test fit before deeper rollout and procurement work.
       </p>
-      <div class="mt-4 space-y-3">
+      <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {visibleRows.map((entry) => (
-          <article class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
-            <div class="flex flex-wrap items-center gap-2">
-              <h3 class="text-sm font-semibold text-zinc-100">{entry.label}</h3>
+          <article class="tool-review-panel-muted rounded-[1.35rem] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-zinc-700">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <h3 class="font-headline text-lg font-bold tracking-tight text-zinc-50">
+                {entry.label}
+              </h3>
               <span
-                class={`rounded-full border px-2 py-0.5 text-[11px] uppercase tracking-wide ${fitToneClass(entry.row.fit)}`}
+                class={`rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${fitToneClass(entry.row.fit)}`}
               >
                 {entry.row.fit}
               </span>
             </div>
-            {entry.row.reason && <p class="mt-2 text-sm text-zinc-300">{entry.row.reason}</p>}
+            {entry.row.reason && (
+              <p class="mt-4 text-sm leading-6 text-zinc-300">{entry.row.reason}</p>
+            )}
             {entry.row.caveat && (
-              <p class="mt-1 text-xs text-zinc-500">Caveat: {entry.row.caveat}</p>
+              <p class="mt-4 border-t border-zinc-800 pt-4 text-xs leading-5 text-zinc-500">
+                Caveat: {entry.row.caveat}
+              </p>
             )}
           </article>
         ))}

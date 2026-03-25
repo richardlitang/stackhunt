@@ -117,11 +117,16 @@ const requiresRoles =
 
 <details
   id="getting-started-panel"
-  class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+  class="group tool-review-panel rounded-[1.8rem] p-7 shadow-sm hover:shadow-md transition-shadow"
   open
 >
   <summary class="flex items-center justify-between cursor-pointer">
-    <h2 class="text-lg font-semibold text-zinc-100">Getting Started</h2>
+    <div>
+      <p class="tool-review-micro-label">Getting started</p>
+      <h2 class="mt-2 font-headline text-3xl font-extrabold tracking-tight text-zinc-50">
+        Fast path to first value
+      </h2>
+    </div>
     <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
       <span class="group-open:hidden">Expand</span>
       <span class="hidden group-open:inline">Collapse</span>
@@ -131,12 +136,8 @@ const requiresRoles =
         viewBox="0 0 24 24"
         stroke="currentColor"
       >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 5l7 7-7 7"
-        />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"
+        ></path>
       </svg>
     </span>
   </summary>
@@ -148,7 +149,7 @@ const requiresRoles =
           href={setupUrl || setupComplexity?.setup_url || websiteUrl || '#'}
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center rounded-lg bg-hunt-600 px-3 py-2 text-sm font-semibold text-white hover:bg-hunt-700 transition"
+          class="inline-flex items-center rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 transition"
         >
           Start setup
         </a>
@@ -158,10 +159,10 @@ const requiresRoles =
     {/* Setup Overview - Time, Type, Friction */}
     {
       setupComplexity && (
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* Setup Time */}
-          <div class="rounded-lg bg-zinc-800/50 p-4">
-            <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Time</div>
+          <div class="tool-review-stat-card rounded-2xl p-4">
+            <div class="tool-review-micro-label mb-2">Setup Time</div>
             <div class="text-lg font-semibold text-zinc-100">
               {setupTimeLabels[setupComplexity.estimated_setup_time] ||
                 setupComplexity.estimated_setup_time}
@@ -170,8 +171,8 @@ const requiresRoles =
 
           {/* Setup Type */}
           {displaySetupTypeLabel && (
-            <div class="rounded-lg bg-zinc-800/50 p-4">
-              <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Setup Type</div>
+            <div class="tool-review-stat-card rounded-2xl p-4">
+              <div class="tool-review-micro-label mb-2">Setup Type</div>
               <div class="text-lg font-semibold text-zinc-100 flex items-center gap-2">
                 <span>{displaySetupTypeLabel.icon}</span>
                 <span>{displaySetupTypeLabel.label}</span>
@@ -181,8 +182,8 @@ const requiresRoles =
 
           {/* Friction Score */}
           {frictionScore > 0 && (
-            <div class="rounded-lg bg-zinc-800/50 p-4">
-              <div class="text-xs text-zinc-500 uppercase tracking-wide mb-1">Friction Score</div>
+            <div class="tool-review-stat-card rounded-2xl p-4">
+              <div class="tool-review-micro-label mb-2">Friction Score</div>
               <div class="text-lg font-semibold text-zinc-100 mb-2">
                 {frictionScore}/10 · {frictionLabel}
               </div>
@@ -201,7 +202,7 @@ const requiresRoles =
     {/* Red Tape Warnings */}
     {
       setupComplexity && hasRedTape && (
-        <div class="rounded-lg border border-red-500/30 bg-red-950/20 p-4">
+        <div class="rounded-2xl border border-red-500/30 bg-red-950/20 p-5">
           <h3 class="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
             <span>⚠️</span>
             <span>Red Tape Alert</span>
@@ -256,7 +257,7 @@ const requiresRoles =
     {/* Required Roles */}
     {
       setupComplexity && requiresRoles && (
-        <div class="rounded-lg bg-zinc-800/50 p-4">
+        <div class="tool-review-stat-card rounded-2xl p-5">
           <h3 class="text-sm font-semibold text-zinc-300 mb-2">Who Needs to Be Involved?</h3>
           <div class="flex flex-wrap gap-2">
             {setupComplexity.requires_developer && (
@@ -282,7 +283,7 @@ const requiresRoles =
     {/* Technical Blockers */}
     {
       setupComplexity && hasBlockers && (
-        <div class="rounded-lg bg-zinc-800/50 p-4">
+        <div class="tool-review-stat-card rounded-2xl p-5">
           <h3 class="text-sm font-semibold text-zinc-300 mb-3">Technical Requirements</h3>
           <ul class="space-y-2 text-sm text-zinc-400">
             {setupComplexity.technical_blockers!.map((blocker) => (
@@ -300,11 +301,13 @@ const requiresRoles =
     {
       !hasCanonicalTracks && setupComplexity.steps && setupComplexity.steps.length > 0 && (
         <div>
-          <h3 class="text-sm font-semibold text-zinc-100 mb-4">The Fast Path</h3>
+          <h3 class="mb-4 font-headline text-2xl font-bold tracking-tight text-zinc-50">
+            The fast path
+          </h3>
           <ol class="space-y-4">
             {setupComplexity.steps.map((step) => (
               <li class="flex gap-4">
-                <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-sm border border-blue-500/30">
+                <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/20 text-sm font-semibold text-indigo-200">
                   {step.step}
                 </div>
                 <div class="flex-1 pt-1">
@@ -330,12 +333,14 @@ const requiresRoles =
         <div class="space-y-6">
           {effectiveNonDevTrack.length > 0 && (
             <div>
-              <h3 class="text-sm font-semibold text-zinc-100 mb-4">Quick start path</h3>
+              <h3 class="mb-4 font-headline text-2xl font-bold tracking-tight text-zinc-50">
+                Quick start path
+              </h3>
               <p class="mb-3 text-xs text-zinc-500">Fastest path for most teams.</p>
               <ol class="space-y-4">
                 {effectiveNonDevTrack.map((step, index) => (
                   <li class="flex gap-4">
-                    <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 font-semibold text-sm border border-blue-500/30">
+                    <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/20 text-sm font-semibold text-indigo-200">
                       {index + 1}
                     </div>
                     <div class="flex-1 pt-1">
@@ -352,11 +357,13 @@ const requiresRoles =
 
           {devTrack.length > 0 && (
             <div>
-              <h3 class="text-sm font-semibold text-zinc-100 mb-4">Developer Path (API / CLI)</h3>
+              <h3 class="mb-4 font-headline text-2xl font-bold tracking-tight text-zinc-50">
+                Developer path (API / CLI)
+              </h3>
               <ol class="space-y-4">
                 {devTrack.map((step, index) => (
                   <li class="flex gap-4">
-                    <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-300 font-semibold text-sm border border-cyan-500/30">
+                    <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-500/20 text-sm font-semibold text-cyan-200">
                       {index + 1}
                     </div>
                     <div class="flex-1 pt-1">
@@ -384,7 +391,7 @@ const requiresRoles =
     {/* Developer Path Fallback */}
     {
       setupComplexity && showDeveloperPath && (
-        <div class="rounded-lg border border-cyan-500/30 bg-cyan-950/20 p-4">
+        <div class="rounded-2xl border border-cyan-500/30 bg-cyan-950/20 p-5">
           <h3 class="text-sm font-semibold text-cyan-300 mb-2 flex items-center gap-2">
             <span>⌨️</span>
             <span>Developer Path (API / CLI)</span>
@@ -421,7 +428,7 @@ const requiresRoles =
     {/* Aha Moment */}
     {
       setupComplexity && hasMeaningfulAhaMoment && (
-        <div class="rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 p-4">
+        <div class="rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 p-5">
           <div class="flex items-start gap-3">
             <span class="text-2xl">🎉</span>
             <div>

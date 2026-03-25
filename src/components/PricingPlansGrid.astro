@@ -133,7 +133,7 @@ const discountLabels = {
           </p>
         )}
         <p class="mb-4 text-sm text-zinc-400">{planCount} plans with published pricing data</p>
-        <div class="overflow-hidden rounded-lg border border-zinc-700">
+        <div class="tool-review-table overflow-hidden rounded-[1.35rem]">
           <table class="w-full text-sm">
             <thead class="bg-zinc-800/50">
               <tr>
@@ -189,17 +189,21 @@ const discountLabels = {
           </p>
         )}
         {lensFilteredSmpPlans.map((plan) => (
-          <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-4 hover:border-zinc-600 transition">
+          <div class="tool-review-panel-muted rounded-[1.4rem] p-5 hover:-translate-y-0.5 hover:border-zinc-600 transition">
             {/* Plan Header */}
-            <div class="mb-4 border-b border-zinc-800 pb-4">
+            <div class="mb-5 border-b border-zinc-800 pb-5">
               <div class="mb-2 flex items-baseline justify-between gap-2">
-                <h3 class="text-lg font-semibold text-zinc-100">{plan.displayName}</h3>
+                <h3 class="font-headline text-2xl font-bold tracking-tight text-zinc-50">
+                  {plan.displayName}
+                </h3>
                 {plan.scaling_unit && (
-                  <span class="text-xs text-zinc-500">per {plan.scaling_unit}</span>
+                  <span class="rounded-full border border-zinc-700 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                    per {plan.scaling_unit}
+                  </span>
                 )}
               </div>
               {plan.is_enterprise ? (
-                <p class="text-sm font-medium text-zinc-400">Contact Sales</p>
+                <p class="text-sm font-medium text-zinc-400">Contact sales</p>
               ) : (
                 <div>
                   {/* Handle Free plans */}
@@ -209,8 +213,10 @@ const discountLabels = {
                   ) : plan.price_monthly && plan.price_monthly > 0 ? (
                     <div>
                       <div class="mb-1">
-                        <span class="text-2xl font-bold text-zinc-100">${plan.price_monthly}</span>
-                        <span class="text-sm text-zinc-400">
+                        <span class="text-4xl font-black tracking-tight text-zinc-50">
+                          ${plan.price_monthly}
+                        </span>
+                        <span class="ml-1 text-sm text-zinc-400">
                           {plan.scaling_unit ? `/${plan.scaling_unit}/mo` : '/mo'}
                         </span>
                       </div>
@@ -228,14 +234,16 @@ const discountLabels = {
                     </div>
                   ) : plan.price_annual && plan.price_annual > 0 ? (
                     <div class="mb-1">
-                      <span class="text-2xl font-bold text-zinc-100">${plan.price_annual}</span>
-                      <span class="text-sm text-zinc-400">
+                      <span class="text-4xl font-black tracking-tight text-zinc-50">
+                        ${plan.price_annual}
+                      </span>
+                      <span class="ml-1 text-sm text-zinc-400">
                         {plan.scaling_unit ? `/${plan.scaling_unit}/yr` : '/yr'}
                       </span>
                     </div>
                   ) : plan.price_monthly === 0 ? (
                     <div class="mb-1">
-                      <span class="text-2xl font-bold text-green-400">Free</span>
+                      <span class="text-4xl font-black tracking-tight text-emerald-300">Free</span>
                     </div>
                   ) : null}
                   {plan.included_units && plan.scaling_unit && (
@@ -255,7 +263,7 @@ const discountLabels = {
                 !plan.price_monthly &&
                 !plan.price_annual
               ) && (
-                <div class="mb-4 space-y-2 text-sm">
+                <div class="mb-4 space-y-2 rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-4 text-sm">
                   {plan.max_users && plan.max_users > 0 && (
                     <div class="flex justify-between text-zinc-300">
                       <span>Users:</span>
@@ -324,12 +332,14 @@ const discountLabels = {
     !hasSMPPricing && hasLegacyPricing && (
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {legacy_pricing.tiers.map((tier) => (
-          <div class="rounded-lg border border-zinc-700 bg-zinc-900 p-4 hover:border-zinc-600 transition">
-            <div class="mb-4 border-b border-zinc-800 pb-4">
-              <h3 class="mb-2 text-lg font-semibold text-zinc-100">{tier.name}</h3>
+          <div class="tool-review-panel-muted rounded-[1.4rem] p-5 hover:-translate-y-0.5 hover:border-zinc-600 transition">
+            <div class="mb-5 border-b border-zinc-800 pb-5">
+              <h3 class="mb-2 font-headline text-2xl font-bold tracking-tight text-zinc-50">
+                {tier.name}
+              </h3>
               {tier.price ? (
                 <div>
-                  <p class="text-xl font-bold text-zinc-100">{tier.price}</p>
+                  <p class="text-3xl font-black tracking-tight text-zinc-50">{tier.price}</p>
                   {tier.billing_period && (
                     <p class="text-xs text-zinc-500 capitalize">{tier.billing_period}</p>
                   )}

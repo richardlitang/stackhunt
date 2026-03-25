@@ -89,3 +89,115 @@
     --chart-5: oklch(0.645 0.246 16.439);
   }
 }
+
+@layer components {
+  .tool-review-shell {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .tool-review-shell::before {
+    content: '';
+    position: absolute;
+    inset: -2rem 0 auto;
+    height: 32rem;
+    background:
+      radial-gradient(circle at top left, rgb(96 120 255 / 0.22), transparent 34%),
+      radial-gradient(circle at top right, rgb(34 197 94 / 0.08), transparent 28%),
+      linear-gradient(180deg, rgb(24 24 27 / 0.88), transparent 72%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .tool-review-panel {
+    border: 1px solid rgb(63 63 70 / 0.9);
+    background:
+      linear-gradient(180deg, rgb(24 24 27 / 0.96), rgb(12 12 14 / 0.96)), rgb(10 10 12 / 0.96);
+    box-shadow:
+      0 20px 60px rgb(0 0 0 / 0.28),
+      inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+
+  .tool-review-panel-muted {
+    border: 1px solid rgb(39 39 42 / 0.95);
+    background:
+      linear-gradient(180deg, rgb(17 17 19 / 0.98), rgb(10 10 12 / 0.98)), rgb(10 10 12 / 0.98);
+  }
+
+  .tool-review-hero {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tool-review-hero::after {
+    content: '';
+    position: absolute;
+    inset: auto -12% -18% auto;
+    width: 22rem;
+    height: 22rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgb(90 118 255 / 0.24), transparent 68%);
+    filter: blur(8px);
+    pointer-events: none;
+  }
+
+  .tool-review-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(99 102 241 / 0.28);
+    background: rgb(79 70 229 / 0.12);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(199 210 254);
+  }
+
+  .tool-review-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(63 63 70);
+    background: rgb(24 24 27 / 0.9);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: rgb(212 212 216);
+  }
+
+  .tool-review-stat-card {
+    border: 1px solid rgb(39 39 42);
+    background: linear-gradient(180deg, rgb(20 20 23 / 0.96), rgb(12 12 14 / 0.96));
+  }
+
+  .tool-review-micro-label {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(161 161 170);
+  }
+
+  .tool-review-section-title {
+    font-family: Manrope, Inter, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: rgb(244 244 245);
+  }
+
+  .tool-review-table {
+    border: 1px solid rgb(39 39 42);
+    background: linear-gradient(180deg, rgb(17 17 19 / 0.98), rgb(10 10 12 / 0.98));
+  }
+
+  .tool-review-rail {
+    border: 1px solid rgb(39 39 42 / 0.95);
+    background:
+      linear-gradient(180deg, rgb(17 17 19 / 0.98), rgb(10 10 12 / 0.98)), rgb(10 10 12 / 0.98);
+    box-shadow: 0 12px 40px rgb(0 0 0 / 0.28);
+  }
+}
