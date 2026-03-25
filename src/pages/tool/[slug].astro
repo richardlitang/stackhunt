@@ -71,6 +71,50 @@ const { routeDataState, pageAssemblyState } = buildToolPagePageCompilerRouteStat
   searchParams: Astro.url.searchParams,
 });
 
+const fitMatrixRows = [
+  pageAssemblyState.buyerDecisionLayer.fitMatrix.solo,
+  pageAssemblyState.buyerDecisionLayer.fitMatrix.startup,
+  pageAssemblyState.buyerDecisionLayer.fitMatrix.midMarket,
+  pageAssemblyState.buyerDecisionLayer.fitMatrix.enterprise,
+];
+const hasFitMatrix = fitMatrixRows.some((row) => row && (row.reason || row.caveat));
+const hasBeforeYouBuyTests = pageAssemblyState.buyerDecisionLayer.beforeYouBuyTests.length > 0;
+const hasVerdictSection = routeDataState.hasVerdict || routeDataState.showProceduralVerdict;
+const verdictSectionId = routeDataState.hasVerdict ? 'verdict' : 'verdict-conditions';
+const hasPricingSection = routeDataState.showPricingSection;
+const hasGettingStartedSection = routeDataState.hasGettingStarted;
+const hasStrengthsSection = routeDataState.hasStrengths;
+const hasFeaturesSection = routeDataState.hasFeatures;
+const hasSpecsSection = routeDataState.hasSpecs || routeDataState.showProceduralSpecs;
+const hasPlatformSection = pageAssemblyState.platformSectionState.shouldShow;
+const hasFaqSection = routeDataState.hasFAQ;
+const hasAlternativesSection =
+  routeDataState.hasAlternatives && pageAssemblyState.alternativeCardsView.length > 0;
+const hasHowWeEvaluatedSection = true;
+const hasWeTestedSection = routeDataState.showWeTestedIt;
+const hasSourcesSection = pageAssemblyState.sourcesSectionState.hasSources;
+const hasUpdateHistorySection = pageAssemblyState.updateHistoryState.hasUpdates;
+const hasCommunitySection = routeDataState.hasCommunity;
+
+const renderedJumpLinks = [
+  hasFitMatrix ? { href: '#fit-matrix', label: 'Market fit' } : null,
+  hasBeforeYouBuyTests ? { href: '#before-you-buy-tests', label: 'Tests' } : null,
+  hasVerdictSection ? { href: `#${verdictSectionId}`, label: 'Verdict' } : null,
+  hasPricingSection ? { href: '#pricing-plans', label: 'Pricing' } : null,
+  hasGettingStartedSection ? { href: '#getting-started', label: 'Getting started' } : null,
+  hasStrengthsSection ? { href: '#strengths', label: 'Strengths' } : null,
+  hasFeaturesSection ? { href: '#features', label: 'Features' } : null,
+  hasSpecsSection ? { href: '#specs', label: 'Specs' } : null,
+  hasPlatformSection ? { href: '#platform-integrations', label: 'Integrations' } : null,
+  hasFaqSection ? { href: '#faq', label: 'FAQ' } : null,
+  hasAlternativesSection ? { href: '#alternatives', label: 'Alternatives' } : null,
+  hasHowWeEvaluatedSection ? { href: '#how-we-evaluate', label: 'How we evaluated' } : null,
+  hasWeTestedSection ? { href: '#we-tested-it', label: 'We tested it' } : null,
+  hasSourcesSection ? { href: '#sources', label: 'Sources' } : null,
+  hasUpdateHistorySection ? { href: '#update-history', label: 'Updates' } : null,
+  hasCommunitySection ? { href: '#community', label: 'Community' } : null,
+].filter((link): link is { href: string; label: string } => Boolean(link));
+
 applyToolPageResponseRouteState({
   response: Astro.response,
   robotsTag: pageAssemblyState.indexPolicy.robotsTag,
@@ -286,7 +330,7 @@ applyToolPageResponseRouteState({
           <ToolDecisionToolbar
             activeLens={pageAssemblyState.buyerDecisionLayer.toolbar.activeLens}
             lensHrefs={pageAssemblyState.buyerDecisionLayer.toolbar.lensHrefs}
-            jumpLinks={pageAssemblyState.buyerDecisionLayer.toolbar.jumpLinks}
+            jumpLinks={renderedJumpLinks}
           />
           <div class="space-y-2">
             {
@@ -320,20 +364,25 @@ applyToolPageResponseRouteState({
       </div>
     </header>
 
-    <ToolFitMatrix fitMatrix={pageAssemblyState.buyerDecisionLayer.fitMatrix} />
-    <ToolBeforeYouBuyTests tests={pageAssemblyState.buyerDecisionLayer.beforeYouBuyTests} />
+    {hasFitMatrix && <ToolFitMatrix fitMatrix={pageAssemblyState.buyerDecisionLayer.fitMatrix} />}
+    {
+      hasBeforeYouBuyTests && (
+        <ToolBeforeYouBuyTests tests={pageAssemblyState.buyerDecisionLayer.beforeYouBuyTests} />
+      )
+    }
 
     <!-- Main Content Grid -->
     <div class="grid gap-10 lg:grid-cols-3 xl:grid-cols-[15rem_minmax(0,1fr)_18rem]">
-      <aside class="hidden xl:sticky xl:top-24 xl:block xl:self-start">
-        <nav class="tool-review-rail rounded-[1.5rem] p-4" aria-label="Section rail">
-          <p class="tool-review-micro-label">Navigation</p>
-          <p class="mt-1 text-[11px] uppercase tracking-[0.16em] text-zinc-500">Jump to section</p>
-          <div class="mt-4 space-y-1">
-            {
-              pageAssemblyState.buyerDecisionLayer.toolbar.jumpLinks
-                .slice(0, 8)
-                .map((link, index) => (
+      {
+        renderedJumpLinks.length > 0 && (
+          <aside class="hidden xl:sticky xl:top-24 xl:block xl:self-start">
+            <nav class="tool-review-rail rounded-[1.5rem] p-4" aria-label="Section rail">
+              <p class="tool-review-micro-label">Navigation</p>
+              <p class="mt-1 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+                Jump to section
+              </p>
+              <div class="mt-4 space-y-1">
+                {renderedJumpLinks.slice(0, 8).map((link, index) => (
                   <a
                     href={link.href}
                     class={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
@@ -345,11 +394,12 @@ applyToolPageResponseRouteState({
                     <span>{link.label}</span>
                     <span class="text-xs text-zinc-500 group-hover:text-zinc-300">→</span>
                   </a>
-                ))
-            }
-          </div>
-        </nav>
-      </aside>
+                ))}
+              </div>
+            </nav>
+          </aside>
+        )
+      }
 
       <div class="space-y-8 lg:col-span-2 xl:col-span-1">
         {/* Our Verdict - Quick summary with key points */}

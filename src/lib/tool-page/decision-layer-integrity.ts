@@ -57,6 +57,52 @@ function fallbackImplementationSummary(
   return 'Implementation friction needs confirmation.';
 }
 
+type FitMatrixSegment = 'solo' | 'startup' | 'midMarket' | 'enterprise';
+
+const FIT_SEGMENT_DEFAULT_REASON: Record<FitMatrixSegment, string> = {
+  solo: 'Best fit depends on whether one operator can run the core workflow end to end.',
+  startup: 'Fit is strongest when ownership and handoffs are clear before rollout.',
+  midMarket: 'Fit depends on governance needs, approval flow, and reporting depth.',
+  enterprise: 'Enterprise fit depends on controls, auditability, and rollout ownership.',
+};
+
+const FIT_SEGMENT_DEFAULT_CAVEAT: Record<FitMatrixSegment, string> = {
+  solo: 'Validate free-tier limits and admin overhead before standardizing.',
+  startup: 'Validate seat growth, automation limits, and upgrade thresholds early.',
+  midMarket: 'Validate governance and reporting requirements before expansion.',
+  enterprise: 'Validate compliance controls, procurement requirements, and migration risk.',
+};
+
+const ENTERPRISE_ONLY_CAVEAT_PATTERN =
+  /\b(enterprise|procurement|fedramp|hipaa|soc ?2|iso ?27001|audit(?:ability)?|saml|scim|compliance|legal review)\b/i;
+
+function normalizeFitMatrixRow(
+  row: ToolPageBuyerDecisionLayer['fitMatrix']['solo'],
+  segment: FitMatrixSegment
+): ToolPageBuyerDecisionLayer['fitMatrix']['solo'] {
+  if (!row) return null;
+  const reasonRaw = sanitizeText(row.reason);
+  const caveatRaw = sanitizeText(row.caveat);
+  if (!reasonRaw && !caveatRaw) return null;
+
+  const shouldReplaceWithSegmentFallback =
+    segment !== 'enterprise' &&
+    Boolean(caveatRaw) &&
+    ENTERPRISE_ONLY_CAVEAT_PATTERN.test(caveatRaw || '');
+
+  const reason =
+    shouldReplaceWithSegmentFallback && reasonRaw && ENTERPRISE_ONLY_CAVEAT_PATTERN.test(reasonRaw)
+      ? FIT_SEGMENT_DEFAULT_REASON[segment]
+      : reasonRaw;
+  const caveat = shouldReplaceWithSegmentFallback ? FIT_SEGMENT_DEFAULT_CAVEAT[segment] : caveatRaw;
+
+  return {
+    ...row,
+    reason,
+    caveat,
+  };
+}
+
 export function enforceToolPageDecisionLayerIntegrity(
   input: EnforceToolPageDecisionLayerIntegrityInput
 ): ToolPageBuyerDecisionLayer {
@@ -85,23 +131,16 @@ export function enforceToolPageDecisionLayerIntegrity(
     },
   };
 
-  const fitRows = [
-    layer.fitMatrix.solo,
-    layer.fitMatrix.startup,
-    layer.fitMatrix.midMarket,
-    layer.fitMatrix.enterprise,
+  const fitRows: Array<{
+    segment: FitMatrixSegment;
+    row: ToolPageBuyerDecisionLayer['fitMatrix']['solo'];
+  }> = [
+    { segment: 'solo', row: layer.fitMatrix.solo },
+    { segment: 'startup', row: layer.fitMatrix.startup },
+    { segment: 'midMarket', row: layer.fitMatrix.midMarket },
+    { segment: 'enterprise', row: layer.fitMatrix.enterprise },
   ];
-  const normalizedFitRows = fitRows.map((row) => {
-    if (!row) return null;
-    const reason = sanitizeText(row.reason);
-    const caveat = sanitizeText(row.caveat);
-    if (!reason && !caveat) return null;
-    return {
-      ...row,
-      reason,
-      caveat,
-    };
-  });
+  const normalizedFitRows = fitRows.map(({ segment, row }) => normalizeFitMatrixRow(row, segment));
   const fitContentKeys = normalizedFitRows
     .map((row) => (row ? toNormalizedKey(`${row.reason || ''}|${row.caveat || ''}`) : ''))
     .filter((key) => key.length > 0);
