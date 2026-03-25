@@ -357,11 +357,11 @@ applyToolPageResponseRouteState({
           routeDataState.hasVerdict && (
             <section
               id="verdict"
-              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              class="tool-review-panel rounded-[1.8rem] p-7 shadow-sm transition-shadow hover:shadow-md"
               data-focus-target
               data-focus-groups="all verdict"
             >
-              <h2 class="mb-2 text-lg font-semibold text-zinc-100">
+              <h2 class="tool-review-section-title mb-2 text-3xl">
                 Best fit, main risk, and upgrade trigger
               </h2>
               <p class="text-sm text-zinc-300">
@@ -370,14 +370,14 @@ applyToolPageResponseRouteState({
               <p class="text-sm text-zinc-400">
                 As of {pageAssemblyState.freshnessLabels.verdictAsOfLabel}.
               </p>
-              <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+              <div class="tool-review-panel-muted mt-5 rounded-2xl p-5">
                 <div
                   class="prose prose-slate prose-sm max-w-none text-zinc-200 leading-7"
                   set:html={simpleMarkdown(pageAssemblyState.verdictContent.body)}
                 />
               </div>
               {routeDataState.lensRankedHardLimits.length > 0 && (
-                <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+                <div class="tool-review-panel-muted mt-4 rounded-2xl p-5">
                   <h3 class="text-sm font-semibold text-zinc-200">Hard limits / dealbreakers</h3>
                   <ul class="mt-2 space-y-2 text-sm text-zinc-300">
                     {routeDataState.lensRankedHardLimits.slice(0, 4).map((item) => (
@@ -430,14 +430,14 @@ applyToolPageResponseRouteState({
           routeDataState.showPricingSection && (
             <details
               id="pricing-plans"
-              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              class="group tool-review-panel rounded-[1.8rem] p-7 shadow-sm transition-shadow hover:shadow-md"
               open={routeDataState.hasPricing}
               data-focus-target
               data-focus-groups="all pricing"
             >
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
-                  <h2 class="text-lg font-semibold text-zinc-100">
+                  <h2 class="tool-review-section-title text-3xl">
                     {routeDataState.tool.name} pricing, how seats work
                   </h2>
                   {pageAssemblyState.pricingSectionState.checkedLead && (
@@ -499,7 +499,7 @@ applyToolPageResponseRouteState({
                   costModelExamples={pageAssemblyState.pricingScenarioState.examples}
                 />
                 {routeDataState.topLensHardLimit && (
-                  <div class="mb-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+                  <div class="tool-review-panel-muted mb-4 rounded-2xl p-4">
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                       {routeDataState.tool.name} free plan limits and hard constraints
                     </h3>
@@ -543,7 +543,7 @@ applyToolPageResponseRouteState({
                     </PricingPlansGrid>
                   </>
                 ) : (
-                  <div class="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
+                  <div class="tool-review-panel-muted space-y-3 rounded-2xl p-5 text-sm text-zinc-300">
                     <p class="font-medium text-zinc-100">Structured pricing is incomplete.</p>
                     <p>
                       We found pricing references, but not enough source-backed plan detail to
@@ -633,14 +633,14 @@ applyToolPageResponseRouteState({
           routeDataState.hasStrengths && (
             <details
               id="strengths"
-              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              class="group tool-review-panel rounded-[1.8rem] p-7 shadow-sm transition-shadow hover:shadow-md"
               open
               data-focus-target
               data-focus-groups="all verdict capabilities"
             >
               <summary class="flex items-center justify-between cursor-pointer">
                 <div>
-                  <h2 class="text-lg font-semibold text-zinc-100">Strengths & Weaknesses</h2>
+                  <h2 class="tool-review-section-title text-3xl">Strengths & Weaknesses</h2>
                   <p class="mt-1 text-sm text-zinc-400">{pageAssemblyState.strengthsSubtitle}</p>
                   {(routeDataState.communityProsCount || 0) +
                     (routeDataState.communityConsCount || 0) >
@@ -724,7 +724,7 @@ applyToolPageResponseRouteState({
                 />
               </div>
               {pageAssemblyState.hasUserSignalProsCons && (
-                <div class="mt-6 rounded-lg border border-zinc-700/70 bg-zinc-950/40 p-4">
+                <div class="tool-review-panel-muted mt-6 rounded-2xl p-5">
                   <h3 class="text-sm font-semibold text-zinc-200">User-Reported Signals</h3>
                   <p class="mt-1 text-xs text-zinc-400">
                     Reported community and reviewer experiences, shown separately from factual
@@ -771,10 +771,12 @@ applyToolPageResponseRouteState({
         {
           routeDataState.hasSpecs && (
             <section id="specs" data-focus-target data-focus-groups="all capabilities">
-              <details class="group rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+              <details class="group tool-review-panel rounded-[1.6rem] p-6 shadow-sm">
                 <summary class="flex cursor-pointer list-none items-center justify-between">
                   <div>
-                    <h3 class="text-base font-semibold text-zinc-100">Capability inventory</h3>
+                    <h3 class="font-headline text-2xl font-bold tracking-tight text-zinc-50">
+                      Capability inventory
+                    </h3>
                     <p class="mt-1 text-xs text-zinc-500">
                       Reference section, collapsed by default.
                     </p>
@@ -805,11 +807,11 @@ applyToolPageResponseRouteState({
           routeDataState.showProceduralSpecs && (
             <section
               id="specs"
-              class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm"
+              class="tool-review-panel rounded-[1.6rem] p-7 shadow-sm"
               data-focus-target
               data-focus-groups="all capabilities"
             >
-              <h2 class="text-lg font-semibold text-zinc-100">Technical Validation Steps</h2>
+              <h2 class="tool-review-section-title text-3xl">Technical Validation Steps</h2>
               <ul class="mt-4 space-y-2 text-sm text-zinc-300">
                 <li>- Confirm API limits and throttling behavior using your expected peak load.</li>
                 <li>
@@ -863,14 +865,12 @@ applyToolPageResponseRouteState({
           routeDataState.hasAbout && (
             <details
               id="about"
-              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+              class="group tool-review-panel rounded-[1.8rem] p-7 shadow-sm transition-shadow hover:shadow-md"
               data-focus-target
               data-focus-groups="all capabilities"
             >
               <summary class="flex items-center justify-between cursor-pointer">
-                <h2 class="text-lg font-semibold text-zinc-100">
-                  About {routeDataState.tool.name}
-                </h2>
+                <h2 class="tool-review-section-title text-3xl">About {routeDataState.tool.name}</h2>
                 <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
                   <span class="group-open:hidden">Expand</span>
                   <span class="hidden group-open:inline">Collapse</span>
@@ -901,7 +901,7 @@ applyToolPageResponseRouteState({
         {
           pageAssemblyState.videoState.hasVideo && (
             <section id="video" data-focus-target data-focus-groups="all capabilities">
-              <h2 class="mb-4 text-lg font-semibold text-zinc-100">
+              <h2 class="tool-review-section-title mb-4 text-3xl">
                 Watch {routeDataState.tool.name} in Action
               </h2>
               <VideoEmbed
@@ -922,12 +922,14 @@ applyToolPageResponseRouteState({
         {
           routeDataState.hasOperationalDetails && (
             <details
-              class="group rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+              class="group tool-review-panel rounded-[1.6rem] p-6 shadow-sm"
               data-focus-target
               data-focus-groups="all capabilities integrations trust"
             >
               <summary class="flex cursor-pointer list-none items-center justify-between">
-                <h3 class="font-semibold text-zinc-100">Operational details</h3>
+                <h3 class="font-headline text-2xl font-bold tracking-tight text-zinc-50">
+                  Operational details
+                </h3>
                 <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
                   <span class="group-open:hidden">Expand</span>
                   <span class="hidden group-open:inline">Collapse</span>
@@ -976,8 +978,10 @@ applyToolPageResponseRouteState({
 
         {
           pageAssemblyState.affiliateOffersView.shouldShow && (
-            <div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
-              <h3 class="mb-4 font-semibold text-zinc-100">Get {routeDataState.tool.name}</h3>
+            <div class="tool-review-panel rounded-[1.6rem] p-6 shadow-sm">
+              <h3 class="mb-4 font-headline text-2xl font-bold tracking-tight text-zinc-50">
+                Get {routeDataState.tool.name}
+              </h3>
               <div class="space-y-3">
                 {pageAssemblyState.affiliateOffersView.offers.map((offer) => (
                   <a
@@ -987,7 +991,7 @@ applyToolPageResponseRouteState({
                     data-outbound="vendor"
                     data-location="sidebar-offers"
                     data-tool={routeDataState.tool.slug}
-                    class="flex items-center justify-between rounded-lg border border-zinc-800 p-3 transition hover:border-hunt-200 hover:bg-hunt-50"
+                    class="tool-review-panel-muted flex items-center justify-between rounded-xl p-3 transition hover:border-indigo-400/50 hover:text-indigo-100"
                   >
                     <span class="text-sm font-medium text-zinc-300">{offer.ctaText}</span>
                     <svg
@@ -1017,14 +1021,14 @@ applyToolPageResponseRouteState({
       routeDataState.hasFAQ && (
         <section
           id="faq"
-          class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
+          class="tool-review-panel mt-12 rounded-[1.8rem] p-7"
           data-focus-target
           data-focus-groups="all capabilities trust"
         >
-          <h2 class="mb-4 text-lg font-semibold text-zinc-100">FAQ</h2>
+          <h2 class="tool-review-section-title mb-4 text-3xl">FAQ</h2>
           <div class="space-y-4">
             {pageAssemblyState.faqItemsView.map((item) => (
-              <details class="group rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+              <details class="group tool-review-panel-muted rounded-xl p-4">
                 <summary class="flex items-center justify-between cursor-pointer">
                   <h3 class="text-sm font-semibold text-zinc-100">{item.question}</h3>
                   <svg
