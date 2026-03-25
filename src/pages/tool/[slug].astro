@@ -550,7 +550,7 @@ applyToolPageResponseRouteState({
                       publish a reliable numeric table yet.
                     </p>
                     {pageAssemblyState.pricingEvidenceState.hasEvidencePanel && (
-                      <details class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
+                      <details class="tool-review-panel-muted rounded-lg p-3">
                         <summary class="cursor-pointer text-xs font-semibold uppercase tracking-wide text-zinc-400">
                           Pricing source references
                         </summary>
@@ -1139,7 +1139,7 @@ applyToolPageResponseRouteState({
               {pageAssemblyState.buyerDecisionLayer.alternativesRebuttals
                 .slice(0, 4)
                 .map((item) => (
-                  <article class="rounded border border-zinc-800 bg-zinc-950/40 p-3">
+                  <article class="tool-review-panel-muted rounded p-3">
                     <p class="text-[11px] uppercase tracking-wide text-zinc-500">
                       Rebuttal angle: {item.differentiator}
                     </p>
