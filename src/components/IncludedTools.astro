@@ -30,7 +30,7 @@ const { data: includedTools } = await supabase
 if (!includedTools || includedTools.length === 0) return null;
 ---
 
-<section class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
+<section class="tool-review-panel rounded-[1.8rem] p-6 shadow-sm">
   <div class="mb-4 flex items-start gap-3">
     <div
       class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-500/10"
@@ -45,7 +45,7 @@ if (!includedTools || includedTools.length === 0) return null;
       </svg>
     </div>
     <div class="flex-1">
-      <h2 class="text-lg font-semibold text-zinc-100">What's Included</h2>
+      <h2 class="tool-review-section-title text-3xl">What's Included</h2>
       <p class="mt-1 text-sm text-zinc-400">
         {toolName} includes {includedTools.length}
         {includedTools.length === 1 ? 'tool' : 'tools'}:
@@ -58,7 +58,7 @@ if (!includedTools || includedTools.length === 0) return null;
       includedTools.map((tool) => (
         <a
           href={`/tool/${tool.slug}`}
-          class="group flex items-start gap-3 rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 transition hover:border-green-500/50 hover:bg-zinc-800"
+          class="tool-review-panel-muted group flex items-start gap-3 rounded-lg p-4 transition hover:border-indigo-400/40"
         >
           <Logo domain={tool.logo_url} name={tool.name} size="md" class="flex-shrink-0" />
           <div class="flex-1 min-w-0">
@@ -73,13 +73,11 @@ if (!includedTools || includedTools.length === 0) return null;
               )}
             </div>
             <p class="mt-1 text-xs text-zinc-400 line-clamp-2">
-              {
-                getDisplayDescription({
-                  shortDescription: tool.short_description,
-                  pricingType: tool.pricing_type,
-                  itemType: 'tool',
-                })
-              }
+              {getDisplayDescription({
+                shortDescription: tool.short_description,
+                pricingType: tool.pricing_type,
+                itemType: 'tool',
+              })}
             </p>
             <div class="mt-2">
               <PricingBadge type={tool.pricing_type} size="sm" />

@@ -1199,14 +1199,14 @@ applyToolPageResponseRouteState({
       pageAssemblyState.sourcesSectionState.hasSources && (
         <section
           id="sources"
-          class="mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+          class="tool-review-panel mt-12 rounded-[1.8rem] p-6 shadow-sm"
           data-focus-target
           data-focus-groups="all trust"
         >
-          <details class="group rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+          <details class="group tool-review-panel-muted rounded-xl p-4">
             <summary class="flex cursor-pointer list-none items-center justify-between">
               <div>
-                <span class="text-sm font-medium text-zinc-300">
+                <span class="font-headline text-2xl font-bold tracking-tight text-zinc-50">
                   Sources and methodology details
                 </span>
                 <p class="mt-1 text-xs text-zinc-500">
@@ -1225,7 +1225,7 @@ applyToolPageResponseRouteState({
               {pageAssemblyState.trustBarProps.sourcesCount}. Last checked:{' '}
               {pageAssemblyState.trustBarProps.lastChecked || 'Unknown'}.
             </p>
-            <details class="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3">
+            <details class="tool-review-panel-muted mt-3 rounded-lg p-3">
               <summary class="cursor-pointer text-sm text-zinc-300">Verification snapshot</summary>
               <div class="mt-3">
                 <TrustBar
@@ -1245,7 +1245,7 @@ applyToolPageResponseRouteState({
                 </span>
               ))}
             </div>
-            <details class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+            <details class="tool-review-panel-muted mt-4 rounded-lg p-3">
               <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
               <ul class="mt-3 space-y-2 text-sm">
                 {pageAssemblyState.sourceListsView.methodologyLinks.map((source) => (
@@ -1292,13 +1292,13 @@ applyToolPageResponseRouteState({
       pageAssemblyState.updateHistoryState.hasUpdates && (
         <details
           id="update-history"
-          class="group mt-12 rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm"
+          class="group tool-review-panel mt-12 rounded-[1.8rem] p-6 shadow-sm"
           data-focus-target
           data-focus-groups="all trust"
         >
           <summary class="flex cursor-pointer list-none items-center justify-between">
             <div>
-              <h2 class="text-lg font-semibold text-zinc-100">Update History</h2>
+              <h2 class="tool-review-section-title text-3xl">Update History</h2>
               <p class="mt-1 text-sm text-zinc-400">
                 Last update {pageAssemblyState.updateHistoryLabels.lastUpdateLabel} • Last check{' '}
                 {pageAssemblyState.updateHistoryLabels.lastCheckLabel}
@@ -1311,7 +1311,7 @@ applyToolPageResponseRouteState({
           </summary>
           <ul class="mt-4 space-y-3 text-sm text-zinc-300">
             {pageAssemblyState.updateHistoryEntries.map((entry) => (
-              <li class="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+              <li class="tool-review-panel-muted rounded-lg p-4">
                 <p class="font-medium text-zinc-100">{entry.date}</p>
                 <p class="mt-1">{entry.what}</p>
                 <p class="mt-1 text-xs text-zinc-500">Why: {entry.why}</p>
@@ -1333,13 +1333,13 @@ applyToolPageResponseRouteState({
     }
   </div>
 
-  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     {/* Community Feedback - Compact consolidated section */}
     {
       routeDataState.hasCommunity && (
         <section
           id="community"
-          class="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
+          class="tool-review-panel mt-12 rounded-[1.8rem] p-6"
           data-focus-target
           data-focus-groups="all trust verdict"
         >
@@ -1360,7 +1360,7 @@ applyToolPageResponseRouteState({
               data-suggest-edit
               data-tool-id={routeDataState.tool.id}
               data-tool-name={routeDataState.tool.name}
-              class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300 hover:border-zinc-600 transition"
+              class="tool-review-panel-muted inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-zinc-600 hover:bg-zinc-700 hover:text-zinc-300"
             >
               <svg
                 class="h-3.5 w-3.5"
@@ -1393,12 +1393,17 @@ applyToolPageResponseRouteState({
     aria-hidden="true"
   >
     <div
-      class="w-full max-w-md rounded-xl bg-zinc-900 p-6 shadow-xl"
+      class="tool-review-panel w-full max-w-md rounded-[1.4rem] p-6 shadow-xl"
       tabindex="-1"
       data-modal-panel
     >
       <div class="flex items-center justify-between mb-4">
-        <h3 id="suggest-edit-title" class="text-lg font-semibold text-zinc-100">Suggest an Edit</h3>
+        <h3
+          id="suggest-edit-title"
+          class="font-headline text-2xl font-bold tracking-tight text-zinc-50"
+        >
+          Suggest an Edit
+        </h3>
         <button
           type="button"
           data-close-modal
@@ -1423,7 +1428,7 @@ applyToolPageResponseRouteState({
           <label class="block text-sm font-medium text-zinc-300 mb-1">What needs correcting?</label>
           <select
             name="field_name"
-            class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+            class="tool-review-panel-muted w-full rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           >
             <option value="pricing">Pricing information</option>
             <option value="pros">Pros</option>
@@ -1442,7 +1447,7 @@ applyToolPageResponseRouteState({
             rows="3"
             required
             placeholder="e.g., The pricing has changed to $15/month..."
-            class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+            class="tool-review-panel-muted w-full rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           ></textarea>
         </div>
         <div>
@@ -1451,20 +1456,20 @@ applyToolPageResponseRouteState({
             type="email"
             name="reporter_email"
             placeholder="you@example.com"
-            class="w-full rounded-lg border border-zinc-700 px-3 py-2 text-sm focus:border-hunt-500 focus:outline-none focus:ring-2 focus:ring-hunt-500/20"
+            class="tool-review-panel-muted w-full rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           />
           <p class="mt-1 text-xs text-zinc-500">We'll notify you when the correction is reviewed</p>
         </div>
         <div class="flex items-center gap-3 pt-2">
           <button
             type="submit"
-            class="flex-1 rounded-lg bg-hunt-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-hunt-700 transition"
+            class="flex-1 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-400"
             >Submit Suggestion</button
           >
           <button
             type="button"
             data-close-modal
-            class="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 hover:bg-zinc-900 transition"
+            class="tool-review-panel-muted rounded-lg px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-zinc-900"
             >Cancel</button
           >
         </div>

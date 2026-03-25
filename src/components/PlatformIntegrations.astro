@@ -62,9 +62,9 @@ const directionIcons = {
 
 <section
   id={sectionId}
-  class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+  class="tool-review-panel rounded-[1.8rem] p-6 shadow-sm transition-shadow hover:shadow-md"
 >
-  <h2 class="mb-4 text-lg font-semibold text-zinc-100">
+  <h2 class="tool-review-section-title mb-4 text-3xl">
     {toolName} integrations and platform support
   </h2>
 
@@ -125,7 +125,7 @@ const directionIcons = {
               const internalLink = `/tool/${slug}`;
 
               return (
-                <div class="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900 p-2.5 hover:border-zinc-700 transition group cursor-pointer">
+                <div class="tool-review-panel-muted group flex cursor-pointer items-center gap-2 rounded-lg p-2.5 transition hover:border-zinc-700">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-1.5">
                       <a
