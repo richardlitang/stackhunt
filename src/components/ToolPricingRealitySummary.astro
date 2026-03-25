@@ -6,8 +6,16 @@ interface Props {
 }
 
 const { freeWorksIf = null, paidNeededWhen = null, hiddenCostTriggers = [] } = Astro.props;
+const normalizedFreeWorksIf = freeWorksIf?.trim().toLowerCase() || null;
+const normalizedPaidNeededWhen = paidNeededWhen?.trim().toLowerCase() || null;
+const dedupedPaidNeededWhen =
+  normalizedFreeWorksIf &&
+  normalizedPaidNeededWhen &&
+  normalizedFreeWorksIf === normalizedPaidNeededWhen
+    ? null
+    : paidNeededWhen;
 const hasPricingRealitySignals = Boolean(
-  freeWorksIf || paidNeededWhen || hiddenCostTriggers.length
+  freeWorksIf || dedupedPaidNeededWhen || hiddenCostTriggers.length
 );
 ---
 
@@ -20,12 +28,12 @@ const hasPricingRealitySignals = Boolean(
           <p class="tool-review-micro-label">Free works if</p>
           <p class="mt-2 text-sm leading-6 text-zinc-300">{freeWorksIf || 'Not confirmed yet'}</p>
         </article>
-        <article class="tool-review-panel-muted rounded-2xl p-4">
-          <p class="tool-review-micro-label">Paid needed when</p>
-          <p class="mt-2 text-sm leading-6 text-zinc-300">
-            {paidNeededWhen || 'Not confirmed yet'}
-          </p>
-        </article>
+        {dedupedPaidNeededWhen && (
+          <article class="tool-review-panel-muted rounded-2xl p-4">
+            <p class="tool-review-micro-label">Paid needed when</p>
+            <p class="mt-2 text-sm leading-6 text-zinc-300">{dedupedPaidNeededWhen}</p>
+          </article>
+        )}
       </div>
       <article class="tool-review-panel-muted mt-4 rounded-2xl p-4">
         <p class="tool-review-micro-label">Hidden cost triggers</p>

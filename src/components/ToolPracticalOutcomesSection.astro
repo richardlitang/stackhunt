@@ -23,7 +23,7 @@ const { title, outcomes } = Astro.props as Props;
       data-focus-groups="all capabilities setup pricing"
     >
       <h2 class="tool-review-section-title text-3xl">{title}</h2>
-      <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div class="mt-6 grid gap-6 md:grid-cols-2">
         {outcomes.map((item) => (
           <article class="tool-review-panel-muted rounded-[1.35rem] p-5">
             <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/12 text-sm font-bold text-indigo-200">

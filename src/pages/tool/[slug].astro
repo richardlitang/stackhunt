@@ -19,7 +19,6 @@ import SecurityCompliance from '@/components/SecurityCompliance.astro';
 import SupportOptions from '@/components/SupportOptions.astro';
 import PortabilityCard from '@/components/PortabilityCard.astro';
 import PlatformIntegrations from '@/components/PlatformIntegrations.astro';
-import FeaturesShowcase from '@/components/FeaturesShowcase.astro';
 import GettingStarted from '@/components/GettingStarted.astro';
 import PricingPlansGrid from '@/components/PricingPlansGrid.astro';
 import PricingInsights from '@/components/PricingInsights.astro';
@@ -36,7 +35,6 @@ import ToolDecisionConditionsSection from '@/components/ToolDecisionConditionsSe
 import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
 import ToolBeforeYouBuyTests from '@/components/ToolBeforeYouBuyTests.astro';
 import ToolCompactTrustStrip from '@/components/ToolCompactTrustStrip.astro';
-import ToolDecisionToolbar from '@/components/ToolDecisionToolbar.astro';
 import ToolFitMatrix from '@/components/ToolFitMatrix.astro';
 import ToolImmediateVerdictCard from '@/components/ToolImmediateVerdictCard.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
@@ -84,7 +82,6 @@ const verdictSectionId = routeDataState.hasVerdict ? 'verdict' : 'verdict-condit
 const hasPricingSection = routeDataState.showPricingSection;
 const hasGettingStartedSection = routeDataState.hasGettingStarted;
 const hasStrengthsSection = routeDataState.hasStrengths;
-const hasFeaturesSection = routeDataState.hasFeatures;
 const hasSpecsSection = routeDataState.hasSpecs || routeDataState.showProceduralSpecs;
 const hasPlatformSection = pageAssemblyState.platformSectionState.shouldShow;
 const hasFaqSection = routeDataState.hasFAQ;
@@ -103,7 +100,6 @@ const renderedJumpLinks = [
   hasPricingSection ? { href: '#pricing-plans', label: 'Pricing' } : null,
   hasGettingStartedSection ? { href: '#getting-started', label: 'Getting started' } : null,
   hasStrengthsSection ? { href: '#strengths', label: 'Strengths' } : null,
-  hasFeaturesSection ? { href: '#features', label: 'Features' } : null,
   hasSpecsSection ? { href: '#specs', label: 'Specs' } : null,
   hasPlatformSection ? { href: '#platform-integrations', label: 'Integrations' } : null,
   hasFaqSection ? { href: '#faq', label: 'FAQ' } : null,
@@ -219,13 +215,6 @@ applyToolPageResponseRouteState({
                     </p>
                   )
               }
-              {
-                pageAssemblyState.showEarlySnapshotToneBanner && (
-                  <p class="mt-2 text-xs text-amber-300">
-                    Early snapshot, validate plan-gated claims in a live demo before switching.
-                  </p>
-                )
-              }
             </div>
           </div>
 
@@ -327,11 +316,6 @@ applyToolPageResponseRouteState({
             confidence={pageAssemblyState.buyerDecisionLayer.compactTrustStrip.confidence}
             lastChecked={pageAssemblyState.buyerDecisionLayer.compactTrustStrip.lastChecked}
           />
-          <ToolDecisionToolbar
-            activeLens={pageAssemblyState.buyerDecisionLayer.toolbar.activeLens}
-            lensHrefs={pageAssemblyState.buyerDecisionLayer.toolbar.lensHrefs}
-            jumpLinks={renderedJumpLinks}
-          />
           <div class="space-y-2">
             {
               pageAssemblyState.websiteState.hasWebsite && (
@@ -347,17 +331,6 @@ applyToolPageResponseRouteState({
                   Visit {routeDataState.tool.name}
                 </a>
               )
-            }
-            {
-              routeDataState.hasAlternatives &&
-                pageAssemblyState.alternativeCardsView.length > 0 && (
-                  <a
-                    href="#alternatives"
-                    class="inline-flex w-full items-center justify-center rounded-xl border border-zinc-700 bg-zinc-950/80 px-3 py-3 text-sm font-medium text-zinc-200 hover:border-indigo-400/60 hover:text-indigo-200 transition"
-                  >
-                    Compare alternatives
-                  </a>
-                )
             }
           </div>
         </aside>
@@ -426,40 +399,42 @@ applyToolPageResponseRouteState({
                   set:html={simpleMarkdown(pageAssemblyState.verdictContent.body)}
                 />
               </div>
-              {routeDataState.lensRankedHardLimits.length > 0 && (
-                <div class="tool-review-panel-muted mt-4 rounded-2xl p-5">
-                  <h3 class="text-sm font-semibold text-zinc-200">Hard limits / dealbreakers</h3>
-                  <ul class="mt-2 space-y-2 text-sm text-zinc-300">
-                    {routeDataState.lensRankedHardLimits.slice(0, 4).map((item) => (
-                      <li>
-                        - {item.text}{' '}
-                        <a
-                          href={item.sourceUrl}
-                          target="_blank"
-                          rel="noopener"
-                          aria-label={pageAssemblyState.sourceAriaLabel(item.text)}
-                          data-outbound="source"
-                          data-location="verdict-hard-limits"
-                          data-tool={routeDataState.tool.slug}
-                          class="text-xs text-zinc-500 underline underline-offset-2 hover:text-hunt-500"
-                          title="Open source"
-                        >
-                          Source
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {pageAssemblyState.scoreDrivers.length > 0 && (
-                <div class="mt-5">
-                  <h3 class="text-sm font-semibold text-zinc-200">Recommendation drivers</h3>
-                  <ul class="mt-2 space-y-1 text-sm text-zinc-300">
-                    {pageAssemblyState.scoreDrivers.map((item) => (
-                      <li>- {item}</li>
-                    ))}
-                  </ul>
-                  <p class="mt-2 text-xs text-zinc-500">
+              {(routeDataState.lensRankedHardLimits.length > 0 ||
+                pageAssemblyState.scoreDrivers.length > 0) && (
+                <details class="tool-review-panel-muted mt-4 rounded-2xl p-4">
+                  <summary class="cursor-pointer text-sm font-semibold text-zinc-200">
+                    Evidence notes
+                  </summary>
+                  {routeDataState.lensRankedHardLimits.length > 0 && (
+                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+                      {routeDataState.lensRankedHardLimits.slice(0, 4).map((item) => (
+                        <li>
+                          - {item.text}{' '}
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noopener"
+                            aria-label={pageAssemblyState.sourceAriaLabel(item.text)}
+                            data-outbound="source"
+                            data-location="verdict-hard-limits"
+                            data-tool={routeDataState.tool.slug}
+                            class="text-xs text-zinc-500 underline underline-offset-2 hover:text-hunt-500"
+                            title="Open source"
+                          >
+                            Source
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {pageAssemblyState.scoreDrivers.length > 0 && (
+                    <ul class="mt-3 space-y-1 text-sm text-zinc-300">
+                      {pageAssemblyState.scoreDrivers.map((item) => (
+                        <li>- {item}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <p class="mt-3 text-xs text-zinc-500">
                     Source detail is available in{' '}
                     <a
                       href="#sources"
@@ -469,7 +444,7 @@ applyToolPageResponseRouteState({
                     </a>
                     .
                   </p>
-                </div>
+                </details>
               )}
             </section>
           )
@@ -701,12 +676,6 @@ applyToolPageResponseRouteState({
                       {routeDataState.communityConsCount || 0} cons.
                     </p>
                   )}
-                  {routeDataState.qualityState.userSignalCoveragePending && (
-                    <p class="mt-1 text-xs text-amber-300">
-                      Community sources were found, but not enough source-backed user claims were
-                      extracted yet.
-                    </p>
-                  )}
                   {routeDataState.userSignalSummary &&
                     ((routeDataState.userSignalSummary.reddit_claims || 0) +
                       (routeDataState.userSignalSummary.forum_claims || 0) +
@@ -799,21 +768,6 @@ applyToolPageResponseRouteState({
               title={pageAssemblyState.decisionUtilityState.practicalOutcomesTitle}
               outcomes={pageAssemblyState.decisionUtilityState.practicalOutcomes}
             />
-          )
-        }
-
-        {/* Features Showcase */}
-        {
-          routeDataState.hasFeatures && (
-            <div data-focus-target data-focus-groups="all capabilities">
-              <FeaturesShowcase
-                features={routeDataState.knowledgeCard.features}
-                toolName={routeDataState.tool.name}
-                sectionId="features"
-                peerCount={routeDataState.comparativeFeaturePeerCount}
-                practicalOutcomesVisible={pageAssemblyState.shouldShowPracticalOutcomes}
-              />
-            </div>
           )
         }
 
@@ -1297,6 +1251,12 @@ applyToolPageResponseRouteState({
             </div>
             <details class="tool-review-panel-muted mt-4 rounded-lg p-3">
               <summary class="cursor-pointer text-sm text-zinc-300">View sources</summary>
+              {routeDataState.qualityState.userSignalCoveragePending && (
+                <div class="mt-3 rounded-lg border border-amber-700/30 bg-amber-950/20 p-3 text-xs text-amber-200">
+                  Community sources were found, but not enough source-backed user claims were
+                  extracted yet.
+                </div>
+              )}
               <ul class="mt-3 space-y-2 text-sm">
                 {pageAssemblyState.sourceListsView.methodologyLinks.map((source) => (
                   <li>
