@@ -439,13 +439,6 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                       </p>
                     </details>
                   )}
-                  {needsConfirmationChip(pro) && (
-                    <p class="mt-1">
-                      <span class="inline-flex items-center rounded-full border border-amber-700/70 bg-amber-950/40 px-1.5 py-0.5 text-[10px] text-amber-200">
-                        Needs confirmation
-                      </span>
-                    </p>
-                  )}
                   <p class="mt-1 text-xs text-zinc-500">
                     Why it matters: {deriveWhyItMatters(pro.displayText, 'pro')}
                   </p>
@@ -522,13 +515,6 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
                       </p>
                     </details>
                   )}
-                  {needsConfirmationChip(con) && (
-                    <p class="mt-1">
-                      <span class="inline-flex items-center rounded-full border border-amber-700/70 bg-amber-950/40 px-1.5 py-0.5 text-[10px] text-amber-200">
-                        Needs confirmation
-                      </span>
-                    </p>
-                  )}
                   <p class="mt-1 text-xs text-zinc-500">
                     Why it matters: {deriveWhyItMatters(con.displayText, 'con')}
                   </p>
@@ -575,7 +561,7 @@ import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
   {
     showInsufficientUniqueClaimsNotice && (
       <div class="mt-4 rounded-lg border border-amber-700/40 bg-amber-950/20 p-3 text-xs text-amber-200">
-        Not enough unique source-backed pros found yet (pending verification).
+        Not enough unique source-backed pros found yet.
       </div>
     )
   }

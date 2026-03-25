@@ -34,7 +34,6 @@ import ToolWeTestedSection from '@/components/ToolWeTestedSection.astro';
 import ToolDecisionConditionsSection from '@/components/ToolDecisionConditionsSection.astro';
 import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
 import ToolBeforeYouBuyTests from '@/components/ToolBeforeYouBuyTests.astro';
-import ToolCompactTrustStrip from '@/components/ToolCompactTrustStrip.astro';
 import ToolFitMatrix from '@/components/ToolFitMatrix.astro';
 import ToolImmediateVerdictCard from '@/components/ToolImmediateVerdictCard.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
@@ -182,7 +181,55 @@ applyToolPageResponseRouteState({
               class="shrink-0 rounded-2xl border border-zinc-700/80 shadow-md"
             />
             <div>
-              <p class="tool-review-kicker">Review dossier</p>
+              <div class="group relative inline-flex items-center gap-2">
+                <p class="tool-review-kicker">Review dossier</p>
+                <button
+                  type="button"
+                  class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-amber-700/40 bg-amber-950/20 text-amber-200 transition hover:border-amber-600/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                  aria-describedby="review-status-tooltip"
+                  aria-label="Review status details"
+                >
+                  <svg
+                    class="h-3.5 w-3.5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-11a1 1 0 0 0-1 1v4a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Zm0-3a1.25 1.25 0 1 0 0 2.5A1.25 1.25 0 0 0 10 4Z"
+                    ></path>
+                  </svg>
+                </button>
+                <div
+                  id="review-status-tooltip"
+                  role="tooltip"
+                  class="pointer-events-none absolute left-0 top-[calc(100%+0.5rem)] z-20 hidden w-72 rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-xs text-zinc-300 shadow-lg group-hover:block group-focus-within:block"
+                >
+                  <p>
+                    <span class="text-zinc-500">Status:</span>{' '}
+                    {pageAssemblyState.buyerDecisionLayer.compactTrustStrip.status}
+                  </p>
+                  <p>
+                    <span class="text-zinc-500">Confidence:</span>{' '}
+                    {pageAssemblyState.buyerDecisionLayer.compactTrustStrip.confidence}
+                  </p>
+                  <p>
+                    <span class="text-zinc-500">Last checked:</span>{' '}
+                    {
+                      pageAssemblyState.buyerDecisionLayer.compactTrustStrip.lastChecked ||
+                        'unknown'
+                    }
+                  </p>
+                  {
+                    pageAssemblyState.buyerDecisionLayer.compactTrustStrip.status !==
+                      'Source-backed' && (
+                      <p class="mt-2 text-zinc-400">
+                        Early snapshot, validate plan-gated claims in a live demo before switching.
+                      </p>
+                    )
+                  }
+                </div>
+              </div>
               <div class="mt-1 flex items-center gap-3">
                 <h1
                   class="font-headline text-4xl font-extrabold tracking-[-0.05em] text-zinc-50 sm:text-5xl lg:text-6xl"
@@ -310,11 +357,6 @@ applyToolPageResponseRouteState({
               .implementationFriction.drivers}
             implementationStakeholders={pageAssemblyState.buyerDecisionLayer.heroDecisionCard
               .implementationFriction.stakeholders}
-          />
-          <ToolCompactTrustStrip
-            status={pageAssemblyState.buyerDecisionLayer.compactTrustStrip.status}
-            confidence={pageAssemblyState.buyerDecisionLayer.compactTrustStrip.confidence}
-            lastChecked={pageAssemblyState.buyerDecisionLayer.compactTrustStrip.lastChecked}
           />
           <div class="space-y-2">
             {

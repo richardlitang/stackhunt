@@ -29,8 +29,8 @@ function evidenceChipClass(cell: ToolCompareGridCell): string {
 
 function evidenceChipLabel(cell: ToolCompareGridCell): string {
   if (cell.evidenceTag === 'source') return 'Source-backed';
-  if (cell.evidenceTag === 'heuristic') return 'Heuristic';
-  return 'Needs confirmation';
+  if (cell.evidenceTag === 'heuristic') return '-';
+  return '-';
 }
 ---
 
