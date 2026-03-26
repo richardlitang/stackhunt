@@ -122,7 +122,7 @@ Last verified: 2026-03-26
     - `npm run typecheck`
     - `npm run test -- --runInBand user-signal`
 
-- [ ] Task 8: Tighten category-specific and operational extraction.
+- [ ] Task 8: Tighten category-specific and operational extraction. (partial)
   - Files:
     - Modify: `src/lib/hunter/services/prompts.ts`
     - Modify: `src/lib/hunter/phases/persistence.ts`
@@ -133,7 +133,7 @@ Last verified: 2026-03-26
   - Verify:
     - `npm run typecheck`
 
-- [ ] Task 9: Narrow the tool-page fetch and prep contract.
+- [ ] Task 9: Narrow the tool-page fetch and prep contract. (partial)
   - Files:
     - Modify: `src/lib/supabase.ts`
     - Modify: `src/lib/tool-page/data.ts`
@@ -178,6 +178,8 @@ Last verified: 2026-03-26
 
 - 2026-03-27: Hardened fallback user-signal extraction to only keep explicitly hedged, user-voice community claims and removed synthetic "Users report..." generation from fallback logic.
 - 2026-03-27: Added rendered QA checks that fail when section-rail jump links target missing sections or include disclosure-only navigation links.
+- 2026-03-27: Added lane-output parsing guardrails for operational pricing-reality text and suppressed ambiguous generic hard-limit bullets without plan/unit context.
+- 2026-03-27: Added tool-page route fetch helper with narrowed review payload (`getToolPageItemBySlug`) and switched tool page data loading to use it.
 
 ## Recommended Execution Order
 
