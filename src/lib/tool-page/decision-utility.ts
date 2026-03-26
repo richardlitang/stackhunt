@@ -234,21 +234,9 @@ export function buildToolPageDecisionUtilityState(
     (typeof input.hardLimitText === 'string' && input.hardLimitText.trim().length > 0
       ? input.hardLimitText.trim()
       : '') || (typeof input.lensTradeoffLine === 'string' ? input.lensTradeoffLine.trim() : '');
-  const useIf = useIfBase
-    ? lowConfidenceMode
-      ? `${useIfBase} (Early signal, verify in demo.)`
-      : useIfBase
-    : '';
-  const avoidIf = avoidIfBase
-    ? lowConfidenceMode
-      ? `${avoidIfBase} (Evidence still evolving.)`
-      : avoidIfBase
-    : '';
-  const watchOut = watchOutBase
-    ? lowConfidenceMode
-      ? `${watchOutBase} (Pending claims remain.)`
-      : watchOutBase
-    : '';
+  const useIf = useIfBase;
+  const avoidIf = avoidIfBase;
+  const watchOut = watchOutBase;
 
   const isCrm = isCrmCategory(input.categorySlug);
   const subjectSpecificChecklist = input.resolvedSubjectType
@@ -308,11 +296,7 @@ export function buildToolPageDecisionUtilityState(
     basePricingMentalModelItems[1] ||
     basePricingMentalModelItems[0] ||
     '';
-  const decisionUpgradeTrigger = decisionUpgradeTriggerBase
-    ? lowConfidenceMode
-      ? `${decisionUpgradeTriggerBase} (Verify exact tier gating before rollout.)`
-      : decisionUpgradeTriggerBase
-    : '';
+  const decisionUpgradeTrigger = decisionUpgradeTriggerBase;
   const hasDecisionBullets =
     useIf.length > 0 ||
     avoidIf.length > 0 ||
