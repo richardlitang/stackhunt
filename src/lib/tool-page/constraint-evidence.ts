@@ -15,6 +15,70 @@ export interface ToolPageConstraintEvidence {
   hardLimitFromConstraints: ToolPageConstraintEvidenceBullet[];
 }
 
+const CONSTRAINT_METRIC_LABELS: Record<string, string> = {
+  seat_count: 'Seat limit',
+  user_count: 'User limit',
+  member_count: 'Member limit',
+  project_count: 'Project limit',
+  record_count: 'Record limit',
+  storage_gb: 'Storage limit',
+  api_requests_per_month: 'API request limit',
+  api_rate_limit_per_sec: 'API rate limit',
+  active_contacts: 'Active contact limit',
+  message_credits: 'Message credit limit',
+  event_limit: 'Event limit',
+  mtu_limit: 'Tracked user limit',
+  app_limit: 'App limit',
+  channel_limit: 'Channel limit',
+  file_size_limit: 'File size limit',
+  usage_limit: 'Usage limit',
+};
+
+function toTitleWords(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizePlanLabel(planName: string): string {
+  const normalized = planName.trim().replace(/\s+/g, ' ');
+  return /plan$/i.test(normalized) ? normalized : `${normalized} plan`;
+}
+
+function buildHardLimitText(entry: Record<string, unknown>): string {
+  const metricRaw = typeof entry.metric === 'string' ? entry.metric.trim().toLowerCase() : '';
+  const valueRaw =
+    typeof entry.value === 'number' || typeof entry.value === 'string'
+      ? String(entry.value).trim()
+      : '';
+  const unitRaw = typeof entry.unit === 'string' ? entry.unit.trim() : '';
+  const planRaw = typeof entry.plan_name_match === 'string' ? entry.plan_name_match.trim() : '';
+  const planLabel = planRaw ? normalizePlanLabel(planRaw) : '';
+  const unitLabel = unitRaw ? unitRaw.replace(/_/g, ' ') : '';
+  const metricLabel =
+    (metricRaw && CONSTRAINT_METRIC_LABELS[metricRaw]) ||
+    (metricRaw ? toTitleWords(metricRaw) : 'Limit');
+  const isGenericMetric = metricLabel.toLowerCase() === 'limit';
+  const valueWithUnit = [valueRaw, unitLabel].filter(Boolean).join(' ').trim();
+  const fallbackValue = valueWithUnit || valueRaw || unitLabel;
+
+  if (isGenericMetric && planLabel && fallbackValue) {
+    return `${toTitleWords(planLabel)} limit: ${fallbackValue}`;
+  }
+  if (isGenericMetric && unitLabel && fallbackValue) {
+    return `${toTitleWords(unitLabel)} limit: ${fallbackValue}`;
+  }
+  if (fallbackValue && planLabel) {
+    return `${metricLabel}: ${fallbackValue} on ${planLabel}`;
+  }
+  if (fallbackValue) {
+    return `${metricLabel}: ${fallbackValue}`;
+  }
+  return planLabel ? `${metricLabel} on ${planLabel}` : metricLabel;
+}
+
 export function buildToolPageConstraintEvidence(
   input: BuildToolPageConstraintEvidenceInput
 ): ToolPageConstraintEvidence {
@@ -53,16 +117,7 @@ export function buildToolPageConstraintEvidence(
           const entry = limit as Record<string, unknown>;
           const sourceUrl = typeof entry.source_url === 'string' ? entry.source_url : '';
           if (!input.isEligibleEvidenceUrl(sourceUrl)) return null;
-          const metric =
-            typeof entry.metric === 'string' ? entry.metric.replace(/_/g, ' ') : 'Limit';
-          const value =
-            typeof entry.value === 'number' || typeof entry.value === 'string'
-              ? String(entry.value)
-              : '';
-          const unit = typeof entry.unit === 'string' ? ` ${entry.unit}` : '';
-          const plan =
-            typeof entry.plan_name_match === 'string' ? ` (${entry.plan_name_match})` : '';
-          const text = `${metric}: ${value}${unit}${plan}`.trim();
+          const text = buildHardLimitText(entry);
           if (!text || text === 'Limit:') return null;
           if (input.isDisallowedConClaim(text)) return null;
           const worksForLenses = Array.isArray(entry.works_for_lenses)

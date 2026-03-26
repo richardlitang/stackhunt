@@ -23,6 +23,12 @@ function fitToneClass(fit: 'weak' | 'mixed' | 'strong'): string {
   if (fit === 'mixed') return 'text-amber-200 border-amber-700/50 bg-amber-950/30';
   return 'text-rose-200 border-rose-700/50 bg-rose-950/30';
 }
+
+function fitLabel(fit: 'weak' | 'mixed' | 'strong'): string {
+  if (fit === 'strong') return 'Good fit';
+  if (fit === 'mixed') return 'Conditional fit';
+  return 'Limited fit';
+}
 ---
 
 {
@@ -42,7 +48,7 @@ function fitToneClass(fit: 'weak' | 'mixed' | 'strong'): string {
               <span
                 class={`rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${fitToneClass(entry.row.fit)}`}
               >
-                {entry.row.fit}
+                {fitLabel(entry.row.fit)}
               </span>
             </div>
             {entry.row.reason && (
