@@ -142,6 +142,7 @@ describe('getToolPageData subject-resolution selection', () => {
     );
 
     const result = await getToolPageData('acme');
+    expect(getToolPageItemBySlugMock).toHaveBeenCalledWith('acme');
     expect(result).not.toBeNull();
     expect(result?.resolvedSubject.entityScope).toBe('core');
     expect(result?.subjectSelectionSuppressed).toBe(false);
