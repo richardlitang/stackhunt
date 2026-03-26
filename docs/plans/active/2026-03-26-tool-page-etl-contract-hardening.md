@@ -38,7 +38,7 @@ Last verified: 2026-03-26
 
 ## Tasks
 
-- [ ] Task 1: Freeze the target contract in docs and code comments.
+- [x] Task 1: Freeze the target contract in docs and code comments.
   - Files:
     - Modify: `docs/plans/active/2026-03-26-tool-page-etl-contract-hardening.md`
     - Modify: `docs/DECISIONS.md`
@@ -48,7 +48,7 @@ Last verified: 2026-03-26
   - Verify:
     - `rg -n "entity_first_lane_outputs|review_context" docs/DECISIONS.md docs/plans/active/2026-03-26-tool-page-etl-contract-hardening.md`
 
-- [ ] Task 2: Remove render-time buyer-decision invention from the blueprint layer.
+- [x] Task 2: Remove render-time buyer-decision invention from the blueprint layer.
   - Files:
     - Modify: `src/lib/tool-page/blueprint-runtime-input.ts`
     - Modify: `src/lib/tool-page/decision-layer-integrity.ts`
@@ -58,7 +58,7 @@ Last verified: 2026-03-26
   - Verify:
     - `npm run typecheck`
 
-- [ ] Task 3: Remove or sharply narrow generic decision utility fallback content.
+- [x] Task 3: Remove or sharply narrow generic decision utility fallback content.
   - Files:
     - Modify: `src/lib/tool-page/decision-utility.ts`
     - Modify: `src/lib/tool-page/page-compiler-route-state.ts`
@@ -70,7 +70,7 @@ Last verified: 2026-03-26
   - Verify:
     - `npm run typecheck`
 
-- [ ] Task 4: Tighten `llm_phrase_only` policy.
+- [x] Task 4: Tighten `llm_phrase_only` policy.
   - Files:
     - Modify: `src/lib/hunter/evidence-lanes.ts`
     - Modify: `src/lib/tool-page/decision-layer-consistency-signals.ts`
@@ -82,7 +82,7 @@ Last verified: 2026-03-26
   - Verify:
     - `npm run typecheck`
 
-- [ ] Task 5: Consolidate source ownership between `review_context` and lane outputs.
+- [ ] Task 5: Consolidate source ownership between `review_context` and lane outputs. (partial)
   - Files:
     - Modify: `src/lib/hunter/phases/persistence.ts`
     - Modify: `src/lib/tool-page/core-state.ts`
@@ -96,7 +96,7 @@ Last verified: 2026-03-26
     - `npm run typecheck`
     - `rg -n "decisionIntro|decisionSlots|humanVerdict|fit_matrix|pricing_reality" src/lib/tool-page src/lib/hunter/phases/persistence.ts`
 
-- [ ] Task 6: Replace shallow truthiness-based section gating with meaningful-content gating.
+- [x] Task 6: Replace shallow truthiness-based section gating with meaningful-content gating.
   - Files:
     - Modify: `src/lib/tool-page/knowledge-card-presence.ts`
     - Modify: `src/lib/tool-page/section-runtime-input.ts`
@@ -144,7 +144,7 @@ Last verified: 2026-03-26
   - Verify:
     - `npm run typecheck`
 
-- [ ] Task 10: Add regression tests for the ETL-to-frontend contract.
+- [ ] Task 10: Add regression tests for the ETL-to-frontend contract. (partial)
   - Files:
     - Add or modify tests near:
       - `src/lib/tool-page/blueprint-runtime-input.*`
