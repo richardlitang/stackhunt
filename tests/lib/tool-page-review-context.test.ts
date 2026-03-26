@@ -141,4 +141,29 @@ describe('tool page review context signals', () => {
     expect(result.budgetCostDrivers).toEqual([]);
     expect(result.budgetRoiThreshold).toBeNull();
   });
+
+  it('keeps review_context fallback for migration pages without lane payload', () => {
+    const result = deriveToolPageReviewContextSignals({
+      reviewContext: {
+        decision_intro: { summary: 'Fallback summary from review context' },
+        decision_slots: { best_when: ['Fallback slot'] },
+        user_advocate: {
+          ideal_for: ['Fallback ideal for'],
+          avoid_if: ['Fallback avoid if'],
+        },
+        budget_analyst: {
+          cost_drivers: ['Fallback driver'],
+          roi_threshold: 'Fallback ROI threshold',
+        },
+      },
+      laneOutputs: null,
+    });
+
+    expect(result.decisionIntroRaw).toEqual({ summary: 'Fallback summary from review context' });
+    expect(result.decisionSlotsRaw).toEqual({ best_when: ['Fallback slot'] });
+    expect(result.idealFor).toEqual(['Fallback ideal for']);
+    expect(result.avoidIf).toEqual(['Fallback avoid if']);
+    expect(result.budgetCostDrivers).toEqual(['Fallback driver']);
+    expect(result.budgetRoiThreshold).toBe('Fallback ROI threshold');
+  });
 });
