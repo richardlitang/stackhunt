@@ -58,6 +58,13 @@ function makeLaneOutputs(): ToolPageLaneOutputs {
           common_failure: 'Partial exports',
         },
       ],
+      generation_mode: {
+        main_risk: 'deterministic',
+        upgrade_trigger: 'deterministic',
+        implementation_friction: 'deterministic',
+        fit_matrix: 'deterministic',
+        test_before_buy: 'deterministic',
+      },
     },
   };
 }

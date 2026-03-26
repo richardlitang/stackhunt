@@ -113,6 +113,7 @@ describe('hunter evidence lanes', () => {
     expect(laneOutputs.editorial_decision.alternatives_rebuttals?.length).toBeGreaterThan(0);
     expect(laneOutputs.editorial_decision.generation_mode?.main_risk).toBe('deterministic');
     expect(laneOutputs.editorial_decision.generation_mode?.upgrade_trigger).toBe('deterministic');
+    expect(laneOutputs.editorial_decision.generation_mode?.fit_matrix).toBe('suppress');
   });
 
   it('categorizes official pricing and limit facts separately', () => {

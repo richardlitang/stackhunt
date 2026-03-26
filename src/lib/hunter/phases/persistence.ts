@@ -2745,7 +2745,6 @@ async function persistQualityGateSnapshot(
     specs: sectionContract.sectionOmissionReasons.specs ? 1 : 0,
     community: sectionContract.sectionOmissionReasons.community ? 1 : 0,
   };
-  const reviewContext = (itemRow.review_context as Record<string, unknown> | null) || null;
   const laneOutputs = readToolPageLaneOutputs(itemRow as any);
   const laneDecisionSignals = deriveToolPageLaneDecisionEvidenceSignals(laneOutputs);
   const laneConsistencySignals = deriveToolPageDecisionLayerConsistencySignals({
@@ -2754,29 +2753,26 @@ async function persistQualityGateSnapshot(
     decisionTradeoffSummary: null,
     laneOutputs,
   });
-  const decisionIntro =
-    (reviewContext?.decisionIntro as Record<string, unknown> | undefined) ||
-    (reviewContext?.decision_intro as Record<string, unknown> | undefined);
+  const laneDecisionMode = laneOutputs?.editorial_decision.generation_mode;
   const laneBestFor = laneOutputs?.editorial_decision.best_for || null;
   const laneNotFor = laneOutputs?.editorial_decision.not_for || null;
   const laneTradeoff = laneOutputs?.editorial_decision.main_tradeoff || null;
   const hasBestForSignal = Boolean(
-    (typeof laneBestFor === 'string' && laneBestFor.trim().length >= 12) ||
-    (decisionIntro &&
-      typeof decisionIntro.best_for === 'string' &&
-      decisionIntro.best_for.trim().length >= 12)
+    (laneDecisionMode?.best_for === 'deterministic' ||
+      laneDecisionMode?.best_for === 'extractive') &&
+    typeof laneBestFor === 'string' &&
+    laneBestFor.trim().length >= 12
   );
   const hasNotForSignal = Boolean(
-    (typeof laneNotFor === 'string' && laneNotFor.trim().length >= 12) ||
-    (decisionIntro &&
-      typeof decisionIntro.not_for === 'string' &&
-      decisionIntro.not_for.trim().length >= 12)
+    (laneDecisionMode?.not_for === 'deterministic' || laneDecisionMode?.not_for === 'extractive') &&
+    typeof laneNotFor === 'string' &&
+    laneNotFor.trim().length >= 12
   );
   const hasTradeoffSignal = Boolean(
-    (typeof laneTradeoff === 'string' && laneTradeoff.trim().length >= 12) ||
-    (decisionIntro &&
-      typeof decisionIntro.main_tradeoff === 'string' &&
-      decisionIntro.main_tradeoff.trim().length >= 12)
+    (laneDecisionMode?.main_tradeoff === 'deterministic' ||
+      laneDecisionMode?.main_tradeoff === 'extractive') &&
+    typeof laneTradeoff === 'string' &&
+    laneTradeoff.trim().length >= 12
   );
   const qaGate = evaluateToolPageQaGate({
     title: `${itemRow.name || 'Tool'} Review | StackHunt`,

@@ -64,7 +64,10 @@ export function buildToolPageDataPrepRouteState(
     vipSpecifics,
     reviewContext,
   } = coreState;
-  const reviewContextSignals = deriveToolPageReviewContextSignals(reviewContext);
+  const reviewContextSignals = deriveToolPageReviewContextSignals({
+    reviewContext,
+    laneOutputs,
+  });
   const prepState = buildToolPagePrepState(
     buildToolPagePrepStateInputFromRoute({
       reviewSources: reviewContentLists.sources as Array<Record<string, unknown>>,
