@@ -1,6 +1,6 @@
 # Tool Page QA Gate v1
 
-Last verified: 2026-03-05
+Last verified: 2026-03-27
 
 Status: Draft
 Scope: publish gate for `/tool/[slug]`
@@ -65,6 +65,7 @@ Fail on any unchecked item.
 
 - [ ] Main decision content is server-rendered
 - [ ] Internal navigation/discovery uses crawlable `<a href>` links
+- [ ] Section-rail links only target rendered section IDs on the page
 - [ ] Core answer is visible without expanding multiple widgets
 - [ ] Main value is not buried under trust/template chrome
 
@@ -83,6 +84,7 @@ Fail on any unchecked item.
 - [ ] No placeholder text or incomplete clauses
 - [ ] Dates are internally consistent (`last checked` <= `today`)
 - [ ] No broken source links in primary evidence block
+- [ ] No repeated pending-status filler copy across decision cards (use compact placeholders)
 
 Fail on any unchecked item.
 

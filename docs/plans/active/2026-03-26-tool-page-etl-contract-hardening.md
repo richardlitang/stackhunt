@@ -108,7 +108,7 @@ Last verified: 2026-03-26
   - Verify:
     - `npm run typecheck`
 
-- [ ] Task 7: Improve user-signal ETL where deterministic fallback is too blunt.
+- [ ] Task 7: Improve user-signal ETL where deterministic fallback is too blunt. (partial)
   - Files:
     - Modify: `src/lib/hunter/user-signal-fallback.ts`
     - Modify: `src/lib/hunter/phases/persistence.ts`
@@ -173,6 +173,11 @@ Last verified: 2026-03-26
       - navigation only includes renderable sections
   - Verify:
     - `npm run qa:prepush`
+
+## Progress Notes
+
+- 2026-03-27: Hardened fallback user-signal extraction to only keep explicitly hedged, user-voice community claims and removed synthetic "Users report..." generation from fallback logic.
+- 2026-03-27: Added rendered QA checks that fail when section-rail jump links target missing sections or include disclosure-only navigation links.
 
 ## Recommended Execution Order
 
