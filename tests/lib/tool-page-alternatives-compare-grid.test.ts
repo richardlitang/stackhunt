@@ -16,17 +16,17 @@ const baseTool: ToolCompareGridLike = {
 };
 
 describe('resolveToolCompareGridValue', () => {
-  it('returns explicit confirmation-needed states when source-backed values are missing', () => {
+  it('returns compact pending placeholders when source-backed values are missing', () => {
     const tool: ToolCompareGridLike = {
       ...baseTool,
       pricing_type: null,
       learning_curve: null,
     };
 
-    expect(resolveToolCompareGridValue('Setup time', tool)).toBe('Needs confirmation');
-    expect(resolveToolCompareGridValue('Seat complexity', tool)).toBe('Needs confirmation');
-    expect(resolveToolCompareGridValue('Customization depth', tool)).toBe('Needs confirmation');
-    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toBe('Needs confirmation');
+    expect(resolveToolCompareGridValue('Setup time', tool)).toBe('-');
+    expect(resolveToolCompareGridValue('Seat complexity', tool)).toBe('-');
+    expect(resolveToolCompareGridValue('Customization depth', tool)).toBe('-');
+    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toBe('-');
     expect(resolveToolCompareGridCell('Setup time', tool).evidenceTag).toBe('pending');
   });
 
@@ -58,13 +58,13 @@ describe('resolveToolCompareGridValue', () => {
       },
     };
 
-    expect(resolveToolCompareGridValue('Integration approach', tool)).toBe('Needs confirmation');
+    expect(resolveToolCompareGridValue('Integration approach', tool)).toBe('-');
     expect(resolveToolCompareGridValue('Setup time', tool)).toBe(
       'Attio is easier to learn (~Hours)'
     );
     expect(resolveToolCompareGridValue('Seat complexity', tool)).toBe('Attio has a free tier');
-    expect(resolveToolCompareGridValue('Best for', tool)).toBe('Needs confirmation');
-    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toBe('Needs confirmation');
+    expect(resolveToolCompareGridValue('Best for', tool)).toBe('-');
+    expect(resolveToolCompareGridValue('Choose this instead if', tool)).toBe('-');
     expect(resolveToolCompareGridValue('Evidence level', tool)).toBe('Heuristic');
     expect(resolveToolCompareGridCell('Setup time', tool).evidenceTag).toBe('heuristic');
     expect(resolveToolCompareGridCell('Choose this instead if', tool).evidenceTag).toBe('pending');

@@ -41,6 +41,7 @@ export interface ToolCompareGridCell {
 }
 
 const ROWS_ALLOWING_HEURISTIC_ONLY = new Set<ToolCompareGridRow>(['Evidence level']);
+const PENDING_VALUE = '-';
 
 function toSentenceCase(text: string): string {
   const trimmed = text.trim();
@@ -50,7 +51,7 @@ function toSentenceCase(text: string): string {
 
 function normalizePricingType(type?: string | null): string {
   const value = (type || '').toLowerCase();
-  if (!value) return 'Needs confirmation';
+  if (!value) return PENDING_VALUE;
   if (value.includes('free')) return 'Lower seat friction';
   if (value.includes('enterprise')) return 'Procurement-heavy';
   if (value.includes('tier')) return 'Tier and seat dependent';
@@ -60,7 +61,7 @@ function normalizePricingType(type?: string | null): string {
 
 function normalizeSetup(curve?: string | null): string {
   const value = (curve || '').toLowerCase();
-  if (!value) return 'Needs confirmation';
+  if (!value) return PENDING_VALUE;
   if (value.includes('easy') || value.includes('low')) return 'Faster';
   if (value.includes('steep') || value.includes('high')) return 'Heavier';
   return 'Medium';
@@ -70,7 +71,7 @@ function lensFallbackForBestFor(lens: ReviewLens): string {
   if (lens === 'personal') return 'Solo operators prioritizing low seat friction';
   if (lens === 'startup') return 'Teams prioritizing rollout speed and pipeline control';
   if (lens === 'enterprise') return 'Teams prioritizing governance and cross-team controls';
-  return 'Needs confirmation';
+  return PENDING_VALUE;
 }
 
 function lensFallbackForIntegrationApproach(lens: ReviewLens): string {
@@ -78,7 +79,7 @@ function lensFallbackForIntegrationApproach(lens: ReviewLens): string {
   if (lens === 'startup') return 'API and workflow integrations for team handoffs';
   if (lens === 'enterprise')
     return 'Identity and governance integrations, verify in procurement docs';
-  return 'Needs confirmation';
+  return PENDING_VALUE;
 }
 
 export function resolveToolCompareGridValue(
@@ -117,7 +118,7 @@ export function resolveToolCompareGridCell(
       if (tool.computedDiff?.featureDiff) {
         return { value: 'Model signal only, verify in docs', evidenceTag: 'heuristic' };
       }
-      return { value: 'Needs confirmation', evidenceTag: 'pending' };
+      return { value: PENDING_VALUE, evidenceTag: 'pending' };
     case 'Integration approach':
       return {
         value: lensFallbackForIntegrationApproach(activeReviewLens),
@@ -140,7 +141,7 @@ export function resolveToolCompareGridCell(
           evidenceTag: 'source',
         };
       }
-      return { value: 'Needs confirmation', evidenceTag: 'pending' };
+      return { value: PENDING_VALUE, evidenceTag: 'pending' };
     }
     case 'Evidence level': {
       const level = resolveAlternativeEvidenceLevel({
@@ -165,7 +166,7 @@ export function resolveToolCompareGridCell(
       };
     }
     default:
-      return { value: 'Needs confirmation', evidenceTag: 'pending' };
+      return { value: PENDING_VALUE, evidenceTag: 'pending' };
   }
 }
 
