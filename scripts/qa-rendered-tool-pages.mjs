@@ -264,6 +264,9 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   if (compareLinkMatches.length > 0 && !/\bComparison axis\b/i.test(text)) {
     failures.push('unsupported_comparison_set_missing_axis_label');
   }
+  if (/\bNot confirmed yet\b/i.test(text)) {
+    failures.push('excessive_pending_copy_not_confirmed_yet');
+  }
   if (/href=["']\/disclosure["']/i.test(html)) {
     failures.push('section_rail_contains_disclosure_link');
   }
@@ -608,6 +611,9 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
 
   if (/>\s*\{reviewDek\}\s*</.test(source)) {
     failures.push('template_generic_hero_dek_unscoped');
+  }
+  if (/\bNot confirmed yet\b/i.test(source)) {
+    failures.push('template_excessive_pending_copy_not_confirmed_yet');
   }
   if (/href=["']\/disclosure["']/i.test(source)) {
     failures.push('template_section_rail_contains_disclosure_link');
