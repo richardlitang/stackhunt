@@ -1,6 +1,6 @@
 import { getAlternatives } from '@/lib/analysis/alternatives';
 import { computeMicroDiffs } from '@/lib/analysis/micro-diff';
-import { getToolBySlugAndType, getToolTags, supabase } from '@/lib/supabase';
+import { getToolPageItemBySlug, getToolTags, supabase } from '@/lib/supabase';
 import { deriveToolPageCoreState } from '@/lib/tool-page/core-state';
 import {
   fetchToolPageCuratedVerdictEntries,
@@ -72,7 +72,7 @@ export interface ToolPageData {
 }
 
 export async function getToolPageData(slug: string): Promise<ToolPageData | null> {
-  const tool = await getToolBySlugAndType(slug, 'tool');
+  const tool = await getToolPageItemBySlug(slug);
   if (!tool) return null;
 
   let parentTool: ToolPageParentTool | null = null;

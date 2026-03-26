@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  getToolBySlugAndTypeMock,
+  getToolPageItemBySlugMock,
   getToolTagsMock,
   deriveToolPageCoreStateMock,
   deriveToolPageReviewContentListsMock,
@@ -10,7 +10,7 @@ const {
   fetchToolPageCuratedVerdictEntriesMock,
   orderToolPageAlternativesByIdsMock,
 } = vi.hoisted(() => ({
-  getToolBySlugAndTypeMock: vi.fn(),
+  getToolPageItemBySlugMock: vi.fn(),
   getToolTagsMock: vi.fn(() => ({ audiences: [] })),
   deriveToolPageCoreStateMock: vi.fn(() => ({
     knowledgeCard: null,
@@ -42,7 +42,7 @@ const {
 }));
 
 vi.mock('@/lib/supabase', () => ({
-  getToolBySlugAndType: getToolBySlugAndTypeMock,
+  getToolPageItemBySlug: getToolPageItemBySlugMock,
   getToolTags: getToolTagsMock,
   supabase: {
     from: vi.fn(),
@@ -100,7 +100,7 @@ describe('getToolPageData subject-resolution selection', () => {
   });
 
   it('keeps published review visible when persisted product subject omits entity scope', async () => {
-    getToolBySlugAndTypeMock.mockResolvedValue(
+    getToolPageItemBySlugMock.mockResolvedValue(
       baseTool({
         reviews: [
           {
@@ -149,7 +149,7 @@ describe('getToolPageData subject-resolution selection', () => {
   });
 
   it('corrects mismatched persisted subject type from canonical scope before selection', async () => {
-    getToolBySlugAndTypeMock.mockResolvedValue(
+    getToolPageItemBySlugMock.mockResolvedValue(
       baseTool({
         reviews: [
           {
@@ -199,7 +199,7 @@ describe('getToolPageData subject-resolution selection', () => {
   });
 
   it('suppresses published review when persisted surface subject is missing canonical scope', async () => {
-    getToolBySlugAndTypeMock.mockResolvedValue(
+    getToolPageItemBySlugMock.mockResolvedValue(
       baseTool({
         reviews: [
           {
@@ -250,7 +250,7 @@ describe('getToolPageData subject-resolution selection', () => {
   });
 
   it('falls back to heuristic subject when persisted lane subject is low confidence', async () => {
-    getToolBySlugAndTypeMock.mockResolvedValue(
+    getToolPageItemBySlugMock.mockResolvedValue(
       baseTool({
         name: 'GitHub Copilot',
         slug: 'github-copilot',

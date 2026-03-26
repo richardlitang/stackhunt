@@ -472,6 +472,43 @@ export async function getItemBySlugAndType(slug: string, type: 'tool' | 'gear') 
 export const getToolBySlugAndType = getItemBySlugAndType;
 
 /**
+ * Fetch tool page route data with a narrowed review payload.
+ * Keeps tool-level fields broad for route compatibility while trimming nested review/context data.
+ */
+export async function getToolPageItemBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from('items')
+    .select(
+      `
+      *,
+      item_category_links(
+        relevance_score,
+        category:categories(*)
+      ),
+      affiliate_offers(*),
+      reviews(
+        id,
+        status,
+        score,
+        created_at,
+        updated_at,
+        entity_scope,
+        summary_markdown,
+        pros,
+        cons,
+        sources
+      )
+    `
+    )
+    .eq('slug', slug)
+    .eq('type', 'tool')
+    .maybeSingle();
+
+  if (error) throw error;
+  return attachPrimaryCategory(data);
+}
+
+/**
  * Get all context slugs for static generation
  */
 export async function getAllContextSlugs() {
