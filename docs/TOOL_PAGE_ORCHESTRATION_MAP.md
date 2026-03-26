@@ -29,6 +29,7 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ### `getToolPageData`
 
+- `getToolPageItemBySlug(...)`
 - `deriveToolPageReviewContentLists(...)`
 - `deriveToolPageCoreState(...)`
 

@@ -23,7 +23,7 @@ import { readToolPageLaneOutputs, type ToolPageLaneOutputs } from '@/lib/tool-pa
 import { selectToolPageReview } from '@/lib/reviews/select-review';
 import type { Tool } from '@/types/database';
 
-type ToolPageTool = Awaited<ReturnType<typeof getToolBySlugAndType>>;
+type ToolPageTool = Awaited<ReturnType<typeof getToolPageItemBySlug>>;
 type ToolPageTags = Awaited<ReturnType<typeof getToolTags>>;
 type ToolPageMicroDiffs = ReturnType<typeof computeMicroDiffs>;
 
