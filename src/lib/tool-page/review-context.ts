@@ -56,6 +56,8 @@ export function deriveToolPageReviewContextSignals(input: {
   const context = asRecord(input.reviewContext);
   const laneDecision = input.laneOutputs?.editorial_decision;
   const lanePricing = input.laneOutputs?.fact_sheet.pricing_reality;
+  const hasLaneDecisionPayload = Boolean(laneDecision);
+  const hasLanePricingPayload = Boolean(lanePricing);
   const laneDecisionMode = laneDecision?.generation_mode;
   const lanePricingMode = lanePricing?.generation_mode;
   const userAdvocate = asRecord(context?.userAdvocate || context?.user_advocate);
@@ -118,8 +120,10 @@ export function deriveToolPageReviewContextSignals(input: {
             : null,
         }
       : null;
-  const decisionSlotsRaw = laneDecisionSlotsRaw || reviewContextDecisionSlotsRaw;
-  const decisionIntroRaw = laneDecisionIntroRaw || reviewContextDecisionIntroRaw;
+  const decisionSlotsRaw =
+    laneDecisionSlotsRaw || (!hasLaneDecisionPayload ? reviewContextDecisionSlotsRaw : null);
+  const decisionIntroRaw =
+    laneDecisionIntroRaw || (!hasLaneDecisionPayload ? reviewContextDecisionIntroRaw : null);
 
   const delighters = toStringArray(userAdvocate?.delighters);
   const frustrations = toStringArray(userAdvocate?.frustrations);
@@ -139,7 +143,11 @@ export function deriveToolPageReviewContextSignals(input: {
     laneDecision.best_for.trim().length > 0
       ? laneDecision.best_for.trim()
       : null;
-  const idealFor = uniqueStrings([laneBestFor, ...reviewContextIdealFor]);
+  const idealFor = laneBestFor
+    ? [laneBestFor]
+    : hasLaneDecisionPayload
+      ? []
+      : uniqueStrings(reviewContextIdealFor);
 
   const reviewContextAvoidIf = toStringArray(userAdvocate?.avoidIf || userAdvocate?.avoid_if);
   const laneNotFor =
@@ -148,7 +156,11 @@ export function deriveToolPageReviewContextSignals(input: {
     laneDecision.not_for.trim().length > 0
       ? laneDecision.not_for.trim()
       : null;
-  const avoidIf = uniqueStrings([laneNotFor, ...reviewContextAvoidIf]);
+  const avoidIf = laneNotFor
+    ? [laneNotFor]
+    : hasLaneDecisionPayload
+      ? []
+      : uniqueStrings(reviewContextAvoidIf);
 
   const reviewContextBudgetCostDrivers = toStringArray(
     budgetAnalyst?.costDrivers || budgetAnalyst?.cost_drivers
@@ -158,10 +170,11 @@ export function deriveToolPageReviewContextSignals(input: {
     Array.isArray(lanePricing?.main_cost_drivers)
       ? lanePricing.main_cost_drivers
       : [];
-  const budgetCostDrivers = uniqueStrings([
-    ...laneBudgetCostDrivers,
-    ...reviewContextBudgetCostDrivers,
-  ]);
+  const budgetCostDrivers = laneBudgetCostDrivers.length
+    ? uniqueStrings(laneBudgetCostDrivers)
+    : hasLanePricingPayload
+      ? []
+      : uniqueStrings(reviewContextBudgetCostDrivers);
   const budgetOneTimeFees = toStringArray(
     budgetAnalyst?.oneTimeFees || budgetAnalyst?.one_time_fees
   );
@@ -174,7 +187,9 @@ export function deriveToolPageReviewContextSignals(input: {
     typeof lanePricing?.paid_needed_when === 'string' &&
     lanePricing.paid_needed_when.trim().length > 0
       ? lanePricing.paid_needed_when.trim()
-      : budgetRoiThresholdFromContext;
+      : hasLanePricingPayload
+        ? null
+        : budgetRoiThresholdFromContext;
 
   return {
     userAdvocate,
