@@ -1,6 +1,8 @@
 import type { BuildToolPageSectionRuntimeInput } from '@/lib/tool-page/section-runtime';
 import {
   hasCompanyInfoData,
+  hasIntegrationsData,
+  hasMeaningfulObjectData,
   hasPortabilityData,
   hasSecurityData,
 } from '@/lib/tool-page/knowledge-card-presence';
@@ -57,12 +59,12 @@ export function buildToolPageSectionRuntimeInput(
       featureUniqueCount: Array.isArray(input.knowledgeCard?.features?.unique)
         ? input.knowledgeCard.features.unique.length
         : 0,
-      hasCategorySpecificData: Boolean(input.categorySpecificData),
-      hasVipSpecifics: Boolean(input.vipSpecifics),
+      hasCategorySpecificData: hasMeaningfulObjectData(input.categorySpecificData),
+      hasVipSpecifics: hasMeaningfulObjectData(input.vipSpecifics),
       specsSectionStatus: input.sectionStatus.specs,
       hasPlatforms:
         Array.isArray(input.knowledgeCard?.platforms) && input.knowledgeCard.platforms.length > 0,
-      hasIntegrations: Boolean(input.knowledgeCard?.integrations),
+      hasIntegrations: hasIntegrationsData(input.knowledgeCard),
       alternativesCount: input.orderedAlternativesCount,
       communitySectionStatus: input.sectionStatus.community,
       eligibleSignalEvidenceCount: input.eligibleSignalEvidenceCount,

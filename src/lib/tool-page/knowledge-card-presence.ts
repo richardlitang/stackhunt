@@ -7,6 +7,32 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
     ? (value as Record<string, unknown>)
     : null;
 
+function hasMeaningfulValue(value: unknown, includeFalseBoolean = true): boolean {
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'boolean') return value || includeFalseBoolean;
+  if (Array.isArray(value)) {
+    return value.some((entry) => hasMeaningfulValue(entry, includeFalseBoolean));
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).some((entry) =>
+      hasMeaningfulValue(entry, includeFalseBoolean)
+    );
+  }
+  return false;
+}
+
+export function hasMeaningfulObjectData(value: unknown, includeFalseBoolean = true): boolean {
+  const record = asRecord(value);
+  if (!record) return false;
+  return Object.values(record).some((entry) => hasMeaningfulValue(entry, includeFalseBoolean));
+}
+
+export function hasIntegrationsData(knowledgeCard: unknown): boolean {
+  const card = asRecord(knowledgeCard);
+  return hasMeaningfulObjectData(card?.integrations, false);
+}
+
 export function hasCompanyInfoData(
   knowledgeCard: unknown,
   learningCurve: string | null | undefined
