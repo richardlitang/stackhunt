@@ -589,7 +589,7 @@ Output ONLY valid JSON matching this exact schema:
       "costDrivers": [<0-5 factual TCO factors like "SSO requires Enterprise", "Guests are billable". Extract from Budget Analyst snippets. If insufficient data, use empty array []>],
       "oneTimeFees": [<implementation/setup fees, or empty array if none>],
       "commitmentTerms": "<contract constraints like 'Annual only', '30-day notice', or null if unknown>",
-      "roiThreshold": "<objective upgrade trigger, e.g., 'Team of 20+' or 'Need audit logs', or null if unclear>"
+      "roiThreshold": "<objective upgrade trigger, e.g., 'Team of 20+' or 'Need audit logs', or null if unclear. Never output subjective phrases like 'worth it', 'great value', or 'best value'>"
     },
     "userAdvocate": {
       "vibe": "<Ecosystem maturity & build style (2-3 words). Examples: 'No-Code Modular', 'Enterprise Rigid', 'Developer-First', 'Builder-Focused', 'API-Centric'. AVOID vague descriptors. If insufficient data, use 'Unknown' as placeholder>",
@@ -631,6 +631,7 @@ Hard rules:
 - Do not place community complaints into official/factual lane unless independently corroborated by official documentation.
 - Do not place official plan/pricing/capability claims into userReported lanes.
 - If lane confidence is weak, output fewer claims instead of filling with generic prose.
+- For pricing/operational statements (reviewContext.budgetAnalyst and decisionIntro/main_tradeoff), prefer null over vague wording unless the sentence includes concrete operational signals (numbers, seats/users, plan/tier, contract terms, SSO/API/compliance, limits/quotas, retention/export constraints).
 
 ## Claim Type Guide:
 
