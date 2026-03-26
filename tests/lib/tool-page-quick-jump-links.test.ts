@@ -17,10 +17,7 @@ describe('tool page quick jump links', () => {
       hasUpdates: false,
     });
 
-    expect(result.map((item) => item.label)).toEqual([
-      'Tests',
-      'How we evaluated',
-    ]);
+    expect(result.map((item) => item.label)).toEqual(['Tests', 'How we evaluated']);
   });
 
   it('adds conditional links when enabled', () => {

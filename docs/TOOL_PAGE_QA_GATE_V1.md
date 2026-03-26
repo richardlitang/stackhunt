@@ -98,6 +98,7 @@ Fail on any unchecked item.
 ## 10) Automation Hooks (for codex/lint)
 
 Recommended automated checks:
+
 - generic phrase lint in verdict/intro blocks
 - title/H1 intent coherence lint
 - pricing contradiction detector across rendered sections

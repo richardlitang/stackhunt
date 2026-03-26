@@ -70,9 +70,7 @@ function buildHardLimitText(entry: Record<string, unknown>): string {
   const unitRaw = typeof entry.unit === 'string' ? entry.unit.trim() : '';
   const planRaw = typeof entry.plan_name_match === 'string' ? entry.plan_name_match.trim() : '';
   const extractedPlanFromValue = extractPlanFromValue(valueRaw);
-  const planLabel = planRaw
-    ? normalizePlanLabel(planRaw)
-    : extractedPlanFromValue.plan || '';
+  const planLabel = planRaw ? normalizePlanLabel(planRaw) : extractedPlanFromValue.plan || '';
   const unitLabel = unitRaw ? unitRaw.replace(/_/g, ' ') : '';
   const metricLabel =
     (metricRaw && CONSTRAINT_METRIC_LABELS[metricRaw]) ||
