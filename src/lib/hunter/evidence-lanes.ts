@@ -525,7 +525,7 @@ export function buildHunterLaneOutputs(input: {
             : implementationFrictionLevel
               ? 'llm_phrase_only'
               : 'suppress',
-        fit_matrix: 'llm_phrase_only',
+        fit_matrix: 'suppress',
         test_before_buy: testBeforeBuy.length > 0 ? 'deterministic' : 'suppress',
         alternatives_rebuttals: alternativesRebuttals.some((row) => row.confidence === 'high')
           ? 'extractive'

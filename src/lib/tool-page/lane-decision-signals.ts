@@ -12,6 +12,10 @@ function hasText(value: unknown): boolean {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isRenderableMode(mode: unknown): boolean {
+  return mode === 'deterministic' || mode === 'extractive';
+}
+
 function countPopulatedFitRows(laneOutputs: ToolPageLaneOutputs | null): number {
   const fitMatrix = laneOutputs?.editorial_decision.fit_matrix;
   if (!fitMatrix) return 0;
@@ -34,13 +38,20 @@ function hasSufficientDecisionTests(laneOutputs: ToolPageLaneOutputs | null): bo
 export function deriveToolPageLaneDecisionEvidenceSignals(
   laneOutputs: ToolPageLaneOutputs | null
 ): ToolPageLaneDecisionEvidenceSignals {
+  const decisionMode = laneOutputs?.editorial_decision.generation_mode;
   return {
-    hasSourceBackedMainRiskSignal: hasText(laneOutputs?.editorial_decision.main_risk),
-    hasSourceBackedUpgradeTriggerSignal: hasText(laneOutputs?.editorial_decision.upgrade_trigger),
-    hasSourceBackedImplementationFrictionSignal: Boolean(
-      laneOutputs?.editorial_decision.implementation_friction_level
-    ),
-    hasSourceBackedFitMatrixSignal: countPopulatedFitRows(laneOutputs) > 0,
-    hasSourceBackedTestBeforeBuySignal: hasSufficientDecisionTests(laneOutputs),
+    hasSourceBackedMainRiskSignal:
+      isRenderableMode(decisionMode?.main_risk) &&
+      hasText(laneOutputs?.editorial_decision.main_risk),
+    hasSourceBackedUpgradeTriggerSignal:
+      isRenderableMode(decisionMode?.upgrade_trigger) &&
+      hasText(laneOutputs?.editorial_decision.upgrade_trigger),
+    hasSourceBackedImplementationFrictionSignal:
+      isRenderableMode(decisionMode?.implementation_friction) &&
+      Boolean(laneOutputs?.editorial_decision.implementation_friction_level),
+    hasSourceBackedFitMatrixSignal:
+      isRenderableMode(decisionMode?.fit_matrix) && countPopulatedFitRows(laneOutputs) > 0,
+    hasSourceBackedTestBeforeBuySignal:
+      isRenderableMode(decisionMode?.test_before_buy) && hasSufficientDecisionTests(laneOutputs),
   };
 }

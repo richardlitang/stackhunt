@@ -16,6 +16,10 @@ function hasMalformedText(value: string | null | undefined): boolean {
   return MALFORMED_TEXT_PATTERNS.some((pattern) => pattern.test(cleaned));
 }
 
+function hasText(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 function hasDuplicateFitMatrixRows(laneOutputs: ToolPageLaneOutputs | null): boolean {
   const fitMatrix = laneOutputs?.editorial_decision.fit_matrix;
   if (!fitMatrix) return false;
@@ -67,15 +71,33 @@ export function deriveToolPageDecisionLayerConsistencySignals(
 } {
   const generationMode = input.laneOutputs?.editorial_decision.generation_mode;
   const pricingRealityMode = input.laneOutputs?.fact_sheet.pricing_reality?.generation_mode;
+  const fitMatrix = input.laneOutputs?.editorial_decision.fit_matrix;
+  const hasFitMatrixRows = Boolean(
+    fitMatrix &&
+    [fitMatrix.solo, fitMatrix.startup, fitMatrix.mid_market, fitMatrix.enterprise].some((row) =>
+      Boolean(row && (hasText(row.reason) || hasText(row.caveat)))
+    )
+  );
   const hasUnsupportedGenerationModeSignal = Boolean(
+    (generationMode?.best_for === 'llm_phrase_only' &&
+      hasText(input.laneOutputs?.editorial_decision.best_for || null)) ||
+    (generationMode?.not_for === 'llm_phrase_only' &&
+      hasText(input.laneOutputs?.editorial_decision.not_for || null)) ||
+    (generationMode?.main_tradeoff === 'llm_phrase_only' &&
+      hasText(input.laneOutputs?.editorial_decision.main_tradeoff || null)) ||
     (generationMode?.main_risk === 'llm_phrase_only' &&
-      (input.laneOutputs?.editorial_decision.main_risk || '').trim().length > 0) ||
+      hasText(input.laneOutputs?.editorial_decision.main_risk || null)) ||
     (generationMode?.upgrade_trigger === 'llm_phrase_only' &&
-      (input.laneOutputs?.editorial_decision.upgrade_trigger || '').trim().length > 0) ||
+      hasText(input.laneOutputs?.editorial_decision.upgrade_trigger || null)) ||
+    (generationMode?.fit_matrix === 'llm_phrase_only' && hasFitMatrixRows) ||
     (pricingRealityMode?.free_works_if === 'llm_phrase_only' &&
-      (input.laneOutputs?.fact_sheet.pricing_reality?.free_works_if || '').trim().length > 0) ||
+      hasText(input.laneOutputs?.fact_sheet.pricing_reality?.free_works_if || null)) ||
     (pricingRealityMode?.paid_needed_when === 'llm_phrase_only' &&
-      (input.laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when || '').trim().length > 0)
+      hasText(input.laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when || null)) ||
+    (pricingRealityMode?.hidden_cost_triggers === 'llm_phrase_only' &&
+      (input.laneOutputs?.fact_sheet.pricing_reality?.hidden_cost_triggers?.length || 0) > 0) ||
+    (pricingRealityMode?.main_cost_drivers === 'llm_phrase_only' &&
+      (input.laneOutputs?.fact_sheet.pricing_reality?.main_cost_drivers?.length || 0) > 0)
   );
 
   const hasMalformedDecisionLayerSignal = Boolean(
