@@ -47,6 +47,20 @@ function normalizePlanLabel(planName: string): string {
   return /plan$/i.test(normalized) ? normalized : `${normalized} plan`;
 }
 
+function extractPlanFromValue(value: string): { value: string; plan: string | null } {
+  const trimmed = value.trim();
+  const suffixMatch = trimmed.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
+  if (!suffixMatch) {
+    return { value: trimmed, plan: null };
+  }
+  const extractedValue = suffixMatch[1]?.trim() || '';
+  const extractedPlan = suffixMatch[2]?.trim() || '';
+  if (!extractedValue || !extractedPlan) {
+    return { value: trimmed, plan: null };
+  }
+  return { value: extractedValue, plan: normalizePlanLabel(extractedPlan) };
+}
+
 function buildHardLimitText(entry: Record<string, unknown>): string {
   const metricRaw = typeof entry.metric === 'string' ? entry.metric.trim().toLowerCase() : '';
   const valueRaw =
@@ -55,13 +69,17 @@ function buildHardLimitText(entry: Record<string, unknown>): string {
       : '';
   const unitRaw = typeof entry.unit === 'string' ? entry.unit.trim() : '';
   const planRaw = typeof entry.plan_name_match === 'string' ? entry.plan_name_match.trim() : '';
-  const planLabel = planRaw ? normalizePlanLabel(planRaw) : '';
+  const extractedPlanFromValue = extractPlanFromValue(valueRaw);
+  const planLabel = planRaw
+    ? normalizePlanLabel(planRaw)
+    : extractedPlanFromValue.plan || '';
   const unitLabel = unitRaw ? unitRaw.replace(/_/g, ' ') : '';
   const metricLabel =
     (metricRaw && CONSTRAINT_METRIC_LABELS[metricRaw]) ||
     (metricRaw ? toTitleWords(metricRaw) : 'Limit');
   const isGenericMetric = metricLabel.toLowerCase() === 'limit';
-  const valueWithUnit = [valueRaw, unitLabel].filter(Boolean).join(' ').trim();
+  const normalizedValueRaw = extractedPlanFromValue.value || valueRaw;
+  const valueWithUnit = [normalizedValueRaw, unitLabel].filter(Boolean).join(' ').trim();
   const fallbackValue = valueWithUnit || valueRaw || unitLabel;
 
   if (isGenericMetric && planLabel && fallbackValue) {

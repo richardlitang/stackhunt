@@ -27,13 +27,32 @@ describe('tool page constraint evidence', () => {
         ],
       },
       isEligibleEvidenceUrl: (url) => url.startsWith('https://'),
-      isDisallowedConClaim: (text) => text.includes('blocked'),
+      isDisallowedConClaim: (text) => text.toLowerCase().includes('blocked'),
     });
 
     expect(result.hiddenCostBullets).toHaveLength(1);
     expect(result.hiddenCostBullets[0].text).toContain('Gateway fee');
     expect(result.hardLimitFromConstraints).toHaveLength(1);
-    expect(result.hardLimitFromConstraints[0].text).toContain('api calls');
+    expect(result.hardLimitFromConstraints[0].text.toLowerCase()).toContain('api calls');
     expect(result.hardLimitFromConstraints[0].works_for_lenses).toEqual(['startup']);
+  });
+
+  it('normalizes generic limits that encode plan in value text', () => {
+    const result = buildToolPageConstraintEvidence({
+      constraints: {
+        hard_limits: [
+          {
+            metric: 'limit',
+            value: '3 (Free)',
+            source_url: 'https://example.com/pricing',
+          },
+        ],
+      },
+      isEligibleEvidenceUrl: (url) => url.startsWith('https://'),
+      isDisallowedConClaim: () => false,
+    });
+
+    expect(result.hardLimitFromConstraints).toHaveLength(1);
+    expect(result.hardLimitFromConstraints[0].text).toBe('Free Plan limit: 3');
   });
 });
