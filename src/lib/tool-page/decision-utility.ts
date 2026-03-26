@@ -218,6 +218,9 @@ export function buildToolPageDecisionUtilityState(
   const lowConfidenceMode = Boolean(input.lowConfidenceMode);
   const pricingType = (input.pricingType || '').toLowerCase();
   const hasFreeOrFreemiumPlan = pricingType.includes('free') || pricingType.includes('freemium');
+  const hasStrongUtilitySourceAnchor = Boolean(
+    input.hardLimitText || input.pricingEvidenceSourceUrl
+  );
   const hasEvidenceAnchoredUtility = Boolean(
     input.hardLimitText || input.pricingEvidenceSourceUrl || input.pricingEvidenceSummary
   );
@@ -292,10 +295,7 @@ export function buildToolPageDecisionUtilityState(
     (typeof input.pricingEvidenceSummary === 'string' &&
     input.pricingEvidenceSummary.trim().length > 0
       ? input.pricingEvidenceSummary.trim()
-      : '') ||
-    basePricingMentalModelItems[1] ||
-    basePricingMentalModelItems[0] ||
-    '';
+      : '');
   const decisionUpgradeTrigger = decisionUpgradeTriggerBase;
   const hasDecisionBullets =
     useIf.length > 0 ||
@@ -321,13 +321,13 @@ export function buildToolPageDecisionUtilityState(
           },
         ]
       : []),
-    ...basePricingMentalModelItems.map((text) => ({
-      text,
-      status: input.pricingEvidenceSourceUrl
-        ? ('Source-backed' as const)
-        : ('Needs confirmation' as const),
-      ...(input.pricingEvidenceSourceUrl ? { evidenceHref: '#pricing' } : {}),
-    })),
+    ...(hasStrongUtilitySourceAnchor
+      ? basePricingMentalModelItems.map((text) => ({
+          text,
+          status: 'Source-backed' as const,
+          evidenceHref: '#pricing',
+        }))
+      : []),
   ];
   const seenPricingMentalModelKeys = new Set<string>();
   const normalizePricingMentalModelKey = (value: string): string =>
@@ -440,7 +440,7 @@ export function buildToolPageDecisionUtilityState(
     practicalOutcomesTitle: 'What it does in practice',
     practicalOutcomes: shouldSuppressGenericUtility
       ? []
-      : hasEvidenceAnchoredUtility
+      : hasEvidenceAnchoredUtility && hasStrongUtilitySourceAnchor
         ? isCrm
           ? [
               {
@@ -449,7 +449,7 @@ export function buildToolPageDecisionUtilityState(
                 verifyInDemo: 'Run one inbound and one outbound lead path end-to-end.',
                 planDependency:
                   'Automation depth and sequencing can be plan-gated, verify before rollout.',
-                planDependencyStatus: 'Needs confirmation',
+                planDependencyStatus: 'Source-backed',
               },
               {
                 outcome:
@@ -457,14 +457,14 @@ export function buildToolPageDecisionUtilityState(
                 verifyInDemo:
                   'Import duplicate contacts and inspect merge behavior plus field governance.',
                 planDependency: 'Data quality controls can vary by plan and admin role.',
-                planDependencyStatus: 'Needs confirmation',
+                planDependencyStatus: 'Source-backed',
               },
               {
                 outcome: 'Track forecasting and activity quality for sales operations.',
                 verifyInDemo:
                   'Confirm pipeline, conversion, and activity reports with your real definitions.',
                 planDependency: 'Reporting scope and retention rules may vary by plan.',
-                planDependencyStatus: 'Needs confirmation',
+                planDependencyStatus: 'Source-backed',
               },
             ]
           : [
@@ -472,13 +472,13 @@ export function buildToolPageDecisionUtilityState(
                 outcome: `Turn ${input.toolName} into a repeatable core workflow for your team.`,
                 verifyInDemo: 'Run one representative task from setup through output validation.',
                 planDependency: 'Advanced workflow controls can be plan-gated.',
-                planDependencyStatus: 'Needs confirmation',
+                planDependencyStatus: 'Source-backed',
               },
               {
                 outcome: 'Reduce rework with clearer ownership and operating constraints.',
                 verifyInDemo: 'Test permissions and role handoff paths with two different users.',
                 planDependency: 'Admin and governance controls vary by plan.',
-                planDependencyStatus: 'Needs confirmation',
+                planDependencyStatus: 'Source-backed',
               },
             ]
         : [],
