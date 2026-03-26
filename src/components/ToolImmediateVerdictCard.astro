@@ -38,25 +38,25 @@ const {
   <div class="mt-6 space-y-5 text-sm">
     <article>
       <p class="tool-review-micro-label">Best for</p>
-      <p class="mt-1.5 text-sm font-semibold text-zinc-50">{bestFor || 'Not confirmed yet'}</p>
+      <p class="mt-1.5 text-sm font-semibold text-zinc-50">{bestFor || '-'}</p>
     </article>
     <article>
       <p class="tool-review-micro-label">Not for</p>
-      <p class="mt-1.5 text-sm font-medium text-zinc-300">{notFor || 'Not confirmed yet'}</p>
+      <p class="mt-1.5 text-sm font-medium text-zinc-300">{notFor || '-'}</p>
     </article>
     <article class="border-t border-zinc-800 pt-4">
       <p class="tool-review-micro-label text-rose-300">Main risk</p>
-      <p class="mt-1.5 text-sm text-zinc-100">{mainRisk || 'Not confirmed yet'}</p>
+      <p class="mt-1.5 text-sm text-zinc-100">{mainRisk || '-'}</p>
     </article>
     <article>
       <p class="tool-review-micro-label text-indigo-300">Upgrade trigger</p>
-      <p class="mt-1.5 text-sm text-zinc-100">{upgradeTrigger || 'Not confirmed yet'}</p>
+      <p class="mt-1.5 text-sm text-zinc-100">{upgradeTrigger || '-'}</p>
     </article>
     <article class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
       <div class="flex items-center justify-between gap-3">
         <p class="tool-review-micro-label">Implementation</p>
         <span class="text-xs font-semibold text-zinc-100">
-          {implementationFriction || 'Needs more evidence'}
+          {implementationFriction || '-'}
         </span>
       </div>
       {
