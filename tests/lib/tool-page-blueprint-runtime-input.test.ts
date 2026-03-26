@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildToolPageBlueprintRuntimeInputFromRouteData } from '@/lib/tool-page/blueprint-runtime-input';
 
 describe('tool page blueprint runtime input', () => {
-  it('builds fit matrix, pricing reality, and exactly three before-you-buy tests', () => {
+  it('hides buyer decision sections when lane outputs are missing', () => {
     const result = buildToolPageBlueprintRuntimeInputFromRouteData({
       activeReviewLens: 'startup',
       lensHrefs: {
@@ -57,13 +57,15 @@ describe('tool page blueprint runtime input', () => {
       laneOutputs: null,
     });
 
-    expect(result.fitMatrix.solo?.fit).toBe('mixed');
-    expect(result.fitMatrix.startup?.fit).toBe('strong');
-    expect(result.pricingReality?.freeWorksIf).toBe('Free works for one pilot workflow only.');
-    expect(result.pricingReality?.paidNeededWhen).toContain('Upgrade');
-    expect(result.beforeYouBuyTests).toHaveLength(3);
-    expect(result.beforeYouBuyTests[0].name).toBe('Daily workflow test');
-    expect(result.beforeYouBuyTests[2].name).toBe('Failure and export test');
+    expect(result.fitMatrix.solo).toBeNull();
+    expect(result.fitMatrix.startup).toBeNull();
+    expect(result.fitMatrix.midMarket).toBeNull();
+    expect(result.fitMatrix.enterprise).toBeNull();
+    expect(result.pricingReality?.freeWorksIf).toBeNull();
+    expect(result.pricingReality?.paidNeededWhen).toBeNull();
+    expect(result.pricingReality?.hiddenCostTriggers).toEqual([]);
+    expect(result.pricingReality?.mainCostDrivers).toEqual([]);
+    expect(result.beforeYouBuyTests).toEqual([]);
     expect(result.heroDecisionCard.implementationFriction.stakeholders).toEqual([]);
     expect(result.alternativesRebuttals).toEqual([]);
   });
@@ -125,6 +127,12 @@ describe('tool page blueprint runtime input', () => {
             paid_needed_when: 'Lane paid trigger',
             hidden_cost_triggers: ['Lane hidden trigger'],
             main_cost_drivers: ['Lane cost driver'],
+            generation_mode: {
+              free_works_if: 'deterministic',
+              paid_needed_when: 'deterministic',
+              hidden_cost_triggers: 'deterministic',
+              main_cost_drivers: 'deterministic',
+            },
           },
         },
         user_signal_sheet: {
@@ -166,6 +174,14 @@ describe('tool page blueprint runtime input', () => {
               confidence: 'high',
             },
           ],
+          generation_mode: {
+            main_risk: 'deterministic',
+            upgrade_trigger: 'deterministic',
+            implementation_friction: 'deterministic',
+            fit_matrix: 'deterministic',
+            test_before_buy: 'deterministic',
+            alternatives_rebuttals: 'extractive',
+          },
         },
       },
     });
