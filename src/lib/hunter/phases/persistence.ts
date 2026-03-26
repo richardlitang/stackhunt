@@ -2637,7 +2637,7 @@ async function persistQualityGateSnapshot(
   const { data: itemRow, error: itemError } = await deps.supabase
     .from('items')
     .select(
-      'id, name, metadata, specs, pricing_verified_at, short_description, verdict, review_context, updated_at'
+      'id, name, metadata, specs, pricing_verified_at, short_description, verdict, updated_at'
     )
     .eq('id', itemId)
     .single();
