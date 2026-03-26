@@ -58,6 +58,7 @@ Fail on any unchecked item.
 - [ ] Optional sections with missing required fields are hidden
 - [ ] No procedural filler sections in indexable state
 - [ ] No orphaned sections that add no decision value
+- [ ] Decision and pricing cards avoid verbose pending fillers (for example, no `Not confirmed yet`)
 
 Fail on any unchecked item.
 
