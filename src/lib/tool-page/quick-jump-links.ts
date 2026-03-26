@@ -25,11 +25,7 @@ export interface ToolPageQuickJumpLink {
 export function buildToolPageQuickJumpLinks(
   input: BuildToolPageQuickJumpLinksInput
 ): ToolPageQuickJumpLink[] {
-  const visibleSections = new Set<ToolPageSectionKey>([
-    'workflow_fit',
-    'how_we_evaluated',
-    'disclosures',
-  ]);
+  const visibleSections = new Set<ToolPageSectionKey>(['workflow_fit', 'how_we_evaluated']);
   if (input.showVerdict) visibleSections.add('verdict');
   if (input.showPricingSection) visibleSections.add('pricing');
   if (input.hasGettingStarted) visibleSections.add('getting_started');

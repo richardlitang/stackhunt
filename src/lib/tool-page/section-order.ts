@@ -20,7 +20,7 @@ export interface ToolPageSectionLink {
 }
 
 const TOOL_PAGE_SECTION_LINKS: Record<ToolPageSectionKey, ToolPageSectionLink> = {
-  verdict: { href: '#verdict', label: 'Risks' },
+  verdict: { href: '#verdict', label: 'Verdict' },
   workflow_fit: { href: '#before-you-buy-tests', label: 'Tests' },
   how_we_evaluated: { href: '#how-we-evaluate', label: 'How we evaluated' },
   pricing: { href: '#pricing-plans', label: 'Pricing' },
@@ -31,7 +31,7 @@ const TOOL_PAGE_SECTION_LINKS: Record<ToolPageSectionKey, ToolPageSectionLink> =
   platform: { href: '#platform-integrations', label: 'Platforms' },
   faq: { href: '#faq', label: 'FAQ' },
   alternatives: { href: '#alternatives', label: 'Alternatives' },
-  sources: { href: '#sources', label: 'Evidence details' },
+  sources: { href: '#sources', label: 'Sources' },
   update_history: { href: '#update-history', label: 'Updates' },
   disclosures: { href: '/disclosure', label: 'Disclosures' },
 };
