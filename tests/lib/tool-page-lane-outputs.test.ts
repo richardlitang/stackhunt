@@ -147,4 +147,57 @@ describe('tool page lane outputs', () => {
     expect(laneOutputs?.subject_profile.entity_scope).toBe('enterprise_cloud');
     expect(laneOutputs?.subject_profile.confidence).toBe('medium');
   });
+
+  it('suppresses subjective pricing-reality strings without operational signals', () => {
+    const tool = {
+      name: 'Acme',
+      specs: {
+        canonical: {
+          entity_first_lane_outputs: {
+            subject_profile: {
+              subject_type: 'product',
+              subject_key: 'acme:core',
+              display_name: 'Acme',
+              confidence: 'high',
+            },
+            fact_sheet: {
+              official_facts: [],
+              official_pricing_facts: [],
+              official_limit_facts: [],
+              pricing_reality: {
+                free_works_if: 'Great value for everyone.',
+                paid_needed_when: 'Upgrade at 10 seats for SSO and audit logs.',
+                hidden_cost_triggers: [
+                  'Amazing premium support.',
+                  'Annual contract required for enterprise tier.',
+                ],
+                main_cost_drivers: ['Best value', 'Per-seat monthly pricing above 20 users.'],
+              },
+            },
+            user_signal_sheet: {
+              user_signal_pros: [],
+              user_signal_cons: [],
+            },
+            editorial_decision: {
+              summary: null,
+              best_for: null,
+              not_for: null,
+              main_tradeoff: null,
+              human_verdict: null,
+            },
+          },
+        },
+      },
+    } as any;
+
+    const laneOutputs = readToolPageLaneOutputs(tool);
+    expect(laneOutputs?.fact_sheet.pricing_reality?.free_works_if).toBeNull();
+    expect(laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when).toContain('10 seats');
+    expect(laneOutputs?.fact_sheet.pricing_reality?.hidden_cost_triggers).toEqual([
+      'Annual contract required for enterprise tier.',
+    ]);
+    expect(laneOutputs?.fact_sheet.pricing_reality?.main_cost_drivers).toEqual([
+      'Per-seat monthly pricing above 20 users.',
+    ]);
+  });
 });

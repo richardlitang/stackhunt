@@ -176,6 +176,26 @@ function toStringArray(value: unknown): string[] {
     .filter((entry) => entry.length > 0);
 }
 
+const SUBJECTIVE_OPERATIONAL_PATTERN =
+  /\b(best value|worth it|great value|good value|excellent|amazing|love|solid choice)\b/i;
+const OPERATIONAL_SIGNAL_PATTERN =
+  /\b(\d+|seat|user|team|plan|tier|enterprise|business|sso|api|compliance|usage|volume|monthly|annual|contract|storage|limit|quota|retention|export|import|approval|approvals|automation|permission|permissions|admin|governance|audit)\b/i;
+
+function sanitizeOperationalText(value: unknown): string | null {
+  const text = toStringOrNull(value);
+  if (!text) return null;
+  if (SUBJECTIVE_OPERATIONAL_PATTERN.test(text)) return null;
+  if (!OPERATIONAL_SIGNAL_PATTERN.test(text)) return null;
+  return text;
+}
+
+function sanitizeOperationalTextArray(value: unknown): string[] {
+  return toStringArray(value)
+    .map((entry) => sanitizeOperationalText(entry))
+    .filter((entry): entry is string => Boolean(entry))
+    .slice(0, 4);
+}
+
 function toDifferentiatorOrWorkflow(
   value: unknown
 ):
@@ -318,10 +338,12 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
       ...(pricingReality
         ? {
             pricing_reality: {
-              free_works_if: toStringOrNull(pricingReality.free_works_if),
-              paid_needed_when: toStringOrNull(pricingReality.paid_needed_when),
-              hidden_cost_triggers: toStringArray(pricingReality.hidden_cost_triggers),
-              main_cost_drivers: toStringArray(pricingReality.main_cost_drivers),
+              free_works_if: sanitizeOperationalText(pricingReality.free_works_if),
+              paid_needed_when: sanitizeOperationalText(pricingReality.paid_needed_when),
+              hidden_cost_triggers: sanitizeOperationalTextArray(
+                pricingReality.hidden_cost_triggers
+              ),
+              main_cost_drivers: sanitizeOperationalTextArray(pricingReality.main_cost_drivers),
               generation_mode:
                 pricingReality.generation_mode && typeof pricingReality.generation_mode === 'object'
                   ? {
