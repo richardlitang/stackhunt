@@ -83,6 +83,9 @@ function buildHardLimitText(entry: Record<string, unknown>): string {
   if (isGenericMetric && planLabel && fallbackValue) {
     return `${toTitleWords(planLabel)} limit: ${fallbackValue}`;
   }
+  if (isGenericMetric && !planLabel && !unitLabel) {
+    return '';
+  }
   if (isGenericMetric && unitLabel && fallbackValue) {
     return `${toTitleWords(unitLabel)} limit: ${fallbackValue}`;
   }

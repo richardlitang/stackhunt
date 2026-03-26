@@ -55,4 +55,22 @@ describe('tool page constraint evidence', () => {
     expect(result.hardLimitFromConstraints).toHaveLength(1);
     expect(result.hardLimitFromConstraints[0].text).toBe('Free Plan limit: 3');
   });
+
+  it('suppresses generic limits without unit or plan context', () => {
+    const result = buildToolPageConstraintEvidence({
+      constraints: {
+        hard_limits: [
+          {
+            metric: 'limit',
+            value: 3,
+            source_url: 'https://example.com/pricing',
+          },
+        ],
+      },
+      isEligibleEvidenceUrl: (url) => url.startsWith('https://'),
+      isDisallowedConClaim: () => false,
+    });
+
+    expect(result.hardLimitFromConstraints).toHaveLength(0);
+  });
 });
