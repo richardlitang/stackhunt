@@ -22,6 +22,8 @@ interface BuildToolPageBlueprintRuntimeInputFromRouteDataInput {
   laneOutputs: ToolPageLaneOutputs | null;
 }
 
+type GenerationMode = 'deterministic' | 'extractive' | 'llm_phrase_only' | 'suppress' | undefined;
+
 function toAlternativeRebuttalDifferentiatorLabel(
   value:
     | 'cheaper_at_scale'
@@ -65,6 +67,24 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
     confidence: 'medium' as const,
     lastChecked: input.chromeState.trustBarProps.lastChecked,
   };
+  const laneDecisionMode = input.laneOutputs?.editorial_decision.generation_mode;
+  const lanePricingMode = input.laneOutputs?.fact_sheet.pricing_reality?.generation_mode;
+  const isRenderableMode = (mode: GenerationMode): boolean =>
+    mode === 'deterministic' || mode === 'extractive';
+  const shouldRenderFitMatrix = isRenderableMode(laneDecisionMode?.fit_matrix);
+  const shouldRenderMainRisk = isRenderableMode(laneDecisionMode?.main_risk);
+  const shouldRenderUpgradeTrigger = isRenderableMode(laneDecisionMode?.upgrade_trigger);
+  const shouldRenderImplementationFriction = isRenderableMode(
+    laneDecisionMode?.implementation_friction
+  );
+  const shouldRenderTests = isRenderableMode(laneDecisionMode?.test_before_buy);
+  const shouldRenderAlternativesRebuttals = isRenderableMode(
+    laneDecisionMode?.alternatives_rebuttals
+  );
+  const shouldRenderPricingFreeWorksIf = isRenderableMode(lanePricingMode?.free_works_if);
+  const shouldRenderPricingPaidNeededWhen = isRenderableMode(lanePricingMode?.paid_needed_when);
+  const shouldRenderPricingHiddenCosts = isRenderableMode(lanePricingMode?.hidden_cost_triggers);
+  const shouldRenderPricingMainDrivers = isRenderableMode(lanePricingMode?.main_cost_drivers);
   const toFitRowWithEvidence = (
     row:
       | { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null }
@@ -73,114 +93,42 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
   ) => (row ? { ...row, evidence: fitEvidence } : null);
 
   const fitMatrix: ToolPageFitMatrix = {
-    solo: toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.solo) || {
-      fit: input.activeReviewLens === 'personal' ? 'strong' : 'mixed',
-      caveat:
-        input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
-        'Verify free-tier and admin overhead in a live workflow.',
-      reason:
-        input.decisionState.decisionUtilityState.decisionUseIf ||
-        'Best fit depends on how quickly one operator can run the core task end to end.',
-      evidence: {
-        evidenceType: 'editorial_inference',
-        confidence: 'medium',
-        lastChecked: input.chromeState.trustBarProps.lastChecked,
-      },
-    },
-    startup: toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.startup) || {
-      fit: input.activeReviewLens === 'startup' ? 'strong' : 'mixed',
-      caveat:
-        input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
-        'Seat and automation thresholds can force an early paid move.',
-      reason:
-        input.decisionState.decisionUtilityState.decisionUseIf ||
-        'Fit is strongest when team workflow and ownership are defined before rollout.',
-      evidence: {
-        evidenceType: 'editorial_inference',
-        confidence: 'medium',
-        lastChecked: input.chromeState.trustBarProps.lastChecked,
-      },
-    },
-    midMarket: toFitRowWithEvidence(
-      input.laneOutputs?.editorial_decision.fit_matrix?.mid_market
-    ) || {
-      fit: 'mixed',
-      caveat:
-        input.decisionState.decisionUtilityState.decisionWatchOut ||
-        'Governance and reporting requirements should be validated before expansion.',
-      reason:
-        'Depends on role model, approval flow, and reporting depth for operational decisions.',
-      evidence: {
-        evidenceType: 'editorial_inference',
-        confidence: 'medium',
-        lastChecked: input.chromeState.trustBarProps.lastChecked,
-      },
-    },
-    enterprise: toFitRowWithEvidence(
-      input.laneOutputs?.editorial_decision.fit_matrix?.enterprise
-    ) || {
-      fit: input.activeReviewLens === 'enterprise' ? 'mixed' : 'weak',
-      caveat:
-        input.decisionState.decisionUtilityState.decisionAvoidIf ||
-        'Verify controls, procurement constraints, and migration friction.',
-      reason:
-        'Enterprise fit depends on governance controls, auditability, and rollout ownership clarity.',
-      evidence: {
-        evidenceType: 'editorial_inference',
-        confidence: 'low',
-        lastChecked: input.chromeState.trustBarProps.lastChecked,
-      },
-    },
+    solo: shouldRenderFitMatrix
+      ? toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.solo)
+      : null,
+    startup: shouldRenderFitMatrix
+      ? toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.startup)
+      : null,
+    midMarket: shouldRenderFitMatrix
+      ? toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.mid_market)
+      : null,
+    enterprise: shouldRenderFitMatrix
+      ? toFitRowWithEvidence(input.laneOutputs?.editorial_decision.fit_matrix?.enterprise)
+      : null,
   };
 
-  const laneTests = input.laneOutputs?.editorial_decision.test_before_buy || [];
-  const checklistItems = input.decisionState.decisionUtilityState.testChecklistItems.slice(0, 3);
-  const beforeYouBuyTests: ToolPageBeforeYouBuyTest[] = (
-    laneTests.length > 0
-      ? laneTests.map((item) => ({
-          testType: item.name.toLowerCase().includes('admin')
-            ? ('admin_setup' as const)
-            : item.name.toLowerCase().includes('failure') ||
-                item.name.toLowerCase().includes('export')
-              ? ('failure_export' as const)
-              : ('daily_workflow' as const),
-          name: item.name,
-          whyItMatters: item.why_it_matters,
-          whatToDo: item.test,
-          passCondition: item.pass_condition,
-          commonFailure: item.common_failure,
-          evidence: {
-            evidenceType: 'editorial_inference' as const,
-            confidence: 'medium' as const,
-            lastChecked: input.chromeState.trustBarProps.lastChecked,
-          },
-        }))
-      : checklistItems.map((item, index) => {
-          const testType: ToolPageBeforeYouBuyTest['testType'] =
-            index === 0 ? 'daily_workflow' : index === 1 ? 'admin_setup' : 'failure_export';
-          const testLabel =
-            testType === 'daily_workflow'
-              ? 'Daily workflow test'
-              : testType === 'admin_setup'
-                ? 'Admin/setup test'
-                : 'Failure and export test';
-
-          return {
-            testType,
-            name: testLabel,
-            whyItMatters: item,
-            whatToDo: item,
-            passCondition: 'The workflow completes without role, plan, or handoff blockers.',
-            commonFailure:
-              'A key step depends on a gated feature, hidden limit, or missing ownership.',
-            evidence: {
-              evidenceType: 'editorial_inference' as const,
-              confidence: 'medium' as const,
-              lastChecked: input.chromeState.trustBarProps.lastChecked,
-            },
-          };
-        })
-  ).slice(0, 3);
+  const laneTests = shouldRenderTests
+    ? input.laneOutputs?.editorial_decision.test_before_buy || []
+    : [];
+  const beforeYouBuyTests: ToolPageBeforeYouBuyTest[] = laneTests
+    .map((item) => ({
+      testType: item.name.toLowerCase().includes('admin')
+        ? ('admin_setup' as const)
+        : item.name.toLowerCase().includes('failure') || item.name.toLowerCase().includes('export')
+          ? ('failure_export' as const)
+          : ('daily_workflow' as const),
+      name: item.name,
+      whyItMatters: item.why_it_matters,
+      whatToDo: item.test,
+      passCondition: item.pass_condition,
+      commonFailure: item.common_failure,
+      evidence: {
+        evidenceType: 'editorial_inference' as const,
+        confidence: 'medium' as const,
+        lastChecked: input.chromeState.trustBarProps.lastChecked,
+      },
+    }))
+    .slice(0, 3);
 
   return {
     activeLens: input.activeReviewLens,
@@ -193,22 +141,29 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
       pendingCount: input.chromeState.trustBarProps.pendingCount,
     },
     heroDecisionCard: {
-      bestFor: input.decisionState.decisionUtilityState.decisionUseIf || null,
-      notFor: input.decisionState.decisionUtilityState.decisionAvoidIf || null,
-      mainRisk:
-        input.laneOutputs?.editorial_decision.main_risk ||
-        input.decisionState.decisionUtilityState.decisionWatchOut ||
-        null,
-      upgradeTrigger:
-        input.laneOutputs?.editorial_decision.upgrade_trigger ||
-        input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
-        null,
+      bestFor: shouldRenderFitMatrix
+        ? input.laneOutputs?.editorial_decision.best_for || null
+        : null,
+      notFor: shouldRenderFitMatrix ? input.laneOutputs?.editorial_decision.not_for || null : null,
+      mainRisk: shouldRenderMainRisk
+        ? input.laneOutputs?.editorial_decision.main_risk || null
+        : null,
+      upgradeTrigger: shouldRenderUpgradeTrigger
+        ? input.laneOutputs?.editorial_decision.upgrade_trigger || null
+        : null,
       implementationFriction: {
-        level: input.laneOutputs?.editorial_decision.implementation_friction_level || 'unknown',
+        level:
+          shouldRenderImplementationFriction &&
+          input.laneOutputs?.editorial_decision.implementation_friction_level
+            ? input.laneOutputs.editorial_decision.implementation_friction_level
+            : 'unknown',
         summary: setupComplexitySummary,
-        drivers: input.laneOutputs?.editorial_decision.implementation_friction_drivers || [],
-        stakeholders:
-          input.laneOutputs?.editorial_decision.implementation_friction_stakeholders || [],
+        drivers: shouldRenderImplementationFriction
+          ? input.laneOutputs?.editorial_decision.implementation_friction_drivers || []
+          : [],
+        stakeholders: shouldRenderImplementationFriction
+          ? input.laneOutputs?.editorial_decision.implementation_friction_stakeholders || []
+          : [],
       },
       evidence: {
         evidenceType: 'editorial_inference',
@@ -219,27 +174,22 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
     },
     fitMatrix,
     pricingReality: {
-      freeWorksIf:
-        input.laneOutputs?.fact_sheet.pricing_reality?.free_works_if ||
-        input.decisionState.decisionUtilityState.pricingMentalModelItems[0]?.text ||
-        input.decisionState.decisionUtilityState.decisionUseIf ||
-        null,
-      paidNeededWhen:
-        input.laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when ||
-        input.decisionState.decisionUtilityState.decisionUpgradeTrigger ||
-        input.decisionState.decisionUtilityState.pricingMentalModelItems[1]?.text ||
-        null,
-      hiddenCostTriggers: input.laneOutputs?.fact_sheet.pricing_reality?.hidden_cost_triggers
-        ?.length
-        ? input.laneOutputs.fact_sheet.pricing_reality.hidden_cost_triggers
-        : input.decisionState.decisionUtilityState.pricingMentalModelItems
-            .slice(0, 3)
-            .map((entry) => entry.text),
-      mainCostDrivers: input.laneOutputs?.fact_sheet.pricing_reality?.main_cost_drivers?.length
-        ? input.laneOutputs.fact_sheet.pricing_reality.main_cost_drivers
-        : input.decisionState.decisionUtilityState.pricingMentalModelItems
-            .slice(0, 2)
-            .map((entry) => entry.text),
+      freeWorksIf: shouldRenderPricingFreeWorksIf
+        ? input.laneOutputs?.fact_sheet.pricing_reality?.free_works_if || null
+        : null,
+      paidNeededWhen: shouldRenderPricingPaidNeededWhen
+        ? input.laneOutputs?.fact_sheet.pricing_reality?.paid_needed_when || null
+        : null,
+      hiddenCostTriggers:
+        shouldRenderPricingHiddenCosts &&
+        input.laneOutputs?.fact_sheet.pricing_reality?.hidden_cost_triggers?.length
+          ? input.laneOutputs.fact_sheet.pricing_reality.hidden_cost_triggers
+          : [],
+      mainCostDrivers:
+        shouldRenderPricingMainDrivers &&
+        input.laneOutputs?.fact_sheet.pricing_reality?.main_cost_drivers?.length
+          ? input.laneOutputs.fact_sheet.pricing_reality.main_cost_drivers
+          : [],
       evidence: {
         evidenceType: 'editorial_inference',
         confidence: 'medium',
@@ -247,7 +197,10 @@ export function buildToolPageBlueprintRuntimeInputFromRouteData(
       },
     },
     beforeYouBuyTests,
-    alternativesRebuttals: (input.laneOutputs?.editorial_decision.alternatives_rebuttals || [])
+    alternativesRebuttals: (shouldRenderAlternativesRebuttals
+      ? input.laneOutputs?.editorial_decision.alternatives_rebuttals || []
+      : []
+    )
       .filter((entry) =>
         input.allowedAlternativeSlugs?.length
           ? input.allowedAlternativeSlugs.includes(entry.slug)

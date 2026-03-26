@@ -47,16 +47,6 @@ function isGenericAlternativeReason(value: string | null | undefined): boolean {
   return GENERIC_ALTERNATIVE_PATTERNS.some((pattern) => pattern.test(value));
 }
 
-function fallbackImplementationSummary(
-  level: ToolPageBuyerDecisionLayer['heroDecisionCard']['implementationFriction']['level']
-): string {
-  if (level === 'low') return 'Low rollout friction for most teams.';
-  if (level === 'medium') return 'Moderate rollout friction, validate admin setup early.';
-  if (level === 'high')
-    return 'High rollout friction, validate controls and ownership before scaling.';
-  return 'Implementation friction needs confirmation.';
-}
-
 type FitMatrixSegment = 'solo' | 'startup' | 'midMarket' | 'enterprise';
 
 const FIT_SEGMENT_DEFAULT_REASON: Record<FitMatrixSegment, string> = {
@@ -117,9 +107,7 @@ export function enforceToolPageDecisionLayerIntegrity(
     upgradeTrigger: cleanToolPageDecisionText(layer.heroDecisionCard.upgradeTrigger),
     implementationFriction: {
       ...layer.heroDecisionCard.implementationFriction,
-      summary:
-        sanitizeText(layer.heroDecisionCard.implementationFriction.summary) ||
-        fallbackImplementationSummary(layer.heroDecisionCard.implementationFriction.level),
+      summary: sanitizeText(layer.heroDecisionCard.implementationFriction.summary),
       drivers: layer.heroDecisionCard.implementationFriction.drivers
         .map((item) => sanitizeText(item))
         .filter((item): item is string => Boolean(item))

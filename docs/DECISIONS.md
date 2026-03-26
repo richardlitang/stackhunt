@@ -15,25 +15,34 @@ Impact: ...
 ```
 
 Notes:
+
 - Keep entries short.
 - Use concrete dates.
+
+2026-03-26 - Tool Page Decision Contract Hardening (Entity-First)
+Context: Tool pages were mixing `reviews`, `items.review_context`, and `items.specs.canonical.entity_first_lane_outputs`, while runtime fallback builders still generated buyer-decision copy when ETL evidence was thin.
+Decision: Treat `entity_first_lane_outputs` as the target canonical source for buyer-decision surfaces (fit, risk, upgrade, pricing reality, test-before-buy), suppress `llm_phrase_only` fields from visible decision rendering by default, and remove render-time fallback content that invents decision guidance.
+Why: Polished fallback copy on weak evidence creates hidden hallucination risk and makes ETL gaps hard to detect.
+Impact: Frontend decision sections now favor suppression or neutral empty states over inferred filler when lane data is absent or weak, and future ETL work should prioritize upgrading fields to deterministic/extractive modes.
 
 2026-03-03 - Tool Page Editorial v2 Blueprint Adopted
 Context: Recent tool pages improved evidence handling but still read as spec sheets due duplicated verdict surfaces, card/list overload, and inconsistent narrative cohesion.
 Decision: Adopt editorial-v2 as the next implementation target for `/tool/[slug]`:
+
 - `docs/TOOL_PAGE_EDITORIAL_BLUEPRINT_V2.md`
 - `docs/plans/2026-03-03-tool-page-editorial-v2-implementation.md`
-Why: Reader retention and decision clarity are now constrained more by page structure and copy flow than by raw fact coverage.
-Impact: Upcoming tool-page changes should prioritize narrative-first ordering, contradiction blocking, pricing-first buyer guidance, and reduced decorative section noise before broader rollout.
+  Why: Reader retention and decision clarity are now constrained more by page structure and copy flow than by raw fact coverage.
+  Impact: Upcoming tool-page changes should prioritize narrative-first ordering, contradiction blocking, pricing-first buyer guidance, and reduced decorative section noise before broader rollout.
 
 2026-03-02 - Tool Page Standard v1 + QA Gate + Codex Brief Adopted
 Context: Tool pages (`/tool/[slug]`) had strong sourcing/legal guardrails but still showed template-noise and generic decision language in rendered output.
 Decision: Adopt tool-page-first quality package in docs as the implementation source of truth:
+
 - `docs/TOOL_PAGE_STANDARD_V1.md`
 - `docs/TOOL_PAGE_QA_GATE_V1.md`
 - `docs/CODEX_TOOL_PAGE_BRIEF_V1.md`
-Why: We need one enforceable contract for page purpose, required evidence, section suppression, and publish/index behavior before extending to `/best` and `/compare`.
-Impact: Future tool-page changes should implement against these docs first; publish/index and lint checks should be aligned to this v1 contract before rollout to other page types.
+  Why: We need one enforceable contract for page purpose, required evidence, section suppression, and publish/index behavior before extending to `/best` and `/compare`.
+  Impact: Future tool-page changes should implement against these docs first; publish/index and lint checks should be aligned to this v1 contract before rollout to other page types.
 
 2026-02-20 - Snapshot Compiler Trust Contract (Policy V1)
 Context: `/best` and `/compare` are moving toward deterministic snapshot compilers, but confidence, staleness, evidence scope, and conflict behavior were not yet locked as one cross-cutting contract.
