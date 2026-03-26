@@ -1,4 +1,9 @@
 import type { BuildToolPageSectionRuntimeInput } from '@/lib/tool-page/section-runtime';
+import {
+  hasCompanyInfoData,
+  hasPortabilityData,
+  hasSecurityData,
+} from '@/lib/tool-page/knowledge-card-presence';
 
 interface BuildToolPageSectionRuntimeInputContext {
   faqItems: unknown[];
@@ -55,7 +60,8 @@ export function buildToolPageSectionRuntimeInput(
       hasCategorySpecificData: Boolean(input.categorySpecificData),
       hasVipSpecifics: Boolean(input.vipSpecifics),
       specsSectionStatus: input.sectionStatus.specs,
-      hasPlatforms: Array.isArray(input.knowledgeCard?.platforms) && input.knowledgeCard.platforms.length > 0,
+      hasPlatforms:
+        Array.isArray(input.knowledgeCard?.platforms) && input.knowledgeCard.platforms.length > 0,
       hasIntegrations: Boolean(input.knowledgeCard?.integrations),
       alternativesCount: input.orderedAlternativesCount,
       communitySectionStatus: input.sectionStatus.community,
@@ -82,9 +88,9 @@ export function buildToolPageSectionRuntimeInput(
         faq: input.sectionPublishabilityFaq,
       },
       hasGettingStartedData: input.hasGettingStartedData,
-      hasSecurityData: Boolean(input.knowledgeCard?.security),
-      hasPortabilityData: Boolean(input.knowledgeCard?.smp_portability),
-      hasKnowledgeCard: Boolean(input.knowledgeCard),
+      hasSecurityData: hasSecurityData(input.knowledgeCard),
+      hasPortabilityData: hasPortabilityData(input.knowledgeCard),
+      hasKnowledgeCard: hasCompanyInfoData(input.knowledgeCard, null),
       hasParentTool: input.hasParentTool,
       hasSupportData: input.hasSupportData,
       now: input.now,

@@ -10,6 +10,7 @@ import {
   toToolPageOptionalRecord,
   toToolPageReviewSources,
 } from '@/lib/tool-page/route-normalizers';
+import { hasSupportData } from '@/lib/tool-page/knowledge-card-presence';
 import type { ToolPageData } from '@/lib/tool-page/data';
 
 interface BuildToolPageDataPrepRouteStateInput {
@@ -133,7 +134,7 @@ export function buildToolPageDataPrepRouteState(
         toolPricingVerifiedAt: readToolPageStringField(tool, 'pricing_verified_at'),
         toolUpdatedAt: readToolPageStringField(tool, 'updated_at'),
         hasParentTool: Boolean(parentTool),
-        hasSupportData: Boolean(knowledgeCard?.support),
+        hasSupportData: hasSupportData(knowledgeCard),
         now: input.now || new Date(),
       },
       faqSchemaInput: {

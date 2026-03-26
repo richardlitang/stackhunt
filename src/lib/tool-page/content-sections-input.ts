@@ -1,4 +1,10 @@
 import type { buildToolPageContentSectionsState } from '@/lib/tool-page/content-sections-state';
+import {
+  hasCompanyInfoData,
+  hasPortabilityData,
+  hasSecurityData,
+  hasSupportData,
+} from '@/lib/tool-page/knowledge-card-presence';
 
 interface BuildToolPageContentSectionsStateInputFromRouteInput {
   evidenceLinks: Array<{
@@ -216,11 +222,11 @@ export function buildToolPageContentSectionsStateInputFromRoute(
     operationalDetailsInput: {
       hasSecurity: input.hasSecurity,
       hasPortability: input.hasPortability,
-      hasKnowledgeCard: Boolean(input.knowledgeCard),
+      hasKnowledgeCard: hasCompanyInfoData(input.knowledgeCard, null),
       hasParentTool: input.hasParentTool,
-      hasSupport: Boolean(input.knowledgeCard?.support),
-      hasSecurityData: Boolean(input.knowledgeCard?.security),
-      hasPortabilityData: Boolean(input.knowledgeCard?.smp_portability),
+      hasSupport: hasSupportData(input.knowledgeCard),
+      hasSecurityData: hasSecurityData(input.knowledgeCard),
+      hasPortabilityData: hasPortabilityData(input.knowledgeCard),
     },
   };
 }

@@ -35,7 +35,8 @@ const { data: parentTool } = await supabase
   .eq('id', parentId)
   .single();
 
-if (!siblingTools || siblingTools.length === 0) return null;
+const hasSiblingTools = Array.isArray(siblingTools) && siblingTools.length > 0;
+if (!parentTool && !hasSiblingTools) return null;
 ---
 
 <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-6">
@@ -55,7 +56,8 @@ if (!siblingTools || siblingTools.length === 0) return null;
     <div class="flex-1">
       <h3 class="text-lg font-semibold text-indigo-400">Also in {parentName}</h3>
       <p class="mt-1 text-sm text-zinc-400">
-        This tool is part of {parentName}. Here are other tools in the suite:
+        This tool is part of {parentName}
+        {hasSiblingTools ? '. Here are other tools in the suite:' : '.'}
       </p>
     </div>
   </div>
@@ -76,13 +78,11 @@ if (!siblingTools || siblingTools.length === 0) return null;
             </span>
           </div>
           <p class="mt-1 text-xs text-zinc-400 truncate">
-            {
-              getDisplayDescription({
-                shortDescription: parentTool.short_description,
-                pricingType: parentTool.pricing_type,
-                itemType: 'tool',
-              })
-            }
+            {getDisplayDescription({
+              shortDescription: parentTool.short_description,
+              pricingType: parentTool.pricing_type,
+              itemType: 'tool',
+            })}
           </p>
         </div>
         <svg
@@ -98,43 +98,43 @@ if (!siblingTools || siblingTools.length === 0) return null;
   }
 
   <!-- Sibling Tools -->
-  <div class="space-y-2">
-    {
-      siblingTools.map((tool) => (
-        <a
-          href={`/tool/${tool.slug}`}
-          class="flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900/50 p-3 transition hover:border-zinc-600 hover:bg-zinc-800/50"
-        >
-          <Logo domain={tool.logo_url} name={tool.name} size="sm" />
-          <div class="flex-1 min-w-0">
-            <div class="font-medium text-zinc-200">{tool.name}</div>
-            <p class="mt-0.5 text-xs text-zinc-400 truncate">
-              {
-                getDisplayDescription({
+  {
+    hasSiblingTools && (
+      <div class="space-y-2">
+        {siblingTools.map((tool) => (
+          <a
+            href={`/tool/${tool.slug}`}
+            class="flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900/50 p-3 transition hover:border-zinc-600 hover:bg-zinc-800/50"
+          >
+            <Logo domain={tool.logo_url} name={tool.name} size="sm" />
+            <div class="flex-1 min-w-0">
+              <div class="font-medium text-zinc-200">{tool.name}</div>
+              <p class="mt-0.5 text-xs text-zinc-400 truncate">
+                {getDisplayDescription({
                   shortDescription: tool.short_description,
                   pricingType: tool.pricing_type,
                   itemType: 'tool',
-                })
-              }
-            </p>
-          </div>
-          <svg
-            class="h-4 w-4 flex-shrink-0 text-zinc-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </a>
-      ))
-    }
-  </div>
+                })}
+              </p>
+            </div>
+            <svg
+              class="h-4 w-4 flex-shrink-0 text-zinc-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </a>
+        ))}
+      </div>
+    )
+  }
 
   <div class="mt-4 rounded-lg bg-indigo-500/10 p-3">
     <p class="text-xs text-indigo-400">
