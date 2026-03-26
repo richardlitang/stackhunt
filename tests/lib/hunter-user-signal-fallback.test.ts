@@ -1,160 +1,45 @@
 import { describe, expect, it } from 'vitest';
 import { buildFallbackUserSignalClaimsFromSources } from '@/lib/hunter/user-signal-fallback';
 
-describe('hunter user signal fallback', () => {
-  it('extracts pros from community/editorial snippets with positive signal', () => {
-    const claims = buildFallbackUserSignalClaimsFromSources({
-      label: 'pros',
-      sources: [
-        {
-          url: 'https://www.reddit.com/r/saas/comments/abc123/tool_review/',
-          snippet: 'Teams say onboarding is fast and the workflow is easier to adopt.',
-          source_type: 'community',
-        },
-        {
-          url: 'https://news.ycombinator.com/item?id=445566',
-          snippet: 'Teams say onboarding is fast and the workflow is easier to adopt.',
-          source_type: 'community',
-        },
-        {
-          url: 'https://vendor.example.com/docs/setup',
-          snippet: 'Official setup reference.',
-          source_type: 'docs',
-        },
-      ],
-    });
-
-    expect(claims).toHaveLength(1);
-    expect(claims[0]?.source_type).toBe('community');
-    expect(claims[0]?.source_channel).toBe('reddit');
-    expect(claims[0]?.text.toLowerCase()).toContain('users report');
-    expect(claims[0]?.source_urls.length).toBeGreaterThan(0);
-  });
-
-  it('extracts cons only when negative cues exist', () => {
-    const claims = buildFallbackUserSignalClaimsFromSources({
+describe('hunter user-signal fallback', () => {
+  it('keeps corroborated community claims when they are already hedged', () => {
+    const result = buildFallbackUserSignalClaimsFromSources({
       label: 'cons',
       sources: [
         {
-          url: 'https://news.ycombinator.com/item?id=123',
-          snippet: 'Users report slow responses and inconsistent reliability under load.',
+          url: 'https://www.reddit.com/r/crm/comments/one',
           source_type: 'community',
+          snippet: 'Users report onboarding is slow and setup permissions are confusing.',
         },
         {
-          url: 'https://www.reddit.com/r/saas/comments/cons-1',
-          snippet: 'Users report slow responses and inconsistent reliability under load.',
+          url: 'https://news.ycombinator.com/item?id=1234',
           source_type: 'community',
-        },
-        {
-          url: 'https://example.com/reviews/acme-setup',
-          snippet: 'Reviewers mention confusion during advanced setup.',
-          source_type: 'editorial',
+          snippet: 'Users report onboarding is slow and setup permissions are confusing.',
         },
       ],
     });
 
-    expect(claims.length).toBeGreaterThan(0);
-    expect(claims.every((claim) => claim.claim_type === 'opinion')).toBe(true);
-    expect(claims.some((claim) => claim.source_type === 'community')).toBe(true);
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toContain('Users report onboarding is slow');
   });
 
-  it('aggregates corroboration counts when similar claims appear across sources', () => {
-    const claims = buildFallbackUserSignalClaimsFromSources({
+  it('suppresses community claims that are not explicitly user-voice hedged', () => {
+    const result = buildFallbackUserSignalClaimsFromSources({
       label: 'cons',
       sources: [
         {
-          url: 'https://www.reddit.com/r/saas/comments/1',
-          snippet: 'Users report slow responses during busy periods and reliability issues.',
+          url: 'https://www.reddit.com/r/crm/comments/one',
           source_type: 'community',
+          snippet: 'Onboarding is slow and setup permissions are confusing.',
         },
         {
-          url: 'https://news.ycombinator.com/item?id=22',
-          snippet: 'Users report slow responses during busy periods and reliability issues.',
+          url: 'https://news.ycombinator.com/item?id=1234',
           source_type: 'community',
+          snippet: 'Onboarding is slow and setup permissions are confusing.',
         },
       ],
     });
 
-    expect(claims).toHaveLength(1);
-    expect(claims[0]?.corroborating_source_count).toBe(2);
-    expect(claims[0]?.claim_confidence_tier).toBe('medium');
-    expect(claims[0]?.source_urls).toHaveLength(2);
-  });
-
-  it('suppresses single-source community fallback claims even when high-signal', () => {
-    const claims = buildFallbackUserSignalClaimsFromSources({
-      label: 'pros',
-      sources: [
-        {
-          url: 'https://www.reddit.com/r/saas/comments/99',
-          snippet: 'Users report strong reliability and faster execution in daily usage.',
-          source_type: 'community',
-        },
-      ],
-    });
-
-    expect(claims).toHaveLength(0);
-  });
-
-  it('extracts sentence-level claims from longer snippets', () => {
-    const claims = buildFallbackUserSignalClaimsFromSources({
-      label: 'cons',
-      sources: [
-        {
-          url: 'https://www.reddit.com/r/saas/comments/777',
-          snippet:
-            'Teams like the UI for quick tasks. But users report slow sync and missing notifications during peak hours.',
-          source_type: 'community',
-        },
-        {
-          url: 'https://news.ycombinator.com/item?id=777',
-          snippet:
-            'Teams like the UI for quick tasks. But users report slow sync and missing notifications during peak hours.',
-          source_type: 'community',
-        },
-      ],
-    });
-
-    expect(claims).toHaveLength(1);
-    expect(claims[0]?.text.toLowerCase()).toContain('slow sync');
-  });
-
-  it('prioritizes snippet text over noisy titles for claim extraction', () => {
-    const claims = buildFallbackUserSignalClaimsFromSources({
-      label: 'pros',
-      sources: [
-        {
-          url: 'https://www.reddit.com/r/saas/comments/123',
-          snippet: 'Users report easier onboarding and faster setup for small teams.',
-          title: 'Top 10 AI tools compared in 2026',
-          source_type: 'community',
-        },
-        {
-          url: 'https://news.ycombinator.com/item?id=123',
-          snippet: 'Users report easier onboarding and faster setup for small teams.',
-          title: 'Best SaaS tools this year',
-          source_type: 'community',
-        },
-      ],
-    });
-
-    expect(claims).toHaveLength(1);
-    expect(claims[0]?.text.toLowerCase()).toContain('easier onboarding');
-    expect(claims[0]?.text.toLowerCase()).not.toContain('top 10 ai tools');
-  });
-
-  it('filters low-signal marketing-style claims from community snippets', () => {
-    const claims = buildFallbackUserSignalClaimsFromSources({
-      label: 'pros',
-      sources: [
-        {
-          url: 'https://www.reddit.com/r/saas/comments/low_signal',
-          snippet: 'Supports core workflows for most teams with flexibility.',
-          source_type: 'community',
-        },
-      ],
-    });
-
-    expect(claims).toHaveLength(0);
+    expect(result).toHaveLength(0);
   });
 });

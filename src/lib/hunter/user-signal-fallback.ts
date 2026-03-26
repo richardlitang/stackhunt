@@ -148,21 +148,15 @@ export function buildFallbackUserSignalClaimsFromSources(input: {
       const hasPositiveSignal = USER_SIGNAL_POSITIVE_TOKENS.test(sentenceCandidate);
       if (input.label === 'cons' && !hasNegativeSignal) continue;
       if (input.label === 'pros' && (hasNegativeSignal || !hasPositiveSignal)) continue;
-      if (
-        inferredSourceType === 'community' &&
-        channel === 'other' &&
-        !hasUserVoiceEvidence(sentenceCandidate)
-      ) {
+      if (inferredSourceType === 'community' && !hasUserVoiceEvidence(sentenceCandidate)) {
+        continue;
+      }
+      if (inferredSourceType === 'community' && !hasCommunityHedgingLanguage(sentenceCandidate)) {
         continue;
       }
 
-      const normalizedText =
-        inferredSourceType === 'community' && !hasCommunityHedgingLanguage(sentenceCandidate)
-          ? `Users report ${sentenceCandidate.charAt(0).toLowerCase()}${sentenceCandidate.slice(1)}`
-          : sentenceCandidate;
-
       candidates.push({
-        text: normalizedText,
+        text: sentenceCandidate,
         source_url: sourceUrl,
         source_type: inferredSourceType,
         source_channel:
