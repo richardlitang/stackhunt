@@ -137,6 +137,7 @@ const DECISION_SECTION_HEADING_PATTERN =
 const DECISION_SECTION_PATTERN =
   /<section[^>]*>[\s\S]*?<h2[^>]*>\s*(?:Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger)\s*<\/h2>[\s\S]*?<\/section>/i;
 const ALLOWED_DECISION_SECTION_LINKS = new Set(['#verdict', '#sources']);
+const SECTION_RAIL_PATTERN = /<nav[^>]*aria-label=["']Section rail["'][^>]*>([\s\S]*?)<\/nav>/i;
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -262,6 +263,23 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   }
   if (compareLinkMatches.length > 0 && !/\bComparison axis\b/i.test(text)) {
     failures.push('unsupported_comparison_set_missing_axis_label');
+  }
+  if (/href=["']\/disclosure["']/i.test(html)) {
+    failures.push('section_rail_contains_disclosure_link');
+  }
+  const sectionRailMatch = html.match(SECTION_RAIL_PATTERN);
+  if (sectionRailMatch) {
+    const sectionRailHrefMatches = Array.from(
+      sectionRailMatch[1].matchAll(/href=["'](#[-a-z0-9]+)["']/gi)
+    ).map((match) => match[1]);
+    const missingTargets = sectionRailHrefMatches.filter(
+      (href) => !new RegExp(`id=["']${escapeRegExp(href.slice(1))}["']`, 'i').test(html)
+    );
+    if (missingTargets.length > 0) {
+      failures.push(
+        `section_rail_has_missing_targets:${Array.from(new Set(missingTargets)).join(',')}`
+      );
+    }
   }
 
   return {
@@ -590,6 +608,9 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
 
   if (/>\s*\{reviewDek\}\s*</.test(source)) {
     failures.push('template_generic_hero_dek_unscoped');
+  }
+  if (/href=["']\/disclosure["']/i.test(source)) {
+    failures.push('template_section_rail_contains_disclosure_link');
   }
 
   const compareHrefMatches = Array.from(source.matchAll(/href=\{compareUrl\}|\/compare\/\$\{/g));
