@@ -143,6 +143,11 @@ const OPERATIONAL_DETAILS_PANEL_PATTERN =
   /<details[^>]*>[\s\S]*?<h3[^>]*>\s*Operational details\s*<\/h3>([\s\S]*?)<\/details>/i;
 const OPERATIONAL_DETAILS_SIGNAL_PATTERN =
   /\b(Company|Security|Support|Portability|Suite navigation|Part of|Compliance|Help|Export)\b/i;
+const DECISION_UTILITY_SECTION_PATTERN =
+  /<section[^>]*id=["']decision-utility["'][^>]*>([\s\S]*?)<\/section>/i;
+const PRACTICAL_OUTCOMES_SECTION_PATTERN =
+  /<section[^>]*id=["']practical-outcomes["'][^>]*>([\s\S]*?)<\/section>/i;
+const LOCAL_STATUS_COPY_PATTERN = /\b(Source-backed|Needs confirmation)\b/i;
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -309,6 +314,20 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
     const panelText = stripHtml(operationalDetailsPanelMatch[1]);
     if (!OPERATIONAL_DETAILS_SIGNAL_PATTERN.test(panelText)) {
       failures.push('operational_details_panel_empty');
+    }
+  }
+  const decisionUtilitySectionMatch = html.match(DECISION_UTILITY_SECTION_PATTERN);
+  if (decisionUtilitySectionMatch) {
+    const text = stripHtml(decisionUtilitySectionMatch[1]);
+    if (LOCAL_STATUS_COPY_PATTERN.test(text)) {
+      failures.push('decision_utility_contains_local_status_chips');
+    }
+  }
+  const practicalOutcomesSectionMatch = html.match(PRACTICAL_OUTCOMES_SECTION_PATTERN);
+  if (practicalOutcomesSectionMatch) {
+    const text = stripHtml(practicalOutcomesSectionMatch[1]);
+    if (LOCAL_STATUS_COPY_PATTERN.test(text)) {
+      failures.push('practical_outcomes_contains_local_status_chips');
     }
   }
 
