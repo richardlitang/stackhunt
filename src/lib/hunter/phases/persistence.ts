@@ -1353,6 +1353,103 @@ function buildDiscoverySummary(
   return summary.length >= 40 ? summary : null;
 }
 
+function mapScoutSourcesForReview(ctx: HunterContext): Array<Record<string, unknown>> {
+  return ctx.research!.scoutResult.raw_sources.map((source) => ({
+    url: source.url,
+    canonical_url: source.canonical_url,
+    title: source.title,
+    snippet: source.snippet,
+    domain: source.domain,
+    source_type: source.source_type,
+    acquisition_mode: source.policy?.acquisition_mode,
+    llm_ingestion_allowed: source.policy?.llm_ingestion_allowed,
+    is_deep_scrape_allowed:
+      source.policy?.acquisition_mode === 'SCRAPE_ALLOWED' &&
+      source.policy?.llm_ingestion_allowed !== 'NO',
+    block_reason: source.policy?.reason,
+    retrieved_at: source.retrieved_at,
+    published_at: source.published_at,
+  }));
+}
+
+async function upsertEvidenceLimitedDiscoveryReview(
+  itemId: string,
+  ctx: HunterContext,
+  deps: HunterDependencies
+): Promise<string | null> {
+  const reviewSources = mapScoutSourcesForReview(ctx);
+  const officialCount = ctx.research!.scoutResult.raw_sources.filter((source) =>
+    ['official', 'docs', 'support', 'legal'].includes(source.source_type)
+  ).length;
+  const pricingCount = ctx.research!.scoutResult.raw_sources.filter((source) =>
+    source.intent_tags.includes('pricing')
+  ).length;
+  const eligibleCount = ctx.research!.scoutResult.raw_sources.length;
+  const checkedOn = new Date().toISOString().slice(0, 10);
+  const fallbackSummary = [
+    `Evidence-limited refresh completed on ${checkedOn}.`,
+    `Source snapshot: ${eligibleCount} total sources (${officialCount} official, ${pricingCount} pricing).`,
+    'This draft preserves conservative guidance until broader corroboration is available.',
+  ].join('\n\n');
+
+  const { data: existingReview, error: existingReviewError } = await deps.supabase
+    .from('reviews')
+    .select('id, status, score, summary_markdown, pros, cons, quality, reviewer_notes')
+    .eq('item_id', itemId)
+    .is('context_id', null)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingReviewError) {
+    deps.log(
+      `[Evidence-Limited Review] Warning: failed to load existing discovery review (${existingReviewError.message})`
+    );
+    return null;
+  }
+
+  const noteLine = `[auto] Evidence-limited refresh (${checkedOn}): insufficient eligible sources for synthesis`;
+  const mergedReviewerNotes = existingReview?.reviewer_notes
+    ? `${existingReview.reviewer_notes}\n${noteLine}`
+    : noteLine;
+  const payload = {
+    item_id: itemId,
+    context_id: null,
+    status: existingReview?.status || 'draft',
+    score: existingReview?.score ?? null,
+    quality: existingReview?.quality || 'low',
+    summary_markdown:
+      typeof existingReview?.summary_markdown === 'string' &&
+      existingReview.summary_markdown.trim().length > 0
+        ? existingReview.summary_markdown
+        : fallbackSummary,
+    pros: existingReview?.pros ?? [],
+    cons: existingReview?.cons ?? [],
+    sources: reviewSources,
+    reviewer_notes: mergedReviewerNotes,
+  };
+
+  const query = existingReview
+    ? deps.supabase
+        .from('reviews')
+        .update(payload)
+        .eq('id', existingReview.id)
+        .select('id')
+        .single()
+    : deps.supabase.from('reviews').insert(payload).select('id').single();
+  const { data, error } = await query;
+
+  if (error) {
+    deps.log(`[Evidence-Limited Review] Warning: failed to persist review (${error.message})`);
+    return null;
+  }
+
+  deps.log(
+    `[Evidence-Limited Review] ${existingReview ? 'Updated' : 'Created'} discovery review: ${data.id}`
+  );
+  return data.id;
+}
+
 /**
  * Execute the Persistence Phase
  *
@@ -2206,11 +2303,19 @@ export async function executePersistencePhase(
     itemData.embedding = ctx.analysis.embedding;
   }
 
-  const { data: item, error: itemError } = await deps.supabase
-    .from('items')
-    .upsert(itemData, { onConflict: 'slug' })
-    .select('id')
-    .single();
+  const duplicateItemId =
+    ctx.forceUpdate && ctx.research?.existingToolId ? ctx.research.existingToolId : null;
+  const { slug: _slugForExistingUpdate, ...itemDataWithoutSlug } = itemData;
+  const saveQuery = duplicateItemId
+    ? deps.supabase
+        .from('items')
+        // Preserve canonical slug for existing records, avoid accidental slug churn.
+        .update(itemDataWithoutSlug)
+        .eq('id', duplicateItemId)
+        .select('id')
+        .single()
+    : deps.supabase.from('items').upsert(itemData, { onConflict: 'slug' }).select('id').single();
+  const { data: item, error: itemError } = await saveQuery;
 
   if (itemError) throw new Error(`Failed to save item: ${itemError.message}`);
 
@@ -3363,11 +3468,19 @@ async function persistResearchOnly(
     pricing_confidence: knowledgeCard?.smp_pricing?.confidence || null,
   };
 
-  const { data: item, error: itemError } = await deps.supabase
-    .from('items')
-    .upsert(itemData, { onConflict: 'slug' })
-    .select('id')
-    .single();
+  const duplicateItemId =
+    ctx.forceUpdate && ctx.research?.existingToolId ? ctx.research.existingToolId : null;
+  const { slug: _slugForExistingUpdate, ...itemDataWithoutSlug } = itemData;
+  const saveQuery = duplicateItemId
+    ? deps.supabase
+        .from('items')
+        // Preserve canonical slug for existing records, avoid accidental slug churn.
+        .update(itemDataWithoutSlug)
+        .eq('id', duplicateItemId)
+        .select('id')
+        .single()
+    : deps.supabase.from('items').upsert(itemData, { onConflict: 'slug' }).select('id').single();
+  const { data: item, error: itemError } = await saveQuery;
 
   if (itemError) throw new Error(`Failed to save item: ${itemError.message}`);
 
@@ -3394,6 +3507,11 @@ async function persistResearchOnly(
     deps.log(`[Fact Pack] Warning (research-only): ${message}`);
   }
 
+  let evidenceLimitedReviewId: string | null = null;
+  if (ctx.insufficientSources && !ctx.contextTitle) {
+    evidenceLimitedReviewId = await upsertEvidenceLimitedDiscoveryReview(item.id, ctx, deps);
+  }
+
   // Update queue item status to research_complete
   if (ctx.queueItemId) {
     const { error: queueError } = await deps.supabase
@@ -3417,7 +3535,7 @@ async function persistResearchOnly(
   return {
     toolId: item.id,
     contextId: null,
-    reviewId: null,
+    reviewId: evidenceLimitedReviewId,
     wasReused: false,
   };
 }

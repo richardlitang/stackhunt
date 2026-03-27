@@ -504,17 +504,22 @@ export class Hunter {
 
       // Early exit: Hard duplicate detected (unless forceUpdate)
       if (ctx.research.isDuplicate && !ctx.forceUpdate) {
-        ctx.skipAnalysis = true;
-        this.log(`⚠️ Duplicate detected, skipping expensive analysis`);
-        return this.withTelemetry(
-          {
-            success: true,
-            toolId: ctx.research.existingToolId,
-            tokensUsed: ctx.tokensUsed,
-            durationMs: Date.now() - ctx.startTime,
-          },
-          ctx.tokensUsed
-        );
+        if (ctx.queueItemId) {
+          ctx.skipAnalysis = true;
+          this.log(`⚠️ Duplicate detected, skipping expensive analysis`);
+          return this.withTelemetry(
+            {
+              success: true,
+              toolId: ctx.research.existingToolId,
+              tokensUsed: ctx.tokensUsed,
+              durationMs: Date.now() - ctx.startTime,
+            },
+            ctx.tokensUsed
+          );
+        }
+        // Manual/direct hunts should refresh the existing item instead of no-op.
+        ctx.forceUpdate = true;
+        this.log(`🔄 Duplicate detected in direct hunt, continuing with force-update refresh`);
       }
       if (ctx.research.isDuplicate && ctx.forceUpdate) {
         this.log(`🔄 Duplicate detected, but forceUpdate=true - continuing with re-extraction`);
@@ -656,11 +661,20 @@ export class Hunter {
         const persistence = await executePersistencePhase(ctx, deps);
         this.logger?.endPhase({
           tool_created: persistence.wasReused ? 0 : 1,
-          review_created: 0,
+          review_created: persistence.reviewId ? 1 : 0,
         });
 
-        this.log(`✅ Research complete: ${input.toolName} (awaiting batch synthesis)`);
+        if (ctx.insufficientSources && persistence.reviewId) {
+          this.log(
+            `✅ Evidence-limited refresh complete: ${input.toolName} (minimal discovery review updated)`
+          );
+        } else {
+          this.log(`✅ Research complete: ${input.toolName} (awaiting batch synthesis)`);
+        }
         this.log(`Tool: ${persistence.toolId}, Category: ${ctx.detectedCategory || 'none'}`);
+        if (persistence.reviewId) {
+          this.log(`Review: ${persistence.reviewId}`);
+        }
         this.log(`Tokens: ${ctx.tokensUsed}, Duration: ${Date.now() - ctx.startTime}ms`);
 
         // Don't clear checkpoint - item is in research_complete status

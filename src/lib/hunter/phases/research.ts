@@ -643,9 +643,10 @@ async function hasExistingReviewForEntityScope(
   entityScope: string,
   deps: HunterDependencies
 ): Promise<boolean> {
+  const normalizedScope = entityScope.trim().toLowerCase();
   const { data, error } = await deps.supabase
     .from('reviews')
-    .select('id, sources')
+    .select('id, status, sources')
     .eq('item_id', itemId)
     .order('updated_at', { ascending: false })
     .limit(20);
@@ -655,9 +656,25 @@ async function hasExistingReviewForEntityScope(
     return false;
   }
 
-  return (data || []).some((review: { sources?: unknown }) =>
-    reviewHasEntityScope(review as { sources?: unknown }, entityScope)
-  );
+  const reviews = (data || []) as Array<{ status?: string | null; sources?: unknown }>;
+  if (reviews.length === 0) {
+    return false;
+  }
+
+  // Backward-compatibility guardrail: legacy discovery reviews often have no per-source
+  // scope tagging. For core scope, any persisted draft/review/published review should
+  // count as existing evidence so we avoid duplicate item creation.
+  if (normalizedScope === 'core') {
+    const hasPersistedReview = reviews.some((review) => {
+      const status = review.status?.trim().toLowerCase();
+      return status === 'draft' || status === 'review' || status === 'published';
+    });
+    if (hasPersistedReview) {
+      return true;
+    }
+  }
+
+  return reviews.some((review) => reviewHasEntityScope(review, entityScope));
 }
 
 function extractDomain(url?: string | null): string | null {
