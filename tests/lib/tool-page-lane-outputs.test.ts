@@ -200,4 +200,56 @@ describe('tool page lane outputs', () => {
       'Per-seat monthly pricing above 20 users.',
     ]);
   });
+
+  it('suppresses solo/startup fit rows that only carry enterprise caveats', () => {
+    const tool = {
+      name: 'Acme',
+      specs: {
+        canonical: {
+          entity_first_lane_outputs: {
+            subject_profile: {
+              subject_type: 'product',
+              subject_key: 'acme:core',
+              display_name: 'Acme',
+              confidence: 'high',
+            },
+            fact_sheet: {
+              official_facts: [],
+              official_pricing_facts: [],
+              official_limit_facts: [],
+            },
+            user_signal_sheet: {
+              user_signal_pros: [],
+              user_signal_cons: [],
+            },
+            editorial_decision: {
+              summary: null,
+              best_for: null,
+              not_for: null,
+              main_tradeoff: null,
+              human_verdict: null,
+              fit_matrix: {
+                solo: {
+                  fit: 'mixed',
+                  caveat: 'Enterprise SSO and procurement review are required.',
+                  reason: 'Simple setup otherwise.',
+                },
+                startup: {
+                  fit: 'weak',
+                  caveat: 'SOC2 governance controls are required.',
+                  reason: 'Can be heavy for small teams.',
+                },
+                mid_market: null,
+                enterprise: null,
+              },
+            },
+          },
+        },
+      },
+    } as any;
+
+    const laneOutputs = readToolPageLaneOutputs(tool);
+    expect(laneOutputs?.editorial_decision.fit_matrix?.solo).toBeNull();
+    expect(laneOutputs?.editorial_decision.fit_matrix?.startup).toBeNull();
+  });
 });

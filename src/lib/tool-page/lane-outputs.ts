@@ -225,16 +225,25 @@ function toConfidenceOrMedium(value: unknown): 'high' | 'medium' | 'low' {
 }
 
 function toFitRow(
-  value: unknown
+  value: unknown,
+  segment: 'solo' | 'startup' | 'mid_market' | 'enterprise'
 ): { fit: 'weak' | 'mixed' | 'strong'; caveat: string | null; reason: string | null } | null {
   if (!value || typeof value !== 'object') return null;
   const row = value as Record<string, unknown>;
   const fit = row.fit;
   if (fit !== 'weak' && fit !== 'mixed' && fit !== 'strong') return null;
+  const caveat = toStringOrNull(row.caveat);
+  const reason = toStringOrNull(row.reason);
+  const hasAudienceMismatchForSmallTeamSegments =
+    (segment === 'solo' || segment === 'startup') &&
+    typeof caveat === 'string' &&
+    /\b(enterprise|procurement|legal review|soc2|scim|sso|governance)\b/i.test(caveat) &&
+    !/\b(solo|founder|freelanc|startup|small team|small-teams?)\b/i.test(caveat);
+  if (hasAudienceMismatchForSmallTeamSegments && fit !== 'strong') return null;
   return {
     fit,
-    caveat: toStringOrNull(row.caveat),
-    reason: toStringOrNull(row.reason),
+    caveat,
+    reason,
   };
 }
 
@@ -392,10 +401,10 @@ export function readToolPageLaneOutputs(tool: Tool): ToolPageLaneOutputs | null 
       ...(fitMatrix
         ? {
             fit_matrix: {
-              solo: toFitRow(fitMatrix.solo),
-              startup: toFitRow(fitMatrix.startup),
-              mid_market: toFitRow(fitMatrix.mid_market),
-              enterprise: toFitRow(fitMatrix.enterprise),
+              solo: toFitRow(fitMatrix.solo, 'solo'),
+              startup: toFitRow(fitMatrix.startup, 'startup'),
+              mid_market: toFitRow(fitMatrix.mid_market, 'mid_market'),
+              enterprise: toFitRow(fitMatrix.enterprise, 'enterprise'),
             },
           }
         : {}),
