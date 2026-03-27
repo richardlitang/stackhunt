@@ -492,7 +492,6 @@ export async function getToolPageItemBySlug(slug: string) {
         score,
         created_at,
         updated_at,
-        entity_scope,
         summary_markdown,
         pros,
         cons,
