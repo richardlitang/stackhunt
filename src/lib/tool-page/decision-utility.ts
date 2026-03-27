@@ -60,7 +60,6 @@ export interface ToolPageDecisionUtilityState {
     outcome: string;
     verifyInDemo: string;
     planDependency: string;
-    planDependencyStatus: 'Source-backed' | 'Needs confirmation';
   }>;
   hasEvidenceAnchoredUtility: boolean;
 }
@@ -446,7 +445,6 @@ export function buildToolPageDecisionUtilityState(
                 verifyInDemo: 'Run one inbound and one outbound lead path end-to-end.',
                 planDependency:
                   'Automation depth and sequencing can be plan-gated, verify before rollout.',
-                planDependencyStatus: 'Source-backed',
               },
               {
                 outcome:
@@ -454,14 +452,12 @@ export function buildToolPageDecisionUtilityState(
                 verifyInDemo:
                   'Import duplicate contacts and inspect merge behavior plus field governance.',
                 planDependency: 'Data quality controls can vary by plan and admin role.',
-                planDependencyStatus: 'Source-backed',
               },
               {
                 outcome: 'Track forecasting and activity quality for sales operations.',
                 verifyInDemo:
                   'Confirm pipeline, conversion, and activity reports with your real definitions.',
                 planDependency: 'Reporting scope and retention rules may vary by plan.',
-                planDependencyStatus: 'Source-backed',
               },
             ]
           : [
@@ -469,13 +465,11 @@ export function buildToolPageDecisionUtilityState(
                 outcome: `Turn ${input.toolName} into a repeatable core workflow for your team.`,
                 verifyInDemo: 'Run one representative task from setup through output validation.',
                 planDependency: 'Advanced workflow controls can be plan-gated.',
-                planDependencyStatus: 'Source-backed',
               },
               {
                 outcome: 'Reduce rework with clearer ownership and operating constraints.',
                 verifyInDemo: 'Test permissions and role handoff paths with two different users.',
                 planDependency: 'Admin and governance controls vary by plan.',
-                planDependencyStatus: 'Source-backed',
               },
             ]
         : [],
