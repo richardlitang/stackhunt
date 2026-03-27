@@ -36,12 +36,9 @@ describe('tool page blueprint runtime input', () => {
           decisionWatchOut: 'Role and approval depth can be plan-gated.',
           decisionUpgradeTrigger: 'Upgrade when approvals and automation depth become blockers.',
           pricingMentalModelItems: [
-            { text: 'Free works for one pilot workflow only.', status: 'Source-backed' },
-            {
-              text: 'Paid needed when approvals and automations are required.',
-              status: 'Source-backed',
-            },
-            { text: 'Seat growth can trigger a fast tier jump.', status: 'Needs confirmation' },
+            { text: 'Free works for one pilot workflow only.' },
+            { text: 'Paid needed when approvals and automations are required.' },
+            { text: 'Seat growth can trigger a fast tier jump.' },
           ],
           testChecklistItems: [
             'Run one daily workflow end to end.',
