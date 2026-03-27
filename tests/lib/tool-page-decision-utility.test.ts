@@ -125,5 +125,7 @@ describe('tool page decision utility state', () => {
         /self-hosted\/server deployment/i.test(item.text)
       )
     ).toBe(true);
+    expect(result.pricingMentalModelItems.every((item) => !('status' in item))).toBe(true);
+    expect(result.practicalOutcomes.every((item) => !('planDependencyStatus' in item))).toBe(true);
   });
 });
