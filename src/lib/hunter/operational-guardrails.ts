@@ -65,3 +65,49 @@ export function sanitizeOperationalRecord(
   const cleaned = sanitizeOperationalValue(value);
   return isObjectLike(cleaned) ? cleaned : {};
 }
+
+function hasPlanOrUnitContext(entry: Record<string, unknown>): boolean {
+  const plan = typeof entry.plan_name_match === 'string' ? entry.plan_name_match.trim() : '';
+  const unit = typeof entry.unit === 'string' ? entry.unit.trim() : '';
+  return plan.length > 0 || unit.length > 0;
+}
+
+function isAmbiguousGenericLimit(entry: Record<string, unknown>): boolean {
+  const metric = typeof entry.metric === 'string' ? entry.metric.trim().toLowerCase() : '';
+  if (metric && metric !== 'limit') return false;
+  const value = entry.value;
+  const hasValue =
+    typeof value === 'number' || (typeof value === 'string' && value.trim().length > 0);
+  return hasValue && !hasPlanOrUnitContext(entry);
+}
+
+export function sanitizeConstraintsForPersistence(
+  constraints: Record<string, unknown> | undefined | null
+): Record<string, unknown> {
+  if (!isObjectLike(constraints)) return {};
+  const cleaned = { ...constraints };
+
+  if (Array.isArray(cleaned.hard_limits)) {
+    cleaned.hard_limits = cleaned.hard_limits.filter((entry) => {
+      if (!isObjectLike(entry)) return false;
+      if (isAmbiguousGenericLimit(entry)) return false;
+      return true;
+    });
+  }
+
+  if (Array.isArray(cleaned.hidden_costs)) {
+    cleaned.hidden_costs = cleaned.hidden_costs.filter((entry) => {
+      if (!isObjectLike(entry)) return false;
+      const description =
+        typeof entry.description === 'string'
+          ? entry.description
+          : typeof entry.name === 'string'
+            ? entry.name
+            : null;
+      if (!description) return false;
+      return isObjectiveOperationalText(description);
+    });
+  }
+
+  return cleaned;
+}

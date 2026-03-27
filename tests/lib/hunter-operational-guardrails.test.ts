@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isObjectiveOperationalText,
   isRiskyOperationalNarrative,
+  sanitizeConstraintsForPersistence,
   sanitizeOperationalRecord,
 } from '@/lib/hunter/operational-guardrails';
 
@@ -38,5 +39,29 @@ describe('hunter operational guardrails', () => {
       retain: 'API quota applies above 100k calls/month.',
     });
   });
-});
 
+  it('drops ambiguous generic limits and subjective hidden costs in constraints', () => {
+    const result = sanitizeConstraintsForPersistence({
+      hard_limits: [
+        { metric: 'limit', value: 3, source_url: 'https://example.com' },
+        {
+          metric: 'limit',
+          value: '3',
+          plan_name_match: 'Free',
+          source_url: 'https://example.com',
+        },
+      ],
+      hidden_costs: [
+        { description: 'Great value add-on pack.' },
+        { description: 'Annual contract required for enterprise support.' },
+      ],
+    });
+
+    expect(result.hard_limits).toEqual([
+      { metric: 'limit', value: '3', plan_name_match: 'Free', source_url: 'https://example.com' },
+    ]);
+    expect(result.hidden_costs).toEqual([
+      { description: 'Annual contract required for enterprise support.' },
+    ]);
+  });
+});
