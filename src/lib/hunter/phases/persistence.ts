@@ -65,6 +65,7 @@ import {
   scoreUserSignalClaim,
 } from '@/lib/hunter/user-signal-claims';
 import { buildDecisionSlots } from '@/lib/tool-page/intro';
+import { sanitizeOperationalRecord } from '@/lib/hunter/operational-guardrails';
 import { normalizeCategorySlug, resolveDetectedCategory } from '../category-resolver';
 
 export interface DatabaseTypes {
@@ -1093,24 +1094,10 @@ function sanitizeOperationalFields(
   deps: HunterDependencies
 ): Record<string, unknown> {
   if (!data || typeof data !== 'object') return {};
-
-  const result: Record<string, unknown> = {};
-  let dropped = 0;
-
-  for (const [key, value] of Object.entries(data)) {
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      if (
-        PRICING_LIKE_VALUE_TERMS.test(trimmed) ||
-        UNVERIFIED_QUANT_VALUE.test(trimmed) ||
-        SEAT_ACCESS_ABSOLUTE.test(trimmed)
-      ) {
-        dropped++;
-        continue;
-      }
-    }
-    result[key] = value;
-  }
+  const initialKeyCount = Object.keys(data).length;
+  const result = sanitizeOperationalRecord(data);
+  const remainingKeyCount = Object.keys(result).length;
+  const dropped = Math.max(0, initialKeyCount - remainingKeyCount);
 
   if (dropped > 0) {
     deps.log(
