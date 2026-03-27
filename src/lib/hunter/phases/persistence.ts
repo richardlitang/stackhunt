@@ -65,7 +65,10 @@ import {
   scoreUserSignalClaim,
 } from '@/lib/hunter/user-signal-claims';
 import { buildDecisionSlots } from '@/lib/tool-page/intro';
-import { sanitizeOperationalRecord } from '@/lib/hunter/operational-guardrails';
+import {
+  sanitizeConstraintsForPersistence,
+  sanitizeOperationalRecord,
+} from '@/lib/hunter/operational-guardrails';
 import { normalizeCategorySlug, resolveDetectedCategory } from '../category-resolver';
 
 export interface DatabaseTypes {
@@ -113,12 +116,8 @@ const NEGATIVE_CUES =
   /\b(no|not|lacks|lack|doesn't|cannot|can't|won't|avoid|veto|issue|problem|risk|limit|limited|slow|expensive|broken|bug|fails|failure)\b/i;
 const RISKY_ABSOLUTE_TERMS =
   /\b(always|never|broken|scam|unreliable|guaranteed|everyone|nobody)\b/i;
-const PRICING_LIKE_VALUE_TERMS =
-  /\b(price|pricing|cost|costs|fee|fees|billing|billed|monthly|annual|yearly|enterprise|pro\b|max\b|plan|seat)\b/i;
 const UNVERIFIED_QUANT_VALUE =
   /\b\d+\s*x\b|\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b|\b\d+(?:\.\d+)?%\b/i;
-const SEAT_ACCESS_ABSOLUTE =
-  /\bsingle seat\b.*\b(access|includes|provides)\b.*\b(design|dev mode|figjam|slides)\b/i;
 const COMPARATOR_TOKENS =
   /\b(vs\.?|versus|compared to|more than|less than|faster than|slower than|better than|worse than|higher than|lower than|double|doubles|doubling|half|halve|premium)\b/i;
 const COMPARATOR_QUANT_TOKENS = /\b\d+(?:\.\d+)?\s*x\b|\b\d+(?:\.\d+)?%/i;
@@ -1504,7 +1503,7 @@ export async function executePersistencePhase(
 
   // V4: Add constraints if extracted
   if (knowledgeCard?.constraints) {
-    const constraints = knowledgeCard.constraints;
+    const constraints = sanitizeConstraintsForPersistence(knowledgeCard.constraints);
     const plans = Array.isArray(knowledgeCard.smp_pricing?.plans)
       ? knowledgeCard.smp_pricing.plans
       : [];

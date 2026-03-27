@@ -1,3 +1,5 @@
+import type { ToolConstraints } from '@/lib/knowledge-card';
+
 const SUBJECTIVE_OPERATIONAL_PATTERN =
   /\b(best value|worth it|great value|good value|excellent|amazing|love|solid choice)\b/i;
 const OPERATIONAL_SIGNAL_PATTERN =
@@ -82,32 +84,22 @@ function isAmbiguousGenericLimit(entry: Record<string, unknown>): boolean {
 }
 
 export function sanitizeConstraintsForPersistence(
-  constraints: Record<string, unknown> | undefined | null
-): Record<string, unknown> {
-  if (!isObjectLike(constraints)) return {};
-  const cleaned = { ...constraints };
+  constraints: ToolConstraints | undefined | null
+): ToolConstraints {
+  const hardLimits = Array.isArray(constraints?.hard_limits) ? constraints.hard_limits : [];
+  const hiddenCosts = Array.isArray(constraints?.hidden_costs) ? constraints.hidden_costs : [];
 
-  if (Array.isArray(cleaned.hard_limits)) {
-    cleaned.hard_limits = cleaned.hard_limits.filter((entry) => {
+  return {
+    hard_limits: hardLimits.filter((entry) => {
       if (!isObjectLike(entry)) return false;
       if (isAmbiguousGenericLimit(entry)) return false;
       return true;
-    });
-  }
-
-  if (Array.isArray(cleaned.hidden_costs)) {
-    cleaned.hidden_costs = cleaned.hidden_costs.filter((entry) => {
+    }),
+    hidden_costs: hiddenCosts.filter((entry) => {
       if (!isObjectLike(entry)) return false;
-      const description =
-        typeof entry.description === 'string'
-          ? entry.description
-          : typeof entry.name === 'string'
-            ? entry.name
-            : null;
+      const description = typeof entry.description === 'string' ? entry.description : null;
       if (!description) return false;
       return isObjectiveOperationalText(description);
-    });
-  }
-
-  return cleaned;
+    }),
+  };
 }
