@@ -50,7 +50,6 @@ export interface ToolPageDecisionUtilityState {
   testChecklistItems: string[];
   pricingMentalModelItems: Array<{
     text: string;
-    status: 'Source-backed' | 'Needs confirmation';
     evidenceHref?: string;
   }>;
   commonSetupsTitle: string;
@@ -305,7 +304,6 @@ export function buildToolPageDecisionUtilityState(
       ? [
           {
             text: input.hardLimitText,
-            status: 'Source-backed' as const,
             evidenceHref: '#verdict',
           },
         ]
@@ -314,7 +312,6 @@ export function buildToolPageDecisionUtilityState(
       ? [
           {
             text: input.pricingEvidenceSummary,
-            status: 'Source-backed' as const,
             evidenceHref: '#pricing',
           },
         ]
@@ -322,7 +319,6 @@ export function buildToolPageDecisionUtilityState(
     ...(hasStrongUtilitySourceAnchor
       ? basePricingMentalModelItems.map((text) => ({
           text,
-          status: 'Source-backed' as const,
           evidenceHref: '#pricing',
         }))
       : []),
