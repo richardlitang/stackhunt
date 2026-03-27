@@ -59,6 +59,7 @@ Fail on any unchecked item.
 - [ ] No procedural filler sections in indexable state
 - [ ] No orphaned sections that add no decision value
 - [ ] Decision and pricing cards avoid verbose pending fillers (for example, no `Not confirmed yet`)
+- [ ] Decision utility and practical outcomes sections do not render local `Source-backed` or `Needs confirmation` chips (trust state stays centralized)
 
 Fail on any unchecked item.
 
@@ -109,3 +110,4 @@ Recommended automated checks:
 - schema-visible-content parity checker
 - fit-matrix non-strong row caveat checker
 - operational-details empty-panel checker
+- decision/practical section local-status-chip checker
