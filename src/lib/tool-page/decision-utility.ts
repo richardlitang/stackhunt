@@ -10,7 +10,6 @@ export interface ToolPageDecisionUtilitySetup {
   verificationLabel?: string;
   costTrigger?: {
     text: string;
-    status: 'Source-backed' | 'Needs confirmation';
     evidenceHref?: string;
   };
 }
@@ -357,7 +356,6 @@ export function buildToolPageDecisionUtilityState(
                 ? {
                     costTrigger: {
                       text: input.hardLimitText,
-                      status: 'Source-backed' as const,
                       evidenceHref: '#pricing',
                     },
                   }
@@ -381,7 +379,6 @@ export function buildToolPageDecisionUtilityState(
                 ? {
                     costTrigger: {
                       text: input.hardLimitText,
-                      status: 'Source-backed' as const,
                       evidenceHref: '#pricing',
                     },
                   }
