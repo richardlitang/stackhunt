@@ -74,7 +74,13 @@ const fitMatrixRows = [
   pageAssemblyState.buyerDecisionLayer.fitMatrix.midMarket,
   pageAssemblyState.buyerDecisionLayer.fitMatrix.enterprise,
 ];
-const hasFitMatrix = fitMatrixRows.some((row) => row && (row.reason || row.caveat));
+const hasFitMatrix = fitMatrixRows.some(
+  (row) =>
+    row &&
+    typeof row.reason === 'string' &&
+    row.reason.trim().length > 0 &&
+    (row.fit === 'strong' || (typeof row.caveat === 'string' && row.caveat.trim().length > 0))
+);
 const hasBeforeYouBuyTests = pageAssemblyState.buyerDecisionLayer.beforeYouBuyTests.length > 0;
 const hasVerdictSection = routeDataState.hasVerdict || routeDataState.showProceduralVerdict;
 const verdictSectionId = routeDataState.hasVerdict ? 'verdict' : 'verdict-conditions';
@@ -91,6 +97,13 @@ const hasWeTestedSection = routeDataState.showWeTestedIt;
 const hasSourcesSection = pageAssemblyState.sourcesSectionState.hasSources;
 const hasUpdateHistorySection = pageAssemblyState.updateHistoryState.hasUpdates;
 const hasCommunitySection = routeDataState.hasCommunity;
+const hasOperationalDetailsSection = Boolean(
+  pageAssemblyState.operationalDetailsState.showCompanyInfo ||
+  pageAssemblyState.operationalDetailsState.showSuiteNavigation ||
+  pageAssemblyState.operationalDetailsState.showSecurity ||
+  pageAssemblyState.operationalDetailsState.showSupport ||
+  pageAssemblyState.operationalDetailsState.showPortability
+);
 
 const renderedJumpLinks = [
   hasFitMatrix ? { href: '#fit-matrix', label: 'Market fit' } : null,
@@ -958,7 +971,7 @@ applyToolPageResponseRouteState({
       <!-- Sidebar -->
       <div class="space-y-6 lg:sticky lg:top-8 lg:self-start xl:top-24">
         {
-          routeDataState.hasOperationalDetails && (
+          hasOperationalDetailsSection && (
             <details
               class="group tool-review-panel rounded-[1.6rem] p-6 shadow-sm"
               data-focus-target

@@ -15,7 +15,13 @@ const rows: Array<{ label: string; row: ToolPageFitMatrix['solo'] }> = [
 ];
 const visibleRows = rows.filter(
   (entry): entry is { label: string; row: NonNullable<ToolPageFitMatrix['solo']> } =>
-    Boolean(entry.row)
+    Boolean(
+      entry.row &&
+      typeof entry.row.reason === 'string' &&
+      entry.row.reason.trim().length > 0 &&
+      (entry.row.fit === 'strong' ||
+        (typeof entry.row.caveat === 'string' && entry.row.caveat.trim().length > 0))
+    )
 );
 
 function fitToneClass(fit: 'weak' | 'mixed' | 'strong'): string {
