@@ -69,6 +69,8 @@ Fail on any unchecked item.
 - [ ] Section-rail links only target rendered section IDs on the page
 - [ ] Core answer is visible without expanding multiple widgets
 - [ ] Main value is not buried under trust/template chrome
+- [ ] Fit matrix does not show `Conditional fit` or `Weak fit` rows without a segment-specific caveat
+- [ ] Operational details panel is hidden when no concrete sub-sections are available
 
 Fail on any unchecked item.
 
@@ -105,3 +107,5 @@ Recommended automated checks:
 - pricing contradiction detector across rendered sections
 - freshness-window validator by claim volatility class
 - schema-visible-content parity checker
+- fit-matrix non-strong row caveat checker
+- operational-details empty-panel checker

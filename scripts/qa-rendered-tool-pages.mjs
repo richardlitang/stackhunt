@@ -138,6 +138,11 @@ const DECISION_SECTION_PATTERN =
   /<section[^>]*>[\s\S]*?<h2[^>]*>\s*(?:Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger)\s*<\/h2>[\s\S]*?<\/section>/i;
 const ALLOWED_DECISION_SECTION_LINKS = new Set(['#verdict', '#sources']);
 const SECTION_RAIL_PATTERN = /<nav[^>]*aria-label=["']Section rail["'][^>]*>([\s\S]*?)<\/nav>/i;
+const FIT_MATRIX_SECTION_PATTERN = /<section[^>]*id=["']fit-matrix["'][^>]*>([\s\S]*?)<\/section>/i;
+const OPERATIONAL_DETAILS_PANEL_PATTERN =
+  /<details[^>]*>[\s\S]*?<h3[^>]*>\s*Operational details\s*<\/h3>([\s\S]*?)<\/details>/i;
+const OPERATIONAL_DETAILS_SIGNAL_PATTERN =
+  /\b(Company|Security|Support|Portability|Suite navigation|Part of|Compliance|Help|Export)\b/i;
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -282,6 +287,28 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
       failures.push(
         `section_rail_has_missing_targets:${Array.from(new Set(missingTargets)).join(',')}`
       );
+    }
+  }
+  const fitMatrixSectionMatch = html.match(FIT_MATRIX_SECTION_PATTERN);
+  if (fitMatrixSectionMatch) {
+    const articleMatches = Array.from(
+      fitMatrixSectionMatch[1].matchAll(/<article[\s\S]*?<\/article>/gi)
+    ).map((match) => match[0]);
+    for (const article of articleMatches) {
+      const articleText = stripHtml(article);
+      const hasNonStrongFit = /\b(Conditional fit|Weak fit)\b/i.test(articleText);
+      if (!hasNonStrongFit) continue;
+      if (!/\bcaveat:\b/i.test(articleText)) {
+        failures.push('fit_matrix_non_strong_row_missing_caveat');
+        break;
+      }
+    }
+  }
+  const operationalDetailsPanelMatch = html.match(OPERATIONAL_DETAILS_PANEL_PATTERN);
+  if (operationalDetailsPanelMatch) {
+    const panelText = stripHtml(operationalDetailsPanelMatch[1]);
+    if (!OPERATIONAL_DETAILS_SIGNAL_PATTERN.test(panelText)) {
+      failures.push('operational_details_panel_empty');
     }
   }
 
