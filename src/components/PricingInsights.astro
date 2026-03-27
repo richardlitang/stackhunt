@@ -20,7 +20,6 @@ interface Props {
   variant?: 'full' | 'compact';
   mentalModelItems?: Array<{
     text: string;
-    status: 'Source-backed' | 'Needs confirmation';
     evidenceHref?: string;
   }>;
   costModelExamples?: string[];
@@ -62,18 +61,15 @@ const dedupe = (items: string[]): string[] => {
 const dedupeMentalModelItems = (
   items: Array<{
     text: string;
-    status: 'Source-backed' | 'Needs confirmation';
     evidenceHref?: string;
   }>
 ): Array<{
   text: string;
-  status: 'Source-backed' | 'Needs confirmation';
   evidenceHref?: string;
 }> => {
   const seen = new Set<string>();
   const cleaned: Array<{
     text: string;
-    status: 'Source-backed' | 'Needs confirmation';
     evidenceHref?: string;
   }> = [];
   for (const item of items) {
