@@ -179,6 +179,7 @@ Last verified: 2026-03-27
 - 2026-03-27: Added persistence-time operational/constraint sanitizers to suppress ambiguous limits and weak hidden-cost narrative before tool specs are saved.
 - 2026-03-27: Tightened fit-matrix rendering contract so non-strong rows require caveats, and added lane-output sanitization to suppress solo/startup rows that only carry enterprise-scoped caveats.
 - 2026-03-27: Added rendered QA checks for fit-matrix non-strong caveat presence and empty operational-details panel suppression.
+- 2026-03-27: Removed per-item status chips from decision utility and pricing-mental-model cards, and added rendered QA checks to block local `Source-backed`/`Needs confirmation` copy in those sections.
 - 2026-03-27: Hardened fallback user-signal extraction to only keep explicitly hedged, user-voice community claims and removed synthetic "Users report..." generation from fallback logic.
 - 2026-03-27: Added rendered QA checks that fail when section-rail jump links target missing sections or include disclosure-only navigation links.
 - 2026-03-27: Added lane-output parsing guardrails for operational pricing-reality text and suppressed ambiguous generic hard-limit bullets without plan/unit context.
