@@ -24,6 +24,7 @@
 ## 🧪 How to Test
 
 ### Option 1: Visit Existing Comparison
+
 ```bash
 # If you have Slack and Discord in DB:
 http://localhost:4321/compare/discord-vs-slack
@@ -33,6 +34,7 @@ http://localhost:4321/compare/zoom-vs-slack
 ```
 
 ### Option 2: Check What Tools Have Pricing
+
 ```sql
 -- Run in Supabase SQL editor
 SELECT
@@ -49,6 +51,7 @@ ORDER BY name;
 Then visit: `http://localhost:4321/compare/[slug-a]-vs-[slug-b]`
 
 ### Option 3: Hunt More Tools
+
 ```bash
 # Fill the Communication cluster
 npm run hunt -- --tool="Microsoft Teams"
@@ -59,6 +62,7 @@ npm run hunt -- --tool="Mattermost"
 ## 🔍 What You'll See
 
 When pricing data exists:
+
 1. **Line chart** showing cost scaling from 1-50 users
 2. **Red ✕ marks** at crossover points
 3. **Orange "You" line** for your team size (adjustable slider)
@@ -69,22 +73,26 @@ When pricing data exists:
    - Amber: "Save now with B, but A becomes cheaper at Y users" ⭐
 
 When no pricing data:
+
 - Clean empty state: "Pricing data not yet available"
 
 ## 🎨 The Killer Features
 
 ### 1. Crossover Detection (Your Competitive Moat)
+
 ```
 "Slack is cheaper now, but Basecamp becomes cheaper at 8 users"
 ```
 
 ### 2. Predictive Insights
+
 ```
 "Save $240/mo (40%) with Discord now, but Zoom becomes
 cheaper at 25 users"
 ```
 
 ### 3. Multi-Tool Support
+
 Compare up to 5 tools simultaneously (compare page shows 2, tool detail page could show 5)
 
 ## 📊 Data Requirements
@@ -125,6 +133,7 @@ The chart needs `specs.pricing_data` in this format:
 ## 🎯 The Win
 
 You now have the ONLY comparison site that shows:
+
 - ✅ Static pricing tables (like everyone else)
 - ✅ Cost calculators (like some competitors)
 - ✅ **Crossover detection** (ONLY YOU)

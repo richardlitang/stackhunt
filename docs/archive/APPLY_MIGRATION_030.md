@@ -59,6 +59,7 @@ npm run hunt -- --tool="Google Calendar"
 ```
 
 **Expected logs:**
+
 ```
 [Pricing CoT] BUNDLE DETECTED: Google Calendar is bundled in Google Workspace...
 [Suite] Tool is bundled in: Google Workspace
@@ -67,6 +68,7 @@ npm run hunt -- --tool="Google Calendar"
 ```
 
 **Verify in database:**
+
 ```sql
 SELECT
   name,
