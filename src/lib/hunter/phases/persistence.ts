@@ -22,11 +22,7 @@ import { normalizeCategory } from '../../config/taxonomy';
 import { ensureParentSuite } from '../utils/suite-manager';
 import { updateNormalizedPricing } from '../../pricing/persist';
 import { mapSmpPricingToV2 } from '../../pricing';
-import {
-  derivePlanLensTags,
-  enrichSmpPricingForLens,
-  inferPlanTargetAudience,
-} from '@/lib/pricing/plan-lens';
+import { enrichSmpPricingForLens } from '@/lib/pricing/plan-lens';
 import {
   buildCanonicalPricingPlans,
   inferTargetMarket,
@@ -75,7 +71,6 @@ import {
 } from '@/lib/hunter/operational-guardrails';
 import { normalizeCategorySlug, resolveDetectedCategory } from '../category-resolver';
 import {
-  detectCoverageGaps,
   getGenerationActionabilityScore,
   getGenerationReaderUtilityScore,
   getMinActionabilityScore,
