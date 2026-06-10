@@ -76,6 +76,7 @@ export interface SynthesisGenerationQuality {
   maxDomainShare?: number;
   actionabilityScore?: number;
   readerUtilityScore?: number;
+  promptVersions?: Record<string, string>;
   abstainedFields: Array<'verdict' | 'shortDescription' | 'websiteUrl' | 'faqs' | 'reviewContext'>;
 }
 

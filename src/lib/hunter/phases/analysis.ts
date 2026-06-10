@@ -25,6 +25,7 @@ import {
   getPersonaContext,
   buildAdaptiveSpecificsPrompt,
 } from '../services/prompts';
+import { PROMPT_VERSIONS } from '../prompts/registry';
 import {
   buildDecisionSlots,
   generateDecisionEvidence,
@@ -200,6 +201,7 @@ export async function executeAnalysisPhase(
     },
     deps.withRetry
   );
+  generationQuality.promptVersions = PROMPT_VERSIONS;
   if (generationQuality.stage1Enabled) {
     deps.log(
       `[Pass 2] Generation quality: mean_confidence=${(generationQuality.meanConfidence ?? 0).toFixed(2)} low_conf_ratio=${(generationQuality.lowConfidenceRatio ?? 0).toFixed(2)} official=${generationQuality.officialClaims ?? 0} non_official=${generationQuality.nonOfficialClaims ?? 0} domains=${generationQuality.distinctDomains ?? 0} actionability=${generationQuality.actionabilityScore ?? 0} reader_utility=${generationQuality.readerUtilityScore ?? 0}`
