@@ -40,8 +40,6 @@ import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import {
   classifyClaimVolatility,
   computeClaimRecheckBy,
-  detectRiskyCopyTerms,
-  hasScopeQualifier,
   inferClaimScope,
   isClaimStale,
 } from '@/lib/claim-policy';
@@ -70,6 +68,32 @@ import {
   sanitizeOperationalRecord,
 } from '@/lib/hunter/operational-guardrails';
 import { normalizeCategorySlug, resolveDetectedCategory } from '../category-resolver';
+import {
+  collectFirstPartyCorpus,
+  containsNegativeCue,
+  containsRiskyAbsolute,
+  detectClaimKind,
+  downgradeComparativeClause,
+  enforceOfferingScope,
+  hasAbsoluteMarketingTerm,
+  hasCommunityHedgingLanguage,
+  hasComparatorToken,
+  isAuthoritativeClaim,
+  isConditional,
+  isIntegrationGapClaim,
+  isRenderableClaimText,
+  rewriteVendorRankingClaim,
+  sanitizeNarrativeClaimText,
+  sanitizeRiskyClaimLanguage,
+  softenAbsoluteMarketingLanguage,
+  sourceTierForClaim,
+  stripTerminalPunctuation,
+  stripUnsupportedQuantitativePhrases,
+  suppressSalesGatedClaim,
+  UNVERIFIED_QUANT_VALUE,
+  validateNegativeClaim,
+  RANKING_CLAIM_TOKENS,
+} from '../content-policy/claim-language';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -111,33 +135,6 @@ function inferTargetMarket(plans: any[]): 'consumer' | 'prosumer' | 'business' |
   return 'business';
 }
 
-const CONDITIONAL_MARKERS = /\b(if|when|unless|only if|as soon as|before|after)\b/i;
-const NEGATIVE_CUES =
-  /\b(no|not|lacks|lack|doesn't|cannot|can't|won't|avoid|veto|issue|problem|risk|limit|limited|slow|expensive|broken|bug|fails|failure)\b/i;
-const RISKY_ABSOLUTE_TERMS =
-  /\b(always|never|broken|scam|unreliable|guaranteed|everyone|nobody)\b/i;
-const UNVERIFIED_QUANT_VALUE =
-  /\b\d+\s*x\b|\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b|\b\d+(?:\.\d+)?%\b/i;
-const COMPARATOR_TOKENS =
-  /\b(vs\.?|versus|compared to|more than|less than|faster than|slower than|better than|worse than|higher than|lower than|double|doubles|doubling|half|halve|premium)\b/i;
-const COMPARATOR_QUANT_TOKENS = /\b\d+(?:\.\d+)?\s*x\b|\b\d+(?:\.\d+)?%/i;
-const DERIVED_METRIC_TOKENS = /\b(density|ratio|score|index|rate|lift|uplift)\b/i;
-const SALES_GATED_TOKENS = /\b(sales[-\s]?gated|contact sales|talk to sales|sales contact)\b/i;
-const ENTERPRISE_SCOPE_TOKENS = /\b(enterprise|business|advanced plan|custom plan)\b/i;
-const CONTACT_SALES_TOKENS = /\b(contact sales|talk to sales|request demo|enterprise)\b/i;
-const SELF_SERVE_TOKENS =
-  /\b(start now|get started|sign up|try free|free trial|create account|api key|start building)\b/i;
-const RANKING_CLAIM_TOKENS =
-  /\b(rank(?:ed|ing)?|#\d+|top\s*\d+|world.?s\s+\w+-ranked|leaderboard)\b/i;
-const TIME_QUANT_TOKENS = /\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b/i;
-const LE_CHAT_SCOPE_TOKENS = /\b(flash answers?|deep research|file uploads?)\b/i;
-const LE_CHAT_NAME_TOKENS = /\b(le\s*chat)\b/i;
-const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
-const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
-const INCOMPLETE_CLAUSE_ENDING =
-  /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/i;
-const COMMUNITY_HEDGING_PREFIX =
-  /^(users report(?: that)?|community (?:reports|mentions|consensus (?:is|suggests)|feedback)|according to (?:reddit|hn|community)|based on user discussions)/i;
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
 const COVERAGE_ONBOARDING_TOKENS =
   /\b(onboard|onboarding|setup|implementation|learning curve|ramp|time to value|adoption)\b/i;
@@ -397,89 +394,6 @@ async function maybeEnqueueCoverageGapRehunt(params: {
   deps.log(
     `[Coverage Gap] Enqueued re-hunt for ${toolName}${contextTitle ? ` (${contextTitle})` : ''} due to ${reason}`
   );
-}
-
-function isConditional(text: string): boolean {
-  return CONDITIONAL_MARKERS.test(text);
-}
-
-function containsNegativeCue(text: string): boolean {
-  return NEGATIVE_CUES.test(text);
-}
-
-function containsRiskyAbsolute(text: string): boolean {
-  return RISKY_ABSOLUTE_TERMS.test(text);
-}
-
-function hasComparatorToken(text: string): boolean {
-  return COMPARATOR_TOKENS.test(text) || COMPARATOR_QUANT_TOKENS.test(text);
-}
-
-function sanitizeNarrativeClaimText(text: string): string {
-  return text.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
-}
-
-function stripTerminalPunctuation(text: string): string {
-  return text.replace(TERMINAL_PUNCTUATION, '').trim();
-}
-
-function hasCommunityHedgingLanguage(text: string): boolean {
-  return COMMUNITY_HEDGING_PREFIX.test(stripTerminalPunctuation(sanitizeNarrativeClaimText(text)));
-}
-
-function isRenderableClaimText(text: string): boolean {
-  const cleaned = stripTerminalPunctuation(sanitizeNarrativeClaimText(text));
-  if (!cleaned) return false;
-  if (cleaned.length < 12) return true;
-  return !INCOMPLETE_CLAUSE_ENDING.test(cleaned);
-}
-
-function sourceTierForClaim(url?: string | null): 'A' | 'B' | 'C' {
-  if (!url) return 'C';
-  const lower = url.toLowerCase();
-  if (
-    lower.includes('/docs') ||
-    lower.includes('docs.') ||
-    lower.includes('/help') ||
-    lower.includes('help-center') ||
-    lower.includes('/support') ||
-    lower.includes('/developers') ||
-    lower.includes('/api') ||
-    lower.includes('/trust') ||
-    lower.includes('/security') ||
-    lower.includes('/legal')
-  ) {
-    return 'A';
-  }
-  if (lower.includes('/pricing') || lower.includes('/plans')) return 'B';
-  return 'C';
-}
-
-function hasAbsoluteMarketingTerm(text: string): boolean {
-  return /\b(unlimited|never|guaranteed)\b/i.test(text);
-}
-
-function softenAbsoluteMarketingLanguage(text: string): string {
-  let next = text;
-  next = next.replace(/\bunlimited\b/gi, 'expanded');
-  next = next.replace(/\bnever\b/gi, 'rarely');
-  next = next.replace(/\bguaranteed\b/gi, 'designed to');
-  return next.replace(/\s{2,}/g, ' ').trim();
-}
-
-function sanitizeRiskyClaimLanguage(text: string): string {
-  let next = text;
-  next = next.replace(/\bverified\b/gi, 'source-backed');
-  next = next.replace(/\baccurate\b/gi, 'source-aligned');
-  next = next.replace(/\bguaranteed\b/gi, 'designed to');
-  if (/\bno free tier\b/i.test(next) && !hasScopeQualifier(next)) {
-    next = next.replace(/\bno free tier\b/gi, 'no self-serve free tier is listed');
-  }
-  const risky = detectRiskyCopyTerms(next).filter((term) => term !== 'best');
-  if (risky.length > 0) {
-    return next.replace(/\bbest\b/gi, 'strong');
-  }
-  return next;
 }
 
 function normalizeChecklistItems(value: unknown, max = 5): string[] {
@@ -752,139 +666,6 @@ function normalizeEvidenceUrl(rawUrl?: string | null): string | null {
   }
 }
 
-function collectFirstPartyCorpus(
-  sources: Array<{
-    url: string;
-    title: string;
-    snippet: string;
-  }>,
-  toolWebsite?: string
-): string {
-  if (!toolWebsite) return '';
-  let toolHost: string | null = null;
-  try {
-    toolHost = new URL(toolWebsite).hostname.replace(/^www\./, '').toLowerCase();
-  } catch {
-    return '';
-  }
-
-  return sources
-    .filter((source) => {
-      try {
-        const sourceHost = new URL(source.url).hostname.replace(/^www\./, '').toLowerCase();
-        return sourceHost === toolHost || sourceHost.endsWith(`.${toolHost}`);
-      } catch {
-        return false;
-      }
-    })
-    .map((source) => `${source.title || ''} ${source.snippet || ''}`.trim())
-    .join(' ')
-    .toLowerCase();
-}
-
-function suppressSalesGatedClaim(
-  text: string,
-  sourceUrl: string | undefined,
-  sources: Array<{
-    url: string;
-    title: string;
-    snippet: string;
-  }>,
-  toolWebsite?: string
-): boolean {
-  if (!SALES_GATED_TOKENS.test(text)) return false;
-  const corpus = collectFirstPartyCorpus(sources, toolWebsite);
-  const sourceText = (() => {
-    if (!sourceUrl) return '';
-    const source = sources.find((entry) => entry.url === sourceUrl);
-    return `${source?.title || ''} ${source?.snippet || ''}`.toLowerCase();
-  })();
-
-  const hasSelfServe = SELF_SERVE_TOKENS.test(corpus) || SELF_SERVE_TOKENS.test(sourceText);
-  const hasContactSales =
-    CONTACT_SALES_TOKENS.test(corpus) || CONTACT_SALES_TOKENS.test(sourceText);
-  const scopedToEnterprise = ENTERPRISE_SCOPE_TOKENS.test(text);
-
-  if (!hasContactSales) return true;
-  if (hasSelfServe && !scopedToEnterprise) return true;
-  return false;
-}
-
-function rewriteVendorRankingClaim(text: string, sourceDate?: string): string {
-  const normalized = text
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-    .replace(/\.$/, '');
-  const dated = sourceDate ? ` (${sourceDate.slice(0, 10)})` : '';
-  return `Vendor materials describe this claim as: ${normalized}${dated}.`;
-}
-
-function stripUnsupportedQuantitativePhrases(text: string): string {
-  let next = text;
-  next = next.replace(TIME_QUANT_TOKENS, '').replace(/\b\d+(?:\.\d+)?\s*x\b/gi, '');
-  next = next
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([.,;!?])/g, '$1')
-    .trim();
-  return next;
-}
-
-function enforceOfferingScope(
-  text: string,
-  sourceUrl: string | undefined,
-  sources: Array<{
-    url: string;
-    title: string;
-    snippet: string;
-  }>
-): string | null {
-  if (!LE_CHAT_SCOPE_TOKENS.test(text)) return text;
-  if (LE_CHAT_NAME_TOKENS.test(text)) return text;
-
-  const sourceText = (() => {
-    if (!sourceUrl) return '';
-    const source = sources.find((entry) => entry.url === sourceUrl);
-    return `${source?.title || ''} ${source?.snippet || ''}`.toLowerCase();
-  })();
-  const corpus = sources
-    .map((source) => `${source.title || ''} ${source.snippet || ''}`)
-    .join(' ')
-    .toLowerCase();
-  const hasLeChatEvidence =
-    LE_CHAT_NAME_TOKENS.test(sourceText) || LE_CHAT_NAME_TOKENS.test(corpus);
-  if (!hasLeChatEvidence) return null;
-  return `In Le Chat, ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
-}
-
-function detectClaimKind(
-  text: string,
-  claimType: 'fact' | 'opinion'
-): 'verbatim_feature' | 'derived_metric' | 'comparison' | 'inference' {
-  if (COMPARATOR_TOKENS.test(text) || COMPARATOR_QUANT_TOKENS.test(text)) return 'comparison';
-  if (DERIVED_METRIC_TOKENS.test(text) || /\b\d+(?:\.\d+)?%\b/i.test(text)) return 'derived_metric';
-  if (claimType === 'fact') return 'verbatim_feature';
-  return 'inference';
-}
-
-function downgradeComparativeClause(text: string): string | null {
-  let next = text;
-  next = next.replace(/\([^)]*(?:vs\.?|versus|compared to)[^)]*\)/gi, '');
-  next = next.replace(/\b(?:compared to|vs\.?|versus)\b[^.?!;]*/gi, '');
-  next = next.replace(
-    /\b(?:more|less|faster|slower|better|worse|higher|lower)\s+than\b[^.?!;]*/gi,
-    ''
-  );
-  next = next.replace(/\b(?:double|doubles|doubling|half|halve|premium)\b[^.?!;]*/gi, '');
-  next = next.replace(COMPARATOR_QUANT_TOKENS, '').trim();
-  next = next.replace(/\b\d+(?:\.\d+)?%/g, '').trim();
-  next = next
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([.,;!?])/g, '$1')
-    .trim();
-  if (next.length < 10) return null;
-  return next;
-}
-
 function buildCanonicalPricingPlans(pricingData: any): {
   entities: Array<{
     plan_id: string;
@@ -1107,22 +888,6 @@ function sanitizeOperationalFields(
   return result;
 }
 
-function isIntegrationGapClaim(text: string): boolean {
-  const lower = text.toLowerCase();
-  return (
-    (lower.includes('zapier') ||
-      lower.includes('make.com') ||
-      /\bn8n\b/.test(lower) ||
-      lower.includes('integration')) &&
-    (lower.includes('lack') ||
-      lower.includes('lacks') ||
-      lower.includes('missing') ||
-      lower.includes('no ') ||
-      lower.includes('without') ||
-      lower.includes('necessitating'))
-  );
-}
-
 function isIntegrationCriticalContext(contextTitle?: string): boolean {
   if (!contextTitle) return false;
   const ctx = contextTitle.toLowerCase();
@@ -1266,10 +1031,6 @@ function buildDerivedVerdict(
     return `Choose when ${summaryPros[0].text}.`;
   }
   return null;
-}
-
-function isAuthoritativeClaim(claim: ClaimWithSource): boolean {
-  return AUTHORITATIVE_SOURCE_TYPES.has((claim.source_type || '').toLowerCase());
 }
 
 function selectSummaryClaims(claims: ClaimWithSource[], limit = 1): ClaimWithSource[] {
@@ -4477,139 +4238,6 @@ function buildUserSignalSummary(
     top_user_reported_signals: uniqueSignals,
     top_user_reported_claims: topClaims,
   };
-}
-
-/**
- * Negative Sentiment Guardrail
- *
- * For legal protection, negative opinion claims require corroboration from 2+ sources.
- * This prevents single-source defamatory claims from being published.
- *
- * @param claim - The normalized claim
- * @param allSources - All research sources to check for corroboration
- * @returns Object with isValid flag and optional warning
- */
-function validateNegativeClaim(
-  claim: ClaimWithSource,
-  allSources: Array<{
-    url: string;
-    canonical_url?: string;
-    title: string;
-    snippet: string;
-    domain: string;
-    source_type?:
-      | 'official'
-      | 'docs'
-      | 'support'
-      | 'legal'
-      | 'editorial'
-      | 'community'
-      | 'directory';
-    acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
-    llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
-    retrieved_at?: string;
-    published_at?: string;
-    time_since?: string;
-  }>
-): {
-  isValid: boolean;
-  warning?: string;
-  corroboratingSourceCount: number;
-  corroboratingSources?: string[];
-} {
-  if (!claim.source_url) {
-    return {
-      isValid: false,
-      warning: 'Missing source URL for negative claim.',
-      corroboratingSourceCount: 0,
-    };
-  }
-  // Only apply guardrail to negative opinions from community sources
-  // Facts from official sources don't need this check
-  if (claim.claim_type === 'fact' && AUTHORITATIVE_SOURCE_TYPES.has(claim.source_type)) {
-    return { isValid: true, corroboratingSourceCount: 1 };
-  }
-
-  const LOW_TRUST_DIRECTORY_DOMAINS = [
-    'g2.com',
-    'capterra.com',
-    'trustpilot.com',
-    'getapp.com',
-    'softwareadvice.com',
-  ];
-  const corroborationPool = allSources.filter((source) => {
-    if (source.acquisition_mode && source.acquisition_mode !== 'SCRAPE_ALLOWED') return false;
-    if (source.llm_ingestion_allowed === 'NO') return false;
-    if (source.source_type === 'directory') return false;
-    const domain = (source.domain || '').toLowerCase();
-    if (
-      LOW_TRUST_DIRECTORY_DOMAINS.some(
-        (blockedDomain) => domain === blockedDomain || domain.endsWith(`.${blockedDomain}`)
-      )
-    ) {
-      return false;
-    }
-    return true;
-  });
-
-  // For opinions (especially from community), count corroborating sources
-  const claimWords = claim.text
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((w) => w.length > 4);
-  if (claimWords.length === 0) {
-    return {
-      isValid: false,
-      warning: 'Negative claim lacks enough specific terms for corroboration matching.',
-      corroboratingSourceCount: 0,
-    };
-  }
-
-  let corroboratingCount = 0;
-  const matchedDomains = new Set<string>();
-  const corroboratingSources: string[] = [];
-
-  for (const source of corroborationPool) {
-    const sourceText = `${source.title} ${source.snippet}`.toLowerCase();
-    // Count how many significant claim words appear in this source
-    const matchingWords = claimWords.filter((w) => sourceText.includes(w));
-
-    // If 40%+ of claim words match, this source corroborates
-    if (matchingWords.length >= claimWords.length * 0.4) {
-      // Don't count multiple pages from same domain as separate corroboration
-      if (!matchedDomains.has(source.domain)) {
-        matchedDomains.add(source.domain);
-        corroboratingCount++;
-        corroboratingSources.push(source.url);
-      }
-    }
-  }
-
-  // Require 2+ independent sources for community-sourced opinions
-  if (claim.source_type === 'community' && claim.claim_type === 'opinion') {
-    if (corroboratingCount < 2) {
-      return {
-        isValid: false,
-        warning: `Negative opinion only corroborated by ${corroboratingCount} source(s). Requires 2+ for legal protection.`,
-        corroboratingSourceCount: corroboratingCount,
-        corroboratingSources,
-      };
-    }
-  }
-
-  // Editorial sources get slightly more trust, but still flag single-source opinions
-  if (claim.source_type === 'editorial' && claim.claim_type === 'opinion') {
-    if (corroboratingCount < 1) {
-      return {
-        isValid: false,
-        warning: `Editorial opinion has no corroborating sources in eligible source pool (${corroborationPool.length}).`,
-        corroboratingSourceCount: corroboratingCount,
-        corroboratingSources,
-      };
-    }
-  }
-
-  return { isValid: true, corroboratingSourceCount: corroboratingCount, corroboratingSources };
 }
 
 const DECISION_INTRO_SPEC_SHEET_PATTERNS = [
