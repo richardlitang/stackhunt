@@ -19,6 +19,8 @@
     "mcp:stackhunt": "node tools/mcp-stackhunt/server.mjs",
     "hunt": "npx tsx scripts/hunter.ts",
     "hunt:batch": "npx tsx scripts/hunter.ts --queue batch --priority 5",
+    "eval:capture": "npx tsx scripts/capture-eval-fixtures.ts",
+    "eval:hunter": "npx tsx scripts/eval-hunter.ts",
     "constraints": "npx tsx scripts/extract-constraints.ts",
     "queue:worker": "npx tsx scripts/queue-worker.ts",
     "queue:defunct": "npx tsx scripts/defunct-worker.ts",

@@ -1,0 +1,12 @@
+{
+  "toolName": "Google Meet",
+  "minClaimCitationRate": 0.95,
+  "minActionabilityScore": 28,
+  "minReaderUtilityScore": 28,
+  "maxCoverageGaps": 1,
+  "mustMentionAny": [
+    ["google meet", "meet"],
+    ["security", "admin", "compliance", "workspace"]
+  ],
+  "mustNotContain": ["best tool ever", "guaranteed"]
+}

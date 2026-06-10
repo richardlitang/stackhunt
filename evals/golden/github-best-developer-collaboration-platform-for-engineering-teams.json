@@ -1,0 +1,9 @@
+{
+  "toolName": "GitHub",
+  "minClaimCitationRate": 0.95,
+  "minActionabilityScore": 18,
+  "minReaderUtilityScore": 40,
+  "maxCoverageGaps": 2,
+  "mustMentionAny": [["github"], ["developer", "engineering", "code"]],
+  "mustNotContain": ["best tool ever", "guaranteed"]
+}

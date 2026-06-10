@@ -1,0 +1,1018 @@
+{
+  "capturedAt": "2026-06-10T18:49:29.852Z",
+  "queueItemId": "df528507-fc74-4ad7-93c3-5feca4f6f7df",
+  "toolName": "Plane",
+  "contextTitle": "Best Social Media Tools for Teams",
+  "categorySlug": "social-media",
+  "research": {
+    "tokensUsed": 12049,
+    "isDuplicate": true,
+    "scoutResult": {
+      "faqs": [
+        {
+          "answer": "Traveling by RV RV (recreational vehicle) travel can be a fantastic alternative to airplane travel for a multitude of reasons. Firstly, RVs can be more cost-effective than airplanes, especially if you are traveling with a large group or plan to stay in one place for an extended period of time.",
+          "source": "paa",
+          "question": "What is the alternative to airplanes?",
+          "source_url": "https://www.99percentlifestyle.com/4-alternatives-to-airplane-travel/"
+        },
+        {
+          "answer": "Some common synonyms of plane are even, flat, level, and smooth. While all these words mean \"having a surface without bends, curves, or irregularities,\" plane applies to any real or imaginary flat surface in which a straight line between any two points on it lies wholly within that surface.",
+          "source": "paa",
+          "question": "What is the similar of plane?",
+          "source_url": "https://www.merriam-webster.com/thesaurus/plane"
+        },
+        {
+          "answer": "What is the opposite of plane? uneven rough sloping jagged unsymmetrical unequal disproportionate ragged pebbly not level",
+          "source": "paa",
+          "question": "What is the antonym of plane?",
+          "source_url": "https://www.wordhippo.com/what-is/the-opposite-of/plane.html"
+        }
+      ],
+      "facts": {
+        "pricing": {
+          "pricing_page_url": "https://docs.plane.so/core-concepts/export"
+        },
+        "identity": {
+          "website_url": "https://plane.so",
+          "official_name": "Plane"
+        },
+        "facts_ledger": [
+          {
+            "key": "pricing.pricing_page_url",
+            "value": "https://docs.plane.so/core-concepts/export",
+            "evidence": [
+              {
+                "url": "https://docs.plane.so/core-concepts/export",
+                "domain": "docs.plane.so"
+              }
+            ],
+            "confidence": "high"
+          },
+          {
+            "key": "identity.website_url",
+            "value": "https://plane.so",
+            "evidence": [
+              {
+                "url": "https://docs.plane.so/core-concepts/export",
+                "domain": "docs.plane.so"
+              }
+            ],
+            "confidence": "med"
+          }
+        ]
+      },
+      "quality": {
+        "notes": [],
+        "missing": [],
+        "conflicts": [],
+        "freshness": {
+          "limits": "unknown",
+          "pricing": "unknown",
+          "reviews": "unknown",
+          "security": "unknown",
+          "portability": "unknown",
+          "alternatives": "unknown",
+          "integrations": "unknown"
+        },
+        "needs_review": false
+      },
+      "raw_sources": [
+        {
+          "url": "https://buffer.com/resources/best-social-media-management-tools/",
+          "title": "The 11 Best Social Media Management Tools in 2026",
+          "domain": "buffer.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Like Hootsuite, SocialPilot offers granular control over which team members can do what tasks, but it's much more affordable and simpler to use.",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "4 days ago",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://buffer.com/resources/best-social-media-management-tools/"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=lSzmAVcouKY",
+          "title": "Planable Review 2025: Is It Worth It for Social Media Teams?",
+          "domain": "youtube.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Comments · Best Social Media Management Tools 2026? · THESE Apps Are SPYING on You — Shut Them Off NOW! · NOBODY Breaks Celebrities To Their Faces ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Jul 30, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.youtube.com/watch?v=lSzmAVcouKY"
+        },
+        {
+          "url": "https://www.reddit.com/r/SocialMediaMarketing/comments/1kfw505/looking_for_the_best_social_media_management_tool/",
+          "title": "Looking for the best social media management tool — Planable vs ...",
+          "domain": "reddit.com",
+          "policy": {
+            "reason": "community_policy_blocked",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Planable and Gain both have solid approval workflows and team collaboration features, but they can get pricey if you add more users.",
+          "intent_tags": ["reviews"],
+          "source_type": "community",
+          "published_at": "May 6, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.reddit.com/r/SocialMediaMarketing/comments/1kfw505/looking_for_the_best_social_media_management_tool/"
+        },
+        {
+          "url": "https://www.postplanner.com/blog/9-best-tools-to-manage-social-media-posts/",
+          "title": "17 Best Social Media Scheduling Tools (Reviewed) - Post Planner",
+          "domain": "postplanner.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Best for content curation & scheduling social media posts: Post Planner; 2. Good for community interaction: Hootsuite; 3. Best for simplicity: ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Sep 1, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.postplanner.com/blog/9-best-tools-to-manage-social-media-posts/"
+        },
+        {
+          "url": "https://www.forbes.com/advisor/business/best-social-media-management-software/",
+          "title": "5 Best Social Media Management Tools of 2025 – Forbes Advisor",
+          "domain": "forbes.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "5 Best Social Media Management Tools Of 2025 · Zoho Social · SocialPilot · Buffer · Hootsuite · Sprout Social.",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Apr 16, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.forbes.com/advisor/business/best-social-media-management-software/"
+        },
+        {
+          "url": "https://www.nerdwallet.com/travel/learn/best-days-book-flight-fly",
+          "title": "The Best Days to Book a Flight and When to Fly - NerdWallet",
+          "domain": "nerdwallet.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Annual fee: $895. • 3 points per dollar spent on flights booked directly with airlines or on amextravel.com. Terms apply.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "2 days ago",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.nerdwallet.com/travel/learn/best-days-book-flight-fly"
+        },
+        {
+          "url": "https://www.kayak.com/news/when-are-flights-cheapest/",
+          "title": "The best time to book flights & the cheapest days to fly - Kayak",
+          "domain": "kayak.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Find out the cheapest days to fly and save money on your airline tickets - and how far in advance you need to book to get the best deal.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Jul 30, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.kayak.com/news/when-are-flights-cheapest/"
+        },
+        {
+          "url": "https://www.airlines.org/dataset/annual-round-trip-fares-and-fees-domestic/",
+          "title": "Domestic Round-Trip Fares and Fees | Airlines For America",
+          "domain": "airlines.org",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The exhibit below offers a time series of the average “all-in” domestic round-trip airfare.1 Included in the “all-in” fare are the average base fare and the ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Apr 3, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.airlines.org/dataset/annual-round-trip-fares-and-fees-domestic/"
+        },
+        {
+          "url": "https://www.investopedia.com/articles/wealth-management/121415/economics-owning-small-plane.asp",
+          "title": "Cost Breakdown: Owning vs. Renting a Small Plane - Investopedia",
+          "domain": "investopedia.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Discover the true cost of owning a small plane, including purchase price, financing, storage, maintenance, and insurance, compared to renting.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Nov 3, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.investopedia.com/articles/wealth-management/121415/economics-owning-small-plane.asp"
+        },
+        {
+          "url": "https://www.facebook.com/groups/727088371511868/posts/1794854241401937/",
+          "title": "Annual costs of maintaining a plane? - Facebook",
+          "domain": "facebook.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "AA -1C was about $1k insurance, 2k annual, $3k parts each annual for repairs and upgrades, $1k per year for storage, and $5k each year into the rainy day...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Oct 21, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.facebook.com/groups/727088371511868/posts/1794854241401937/"
+        },
+        {
+          "url": "https://eoroverview.com/alternatives/plane/",
+          "title": "Plane Alternatives & Competitors (2026) - EOR Overview",
+          "domain": "eoroverview.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Discover and compare the 6 best alternatives to Plane. We've analyzed each provider based on pricing, features, customer support, and user ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "Jan 25, 2026",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://eoroverview.com/alternatives/plane/"
+        },
+        {
+          "url": "https://www.linkedin.com/pulse/top-6-alternatives-plane-eor-overview-xozbc",
+          "title": "Top 6 alternatives to Plane - EOR Overview - LinkedIn",
+          "domain": "linkedin.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "BLOCKED",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "We tested the top EOR providers and found 6 great Plane competitors that might better fit your needs. Here's a quick summary of our findings ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "Sep 19, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.linkedin.com/pulse/top-6-alternatives-plane-eor-overview-xozbc"
+        },
+        {
+          "url": "https://www.softwareadvice.com.au/alternatives/524413/Plane",
+          "title": "Plane alternatives and related software",
+          "domain": "softwareadvice.com.au",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Find the best Plane alternatives and competitors. Take an in-depth look at 15 popular Project Management Software products to find out which one is right for ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.softwareadvice.com.au/alternatives/524413/Plane"
+        },
+        {
+          "url": "https://dev.to/rajesh_patel/comment/2me1p",
+          "title": "Great comparison of JIRA and Plane! It's always... — DEV Community",
+          "domain": "dev.to",
+          "policy": {
+            "reason": "community_snippet_only_guardrail",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "community_snippet_only_v1",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "JIRA is widely used and has many features, but as you pointed out, it can be overkill for smaller teams or simpler projects. Plane's streamlined ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "community",
+          "published_at": "Mar 17, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://dev.to/rajesh_patel/comment/2me1p"
+        },
+        {
+          "url": "https://www.cbinsights.com/company/pilot-1/alternatives-competitors",
+          "title": "Top Plane Alternatives, Competitors - CB Insights",
+          "domain": "cbinsights.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Plane's top competitors include Deel, Oyster, and RemotePass. Deel specializes in global payroll and human resources (HR) solutions for businesses.",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.cbinsights.com/company/pilot-1/alternatives-competitors"
+        },
+        {
+          "url": "https://docs.plane.so/core-concepts/export",
+          "title": "Export work items from project - Plane",
+          "domain": "docs.plane.so",
+          "policy": {
+            "reason": "inferred_official_fallback",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "inferred_official_fallback_v1",
+            "acquisition_mode": "SCRAPE_ALLOWED",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "Go to your Workspace Settings. · In the left pane, select Exports. Export data · Select Project. Choose to export work items from all projects or a specific ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "official",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://docs.plane.so/core-concepts/export"
+        },
+        {
+          "url": "https://docs.treasuredata.com/int/airship-export-integration",
+          "title": "Airship Export Integration - Treasure Data Docs",
+          "domain": "docs.treasuredata.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "This integration supports users syncing different types of data to Airship. ... To configure the integration: Open the TD Console. Navigate to ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "docs",
+          "published_at": "Nov 13, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://docs.treasuredata.com/int/airship-export-integration"
+        },
+        {
+          "url": "https://www.anaplan.com/content/dam/anaplan/assets/documents/datasheet/anaplan-apis-data-integration-datasheet.pdf?trk=SM_AWS_G_8%3Ftrk%3DSM_AWS_G_8",
+          "title": "Anaplan APIs for data integrations",
+          "domain": "anaplan.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Log into Anaplan and set up import/export actions. • Invoke these actions via public API calls and upload/export files. Based on REST principles, Bulk APIs are ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.anaplan.com/content/dam/anaplan/assets/documents/datasheet/anaplan-apis-data-integration-datasheet.pdf?trk=SM_AWS_G_8%3Ftrk%3DSM_AWS_G_8"
+        },
+        {
+          "url": "https://docs.plane.so/core-concepts/issues/overview",
+          "title": "Manage work items - Plane",
+          "domain": "docs.plane.so",
+          "policy": {
+            "reason": "inferred_official_fallback",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "inferred_official_fallback_v1",
+            "acquisition_mode": "SCRAPE_ALLOWED",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "You can export your work items to access and analyze your data outside of Plane. Exports support CSV and JSON formats, and you can filter exactly which work ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "official",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://docs.plane.so/core-concepts/issues/overview"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=tJPIIp9YBNw",
+          "title": "How to Export Project in Plane — Step by Step Plane Tutorial",
+          "domain": "youtube.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "If you're interested in learning more about how to use Plane project management, you may learn how to get API token in the Plane team ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "editorial",
+          "published_at": "Nov 27, 2025",
+          "retrieved_at": "2026-03-06T06:32:09.824Z",
+          "canonical_url": "https://www.youtube.com/watch?v=tJPIIp9YBNw"
+        }
+      ],
+      "scrape_plan": {
+        "limits": {
+          "blocked": [
+            {
+              "url": "https://docs.treasuredata.com/int/airship-export-integration",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.anaplan.com/content/dam/anaplan/assets/documents/datasheet/anaplan-apis-data-integration-datasheet.pdf?trk=SM_AWS_G_8%3Ftrk%3DSM_AWS_G_8",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=tJPIIp9YBNw",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview"
+          ],
+          "candidates": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview",
+            "https://docs.treasuredata.com/int/airship-export-integration",
+            "https://www.anaplan.com/content/dam/anaplan/assets/documents/datasheet/anaplan-apis-data-integration-datasheet.pdf?trk=SM_AWS_G_8%3Ftrk%3DSM_AWS_G_8",
+            "https://www.youtube.com/watch?v=tJPIIp9YBNw"
+          ]
+        },
+        "pricing": {
+          "blocked": [
+            {
+              "url": "https://www.nerdwallet.com/travel/learn/best-days-book-flight-fly",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.kayak.com/news/when-are-flights-cheapest/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.airlines.org/dataset/annual-round-trip-fares-and-fees-domestic/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.investopedia.com/articles/wealth-management/121415/economics-owning-small-plane.asp",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.facebook.com/groups/727088371511868/posts/1794854241401937/",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview"
+          ],
+          "candidates": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview",
+            "https://www.nerdwallet.com/travel/learn/best-days-book-flight-fly",
+            "https://www.kayak.com/news/when-are-flights-cheapest/",
+            "https://www.airlines.org/dataset/annual-round-trip-fares-and-fees-domestic/",
+            "https://www.investopedia.com/articles/wealth-management/121415/economics-owning-small-plane.asp",
+            "https://www.facebook.com/groups/727088371511868/posts/1794854241401937/"
+          ]
+        },
+        "reviews": {
+          "blocked": [
+            {
+              "url": "https://buffer.com/resources/best-social-media-management-tools/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=lSzmAVcouKY",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.reddit.com/r/SocialMediaMarketing/comments/1kfw505/looking_for_the_best_social_media_management_tool/",
+              "reason": "community_policy_blocked"
+            },
+            {
+              "url": "https://www.postplanner.com/blog/9-best-tools-to-manage-social-media-posts/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.forbes.com/advisor/business/best-social-media-management-software/",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview"
+          ],
+          "candidates": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview",
+            "https://buffer.com/resources/best-social-media-management-tools/",
+            "https://www.youtube.com/watch?v=lSzmAVcouKY",
+            "https://www.reddit.com/r/SocialMediaMarketing/comments/1kfw505/looking_for_the_best_social_media_management_tool/",
+            "https://www.postplanner.com/blog/9-best-tools-to-manage-social-media-posts/",
+            "https://www.forbes.com/advisor/business/best-social-media-management-software/"
+          ]
+        },
+        "security": {
+          "blocked": [],
+          "selected": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview"
+          ],
+          "candidates": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview"
+          ]
+        },
+        "portability": {
+          "blocked": [
+            {
+              "url": "https://docs.treasuredata.com/int/airship-export-integration",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.anaplan.com/content/dam/anaplan/assets/documents/datasheet/anaplan-apis-data-integration-datasheet.pdf?trk=SM_AWS_G_8%3Ftrk%3DSM_AWS_G_8",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=tJPIIp9YBNw",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview"
+          ],
+          "candidates": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview",
+            "https://docs.treasuredata.com/int/airship-export-integration",
+            "https://www.anaplan.com/content/dam/anaplan/assets/documents/datasheet/anaplan-apis-data-integration-datasheet.pdf?trk=SM_AWS_G_8%3Ftrk%3DSM_AWS_G_8",
+            "https://www.youtube.com/watch?v=tJPIIp9YBNw"
+          ]
+        },
+        "alternatives": {
+          "blocked": [
+            {
+              "url": "https://eoroverview.com/alternatives/plane/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.linkedin.com/pulse/top-6-alternatives-plane-eor-overview-xozbc",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.softwareadvice.com.au/alternatives/524413/Plane",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://dev.to/rajesh_patel/comment/2me1p",
+              "reason": "community_snippet_only_guardrail"
+            },
+            {
+              "url": "https://www.cbinsights.com/company/pilot-1/alternatives-competitors",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview"
+          ],
+          "candidates": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview",
+            "https://eoroverview.com/alternatives/plane/",
+            "https://www.linkedin.com/pulse/top-6-alternatives-plane-eor-overview-xozbc",
+            "https://www.softwareadvice.com.au/alternatives/524413/Plane",
+            "https://dev.to/rajesh_patel/comment/2me1p",
+            "https://www.cbinsights.com/company/pilot-1/alternatives-competitors"
+          ]
+        },
+        "integrations": {
+          "blocked": [
+            {
+              "url": "https://docs.treasuredata.com/int/airship-export-integration",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.anaplan.com/content/dam/anaplan/assets/documents/datasheet/anaplan-apis-data-integration-datasheet.pdf?trk=SM_AWS_G_8%3Ftrk%3DSM_AWS_G_8",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=tJPIIp9YBNw",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview"
+          ],
+          "candidates": [
+            "https://docs.plane.so/core-concepts/export",
+            "https://docs.plane.so/core-concepts/issues/overview",
+            "https://docs.treasuredata.com/int/airship-export-integration",
+            "https://www.anaplan.com/content/dam/anaplan/assets/documents/datasheet/anaplan-apis-data-integration-datasheet.pdf?trk=SM_AWS_G_8%3Ftrk%3DSM_AWS_G_8",
+            "https://www.youtube.com/watch?v=tJPIIp9YBNw"
+          ]
+        }
+      },
+      "curated_sources": {
+        "limits": [
+          {
+            "url": "https://docs.plane.so/core-concepts/export",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/export",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://docs.plane.so/core-concepts/issues/overview",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/issues/overview",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "pricing": [
+          {
+            "url": "https://docs.plane.so/core-concepts/export",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/export",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://docs.plane.so/core-concepts/issues/overview",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/issues/overview",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "reviews": [
+          {
+            "url": "https://docs.plane.so/core-concepts/export",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/export",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://docs.plane.so/core-concepts/issues/overview",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/issues/overview",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "security": [
+          {
+            "url": "https://docs.plane.so/core-concepts/export",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/export",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://docs.plane.so/core-concepts/issues/overview",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/issues/overview",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "portability": [
+          {
+            "url": "https://docs.plane.so/core-concepts/export",
+            "notes": "name_domain_match, intent_match, inventory_grade",
+            "score": 70,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/export",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://docs.plane.so/core-concepts/issues/overview",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/issues/overview",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "alternatives": [
+          {
+            "url": "https://docs.plane.so/core-concepts/export",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/export",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://docs.plane.so/core-concepts/issues/overview",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/issues/overview",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "integrations": [
+          {
+            "url": "https://docs.plane.so/core-concepts/export",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/export",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://docs.plane.so/core-concepts/issues/overview",
+            "notes": "name_domain_match, inventory_grade",
+            "score": 50,
+            "domain": "docs.plane.so",
+            "authority": "B",
+            "canonical_url": "https://docs.plane.so/core-concepts/issues/overview",
+            "deep_scrape_allowed": true
+          }
+        ]
+      }
+    },
+    "knowledgeCard": {
+      "faqs": [],
+      "meta": {
+        "data_quality": "low",
+        "user_sentiment": null,
+        "extraction_date": "2026-03-06",
+        "last_major_update": null,
+        "active_development": true
+      },
+      "company": {
+        "name": "Plane",
+        "founded_year": null,
+        "headquarters": null,
+        "funding_stage": null,
+        "employee_count": null
+      },
+      "pricing": {
+        "model": "open_source",
+        "tiers": [],
+        "trial_days": null,
+        "has_free_tier": true,
+        "has_free_trial": false,
+        "starting_price": null
+      },
+      "support": {
+        "has_community": true,
+        "has_live_chat": false,
+        "has_documentation": true,
+        "has_phone_support": false,
+        "has_dedicated_support": false
+      },
+      "tagline": null,
+      "audience": {
+        "primary": ["Software Development Teams", "Project Managers"],
+        "team_size": "small",
+        "use_cases": ["Project Tracking", "Task Management", "Workflow Management"],
+        "skill_level": "any"
+      },
+      "features": {
+        "core": [
+          "Work Item Management",
+          "Project Management",
+          "Planning and Organization",
+          "Knowledge Management",
+          "Collaboration and Communication",
+          "Analytics and Reporting"
+        ],
+        "unique": [
+          "Quick add work items with 'C' shortcut",
+          "Automatic saving of half-written work items to Drafts",
+          "Flexible work item duplication within or across projects",
+          "Side peek mode for viewing work item details"
+        ],
+        "capabilities": [
+          {
+            "name": "Work Item Creation",
+            "status": "full"
+          },
+          {
+            "name": "Work Item Duplication",
+            "status": "full"
+          },
+          {
+            "name": "Sub-Work Items",
+            "status": "full"
+          },
+          {
+            "name": "Work Item Relations",
+            "status": "full"
+          },
+          {
+            "name": "Project States & Workflows",
+            "status": "full"
+          },
+          {
+            "name": "Knowledge Base (Wiki & Pages)",
+            "status": "full"
+          },
+          {
+            "name": "Time Tracking",
+            "status": "full"
+          },
+          {
+            "name": "Custom Automations",
+            "status": "full"
+          }
+        ]
+      },
+      "logo_url": null,
+      "security": {
+        "two_factor": null,
+        "sso_available": null,
+        "gdpr_compliant": null,
+        "soc2_certified": null,
+        "data_encryption": null,
+        "hipaa_compliant": null,
+        "self_hosted_option": true
+      },
+      "platforms": [
+        {
+          "platform": "web",
+          "available": true
+        },
+        {
+          "platform": "self-hosted",
+          "available": true
+        }
+      ],
+      "competitive": {
+        "best_for": "Smaller teams or simpler projects looking for a streamlined project management solution.",
+        "not_ideal_for": "Large enterprises with highly complex project structures or extensive reporting needs.",
+        "differentiators": [
+          "Streamlined workflow compared to complex tools like Jira",
+          "Open-source and self-hostable"
+        ],
+        "main_alternatives": ["Jira"]
+      },
+      "smp_pricing": {
+        "model": "free",
+        "plans": [
+          {
+            "id": "plane-free",
+            "name": "Free",
+            "max_users": null,
+            "includes_api": false,
+            "includes_sla": false,
+            "includes_sso": false,
+            "max_projects": null,
+            "price_annual": null,
+            "scaling_unit": null,
+            "is_enterprise": false,
+            "price_monthly": 0,
+            "variable_unit": null,
+            "included_units": null,
+            "max_storage_gb": null,
+            "price_per_unit": null,
+            "variable_price": null,
+            "target_audience": "individual",
+            "variable_logic_desc": null,
+            "includes_priority_support": false
+          }
+        ],
+        "currency": "USD",
+        "min_seats": null,
+        "bundled_in": null,
+        "confidence": "low",
+        "is_standalone": true,
+        "billing_cycles": [],
+        "pricing_page_url": "https://plane.so/download",
+        "implementation_fee": null,
+        "annual_discount_pct": null,
+        "discounts_available": []
+      },
+      "website_url": "https://plane.so/",
+      "integrations": {
+        "has_api": true,
+        "notable": [
+          {
+            "name": "Draw.io",
+            "type": "native",
+            "direction": null
+          },
+          {
+            "name": "GitHub",
+            "type": "native",
+            "direction": null
+          },
+          {
+            "name": "GitLab",
+            "type": "native",
+            "direction": null
+          },
+          {
+            "name": "Sentry",
+            "type": "native",
+            "direction": null
+          },
+          {
+            "name": "Slack",
+            "type": "native",
+            "direction": null
+          }
+        ],
+        "has_zapier": false,
+        "total_count": 5,
+        "has_webhooks": false
+      },
+      "smp_taxonomy": {
+        "sub_category": "Task Management",
+        "primary_function": "Project Management",
+        "likely_departments": ["Engineering", "Product", "Operations"],
+        "secondary_functions": ["Knowledge Management", "Collaboration"]
+      },
+      "official_name": "Plane",
+      "learning_curve": "hours",
+      "review_context": {
+        "human_verdict": "Plane is a solid choice for teams seeking a more streamlined project management experience than complex tools like Jira. It excels at providing core task and project tracking without overwhelming features, but might lack the deep customization and enterprise-grade reporting required by very large organizations.",
+        "user_advocate": {
+          "vibe": "Developer-First Project Management",
+          "avoid_if": [
+            "You require extensive enterprise-level features and integrations out-of-the-box",
+            "Your team is accustomed to the deep customization and reporting of tools like Jira"
+          ],
+          "ideal_for": [
+            "Smaller teams or simpler projects",
+            "Teams transitioning from basic spreadsheets but not ready for the complexity of Jira",
+            "Developers who appreciate keyboard shortcuts and a focused workflow"
+          ],
+          "power_tip": "Press 'C' on your keyboard to quickly add a new work item from anywhere in the application.",
+          "delighters": [
+            "The 'C' shortcut for quick work item creation is a huge time-saver",
+            "Drafts feature prevents loss of half-written tasks",
+            "Flexible work item relations help clarify dependencies"
+          ],
+          "frustrations": [],
+          "origin_story": null
+        },
+        "budget_analyst": {
+          "cost_drivers": [],
+          "one_time_fees": [],
+          "roi_threshold": null,
+          "commitment_terms": null
+        },
+        "decision_intro": {},
+        "decision_evidence": {}
+      },
+      "smp_portability": {
+        "export_to": [],
+        "import_from": ["Asana", "Confluence"],
+        "export_formats": ["CSV", "JSON"],
+        "has_api_export": true,
+        "has_data_export": true,
+        "migration_difficulty": "easy",
+        "min_commitment_months": null,
+        "cancellation_notice_days": null
+      }
+    },
+    "existingToolId": "79f5d45f-ac19-4d2a-9b89-a11ff8c573c2",
+    "validationReport": {
+      "score": 75,
+      "isValid": true,
+      "shouldPublish": true,
+      "humanReviewRequired": false
+    }
+  }
+}

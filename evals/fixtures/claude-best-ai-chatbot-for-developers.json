@@ -1,0 +1,1311 @@
+{
+  "capturedAt": "2026-06-10T18:49:29.856Z",
+  "queueItemId": "6b1508da-f2fc-4664-9be4-155d4ca80b3a",
+  "toolName": "Claude",
+  "contextTitle": "Best AI Chatbot for Developers",
+  "categorySlug": null,
+  "research": {
+    "tokensUsed": 16026,
+    "isDuplicate": true,
+    "scoutResult": {
+      "faqs": [
+        {
+          "answer": "In the right hands, AI coding assistants like Claude Code can dramatically improve the quality of your work and delivery pace, but not in the way many people expect. It's not a tool that any random person can fire and forget, while it churns out features in hours that previously took weeks of dev time.",
+          "source": "paa",
+          "question": "Is Claude AI good for development?",
+          "source_url": "https://www.loomery.com/insights/what-is-claude-code-actually-good-for-an-actual-road-test"
+        },
+        {
+          "answer": "Click on your initials in the lower left corner of your account. · Select \"Settings\" from the menu. · Navigate to the \"Privacy\" section. · Click the \"Export data\" ...",
+          "source": "forum",
+          "question": "How can I export my Claude data? | Claude Help Center",
+          "source_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data"
+        },
+        {
+          "answer": "In my experience, Claude is considerably better at breaking down large tasks, combining pieces of context from across long sessions, and most ...",
+          "source": "reddit",
+          "question": "Why do so many people here seem to like Claude best? - Reddit",
+          "source_url": "https://www.reddit.com/r/vibecoding/comments/1ree1iv/why_do_so_many_people_here_seem_to_like_claude/"
+        },
+        {
+          "answer": "I've noticed a big difference between free versions of Copilot (GPT-4) and ChatGPT 3.5, and I'm craving an AI that can handle long prompts, ...",
+          "source": "reddit",
+          "question": "Searching for the Ultimate AI: Claude Alternatives? - Reddit",
+          "source_url": "https://www.reddit.com/r/ClaudeAI/comments/1chhllq/searching_for_the_ultimate_ai_claude_alternatives/"
+        }
+      ],
+      "facts": {
+        "pricing": {
+          "pricing_page_url": "https://platform.claude.com/docs/en/about-claude/pricing"
+        },
+        "identity": {
+          "website_url": "https://claude.com",
+          "official_name": "Claude"
+        },
+        "facts_ledger": [
+          {
+            "key": "pricing.pricing_page_url",
+            "value": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "evidence": [
+              {
+                "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+                "domain": "platform.claude.com"
+              }
+            ],
+            "confidence": "high"
+          },
+          {
+            "key": "identity.website_url",
+            "value": "https://claude.com",
+            "evidence": [
+              {
+                "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+                "domain": "platform.claude.com"
+              }
+            ],
+            "confidence": "med"
+          }
+        ]
+      },
+      "quality": {
+        "notes": [],
+        "missing": [],
+        "conflicts": [],
+        "freshness": {
+          "limits": "unknown",
+          "pricing": "unknown",
+          "reviews": "unknown",
+          "security": "unknown",
+          "portability": "unknown",
+          "alternatives": "unknown",
+          "integrations": "unknown"
+        },
+        "needs_review": false
+      },
+      "raw_sources": [
+        {
+          "url": "https://www.eesel.ai/blog/claude-ai-developer-tools",
+          "title": "The 5 best Claude AI developer tools in 2026 (I tested them all)",
+          "domain": "eesel.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "This guide offers a straightforward, hands-on review of developer tools built to leverage Anthropic's powerful Claude AI models, such as Opus, ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Jan 8, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.eesel.ai/blog/claude-ai-developer-tools"
+        },
+        {
+          "url": "https://www.reddit.com/r/vibecoding/comments/1ree1iv/why_do_so_many_people_here_seem_to_like_claude/",
+          "title": "Why do so many people here seem to like Claude best? - Reddit",
+          "domain": "reddit.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "In my experience, Claude is considerably better at breaking down large tasks, combining pieces of context from across long sessions, and most ...",
+          "intent_tags": ["reviews"],
+          "source_type": "community",
+          "published_at": "5 days ago",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.reddit.com/r/vibecoding/comments/1ree1iv/why_do_so_many_people_here_seem_to_like_claude/"
+        },
+        {
+          "url": "https://www.pcmag.com/reviews/claude",
+          "title": "Claude Review: A Polished, Capable Chatbot With Notable Limitations",
+          "domain": "pcmag.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The Bottom Line. Claude isn't the most feature-rich AI chatbot, but it performs most tasks reasonably well and benefits from a well-designed interface.",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.pcmag.com/reviews/claude"
+        },
+        {
+          "url": "https://medium.com/@inprogrammer/i-refused-to-use-ai-code-generators-until-i-tested-github-copilot-chatgpt-and-claude-6caa30e2b8a0",
+          "title": "GitHub Copilot vs ChatGPT vs Claude: Honest Developer Review",
+          "domain": "medium.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Claude's implementation was clean, well-structured, and followed best practices. The variable names were clear, logic was straightforward, and ...",
+          "intent_tags": ["reviews"],
+          "source_type": "community",
+          "published_at": "Jan 23, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://medium.com/@inprogrammer/i-refused-to-use-ai-code-generators-until-i-tested-github-copilot-chatgpt-and-claude-6caa30e2b8a0"
+        },
+        {
+          "url": "https://www.facebook.com/groups/698593531630485/posts/1065373938285774/",
+          "title": "How is Claude superior to ChatGPT and why? - Facebook",
+          "domain": "facebook.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "ACCURACY AND SAFETY One of the biggest concerns around AI chatbots is misinformation and bias. ** Claude claims to be more accurate and safer ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Jul 19, 2024",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.facebook.com/groups/698593531630485/posts/1065373938285774/"
+        },
+        {
+          "url": "https://intuitionlabs.ai/articles/claude-pricing-plans-api-costs",
+          "title": "Claude Pricing Explained: Subscription Plans & API Costs",
+          "domain": "intuitionlabs.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The Claude Pro plan is a fixed-price subscription targeted at power users and professionals. It costs $17/month (annual) or $20 month-to-month (), aligning it ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Dec 9, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://intuitionlabs.ai/articles/claude-pricing-plans-api-costs"
+        },
+        {
+          "url": "https://www.finout.io/blog/claude-pricing-in-2026-for-individuals-organizations-and-developers",
+          "title": "Claude Pricing in 2026 for Individuals, Organizations, and Developers",
+          "domain": "finout.io",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The Max plan starts at $100 per person monthly and is for power users. It includes all Pro features and offers a choice between 5x or 20x more usage compared to ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Jan 18, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.finout.io/blog/claude-pricing-in-2026-for-individuals-organizations-and-developers"
+        },
+        {
+          "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "title": "Pricing - Claude Docs",
+          "domain": "platform.claude.com",
+          "policy": {
+            "reason": "inferred_official_fallback",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "inferred_official_fallback_v1",
+            "acquisition_mode": "SCRAPE_ALLOWED",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "General agent workflow pricing · Initial request processing. Typical input: 500-1,000 tokens; Processing cost: ~$0.003 per request · Memory and context retrieval.",
+          "intent_tags": ["pricing"],
+          "source_type": "official",
+          "published_at": "May 6, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://platform.claude.com/docs/en/about-claude/pricing"
+        },
+        {
+          "url": "https://www.reddit.com/r/ClaudeAI/comments/1qpcj8q/claude_subscriptions_are_up_to_36x_cheaper_than/",
+          "title": "Claude Subscriptions are up to 36x cheaper than API (and why \"Max ...",
+          "domain": "reddit.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The weekly limit is only 2x the 5x plan (for 2x the price), but the 5-hour session limit is a whopping 4x higher. The verdict? Max 20x is for 'sprinters' who ...",
+          "intent_tags": ["pricing"],
+          "source_type": "community",
+          "published_at": "Jan 28, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.reddit.com/r/ClaudeAI/comments/1qpcj8q/claude_subscriptions_are_up_to_36x_cheaper_than/"
+        },
+        {
+          "url": "https://blog.promptlayer.com/claude-ai-pricing-choosing-the-right-model/",
+          "title": "Claude AI Pricing: Choosing the Right Model",
+          "domain": "blog.promptlayer.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Team ($25/user/month annually or $30/month): With a 5-user minimum, Team plans include all Pro features plus administrative controls and unified billing.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Sep 16, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://blog.promptlayer.com/claude-ai-pricing-choosing-the-right-model/"
+        },
+        {
+          "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+          "title": "Choosing a Claude plan | Claude Help Center",
+          "domain": "support.claude.com",
+          "policy": {
+            "reason": "inferred_official_fallback",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "inferred_official_fallback_v1",
+            "acquisition_mode": "SCRAPE_ALLOWED",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "Choosing a Claude plan ; Plan. Price. Billing Interval ; Free. $0. N/A ; Pro. $20/month. $200/year. Monthly or annual ; Max 5x. $100. Monthly ; Max 20x. $200.",
+          "intent_tags": ["pricing"],
+          "source_type": "official",
+          "published_at": "Sep 16, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan"
+        },
+        {
+          "url": "https://www.eesel.ai/blog/claude-pricing",
+          "title": "A complete guide to Claude pricing in 2025 - eesel AI",
+          "domain": "eesel.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "A complete guide to Claude pricing in 2025. We break down Claude's chat and API costs, hidden fees, and why a purpose-built platform may be a better fit.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Sep 29, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.eesel.ai/blog/claude-pricing"
+        },
+        {
+          "url": "https://www.chatgpt.ca/blog/claude-pricing-canada",
+          "title": "Claude Pricing Canada 2026: All Plans in CAD - ChatGPT.ca",
+          "domain": "chatgpt.ca",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Yes, Claude Team is available for Canadian businesses at USD $25/user/month (billed annually) or USD $30/user/month (billed monthly), which converts to ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Feb 17, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.chatgpt.ca/blog/claude-pricing-canada"
+        },
+        {
+          "url": "https://www.reddit.com/r/ClaudeAI/comments/1chhllq/searching_for_the_ultimate_ai_claude_alternatives/",
+          "title": "Searching for the Ultimate AI: Claude Alternatives? - Reddit",
+          "domain": "reddit.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "I've noticed a big difference between free versions of Copilot (GPT-4) and ChatGPT 3.5, and I'm craving an AI that can handle long prompts, ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "community",
+          "published_at": "May 1, 2024",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.reddit.com/r/ClaudeAI/comments/1chhllq/searching_for_the_ultimate_ai_claude_alternatives/"
+        },
+        {
+          "url": "https://leapshq.com/blog/claude-alternatives-for-writing",
+          "title": "9 Best Claude Alternatives for Writing (#1 is Anti-AI Slop) - Leaps",
+          "domain": "leapshq.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "We reviewed 9 Claude alternatives for writing. While most AI sounds the same, our #1 pick is designed to avoid AI slop and help you create expert-led ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://leapshq.com/blog/claude-alternatives-for-writing"
+        },
+        {
+          "url": "https://cline.bot/blog/6-best-open-source-claude-code-alternatives-in-2025-for-developers-startups-copy",
+          "title": "6 Best Open-Source Claude Code Alternatives in 2025 for ... - Cline",
+          "domain": "cline.bot",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Contents · 1) Cline (VS Code extension) · 2) Continue · 3) Tabby · 4) Aider · 5) OpenDevin · 6) Open Interpreter.",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "Sep 23, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://cline.bot/blog/6-best-open-source-claude-code-alternatives-in-2025-for-developers-startups-copy"
+        },
+        {
+          "url": "https://www.morphllm.com/comparisons/morph-vs-claude-search-replace",
+          "title": "10 Best Claude Code Alternatives in 2026 - Morph",
+          "domain": "morphllm.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "1. Cursor: The IDE-First Powerhouse · 2. OpenAI Codex: The Autonomous Agent · 3. Aider: Open-Source Terminal Agent · 4. Cline: VS Code Agent with ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "Feb 15, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.morphllm.com/comparisons/morph-vs-claude-search-replace"
+        },
+        {
+          "url": "https://www.eesel.ai/blog/claude-alternatives",
+          "title": "The 6 best Claude alternatives to try in 2025 - eesel AI",
+          "domain": "eesel.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The best Claude alternatives in 2025: At a glance ; ChatGPT, All-around general use, Industry-leading performance & features ; Google Gemini ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "Oct 2, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.eesel.ai/blog/claude-alternatives"
+        },
+        {
+          "url": "https://tracxn.com/d/companies/claude/__SaO-UdTT0o8uakkA5yrmyFPmexHinpCM_3ObtBgVUz0",
+          "title": "Claude - 2026 Company Profile, Team & Competitors - Tracxn",
+          "domain": "tracxn.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Claude is an unfunded company based in San Francisco (United States), founded in 2021 by Dario Amodei, Jack Clark, Benjamin Mann, Daniela Amodei and Jared ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "4 days ago",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://tracxn.com/d/companies/claude/__SaO-UdTT0o8uakkA5yrmyFPmexHinpCM_3ObtBgVUz0"
+        },
+        {
+          "url": "https://research.contrary.com/company/anthropic",
+          "title": "Anthropic Business Breakdown & Founding Story - Contrary Research",
+          "domain": "research.contrary.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "In March 2025, the company closed the largest private funding round in tech history as of December 2025, raising $40 billion at a $300 billion post-money ...",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "Feb 6, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://research.contrary.com/company/anthropic"
+        },
+        {
+          "url": "https://www.nytimes.com/2026/02/12/technology/anthropic-valuation-380-billion-funding.html",
+          "title": "Anthropic Is Valued at $380 Billion in New Funding Round",
+          "domain": "nytimes.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The artificial intelligence start-up raised another $30 billion, and its valuation more than doubled since its last funding round in September.",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Feb 12, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.nytimes.com/2026/02/12/technology/anthropic-valuation-380-billion-funding.html"
+        },
+        {
+          "url": "https://www.siliconrepublic.com/business/claude-maker-anthropic-to-raise-10bn-round-at-350bn-valuation-reports-ai",
+          "title": "Claude maker Anthropic to raise $10bn round at $350bn valuation",
+          "domain": "siliconrepublic.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Anthropic launched its Dublin presence in 2024, establishing the city as its Europe, Middle East and Africa headquarters, and in September last year, the ...",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "Jan 8, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.siliconrepublic.com/business/claude-maker-anthropic-to-raise-10bn-round-at-350bn-valuation-reports-ai"
+        },
+        {
+          "url": "https://pitchbook.com/profiles/company/466959-97",
+          "title": "Anthropic 2026 Company Profile: Valuation, Funding & Investors",
+          "domain": "pitchbook.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "BLOCKED",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Anthropic is an AI research and safety company founded in May 2021 by Dario and Daniela Amodei. ... The $183B company behind Claude will also commit $30B to use ...",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "Dec 2, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://pitchbook.com/profiles/company/466959-97"
+        },
+        {
+          "url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+          "title": "How can I export my Claude data? | Claude Help Center",
+          "domain": "support.claude.com",
+          "policy": {
+            "reason": "inferred_official_fallback",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "inferred_official_fallback_v1",
+            "acquisition_mode": "SCRAPE_ALLOWED",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "Click on your initials in the lower left corner of your account. · Select \"Settings\" from the menu. · Navigate to the \"Privacy\" section. · Click the \"Export data\" ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "official",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data"
+        },
+        {
+          "url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+          "title": "Importing and exporting your memory from Claude",
+          "domain": "support.claude.com",
+          "policy": {
+            "reason": "inferred_official_fallback",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "inferred_official_fallback_v1",
+            "acquisition_mode": "SCRAPE_ALLOWED",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "Step 1: Export your memory from your current AI service · Step 2: Open the import flow in Claude · Step 3: Paste your exported memory and import.",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "official",
+          "published_at": "1 day ago",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude"
+        },
+        {
+          "url": "https://www.reddit.com/r/ClaudeAI/comments/1loha3n/exporting_content_from_an_artifact/",
+          "title": "Exporting content from an artifact - ClaudeAI - Reddit",
+          "domain": "reddit.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "When creating an artifact and adding features, I found you can create an import button to allow the user to import a file / data but when you ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "community",
+          "published_at": "Jun 30, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://www.reddit.com/r/ClaudeAI/comments/1loha3n/exporting_content_from_an_artifact/"
+        },
+        {
+          "url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+          "title": "Usage & cost Admin API cookbook - Claude Console",
+          "domain": "platform.claude.com",
+          "policy": {
+            "reason": "inferred_official_fallback",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "inferred_official_fallback_v1",
+            "acquisition_mode": "SCRAPE_ALLOWED",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "Programmatically access and analyze your Claude API usage and cost data via Admin API ... Export usage data to CSV for external analysis.\"\"\" ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "official",
+          "published_at": "Aug 18, 2025",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://platform.claude.com/cookbook/observability-usage-cost-api"
+        },
+        {
+          "url": "https://zapier.com/blog/claude-api/",
+          "title": "Claude API: How to get a key and use the API - Zapier",
+          "domain": "zapier.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "This guide includes a step-by-step tutorial on how to get a Claude API key, how to call the Claude API, and how to get the responses where ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "editorial",
+          "published_at": "Feb 5, 2026",
+          "retrieved_at": "2026-03-02T06:52:02.110Z",
+          "canonical_url": "https://zapier.com/blog/claude-api/"
+        }
+      ],
+      "scrape_plan": {
+        "limits": {
+          "blocked": [
+            {
+              "url": "https://www.reddit.com/r/ClaudeAI/comments/1loha3n/exporting_content_from_an_artifact/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://zapier.com/blog/claude-api/",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan"
+          ],
+          "candidates": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "https://www.reddit.com/r/ClaudeAI/comments/1loha3n/exporting_content_from_an_artifact/",
+            "https://zapier.com/blog/claude-api/"
+          ]
+        },
+        "pricing": {
+          "blocked": [
+            {
+              "url": "https://intuitionlabs.ai/articles/claude-pricing-plans-api-costs",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.finout.io/blog/claude-pricing-in-2026-for-individuals-organizations-and-developers",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.reddit.com/r/ClaudeAI/comments/1qpcj8q/claude_subscriptions_are_up_to_36x_cheaper_than/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://blog.promptlayer.com/claude-ai-pricing-choosing-the-right-model/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.eesel.ai/blog/claude-pricing",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.chatgpt.ca/blog/claude-pricing-canada",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api"
+          ],
+          "candidates": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "https://intuitionlabs.ai/articles/claude-pricing-plans-api-costs",
+            "https://www.finout.io/blog/claude-pricing-in-2026-for-individuals-organizations-and-developers",
+            "https://www.reddit.com/r/ClaudeAI/comments/1qpcj8q/claude_subscriptions_are_up_to_36x_cheaper_than/",
+            "https://blog.promptlayer.com/claude-ai-pricing-choosing-the-right-model/",
+            "https://www.eesel.ai/blog/claude-pricing",
+            "https://www.chatgpt.ca/blog/claude-pricing-canada"
+          ]
+        },
+        "reviews": {
+          "blocked": [
+            {
+              "url": "https://www.eesel.ai/blog/claude-ai-developer-tools",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.reddit.com/r/vibecoding/comments/1ree1iv/why_do_so_many_people_here_seem_to_like_claude/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.pcmag.com/reviews/claude",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://medium.com/@inprogrammer/i-refused-to-use-ai-code-generators-until-i-tested-github-copilot-chatgpt-and-claude-6caa30e2b8a0",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.facebook.com/groups/698593531630485/posts/1065373938285774/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.nytimes.com/2026/02/12/technology/anthropic-valuation-380-billion-funding.html",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan"
+          ],
+          "candidates": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "https://www.eesel.ai/blog/claude-ai-developer-tools",
+            "https://www.reddit.com/r/vibecoding/comments/1ree1iv/why_do_so_many_people_here_seem_to_like_claude/",
+            "https://www.pcmag.com/reviews/claude",
+            "https://medium.com/@inprogrammer/i-refused-to-use-ai-code-generators-until-i-tested-github-copilot-chatgpt-and-claude-6caa30e2b8a0",
+            "https://www.facebook.com/groups/698593531630485/posts/1065373938285774/",
+            "https://www.nytimes.com/2026/02/12/technology/anthropic-valuation-380-billion-funding.html"
+          ]
+        },
+        "security": {
+          "blocked": [],
+          "selected": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan"
+          ],
+          "candidates": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data"
+          ]
+        },
+        "portability": {
+          "blocked": [
+            {
+              "url": "https://www.reddit.com/r/ClaudeAI/comments/1loha3n/exporting_content_from_an_artifact/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://zapier.com/blog/claude-api/",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude"
+          ],
+          "candidates": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "https://www.reddit.com/r/ClaudeAI/comments/1loha3n/exporting_content_from_an_artifact/",
+            "https://zapier.com/blog/claude-api/"
+          ]
+        },
+        "alternatives": {
+          "blocked": [
+            {
+              "url": "https://www.reddit.com/r/ClaudeAI/comments/1chhllq/searching_for_the_ultimate_ai_claude_alternatives/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://leapshq.com/blog/claude-alternatives-for-writing",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://cline.bot/blog/6-best-open-source-claude-code-alternatives-in-2025-for-developers-startups-copy",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.morphllm.com/comparisons/morph-vs-claude-search-replace",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.eesel.ai/blog/claude-alternatives",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://tracxn.com/d/companies/claude/__SaO-UdTT0o8uakkA5yrmyFPmexHinpCM_3ObtBgVUz0",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan"
+          ],
+          "candidates": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "https://www.reddit.com/r/ClaudeAI/comments/1chhllq/searching_for_the_ultimate_ai_claude_alternatives/",
+            "https://leapshq.com/blog/claude-alternatives-for-writing",
+            "https://cline.bot/blog/6-best-open-source-claude-code-alternatives-in-2025-for-developers-startups-copy",
+            "https://www.morphllm.com/comparisons/morph-vs-claude-search-replace",
+            "https://www.eesel.ai/blog/claude-alternatives",
+            "https://tracxn.com/d/companies/claude/__SaO-UdTT0o8uakkA5yrmyFPmexHinpCM_3ObtBgVUz0"
+          ]
+        },
+        "integrations": {
+          "blocked": [
+            {
+              "url": "https://www.reddit.com/r/ClaudeAI/comments/1loha3n/exporting_content_from_an_artifact/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://zapier.com/blog/claude-api/",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api"
+          ],
+          "candidates": [
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "https://www.reddit.com/r/ClaudeAI/comments/1loha3n/exporting_content_from_an_artifact/",
+            "https://zapier.com/blog/claude-api/"
+          ]
+        }
+      },
+      "curated_sources": {
+        "limits": [
+          {
+            "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "notes": "name_domain_match, inventory_grade, freshness_hint",
+            "score": 55,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact",
+            "score": 10,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "pricing": [
+          {
+            "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "notes": "name_domain_match, intent_match, inventory_grade, freshness_hint",
+            "score": 75,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "notes": "name_domain_match, intent_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 35,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact",
+            "score": 10,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "reviews": [
+          {
+            "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "notes": "name_domain_match, inventory_grade, freshness_hint",
+            "score": 55,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "notes": "name_domain_match, freshness_hint",
+            "score": 30,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "notes": "name_domain_match, freshness_hint",
+            "score": 30,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "notes": "name_domain_match, freshness_hint",
+            "score": 30,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "notes": "name_domain_match",
+            "score": 25,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "security": [
+          {
+            "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "notes": "name_domain_match, inventory_grade, freshness_hint",
+            "score": 55,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact",
+            "score": 10,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "portability": [
+          {
+            "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "notes": "name_domain_match, inventory_grade, freshness_hint",
+            "score": 55,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "notes": "name_domain_match, intent_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 35,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "notes": "name_domain_match, intent_match, narrative_source_for_volatile_fact",
+            "score": 30,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "alternatives": [
+          {
+            "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "notes": "name_domain_match, inventory_grade, freshness_hint",
+            "score": 55,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "notes": "name_domain_match, freshness_hint",
+            "score": 30,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "notes": "name_domain_match, freshness_hint",
+            "score": 30,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "notes": "name_domain_match, freshness_hint",
+            "score": 30,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "notes": "name_domain_match",
+            "score": 25,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "integrations": [
+          {
+            "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "notes": "name_domain_match, inventory_grade, freshness_hint",
+            "score": 55,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "notes": "name_domain_match, intent_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 35,
+            "domain": "platform.claude.com",
+            "authority": "B",
+            "canonical_url": "https://platform.claude.com/cookbook/observability-usage-cost-api",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact, freshness_hint",
+            "score": 15,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/12123587-importing-and-exporting-your-memory-from-claude",
+            "deep_scrape_allowed": true
+          },
+          {
+            "url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "notes": "name_domain_match, narrative_source_for_volatile_fact",
+            "score": 10,
+            "domain": "support.claude.com",
+            "authority": "B",
+            "canonical_url": "https://support.claude.com/en/articles/9450526-how-can-i-export-my-claude-data",
+            "deep_scrape_allowed": true
+          }
+        ]
+      }
+    },
+    "knowledgeCard": {
+      "faqs": [],
+      "meta": {
+        "data_quality": "high",
+        "extraction_date": "2026-03-02",
+        "last_major_update": "2025-08",
+        "active_development": true
+      },
+      "company": {
+        "name": "Anthropic",
+        "founded_year": null,
+        "headquarters": null,
+        "funding_stage": null,
+        "employee_count": null
+      },
+      "pricing": {
+        "model": "paid",
+        "tiers": [],
+        "trial_days": null,
+        "has_free_tier": false,
+        "has_free_trial": false,
+        "starting_price": null
+      },
+      "support": {
+        "has_community": false,
+        "has_live_chat": false,
+        "has_documentation": false,
+        "has_phone_support": false,
+        "has_dedicated_support": false
+      },
+      "audience": {
+        "primary": [],
+        "use_cases": []
+      },
+      "features": {
+        "core": [
+          "AI Chatbot",
+          "API access to Claude models",
+          "Programmatic usage tracking",
+          "Detailed cost analysis",
+          "Memory and context retrieval"
+        ],
+        "unique": ["Admin API for granular usage and cost data", "Cache efficiency analysis"],
+        "capabilities": []
+      },
+      "logo_url": null,
+      "security": {
+        "self_hosted_option": false
+      },
+      "platforms": [],
+      "competitive": {
+        "best_for": null,
+        "differentiators": [],
+        "main_alternatives": []
+      },
+      "constraints": {
+        "hard_limits": [],
+        "hidden_costs": []
+      },
+      "website_url": null,
+      "integrations": {
+        "has_api": true,
+        "notable": [
+          {
+            "name": "Anthropic Admin API",
+            "type": "native",
+            "direction": "bidirectional"
+          }
+        ],
+        "has_zapier": false,
+        "has_webhooks": false
+      },
+      "smp_taxonomy": {
+        "sub_category": "AI Chatbot",
+        "primary_function": "Artificial Intelligence",
+        "likely_departments": ["Engineering", "Data Science", "Finance", "Operations"],
+        "secondary_functions": ["AI API", "Usage Analytics", "Cost Management"]
+      },
+      "official_name": "Claude",
+      "review_context": {
+        "human_verdict": null,
+        "user_advocate": {
+          "vibe": "Developer-First, AI-Centric",
+          "avoid_if": [
+            "Need specific per-token pricing clarity for API (not fully detailed in snippet)",
+            "Require offline mode (not confirmed, but typical for cloud AI)",
+            "Prefer purely no-code solutions for AI integration"
+          ],
+          "ideal_for": [
+            "Developers integrating AI into applications",
+            "Data analysts monitoring AI usage patterns",
+            "Finance teams requiring detailed cost attribution for AI services",
+            "Individuals and teams seeking a powerful AI chatbot"
+          ],
+          "power_tip": "Store Admin API keys securely in environment variables and rotate them regularly.",
+          "delighters": [
+            "Programmatic access to detailed API usage and cost data",
+            "Ability to track usage across models, workspaces, and API keys",
+            "Tools for cache efficiency analysis"
+          ],
+          "frustrations": ["API rate limits can be exceeded, requiring retry logic"],
+          "origin_story": null
+        },
+        "budget_analyst": {
+          "cost_drivers": [
+            "Token consumption (uncached input, output, cache creation/reads)",
+            "Usage across different models",
+            "Usage across workspaces and API keys"
+          ],
+          "one_time_fees": [],
+          "roi_threshold": null,
+          "commitment_terms": null
+        }
+      },
+      "smp_portability": {
+        "export_to": [],
+        "import_from": ["Other AI services (memory export)"],
+        "export_formats": ["CSV"],
+        "has_api_export": true,
+        "has_data_export": true,
+        "migration_difficulty": "easy"
+      },
+      "setup_complexity": {
+        "steps": [
+          {
+            "step": 1,
+            "action": "Sign up for Claude Console",
+            "description": "Create an account to access the chatbot and generate API keys."
+          },
+          {
+            "step": 2,
+            "action": "Generate an Admin API Key",
+            "description": "Obtain a 'sk-ant-admin...' formatted key from Claude Console settings."
+          },
+          {
+            "step": 3,
+            "action": "Set API key as environment variable",
+            "command": "export ANTHROPIC_ADMIN_API_KEY='sk-ant-admin...'",
+            "description": "Securely store the API key for programmatic access."
+          },
+          {
+            "step": 4,
+            "action": "Install Python requests library",
+            "command": "pip install requests",
+            "description": "Required for making HTTP requests to the Admin API."
+          },
+          {
+            "step": 5,
+            "action": "Make a test API request",
+            "command": "client._make_request(\"usage_report/messages\", params)",
+            "description": "Verify connection and retrieve initial usage data using the provided Python client."
+          }
+        ],
+        "red_tape": {
+          "cc_required": false,
+          "sales_gated": false,
+          "admin_required": false,
+          "domain_required": false,
+          "approval_required": false
+        },
+        "setup_url": "https://console.anthropic.com/settings/admin-keys",
+        "aha_moment": "Seeing the '✅ Connection successful!' message after making the first API call to retrieve usage data.",
+        "setup_type": "hybrid",
+        "friction_score": 3,
+        "requires_it_admin": false,
+        "requires_developer": true,
+        "technical_blockers": ["API key management"],
+        "estimated_setup_time": "minutes",
+        "implementation_partner_needed": false
+      }
+    },
+    "existingToolId": "9e4ab54e-4666-404e-8762-2111c1cc6983",
+    "validationReport": {
+      "score": 55,
+      "isValid": true,
+      "shouldPublish": true,
+      "humanReviewRequired": true
+    }
+  }
+}

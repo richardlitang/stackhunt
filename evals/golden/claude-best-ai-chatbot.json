@@ -1,0 +1,12 @@
+{
+  "toolName": "Claude",
+  "minClaimCitationRate": 0.95,
+  "minActionabilityScore": 40,
+  "minReaderUtilityScore": 45,
+  "maxCoverageGaps": 2,
+  "mustMentionAny": [
+    ["api", "model"],
+    ["cost", "usage"]
+  ],
+  "mustNotContain": ["best tool ever", "guaranteed"]
+}

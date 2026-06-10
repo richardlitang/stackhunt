@@ -1,0 +1,1096 @@
+{
+  "capturedAt": "2026-06-10T18:49:29.855Z",
+  "queueItemId": "6992351c-a806-436f-8481-12523ac648a7",
+  "toolName": "GitHub",
+  "contextTitle": "Best developer collaboration platform for engineering teams",
+  "categorySlug": null,
+  "research": {
+    "tokensUsed": 9878,
+    "isDuplicate": false,
+    "scoutResult": {
+      "faqs": [
+        {
+          "answer": "If you want a web interface, you could host something like gitweb, cgit, gitea, or GitLab. If you're content with just using local tools for GUI ...",
+          "source": "reddit",
+          "question": "Suggestions on a Github alternative? : r/opensource",
+          "source_url": "https://www.reddit.com/r/opensource/comments/1gx5wri/suggestions_on_a_github_alternative/"
+        }
+      ],
+      "facts": {
+        "identity": {
+          "website_url": "https://docs.github.com",
+          "official_name": "GitHub"
+        },
+        "facts_ledger": [
+          {
+            "key": "identity.website_url",
+            "value": "https://docs.github.com",
+            "evidence": [
+              {
+                "url": "https://www.zenhub.com/blog-posts/the-top-developer-experience-tools-for-github-first-teams-2025",
+                "domain": "zenhub.com"
+              }
+            ],
+            "confidence": "med"
+          }
+        ]
+      },
+      "quality": {
+        "notes": [
+          "pricing: no inventory-grade source in curated pool",
+          "security: no inventory-grade source in curated pool",
+          "portability: no inventory-grade source in curated pool",
+          "integrations: no inventory-grade source in curated pool",
+          "limits: no inventory-grade source in curated pool"
+        ],
+        "missing": [
+          "pricing.pricing_page_url",
+          "pricing.inventory_grade_source",
+          "security.inventory_grade_source",
+          "portability.inventory_grade_source",
+          "integrations.inventory_grade_source",
+          "limits.inventory_grade_source"
+        ],
+        "conflicts": [],
+        "freshness": {
+          "limits": "unknown",
+          "pricing": "unknown",
+          "reviews": "unknown",
+          "security": "unknown",
+          "portability": "unknown",
+          "alternatives": "unknown",
+          "integrations": "unknown"
+        },
+        "needs_review": true
+      },
+      "raw_sources": [
+        {
+          "url": "https://www.zenhub.com/blog-posts/the-top-developer-experience-tools-for-github-first-teams-2025",
+          "title": "The Top Developer Experience Tools for GitHub-First Teams ...",
+          "domain": "zenhub.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Top Developer Experience Tools for GitHub-First Teams · 1. Zenhub – GitHub-Native Project Management plus AI · 2. GitHub Copilot – AI Pair ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Jul 25, 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.zenhub.com/blog-posts/the-top-developer-experience-tools-for-github-first-teams-2025"
+        },
+        {
+          "url": "https://github.com/workos/awesome-developer-experience",
+          "title": "Awesome DX (Developer Experience)",
+          "domain": "github.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub provides code hosting services that allow developers to build software for open source and private projects. Heroku is a platform as a service that ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://github.com/workos/awesome-developer-experience"
+        },
+        {
+          "url": "https://entelligence.ai/blogs/github-project-management-tools-engineering-teams",
+          "title": "Top 8 GitHub Project Management Tools for Engineering ...",
+          "domain": "entelligence.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub project management tools help engineering teams streamline workflows, reduce overhead, and improve collaboration by integrating project ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Dec 11, 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://entelligence.ai/blogs/github-project-management-tools-engineering-teams"
+        },
+        {
+          "url": "https://github.com/seifrajhi/awesome-platform-engineering-tools",
+          "title": "seifrajhi/awesome-platform-engineering-tools",
+          "domain": "github.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "It's time to build an internal developer platform (IDO) with Crossplane, Argo CD, SchemaHero, External Secrets Operator (ESO), GitHub Actions, Port, and a few ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://github.com/seifrajhi/awesome-platform-engineering-tools"
+        },
+        {
+          "url": "https://www.atlassian.com/blog/loom/software-development-collaboration-tools",
+          "title": "7 Top Software Development Collaboration Tools for 2025",
+          "domain": "atlassian.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub is an essential tool for version control and tracking changes to ensure seamless collaboration on code development and integration. It ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Dec 26, 2024",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.atlassian.com/blog/loom/software-development-collaboration-tools"
+        },
+        {
+          "url": "https://www.cloudeagle.ai/blogs/github-pricing-guide",
+          "title": "GitHub Pricing Guide: Endpoint Security Costs & Licensing ...",
+          "domain": "cloudeagle.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub offers Free, Teams ($4/user/month), and Enterprise ($21/user/month) plans. · Premium plans offer stronger security (Dependabot, secret scanning), better ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Apr 18, 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.cloudeagle.ai/blogs/github-pricing-guide"
+        },
+        {
+          "url": "https://www.emergentsoftware.net/blog/github-pricing-simply-explained/",
+          "title": "GitHub Pricing Simply Explained",
+          "domain": "emergentsoftware.net",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub's pricing ranges from $0 for the Free Plan to $21 per user per month for the Enterprise Plan, with optional add-ons for advanced security, AI assistance, ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Oct 14, 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.emergentsoftware.net/blog/github-pricing-simply-explained/"
+        },
+        {
+          "url": "https://docs.github.com/copilot/get-started/choosing-your-enterprises-plan-for-github-copilot",
+          "title": "Choosing your enterprise's plan for GitHub Copilot",
+          "domain": "docs.github.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Copilot Business ($19 USD per user per month): includes most Copilot features in IDEs and on the GitHub website. · Copilot Enterprise ($39 USD per user per month): ...",
+          "intent_tags": ["pricing"],
+          "source_type": "official",
+          "published_at": "Sep 3, 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://docs.github.com/copilot/get-started/choosing-your-enterprises-plan-for-github-copilot"
+        },
+        {
+          "url": "https://www.eesel.ai/blog/github-pricing",
+          "title": "A complete guide to GitHub pricing in 2025",
+          "domain": "eesel.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The Free plan · The Team plan ($4/user/month) · The Enterprise plan (starts at $21/user/month) · GitHub Copilot: The AI assistant add-on · GitHub Advanced Security: ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "Sep 28, 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.eesel.ai/blog/github-pricing"
+        },
+        {
+          "url": "https://docs.github.com/en/enterprise-server@3.17/get-started/learning-about-github/githubs-plans",
+          "title": "GitHub's plans - GitHub Enterprise Server 3.17 Docs",
+          "domain": "docs.github.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub offers free and paid plans for storing and collaborating on code. Some plans are available only to personal accounts, while other plans are available ...",
+          "intent_tags": ["pricing"],
+          "source_type": "official",
+          "published_at": "May 16, 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://docs.github.com/en/enterprise-server@3.17/get-started/learning-about-github/githubs-plans"
+        },
+        {
+          "url": "https://www.spendflo.com/blog/github-pricing-guide",
+          "title": "GitHub Pricing: Plans, Features, and Best Deals",
+          "domain": "spendflo.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub enterprise pricing ranges from $3,000 to $95,000 annually, depending on the plan and organization size. It offers a Free plan for individuals, while Team ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "23 Mar 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.spendflo.com/blog/github-pricing-guide"
+        },
+        {
+          "url": "https://www.vendr.com/marketplace/github",
+          "title": "GitHub Software Pricing & Plans 2025: See Your Cost",
+          "domain": "vendr.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "For a 100-user organization, the list price for GitHub Enterprise plus Advanced Security would be $84,000 annually, but discounts can bring the total cost down ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "20 Oct 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.vendr.com/marketplace/github"
+        },
+        {
+          "url": "https://userjot.com/blog/github-copilot-pricing-guide-2025",
+          "title": "GitHub Copilot Pricing 2026: Complete Guide to All 5 Tiers",
+          "domain": "userjot.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Copilot Free: $0 (2,000 completions/month) Copilot Pro: $10/month or $100/year. Copilot Pro+: $39/month or $390/year.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "7 Sept 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://userjot.com/blog/github-copilot-pricing-guide-2025"
+        },
+        {
+          "url": "https://www.reddit.com/r/opensource/comments/1gx5wri/suggestions_on_a_github_alternative/",
+          "title": "Suggestions on a Github alternative? : r/opensource",
+          "domain": "reddit.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "If you want a web interface, you could host something like gitweb, cgit, gitea, or GitLab. If you're content with just using local tools for GUI ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "community",
+          "published_at": "1 year ago",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.reddit.com/r/opensource/comments/1gx5wri/suggestions_on_a_github_alternative/"
+        },
+        {
+          "url": "https://www.wearedevelopers.com/en/magazine/298/top-github-alternatives",
+          "title": "The Top 10 GitHub Alternatives (2025)",
+          "domain": "wearedevelopers.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The 10 Best Alternatives to GitHub in 2024 are GitLab, BitBucket, OneDev, Gogs, Codeberg, Radicle, Launchpad, and more.",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "Sep 17, 2023",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.wearedevelopers.com/en/magazine/298/top-github-alternatives"
+        },
+        {
+          "url": "https://news.ycombinator.com/item?id=44876289",
+          "title": "Ask HN: What alternatives to GitHub are you using?",
+          "domain": "news.ycombinator.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Reddit is probably the player that unseated the closest peer competitor. It toppled Digg, which was pretty big at the time. (Digg had itself disrupted Slashdot, ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "community",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://news.ycombinator.com/item?id=44876289"
+        },
+        {
+          "url": "https://www.gartner.com/reviews/market/devops-platforms/vendor/github/alternatives",
+          "title": "Top GitHub Competitors & Alternatives 2026",
+          "domain": "gartner.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "BLOCKED",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Check out real reviews verified by Gartner to see how GitHub compares to its competitors and find the best software or service for your organization. Top ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.gartner.com/reviews/market/devops-platforms/vendor/github/alternatives"
+        },
+        {
+          "url": "https://get.assembla.com/blog/top-github-alternatives/",
+          "title": "Top 5 GitHub Alternatives: Find The Right Platform",
+          "domain": "get.assembla.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "This comprehensive guide will cover the important things to know about trusted GitHub alternatives like GitLab, Bitbucket, Assembla and Gitea.",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "Jan 13, 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://get.assembla.com/blog/top-github-alternatives/"
+        },
+        {
+          "url": "https://tracxn.com/d/companies/github/__v4z5awWwNuU3eztPR28GX_J2Z2nWaQqkEIbwSLUecQk",
+          "title": "GitHub - 2026 Company Profile & Team",
+          "domain": "tracxn.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub has raised a total funding of $354M over 6 rounds. Its first funding round was on Sep 25, 2008. Its latest funding round was a Grant (prize money) round ...",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "4 days ago",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://tracxn.com/d/companies/github/__v4z5awWwNuU3eztPR28GX_J2Z2nWaQqkEIbwSLUecQk"
+        },
+        {
+          "url": "https://salestools.io/en/report/github-250m-acquisition",
+          "title": "GitHub achieves $7.5B valuation with $250M",
+          "domain": "salestools.io",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Founded in 2008 and headquartered in San Francisco, CA, GitHub has revolutionized Code hosting and collaboration platform for software development. With a ...",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "26 Jul 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://salestools.io/en/report/github-250m-acquisition"
+        },
+        {
+          "url": "https://bitscale.ai/directory/github",
+          "title": "GitHub | Company Profile",
+          "domain": "bitscale.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Founded in 2007 and launched in 2008, GitHub is headquartered in San Francisco. The platform hosts millions of Git repositories, allowing developers to ...",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "10 Oct 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://bitscale.ai/directory/github"
+        },
+        {
+          "url": "https://www.owler.com/company/github",
+          "title": "GitHub's Competitors, Revenue, Number of Employees ...",
+          "domain": "owler.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub was founded in 2008. GitHub's headquarters is located in San Francisco, Californi...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "4 days ago",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.owler.com/company/github"
+        },
+        {
+          "url": "https://www.clay.com/dossier/github-headquarters-office-locations",
+          "title": "Where is Github's Headquarters? Main Office Location and ...",
+          "domain": "clay.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub's main headquarters is located at 88 Colin P. Kelly Jr. Street in San Francisco, California. This facility serves as the primary hub for the company's ...",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "14 Feb 2025",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://www.clay.com/dossier/github-headquarters-office-locations"
+        },
+        {
+          "url": "https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom",
+          "title": "Exporting migration data from GitHub.com",
+          "domain": "docs.github.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "You can export migration data from an organization on GitHub.com by using the API to select repositories to migrate, then generating a migration archive.",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "official",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom"
+        },
+        {
+          "url": "https://docs.github.com/en/rest/migrations/orgs",
+          "title": "REST API endpoints for organization migrations",
+          "domain": "docs.github.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Lists the most recent migrations, including both exports (which can be started through the REST API) and imports (which cannot be started using the REST API).",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "official",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://docs.github.com/en/rest/migrations/orgs"
+        },
+        {
+          "url": "https://docs.github.com/en/rest",
+          "title": "GitHub REST API documentation",
+          "domain": "docs.github.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "GitHub REST API documentation. Create integrations, retrieve data, and automate your workflows with the GitHub REST API.",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "official",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://docs.github.com/en/rest"
+        },
+        {
+          "url": "https://stackoverflow.com/questions/59835563/how-to-get-source-code-from-github-data-export",
+          "title": "How to get source code from GitHub data export?",
+          "domain": "stackoverflow.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "BLOCKED",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Export github repository · 0 · How can i extract code related to files for each commit in github? 2 · How to get raw github data using github ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "community",
+          "published_at": "6 years ago",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://stackoverflow.com/questions/59835563/how-to-get-source-code-from-github-data-export"
+        },
+        {
+          "url": "https://github.com/blakeblackshear/frigate/discussions/16322",
+          "title": "API/Import Feature in Frigate+ for Standardized Dataset ...",
+          "domain": "github.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "I'd like to propose an API import endpoint (or mechanism) that accepts a standardized dataset (e.g., COCO or Pascal VOC format) containing verified images ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:40:59.488Z",
+          "canonical_url": "https://github.com/blakeblackshear/frigate/discussions/16322"
+        }
+      ],
+      "scrape_plan": {
+        "limits": {
+          "blocked": [
+            {
+              "url": "https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://docs.github.com/en/rest/migrations/orgs",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://docs.github.com/en/rest",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://stackoverflow.com/questions/59835563/how-to-get-source-code-from-github-data-export",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://github.com/blakeblackshear/frigate/discussions/16322",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [],
+          "candidates": [
+            "https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom",
+            "https://docs.github.com/en/rest/migrations/orgs",
+            "https://docs.github.com/en/rest",
+            "https://stackoverflow.com/questions/59835563/how-to-get-source-code-from-github-data-export",
+            "https://github.com/blakeblackshear/frigate/discussions/16322"
+          ]
+        },
+        "pricing": {
+          "blocked": [
+            {
+              "url": "https://www.cloudeagle.ai/blogs/github-pricing-guide",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.emergentsoftware.net/blog/github-pricing-simply-explained/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://docs.github.com/copilot/get-started/choosing-your-enterprises-plan-for-github-copilot",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.eesel.ai/blog/github-pricing",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://docs.github.com/en/enterprise-server@3.17/get-started/learning-about-github/githubs-plans",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.spendflo.com/blog/github-pricing-guide",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.vendr.com/marketplace/github",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://userjot.com/blog/github-copilot-pricing-guide-2025",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": [],
+          "candidates": [
+            "https://www.cloudeagle.ai/blogs/github-pricing-guide",
+            "https://www.emergentsoftware.net/blog/github-pricing-simply-explained/",
+            "https://docs.github.com/copilot/get-started/choosing-your-enterprises-plan-for-github-copilot",
+            "https://www.eesel.ai/blog/github-pricing",
+            "https://docs.github.com/en/enterprise-server@3.17/get-started/learning-about-github/githubs-plans",
+            "https://www.spendflo.com/blog/github-pricing-guide",
+            "https://www.vendr.com/marketplace/github",
+            "https://userjot.com/blog/github-copilot-pricing-guide-2025"
+          ]
+        },
+        "reviews": {
+          "blocked": [
+            {
+              "url": "https://www.zenhub.com/blog-posts/the-top-developer-experience-tools-for-github-first-teams-2025",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://github.com/workos/awesome-developer-experience",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://entelligence.ai/blogs/github-project-management-tools-engineering-teams",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://github.com/seifrajhi/awesome-platform-engineering-tools",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.atlassian.com/blog/loom/software-development-collaboration-tools",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [],
+          "candidates": [
+            "https://www.zenhub.com/blog-posts/the-top-developer-experience-tools-for-github-first-teams-2025",
+            "https://github.com/workos/awesome-developer-experience",
+            "https://entelligence.ai/blogs/github-project-management-tools-engineering-teams",
+            "https://github.com/seifrajhi/awesome-platform-engineering-tools",
+            "https://www.atlassian.com/blog/loom/software-development-collaboration-tools"
+          ]
+        },
+        "security": {
+          "blocked": [],
+          "selected": [],
+          "candidates": []
+        },
+        "portability": {
+          "blocked": [
+            {
+              "url": "https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://docs.github.com/en/rest/migrations/orgs",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://docs.github.com/en/rest",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://stackoverflow.com/questions/59835563/how-to-get-source-code-from-github-data-export",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://github.com/blakeblackshear/frigate/discussions/16322",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [],
+          "candidates": [
+            "https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom",
+            "https://docs.github.com/en/rest/migrations/orgs",
+            "https://docs.github.com/en/rest",
+            "https://stackoverflow.com/questions/59835563/how-to-get-source-code-from-github-data-export",
+            "https://github.com/blakeblackshear/frigate/discussions/16322"
+          ]
+        },
+        "alternatives": {
+          "blocked": [
+            {
+              "url": "https://www.reddit.com/r/opensource/comments/1gx5wri/suggestions_on_a_github_alternative/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.wearedevelopers.com/en/magazine/298/top-github-alternatives",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://news.ycombinator.com/item?id=44876289",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.gartner.com/reviews/market/devops-platforms/vendor/github/alternatives",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://get.assembla.com/blog/top-github-alternatives/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.owler.com/company/github",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": [],
+          "candidates": [
+            "https://www.reddit.com/r/opensource/comments/1gx5wri/suggestions_on_a_github_alternative/",
+            "https://www.wearedevelopers.com/en/magazine/298/top-github-alternatives",
+            "https://news.ycombinator.com/item?id=44876289",
+            "https://www.gartner.com/reviews/market/devops-platforms/vendor/github/alternatives",
+            "https://get.assembla.com/blog/top-github-alternatives/",
+            "https://www.owler.com/company/github"
+          ]
+        },
+        "integrations": {
+          "blocked": [
+            {
+              "url": "https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://docs.github.com/en/rest/migrations/orgs",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://docs.github.com/en/rest",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://stackoverflow.com/questions/59835563/how-to-get-source-code-from-github-data-export",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://github.com/blakeblackshear/frigate/discussions/16322",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": [],
+          "candidates": [
+            "https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom",
+            "https://docs.github.com/en/rest/migrations/orgs",
+            "https://docs.github.com/en/rest",
+            "https://stackoverflow.com/questions/59835563/how-to-get-source-code-from-github-data-export",
+            "https://github.com/blakeblackshear/frigate/discussions/16322"
+          ]
+        }
+      },
+      "curated_sources": {
+        "limits": [],
+        "pricing": [],
+        "reviews": [],
+        "security": [],
+        "portability": [],
+        "alternatives": [],
+        "integrations": []
+      }
+    },
+    "knowledgeCard": {
+      "faqs": [],
+      "meta": {
+        "data_quality": "medium",
+        "extraction_date": "2026-02-08",
+        "last_major_update": "2024-01",
+        "active_development": true
+      },
+      "company": {
+        "name": "GitHub",
+        "founded_year": 2008,
+        "headquarters": "San Francisco, USA",
+        "funding_stage": "acquired",
+        "employee_count": "1000+"
+      },
+      "pricing": {
+        "model": "paid",
+        "tiers": [],
+        "trial_days": null,
+        "has_free_tier": false,
+        "has_free_trial": false,
+        "starting_price": null
+      },
+      "support": {
+        "has_community": false,
+        "has_live_chat": false,
+        "has_documentation": false,
+        "has_phone_support": false,
+        "has_dedicated_support": false
+      },
+      "audience": {
+        "primary": [],
+        "use_cases": []
+      },
+      "features": {
+        "core": [
+          "Git-based version control",
+          "Code hosting and collaboration",
+          "Pull requests and code review",
+          "Issue tracking and project management",
+          "CI/CD with GitHub Actions"
+        ],
+        "unique": [
+          "GitHub Codespaces for cloud development environments",
+          "GitHub Copilot for AI-powered code suggestions",
+          "GitHub Advanced Security for code scanning and secret detection"
+        ],
+        "capabilities": []
+      },
+      "logo_url": null,
+      "security": {
+        "self_hosted_option": false
+      },
+      "platforms": [
+        {
+          "platform": "web",
+          "available": true
+        }
+      ],
+      "competitive": {
+        "best_for": "Best for open-source projects, individual developers, and enterprise software development teams due to its extensive ecosystem, integrations, and advanced security features.",
+        "differentiators": [],
+        "main_alternatives": ["GitLab", "Bitbucket", "Azure DevOps", "SourceForge"]
+      },
+      "constraints": {
+        "hard_limits": [
+          {
+            "type": "message_credits",
+            "value": 2000,
+            "overage": {
+              "cost": 0.008,
+              "unit": "per minute",
+              "currency": "USD"
+            },
+            "source_url": "https://github.com/pricing/actions",
+            "consequence": "auto_charge",
+            "description": "2,000 GitHub Actions minutes included per month for public repositories. Private repositories get 2,000 minutes. Overage is billed.",
+            "plan_name_match": "Free"
+          },
+          {
+            "type": "storage_gb",
+            "value": 0.5,
+            "overage": {
+              "cost": 0.004,
+              "unit": "per GB",
+              "currency": "USD"
+            },
+            "source_url": "https://github.com/pricing/packages",
+            "consequence": "auto_charge",
+            "description": "500MB GitHub Packages storage included. Overage is billed.",
+            "plan_name_match": "Free"
+          },
+          {
+            "type": "message_credits",
+            "value": 3000,
+            "overage": {
+              "cost": 0.008,
+              "unit": "per minute",
+              "currency": "USD"
+            },
+            "source_url": "https://github.com/pricing/actions",
+            "consequence": "auto_charge",
+            "description": "3,000 GitHub Actions minutes included per month for private repositories. Overage is billed.",
+            "plan_name_match": "Team"
+          },
+          {
+            "type": "storage_gb",
+            "value": 2,
+            "overage": {
+              "cost": 0.004,
+              "unit": "per GB",
+              "currency": "USD"
+            },
+            "source_url": "https://github.com/pricing/packages",
+            "consequence": "auto_charge",
+            "description": "2GB GitHub Packages storage included. Overage is billed.",
+            "plan_name_match": "Team"
+          },
+          {
+            "type": "message_credits",
+            "value": 50000,
+            "overage": {
+              "cost": 0.008,
+              "unit": "per minute",
+              "currency": "USD"
+            },
+            "source_url": "https://github.com/pricing/actions",
+            "consequence": "auto_charge",
+            "description": "50,000 GitHub Actions minutes included per month for private repositories. Overage is billed.",
+            "plan_name_match": "Enterprise"
+          },
+          {
+            "type": "storage_gb",
+            "value": 50,
+            "overage": {
+              "cost": 0.004,
+              "unit": "per GB",
+              "currency": "USD"
+            },
+            "source_url": "https://github.com/pricing/packages",
+            "consequence": "auto_charge",
+            "description": "50GB GitHub Packages storage included. Overage is billed.",
+            "plan_name_match": "Enterprise"
+          }
+        ],
+        "hidden_costs": [
+          {
+            "cost": 10,
+            "trigger": "When enabling GitHub Copilot for a user",
+            "currency": "USD",
+            "description": "GitHub Copilot subscription is an additional cost per user."
+          },
+          {
+            "cost": null,
+            "trigger": "When enabling GitHub Advanced Security",
+            "currency": "USD",
+            "description": "GitHub Advanced Security features (e.g., secret scanning, code scanning) are typically an additional cost for Enterprise plans or specific repositories."
+          },
+          {
+            "cost": null,
+            "trigger": "When using GitHub Codespaces beyond free tier limits",
+            "currency": "USD",
+            "description": "GitHub Codespaces usage (compute and storage) is billed separately based on consumption."
+          }
+        ]
+      },
+      "website_url": null,
+      "integrations": {
+        "has_api": true,
+        "notable": [
+          {
+            "name": "VS Code",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Jira",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Slack",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Jenkins",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "CircleCI",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Microsoft Teams",
+            "type": "native",
+            "direction": "bidirectional"
+          }
+        ],
+        "has_zapier": true,
+        "has_webhooks": true
+      },
+      "smp_taxonomy": {
+        "sub_category": "Code Hosting Platform",
+        "primary_function": "Version Control",
+        "likely_departments": ["Engineering", "IT Operations", "Product Management", "Security"],
+        "secondary_functions": [
+          "CI/CD",
+          "Project Management",
+          "Code Review",
+          "Developer Environment",
+          "Security Scanning"
+        ]
+      },
+      "official_name": "GitHub",
+      "learning_curve": "hours",
+      "review_context": {
+        "human_verdict": null,
+        "user_advocate": {
+          "vibe": "Developer-First, Collaborative Ecosystem",
+          "avoid_if": [
+            "Need a simple file sharing solution without version control overhead",
+            "Strictly offline-only development environments",
+            "Prefer a fully self-hosted solution without any cloud components (though Enterprise Server exists, it's more complex)"
+          ],
+          "ideal_for": [
+            "Open-source contributors",
+            "Software development teams of all sizes",
+            "Enterprises with large codebases and strict security requirements",
+            "Teams leveraging CI/CD extensively"
+          ],
+          "power_tip": "Utilize GitHub Codespaces for instant, cloud-based development environments directly from your browser, eliminating local setup friction.",
+          "delighters": [
+            "GitHub Actions for powerful and flexible CI/CD workflows",
+            "Intuitive Pull Request review process",
+            "GitHub Codespaces for quick dev environment setup",
+            "Vast integration ecosystem with third-party tools"
+          ],
+          "frustrations": [
+            "Complex permissions management for very large organizations or intricate team structures",
+            "Notifications can become overwhelming without careful configuration",
+            "Pricing for advanced features like Codespaces and Advanced Security can add up quickly if not monitored"
+          ],
+          "origin_story": "Started as a platform for Git-based version control, evolving into the world's largest host of source code and a comprehensive developer platform."
+        },
+        "budget_analyst": {
+          "cost_drivers": [
+            "Additional GitHub Actions minutes overage",
+            "GitHub Packages storage overage",
+            "GitHub Codespaces usage (compute and storage)",
+            "GitHub Copilot subscriptions",
+            "GitHub Advanced Security features (e.g., secret scanning, code scanning)"
+          ],
+          "one_time_fees": [],
+          "roi_threshold": "Teams needing advanced collaboration, robust CI/CD automation, comprehensive security features, or cloud-based development environments will find the paid plans worthwhile.",
+          "commitment_terms": "Monthly or annual billing options available. Annual billing typically offers a discount."
+        }
+      },
+      "smp_portability": {
+        "export_to": ["GitLab", "Bitbucket", "Azure DevOps"],
+        "import_from": ["GitLab", "Bitbucket", "Azure DevOps"],
+        "export_formats": ["Git repository", "CSV", "JSON"],
+        "has_api_export": true,
+        "has_data_export": true,
+        "migration_difficulty": "easy"
+      },
+      "setup_complexity": {
+        "steps": [
+          {
+            "step": 1,
+            "action": "Sign up for a GitHub account",
+            "description": "Create an account on github.com or sign in with an existing one."
+          },
+          {
+            "step": 2,
+            "action": "Create a new repository",
+            "description": "Initialize a new project repository or import an existing one."
+          },
+          {
+            "step": 3,
+            "action": "Clone the repository locally and push first commit",
+            "command": "git clone [repo_url] && cd [repo_name] && echo 'Hello World' > README.md && git add . && git commit -m 'Initial commit' && git push origin main",
+            "description": "Set up your local development environment and push your first changes to GitHub."
+          }
+        ],
+        "red_tape": {
+          "cc_required": false,
+          "sales_gated": true,
+          "admin_required": false,
+          "domain_required": false,
+          "approval_required": false
+        },
+        "setup_url": "https://docs.github.com/en/get-started/onboarding/getting-started-with-github",
+        "aha_moment": "Successfully pushing your first code changes to a remote repository and seeing them reflected on GitHub, accessible to collaborators.",
+        "setup_type": "hybrid",
+        "friction_score": 3,
+        "requires_it_admin": true,
+        "requires_developer": true,
+        "technical_blockers": [
+          "Git client configuration",
+          "SSH key setup",
+          "CI/CD pipeline configuration",
+          "SAML/SSO integration (for Enterprise)"
+        ],
+        "estimated_setup_time": "hours",
+        "implementation_partner_needed": true
+      }
+    },
+    "validationReport": {
+      "score": 75,
+      "isValid": true,
+      "shouldPublish": true,
+      "humanReviewRequired": false
+    }
+  }
+}
