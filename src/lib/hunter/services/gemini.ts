@@ -1014,6 +1014,16 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
         source_url: claim.source_url,
       };
     };
+    const buildGenericVetoFallbackEntry = (claim: {
+      text: string;
+      source_url: string;
+    }): { condition: string; alternative: string; reason: string; source_url: string } => ({
+      condition: `If this limitation is a blocker: ${claim.text}`,
+      alternative: 'another option in this category',
+      reason:
+        'Another tool in this category may be a better fit when this constraint is unacceptable for your workflow.',
+      source_url: claim.source_url,
+    });
     const normalizeVetoLogic = (
       raw: unknown,
       alternatives: string[],
@@ -1058,7 +1068,8 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
             )
         : [];
       if (normalized.length > 0) return normalized.slice(0, 3);
-      if (alternatives.length === 0 || consEvidence.length === 0) return [];
+      if (consEvidence.length === 0) return [];
+      if (alternatives.length === 0) return [buildGenericVetoFallbackEntry(consEvidence[0])];
       return [buildVetoFallbackEntry(alternatives[0], consEvidence[0])];
     };
     const normalizeRealityChecks = (
