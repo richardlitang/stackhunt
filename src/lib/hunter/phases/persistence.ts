@@ -28,6 +28,12 @@ import {
   inferPlanTargetAudience,
 } from '@/lib/pricing/plan-lens';
 import {
+  buildCanonicalPricingPlans,
+  inferTargetMarket,
+  isPricingBiasedDerivedCon,
+  mapSmpPricingToPricingModel,
+} from '@/lib/pricing/canonical-plans';
+import {
   deriveLensTagsForConstraintText,
   deriveLensTagsForIntegration,
   mergeLensTags,
@@ -104,45 +110,22 @@ import {
   validateNegativeClaim,
   RANKING_CLAIM_TOKENS,
 } from '../content-policy/claim-language';
+import {
+  extractNamedFeatures,
+  featureOverlapRatio,
+  hasSpecificSignal,
+  isGenericDifferentiator,
+  jaccardSimilarity,
+  normalizeFeatureLabel,
+  overlapRatio,
+  tokenizeForSimilarity,
+} from '../text-similarity';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
   ContextInsert: Record<string, unknown>;
   ReviewInsert: Record<string, unknown>;
   AffiliateOfferInsert: Record<string, unknown>;
-}
-
-/**
- * Infer target_market from pricing plans
- * Logic:
- * - Has business/enterprise plans → 'business'
- * - Only individual/free plans → 'consumer'
- * - Has both individual AND team/business → 'prosumer'
- */
-function inferTargetMarket(plans: any[]): 'consumer' | 'prosumer' | 'business' | 'enterprise' {
-  if (!plans || plans.length === 0) return 'business'; // Default for tools without pricing
-
-  const audiences = plans.map((p) => p.target_audience).filter(Boolean);
-
-  const hasEnterprise = audiences.includes('enterprise');
-  const hasBusiness = audiences.includes('business');
-  const hasTeam = audiences.includes('team');
-  const hasIndividual = audiences.includes('individual');
-
-  // Enterprise-focused tools
-  if (hasEnterprise && !hasIndividual) return 'enterprise';
-
-  // Business-focused tools
-  if ((hasBusiness || hasEnterprise) && !hasIndividual) return 'business';
-
-  // Prosumer tools (serve both individuals and businesses)
-  if (hasIndividual && (hasTeam || hasBusiness || hasEnterprise)) return 'prosumer';
-
-  // Consumer-only tools
-  if (hasIndividual && !hasTeam && !hasBusiness && !hasEnterprise) return 'consumer';
-
-  // Default to business if unclear
-  return 'business';
 }
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
@@ -216,55 +199,6 @@ function normalizeChecklistItems(value: unknown, max = 5): string[] {
     if (items.length >= max) break;
   }
   return items;
-}
-
-function normalizeFeatureLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[()]/g, ' ')
-    .replace(/[^a-z0-9+\-/\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isGenericDifferentiator(value: string): boolean {
-  const normalized = normalizeFeatureLabel(value);
-  if (!normalized || normalized.length < 6) return true;
-  const genericPatterns = [
-    /\bai (chat|assistant|automation|generation)\b/,
-    /\b(api|integrations?|webhooks?|automation)\b/,
-    /\b(data export|export)\b/,
-    /\b(collaboration|workflow|productivity)\b/,
-    /\b(conversation memory|memory)\b/,
-    /\b(code generation)\b/,
-  ];
-  return genericPatterns.some((pattern) => pattern.test(normalized));
-}
-
-function hasSpecificSignal(value: string): boolean {
-  return (
-    /\b\d/.test(value) ||
-    /\b(pro|max|enterprise|team|business|starter|free)\b/i.test(value) ||
-    /\b(scim|sso|dpa|soc 2|hipaa|gdpr|api)\b/i.test(value) ||
-    /\b[A-Z]{2,}\b/.test(value)
-  );
-}
-
-function featureOverlapRatio(a: string, b: string): number {
-  const tokenize = (value: string) =>
-    new Set(
-      normalizeFeatureLabel(value)
-        .split(' ')
-        .filter((token) => token.length >= 3)
-    );
-  const aa = tokenize(a);
-  const bb = tokenize(b);
-  if (aa.size === 0 || bb.size === 0) return 0;
-  let overlap = 0;
-  for (const token of aa) {
-    if (bb.has(token)) overlap += 1;
-  }
-  return overlap / aa.size;
 }
 
 async function enrichComparativeFeatureSignals(
@@ -409,48 +343,6 @@ function deriveBuyerChecklists(analysis: any): { quickChecks: string[]; teamItCh
   };
 }
 
-function extractNamedFeatures(text: string): string[] {
-  const quoted = Array.from(text.matchAll(/["'“”]([^"'“”]{3,80})["'“”]/g)).map((m) => m[1].trim());
-  const titleCase = Array.from(
-    text.matchAll(/\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){1,4})\b/g)
-  ).map((m) => m[1].trim());
-  const candidates = [...quoted, ...titleCase];
-  const deny = new Set(['OpenAI', 'Anthropic', 'Google', 'xAI', 'API', 'Enterprise', 'Pro', 'Max']);
-  return Array.from(
-    new Set(
-      candidates.filter((item) => {
-        if (item.length < 4) return false;
-        if (deny.has(item)) return false;
-        if (/^(The|This|That|These|Those)\b/.test(item)) return false;
-        return true;
-      })
-    )
-  );
-}
-
-function overlapRatio(a: string, b: string): number {
-  const aw = new Set(
-    a
-      .toLowerCase()
-      .split(/\s+/)
-      .map((w) => w.replace(/[^a-z0-9]/g, ''))
-      .filter((w) => w.length > 3)
-  );
-  const bw = new Set(
-    b
-      .toLowerCase()
-      .split(/\s+/)
-      .map((w) => w.replace(/[^a-z0-9]/g, ''))
-      .filter((w) => w.length > 3)
-  );
-  if (aw.size === 0 || bw.size === 0) return 0;
-  let matches = 0;
-  for (const token of aw) {
-    if (bw.has(token)) matches++;
-  }
-  return matches / aw.size;
-}
-
 function normalizeEvidenceUrl(rawUrl?: string | null): string | null {
   const sanitized = sanitizeUrl(rawUrl);
   if (!sanitized) return null;
@@ -469,87 +361,6 @@ function normalizeEvidenceUrl(rawUrl?: string | null): string | null {
   } catch {
     return sanitized;
   }
-}
-
-function buildCanonicalPricingPlans(pricingData: any): {
-  entities: Array<{
-    plan_id: string;
-    plan_name: string;
-    audience?: string | null;
-    works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
-    seat_type?: string | null;
-    price_monthly?: number | null;
-    price_annual?: number | null;
-    source_url?: string | null;
-    currency?: string | null;
-  }>;
-  conflicts: Array<{ key: string; values: unknown[]; urls: string[] }>;
-} {
-  const plans = Array.isArray(pricingData?.plans) ? pricingData.plans : [];
-  const sourceUrl: string | null =
-    typeof pricingData?.pricing_page_url === 'string' ? pricingData.pricing_page_url : null;
-  const currency: string | null =
-    typeof pricingData?.currency === 'string' ? pricingData.currency : null;
-
-  const entities = plans.map((plan: any) => {
-    const explicitLensTags = Array.isArray(plan?.works_for_lenses)
-      ? plan.works_for_lenses.filter(
-          (value: unknown) => value === 'personal' || value === 'startup' || value === 'enterprise'
-        )
-      : [];
-    const inferredAudience = inferPlanTargetAudience(plan);
-    return {
-      plan_id: String(plan?.id || slugify(String(plan?.name || 'plan'))),
-      plan_name: String(plan?.name || 'Unknown'),
-      audience:
-        typeof plan?.target_audience === 'string' ? plan.target_audience : inferredAudience || null,
-      works_for_lenses: explicitLensTags.length > 0 ? explicitLensTags : derivePlanLensTags(plan),
-      seat_type: typeof plan?.scaling_unit === 'string' ? plan.scaling_unit : null,
-      price_monthly: typeof plan?.price_monthly === 'number' ? plan.price_monthly : null,
-      price_annual: typeof plan?.price_annual === 'number' ? plan.price_annual : null,
-      source_url: sourceUrl,
-      currency,
-    };
-  });
-
-  const byCanonicalPlan = new Map<
-    string,
-    { monthly: Set<number>; annual: Set<number>; urls: Set<string> }
-  >();
-  for (const entity of entities) {
-    const key = `${entity.plan_id}|${(entity.audience || 'unknown').toLowerCase()}`;
-    if (!byCanonicalPlan.has(key)) {
-      byCanonicalPlan.set(key, {
-        monthly: new Set<number>(),
-        annual: new Set<number>(),
-        urls: new Set<string>(),
-      });
-    }
-    const bucket = byCanonicalPlan.get(key)!;
-    if (typeof entity.price_monthly === 'number') bucket.monthly.add(entity.price_monthly);
-    if (typeof entity.price_annual === 'number') bucket.annual.add(entity.price_annual);
-    if (entity.source_url) bucket.urls.add(entity.source_url);
-  }
-
-  const conflicts: Array<{ key: string; values: unknown[]; urls: string[] }> = [];
-  for (const [key, bucket] of byCanonicalPlan.entries()) {
-    if (bucket.monthly.size > 1) {
-      conflicts.push({
-        key: `${key}:price_monthly`,
-        values: Array.from(bucket.monthly.values()),
-        urls: Array.from(bucket.urls.values()),
-      });
-    }
-    if (bucket.annual.size > 1) {
-      conflicts.push({
-        key: `${key}:price_annual`,
-        values: Array.from(bucket.annual.values()),
-        urls: Array.from(bucket.urls.values()),
-      });
-    }
-  }
-
-  return { entities, conflicts };
 }
 
 function buildTaggedLensCoverage(
@@ -3106,16 +2917,6 @@ async function persistResearchOnly(
   };
 }
 
-function mapSmpPricingToPricingModel(
-  model?: string | null
-): 'free' | 'freemium' | 'paid' | 'enterprise' | 'open_source' | null {
-  if (!model) return null;
-  if (model === 'free') return 'free';
-  if (model === 'contact_sales') return 'enterprise';
-  if (model === 'open_source') return 'open_source';
-  return 'paid';
-}
-
 /**
  * Create Knowledge Graph links for an item
  */
@@ -3213,29 +3014,6 @@ async function findSimilarContextFallback(
   }
 
   return null;
-}
-
-function tokenizeForSimilarity(input: string): Set<string> {
-  const normalized = input
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 2)
-    .filter((token) => !['best', 'for', 'the', 'and', 'with'].includes(token));
-  return new Set(normalized);
-}
-
-function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 && b.size === 0) return 1;
-  if (a.size === 0 || b.size === 0) return 0;
-
-  let intersection = 0;
-  for (const token of a) {
-    if (b.has(token)) intersection++;
-  }
-  const union = new Set([...a, ...b]).size;
-  return union === 0 ? 0 : intersection / union;
 }
 
 /**
@@ -3894,19 +3672,6 @@ function buildDerivedConsFromConstraints(
   }
 
   return deduped.slice(0, 3);
-}
-
-function isPricingBiasedDerivedCon(text: string): boolean {
-  return (
-    /^Usage limits apply:/i.test(text) ||
-    /^Additional cost trigger:/i.test(text) ||
-    /^Minimum seat requirement:/i.test(text) ||
-    /^Implementation fee required/i.test(text) ||
-    /^Annual billing only$/i.test(text) ||
-    /^Pricing requires contacting sales$/i.test(text) ||
-    /^No self-serve free tier/i.test(text) ||
-    /^No self-serve free trial/i.test(text)
-  );
 }
 
 function buildUserSignalSummary(
