@@ -22,6 +22,7 @@ import {
 } from './services';
 import { HunterLogger } from './services/logger';
 import { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';
+import { buildHuntTelemetryInsertPayload } from './telemetry-persistence';
 import { isLlmEligibleScoutSource } from './utils';
 import type {
   HunterConfig,
@@ -179,6 +180,44 @@ export class Hunter {
       ...result,
       telemetry: this.buildHuntTelemetry(totalTokens),
     };
+  }
+
+  private async recordHuntTelemetry(params: {
+    toolName: string;
+    contextTitle?: string;
+    queueItemId?: string;
+    success: boolean;
+    durationMs: number;
+    telemetry?: HuntTelemetry;
+    errorClass?: string;
+  }): Promise<void> {
+    const { error } = await this.supabase
+      .from('hunt_telemetry')
+      .insert(buildHuntTelemetryInsertPayload(params));
+    if (error) {
+      this.log(`[Telemetry] Failed to persist hunt telemetry: ${error.message}`);
+    }
+  }
+
+  private finalizeHuntResult(
+    input: Pick<HunterInput, 'toolName' | 'contextTitle' | 'queueItemId'>,
+    result: HunterResult,
+    fallbackTokens = 0
+  ): HunterResult {
+    const finalResult = this.withTelemetry(result, fallbackTokens);
+    void this.recordHuntTelemetry({
+      toolName: input.toolName,
+      contextTitle: input.contextTitle,
+      queueItemId: input.queueItemId,
+      success: finalResult.success,
+      durationMs: finalResult.durationMs ?? 0,
+      telemetry: finalResult.telemetry,
+      errorClass:
+        finalResult.success || !finalResult.error
+          ? undefined
+          : classifyErrorForDlq(new Error(finalResult.error)),
+    }).catch(() => {});
+    return finalResult;
   }
 
   private async loadLatestResearchCheckpoint(
@@ -350,7 +389,8 @@ export class Hunter {
           : '';
       const errorMessage = `${subjectPreflight.message || 'Subject preflight failed.'}${recommendation}`;
       this.log(`❌ ${errorMessage}`);
-      return this.withTelemetry(
+      return this.finalizeHuntResult(
+        input,
         {
           success: false,
           error: errorMessage,
@@ -468,7 +508,8 @@ export class Hunter {
           if (!saved) {
             this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
             // Abort to prevent duplicate work
-            return this.withTelemetry(
+            return this.finalizeHuntResult(
+              input,
               {
                 success: false,
                 error:
@@ -491,7 +532,8 @@ export class Hunter {
         if (status.shutdownDate) this.log(`   Shutdown: ${status.shutdownDate}`);
         if (status.reason) this.log(`   Reason: ${status.reason}`);
 
-        return this.withTelemetry(
+        return this.finalizeHuntResult(
+          input,
           {
             success: true,
             defunctStatus: status,
@@ -507,7 +549,8 @@ export class Hunter {
         if (ctx.queueItemId) {
           ctx.skipAnalysis = true;
           this.log(`⚠️ Duplicate detected, skipping expensive analysis`);
-          return this.withTelemetry(
+          return this.finalizeHuntResult(
+            input,
             {
               success: true,
               toolId: ctx.research.existingToolId,
@@ -678,7 +721,8 @@ export class Hunter {
         this.log(`Tokens: ${ctx.tokensUsed}, Duration: ${Date.now() - ctx.startTime}ms`);
 
         // Don't clear checkpoint - item is in research_complete status
-        return this.withTelemetry(
+        return this.finalizeHuntResult(
+          input,
           {
             success: true,
             toolId: persistence.toolId,
@@ -718,7 +762,8 @@ export class Hunter {
 
           if (!saved) {
             this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
-            return this.withTelemetry(
+            return this.finalizeHuntResult(
+              input,
               {
                 success: false,
                 error:
@@ -756,7 +801,8 @@ export class Hunter {
           await this.queue.clearCheckpoint(ctx.queueItemId, this.log.bind(this));
         }
 
-        return this.withTelemetry(
+        return this.finalizeHuntResult(
+          input,
           {
             success: true,
             toolId: persistence.toolId,
@@ -770,7 +816,8 @@ export class Hunter {
       }
 
       // If persistence was skipped, return partial result
-      return this.withTelemetry(
+      return this.finalizeHuntResult(
+        input,
         {
           success: true,
           tokensUsed: ctx.tokensUsed,
@@ -782,7 +829,8 @@ export class Hunter {
     } catch (error) {
       const err = error as Error;
       this.log(`❌ Hunt failed: ${err.message}`);
-      return this.withTelemetry(
+      return this.finalizeHuntResult(
+        input,
         {
           success: false,
           error: err.message,
