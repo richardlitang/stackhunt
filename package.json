@@ -63,6 +63,7 @@
     "qa:diff-compare-snapshot": "npx tsx scripts/diff-compare-runtime-vs-snapshot.ts",
     "qa:compile-shadow-snapshots": "npx tsx scripts/compile-shadow-snapshots.ts",
     "qa:publish-shadow-snapshots": "npx tsx scripts/publish-shadow-snapshots.ts",
+    "qa:hunt-costs": "npx tsx scripts/report-hunt-costs.ts",
     "import-ideas": "npx tsx scripts/import-content-ideas.ts",
     "queue-ideas": "npx tsx scripts/queue-content-ideas.ts",
     "regenerate-embeddings": "npx tsx scripts/regenerate-embeddings.ts",
