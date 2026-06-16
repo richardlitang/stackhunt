@@ -19,6 +19,20 @@ export default {
           900: '#7c2d12',
           950: '#431407',
         },
+        // Decision instrument palette
+        ink: {
+          950: '#0B0B0D',
+          900: '#141417',
+          800: '#1C1B1E',
+          border: '#26241F',
+        },
+        paper: {
+          DEFAULT: '#EDEAE3',
+          muted: '#9A968C',
+        },
+        signal: {
+          DEFAULT: '#E8B14C',
+        },
         // shadcn/ui semantic colors using CSS variables
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -71,6 +85,8 @@ export default {
         display: ['Cal Sans', 'Inter', 'system-ui', 'sans-serif'],
         headline: ['Manrope', 'Inter', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
+        grotesk: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
