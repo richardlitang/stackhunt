@@ -23,7 +23,7 @@ import {
 import { HunterLogger } from './services/logger';
 import { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';
 import { buildHuntTelemetryInsertPayload } from './telemetry-persistence';
-import { isLlmEligibleScoutSource } from './utils';
+import { scoutSourceCounts, passesSourcePreflight } from './preflight-sources';
 import type {
   HunterConfig,
   HunterInput,
@@ -571,42 +571,14 @@ export class Hunter {
       // Pre-flight check: Validate sufficient source material before analysis
       // Saves research for dedup, but skips analysis if insufficient data
       if (!ctx.skipAnalysis && ctx.research && ctx.huntType !== 'price_only') {
-        const passesPreflight = (eligibleCount: number, officialCount: number): boolean => {
-          // Adaptive threshold: allow 2 eligible sources when we have at least 2 official sources.
-          // This prevents over-blocking well-documented tools while preserving strictness for weak evidence.
-          const baseMinEligible = ctx.contextTitle ? 3 : 4;
-          const adaptiveMinEligible =
-            officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
-          const minOfficialSources = 1;
-          return eligibleCount >= adaptiveMinEligible && officialCount >= minOfficialSources;
-        };
+        const hasContext = Boolean(ctx.contextTitle);
+        const counts = scoutSourceCounts(ctx.research.scoutResult.raw_sources);
+        const preflight = passesSourcePreflight(counts, { hasContext });
 
-        const scout = ctx.research.scoutResult;
-        const reviewCount = scout.raw_sources.filter(
-          (source) => source.intent_tags.includes('reviews') && isLlmEligibleScoutSource(source)
-        ).length;
-        const tribalCount = scout.raw_sources.filter(
-          (source) => source.source_type === 'community' && isLlmEligibleScoutSource(source)
-        ).length;
-        const officialCount = scout.raw_sources
-          .filter((source) => ['official', 'docs', 'support', 'legal'].includes(source.source_type))
-          .filter((source) => isLlmEligibleScoutSource(source)).length;
-        const pricingCount = scout.raw_sources.filter(
-          (source) => source.intent_tags.includes('pricing') && isLlmEligibleScoutSource(source)
-        ).length;
-        const eligibleCount = scout.raw_sources.filter((source) =>
-          isLlmEligibleScoutSource(source)
-        ).length;
-        const _totalSnippets = reviewCount + tribalCount + pricingCount;
-
-        if (!passesPreflight(eligibleCount, officialCount)) {
-          const baseMinEligible = ctx.contextTitle ? 3 : 4;
-          const adaptiveMinEligible =
-            officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
-          const minOfficialSources = 1;
+        if (!preflight.passed) {
           if (resumedResearchFromCheckpoint) {
             this.log(
-              `↻ Resumed checkpoint failed pre-flight (${eligibleCount} eligible, ${officialCount} official). Re-running fresh research once.`
+              `↻ Resumed checkpoint failed pre-flight (${counts.eligible} eligible, ${counts.official} official). Re-running fresh research once.`
             );
             this.logger?.startPhase('research');
             const freshResearch = await executeResearchPhase(ctx, deps);
@@ -619,37 +591,18 @@ export class Hunter {
             resumedResearchFromCheckpoint = false;
 
             // Re-evaluate pre-flight with fresh research output
-            const freshScout = freshResearch.scoutResult;
-            const freshReviewCount = freshScout.raw_sources.filter(
-              (source) => source.intent_tags.includes('reviews') && isLlmEligibleScoutSource(source)
-            ).length;
-            const freshTribalCount = freshScout.raw_sources.filter(
-              (source) => source.source_type === 'community' && isLlmEligibleScoutSource(source)
-            ).length;
-            const freshOfficialCount = freshScout.raw_sources
-              .filter((source) =>
-                ['official', 'docs', 'support', 'legal'].includes(source.source_type)
-              )
-              .filter((source) => isLlmEligibleScoutSource(source)).length;
-            const freshPricingCount = freshScout.raw_sources.filter(
-              (source) => source.intent_tags.includes('pricing') && isLlmEligibleScoutSource(source)
-            ).length;
-            const freshEligibleCount = freshScout.raw_sources.filter((source) =>
-              isLlmEligibleScoutSource(source)
-            ).length;
-            if (passesPreflight(freshEligibleCount, freshOfficialCount)) {
+            const freshCounts = scoutSourceCounts(freshResearch.scoutResult.raw_sources);
+            const freshPreflight = passesSourcePreflight(freshCounts, { hasContext });
+            if (freshPreflight.passed) {
               this.log(
-                `✅ Pre-flight passed after fresh research: ${freshEligibleCount} eligible sources (${freshReviewCount} reviews, ${freshTribalCount} tribal, ${freshPricingCount} pricing, ${freshOfficialCount} official)`
+                `✅ Pre-flight passed after fresh research: ${freshCounts.eligible} eligible sources (${freshCounts.review} reviews, ${freshCounts.tribal} tribal, ${freshCounts.pricing} pricing, ${freshCounts.official} official)`
               );
             } else {
-              const freshBaseMinEligible = ctx.contextTitle ? 3 : 4;
-              const freshAdaptiveMinEligible =
-                freshOfficialCount >= 2 ? Math.min(freshBaseMinEligible, 2) : freshBaseMinEligible;
               this.log(`⚠️  Fresh research still insufficient for pre-flight.`);
               this.log(
-                `   Found: ${freshEligibleCount} eligible sources (${freshReviewCount} reviews, ${freshTribalCount} tribal, ${freshPricingCount} pricing, ${freshOfficialCount} official)`
+                `   Found: ${freshCounts.eligible} eligible sources (${freshCounts.review} reviews, ${freshCounts.tribal} tribal, ${freshCounts.pricing} pricing, ${freshCounts.official} official)`
               );
-              this.log(`   Required: ${freshAdaptiveMinEligible}+ eligible, 1+ official`);
+              this.log(`   Required: ${freshPreflight.minEligible}+ eligible, 1+ official`);
               this.log(`   Saving research data but skipping analysis to save API credits`);
               this.log(`   Re-run later to check if more sources available`);
               ctx.skipAnalysis = true;
@@ -661,10 +614,10 @@ export class Hunter {
             const huntType = ctx.contextTitle ? 'contextual' : 'discovery';
             this.log(`⚠️  Pre-flight: Insufficient source material for ${huntType} hunt`);
             this.log(
-              `   Found: ${eligibleCount} eligible sources (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing, ${officialCount} official)`
+              `   Found: ${counts.eligible} eligible sources (${counts.review} reviews, ${counts.tribal} tribal, ${counts.pricing} pricing, ${counts.official} official)`
             );
             this.log(
-              `   Required: ${adaptiveMinEligible}+ eligible, ${minOfficialSources}+ official`
+              `   Required: ${preflight.minEligible}+ eligible, ${preflight.minOfficial}+ official`
             );
             this.log(`   Saving research data but skipping analysis to save API credits`);
             this.log(`   Re-run later to check if more sources available`);
@@ -676,7 +629,7 @@ export class Hunter {
           }
         } else {
           this.log(
-            `✅ Pre-flight passed: ${eligibleCount} eligible sources (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing, ${officialCount} official)`
+            `✅ Pre-flight passed: ${counts.eligible} eligible sources (${counts.review} reviews, ${counts.tribal} tribal, ${counts.pricing} pricing, ${counts.official} official)`
           );
         }
       }
