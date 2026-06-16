@@ -11,6 +11,7 @@ export type ModelTier = 'FAST_CHEAP' | 'QUALITY' | 'ESCALATION';
 export type HunterModelStage =
   | 'research_extraction'
   | 'analysis_synthesis'
+  | 'analysis_synthesis_escalation'
   | 'batch_cache'
   | 'batch_synthesis'
   | 'keyword_parser'
@@ -27,6 +28,7 @@ const DEFAULT_MODELS: Record<ModelTier, string> = {
 const STAGE_TIERS: Record<HunterModelStage, ModelTier> = {
   research_extraction: 'FAST_CHEAP',
   analysis_synthesis: 'QUALITY',
+  analysis_synthesis_escalation: 'ESCALATION',
   batch_cache: 'FAST_CHEAP',
   batch_synthesis: 'FAST_CHEAP',
   keyword_parser: 'FAST_CHEAP',

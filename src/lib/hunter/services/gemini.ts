@@ -21,7 +21,11 @@ import { classifyGeminiError } from '../errors';
 import { geminiCircuit } from './circuit-breaker';
 import { buildExtractionPrompt } from '../prompts/extraction';
 import { sanitizeUrl } from '../../utils/url';
-import { getGeminiModelForStage, getGeminiModelForTier } from './model-router';
+import {
+  getGeminiModelForStage,
+  getGeminiModelForTier,
+  type HunterModelStage,
+} from './model-router';
 import { generateContentWithThinkingFallback } from './gemini-compat';
 import { normalizeAnalysisResponseObject } from './analysis-response';
 import {
@@ -846,13 +850,14 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
    */
   async synthesize(
     input: SynthesizeInput,
-    withRetry?: <T>(fn: () => Promise<T>, operation: string, maxRetries?: number) => Promise<T>
+    withRetry?: <T>(fn: () => Promise<T>, operation: string, maxRetries?: number) => Promise<T>,
+    options?: { modelStage?: HunterModelStage }
   ): Promise<{
     analysis: HunterAnalysis;
     tokensUsed: number;
     generationQuality: SynthesisGenerationQuality;
   }> {
-    const model = getGeminiModelForStage('analysis_synthesis');
+    const model = getGeminiModelForStage(options?.modelStage ?? 'analysis_synthesis');
     const maxSchemaAttempts = 2;
     const synthesisThinkingLevel = this.parseThinkingLevel(
       process.env.HUNTER_GEMINI_SYNTHESIS_THINKING_LEVEL,
