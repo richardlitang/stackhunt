@@ -2,9 +2,9 @@
 
 Last verified: 2026-06-16
 
-**Goal:** After the interview-readiness-hardening plan landed (Phases 1–5, commits `cd7362c`→`d6a7958`), address the highest-value architecture debt that plan did *not* cover: the `hunt()` god-method's boolean choreography + duplicated preflight logic, and the dead `ESCALATION` model tier that leaves synthesis with no quality-escalation path. Close out the finished plan first.
+**Goal:** After the interview-readiness-hardening plan landed (Phases 1–5, commits `cd7362c`→`d6a7958`), address the highest-value architecture debt that plan did _not_ cover: the `hunt()` god-method's boolean choreography + duplicated preflight logic, and the dead `ESCALATION` model tier that leaves synthesis with no quality-escalation path. Close out the finished plan first.
 
-**Non-goal:** No change to hunt *semantics* or published content. P1 is behavior-preserving (characterization-tested). P2 adds a new escalation path gated behind weak-quality signals only.
+**Non-goal:** No change to hunt _semantics_ or published content. P1 is behavior-preserving (characterization-tested). P2 adds a new escalation path gated behind weak-quality signals only.
 
 **Tech Stack:** TypeScript, Astro 5, Supabase, Vitest, Gemini via `@google/genai`.
 

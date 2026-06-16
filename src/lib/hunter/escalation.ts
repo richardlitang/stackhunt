@@ -60,7 +60,9 @@ export function shouldEscalateSynthesis(
     );
   }
   if (quality.abstainedFields.length >= config.minAbstainedFields) {
-    reasons.push(`abstained_fields ${quality.abstainedFields.length} >= ${config.minAbstainedFields}`);
+    reasons.push(
+      `abstained_fields ${quality.abstainedFields.length} >= ${config.minAbstainedFields}`
+    );
   }
 
   return { escalate: reasons.length > 0, reasons };

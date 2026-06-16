@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  scoutSourceCounts,
-  passesSourcePreflight,
-} from '@/lib/hunter/preflight-sources';
+import { scoutSourceCounts, passesSourcePreflight } from '@/lib/hunter/preflight-sources';
 import type { RawSource } from '@/lib/hunter/types';
 
 /**
@@ -75,9 +72,9 @@ describe('passesSourcePreflight (characterization)', () => {
       minEligible: 3,
       minOfficial: 1,
     });
-    expect(
-      passesSourcePreflight({ eligible: 2, official: 1 }, { hasContext: true }).passed
-    ).toBe(false);
+    expect(passesSourcePreflight({ eligible: 2, official: 1 }, { hasContext: true }).passed).toBe(
+      false
+    );
   });
 
   it('discovery hunt needs 4 eligible by default', () => {
