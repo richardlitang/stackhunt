@@ -24,6 +24,13 @@ import { HunterLogger } from './services/logger';
 import { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';
 import { buildHuntTelemetryInsertPayload } from './telemetry-persistence';
 import { scoutSourceCounts, passesSourcePreflight } from './preflight-sources';
+import {
+  markInsufficientSources,
+  markResearchBudgetCapped,
+  markPriceOnly,
+  markBatchDeferred,
+  markDuplicateReuse,
+} from './hunt-transitions';
 import type {
   HunterConfig,
   HunterInput,
@@ -488,7 +495,7 @@ export class Hunter {
           this.log(
             `🛑 Token budget exceeded after research (${ctx.tokensUsed}/${maxTokens}). Saving research only.`
           );
-          ctx.skipSynthesis = true;
+          markResearchBudgetCapped(ctx);
         }
         this.logger?.endPhase({
           tokens_used: ctx.research.tokensUsed,
@@ -547,7 +554,7 @@ export class Hunter {
       // Early exit: Hard duplicate detected (unless forceUpdate)
       if (ctx.research.isDuplicate && !ctx.forceUpdate) {
         if (ctx.queueItemId) {
-          ctx.skipAnalysis = true;
+          markDuplicateReuse(ctx);
           this.log(`⚠️ Duplicate detected, skipping expensive analysis`);
           return this.finalizeHuntResult(
             input,
@@ -605,9 +612,7 @@ export class Hunter {
               this.log(`   Required: ${freshPreflight.minEligible}+ eligible, 1+ official`);
               this.log(`   Saving research data but skipping analysis to save API credits`);
               this.log(`   Re-run later to check if more sources available`);
-              ctx.skipAnalysis = true;
-              ctx.skipSynthesis = true;
-              ctx.insufficientSources = true;
+              markInsufficientSources(ctx);
             }
             // Continue to next phase decision without applying the old insufficient result
           } else if (!ctx.skipAnalysis) {
@@ -623,9 +628,7 @@ export class Hunter {
             this.log(`   Re-run later to check if more sources available`);
 
             // Skip analysis and persist via the research-only path.
-            ctx.skipAnalysis = true;
-            ctx.skipSynthesis = true;
-            ctx.insufficientSources = true; // Flag for persistence phase
+            markInsufficientSources(ctx);
           }
         } else {
           this.log(
@@ -638,18 +641,18 @@ export class Hunter {
       // PHASE 2: ANALYSIS (Synthesize + Embed + Logo)
       // ===================================================================
       if (ctx.huntType === 'price_only') {
-        ctx.skipAnalysis = true;
+        markPriceOnly(ctx);
         this.log(`🧾 price_only hunt: skipping analysis phase`);
       }
 
       if (!ctx.skipAnalysis && ctx.tokensUsed >= softTokenThreshold) {
-        ctx.skipSynthesis = true;
+        markResearchBudgetCapped(ctx);
         this.log(`[Budget] Near token cap (${ctx.tokensUsed}/${maxTokens}). Saving research only.`);
       }
 
       // Two-stage pipeline: Skip analysis if in batch mode
       if (ctx.skipSynthesis) {
-        ctx.skipAnalysis = true;
+        markBatchDeferred(ctx);
         this.log(`[Two-Stage] Skipping analysis phase (will be done in batch)`);
 
         // Go directly to persistence to save research data
