@@ -9,7 +9,7 @@
 The current homepage (`src/pages/index.astro`) is competent but generic — it is, almost line-for-line, the canonical "AI-generated dark SaaS" look:
 
 - `bg-zinc-950` + single indigo accent + 2%-opacity grid pattern (AI default look #2: near-black + one accent).
-- Centered hero whose primary action is a **search box** ("Search tools by name…").
+- Centered hero whose primary action is a **name-only search box** ("Search tools by name…") — it finds a tool but offers no decision value (no score, no verdict).
 - Two stacked generic card grids ("Featured Tools", "Comparisons") each ending in "View all →".
 
 The deeper problem is the **absence of a point of view**. Nothing on the page could only have come from StackHunt. The site's real assets — scored, honest, context-aware verdicts — are hidden behind a search box.
@@ -28,21 +28,32 @@ This is enough to surface **real scores and real verdict text** — no placehold
 
 ## Concept: the homepage IS a decision instrument
 
-### Signature element — the "decision sentence" hero
+**Search stays the primary action** (user decision). Decision speed is served by making the
+*search itself* a decision tool, plus a secondary quick-decide element — not by replacing search.
 
-The hero is a fill-in-the-blank the user completes, replacing the search box as the primary action:
+### Signature element — the "decision search" + verdict scorecard
 
-> **Find the best `[ category ▾ ]` for `[ who/what ▾ ]`** → *Show me*
+The signature is the combination of: (1) a prominent search whose dropdown shows **real scores and
+verdict one-liners** (not just names), and (2) the verdict-scorecard aesthetic carried through the
+page. Search doesn't just find a tool — it shows you the call as you type.
 
-- Two inline pill-style dropdowns populated from real categories/contexts.
-- Resolves directly to the matching `/best/[slug]` context page (the existing decision pages).
-- Free-text tool search is demoted to a quiet "or search by name →" fallback link beneath the sentence — kept, not primary.
-- This is the page's one bold move (the "spend your boldness in one place" principle). Everything else stays quiet and disciplined around it.
+**Primary: decision search (hero)**
+- Keep the existing search box + autocomplete as the dominant hero action.
+- Upgrade the autocomplete rows to show `avg_score` (mono, color-coded by verdict scale) and a
+  truncated `verdict` one-liner alongside the name — so even search answers "is it worth it?"
+- Requires adding `avg_score` and `verdict` to the cached select in
+  `src/pages/api/search/tool-index.ts` (cheap; already server-cached).
 
-**Resolution behavior:**
-- The category dropdown lists real categories; the "for" dropdown lists audience/use contexts.
-- On submit, resolve to the best-matching existing context slug. If no exact context exists, fall back to `/best?category=<slug>` (or the closest available listing route — to be confirmed against actual routes during planning).
-- Keyboard accessible; works without JS as a progressively-enhanced `<form>` (graceful fallback to a listing page).
+**Secondary: quick-decide row (below search)**
+- A lightweight "or jump to a decision: best `[ category ▾ ]` for `[ who/what ▾ ]` → Show me".
+- Two compact dropdowns from real categories/contexts; resolves to the matching `/best/[slug]`.
+- This is secondary chrome beneath the primary search, not the hero's main object.
+
+**Resolution behavior (quick-decide):**
+- Category dropdown lists real categories; the "for" dropdown lists audience/use contexts.
+- On submit, resolve to the best-matching existing context slug. No-match fallback: `/best`
+  (index exists at `src/pages/best/index.astro`). Exact resolution logic pinned during planning.
+- Keyboard accessible; works without JS as a progressively-enhanced `<form>`.
 
 ### Below the fold — "The Verdicts" (show verdicts, not cards)
 
@@ -55,7 +66,7 @@ Replace the "Featured Tools" card grid with a **verdict row list** in a scorecar
 ```
 
 - Columns: score (mono, color-coded by verdict scale) · name · `verdict` one-liner · pricing signal · link.
-- **Low scores stay visible** — showing a 6.1 "skip unless…" is the proof of honesty and reinforces the speed promise ("we already did the deciding").
+- **Low scores stay visible (decided: keep)** — showing a 6.1 "skip unless…" is the proof of honesty and reinforces the speed promise ("we already did the deciding"). Kept tasteful: the strip is ordered high→low so it still reads as a credible ranking, not a wall of dunks; the rose color is used sparingly and only on the score.
 - Sourced from `getFeaturedItems`. Rows, not floaty cards.
 
 ### "Decide faster" — contexts as decisions
@@ -92,9 +103,11 @@ Fonts load via the existing Google Fonts link in `BaseLayout.astro`; update the 
 ┌──────────────────────────────────────────────┐
 │ N tools scored · updated daily                 │  ← mono eyebrow, real number
 │                                                │
-│  Find the best [ design tools ▾ ]              │  ← display, left-aligned
-│  for  [ solo founders ▾ ]      ( Show me → )   │  ← the signature
-│  or search by name →                           │  ← quiet fallback
+│  [ 🔍 search tools…                       ⌘K ] │  ← PRIMARY: decision search
+│   ┌── dropdown (on type) ──────────────────┐   │
+│   │ 9.2 │ Linear  "Worth it if…"   $$       │   │  ← rows show score + verdict
+│   └────────────────────────────────────────┘   │
+│  or jump to: best [ cat ▾ ] for [ who ▾ ] → │   │  ← secondary quick-decide
 ├──────────────────────────────────────────────┤
 │  THE VERDICTS                          all →   │
 │  ┌──────────────────────────────────────────┐ │
@@ -115,6 +128,24 @@ Fonts load via the existing Google Fonts link in `BaseLayout.astro`; update the 
 - Verdict rows use the actual `verdict` one-liner from the DB.
 - Section labels short and functional ("THE VERDICTS", "DECIDE FASTER").
 
+## Demo-only banner (site-wide, first visit)
+
+A dismissible "this site is a demo" notice shown on a visitor's **first load of any page** (not
+homepage-only), so it must live in `BaseLayout.astro`, not `index.astro`.
+
+- **Form:** a modal/popup overlay on first visit (per the request: "popup banner on first load").
+  Centered card on a dimmed backdrop, warm-black surface + amber accent, one "Got it" dismiss action.
+- **Once per visitor:** set a `localStorage` flag (e.g. `sh_demo_ack`) on dismiss; do not show again
+  if the flag is present. Shown again only if storage is cleared.
+- **Copy (plain, non-apologetic):** e.g. *"Heads up — StackHunt is a demo. Tools, scores, and
+  verdicts are illustrative and may not reflect real products."* (final wording in planning.)
+- **Accessibility:** focus moves to the dialog on open, ESC and the dismiss button close it, focus
+  returns to body, `role="dialog"` + `aria-modal`, backdrop click closes. Respects
+  `prefers-reduced-motion` for the fade/scale-in.
+- **No-JS:** if JS is unavailable the modal simply never blocks content (progressive enhancement).
+- New component: `src/components/DemoBanner.tsx` (React island, `client:load`) or an Astro component
+  with inline script — decided in planning; React island preferred for focus management.
+
 ## Quality floor
 
 - Responsive down to mobile (hero sentence stacks; dropdowns become full-width selects).
@@ -125,8 +156,9 @@ Fonts load via the existing Google Fonts link in `BaseLayout.astro`; update the 
 
 ## Out of scope
 
-- No changes to nav/header/footer beyond font wiring in `BaseLayout`.
-- No new DB columns or RPCs — uses existing fields only.
+- No changes to nav/header/footer beyond font wiring + the demo banner mount in `BaseLayout`.
+- No new DB columns or RPCs — uses existing fields only (search index gains `avg_score`, `verdict`
+  in its existing select; no schema change).
 - No redesign of `/best`, `/tool`, `/compare` pages (only links into them).
 
 ## Skill improvement — global `frontend-design`
@@ -145,4 +177,4 @@ The skill already *names* the three AI-default looks but gives no **positive** c
 ## Verification
 
 - `npm run typecheck`, `npm run build`, `npm run test` must pass.
-- Manual: homepage renders with real scores/verdicts; decision form resolves to a real `/best/[slug]`; keyboard + reduced-motion + no-JS fallback all work.
+- Manual: homepage renders with real scores/verdicts; **search dropdown shows score + verdict**; quick-decide resolves to a real `/best/[slug]`; demo banner shows once then never again after dismiss (localStorage); keyboard + reduced-motion + no-JS fallbacks all work.
