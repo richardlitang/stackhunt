@@ -2,6 +2,7 @@
 import type { MetaProps } from '@/lib/seo';
 import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/seo';
 import MyStackWidget from '@/components/MyStackWidget';
+import DemoBanner from '@/components/DemoBanner';
 import '@/styles/globals.css';
 
 interface Props {
@@ -115,6 +116,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
 
     <!-- My Stack Widget (floating) -->
     <MyStackWidget client:load />
+    <DemoBanner client:load />
 
     <!-- Footer -->
     <footer class="border-t border-zinc-800 bg-zinc-900">
