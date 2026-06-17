@@ -20,9 +20,13 @@ type ToolIndexEntry = {
 };
 
 export function mapToolIndexEntry(row: {
-  id: string; name: string; slug: string;
-  logo_url: string | null; short_description: string | null;
-  avg_score: number | null; verdict: string | null;
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  short_description: string | null;
+  avg_score: number | null;
+  verdict: string | null;
 }): ToolIndexEntry {
   return {
     id: row.id,

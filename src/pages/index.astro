@@ -46,11 +46,14 @@ const meta = {
         {toolCount}+ tools scored · updated daily
       </p>
 
-      <h1 class="mt-4 max-w-2xl font-grotesk text-4xl font-semibold leading-[1.05] tracking-tight text-paper sm:text-5xl">
+      <h1
+        class="mt-4 max-w-2xl font-grotesk text-4xl font-semibold leading-[1.05] tracking-tight text-paper sm:text-5xl"
+      >
         Stop researching. <span class="text-signal">See the verdict.</span>
       </h1>
       <p class="mt-4 max-w-xl text-base text-paper-muted">
-        Search any tool and get the call — score, price, and whether it's worth it — before you open a single tab.
+        Search any tool and get the call — score, price, and whether it's worth it — before you open
+        a single tab.
       </p>
 
       <!-- Primary: decision search -->
@@ -70,10 +73,22 @@ const meta = {
             placeholder="Search any tool…"
             class="w-full rounded-xl border border-ink-border bg-ink-900 py-3.5 pl-11 pr-4 text-base text-paper placeholder-paper-muted transition focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50"
           />
-          <svg class="absolute left-3.5 top-4 h-5 w-5 text-paper-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          <svg
+            class="absolute left-3.5 top-4 h-5 w-5 text-paper-muted"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
-          <kbd class="absolute right-3 top-3 hidden rounded border border-ink-border bg-ink-800 px-1.5 py-0.5 font-mono text-xs text-paper-muted sm:inline-block">⌘K</kbd>
+          <kbd
+            class="absolute right-3 top-3 hidden rounded border border-ink-border bg-ink-800 px-1.5 py-0.5 font-mono text-xs text-paper-muted sm:inline-block"
+            >⌘K</kbd
+          >
 
           <div
             id="home-tool-suggestions"
@@ -82,7 +97,10 @@ const meta = {
             class="absolute left-0 right-0 top-full z-20 mt-3 hidden overflow-hidden rounded-2xl border border-ink-border bg-ink-950/95 shadow-2xl backdrop-blur-sm"
           >
             <div id="home-tool-suggestions-list" class="max-h-96 overflow-y-auto p-2"></div>
-            <div id="home-tool-suggestions-footer" class="border-t border-ink-border px-4 py-2.5 font-mono text-xs text-paper-muted">
+            <div
+              id="home-tool-suggestions-footer"
+              class="border-t border-ink-border px-4 py-2.5 font-mono text-xs text-paper-muted"
+            >
               Press Enter to search all tools
             </div>
           </div>
@@ -90,17 +108,31 @@ const meta = {
       </div>
 
       <!-- Secondary: quick-decide -->
-      <form id="home-decide-form" class="mt-4 flex flex-wrap items-center gap-2 text-sm text-paper-muted">
+      <form
+        id="home-decide-form"
+        class="mt-4 flex flex-wrap items-center gap-2 text-sm text-paper-muted"
+      >
         <span>or jump to a decision —</span>
         <span>best</span>
-        <select id="decide-category" aria-label="Category" class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50">
+        <select
+          id="decide-category"
+          aria-label="Category"
+          class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50"
+        >
           {decideCategories.map((cat) => <option value={cat.slug}>{cat.name}</option>)}
         </select>
         <span>for</span>
-        <select id="decide-context" aria-label="Use case" class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50">
+        <select
+          id="decide-context"
+          aria-label="Use case"
+          class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50"
+        >
           {decideContexts.map((ctx) => <option value={ctx.slug}>{ctx.title}</option>)}
         </select>
-        <button type="submit" class="rounded-lg bg-signal px-3 py-1.5 font-medium text-ink-950 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-signal/50">
+        <button
+          type="submit"
+          class="rounded-lg bg-signal px-3 py-1.5 font-medium text-ink-950 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-signal/50"
+        >
           Show me →
         </button>
         <noscript><a href="/best" class="underline">Browse all lists →</a></noscript>
@@ -112,13 +144,22 @@ const meta = {
   <section class="border-y border-ink-border bg-ink-900 py-4">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex items-center gap-3 overflow-x-auto scrollbar-hide">
-        <span class="shrink-0 font-mono text-xs uppercase tracking-[0.16em] text-paper-muted">Browse</span>
-        {categories.slice(0, 10).map((cat) => (
-          <a href={`/categories/${cat.slug}`} class="shrink-0 rounded-lg border border-ink-border bg-ink-900 px-3 py-1.5 text-sm text-paper-muted transition hover:border-signal/50 hover:text-paper">
-            {cat.name}
-          </a>
-        ))}
-        <a href="/categories" class="shrink-0 text-sm text-paper-muted transition hover:text-paper">View all →</a>
+        <span class="shrink-0 font-mono text-xs uppercase tracking-[0.16em] text-paper-muted"
+          >Browse</span
+        >
+        {
+          categories.slice(0, 10).map((cat) => (
+            <a
+              href={`/categories/${cat.slug}`}
+              class="shrink-0 rounded-lg border border-ink-border bg-ink-900 px-3 py-1.5 text-sm text-paper-muted transition hover:border-signal/50 hover:text-paper"
+            >
+              {cat.name}
+            </a>
+          ))
+        }
+        <a href="/categories" class="shrink-0 text-sm text-paper-muted transition hover:text-paper"
+          >View all →</a
+        >
       </div>
     </div>
   </section>
@@ -131,57 +172,86 @@ const meta = {
           <h2 class="font-grotesk text-2xl font-semibold text-paper">The verdicts</h2>
           <p class="mt-1 text-sm text-paper-muted">What's worth it — and what isn't.</p>
         </div>
-        <a href="/tools" class="text-sm text-paper-muted transition hover:text-paper">All tools →</a>
+        <a href="/tools" class="text-sm text-paper-muted transition hover:text-paper">All tools →</a
+        >
       </div>
 
-      <div class="mt-6 divide-y divide-ink-border overflow-hidden rounded-xl border border-ink-border">
-        {featuredTools.map((tool) => {
-          const score = formatScore(tool.avg_score);
-          const colors = getScoreColor(tool.avg_score || 0);
-          const verdict = truncateVerdict(tool.verdict, 90);
-          return (
-            <a href={`/tool/${tool.slug}`} class="group flex items-center gap-4 bg-ink-900 px-4 py-3.5 transition hover:bg-ink-800">
-              <span class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border font-mono text-base font-semibold ${colors.bg} ${colors.text} ${colors.border}`}>
-                {score ?? '—'}
-              </span>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-baseline gap-2">
-                  <span class="truncate font-grotesk text-[15px] font-semibold text-paper">{tool.name}</span>
-                  {tool.category && <span class="shrink-0 font-mono text-xs text-paper-muted">{tool.category.name}</span>}
+      <div
+        class="mt-6 divide-y divide-ink-border overflow-hidden rounded-xl border border-ink-border"
+      >
+        {
+          featuredTools.map((tool) => {
+            const score = formatScore(tool.avg_score);
+            const colors = getScoreColor(tool.avg_score || 0);
+            const verdict = truncateVerdict(tool.verdict, 90);
+            return (
+              <a
+                href={`/tool/${tool.slug}`}
+                class="group flex items-center gap-4 bg-ink-900 px-4 py-3.5 transition hover:bg-ink-800"
+              >
+                <span
+                  class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border font-mono text-base font-semibold ${colors.bg} ${colors.text} ${colors.border}`}
+                >
+                  {score ?? '—'}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-baseline gap-2">
+                    <span class="truncate font-grotesk text-[15px] font-semibold text-paper">
+                      {tool.name}
+                    </span>
+                    {tool.category && (
+                      <span class="shrink-0 font-mono text-xs text-paper-muted">
+                        {tool.category.name}
+                      </span>
+                    )}
+                  </div>
+                  {verdict && <p class="mt-0.5 truncate text-sm text-paper-muted">{verdict}</p>}
                 </div>
-                {verdict && <p class="mt-0.5 truncate text-sm text-paper-muted">{verdict}</p>}
-              </div>
-              <span class="hidden shrink-0 font-mono text-xs uppercase tracking-wider text-paper-muted sm:inline">{formatPricingType(tool.pricing_type)}</span>
-              <span class="shrink-0 text-paper-muted transition group-hover:text-signal">→</span>
-            </a>
-          );
-        })}
+                <span class="hidden shrink-0 font-mono text-xs uppercase tracking-wider text-paper-muted sm:inline">
+                  {formatPricingType(tool.pricing_type)}
+                </span>
+                <span class="shrink-0 text-paper-muted transition group-hover:text-signal">→</span>
+              </a>
+            );
+          })
+        }
       </div>
     </div>
   </section>
 
   <!-- Decide faster -->
-  {featuredContexts && featuredContexts.length > 0 && (
-    <section class="border-t border-ink-border bg-ink-900 py-12">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <div class="flex items-end justify-between">
-          <div>
-            <h2 class="font-grotesk text-2xl font-semibold text-paper">Decide faster</h2>
-            <p class="mt-1 text-sm text-paper-muted">Pre-built "best X for Y" calls.</p>
-          </div>
-          <a href="/best" class="text-sm text-paper-muted transition hover:text-paper">All lists →</a>
-        </div>
-        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredContexts.map((ctx) => (
-            <a href={`/best/${ctx.slug}`} class="group rounded-xl border border-ink-border bg-ink-950 p-4 transition hover:border-signal/50">
-              <h3 class="font-grotesk text-sm font-semibold text-paper group-hover:text-signal">{ctx.title}</h3>
-              <p class="mt-1 font-mono text-xs text-paper-muted">{ctx.tool_count} tools compared</p>
+  {
+    featuredContexts && featuredContexts.length > 0 && (
+      <section class="border-t border-ink-border bg-ink-900 py-12">
+        <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div class="flex items-end justify-between">
+            <div>
+              <h2 class="font-grotesk text-2xl font-semibold text-paper">Decide faster</h2>
+              <p class="mt-1 text-sm text-paper-muted">Pre-built "best X for Y" calls.</p>
+            </div>
+            <a href="/best" class="text-sm text-paper-muted transition hover:text-paper">
+              All lists →
             </a>
-          ))}
+          </div>
+          <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {featuredContexts.map((ctx) => (
+              <a
+                href={`/best/${ctx.slug}`}
+                class="group rounded-xl border border-ink-border bg-ink-950 p-4 transition hover:border-signal/50"
+              >
+                <h3 class="font-grotesk text-sm font-semibold text-paper group-hover:text-signal">
+                  {ctx.title}
+                </h3>
+                <p class="mt-1 font-mono text-xs text-paper-muted">
+                  {ctx.tool_count} tools compared
+                </p>
+              </a>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
-  )}
+      </section>
+    )
+  }
 </BaseLayout>
 
 <style>
@@ -192,7 +262,6 @@ const meta = {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-
 </style>
 
 <script is:inline>
@@ -295,7 +364,8 @@ const meta = {
 
       if (matches.length === 0) {
         const empty = document.createElement('div');
-        empty.className = 'rounded-xl border border-ink-border bg-ink-900 px-4 py-3.5 text-sm text-paper-muted';
+        empty.className =
+          'rounded-xl border border-ink-border bg-ink-900 px-4 py-3.5 text-sm text-paper-muted';
         empty.textContent = 'No quick matches. Press Enter to search all tools.';
         list.replaceChildren(empty);
         openDropdown();
@@ -345,7 +415,8 @@ const meta = {
         body.append(top);
 
         const verdictText = typeof tool.verdict === 'string' ? tool.verdict.trim() : '';
-        const fallback = typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
+        const fallback =
+          typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
         const line = verdictText || fallback;
         if (line) {
           const desc = document.createElement('div');
@@ -432,5 +503,4 @@ const meta = {
       });
     }
   });
-
 </script>

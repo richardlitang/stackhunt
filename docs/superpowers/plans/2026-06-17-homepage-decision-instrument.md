@@ -26,11 +26,13 @@
 ### Task 1: Theme tokens — palette + fonts
 
 **Files:**
+
 - Modify: `tailwind.config.js` (`theme.extend.colors`, `theme.extend.fontFamily`)
 - Modify: `src/layouts/BaseLayout.astro` (Google Fonts `<link>` + preload, ~lines 60-75)
 - Test: `tests/config/theme-tokens.test.ts`
 
 **Interfaces:**
+
 - Produces: Tailwind classes `bg-ink-950 bg-ink-900 bg-ink-800 border-ink-border text-paper text-paper-muted text-signal bg-signal font-grotesk font-mono` available to all later tasks.
 
 - [ ] **Step 1: Write the failing test**
@@ -99,10 +101,10 @@ In `theme.extend.fontFamily`, add these two keys (keep existing keys):
 Replace the existing Google Fonts stylesheet `<link href="https://fonts.googleapis.com/css2?family=Inter...">` line with:
 
 ```html
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  rel="stylesheet"
+/>
 ```
 
 (Leave the existing Inter preload `<link rel="preload">` as-is.)
@@ -126,10 +128,12 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ### Task 2: Pure homepage helpers
 
 **Files:**
+
 - Create: `src/lib/homepage.ts`
 - Test: `tests/lib/homepage.test.ts`
 
 **Interfaces:**
+
 - Produces (used by Tasks 3, 4, 5):
   - `formatScore(avgScore: number | null | undefined): string | null` — integer string `"92"`, or `null` if no usable score (`0`/null/undefined).
   - `truncateVerdict(verdict: string | null | undefined, max?: number): string` — trimmed, ellipsized at `max` (default 80); `''` if empty.
@@ -226,10 +230,12 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ### Task 3: Decision-aware search index API
 
 **Files:**
+
 - Modify: `src/pages/api/search/tool-index.ts` (type, select, mapper)
 - Test: `tests/api/tool-index-mapper.test.ts`
 
 **Interfaces:**
+
 - Consumes: `formatScore`, `truncateVerdict` from `@/lib/homepage` (Task 2).
 - Produces: `mapToolIndexEntry(row)` exported pure function; `ToolIndexEntry` now also has `score: string | null` and `verdict: string`. The client dropdown (Task 4) reads `item.score` and `item.verdict`.
 
@@ -243,19 +249,33 @@ import { mapToolIndexEntry } from '@/pages/api/search/tool-index';
 describe('mapToolIndexEntry', () => {
   it('maps a row to a decision-aware index entry', () => {
     const entry = mapToolIndexEntry({
-      id: '1', name: 'Linear', slug: 'linear', logo_url: 'linear.app',
-      short_description: 'Issue tracker', avg_score: 92, verdict: '  Worth it if you live in your tracker.  ',
+      id: '1',
+      name: 'Linear',
+      slug: 'linear',
+      logo_url: 'linear.app',
+      short_description: 'Issue tracker',
+      avg_score: 92,
+      verdict: '  Worth it if you live in your tracker.  ',
     });
     expect(entry).toEqual({
-      id: '1', name: 'Linear', slug: 'linear', logo_url: 'linear.app',
-      short_description: 'Issue tracker', score: '92',
+      id: '1',
+      name: 'Linear',
+      slug: 'linear',
+      logo_url: 'linear.app',
+      short_description: 'Issue tracker',
+      score: '92',
       verdict: 'Worth it if you live in your tracker.',
     });
   });
   it('nulls out missing score and empty verdict', () => {
     const entry = mapToolIndexEntry({
-      id: '2', name: 'X', slug: 'x', logo_url: null, short_description: null,
-      avg_score: 0, verdict: null,
+      id: '2',
+      name: 'X',
+      slug: 'x',
+      logo_url: null,
+      short_description: null,
+      avg_score: 0,
+      verdict: null,
     });
     expect(entry.score).toBeNull();
     expect(entry.verdict).toBe('');
@@ -286,9 +306,13 @@ type ToolIndexEntry = {
 };
 
 export function mapToolIndexEntry(row: {
-  id: string; name: string; slug: string;
-  logo_url: string | null; short_description: string | null;
-  avg_score: number | null; verdict: string | null;
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  short_description: string | null;
+  avg_score: number | null;
+  verdict: string | null;
 }): ToolIndexEntry {
   return {
     id: row.id,
@@ -307,17 +331,17 @@ export function mapToolIndexEntry(row: {
 In `loadToolIndex`, change the select to include the new columns and use the mapper:
 
 ```ts
-    const { data, error } = await supabase
-      .from('items')
-      .select('id, name, slug, logo_url, short_description, avg_score, verdict')
-      .eq('type', 'tool')
-      .not('slug', 'is', null)
-      .order('name', { ascending: true })
-      .limit(MAX_TOOL_INDEX_SIZE);
+const { data, error } = await supabase
+  .from('items')
+  .select('id, name, slug, logo_url, short_description, avg_score, verdict')
+  .eq('type', 'tool')
+  .not('slug', 'is', null)
+  .order('name', { ascending: true })
+  .limit(MAX_TOOL_INDEX_SIZE);
 
-    if (error) throw error;
+if (error) throw error;
 
-    const items = (data || []).map((row) => mapToolIndexEntry(row as any));
+const items = (data || []).map((row) => mapToolIndexEntry(row as any));
 ```
 
 - [ ] **Step 5: Run test to verify it passes**
@@ -344,9 +368,11 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ### Task 4: Hero — decision search (primary) + quick-decide (secondary)
 
 **Files:**
+
 - Modify: `src/pages/index.astro` (hero `<section>` ~lines 40-154; inline suggestion script ~lines 335-440)
 
 **Interfaces:**
+
 - Consumes: `categories` (already fetched), `featuredContexts` (already fetched), `resolveDecisionHref` (server-side import from `@/lib/homepage`), the enriched search index (`item.score`, `item.verdict`) from Task 3.
 - Produces: rendered hero markup using the Task 1 palette/fonts. No new exports.
 
@@ -367,74 +393,106 @@ Then delete the now-unused `const quickContextLinks = featuredContexts.slice(0, 
 Replace the entire `<!-- Hero Section -->` `<section>...</section>` (lines ~40-154) with:
 
 ```astro
-  <!-- Hero: decision search -->
-  <section class="relative overflow-hidden bg-ink-950">
-    <div class="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-      <p class="font-mono text-xs uppercase tracking-[0.18em] text-paper-muted">
-        {toolCount}+ tools scored · updated daily
-      </p>
+<!-- Hero: decision search -->
+<section class="relative overflow-hidden bg-ink-950">
+  <div class="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+    <p class="font-mono text-xs uppercase tracking-[0.18em] text-paper-muted">
+      {toolCount}+ tools scored · updated daily
+    </p>
 
-      <h1 class="mt-4 max-w-2xl font-grotesk text-4xl font-semibold leading-[1.05] tracking-tight text-paper sm:text-5xl">
-        Stop researching. <span class="text-signal">See the verdict.</span>
-      </h1>
-      <p class="mt-4 max-w-xl text-base text-paper-muted">
-        Search any tool and get the call — score, price, and whether it's worth it — before you open a single tab.
-      </p>
+    <h1
+      class="mt-4 max-w-2xl font-grotesk text-4xl font-semibold leading-[1.05] tracking-tight text-paper sm:text-5xl"
+    >
+      Stop researching. <span class="text-signal">See the verdict.</span>
+    </h1>
+    <p class="mt-4 max-w-xl text-base text-paper-muted">
+      Search any tool and get the call — score, price, and whether it's worth it — before you open a
+      single tab.
+    </p>
 
-      <!-- Primary: decision search -->
-      <div class="mt-8 max-w-xl">
-        <form action="/tools" method="get" class="relative" id="home-search-form">
-          <input
-            id="home-tools-search"
-            type="text"
-            name="q"
-            autocomplete="off"
-            aria-label="Search tools by name"
-            aria-autocomplete="list"
-            aria-controls="home-tool-suggestions"
-            aria-expanded="false"
-            minlength="2"
-            maxlength="64"
-            placeholder="Search any tool…"
-            class="w-full rounded-xl border border-ink-border bg-ink-900 py-3.5 pl-11 pr-4 text-base text-paper placeholder-paper-muted transition focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50"
-          />
-          <svg class="absolute left-3.5 top-4 h-5 w-5 text-paper-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
-          <kbd class="absolute right-3 top-3 hidden rounded border border-ink-border bg-ink-800 px-1.5 py-0.5 font-mono text-xs text-paper-muted sm:inline-block">⌘K</kbd>
+    <!-- Primary: decision search -->
+    <div class="mt-8 max-w-xl">
+      <form action="/tools" method="get" class="relative" id="home-search-form">
+        <input
+          id="home-tools-search"
+          type="text"
+          name="q"
+          autocomplete="off"
+          aria-label="Search tools by name"
+          aria-autocomplete="list"
+          aria-controls="home-tool-suggestions"
+          aria-expanded="false"
+          minlength="2"
+          maxlength="64"
+          placeholder="Search any tool…"
+          class="w-full rounded-xl border border-ink-border bg-ink-900 py-3.5 pl-11 pr-4 text-base text-paper placeholder-paper-muted transition focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50"
+        />
+        <svg
+          class="absolute left-3.5 top-4 h-5 w-5 text-paper-muted"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <kbd
+          class="absolute right-3 top-3 hidden rounded border border-ink-border bg-ink-800 px-1.5 py-0.5 font-mono text-xs text-paper-muted sm:inline-block"
+          >⌘K</kbd
+        >
 
+        <div
+          id="home-tool-suggestions"
+          role="listbox"
+          aria-label="Tool suggestions"
+          class="absolute left-0 right-0 top-full z-20 mt-3 hidden overflow-hidden rounded-2xl border border-ink-border bg-ink-950/95 shadow-2xl backdrop-blur-sm"
+        >
+          <div id="home-tool-suggestions-list" class="max-h-96 overflow-y-auto p-2"></div>
           <div
-            id="home-tool-suggestions"
-            role="listbox"
-            aria-label="Tool suggestions"
-            class="absolute left-0 right-0 top-full z-20 mt-3 hidden overflow-hidden rounded-2xl border border-ink-border bg-ink-950/95 shadow-2xl backdrop-blur-sm"
+            id="home-tool-suggestions-footer"
+            class="border-t border-ink-border px-4 py-2.5 font-mono text-xs text-paper-muted"
           >
-            <div id="home-tool-suggestions-list" class="max-h-96 overflow-y-auto p-2"></div>
-            <div id="home-tool-suggestions-footer" class="border-t border-ink-border px-4 py-2.5 font-mono text-xs text-paper-muted">
-              Press Enter to search all tools
-            </div>
+            Press Enter to search all tools
           </div>
-        </form>
-      </div>
-
-      <!-- Secondary: quick-decide -->
-      <form id="home-decide-form" class="mt-4 flex flex-wrap items-center gap-2 text-sm text-paper-muted">
-        <span>or jump to a decision —</span>
-        <span>best</span>
-        <select id="decide-category" aria-label="Category" class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none">
-          {decideCategories.map((cat) => <option value={cat.slug}>{cat.name}</option>)}
-        </select>
-        <span>for</span>
-        <select id="decide-context" aria-label="Use case" class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none">
-          {decideContexts.map((ctx) => <option value={ctx.slug}>{ctx.title}</option>)}
-        </select>
-        <button type="submit" class="rounded-lg bg-signal px-3 py-1.5 font-medium text-ink-950 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-signal/50">
-          Show me →
-        </button>
-        <noscript><a href="/best" class="underline">Browse all lists →</a></noscript>
+        </div>
       </form>
     </div>
-  </section>
+
+    <!-- Secondary: quick-decide -->
+    <form
+      id="home-decide-form"
+      class="mt-4 flex flex-wrap items-center gap-2 text-sm text-paper-muted"
+    >
+      <span>or jump to a decision —</span>
+      <span>best</span>
+      <select
+        id="decide-category"
+        aria-label="Category"
+        class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none"
+      >
+        {decideCategories.map((cat) => <option value={cat.slug}>{cat.name}</option>)}
+      </select>
+      <span>for</span>
+      <select
+        id="decide-context"
+        aria-label="Use case"
+        class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none"
+      >
+        {decideContexts.map((ctx) => <option value={ctx.slug}>{ctx.title}</option>)}
+      </select>
+      <button
+        type="submit"
+        class="rounded-lg bg-signal px-3 py-1.5 font-medium text-ink-950 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-signal/50"
+      >
+        Show me →
+      </button>
+      <noscript><a href="/best" class="underline">Browse all lists →</a></noscript>
+    </form>
+  </div>
+</section>
 ```
 
 - [ ] **Step 3: Update the suggestion-row renderer to show score + verdict**
@@ -442,33 +500,33 @@ Replace the entire `<!-- Hero Section -->` `<section>...</section>` (lines ~40-1
 In the inline `<script is:inline>`, inside `renderSuggestions`, locate the block that builds the `badge` element (`badge.textContent = 'Tool'`). Replace that badge creation with a score chip, and add a verdict line. Specifically, replace:
 
 ```js
-        const badge = document.createElement('div');
-        badge.className =
-          'mt-0.5 shrink-0 rounded-md border border-zinc-700/80 bg-zinc-900/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400';
-        badge.textContent = 'Tool';
+const badge = document.createElement('div');
+badge.className =
+  'mt-0.5 shrink-0 rounded-md border border-zinc-700/80 bg-zinc-900/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400';
+badge.textContent = 'Tool';
 ```
 
 with:
 
 ```js
-        const badge = document.createElement('div');
-        badge.className =
-          'mt-0.5 shrink-0 rounded-md border border-ink-border bg-ink-900 px-2 py-1 font-mono text-xs font-semibold text-paper';
-        badge.textContent = tool.score ? tool.score : '—';
+const badge = document.createElement('div');
+badge.className =
+  'mt-0.5 shrink-0 rounded-md border border-ink-border bg-ink-900 px-2 py-1 font-mono text-xs font-semibold text-paper';
+badge.textContent = tool.score ? tool.score : '—';
 ```
 
 Then, replace the `short_description` block (the part that builds `desc` from `tool.short_description`) so it prefers the verdict:
 
 ```js
-        const verdictText = typeof tool.verdict === 'string' ? tool.verdict.trim() : '';
-        const fallback = typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
-        const line = verdictText || fallback;
-        if (line) {
-          const desc = document.createElement('div');
-          desc.className = 'mt-2 line-clamp-2 pr-1 text-sm leading-5 text-paper-muted';
-          desc.textContent = line.length > 120 ? `${line.slice(0, 117).trim()}…` : line;
-          body.append(desc);
-        }
+const verdictText = typeof tool.verdict === 'string' ? tool.verdict.trim() : '';
+const fallback = typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
+const line = verdictText || fallback;
+if (line) {
+  const desc = document.createElement('div');
+  desc.className = 'mt-2 line-clamp-2 pr-1 text-sm leading-5 text-paper-muted';
+  desc.textContent = line.length > 120 ? `${line.slice(0, 117).trim()}…` : line;
+  body.append(desc);
+}
 ```
 
 Also update the icon/row/empty-state class strings in this script from `zinc-*` to the `ink`/`paper` tokens (icon container, row hover, empty state) so the dropdown matches the new palette. (Search-and-replace `zinc-800/zinc-900/zinc-100/zinc-300/zinc-400/zinc-500/zinc-700` within the script with the closest `ink`/`paper` token.)
@@ -478,17 +536,17 @@ Also update the icon/row/empty-state class strings in this script from `zinc-*` 
 At the end of the inline `<script is:inline>` (before its closing), add:
 
 ```js
-  document.addEventListener('DOMContentLoaded', () => {
-    const decideForm = document.getElementById('home-decide-form');
-    const ctxSelect = document.getElementById('decide-context');
-    if (decideForm instanceof HTMLFormElement && ctxSelect instanceof HTMLSelectElement) {
-      decideForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const slug = ctxSelect.value;
-        window.location.href = slug ? `/best/${encodeURIComponent(slug)}` : '/best';
-      });
-    }
-  });
+document.addEventListener('DOMContentLoaded', () => {
+  const decideForm = document.getElementById('home-decide-form');
+  const ctxSelect = document.getElementById('decide-context');
+  if (decideForm instanceof HTMLFormElement && ctxSelect instanceof HTMLSelectElement) {
+    decideForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const slug = ctxSelect.value;
+      window.location.href = slug ? `/best/${encodeURIComponent(slug)}` : '/best';
+    });
+  }
+});
 ```
 
 - [ ] **Step 5: Build to verify the hero compiles**
@@ -514,9 +572,11 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ### Task 5: "The Verdicts" + "Decide faster" sections
 
 **Files:**
+
 - Modify: `src/pages/index.astro` (replace Categories / Featured Tools / Comparisons sections ~lines 156-246)
 
 **Interfaces:**
+
 - Consumes: `featuredTools` (has `avg_score`, `verdict`, `pricing_type`, `category`), `featuredContexts`, `getScoreColor` from `@/lib/utils`, `formatScore`/`truncateVerdict` from `@/lib/homepage`.
 - Produces: rendered sections. No new exports.
 
@@ -537,60 +597,87 @@ import { formatPricingType } from '@/lib/utils';
 Replace everything from `<!-- Categories Section -->` through the end of the Comparisons block (the closing `)}` of the contexts conditional, ~lines 156-246) with:
 
 ```astro
-  <!-- Category strip -->
-  <section class="border-y border-ink-border bg-ink-900 py-4">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center gap-3 overflow-x-auto scrollbar-hide">
-        <span class="shrink-0 font-mono text-xs uppercase tracking-[0.16em] text-paper-muted">Browse</span>
-        {categories.slice(0, 10).map((cat) => (
-          <a href={`/categories/${cat.slug}`} class="shrink-0 rounded-lg border border-ink-border bg-ink-900 px-3 py-1.5 text-sm text-paper-muted transition hover:border-signal/50 hover:text-paper">
+<!-- Category strip -->
+<section class="border-y border-ink-border bg-ink-900 py-4">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+      <span class="shrink-0 font-mono text-xs uppercase tracking-[0.16em] text-paper-muted"
+        >Browse</span
+      >
+      {
+        categories.slice(0, 10).map((cat) => (
+          <a
+            href={`/categories/${cat.slug}`}
+            class="shrink-0 rounded-lg border border-ink-border bg-ink-900 px-3 py-1.5 text-sm text-paper-muted transition hover:border-signal/50 hover:text-paper"
+          >
             {cat.name}
           </a>
-        ))}
-        <a href="/categories" class="shrink-0 text-sm text-paper-muted transition hover:text-paper">View all →</a>
-      </div>
+        ))
+      }
+      <a href="/categories" class="shrink-0 text-sm text-paper-muted transition hover:text-paper"
+        >View all →</a
+      >
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- The Verdicts -->
-  <section class="bg-ink-950 py-12">
-    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-      <div class="flex items-end justify-between">
-        <div>
-          <h2 class="font-grotesk text-2xl font-semibold text-paper">The verdicts</h2>
-          <p class="mt-1 text-sm text-paper-muted">What's worth it — and what isn't.</p>
-        </div>
-        <a href="/tools" class="text-sm text-paper-muted transition hover:text-paper">All tools →</a>
+<!-- The Verdicts -->
+<section class="bg-ink-950 py-12">
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+    <div class="flex items-end justify-between">
+      <div>
+        <h2 class="font-grotesk text-2xl font-semibold text-paper">The verdicts</h2>
+        <p class="mt-1 text-sm text-paper-muted">What's worth it — and what isn't.</p>
       </div>
+      <a href="/tools" class="text-sm text-paper-muted transition hover:text-paper">All tools →</a>
+    </div>
 
-      <div class="mt-6 divide-y divide-ink-border overflow-hidden rounded-xl border border-ink-border">
-        {featuredTools.map((tool) => {
+    <div
+      class="mt-6 divide-y divide-ink-border overflow-hidden rounded-xl border border-ink-border"
+    >
+      {
+        featuredTools.map((tool) => {
           const score = formatScore(tool.avg_score);
           const colors = getScoreColor(tool.avg_score || 0);
           const verdict = truncateVerdict(tool.verdict, 90);
           return (
-            <a href={`/tool/${tool.slug}`} class="group flex items-center gap-4 bg-ink-900 px-4 py-3.5 transition hover:bg-ink-800">
-              <span class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border font-mono text-base font-semibold ${colors.bg} ${colors.text} ${colors.border}`}>
+            <a
+              href={`/tool/${tool.slug}`}
+              class="group flex items-center gap-4 bg-ink-900 px-4 py-3.5 transition hover:bg-ink-800"
+            >
+              <span
+                class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border font-mono text-base font-semibold ${colors.bg} ${colors.text} ${colors.border}`}
+              >
                 {score ?? '—'}
               </span>
               <div class="min-w-0 flex-1">
                 <div class="flex items-baseline gap-2">
-                  <span class="truncate font-grotesk text-[15px] font-semibold text-paper">{tool.name}</span>
-                  {tool.category && <span class="shrink-0 font-mono text-xs text-paper-muted">{tool.category.name}</span>}
+                  <span class="truncate font-grotesk text-[15px] font-semibold text-paper">
+                    {tool.name}
+                  </span>
+                  {tool.category && (
+                    <span class="shrink-0 font-mono text-xs text-paper-muted">
+                      {tool.category.name}
+                    </span>
+                  )}
                 </div>
                 {verdict && <p class="mt-0.5 truncate text-sm text-paper-muted">{verdict}</p>}
               </div>
-              <span class="hidden shrink-0 font-mono text-xs uppercase tracking-wider text-paper-muted sm:inline">{formatPricingType(tool.pricing_type)}</span>
+              <span class="hidden shrink-0 font-mono text-xs uppercase tracking-wider text-paper-muted sm:inline">
+                {formatPricingType(tool.pricing_type)}
+              </span>
               <span class="shrink-0 text-paper-muted transition group-hover:text-signal">→</span>
             </a>
           );
-        })}
-      </div>
+        })
+      }
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- Decide faster -->
-  {featuredContexts && featuredContexts.length > 0 && (
+<!-- Decide faster -->
+{
+  featuredContexts && featuredContexts.length > 0 && (
     <section class="border-t border-ink-border bg-ink-900 py-12">
       <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between">
@@ -598,19 +685,27 @@ Replace everything from `<!-- Categories Section -->` through the end of the Com
             <h2 class="font-grotesk text-2xl font-semibold text-paper">Decide faster</h2>
             <p class="mt-1 text-sm text-paper-muted">Pre-built "best X for Y" calls.</p>
           </div>
-          <a href="/best" class="text-sm text-paper-muted transition hover:text-paper">All lists →</a>
+          <a href="/best" class="text-sm text-paper-muted transition hover:text-paper">
+            All lists →
+          </a>
         </div>
         <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {featuredContexts.map((ctx) => (
-            <a href={`/best/${ctx.slug}`} class="group rounded-xl border border-ink-border bg-ink-950 p-4 transition hover:border-signal/50">
-              <h3 class="font-grotesk text-sm font-semibold text-paper group-hover:text-signal">{ctx.title}</h3>
+            <a
+              href={`/best/${ctx.slug}`}
+              class="group rounded-xl border border-ink-border bg-ink-950 p-4 transition hover:border-signal/50"
+            >
+              <h3 class="font-grotesk text-sm font-semibold text-paper group-hover:text-signal">
+                {ctx.title}
+              </h3>
               <p class="mt-1 font-mono text-xs text-paper-muted">{ctx.tool_count} tools compared</p>
             </a>
           ))}
         </div>
       </div>
     </section>
-  )}
+  )
+}
 ```
 
 - [ ] **Step 3: Remove now-dead "show more" markup/script/style**
@@ -640,12 +735,14 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ### Task 6: Demo-only first-visit popup
 
 **Files:**
+
 - Create: `src/components/DemoBanner.tsx`
 - Create: `src/lib/demo-banner.ts`
 - Modify: `src/layouts/BaseLayout.astro` (mount the island near `MyStackWidget`, ~line 117)
 - Test: `tests/lib/demo-banner.test.ts`
 
 **Interfaces:**
+
 - Produces: `shouldShowDemoBanner(storageValue: string | null): boolean` (pure, in `src/lib/demo-banner.ts`); `DEMO_BANNER_KEY = 'sh_demo_ack'`. `DemoBanner` React component (default export) reusing shadcn `Dialog`.
 
 - [ ] **Step 1: Write the failing test**
@@ -694,7 +791,14 @@ Expected: PASS.
 ```tsx
 // src/components/DemoBanner.tsx
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { DEMO_BANNER_KEY, shouldShowDemoBanner } from '@/lib/demo-banner';
 
@@ -721,16 +825,24 @@ export default function DemoBanner() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) acknowledge(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) acknowledge();
+      }}
+    >
       <DialogContent className="border-ink-border bg-ink-900 text-paper">
         <DialogHeader>
           <DialogTitle className="font-grotesk">Heads up — this is a demo</DialogTitle>
           <DialogDescription className="text-paper-muted">
-            StackHunt is a demonstration. Tools, scores, and verdicts are illustrative and may not reflect real products or current pricing.
+            StackHunt is a demonstration. Tools, scores, and verdicts are illustrative and may not
+            reflect real products or current pricing.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button onClick={acknowledge} className="bg-signal text-ink-950 hover:brightness-110">Got it</Button>
+          <Button onClick={acknowledge} className="bg-signal text-ink-950 hover:brightness-110">
+            Got it
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -749,7 +861,7 @@ import DemoBanner from '@/components/DemoBanner';
 And add the mount right after `<MyStackWidget client:load />`:
 
 ```astro
-    <DemoBanner client:load />
+<DemoBanner client:load />
 ```
 
 - [ ] **Step 7: Build + manual check**
@@ -771,6 +883,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ### Task 7: frontend-design skill — "anti-default" checklist
 
 **Files:**
+
 - Modify: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md`
 - Sync: copy the edited file to `~/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown/skills/frontend-design/SKILL.md`
 
@@ -786,7 +899,7 @@ In the marketplace `SKILL.md`, immediately after the calibration paragraph that 
 Naming the default looks isn't enough — these moves actively produce a point of view:
 
 1. **Separate brand color from functional/data color.** A decorative accent and a meaning-bearing scale (scores, status, deltas) are different jobs. Conflating them — letting the one bright accent also stand in for "good" — is a default tell. Give data its own scale and keep the brand accent for emphasis only.
-2. **Make the hero do the product's core job.** If the product *is* an action (search, decide, convert, generate), the hero should perform a small real instance of it — an instrument or live moment — not describe it with a headline and a screenshot.
+2. **Make the hero do the product's core job.** If the product _is_ an action (search, decide, convert, generate), the hero should perform a small real instance of it — an instrument or live moment — not describe it with a headline and a screenshot.
 3. **Show real data and real verdicts over placeholder cards.** A grid of name + one-line blurb cards is a default tell. Surfacing the product's actual output (a score, a ranking, a generated result, a real number) is distinctive by definition and earns trust.
 4. **Earn a utility/mono typeface when the subject has data.** When the world includes scores, specs, metrics, or code, a mono face for those values encodes the subject's vernacular instead of decorating — but only where data actually lives.
 ```
@@ -835,6 +948,7 @@ Expected: succeeds.
 - [ ] **Step 4: Manual smoke checklist**
 
 `npm run dev`, then confirm:
+
 - [ ] Homepage uses warm-black/amber identity; nav/footer seam is acceptable.
 - [ ] Eyebrow shows a real tool count.
 - [ ] Search dropdown shows score chip + verdict line per row.

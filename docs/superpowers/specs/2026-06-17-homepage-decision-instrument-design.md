@@ -16,7 +16,7 @@ The deeper problem is the **absence of a point of view**. Nothing on the page co
 
 ## Brand angle (decided)
 
-**Decision speed:** "Pick the right tool in 60 seconds." The homepage should *make a decision with the user*, not send them searching. A search box is a directory/library mindset; this redesign replaces it with a decision instrument.
+**Decision speed:** "Pick the right tool in 60 seconds." The homepage should _make a decision with the user_, not send them searching. A search box is a directory/library mindset; this redesign replaces it with a decision instrument.
 
 ## Available data (verified in `src/lib/supabase.ts`)
 
@@ -29,7 +29,7 @@ This is enough to surface **real scores and real verdict text** — no placehold
 ## Concept: the homepage IS a decision instrument
 
 **Search stays the primary action** (user decision). Decision speed is served by making the
-*search itself* a decision tool, plus a secondary quick-decide element — not by replacing search.
+_search itself_ a decision tool, plus a secondary quick-decide element — not by replacing search.
 
 ### Signature element — the "decision search" + verdict scorecard
 
@@ -38,6 +38,7 @@ verdict one-liners** (not just names), and (2) the verdict-scorecard aesthetic c
 page. Search doesn't just find a tool — it shows you the call as you type.
 
 **Primary: decision search (hero)**
+
 - Keep the existing search box + autocomplete as the dominant hero action.
 - Upgrade the autocomplete rows to show `avg_score` (mono, color-coded by verdict scale) and a
   truncated `verdict` one-liner alongside the name — so even search answers "is it worth it?"
@@ -45,11 +46,13 @@ page. Search doesn't just find a tool — it shows you the call as you type.
   `src/pages/api/search/tool-index.ts` (cheap; already server-cached).
 
 **Secondary: quick-decide row (below search)**
+
 - A lightweight "or jump to a decision: best `[ category ▾ ]` for `[ who/what ▾ ]` → Show me".
 - Two compact dropdowns from real categories/contexts; resolves to the matching `/best/[slug]`.
 - This is secondary chrome beneath the primary search, not the hero's main object.
 
 **Resolution behavior (quick-decide):**
+
 - Category dropdown lists real categories; the "for" dropdown lists audience/use contexts.
 - On submit, resolve to the best-matching existing context slug. No-match fallback: `/best`
   (index exists at `src/pages/best/index.astro`). Exact resolution logic pinned during planning.
@@ -76,6 +79,7 @@ Keep featured contexts but reframe from "Comparisons" to decision shortcuts ("be
 ## Token system
 
 ### Color
+
 - Base (warm near-black): `#0B0B0D`
 - Surface (raised rows/cards): `#141417` with subtle warm border `#26241F`
 - Text primary (warm off-white): `#EDEAE3`
@@ -87,18 +91,21 @@ Keep featured contexts but reframe from "Comparisons" to decision shortcuts ("be
 The deliberate separation of **brand color from data/functional color** is itself the signature discipline — the eye is drawn to scores, serving decision speed. Brand amber never decorates a score; score colors never act as brand chrome.
 
 ### Type
+
 - **Display:** `Space Grotesk` (engineering character; deliberately not the existing Inter/Manrope default).
 - **Body:** `Inter` (already loaded).
-- **Data/utility (mono):** `Space Mono` or `IBM Plex Mono` — for scores, eyebrows, category tags, pricing, counts. The "spec-sheet / benchmark" voice that signals *decision tool*.
+- **Data/utility (mono):** `Space Mono` or `IBM Plex Mono` — for scores, eyebrows, category tags, pricing, counts. The "spec-sheet / benchmark" voice that signals _decision tool_.
 
 Fonts load via the existing Google Fonts link in `BaseLayout.astro`; update the font URL and preload accordingly.
 
 ### Layout
+
 - Asymmetric, instrument-like. **Left-weighted hero**, not centered. The decision sentence is the dominant object.
 - Verdict **rows** over a card grid.
 - Eyebrow shows a real number (e.g., "N tools scored · updated daily") in mono.
 
 ### ASCII wireframe
+
 ```
 ┌──────────────────────────────────────────────┐
 │ N tools scored · updated daily                 │  ← mono eyebrow, real number
@@ -137,8 +144,8 @@ homepage-only), so it must live in `BaseLayout.astro`, not `index.astro`.
   Centered card on a dimmed backdrop, warm-black surface + amber accent, one "Got it" dismiss action.
 - **Once per visitor:** set a `localStorage` flag (e.g. `sh_demo_ack`) on dismiss; do not show again
   if the flag is present. Shown again only if storage is cleared.
-- **Copy (plain, non-apologetic):** e.g. *"Heads up — StackHunt is a demo. Tools, scores, and
-  verdicts are illustrative and may not reflect real products."* (final wording in planning.)
+- **Copy (plain, non-apologetic):** e.g. _"Heads up — StackHunt is a demo. Tools, scores, and
+  verdicts are illustrative and may not reflect real products."_ (final wording in planning.)
 - **Accessibility:** focus moves to the dialog on open, ESC and the dismiss button close it, focus
   returns to body, `role="dialog"` + `aria-modal`, backdrop click closes. Respects
   `prefers-reduced-motion` for the fade/scale-in.
@@ -167,10 +174,10 @@ Location: edit the marketplace source
 `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md`,
 then sync the cache copy at `~/.claude/plugins/cache/...` (cache is derived from marketplace; editing only the cache is overwritten on update).
 
-The skill already *names* the three AI-default looks but gives no **positive** checklist for escaping them. Add a tight "anti-default" subsection with general (non-StackHunt) lessons drawn from this exercise:
+The skill already _names_ the three AI-default looks but gives no **positive** checklist for escaping them. Add a tight "anti-default" subsection with general (non-StackHunt) lessons drawn from this exercise:
 
 1. **Separate brand color from functional/data color.** A decorative accent and a meaning-bearing scale are different jobs; conflating them is a default tell.
-2. **Make the hero do the product's core job** — an instrument/live-demo beats a brochure headline when the product *is* an action.
+2. **Make the hero do the product's core job** — an instrument/live-demo beats a brochure headline when the product _is_ an action.
 3. **Show real data/verdicts over placeholder cards.** Generic card grids of name+blurb are a default tell; surfacing the product's actual output is distinctive by definition.
 4. **Earn a mono/utility face** when the subject has data (scores, specs, metrics) — it encodes the subject's vernacular rather than decorating.
 
