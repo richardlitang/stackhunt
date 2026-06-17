@@ -12,6 +12,7 @@ import type { APIRoute } from 'astro';
 import { createHunter } from '@/lib/hunter';
 import { getAdminClient } from '@/lib/supabase';
 import { maybeAutoPublishReview } from '@/lib/review-auto-publish';
+import { verifyCronSecret } from '@/lib/auth';
 
 export const prerender = false;
 
@@ -20,26 +21,15 @@ const MAX_ITEMS_PER_RUN = 3;
 const AUTO_PUBLISH_SAFE_DRAFTS = import.meta.env.AUTO_PUBLISH_SAFE_DRAFTS !== 'false';
 
 export const GET: APIRoute = async ({ request }) => {
-  // Verify cron secret (Vercel sets this header)
-  // SECURITY: Fail CLOSED - require secret always (no bypass if unset)
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = import.meta.env.CRON_SECRET;
-
-  // Require CRON_SECRET in production
-  if (!cronSecret && import.meta.env.PROD) {
-    console.error('CRITICAL: CRON_SECRET not configured in production');
-    return new Response(JSON.stringify({ error: 'Server misconfiguration' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // In development without secret, allow (for local testing only)
-  const requiresAuth = cronSecret || import.meta.env.PROD;
-
-  if (requiresAuth && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
+  const authResult = verifyCronSecret(request, {
+    secret: import.meta.env.CRON_SECRET,
+    isDev: import.meta.env.DEV,
+    isProd: import.meta.env.PROD,
+  });
+  if (!authResult.valid) {
+    const status = authResult.error === 'Server misconfiguration' ? 500 : 401;
+    return new Response(JSON.stringify({ error: authResult.error }), {
+      status,
       headers: { 'Content-Type': 'application/json' },
     });
   }
