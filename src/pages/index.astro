@@ -9,9 +9,9 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import ToolCard from '@/components/ToolCard.astro';
 import { getFeaturedTools, getFeaturedContexts, getCategories } from '@/lib/supabase';
-import { getCanonicalUrl } from '@/lib/utils';
+import { getCanonicalUrl, getScoreColor, formatPricingType } from '@/lib/utils';
+import { formatScore, truncateVerdict } from '@/lib/homepage';
 
 // Cache for 5 minutes (SSR)
 Astro.response.headers.set(
@@ -108,97 +108,80 @@ const meta = {
     </div>
   </section>
 
-  <!-- Categories Section -->
-  <section class="border-b border-zinc-800 bg-zinc-900/50 py-4 backdrop-blur-sm">
+  <!-- Category strip -->
+  <section class="border-y border-ink-border bg-ink-900 py-4">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center gap-4 overflow-x-auto scrollbar-hide">
-        <span class="shrink-0 text-sm text-zinc-500">Browse:</span>
-        {
-          categories.slice(0, 10).map((cat) => (
-            <a
-              href={`/categories/${cat.slug}`}
-              class="shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-sm text-zinc-400 transition hover:border-zinc-700 hover:bg-zinc-800/50 hover:text-zinc-100"
-            >
-              {cat.name}
-            </a>
-          ))
-        }
-        <a href="/categories" class="shrink-0 text-sm text-zinc-400 hover:text-zinc-100 transition">
-          View all →
-        </a>
+      <div class="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+        <span class="shrink-0 font-mono text-xs uppercase tracking-[0.16em] text-paper-muted">Browse</span>
+        {categories.slice(0, 10).map((cat) => (
+          <a href={`/categories/${cat.slug}`} class="shrink-0 rounded-lg border border-ink-border bg-ink-900 px-3 py-1.5 text-sm text-paper-muted transition hover:border-signal/50 hover:text-paper">
+            {cat.name}
+          </a>
+        ))}
+        <a href="/categories" class="shrink-0 text-sm text-paper-muted transition hover:text-paper">View all →</a>
       </div>
     </div>
   </section>
 
-  <!-- Featured Tools -->
-  <section class="bg-zinc-950 py-12">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+  <!-- The Verdicts -->
+  <section class="bg-ink-950 py-12">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
       <div class="flex items-end justify-between">
         <div>
-          <h2 class="text-2xl font-semibold text-zinc-100">Featured Tools</h2>
-          <p class="mt-1 text-sm text-zinc-400">Top-rated across all categories</p>
+          <h2 class="font-grotesk text-2xl font-semibold text-paper">The verdicts</h2>
+          <p class="mt-1 text-sm text-paper-muted">What's worth it — and what isn't.</p>
         </div>
-        <a href="/tools" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
-          View all →
-        </a>
+        <a href="/tools" class="text-sm text-paper-muted transition hover:text-paper">All tools →</a>
       </div>
 
-      <div
-        id="featured-tools-grid"
-        class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-      >
-        {
-          featuredTools.map((tool, index) => (
-            <div class:list={[index >= 6 && 'hidden-on-mobile']}>
-              <ToolCard tool={tool} category={tool.category} />
-            </div>
-          ))
-        }
-      </div>
-
-      <div class="mt-6 text-center lg:hidden">
-        <button
-          id="show-more-tools"
-          class="rounded-lg border border-zinc-800 bg-zinc-900/50 px-6 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800/50"
-        >
-          Show more tools
-        </button>
+      <div class="mt-6 divide-y divide-ink-border overflow-hidden rounded-xl border border-ink-border">
+        {featuredTools.map((tool) => {
+          const score = formatScore(tool.avg_score);
+          const colors = getScoreColor(tool.avg_score || 0);
+          const verdict = truncateVerdict(tool.verdict, 90);
+          return (
+            <a href={`/tool/${tool.slug}`} class="group flex items-center gap-4 bg-ink-900 px-4 py-3.5 transition hover:bg-ink-800">
+              <span class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border font-mono text-base font-semibold ${colors.bg} ${colors.text} ${colors.border}`}>
+                {score ?? '—'}
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline gap-2">
+                  <span class="truncate font-grotesk text-[15px] font-semibold text-paper">{tool.name}</span>
+                  {tool.category && <span class="shrink-0 font-mono text-xs text-paper-muted">{tool.category.name}</span>}
+                </div>
+                {verdict && <p class="mt-0.5 truncate text-sm text-paper-muted">{verdict}</p>}
+              </div>
+              <span class="hidden shrink-0 font-mono text-xs uppercase tracking-wider text-paper-muted sm:inline">{formatPricingType(tool.pricing_type)}</span>
+              <span class="shrink-0 text-paper-muted transition group-hover:text-signal">→</span>
+            </a>
+          );
+        })}
       </div>
     </div>
   </section>
 
-  <!-- Comparisons -->
-  {
-    featuredContexts && featuredContexts.length > 0 && (
-      <section class="border-t border-zinc-800 bg-zinc-900/30 py-12">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="flex items-end justify-between">
-            <div>
-              <h2 class="text-2xl font-semibold text-zinc-100">Comparisons</h2>
-              <p class="mt-1 text-sm text-zinc-400">Curated lists to help you choose</p>
-            </div>
-            <a href="/best" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
-              View all →
-            </a>
+  <!-- Decide faster -->
+  {featuredContexts && featuredContexts.length > 0 && (
+    <section class="border-t border-ink-border bg-ink-900 py-12">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div class="flex items-end justify-between">
+          <div>
+            <h2 class="font-grotesk text-2xl font-semibold text-paper">Decide faster</h2>
+            <p class="mt-1 text-sm text-paper-muted">Pre-built "best X for Y" calls.</p>
           </div>
-
-          <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredContexts.map((ctx) => (
-              <a
-                href={`/best/${ctx.slug}`}
-                class="group rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700 hover:bg-gradient-to-b hover:from-zinc-800/50 hover:to-zinc-900/50"
-              >
-                <h3 class="text-sm font-medium text-zinc-100 group-hover:text-white">
-                  {ctx.title}
-                </h3>
-                <p class="mt-1 text-sm text-zinc-500">{ctx.tool_count} tools</p>
-              </a>
-            ))}
-          </div>
+          <a href="/best" class="text-sm text-paper-muted transition hover:text-paper">All lists →</a>
         </div>
-      </section>
-    )
-  }
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {featuredContexts.map((ctx) => (
+            <a href={`/best/${ctx.slug}`} class="group rounded-xl border border-ink-border bg-ink-950 p-4 transition hover:border-signal/50">
+              <h3 class="font-grotesk text-sm font-semibold text-paper group-hover:text-signal">{ctx.title}</h3>
+              <p class="mt-1 font-mono text-xs text-paper-muted">{ctx.tool_count} tools compared</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
 </BaseLayout>
 
 <style>
@@ -210,15 +193,6 @@ const meta = {
     scrollbar-width: none;
   }
 
-  /* Show more functionality */
-  @media (max-width: 1023px) {
-    .hidden-on-mobile {
-      display: none;
-    }
-    #featured-tools-grid.expanded .hidden-on-mobile {
-      display: block;
-    }
-  }
 </style>
 
 <script is:inline>
@@ -459,18 +433,4 @@ const meta = {
     }
   });
 
-  // Show more tools button
-  document.addEventListener('DOMContentLoaded', () => {
-    const showMoreBtn = document.getElementById('show-more-tools');
-    const grid = document.getElementById('featured-tools-grid');
-
-    if (showMoreBtn && grid) {
-      showMoreBtn.addEventListener('click', () => {
-        grid.classList.toggle('expanded');
-        showMoreBtn.textContent = grid.classList.contains('expanded')
-          ? 'Show less'
-          : 'Show more tools';
-      });
-    }
-  });
 </script>
