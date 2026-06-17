@@ -2,16 +2,16 @@
 /**
  * Homepage - /
  *
- * Design System: "Professional" Dark Mode
- * - Zinc palette with 50% opacity surfaces
- * - Indigo for tech, Emerald for money
- * - Subtle hover gradients
+ * Design System: "Decision Instrument"
+ * - Warm near-black (ink) surfaces, warm off-white (paper) text
+ * - Amber (signal) brand accent; verdict scores color-coded via getScoreColor
+ * - Space Grotesk display + IBM Plex Mono for data
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import ToolCard from '@/components/ToolCard.astro';
 import { getFeaturedTools, getFeaturedContexts, getCategories } from '@/lib/supabase';
-import { getCanonicalUrl } from '@/lib/utils';
+import { getCanonicalUrl, getScoreColor, formatPricingType } from '@/lib/utils';
+import { formatScore, truncateVerdict } from '@/lib/homepage';
 
 // Cache for 5 minutes (SSR)
 Astro.response.headers.set(
@@ -25,7 +25,9 @@ const [featuredTools, featuredContexts, categories] = await Promise.all([
   getFeaturedContexts(8),
   getCategories(),
 ]);
-const quickContextLinks = featuredContexts.slice(0, 3);
+const toolCount = featuredTools.length;
+const decideCategories = categories.slice(0, 12);
+const decideContexts = featuredContexts.slice(0, 12);
 
 const meta = {
   title: 'StackHunt - Find the Right Tools for Your Stack',
@@ -37,206 +39,212 @@ const meta = {
 ---
 
 <BaseLayout meta={meta}>
-  <!-- Hero Section -->
-  <section class="relative overflow-hidden bg-zinc-950">
-    <!-- Subtle grid pattern -->
-    <div class="absolute inset-0 opacity-[0.02]">
-      <svg class="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path
-              d="M 32 0 L 0 0 0 32"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1"
-              class="text-zinc-100"></path>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)"></rect>
-      </svg>
-    </div>
-
+  <!-- Hero: decision search -->
+  <section class="relative overflow-hidden bg-ink-950">
     <div class="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-      <div class="text-center">
-        <!-- Headline -->
-        <h1 class="text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">
-          Find the <span class="text-indigo-400">Right Tools</span>
-          <br class="hidden sm:block" />for Your Stack
-        </h1>
+      <p class="font-mono text-xs uppercase tracking-[0.18em] text-paper-muted">
+        {toolCount}+ tools scored · updated daily
+      </p>
 
-        <p class="mx-auto mt-5 max-w-xl text-base text-zinc-400">
-          Curated recommendations for dev tools, design apps, and productivity software. Honest
-          reviews that help you choose what works.
-        </p>
+      <h1
+        class="mt-4 max-w-2xl font-grotesk text-4xl font-semibold leading-[1.05] tracking-tight text-paper sm:text-5xl"
+      >
+        Stop researching. <span class="text-signal">See the verdict.</span>
+      </h1>
+      <p class="mt-4 max-w-xl text-base text-paper-muted">
+        Search any tool and get the call — score, price, and whether it's worth it — before you open
+        a single tab.
+      </p>
 
-        <!-- Search Bar -->
-        <div class="mx-auto mt-8 max-w-md">
-          <form action="/tools" method="get" class="relative" id="home-search-form">
-            <input
-              id="home-tools-search"
-              type="text"
-              name="q"
-              autocomplete="off"
-              aria-label="Search tools by name"
-              aria-autocomplete="list"
-              aria-controls="home-tool-suggestions"
-              aria-expanded="false"
-              minlength="2"
-              maxlength="64"
-              placeholder="Search tools by name..."
-              class="w-full rounded-lg border border-zinc-800 bg-zinc-900/50 py-3 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-500 backdrop-blur-sm transition focus:border-indigo-500 focus:bg-zinc-900 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
-            />
-            <svg
-              class="absolute left-3 top-3 h-5 w-5 text-zinc-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-            <kbd
-              class="absolute right-3 top-2.5 hidden rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-500 sm:inline-block"
-            >
-              ⌘K
-            </kbd>
+      <!-- Primary: decision search -->
+      <div class="mt-8 max-w-xl">
+        <form action="/tools" method="get" class="relative" id="home-search-form">
+          <input
+            id="home-tools-search"
+            type="text"
+            name="q"
+            autocomplete="off"
+            aria-label="Search tools by name"
+            aria-autocomplete="list"
+            aria-controls="home-tool-suggestions"
+            aria-expanded="false"
+            minlength="2"
+            maxlength="64"
+            placeholder="Search any tool…"
+            class="w-full rounded-xl border border-ink-border bg-ink-900 py-3.5 pl-11 pr-4 text-base text-paper placeholder-paper-muted transition focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50"
+          />
+          <svg
+            class="absolute left-3.5 top-4 h-5 w-5 text-paper-muted"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <kbd
+            class="absolute right-3 top-3 hidden rounded border border-ink-border bg-ink-800 px-1.5 py-0.5 font-mono text-xs text-paper-muted sm:inline-block"
+            >⌘K</kbd
+          >
 
+          <div
+            id="home-tool-suggestions"
+            role="listbox"
+            aria-label="Tool suggestions"
+            class="absolute left-0 right-0 top-full z-20 mt-3 hidden overflow-hidden rounded-2xl border border-ink-border bg-ink-950/95 shadow-2xl backdrop-blur-sm"
+          >
+            <div id="home-tool-suggestions-list" class="max-h-96 overflow-y-auto p-2"></div>
             <div
-              id="home-tool-suggestions"
-              role="listbox"
-              aria-label="Tool suggestions"
-              class="absolute left-0 right-0 top-full z-20 mt-3 hidden overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-950/95 shadow-2xl backdrop-blur-sm"
+              id="home-tool-suggestions-footer"
+              class="border-t border-ink-border px-4 py-2.5 font-mono text-xs text-paper-muted"
             >
-              <div id="home-tool-suggestions-list" class="max-h-96 overflow-y-auto p-2"></div>
-              <div
-                id="home-tool-suggestions-footer"
-                class="border-t border-zinc-800/80 px-4 py-2.5 text-xs text-zinc-500"
-              >
-                Press Enter to search all tools
-              </div>
+              Press Enter to search all tools
             </div>
-          </form>
-
-          <!-- Quick Links -->
-          <div class="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1">
-            <span class="text-sm text-zinc-500">Popular:</span>
-            {
-              quickContextLinks.length > 0 ? (
-                quickContextLinks.map((ctx) => (
-                  <a
-                    href={`/best/${ctx.slug}`}
-                    class="text-sm text-zinc-400 hover:text-zinc-100 transition"
-                  >
-                    {ctx.title}
-                  </a>
-                ))
-              ) : (
-                <>
-                  <a href="/best" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
-                    Best Lists
-                  </a>
-                  <a href="/compare" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
-                    Compare Tools
-                  </a>
-                  <a href="/tools" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
-                    Tool Directory
-                  </a>
-                </>
-              )
-            }
           </div>
-        </div>
+        </form>
       </div>
+
+      <!-- Secondary: quick-decide -->
+      <form
+        id="home-decide-form"
+        class="mt-4 flex flex-wrap items-center gap-2 text-sm text-paper-muted"
+      >
+        <span>or jump to a decision —</span>
+        <span>best</span>
+        <select
+          id="decide-category"
+          aria-label="Category"
+          class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50"
+        >
+          {decideCategories.map((cat) => <option value={cat.slug}>{cat.name}</option>)}
+        </select>
+        <span>for</span>
+        <select
+          id="decide-context"
+          aria-label="Use case"
+          class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50"
+        >
+          {decideContexts.map((ctx) => <option value={ctx.slug}>{ctx.title}</option>)}
+        </select>
+        <button
+          type="submit"
+          class="rounded-lg bg-signal px-3 py-1.5 font-medium text-ink-950 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-signal/50"
+        >
+          Show me →
+        </button>
+        <noscript><a href="/best" class="underline">Browse all lists →</a></noscript>
+      </form>
     </div>
   </section>
 
-  <!-- Categories Section -->
-  <section class="border-b border-zinc-800 bg-zinc-900/50 py-4 backdrop-blur-sm">
+  <!-- Category strip -->
+  <section class="border-y border-ink-border bg-ink-900 py-4">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center gap-4 overflow-x-auto scrollbar-hide">
-        <span class="shrink-0 text-sm text-zinc-500">Browse:</span>
+      <div class="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+        <span class="shrink-0 font-mono text-xs uppercase tracking-[0.16em] text-paper-muted"
+          >Browse</span
+        >
         {
           categories.slice(0, 10).map((cat) => (
             <a
               href={`/categories/${cat.slug}`}
-              class="shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-sm text-zinc-400 transition hover:border-zinc-700 hover:bg-zinc-800/50 hover:text-zinc-100"
+              class="shrink-0 rounded-lg border border-ink-border bg-ink-900 px-3 py-1.5 text-sm text-paper-muted transition hover:border-signal/50 hover:text-paper"
             >
               {cat.name}
             </a>
           ))
         }
-        <a href="/categories" class="shrink-0 text-sm text-zinc-400 hover:text-zinc-100 transition">
-          View all →
-        </a>
+        <a href="/categories" class="shrink-0 text-sm text-paper-muted transition hover:text-paper"
+          >View all →</a
+        >
       </div>
     </div>
   </section>
 
-  <!-- Featured Tools -->
-  <section class="bg-zinc-950 py-12">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+  <!-- The Verdicts -->
+  <section class="bg-ink-950 py-12">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
       <div class="flex items-end justify-between">
         <div>
-          <h2 class="text-2xl font-semibold text-zinc-100">Featured Tools</h2>
-          <p class="mt-1 text-sm text-zinc-400">Top-rated across all categories</p>
+          <h2 class="font-grotesk text-2xl font-semibold text-paper">The verdicts</h2>
+          <p class="mt-1 text-sm text-paper-muted">What's worth it — and what isn't.</p>
         </div>
-        <a href="/tools" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
-          View all →
-        </a>
+        <a href="/tools" class="text-sm text-paper-muted transition hover:text-paper">All tools →</a
+        >
       </div>
 
       <div
-        id="featured-tools-grid"
-        class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        class="mt-6 divide-y divide-ink-border overflow-hidden rounded-xl border border-ink-border"
       >
         {
-          featuredTools.map((tool, index) => (
-            <div class:list={[index >= 6 && 'hidden-on-mobile']}>
-              <ToolCard tool={tool} category={tool.category} />
-            </div>
-          ))
+          featuredTools.map((tool) => {
+            const score = formatScore(tool.avg_score);
+            const colors = getScoreColor(tool.avg_score || 0);
+            const verdict = truncateVerdict(tool.verdict, 90);
+            return (
+              <a
+                href={`/tool/${tool.slug}`}
+                class="group flex items-center gap-4 bg-ink-900 px-4 py-3.5 transition hover:bg-ink-800"
+              >
+                <span
+                  class={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border font-mono text-base font-semibold ${colors.bg} ${colors.text} ${colors.border}`}
+                >
+                  {score ?? '—'}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-baseline gap-2">
+                    <span class="truncate font-grotesk text-[15px] font-semibold text-paper">
+                      {tool.name}
+                    </span>
+                    {tool.category && (
+                      <span class="shrink-0 font-mono text-xs text-paper-muted">
+                        {tool.category.name}
+                      </span>
+                    )}
+                  </div>
+                  {verdict && <p class="mt-0.5 truncate text-sm text-paper-muted">{verdict}</p>}
+                </div>
+                <span class="hidden shrink-0 font-mono text-xs uppercase tracking-wider text-paper-muted sm:inline">
+                  {formatPricingType(tool.pricing_type)}
+                </span>
+                <span class="shrink-0 text-paper-muted transition group-hover:text-signal">→</span>
+              </a>
+            );
+          })
         }
-      </div>
-
-      <div class="mt-6 text-center lg:hidden">
-        <button
-          id="show-more-tools"
-          class="rounded-lg border border-zinc-800 bg-zinc-900/50 px-6 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800/50"
-        >
-          Show more tools
-        </button>
       </div>
     </div>
   </section>
 
-  <!-- Comparisons -->
+  <!-- Decide faster -->
   {
     featuredContexts && featuredContexts.length > 0 && (
-      <section class="border-t border-zinc-800 bg-zinc-900/30 py-12">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section class="border-t border-ink-border bg-ink-900 py-12">
+        <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between">
             <div>
-              <h2 class="text-2xl font-semibold text-zinc-100">Comparisons</h2>
-              <p class="mt-1 text-sm text-zinc-400">Curated lists to help you choose</p>
+              <h2 class="font-grotesk text-2xl font-semibold text-paper">Decide faster</h2>
+              <p class="mt-1 text-sm text-paper-muted">Pre-built "best X for Y" calls.</p>
             </div>
-            <a href="/best" class="text-sm text-zinc-400 hover:text-zinc-100 transition">
-              View all →
+            <a href="/best" class="text-sm text-paper-muted transition hover:text-paper">
+              All lists →
             </a>
           </div>
-
           <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {featuredContexts.map((ctx) => (
               <a
                 href={`/best/${ctx.slug}`}
-                class="group rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700 hover:bg-gradient-to-b hover:from-zinc-800/50 hover:to-zinc-900/50"
+                class="group rounded-xl border border-ink-border bg-ink-950 p-4 transition hover:border-signal/50"
               >
-                <h3 class="text-sm font-medium text-zinc-100 group-hover:text-white">
+                <h3 class="font-grotesk text-sm font-semibold text-paper group-hover:text-signal">
                   {ctx.title}
                 </h3>
-                <p class="mt-1 text-sm text-zinc-500">{ctx.tool_count} tools</p>
+                <p class="mt-1 font-mono text-xs text-paper-muted">
+                  {ctx.tool_count} tools compared
+                </p>
               </a>
             ))}
           </div>
@@ -253,16 +261,6 @@ const meta = {
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-
-  /* Show more functionality */
-  @media (max-width: 1023px) {
-    .hidden-on-mobile {
-      display: none;
-    }
-    #featured-tools-grid.expanded .hidden-on-mobile {
-      display: block;
-    }
   }
 </style>
 
@@ -323,9 +321,9 @@ const meta = {
       const buttons = list.querySelectorAll('[data-suggestion-index]');
       buttons.forEach((el, index) => {
         const isActive = index === activeIndex;
-        el.classList.toggle('bg-zinc-800/70', isActive);
-        el.classList.toggle('border-zinc-700', isActive);
-        el.classList.toggle('border-zinc-900/0', !isActive);
+        el.classList.toggle('bg-ink-800', isActive);
+        el.classList.toggle('border-ink-800', isActive);
+        el.classList.toggle('border-ink-border', !isActive);
         if (isActive) {
           el.scrollIntoView({ block: 'nearest' });
         }
@@ -366,7 +364,8 @@ const meta = {
 
       if (matches.length === 0) {
         const empty = document.createElement('div');
-        empty.className = 'rounded-xl border border-zinc-800/70 bg-zinc-900/40 px-4 py-3.5 text-sm text-zinc-400';
+        empty.className =
+          'rounded-xl border border-ink-border bg-ink-900 px-4 py-3.5 text-sm text-paper-muted';
         empty.textContent = 'No quick matches. Press Enter to search all tools.';
         list.replaceChildren(empty);
         openDropdown();
@@ -377,7 +376,7 @@ const meta = {
         const row = document.createElement('a');
         row.href = `/tool/${encodeURIComponent(tool.slug)}`;
         row.className =
-          'group block rounded-xl border border-zinc-800/70 bg-zinc-900/40 px-4 py-3.5 transition hover:border-zinc-700 hover:bg-zinc-800/55 focus:bg-zinc-800/55 focus:outline-none';
+          'group block rounded-xl border border-ink-border bg-ink-900 px-4 py-3.5 transition hover:border-ink-800 hover:bg-ink-800 focus:bg-ink-800 focus:outline-none';
         row.dataset.suggestionIndex = String(index);
 
         const shell = document.createElement('div');
@@ -385,7 +384,7 @@ const meta = {
 
         const icon = document.createElement('div');
         icon.className =
-          'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-semibold text-zinc-300';
+          'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-ink-border bg-ink-900 text-xs font-semibold text-paper';
         icon.textContent = (tool.name || '?').slice(0, 1).toUpperCase();
 
         const body = document.createElement('div');
@@ -398,29 +397,31 @@ const meta = {
         nameWrap.className = 'min-w-0';
 
         const name = document.createElement('div');
-        name.className = 'truncate text-[15px] font-semibold leading-5 text-zinc-100';
+        name.className = 'truncate text-[15px] font-semibold leading-5 text-paper';
         name.textContent = tool.name;
 
         const path = document.createElement('div');
-        path.className = 'mt-1 truncate text-xs leading-4 text-zinc-500';
+        path.className = 'mt-1 truncate text-xs leading-4 text-paper-muted';
         path.textContent = `/tool/${tool.slug}`;
 
         nameWrap.append(name, path);
 
         const badge = document.createElement('div');
         badge.className =
-          'mt-0.5 shrink-0 rounded-md border border-zinc-700/80 bg-zinc-900/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400';
-        badge.textContent = 'Tool';
+          'mt-0.5 shrink-0 rounded-md border border-ink-border bg-ink-900 px-2 py-1 font-mono text-xs font-semibold text-paper';
+        badge.textContent = tool.score ? tool.score : '—';
 
         top.append(nameWrap, badge);
         body.append(top);
 
-        const rawDescription = typeof tool.short_description === 'string' ? tool.short_description : '';
-        if (rawDescription.trim()) {
+        const verdictText = typeof tool.verdict === 'string' ? tool.verdict.trim() : '';
+        const fallback =
+          typeof tool.short_description === 'string' ? tool.short_description.trim() : '';
+        const line = verdictText || fallback;
+        if (line) {
           const desc = document.createElement('div');
-          desc.className = 'mt-2 line-clamp-2 pr-1 text-sm leading-5 text-zinc-300/90';
-          desc.textContent =
-            rawDescription.length > 120 ? `${rawDescription.slice(0, 117).trim()}...` : rawDescription;
+          desc.className = 'mt-2 line-clamp-2 pr-1 text-sm leading-5 text-paper-muted';
+          desc.textContent = line.length > 120 ? `${line.slice(0, 117).trim()}…` : line;
           body.append(desc);
         }
 
@@ -491,17 +492,14 @@ const meta = {
     });
   });
 
-  // Show more tools button
   document.addEventListener('DOMContentLoaded', () => {
-    const showMoreBtn = document.getElementById('show-more-tools');
-    const grid = document.getElementById('featured-tools-grid');
-
-    if (showMoreBtn && grid) {
-      showMoreBtn.addEventListener('click', () => {
-        grid.classList.toggle('expanded');
-        showMoreBtn.textContent = grid.classList.contains('expanded')
-          ? 'Show less'
-          : 'Show more tools';
+    const decideForm = document.getElementById('home-decide-form');
+    const ctxSelect = document.getElementById('decide-context');
+    if (decideForm instanceof HTMLFormElement && ctxSelect instanceof HTMLSelectElement) {
+      decideForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const slug = ctxSelect.value;
+        window.location.href = slug ? `/best/${encodeURIComponent(slug)}` : '/best';
       });
     }
   });

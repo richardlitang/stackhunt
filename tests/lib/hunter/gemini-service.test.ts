@@ -379,7 +379,10 @@ describe('GeminiService.synthesize', () => {
           buildEvidencePayload({
             abstentions: [
               { field: 'verdict', reason: 'insufficient confidence for one-line recommendation' },
-              { field: 'shortDescription', reason: 'insufficient confidence for concise descriptor' },
+              {
+                field: 'shortDescription',
+                reason: 'insufficient confidence for concise descriptor',
+              },
               { field: 'websiteUrl', reason: 'conflicting canonical URL signals' },
               { field: 'faqs', reason: 'insufficient validated FAQ evidence' },
               { field: 'reviewContext', reason: 'insufficient qualitative evidence' },
@@ -687,7 +690,9 @@ describe('GeminiService.synthesize', () => {
 
     const stageOnePrompt = mockGenerateContentWithThinkingFallback.mock.calls[0]?.[1]?.contents;
     expect(typeof stageOnePrompt).toBe('string');
-    expect(stageOnePrompt).toContain('ALTERNATIVE SIGNALS (Heuristic, Source-Backed Validation Required)');
+    expect(stageOnePrompt).toContain(
+      'ALTERNATIVE SIGNALS (Heuristic, Source-Backed Validation Required)'
+    );
     expect(stageOnePrompt).toContain('Coda');
     expect(stageOnePrompt).toContain('Airtable');
   });
@@ -767,6 +772,62 @@ describe('GeminiService.synthesize', () => {
       alternative: 'Coda',
     });
     expect(typeof (result.analysis.vetoLogic || [])[0].source_url).toBe('string');
+  });
+
+  it('backfills vetoLogic with a generic alternative when sourced cons exist but alternatives do not', async () => {
+    mockGenerateContentWithThinkingFallback
+      .mockResolvedValueOnce({
+        text: JSON.stringify(
+          buildEvidencePayload({
+            cons: [
+              {
+                text: 'Enterprise SSO requires a higher paid tier',
+                source_url: 'https://example.com/pricing',
+                source_type: 'editorial',
+                claim_type: 'fact',
+                confidence: 0.71,
+              },
+            ],
+          })
+        ),
+        usageMetadata: { totalTokenCount: 221 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          ...buildValidPayload(),
+          vetoLogic: undefined,
+        }),
+        usageMetadata: { totalTokenCount: 231 },
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          ...buildValidPayload(),
+          vetoLogic: undefined,
+        }),
+        usageMetadata: { totalTokenCount: 232 },
+      });
+
+    const service = new GeminiService({ apiKey: 'test-key' });
+    const result = await service.synthesize({
+      toolName: 'Claude',
+      promptTemplate: 'test prompt',
+      contextTitle: 'Best for developers',
+      reviewsSnippets: [],
+      pricingSnippets: [],
+      alternativesSnippets: [],
+      budgetAnalystSnippets: [],
+      tribalKnowledgeSnippets: [],
+      knowledgeCardFacts: 'facts',
+      existingCategories: { functions: [], audiences: [], platforms: [] },
+      strictClaimSourcing: true,
+    });
+
+    expect(Array.isArray(result.analysis.vetoLogic)).toBe(true);
+    expect((result.analysis.vetoLogic || []).length).toBeGreaterThan(0);
+    expect((result.analysis.vetoLogic || [])[0]).toMatchObject({
+      alternative: 'another option in this category',
+      source_url: 'https://example.com/pricing',
+    });
   });
 
   it('backfills realityChecks from sourced cons when model omits them', async () => {

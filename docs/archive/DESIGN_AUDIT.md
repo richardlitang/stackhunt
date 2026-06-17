@@ -8,6 +8,7 @@
 ## Executive Summary
 
 The current design is functional but lacks visual hierarchy, breathing room, and modern polish. Key issues:
+
 - **Information density:** Too cramped, needs better spacing
 - **Visual hierarchy:** All sections look equally important
 - **CTA visibility:** Primary actions get lost in the layout
@@ -23,12 +24,14 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 #### Current Issues
 
 **Hero Section** (lines 94-152)
+
 - ❌ Score badge and CTA buttons are buried on the right
 - ❌ Logo is too small (xl = 80px) for a hero
 - ❌ Tags crowd the description area
 - ❌ Compare/Add to Stack buttons are secondary style but equally important as primary CTA
 
 **Content Layout** (lines 154-260)
+
 - ❌ "Our Analysis" before "About" creates confusion (which is the intro?)
 - ❌ Sidebar "Quick Stats" duplicates info from hero
 - ❌ Vote widget is in awkward position (mid-content)
@@ -36,17 +39,20 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 - ❌ All sections use identical card styling (no visual differentiation)
 
 **Pros/Cons Section** (lines 202-216)
+
 - ✅ ProsCons component is well-designed with source attribution
 - ❌ Empty state is too apologetic ("we're working on it")
 - ❌ Section feels disconnected from other content
 
 **Spiderweb Section** (lines 262-267)
+
 - ❌ No visual separation from main content
 - ❌ "Related contexts" unclear label
 
 #### Recommended Improvements
 
 **Hero Redesign:**
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ 🏢 [LOGO-XL]  ProductName ✓                    │
@@ -63,6 +69,7 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 ```
 
 **Content Hierarchy:**
+
 1. **Video** (if exists) - Full width, engaging
 2. **Key Highlights** - 3-column cards: Score breakdown, Quick facts, Pricing
 3. **About** - The real introduction
@@ -72,6 +79,7 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 7. **See it in Context** - Spiderweb grid
 
 **Visual Polish:**
+
 - Increase spacing between sections (gap-12 instead of gap-8)
 - Add subtle shadows to differentiate cards (`shadow-sm hover:shadow-md`)
 - Use accent colors for different section types:
@@ -88,11 +96,13 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 #### Current Issues
 
 **Header** (lines 100-155)
+
 - ❌ Tool count number is huge but not meaningful at a glance
 - ❌ "Alternatives to" box feels like an afterthought
 - ❌ No visual indication this is a ranked list
 
 **Tool Cards** (lines 168-320)
+
 - ✅ Rank badges are nice touch
 - ❌ Cards are too tall - lots of wasted space
 - ❌ Pros/Cons hidden behind details/summary
@@ -100,11 +110,13 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 - ❌ Two-column layout on desktop wastes space
 
 **Empty State** (lines 324-334)
+
 - ✅ Friendly tone
 
 #### Recommended Improvements
 
 **Header Enhancement:**
+
 ```
 ┌────────────────────────────────────────────┐
 │ 🏆 Best X Tools for Y                     │
@@ -118,6 +130,7 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 ```
 
 **Card Redesign - Compact Ranks:**
+
 ```
 ┌─────────────────────────────────────────┐
 │ #1 🥇 ProductName        [85/100] [CTA]│
@@ -131,6 +144,7 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 ```
 
 **Layout:**
+
 - Single column, wider cards (max-w-4xl)
 - Show top 3 pros/cons by default
 - Expandable full analysis
@@ -143,16 +157,19 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 #### Current Issues
 
 **Header** (lines 166-197)
+
 - ✅ Quick verdict banner is good
 - ❌ Banner styling too subtle
 
 **Side-by-Side Layout** (lines 200-394)
+
 - ❌ Text-heavy, hard to scan
 - ❌ No visual differentiation between "winner" and "loser"
 - ❌ Pros/Cons use + and - symbols (use checkmarks/X)
 - ❌ No quick at-a-glance comparison
 
 **Key Differences Table** (lines 396-457)
+
 - ✅ Good idea for structured comparison
 - ❌ Table feels disconnected from cards above
 - ❌ Limited to 3 aspects (score, pricing, highlights)
@@ -160,6 +177,7 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 #### Recommended Improvements
 
 **Top Section - Quick Verdict:**
+
 ```
 ┌──────────────────────────────────────────────┐
 │ ⭐ WINNER: ProductA (85/100)               │
@@ -168,6 +186,7 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 ```
 
 **Comparison Matrix View:**
+
 ```
 ┌─────────────────┬────────────────┬────────────────┐
 │ Feature         │ ProductA    ✓  │ ProductB       │
@@ -181,6 +200,7 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 ```
 
 **Pros/Cons Enhancement:**
+
 - Show side-by-side, but highlighted
 - Use color coding (green for winning in each category)
 - Add "Unique to X" section
@@ -192,11 +212,13 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 #### Current Issues
 
 **Categories Index** (`/categories/index`)
+
 - ✅ Clean grid layout
 - ❌ No search/filter (per your request)
 - ❌ No indication of tool count per category
 
 **Tools Index** (`/tools/index`)
+
 - ✅ Filter and sort work (after our fix)
 - ❌ 4-column grid too cramped on desktop
 - ❌ No preview of tools on hover
@@ -205,11 +227,13 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 #### Recommended Improvements
 
 **Categories:**
+
 - Add instant search (client-side filter)
 - Show tool count badges
 - Group by type (function/audience/platform)
 
 **Tools:**
+
 - 3-column grid (better card size)
 - Add hover preview card
 - Infinite scroll option
@@ -249,6 +273,7 @@ The current design is functional but lacks visual hierarchy, breathing room, and
 **Problem:** Inconsistent hierarchy
 
 **Recommendation:**
+
 ```
 Page Title (H1):    text-3xl sm:text-4xl font-bold
 Section Title (H2): text-2xl font-semibold
@@ -326,18 +351,21 @@ Cards:       p-6 lg:p-8
 ## 🚀 Quick Wins (Implement First)
 
 ### Priority 1 - Immediate Impact
+
 1. **Increase spacing** - Change all `gap-8` to `gap-12` between major sections
 2. **Enlarge CTAs** - Make primary buttons larger (`px-6 py-3` instead of `px-4 py-2`)
 3. **Add shadows** - Differentiate cards with `shadow-sm hover:shadow-lg`
 4. **Sticky sidebar** - Make Quick Stats follow scroll on tool pages
 
 ### Priority 2 - Visual Polish
+
 5. **Consistent card heights** - Use `aspect-ratio` or `min-h-*` for grids
 6. **Better empty states** - Less apologetic, more actionable
 7. **Loading states** - Add skeleton screens
 8. **Hover effects** - Smooth transitions on all interactive elements
 
 ### Priority 3 - Content Hierarchy
+
 9. **Reorder tool page** - Video → Key Highlights → About → Pros/Cons → Analysis
 10. **Compact rank cards** - Show pros/cons by default on /best pages
 11. **Comparison matrix** - Table view for compare pages
@@ -348,6 +376,7 @@ Cards:       p-6 lg:p-8
 ## 📊 Metrics to Track
 
 After implementing improvements:
+
 - **Bounce rate** - Should decrease on tool pages
 - **Time on page** - Should increase (better engagement)
 - **CTA click rate** - Should increase (better visibility)
@@ -358,12 +387,14 @@ After implementing improvements:
 ## 🛠️ Implementation Plan
 
 ### Phase 1: Foundation (Week 1)
+
 - [ ] Create shared component library (`/src/components/ui/`)
 - [ ] Standardize spacing scale
 - [ ] Update color palette
 - [ ] Add utility classes for common patterns
 
 ### Phase 2: Tool Page (Week 2)
+
 - [ ] Redesign hero section
 - [ ] Reorder content sections
 - [ ] Add sticky sidebar
@@ -371,18 +402,21 @@ After implementing improvements:
 - [ ] Add related tools section
 
 ### Phase 3: Best Lists (Week 3)
+
 - [ ] Compact rank cards
 - [ ] Show pros/cons by default
 - [ ] Add comparison mode for top picks
 - [ ] Improve mobile layout
 
 ### Phase 4: Compare Pages (Week 4)
+
 - [ ] Add comparison matrix
 - [ ] Improve visual differentiation
 - [ ] Add quick verdict section
 - [ ] Mobile swipeable cards
 
 ### Phase 5: Polish (Week 5)
+
 - [ ] Add loading states
 - [ ] Improve transitions
 - [ ] Mobile optimization pass

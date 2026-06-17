@@ -28,4 +28,23 @@ describe('tool page pricing insights input', () => {
       roiThreshold: 'After 10 active users',
     });
   });
+
+  it('filters source-placeholder budget analyst values', () => {
+    const genericCopy =
+      'Best for teams that need supports core workflows, with plan limits and feature constraints documented in the source.';
+
+    expect(
+      buildToolPagePricingInsightsBudgetAnalyst({
+        budgetCostDrivers: [genericCopy, 'Seat growth'],
+        budgetOneTimeFees: [genericCopy],
+        budgetCommitmentTerms: genericCopy,
+        budgetRoiThreshold: genericCopy,
+      })
+    ).toEqual({
+      costDrivers: ['Seat growth'],
+      oneTimeFees: [],
+      commitmentTerms: null,
+      roiThreshold: null,
+    });
+  });
 });

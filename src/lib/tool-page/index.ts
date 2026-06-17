@@ -54,6 +54,7 @@ export {
 export { buildToolPageDecisionRouteState } from '@/lib/tool-page/decision-route-state';
 export { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision-utility';
 export { buildToolPageBuyerDecisionLayer } from '@/lib/tool-page/blueprint-contract';
+export { buildToolPageBuyerDecisionPresentationState } from '@/lib/tool-page/buyer-decision-presentation';
 export { buildToolPageBlueprintRuntimeFromRouteData } from '@/lib/tool-page/blueprint-runtime';
 export { buildToolPageBlueprintRuntimeInputFromRouteData } from '@/lib/tool-page/blueprint-runtime-input';
 export {

@@ -7,6 +7,18 @@ describe('tool page verdict content', () => {
   });
 
   it('uses provided verdict markdown', () => {
-    expect(buildToolPageVerdictContent({ renderVerdictSafe: 'Verdict text' }).body).toBe('Verdict text');
+    expect(buildToolPageVerdictContent({ renderVerdictSafe: 'Verdict text' }).body).toBe(
+      'Verdict text'
+    );
+  });
+
+  it('removes source-placeholder verdict copy', () => {
+    const result = buildToolPageVerdictContent({
+      renderVerdictSafe:
+        'Choose when Best for teams that need supports core workflows, with plan limits and feature constraints documented in the source.. Avoid when exports are limited.',
+    });
+
+    expect(result.body).not.toContain('supports core workflows');
+    expect(result.body).toContain('Avoid when exports are limited.');
   });
 });

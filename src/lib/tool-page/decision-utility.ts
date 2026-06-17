@@ -209,6 +209,18 @@ function buildSubjectSpecificPricingMentalModelItems(input: {
   return null;
 }
 
+const GENERIC_UTILITY_COPY_PATTERNS = [
+  /\bsupports core workflows\b.*\bplan limits\b.*\bfeature constraints\b.*\bdocumented in (?:the )?source\b/i,
+  /\bbest for teams that need supports\b/i,
+];
+
+function sanitizeUtilityCopy(value: string | null | undefined): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) return '';
+  if (GENERIC_UTILITY_COPY_PATTERNS.some((pattern) => pattern.test(text))) return '';
+  return text;
+}
+
 export function buildToolPageDecisionUtilityState(
   input: BuildToolPageDecisionUtilityInput
 ): ToolPageDecisionUtilityState {
@@ -228,12 +240,10 @@ export function buildToolPageDecisionUtilityState(
     hasParentTool: input.hasParentTool,
     hasEnterpriseSignals: input.hasEnterpriseSignals,
   });
-  const useIfBase = typeof input.lensBestFitLine === 'string' ? input.lensBestFitLine.trim() : '';
-  const avoidIfBase = typeof input.lensWeakFitLine === 'string' ? input.lensWeakFitLine.trim() : '';
+  const useIfBase = sanitizeUtilityCopy(input.lensBestFitLine);
+  const avoidIfBase = sanitizeUtilityCopy(input.lensWeakFitLine);
   const watchOutBase =
-    (typeof input.hardLimitText === 'string' && input.hardLimitText.trim().length > 0
-      ? input.hardLimitText.trim()
-      : '') || (typeof input.lensTradeoffLine === 'string' ? input.lensTradeoffLine.trim() : '');
+    sanitizeUtilityCopy(input.hardLimitText) || sanitizeUtilityCopy(input.lensTradeoffLine);
   const useIf = useIfBase;
   const avoidIf = avoidIfBase;
   const watchOut = watchOutBase;
@@ -286,13 +296,7 @@ export function buildToolPageDecisionUtilityState(
             'Confirm billing mechanics before rollout so user growth, entity growth, or workspace sprawl do not surprise budget owners.',
           ]);
   const decisionUpgradeTriggerBase =
-    (typeof input.hardLimitText === 'string' && input.hardLimitText.trim().length > 0
-      ? input.hardLimitText.trim()
-      : '') ||
-    (typeof input.pricingEvidenceSummary === 'string' &&
-    input.pricingEvidenceSummary.trim().length > 0
-      ? input.pricingEvidenceSummary.trim()
-      : '');
+    sanitizeUtilityCopy(input.hardLimitText) || sanitizeUtilityCopy(input.pricingEvidenceSummary);
   const decisionUpgradeTrigger = decisionUpgradeTriggerBase;
   const hasDecisionBullets =
     useIf.length > 0 ||
@@ -300,18 +304,18 @@ export function buildToolPageDecisionUtilityState(
     watchOut.length > 0 ||
     decisionUpgradeTrigger.length > 0;
   const pricingMentalModelItemsRaw: ToolPageDecisionUtilityState['pricingMentalModelItems'] = [
-    ...(input.hardLimitText
+    ...(sanitizeUtilityCopy(input.hardLimitText)
       ? [
           {
-            text: input.hardLimitText,
+            text: sanitizeUtilityCopy(input.hardLimitText),
             evidenceHref: '#verdict',
           },
         ]
       : []),
-    ...(input.pricingEvidenceSummary
+    ...(sanitizeUtilityCopy(input.pricingEvidenceSummary)
       ? [
           {
-            text: input.pricingEvidenceSummary,
+            text: sanitizeUtilityCopy(input.pricingEvidenceSummary),
             evidenceHref: '#pricing',
           },
         ]
@@ -334,6 +338,7 @@ export function buildToolPageDecisionUtilityState(
       .trim();
   const pricingMentalModelItems = pricingMentalModelItemsRaw.filter((item) => {
     const key = normalizePricingMentalModelKey(item.text);
+    if (!sanitizeUtilityCopy(item.text)) return false;
     if (!key || seenPricingMentalModelKeys.has(key)) return false;
     seenPricingMentalModelKeys.add(key);
     return true;

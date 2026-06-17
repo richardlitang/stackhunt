@@ -22,11 +22,13 @@ import { normalizeCategory } from '../../config/taxonomy';
 import { ensureParentSuite } from '../utils/suite-manager';
 import { updateNormalizedPricing } from '../../pricing/persist';
 import { mapSmpPricingToV2 } from '../../pricing';
+import { enrichSmpPricingForLens } from '@/lib/pricing/plan-lens';
 import {
-  derivePlanLensTags,
-  enrichSmpPricingForLens,
-  inferPlanTargetAudience,
-} from '@/lib/pricing/plan-lens';
+  buildCanonicalPricingPlans,
+  inferTargetMarket,
+  isPricingBiasedDerivedCon,
+  mapSmpPricingToPricingModel,
+} from '@/lib/pricing/canonical-plans';
 import {
   deriveLensTagsForConstraintText,
   deriveLensTagsForIntegration,
@@ -40,8 +42,6 @@ import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import {
   classifyClaimVolatility,
   computeClaimRecheckBy,
-  detectRiskyCopyTerms,
-  hasScopeQualifier,
   inferClaimScope,
   isClaimStale,
 } from '@/lib/claim-policy';
@@ -70,6 +70,51 @@ import {
   sanitizeOperationalRecord,
 } from '@/lib/hunter/operational-guardrails';
 import { normalizeCategorySlug, resolveDetectedCategory } from '../category-resolver';
+import {
+  getGenerationActionabilityScore,
+  getGenerationReaderUtilityScore,
+  getMinActionabilityScore,
+  getMinReaderUtilityScore,
+  maybeEnqueueCoverageGapRehunt,
+  meetsAuthoritativeDomainThreshold,
+  meetsAuthoritativeSourceThreshold,
+} from '../coverage/coverage-gaps';
+import {
+  collectFirstPartyCorpus,
+  containsNegativeCue,
+  containsRiskyAbsolute,
+  detectClaimKind,
+  downgradeComparativeClause,
+  enforceOfferingScope,
+  hasAbsoluteMarketingTerm,
+  hasCommunityHedgingLanguage,
+  hasComparatorToken,
+  isAuthoritativeClaim,
+  isConditional,
+  isIntegrationGapClaim,
+  isRenderableClaimText,
+  rewriteVendorRankingClaim,
+  sanitizeNarrativeClaimText,
+  sanitizeRiskyClaimLanguage,
+  softenAbsoluteMarketingLanguage,
+  sourceTierForClaim,
+  stripTerminalPunctuation,
+  stripUnsupportedQuantitativePhrases,
+  suppressSalesGatedClaim,
+  UNVERIFIED_QUANT_VALUE,
+  validateNegativeClaim,
+  RANKING_CLAIM_TOKENS,
+} from '../content-policy/claim-language';
+import {
+  extractNamedFeatures,
+  featureOverlapRatio,
+  hasSpecificSignal,
+  isGenericDifferentiator,
+  jaccardSimilarity,
+  normalizeFeatureLabel,
+  overlapRatio,
+  tokenizeForSimilarity,
+} from '../text-similarity';
 
 export interface DatabaseTypes {
   ToolInsert: Record<string, unknown>;
@@ -78,78 +123,7 @@ export interface DatabaseTypes {
   AffiliateOfferInsert: Record<string, unknown>;
 }
 
-/**
- * Infer target_market from pricing plans
- * Logic:
- * - Has business/enterprise plans → 'business'
- * - Only individual/free plans → 'consumer'
- * - Has both individual AND team/business → 'prosumer'
- */
-function inferTargetMarket(plans: any[]): 'consumer' | 'prosumer' | 'business' | 'enterprise' {
-  if (!plans || plans.length === 0) return 'business'; // Default for tools without pricing
-
-  const audiences = plans.map((p) => p.target_audience).filter(Boolean);
-
-  const hasEnterprise = audiences.includes('enterprise');
-  const hasBusiness = audiences.includes('business');
-  const hasTeam = audiences.includes('team');
-  const hasIndividual = audiences.includes('individual');
-
-  // Enterprise-focused tools
-  if (hasEnterprise && !hasIndividual) return 'enterprise';
-
-  // Business-focused tools
-  if ((hasBusiness || hasEnterprise) && !hasIndividual) return 'business';
-
-  // Prosumer tools (serve both individuals and businesses)
-  if (hasIndividual && (hasTeam || hasBusiness || hasEnterprise)) return 'prosumer';
-
-  // Consumer-only tools
-  if (hasIndividual && !hasTeam && !hasBusiness && !hasEnterprise) return 'consumer';
-
-  // Default to business if unclear
-  return 'business';
-}
-
-const CONDITIONAL_MARKERS = /\b(if|when|unless|only if|as soon as|before|after)\b/i;
-const NEGATIVE_CUES =
-  /\b(no|not|lacks|lack|doesn't|cannot|can't|won't|avoid|veto|issue|problem|risk|limit|limited|slow|expensive|broken|bug|fails|failure)\b/i;
-const RISKY_ABSOLUTE_TERMS =
-  /\b(always|never|broken|scam|unreliable|guaranteed|everyone|nobody)\b/i;
-const UNVERIFIED_QUANT_VALUE =
-  /\b\d+\s*x\b|\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b|\b\d+(?:\.\d+)?%\b/i;
-const COMPARATOR_TOKENS =
-  /\b(vs\.?|versus|compared to|more than|less than|faster than|slower than|better than|worse than|higher than|lower than|double|doubles|doubling|half|halve|premium)\b/i;
-const COMPARATOR_QUANT_TOKENS = /\b\d+(?:\.\d+)?\s*x\b|\b\d+(?:\.\d+)?%/i;
-const DERIVED_METRIC_TOKENS = /\b(density|ratio|score|index|rate|lift|uplift)\b/i;
-const SALES_GATED_TOKENS = /\b(sales[-\s]?gated|contact sales|talk to sales|sales contact)\b/i;
-const ENTERPRISE_SCOPE_TOKENS = /\b(enterprise|business|advanced plan|custom plan)\b/i;
-const CONTACT_SALES_TOKENS = /\b(contact sales|talk to sales|request demo|enterprise)\b/i;
-const SELF_SERVE_TOKENS =
-  /\b(start now|get started|sign up|try free|free trial|create account|api key|start building)\b/i;
-const RANKING_CLAIM_TOKENS =
-  /\b(rank(?:ed|ing)?|#\d+|top\s*\d+|world.?s\s+\w+-ranked|leaderboard)\b/i;
-const TIME_QUANT_TOKENS = /\b\d+\s*-\s*\d+\s*(seconds?|minutes?|hours?|days?)\b/i;
-const LE_CHAT_SCOPE_TOKENS = /\b(flash answers?|deep research|file uploads?)\b/i;
-const LE_CHAT_NAME_TOKENS = /\b(le\s*chat)\b/i;
-const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
-const CONTROL_CHARS_REGEX = /[\p{Cc}\u200B-\u200D\u2060\uFEFF]/gu;
-const INCOMPLETE_CLAUSE_ENDING =
-  /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/i;
-const COMMUNITY_HEDGING_PREFIX =
-  /^(users report(?: that)?|community (?:reports|mentions|consensus (?:is|suggests)|feedback)|according to (?:reddit|hn|community)|based on user discussions)/i;
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);
-const COVERAGE_ONBOARDING_TOKENS =
-  /\b(onboard|onboarding|setup|implementation|learning curve|ramp|time to value|adoption)\b/i;
-const COVERAGE_PRICING_TOKENS =
-  /\b(price|pricing|cost|billing|plan|tier|seat|quota|limit|cap|overage|enterprise)\b/i;
-const COVERAGE_MIGRATION_TOKENS =
-  /\b(migration|migrate|switch|switching|lock[-\s]?in|export|import|portability|data portability)\b/i;
-const COVERAGE_SUPPORT_TOKENS =
-  /\b(support|docs|documentation|SLA|uptime|ticket|response time|customer success)\b/i;
-const DEFAULT_MIN_ACTIONABILITY_SCORE = 58;
-const DEFAULT_MIN_READER_UTILITY_SCORE = 62;
-
 const POPULARITY_PROFILES: Record<
   PopularityTier,
   {
@@ -195,51 +169,6 @@ const POPULARITY_PROFILES: Record<
   },
 };
 
-function meetsAuthoritativeSourceThreshold(
-  tier: PopularityTier,
-  count: number,
-  minRequired: number,
-  score: number
-): boolean {
-  if (count >= minRequired) return true;
-  if (tier === 'popular' && count >= 1 && score >= 88) return true;
-  return false;
-}
-
-function getMinActionabilityScore(): number {
-  const raw =
-    typeof process !== 'undefined' ? process.env.HUNTER_MIN_ACTIONABILITY_SCORE : undefined;
-  const parsed = raw ? Number(raw) : NaN;
-  if (!Number.isFinite(parsed)) return DEFAULT_MIN_ACTIONABILITY_SCORE;
-  return Math.min(100, Math.max(0, Math.round(parsed)));
-}
-
-function getMinReaderUtilityScore(): number {
-  const raw =
-    typeof process !== 'undefined' ? process.env.HUNTER_MIN_READER_UTILITY_SCORE : undefined;
-  const parsed = raw ? Number(raw) : NaN;
-  if (!Number.isFinite(parsed)) return DEFAULT_MIN_READER_UTILITY_SCORE;
-  return Math.min(100, Math.max(0, Math.round(parsed)));
-}
-
-function getGenerationActionabilityScore(
-  generationQuality?: Record<string, unknown>
-): number | null {
-  const raw = generationQuality?.actionabilityScore;
-  const numeric = typeof raw === 'number' ? raw : Number(raw);
-  if (!Number.isFinite(numeric)) return null;
-  return Math.min(100, Math.max(0, numeric));
-}
-
-function getGenerationReaderUtilityScore(
-  generationQuality?: Record<string, unknown>
-): number | null {
-  const raw = generationQuality?.readerUtilityScore;
-  const numeric = typeof raw === 'number' ? raw : Number(raw);
-  if (!Number.isFinite(numeric)) return null;
-  return Math.min(100, Math.max(0, numeric));
-}
-
 function isMissingGenerationQualityColumnError(
   error: { message?: string } | null | undefined
 ): boolean {
@@ -248,238 +177,6 @@ function isMissingGenerationQualityColumnError(
     message.includes("Could not find the 'generation_quality' column of 'reviews'") ||
     message.includes('column "generation_quality" of relation "reviews" does not exist')
   );
-}
-
-function meetsAuthoritativeDomainThreshold(
-  tier: PopularityTier,
-  domains: number,
-  minRequired: number,
-  sourceCount: number,
-  score: number
-): boolean {
-  if (domains >= minRequired) return true;
-  if (tier === 'standard' && domains >= 1 && sourceCount >= 4 && score >= 80) return true;
-  return false;
-}
-
-type CoverageDimension = 'onboarding' | 'pricing_ceilings' | 'migration_risk' | 'support_quality';
-
-function detectCoverageGaps(
-  analysis: any,
-  knowledgeCard: any,
-  generationQuality?: Record<string, unknown>
-): CoverageDimension[] {
-  const readClaimTexts = (claims: unknown[]): string[] =>
-    claims
-      .map((claim: any) => (typeof claim === 'string' ? claim : claim?.text))
-      .filter(
-        (text: unknown): text is string => typeof text === 'string' && text.trim().length > 0
-      );
-  const claimTexts = [
-    ...readClaimTexts(analysis?.pros || []),
-    ...readClaimTexts(analysis?.cons || []),
-  ];
-  const reviewContextText = [
-    analysis?.reviewContext?.humanVerdict,
-    analysis?.reviewContext?.userAdvocate?.originStory,
-    ...(analysis?.reviewContext?.userAdvocate?.avoidIf || []),
-    ...(analysis?.reviewContext?.userAdvocate?.frustrations || []),
-    ...(analysis?.reviewContext?.userAdvocate?.idealFor || []),
-  ]
-    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-    .join(' ');
-  const summaryText = typeof analysis?.summary === 'string' ? analysis.summary : '';
-  const combinedText = [summaryText, ...claimTexts, reviewContextText].join('\n');
-
-  const abstainedFields = Array.isArray((generationQuality as any)?.abstainedFields)
-    ? ((generationQuality as any).abstainedFields as string[])
-    : [];
-  const hasReviewContext = !abstainedFields.includes('reviewContext');
-
-  const hasOnboardingSignal =
-    COVERAGE_ONBOARDING_TOKENS.test(combinedText) ||
-    typeof knowledgeCard?.setup_complexity?.tier === 'string' ||
-    typeof knowledgeCard?.setup_complexity?.description === 'string';
-  const hasPricingSignal =
-    COVERAGE_PRICING_TOKENS.test(combinedText) ||
-    Array.isArray(knowledgeCard?.constraints?.limits) ||
-    Array.isArray(knowledgeCard?.smp_pricing?.plans);
-  const hasMigrationSignal =
-    COVERAGE_MIGRATION_TOKENS.test(combinedText) ||
-    Boolean(knowledgeCard?.smp_portability?.has_data_export) ||
-    Array.isArray(knowledgeCard?.smp_portability?.export_formats) ||
-    Array.isArray(analysis?.switchingFrom);
-  const hasSupportSignal =
-    COVERAGE_SUPPORT_TOKENS.test(combinedText) ||
-    (hasReviewContext &&
-      Array.isArray(analysis?.reviewContext?.userAdvocate?.frustrations) &&
-      analysis.reviewContext.userAdvocate.frustrations.length > 0);
-
-  const gaps: CoverageDimension[] = [];
-  if (!hasOnboardingSignal) gaps.push('onboarding');
-  if (!hasPricingSignal) gaps.push('pricing_ceilings');
-  if (!hasMigrationSignal) gaps.push('migration_risk');
-  if (!hasSupportSignal) gaps.push('support_quality');
-  return gaps;
-}
-
-async function maybeEnqueueCoverageGapRehunt(params: {
-  toolName: string;
-  contextTitle?: string | null;
-  categorySlug?: string | null;
-  analysis: any;
-  knowledgeCard: any;
-  generationQuality?: Record<string, unknown>;
-  deps: HunterDependencies;
-}): Promise<void> {
-  const { toolName, contextTitle, categorySlug, analysis, knowledgeCard, generationQuality, deps } =
-    params;
-  const gaps = detectCoverageGaps(analysis, knowledgeCard, generationQuality);
-  const minActionabilityScore = getMinActionabilityScore();
-  const actionabilityScore = getGenerationActionabilityScore(generationQuality);
-  const minReaderUtilityScore = getMinReaderUtilityScore();
-  const readerUtilityScore = getGenerationReaderUtilityScore(generationQuality);
-  const hasMissingActionability = actionabilityScore === null;
-  const hasActionabilityGap =
-    hasMissingActionability ||
-    (actionabilityScore !== null && actionabilityScore < minActionabilityScore);
-  const hasMissingReaderUtility = readerUtilityScore === null;
-  const hasReaderUtilityGap =
-    hasMissingReaderUtility ||
-    (readerUtilityScore !== null && readerUtilityScore < minReaderUtilityScore);
-  const hasCriticalGap = gaps.includes('pricing_ceilings');
-  if (!hasActionabilityGap && !hasReaderUtilityGap && !hasCriticalGap && gaps.length < 2) return;
-
-  let existingQuery = deps.supabase
-    .from('hunt_queue')
-    .select('id,status')
-    .eq('tool_name', toolName)
-    .in('status', ['pending', 'claimed', 'processing'])
-    .limit(1);
-  existingQuery = contextTitle
-    ? existingQuery.eq('context_title', contextTitle)
-    : existingQuery.is('context_title', null);
-  const { data: existing } = await existingQuery;
-  if (Array.isArray(existing) && existing.length > 0) {
-    deps.log(
-      `[Coverage Gap] Re-hunt already queued for ${toolName}${contextTitle ? ` (${contextTitle})` : ''}; skipping`
-    );
-    return;
-  }
-
-  const reasonParts: string[] = [];
-  if (gaps.length > 0) reasonParts.push(`coverage_gaps:${gaps.join('|')}`);
-  if (hasMissingActionability) {
-    reasonParts.push('missing_actionability');
-  } else if (hasActionabilityGap) {
-    reasonParts.push(`low_actionability:${actionabilityScore ?? 0}<${minActionabilityScore}`);
-  }
-  if (hasMissingReaderUtility) {
-    reasonParts.push('missing_reader_utility');
-  } else if (hasReaderUtilityGap) {
-    reasonParts.push(`low_reader_utility:${readerUtilityScore ?? 0}<${minReaderUtilityScore}`);
-  }
-  const reason = reasonParts.join(';');
-  const { error } = await deps.supabase.from('hunt_queue').insert({
-    tool_name: toolName,
-    context_title: contextTitle || null,
-    category_slug: categorySlug || null,
-    hunt_type: 'full',
-    force_regenerate: true,
-    priority: hasMissingActionability ? 96 : hasActionabilityGap ? 95 : hasCriticalGap ? 90 : 75,
-    source: 'scheduled',
-    requested_by: reason,
-  });
-  if (error) {
-    deps.log(`[Coverage Gap] Failed to enqueue re-hunt: ${error.message}`);
-    return;
-  }
-  deps.log(
-    `[Coverage Gap] Enqueued re-hunt for ${toolName}${contextTitle ? ` (${contextTitle})` : ''} due to ${reason}`
-  );
-}
-
-function isConditional(text: string): boolean {
-  return CONDITIONAL_MARKERS.test(text);
-}
-
-function containsNegativeCue(text: string): boolean {
-  return NEGATIVE_CUES.test(text);
-}
-
-function containsRiskyAbsolute(text: string): boolean {
-  return RISKY_ABSOLUTE_TERMS.test(text);
-}
-
-function hasComparatorToken(text: string): boolean {
-  return COMPARATOR_TOKENS.test(text) || COMPARATOR_QUANT_TOKENS.test(text);
-}
-
-function sanitizeNarrativeClaimText(text: string): string {
-  return text.normalize('NFKC').replace(CONTROL_CHARS_REGEX, '').replace(/\s+/g, ' ').trim();
-}
-
-function stripTerminalPunctuation(text: string): string {
-  return text.replace(TERMINAL_PUNCTUATION, '').trim();
-}
-
-function hasCommunityHedgingLanguage(text: string): boolean {
-  return COMMUNITY_HEDGING_PREFIX.test(stripTerminalPunctuation(sanitizeNarrativeClaimText(text)));
-}
-
-function isRenderableClaimText(text: string): boolean {
-  const cleaned = stripTerminalPunctuation(sanitizeNarrativeClaimText(text));
-  if (!cleaned) return false;
-  if (cleaned.length < 12) return true;
-  return !INCOMPLETE_CLAUSE_ENDING.test(cleaned);
-}
-
-function sourceTierForClaim(url?: string | null): 'A' | 'B' | 'C' {
-  if (!url) return 'C';
-  const lower = url.toLowerCase();
-  if (
-    lower.includes('/docs') ||
-    lower.includes('docs.') ||
-    lower.includes('/help') ||
-    lower.includes('help-center') ||
-    lower.includes('/support') ||
-    lower.includes('/developers') ||
-    lower.includes('/api') ||
-    lower.includes('/trust') ||
-    lower.includes('/security') ||
-    lower.includes('/legal')
-  ) {
-    return 'A';
-  }
-  if (lower.includes('/pricing') || lower.includes('/plans')) return 'B';
-  return 'C';
-}
-
-function hasAbsoluteMarketingTerm(text: string): boolean {
-  return /\b(unlimited|never|guaranteed)\b/i.test(text);
-}
-
-function softenAbsoluteMarketingLanguage(text: string): string {
-  let next = text;
-  next = next.replace(/\bunlimited\b/gi, 'expanded');
-  next = next.replace(/\bnever\b/gi, 'rarely');
-  next = next.replace(/\bguaranteed\b/gi, 'designed to');
-  return next.replace(/\s{2,}/g, ' ').trim();
-}
-
-function sanitizeRiskyClaimLanguage(text: string): string {
-  let next = text;
-  next = next.replace(/\bverified\b/gi, 'source-backed');
-  next = next.replace(/\baccurate\b/gi, 'source-aligned');
-  next = next.replace(/\bguaranteed\b/gi, 'designed to');
-  if (/\bno free tier\b/i.test(next) && !hasScopeQualifier(next)) {
-    next = next.replace(/\bno free tier\b/gi, 'no self-serve free tier is listed');
-  }
-  const risky = detectRiskyCopyTerms(next).filter((term) => term !== 'best');
-  if (risky.length > 0) {
-    return next.replace(/\bbest\b/gi, 'strong');
-  }
-  return next;
 }
 
 function normalizeChecklistItems(value: unknown, max = 5): string[] {
@@ -497,55 +194,6 @@ function normalizeChecklistItems(value: unknown, max = 5): string[] {
     if (items.length >= max) break;
   }
   return items;
-}
-
-function normalizeFeatureLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[()]/g, ' ')
-    .replace(/[^a-z0-9+\-/\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isGenericDifferentiator(value: string): boolean {
-  const normalized = normalizeFeatureLabel(value);
-  if (!normalized || normalized.length < 6) return true;
-  const genericPatterns = [
-    /\bai (chat|assistant|automation|generation)\b/,
-    /\b(api|integrations?|webhooks?|automation)\b/,
-    /\b(data export|export)\b/,
-    /\b(collaboration|workflow|productivity)\b/,
-    /\b(conversation memory|memory)\b/,
-    /\b(code generation)\b/,
-  ];
-  return genericPatterns.some((pattern) => pattern.test(normalized));
-}
-
-function hasSpecificSignal(value: string): boolean {
-  return (
-    /\b\d/.test(value) ||
-    /\b(pro|max|enterprise|team|business|starter|free)\b/i.test(value) ||
-    /\b(scim|sso|dpa|soc 2|hipaa|gdpr|api)\b/i.test(value) ||
-    /\b[A-Z]{2,}\b/.test(value)
-  );
-}
-
-function featureOverlapRatio(a: string, b: string): number {
-  const tokenize = (value: string) =>
-    new Set(
-      normalizeFeatureLabel(value)
-        .split(' ')
-        .filter((token) => token.length >= 3)
-    );
-  const aa = tokenize(a);
-  const bb = tokenize(b);
-  if (aa.size === 0 || bb.size === 0) return 0;
-  let overlap = 0;
-  for (const token of aa) {
-    if (bb.has(token)) overlap += 1;
-  }
-  return overlap / aa.size;
 }
 
 async function enrichComparativeFeatureSignals(
@@ -690,48 +338,6 @@ function deriveBuyerChecklists(analysis: any): { quickChecks: string[]; teamItCh
   };
 }
 
-function extractNamedFeatures(text: string): string[] {
-  const quoted = Array.from(text.matchAll(/["'“”]([^"'“”]{3,80})["'“”]/g)).map((m) => m[1].trim());
-  const titleCase = Array.from(
-    text.matchAll(/\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){1,4})\b/g)
-  ).map((m) => m[1].trim());
-  const candidates = [...quoted, ...titleCase];
-  const deny = new Set(['OpenAI', 'Anthropic', 'Google', 'xAI', 'API', 'Enterprise', 'Pro', 'Max']);
-  return Array.from(
-    new Set(
-      candidates.filter((item) => {
-        if (item.length < 4) return false;
-        if (deny.has(item)) return false;
-        if (/^(The|This|That|These|Those)\b/.test(item)) return false;
-        return true;
-      })
-    )
-  );
-}
-
-function overlapRatio(a: string, b: string): number {
-  const aw = new Set(
-    a
-      .toLowerCase()
-      .split(/\s+/)
-      .map((w) => w.replace(/[^a-z0-9]/g, ''))
-      .filter((w) => w.length > 3)
-  );
-  const bw = new Set(
-    b
-      .toLowerCase()
-      .split(/\s+/)
-      .map((w) => w.replace(/[^a-z0-9]/g, ''))
-      .filter((w) => w.length > 3)
-  );
-  if (aw.size === 0 || bw.size === 0) return 0;
-  let matches = 0;
-  for (const token of aw) {
-    if (bw.has(token)) matches++;
-  }
-  return matches / aw.size;
-}
-
 function normalizeEvidenceUrl(rawUrl?: string | null): string | null {
   const sanitized = sanitizeUrl(rawUrl);
   if (!sanitized) return null;
@@ -750,220 +356,6 @@ function normalizeEvidenceUrl(rawUrl?: string | null): string | null {
   } catch {
     return sanitized;
   }
-}
-
-function collectFirstPartyCorpus(
-  sources: Array<{
-    url: string;
-    title: string;
-    snippet: string;
-  }>,
-  toolWebsite?: string
-): string {
-  if (!toolWebsite) return '';
-  let toolHost: string | null = null;
-  try {
-    toolHost = new URL(toolWebsite).hostname.replace(/^www\./, '').toLowerCase();
-  } catch {
-    return '';
-  }
-
-  return sources
-    .filter((source) => {
-      try {
-        const sourceHost = new URL(source.url).hostname.replace(/^www\./, '').toLowerCase();
-        return sourceHost === toolHost || sourceHost.endsWith(`.${toolHost}`);
-      } catch {
-        return false;
-      }
-    })
-    .map((source) => `${source.title || ''} ${source.snippet || ''}`.trim())
-    .join(' ')
-    .toLowerCase();
-}
-
-function suppressSalesGatedClaim(
-  text: string,
-  sourceUrl: string | undefined,
-  sources: Array<{
-    url: string;
-    title: string;
-    snippet: string;
-  }>,
-  toolWebsite?: string
-): boolean {
-  if (!SALES_GATED_TOKENS.test(text)) return false;
-  const corpus = collectFirstPartyCorpus(sources, toolWebsite);
-  const sourceText = (() => {
-    if (!sourceUrl) return '';
-    const source = sources.find((entry) => entry.url === sourceUrl);
-    return `${source?.title || ''} ${source?.snippet || ''}`.toLowerCase();
-  })();
-
-  const hasSelfServe = SELF_SERVE_TOKENS.test(corpus) || SELF_SERVE_TOKENS.test(sourceText);
-  const hasContactSales =
-    CONTACT_SALES_TOKENS.test(corpus) || CONTACT_SALES_TOKENS.test(sourceText);
-  const scopedToEnterprise = ENTERPRISE_SCOPE_TOKENS.test(text);
-
-  if (!hasContactSales) return true;
-  if (hasSelfServe && !scopedToEnterprise) return true;
-  return false;
-}
-
-function rewriteVendorRankingClaim(text: string, sourceDate?: string): string {
-  const normalized = text
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-    .replace(/\.$/, '');
-  const dated = sourceDate ? ` (${sourceDate.slice(0, 10)})` : '';
-  return `Vendor materials describe this claim as: ${normalized}${dated}.`;
-}
-
-function stripUnsupportedQuantitativePhrases(text: string): string {
-  let next = text;
-  next = next.replace(TIME_QUANT_TOKENS, '').replace(/\b\d+(?:\.\d+)?\s*x\b/gi, '');
-  next = next
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([.,;!?])/g, '$1')
-    .trim();
-  return next;
-}
-
-function enforceOfferingScope(
-  text: string,
-  sourceUrl: string | undefined,
-  sources: Array<{
-    url: string;
-    title: string;
-    snippet: string;
-  }>
-): string | null {
-  if (!LE_CHAT_SCOPE_TOKENS.test(text)) return text;
-  if (LE_CHAT_NAME_TOKENS.test(text)) return text;
-
-  const sourceText = (() => {
-    if (!sourceUrl) return '';
-    const source = sources.find((entry) => entry.url === sourceUrl);
-    return `${source?.title || ''} ${source?.snippet || ''}`.toLowerCase();
-  })();
-  const corpus = sources
-    .map((source) => `${source.title || ''} ${source.snippet || ''}`)
-    .join(' ')
-    .toLowerCase();
-  const hasLeChatEvidence =
-    LE_CHAT_NAME_TOKENS.test(sourceText) || LE_CHAT_NAME_TOKENS.test(corpus);
-  if (!hasLeChatEvidence) return null;
-  return `In Le Chat, ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
-}
-
-function detectClaimKind(
-  text: string,
-  claimType: 'fact' | 'opinion'
-): 'verbatim_feature' | 'derived_metric' | 'comparison' | 'inference' {
-  if (COMPARATOR_TOKENS.test(text) || COMPARATOR_QUANT_TOKENS.test(text)) return 'comparison';
-  if (DERIVED_METRIC_TOKENS.test(text) || /\b\d+(?:\.\d+)?%\b/i.test(text)) return 'derived_metric';
-  if (claimType === 'fact') return 'verbatim_feature';
-  return 'inference';
-}
-
-function downgradeComparativeClause(text: string): string | null {
-  let next = text;
-  next = next.replace(/\([^)]*(?:vs\.?|versus|compared to)[^)]*\)/gi, '');
-  next = next.replace(/\b(?:compared to|vs\.?|versus)\b[^.?!;]*/gi, '');
-  next = next.replace(
-    /\b(?:more|less|faster|slower|better|worse|higher|lower)\s+than\b[^.?!;]*/gi,
-    ''
-  );
-  next = next.replace(/\b(?:double|doubles|doubling|half|halve|premium)\b[^.?!;]*/gi, '');
-  next = next.replace(COMPARATOR_QUANT_TOKENS, '').trim();
-  next = next.replace(/\b\d+(?:\.\d+)?%/g, '').trim();
-  next = next
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([.,;!?])/g, '$1')
-    .trim();
-  if (next.length < 10) return null;
-  return next;
-}
-
-function buildCanonicalPricingPlans(pricingData: any): {
-  entities: Array<{
-    plan_id: string;
-    plan_name: string;
-    audience?: string | null;
-    works_for_lenses?: Array<'personal' | 'startup' | 'enterprise'> | null;
-    seat_type?: string | null;
-    price_monthly?: number | null;
-    price_annual?: number | null;
-    source_url?: string | null;
-    currency?: string | null;
-  }>;
-  conflicts: Array<{ key: string; values: unknown[]; urls: string[] }>;
-} {
-  const plans = Array.isArray(pricingData?.plans) ? pricingData.plans : [];
-  const sourceUrl: string | null =
-    typeof pricingData?.pricing_page_url === 'string' ? pricingData.pricing_page_url : null;
-  const currency: string | null =
-    typeof pricingData?.currency === 'string' ? pricingData.currency : null;
-
-  const entities = plans.map((plan: any) => {
-    const explicitLensTags = Array.isArray(plan?.works_for_lenses)
-      ? plan.works_for_lenses.filter(
-          (value: unknown) => value === 'personal' || value === 'startup' || value === 'enterprise'
-        )
-      : [];
-    const inferredAudience = inferPlanTargetAudience(plan);
-    return {
-      plan_id: String(plan?.id || slugify(String(plan?.name || 'plan'))),
-      plan_name: String(plan?.name || 'Unknown'),
-      audience:
-        typeof plan?.target_audience === 'string' ? plan.target_audience : inferredAudience || null,
-      works_for_lenses: explicitLensTags.length > 0 ? explicitLensTags : derivePlanLensTags(plan),
-      seat_type: typeof plan?.scaling_unit === 'string' ? plan.scaling_unit : null,
-      price_monthly: typeof plan?.price_monthly === 'number' ? plan.price_monthly : null,
-      price_annual: typeof plan?.price_annual === 'number' ? plan.price_annual : null,
-      source_url: sourceUrl,
-      currency,
-    };
-  });
-
-  const byCanonicalPlan = new Map<
-    string,
-    { monthly: Set<number>; annual: Set<number>; urls: Set<string> }
-  >();
-  for (const entity of entities) {
-    const key = `${entity.plan_id}|${(entity.audience || 'unknown').toLowerCase()}`;
-    if (!byCanonicalPlan.has(key)) {
-      byCanonicalPlan.set(key, {
-        monthly: new Set<number>(),
-        annual: new Set<number>(),
-        urls: new Set<string>(),
-      });
-    }
-    const bucket = byCanonicalPlan.get(key)!;
-    if (typeof entity.price_monthly === 'number') bucket.monthly.add(entity.price_monthly);
-    if (typeof entity.price_annual === 'number') bucket.annual.add(entity.price_annual);
-    if (entity.source_url) bucket.urls.add(entity.source_url);
-  }
-
-  const conflicts: Array<{ key: string; values: unknown[]; urls: string[] }> = [];
-  for (const [key, bucket] of byCanonicalPlan.entries()) {
-    if (bucket.monthly.size > 1) {
-      conflicts.push({
-        key: `${key}:price_monthly`,
-        values: Array.from(bucket.monthly.values()),
-        urls: Array.from(bucket.urls.values()),
-      });
-    }
-    if (bucket.annual.size > 1) {
-      conflicts.push({
-        key: `${key}:price_annual`,
-        values: Array.from(bucket.annual.values()),
-        urls: Array.from(bucket.urls.values()),
-      });
-    }
-  }
-
-  return { entities, conflicts };
 }
 
 function buildTaggedLensCoverage(
@@ -1105,22 +497,6 @@ function sanitizeOperationalFields(
   }
 
   return result;
-}
-
-function isIntegrationGapClaim(text: string): boolean {
-  const lower = text.toLowerCase();
-  return (
-    (lower.includes('zapier') ||
-      lower.includes('make.com') ||
-      /\bn8n\b/.test(lower) ||
-      lower.includes('integration')) &&
-    (lower.includes('lack') ||
-      lower.includes('lacks') ||
-      lower.includes('missing') ||
-      lower.includes('no ') ||
-      lower.includes('without') ||
-      lower.includes('necessitating'))
-  );
 }
 
 function isIntegrationCriticalContext(contextTitle?: string): boolean {
@@ -1266,10 +642,6 @@ function buildDerivedVerdict(
     return `Choose when ${summaryPros[0].text}.`;
   }
   return null;
-}
-
-function isAuthoritativeClaim(claim: ClaimWithSource): boolean {
-  return AUTHORITATIVE_SOURCE_TYPES.has((claim.source_type || '').toLowerCase());
 }
 
 function selectSummaryClaims(claims: ClaimWithSource[], limit = 1): ClaimWithSource[] {
@@ -3540,16 +2912,6 @@ async function persistResearchOnly(
   };
 }
 
-function mapSmpPricingToPricingModel(
-  model?: string | null
-): 'free' | 'freemium' | 'paid' | 'enterprise' | 'open_source' | null {
-  if (!model) return null;
-  if (model === 'free') return 'free';
-  if (model === 'contact_sales') return 'enterprise';
-  if (model === 'open_source') return 'open_source';
-  return 'paid';
-}
-
 /**
  * Create Knowledge Graph links for an item
  */
@@ -3647,29 +3009,6 @@ async function findSimilarContextFallback(
   }
 
   return null;
-}
-
-function tokenizeForSimilarity(input: string): Set<string> {
-  const normalized = input
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 2)
-    .filter((token) => !['best', 'for', 'the', 'and', 'with'].includes(token));
-  return new Set(normalized);
-}
-
-function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 && b.size === 0) return 1;
-  if (a.size === 0 || b.size === 0) return 0;
-
-  let intersection = 0;
-  for (const token of a) {
-    if (b.has(token)) intersection++;
-  }
-  const union = new Set([...a, ...b]).size;
-  return union === 0 ? 0 : intersection / union;
 }
 
 /**
@@ -4330,19 +3669,6 @@ function buildDerivedConsFromConstraints(
   return deduped.slice(0, 3);
 }
 
-function isPricingBiasedDerivedCon(text: string): boolean {
-  return (
-    /^Usage limits apply:/i.test(text) ||
-    /^Additional cost trigger:/i.test(text) ||
-    /^Minimum seat requirement:/i.test(text) ||
-    /^Implementation fee required/i.test(text) ||
-    /^Annual billing only$/i.test(text) ||
-    /^Pricing requires contacting sales$/i.test(text) ||
-    /^No self-serve free tier/i.test(text) ||
-    /^No self-serve free trial/i.test(text)
-  );
-}
-
 function buildUserSignalSummary(
   pros: ClaimWithSource[],
   cons: ClaimWithSource[]
@@ -4477,139 +3803,6 @@ function buildUserSignalSummary(
     top_user_reported_signals: uniqueSignals,
     top_user_reported_claims: topClaims,
   };
-}
-
-/**
- * Negative Sentiment Guardrail
- *
- * For legal protection, negative opinion claims require corroboration from 2+ sources.
- * This prevents single-source defamatory claims from being published.
- *
- * @param claim - The normalized claim
- * @param allSources - All research sources to check for corroboration
- * @returns Object with isValid flag and optional warning
- */
-function validateNegativeClaim(
-  claim: ClaimWithSource,
-  allSources: Array<{
-    url: string;
-    canonical_url?: string;
-    title: string;
-    snippet: string;
-    domain: string;
-    source_type?:
-      | 'official'
-      | 'docs'
-      | 'support'
-      | 'legal'
-      | 'editorial'
-      | 'community'
-      | 'directory';
-    acquisition_mode?: 'LINK_ONLY' | 'API_ONLY' | 'SCRAPE_ALLOWED' | 'BLOCKED';
-    llm_ingestion_allowed?: 'NO' | 'YES_LIMITED' | 'YES';
-    retrieved_at?: string;
-    published_at?: string;
-    time_since?: string;
-  }>
-): {
-  isValid: boolean;
-  warning?: string;
-  corroboratingSourceCount: number;
-  corroboratingSources?: string[];
-} {
-  if (!claim.source_url) {
-    return {
-      isValid: false,
-      warning: 'Missing source URL for negative claim.',
-      corroboratingSourceCount: 0,
-    };
-  }
-  // Only apply guardrail to negative opinions from community sources
-  // Facts from official sources don't need this check
-  if (claim.claim_type === 'fact' && AUTHORITATIVE_SOURCE_TYPES.has(claim.source_type)) {
-    return { isValid: true, corroboratingSourceCount: 1 };
-  }
-
-  const LOW_TRUST_DIRECTORY_DOMAINS = [
-    'g2.com',
-    'capterra.com',
-    'trustpilot.com',
-    'getapp.com',
-    'softwareadvice.com',
-  ];
-  const corroborationPool = allSources.filter((source) => {
-    if (source.acquisition_mode && source.acquisition_mode !== 'SCRAPE_ALLOWED') return false;
-    if (source.llm_ingestion_allowed === 'NO') return false;
-    if (source.source_type === 'directory') return false;
-    const domain = (source.domain || '').toLowerCase();
-    if (
-      LOW_TRUST_DIRECTORY_DOMAINS.some(
-        (blockedDomain) => domain === blockedDomain || domain.endsWith(`.${blockedDomain}`)
-      )
-    ) {
-      return false;
-    }
-    return true;
-  });
-
-  // For opinions (especially from community), count corroborating sources
-  const claimWords = claim.text
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((w) => w.length > 4);
-  if (claimWords.length === 0) {
-    return {
-      isValid: false,
-      warning: 'Negative claim lacks enough specific terms for corroboration matching.',
-      corroboratingSourceCount: 0,
-    };
-  }
-
-  let corroboratingCount = 0;
-  const matchedDomains = new Set<string>();
-  const corroboratingSources: string[] = [];
-
-  for (const source of corroborationPool) {
-    const sourceText = `${source.title} ${source.snippet}`.toLowerCase();
-    // Count how many significant claim words appear in this source
-    const matchingWords = claimWords.filter((w) => sourceText.includes(w));
-
-    // If 40%+ of claim words match, this source corroborates
-    if (matchingWords.length >= claimWords.length * 0.4) {
-      // Don't count multiple pages from same domain as separate corroboration
-      if (!matchedDomains.has(source.domain)) {
-        matchedDomains.add(source.domain);
-        corroboratingCount++;
-        corroboratingSources.push(source.url);
-      }
-    }
-  }
-
-  // Require 2+ independent sources for community-sourced opinions
-  if (claim.source_type === 'community' && claim.claim_type === 'opinion') {
-    if (corroboratingCount < 2) {
-      return {
-        isValid: false,
-        warning: `Negative opinion only corroborated by ${corroboratingCount} source(s). Requires 2+ for legal protection.`,
-        corroboratingSourceCount: corroboratingCount,
-        corroboratingSources,
-      };
-    }
-  }
-
-  // Editorial sources get slightly more trust, but still flag single-source opinions
-  if (claim.source_type === 'editorial' && claim.claim_type === 'opinion') {
-    if (corroboratingCount < 1) {
-      return {
-        isValid: false,
-        warning: `Editorial opinion has no corroborating sources in eligible source pool (${corroborationPool.length}).`,
-        corroboratingSourceCount: corroboratingCount,
-        corroboratingSources,
-      };
-    }
-  }
-
-  return { isValid: true, corroboratingSourceCount: corroboratingCount, corroboratingSources };
 }
 
 const DECISION_INTRO_SPEC_SHEET_PATTERNS = [

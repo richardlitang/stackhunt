@@ -1,0 +1,1082 @@
+{
+  "capturedAt": "2026-06-10T18:49:29.854Z",
+  "queueItemId": "9954ae78-07cf-4705-8c8f-6ae2c75b3d6f",
+  "toolName": "Google Meet",
+  "contextTitle": "Best video meeting platform for distributed teams",
+  "categorySlug": null,
+  "research": {
+    "tokensUsed": 10899,
+    "isDuplicate": false,
+    "scoutResult": {
+      "faqs": [
+        {
+          "answer": "Get started with Google Meet · Start or join a video meeting · Gemini in Meet · During the meeting · After the meeting · Feature availability · Settings in ...",
+          "source": "forum",
+          "question": "How much does \"Google \"meet\" cost to use?",
+          "source_url": "https://support.google.com/meet/thread/324992814/how-much-does-google-meet-cost-to-use?hl=en"
+        },
+        {
+          "answer": "Personally Google meets wins hands down every time. From the perspective of a start up it's feels fresh (the others feel clunky), super simple ...",
+          "source": "reddit",
+          "question": "Microsoft Teams vs Google Meet (purely for external ...",
+          "source_url": "https://www.reddit.com/r/smallbusiness/comments/1ihnj2e/microsoft_teams_vs_google_meet_purely_for/"
+        },
+        {
+          "answer": "Jitsi Meet, it's an decentralized alternative to Google Meet. I personally use this instance: https://calls.disroot.org/ because it doesn't require an account ...",
+          "source": "reddit",
+          "question": "Alternatives to Google meets for overnight, stable call",
+          "source_url": "https://www.reddit.com/r/opensource/comments/1jms3g7/alternatives_to_google_meets_for_overnight_stable/"
+        }
+      ],
+      "facts": {
+        "pricing": {
+          "pricing_page_url": "https://meetgeek.ai/blog/google-meet-pricing"
+        },
+        "identity": {
+          "website_url": "https://meetgeek.ai",
+          "official_name": "Google Meet"
+        },
+        "facts_ledger": [
+          {
+            "key": "pricing.pricing_page_url",
+            "value": "https://meetgeek.ai/blog/google-meet-pricing",
+            "evidence": [
+              {
+                "url": "https://meetgeek.ai/blog/google-meet-pricing",
+                "domain": "meetgeek.ai"
+              }
+            ],
+            "confidence": "high"
+          },
+          {
+            "key": "identity.website_url",
+            "value": "https://meetgeek.ai",
+            "evidence": [
+              {
+                "url": "https://meetgeek.ai/blog/google-meet-pricing",
+                "domain": "meetgeek.ai"
+              }
+            ],
+            "confidence": "med"
+          }
+        ]
+      },
+      "quality": {
+        "notes": [],
+        "missing": [],
+        "conflicts": [],
+        "freshness": {
+          "limits": "unknown",
+          "pricing": "unknown",
+          "reviews": "unknown",
+          "security": "unknown",
+          "portability": "unknown",
+          "alternatives": "unknown",
+          "integrations": "unknown"
+        },
+        "needs_review": false
+      },
+      "raw_sources": [
+        {
+          "url": "https://www.siit.io/tools/comparison/microsoft-teams-vs-google-meet",
+          "title": "Microsoft Teams vs. Google Meet: Which Is Right for Your ...",
+          "domain": "siit.io",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Compare Microsoft Teams and Google Meet features, pricing, and integrations. Find which video conferencing platform fits your team's workflow.",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "4 days ago",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.siit.io/tools/comparison/microsoft-teams-vs-google-meet"
+        },
+        {
+          "url": "https://www.cbtnuggets.com/blog/technology/system-admin/microsoft-teams-vs-google-meet-vs-zoom",
+          "title": "Microsoft Teams vs. Google Meet vs. Zoom: Which is Best ...",
+          "domain": "cbtnuggets.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Teams offers the best value for Microsoft shops, and Google Meet is highly affordable for education and nonprofits. What are the Best Use Cases ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Jul 28, 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.cbtnuggets.com/blog/technology/system-admin/microsoft-teams-vs-google-meet-vs-zoom"
+        },
+        {
+          "url": "https://www.reddit.com/r/smallbusiness/comments/1ihnj2e/microsoft_teams_vs_google_meet_purely_for/",
+          "title": "Microsoft Teams vs Google Meet (purely for external ...",
+          "domain": "reddit.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Personally Google meets wins hands down every time. From the perspective of a start up it's feels fresh (the others feel clunky), super simple ...",
+          "intent_tags": ["reviews"],
+          "source_type": "community",
+          "published_at": "1 year ago",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.reddit.com/r/smallbusiness/comments/1ihnj2e/microsoft_teams_vs_google_meet_purely_for/"
+        },
+        {
+          "url": "https://www.devoteam.com/expert-view/comparing-zoom-microsoft-teams-and-google-meet/",
+          "title": "Comparing Zoom, Microsoft Teams and Google Meet",
+          "domain": "devoteam.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Microsoft Teams vs Zoom vs Google Meet compared on 12 key features. See our deep-dive on AI, price & security. Find your best fit!",
+          "intent_tags": ["reviews", "pricing"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.devoteam.com/expert-view/comparing-zoom-microsoft-teams-and-google-meet/"
+        },
+        {
+          "url": "https://www.forbes.com/advisor/business/software/google-meet-review/",
+          "title": "Google Meet Review 2025: Features, Pros And Cons",
+          "domain": "forbes.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Google Meet offers a great balance of everything: solid security, hassle-free host tools, participant engagement options and accessibility on ...",
+          "intent_tags": ["reviews"],
+          "source_type": "editorial",
+          "published_at": "Jun 10, 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.forbes.com/advisor/business/software/google-meet-review/"
+        },
+        {
+          "url": "https://www.larksuite.com/en_us/blog/google-meet-pricing",
+          "title": "Google Meet pricing: Features and limitations explained",
+          "domain": "larksuite.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Explore Google Meet's pricing plans for individuals and businesses. Learn about the features, limitations, and alternatives to find the right fit for you.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "7 Jan 2026",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.larksuite.com/en_us/blog/google-meet-pricing"
+        },
+        {
+          "url": "https://koalendar.com/blog/google-meet-pricing-plans",
+          "title": "Google Meet Pricing: Free vs Paid Plans",
+          "domain": "koalendar.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Google Meet is free for personal Google accounts, but group calls cap at 60 minutes and 100 participants. Paid Meet features come through Google Workspace ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "19 Dec 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://koalendar.com/blog/google-meet-pricing-plans"
+        },
+        {
+          "url": "https://www.modjo.ai/en/blog/google-meet-pricing-plans-and-options-available",
+          "title": "Google Meet Pricing: Plans and Options Available",
+          "domain": "modjo.ai",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Starting at $8 per user per month, this plan provides additional features, including unlimited meeting length and the ability to host up to 150 participants.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "28 Aug 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.modjo.ai/en/blog/google-meet-pricing-plans-and-options-available"
+        },
+        {
+          "url": "https://screenapp.io/blog/google-meet-pricing",
+          "title": "Google Meet Pricing 2026: Free vs Paid Plans",
+          "domain": "screenapp.io",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Price: $19 per user/month · Participant Limit: 150 · Time Limit: 24 hours · Key Features: Includes everything in Business Starter, plus meeting recording (saved to ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "15 Jan 2026",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://screenapp.io/blog/google-meet-pricing"
+        },
+        {
+          "url": "https://meetgeek.ai/blog/google-meet-pricing",
+          "title": "Google Meet Pricing & Plans, Simplified",
+          "domain": "meetgeek.ai",
+          "policy": {
+            "reason": "inferred_official_fallback",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "inferred_official_fallback_v1",
+            "acquisition_mode": "SCRAPE_ALLOWED",
+            "llm_ingestion_allowed": "YES_LIMITED"
+          },
+          "snippet": "The Free plan has a meeting time limit of 60 minutes and supports up to 100 participants. Paid plans remove this time limit, offer more participant capacity, ...",
+          "intent_tags": ["pricing"],
+          "source_type": "official",
+          "published_at": "29 Apr 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://meetgeek.ai/blog/google-meet-pricing"
+        },
+        {
+          "url": "https://tactiq.io/learn/google-meet-pricing-how-much-does-it-cost",
+          "title": "Google Meet Pricing: How Much Does It Cost",
+          "domain": "tactiq.io",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Google Meet pricing starts at $6.30 per user per month for Business Starter and goes up to $22 per user per month for Business Plus. The Enterprise plan ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "20 Oct 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://tactiq.io/learn/google-meet-pricing-how-much-does-it-cost"
+        },
+        {
+          "url": "https://support.google.com/meet/thread/324992814/how-much-does-google-meet-cost-to-use?hl=en",
+          "title": "How much does \"Google \"meet\" cost to use?",
+          "domain": "support.google.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Get started with Google Meet · Start or join a video meeting · Gemini in Meet · During the meeting · After the meeting · Feature availability · Settings in ...",
+          "intent_tags": ["pricing"],
+          "source_type": "support",
+          "published_at": "13 Feb 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://support.google.com/meet/thread/324992814/how-much-does-google-meet-cost-to-use?hl=en"
+        },
+        {
+          "url": "https://www.forbes.com/advisor/business/software/google-meet-vs-zoom/",
+          "title": "Google Meet vs. Zoom (2025 Comparison)",
+          "domain": "forbes.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Starting Monthly Price. $8.40 per user. $16.99 per user ; Meeting Time Limit. 24 hours. 30 hours ; Maximum Capacity. 1,000. 300 for core plans; 1,000 with add-on.",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "16 Jun 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.forbes.com/advisor/business/software/google-meet-vs-zoom/"
+        },
+        {
+          "url": "https://www.emailvendorselection.com/google-workspace-pricing/",
+          "title": "Google Workspace Pricing (2025): How much does it really ...",
+          "domain": "emailvendorselection.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Google Workspace offers a 16% annual discount on each plan. Business Starter costs $8.40/user/month or $7/user/month with a 1-year commitment. The Business ...",
+          "intent_tags": ["pricing"],
+          "source_type": "editorial",
+          "published_at": "5 days ago",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.emailvendorselection.com/google-workspace-pricing/"
+        },
+        {
+          "url": "https://www.reddit.com/r/opensource/comments/1jms3g7/alternatives_to_google_meets_for_overnight_stable/",
+          "title": "Alternatives to Google meets for overnight, stable call",
+          "domain": "reddit.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "API_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Jitsi Meet, it's an decentralized alternative to Google Meet. I personally use this instance: https://calls.disroot.org/ because it doesn't require an account ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "community",
+          "published_at": "10 months ago",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.reddit.com/r/opensource/comments/1jms3g7/alternatives_to_google_meets_for_overnight_stable/"
+        },
+        {
+          "url": "https://www.gartner.com/reviews/market/meeting-solutions/vendor/google/product/google-meet/alternatives",
+          "title": "Top Google Meet Competitors & Alternatives 2026",
+          "domain": "gartner.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "BLOCKED",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Top Google Meet Alternatives · Zoom Meetings · Microsoft Teams · Webex Suite · Google Chat · BlueJeans Meetings (Legacy) · GoTo Meeting · Miro · Adobe Connect.",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.gartner.com/reviews/market/meeting-solutions/vendor/google/product/google-meet/alternatives"
+        },
+        {
+          "url": "https://www.noota.io/en/alternatives-to-google-meet",
+          "title": "6 Best Alternatives to Google Meet",
+          "domain": "noota.io",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "6 Best Alternatives to Google Meet · 1. Zoom · 2. Microsoft Teams · 3. Cisco Webex Meetings · 4. Jitsi Meet · 5. Zoho Meeting · 6. GoToMeeting · Noota: Centralize Your ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.noota.io/en/alternatives-to-google-meet"
+        },
+        {
+          "url": "https://www.freeconference.com/top-7-of-the-best-google-meet-alternatives/",
+          "title": "Top 7 of the Best Google Meet Alternatives",
+          "domain": "freeconference.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Zoom handles large meetings well. Microsoft Teams works great with Office apps. Webex gives you enterprise security. GoToMeeting lets you talk as long as you ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.freeconference.com/top-7-of-the-best-google-meet-alternatives/"
+        },
+        {
+          "url": "https://www.melp.us/blog/6-best-google-meet-alternatives-for-business-in-2026/",
+          "title": "6 Best Google Meet Alternatives for Business in 2026",
+          "domain": "melp.us",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Melp App, Zoom, Microsoft Teams, Slack, Zoho, and Jitsi are commonly considered among the best Google Meet alternatives for businesses in 2026, ...",
+          "intent_tags": ["alternatives"],
+          "source_type": "editorial",
+          "published_at": "Jan 24, 2026",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.melp.us/blog/6-best-google-meet-alternatives-for-business-in-2026/"
+        },
+        {
+          "url": "https://en.wikipedia.org/wiki/Google_Meet",
+          "title": "Google Meet",
+          "domain": "en.wikipedia.org",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Google Meet is a video communication service developed by Google. [8] It is one of two apps that constitute the replacement for Google Hangouts.",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "8 Nov 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://en.wikipedia.org/wiki/Google_Meet"
+        },
+        {
+          "url": "https://en.wikipedia.org/wiki/Alphabet_Inc.",
+          "title": "Alphabet Inc.",
+          "domain": "en.wikipedia.org",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Alphabet Inc. is an American multinational technology conglomerate holding company headquartered in Mountain View, California.",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "3 days ago",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://en.wikipedia.org/wiki/Alphabet_Inc."
+        },
+        {
+          "url": "https://www.britannica.com/money/Alphabet-Inc",
+          "title": "Alphabet, Inc. | History, Products, & Business Segments",
+          "domain": "britannica.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Alphabet Inc. is an American technology conglomerate and holding company formed in 2015 as a strategic restructuring of Google and its various subsidiaries.",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "3 days ago",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.britannica.com/money/Alphabet-Inc"
+        },
+        {
+          "url": "https://www.googlecloudpresscorner.com/2025-11-11-Google-Announces-EUR5-5-Billion-Investment-in-Germany,-including-AI-Infrastructure,-through-2029",
+          "title": "Google Announces €5.5 Billion Investment in Germany, ...",
+          "domain": "googlecloudpresscorner.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "BERLIN — November 11, 2025 — Google today announced a new €5.5 billion investment (2026-2029) in infrastructure and offices in Germany — including a new ...",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "11 Nov 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.googlecloudpresscorner.com/2025-11-11-Google-Announces-EUR5-5-Billion-Investment-in-Germany,-including-AI-Infrastructure,-through-2029"
+        },
+        {
+          "url": "https://www.akita.co.uk/google-meet-for-business-leaders/",
+          "title": "Google Meet: Everything Business Leaders Should Know - Akita",
+          "domain": "akita.co.uk",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Explore how Google Meet enhances communication, collaboration, and client engagement to help your organisation achieve its strategic goals.",
+          "intent_tags": [],
+          "source_type": "editorial",
+          "published_at": "9 Oct 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://www.akita.co.uk/google-meet-for-business-leaders/"
+        },
+        {
+          "url": "https://developers.google.com/workspace/meet/api/guides/overview",
+          "title": "Google Meet REST API overview",
+          "domain": "developers.google.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "The Google Meet REST API lets you create and manage meetings for Google Meet and offers entry points to your users directly from your app.",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "editorial",
+          "published_at": "Dec 11, 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://developers.google.com/workspace/meet/api/guides/overview"
+        },
+        {
+          "url": "https://support.aha.io/aha-discovery/getting-started/imports/import-google-meet-meetings~7483623437549452284",
+          "title": "Import Google Meet meetings - Aha! knowledge base",
+          "domain": "support.aha.io",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Export from Google Meet · Access your Google Drive and find the Meet Recordings folder. · Locate and open the meeting's transcript file. · Navigate to File -> ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "support",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://support.aha.io/aha-discovery/getting-started/imports/import-google-meet-meetings~7483623437549452284"
+        },
+        {
+          "url": "https://stackoverflow.com/questions/66695409/how-to-export-google-meet-and-google-meet-live-stream-urls-to-google-sheet",
+          "title": "How to export Google Meet and Google Meet live stream ...",
+          "domain": "stackoverflow.com",
+          "policy": {
+            "reason": "policy_restricted",
+            "display_mode": "LINK_ONLY",
+            "policy_version": "v2",
+            "acquisition_mode": "BLOCKED",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "I want to add the urls for both the Google Meet video conference and the Google Meet Livestream to the columns that are output for each calendar event.",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "community",
+          "published_at": "4 years ago",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://stackoverflow.com/questions/66695409/how-to-export-google-meet-and-google-meet-live-stream-urls-to-google-sheet"
+        },
+        {
+          "url": "https://getmembrane.com/integrations/google-meet/data-collections",
+          "title": "Data Collections of Google Meet Integration | Membrane",
+          "domain": "getmembrane.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Connect Google Meet with your application. integration with authentication and data sync capabilities.",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "editorial",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://getmembrane.com/integrations/google-meet/data-collections"
+        },
+        {
+          "url": "https://docs.themeum.com/tutor-lms/addons/google-meet-integration/",
+          "title": "Documention | Google Meet Integration",
+          "domain": "docs.themeum.com",
+          "policy": {
+            "reason": "policy_missing",
+            "display_mode": "LINK_ONLY",
+            "acquisition_mode": "LINK_ONLY",
+            "llm_ingestion_allowed": "NO"
+          },
+          "snippet": "Google Meet integration lets you conduct Google Meet meetings with Tutor LMS. You can set up and start meetings for Tutor LMS courses and individual lessons as ...",
+          "intent_tags": ["integrations", "portability", "limits"],
+          "source_type": "docs",
+          "published_at": "Apr 16, 2025",
+          "retrieved_at": "2026-02-08T10:41:56.299Z",
+          "canonical_url": "https://docs.themeum.com/tutor-lms/addons/google-meet-integration/"
+        }
+      ],
+      "scrape_plan": {
+        "limits": {
+          "blocked": [
+            {
+              "url": "https://developers.google.com/workspace/meet/api/guides/overview",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://support.aha.io/aha-discovery/getting-started/imports/import-google-meet-meetings~7483623437549452284",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://stackoverflow.com/questions/66695409/how-to-export-google-meet-and-google-meet-live-stream-urls-to-google-sheet",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://getmembrane.com/integrations/google-meet/data-collections",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://docs.themeum.com/tutor-lms/addons/google-meet-integration/",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": ["https://meetgeek.ai/blog/google-meet-pricing"],
+          "candidates": [
+            "https://meetgeek.ai/blog/google-meet-pricing",
+            "https://developers.google.com/workspace/meet/api/guides/overview",
+            "https://support.aha.io/aha-discovery/getting-started/imports/import-google-meet-meetings~7483623437549452284",
+            "https://stackoverflow.com/questions/66695409/how-to-export-google-meet-and-google-meet-live-stream-urls-to-google-sheet",
+            "https://getmembrane.com/integrations/google-meet/data-collections",
+            "https://docs.themeum.com/tutor-lms/addons/google-meet-integration/"
+          ]
+        },
+        "pricing": {
+          "blocked": [
+            {
+              "url": "https://www.devoteam.com/expert-view/comparing-zoom-microsoft-teams-and-google-meet/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.larksuite.com/en_us/blog/google-meet-pricing",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://koalendar.com/blog/google-meet-pricing-plans",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.modjo.ai/en/blog/google-meet-pricing-plans-and-options-available",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://screenapp.io/blog/google-meet-pricing",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://tactiq.io/learn/google-meet-pricing-how-much-does-it-cost",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://support.google.com/meet/thread/324992814/how-much-does-google-meet-cost-to-use?hl=en",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.forbes.com/advisor/business/software/google-meet-vs-zoom/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.emailvendorselection.com/google-workspace-pricing/",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": ["https://meetgeek.ai/blog/google-meet-pricing"],
+          "candidates": [
+            "https://meetgeek.ai/blog/google-meet-pricing",
+            "https://www.devoteam.com/expert-view/comparing-zoom-microsoft-teams-and-google-meet/",
+            "https://www.larksuite.com/en_us/blog/google-meet-pricing",
+            "https://koalendar.com/blog/google-meet-pricing-plans",
+            "https://www.modjo.ai/en/blog/google-meet-pricing-plans-and-options-available",
+            "https://screenapp.io/blog/google-meet-pricing",
+            "https://tactiq.io/learn/google-meet-pricing-how-much-does-it-cost",
+            "https://support.google.com/meet/thread/324992814/how-much-does-google-meet-cost-to-use?hl=en",
+            "https://www.forbes.com/advisor/business/software/google-meet-vs-zoom/",
+            "https://www.emailvendorselection.com/google-workspace-pricing/"
+          ]
+        },
+        "reviews": {
+          "blocked": [
+            {
+              "url": "https://www.siit.io/tools/comparison/microsoft-teams-vs-google-meet",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.cbtnuggets.com/blog/technology/system-admin/microsoft-teams-vs-google-meet-vs-zoom",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.reddit.com/r/smallbusiness/comments/1ihnj2e/microsoft_teams_vs_google_meet_purely_for/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.devoteam.com/expert-view/comparing-zoom-microsoft-teams-and-google-meet/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.forbes.com/advisor/business/software/google-meet-review/",
+              "reason": "policy_restricted"
+            }
+          ],
+          "selected": ["https://meetgeek.ai/blog/google-meet-pricing"],
+          "candidates": [
+            "https://meetgeek.ai/blog/google-meet-pricing",
+            "https://www.siit.io/tools/comparison/microsoft-teams-vs-google-meet",
+            "https://www.cbtnuggets.com/blog/technology/system-admin/microsoft-teams-vs-google-meet-vs-zoom",
+            "https://www.reddit.com/r/smallbusiness/comments/1ihnj2e/microsoft_teams_vs_google_meet_purely_for/",
+            "https://www.devoteam.com/expert-view/comparing-zoom-microsoft-teams-and-google-meet/",
+            "https://www.forbes.com/advisor/business/software/google-meet-review/"
+          ]
+        },
+        "security": {
+          "blocked": [],
+          "selected": ["https://meetgeek.ai/blog/google-meet-pricing"],
+          "candidates": ["https://meetgeek.ai/blog/google-meet-pricing"]
+        },
+        "portability": {
+          "blocked": [
+            {
+              "url": "https://developers.google.com/workspace/meet/api/guides/overview",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://support.aha.io/aha-discovery/getting-started/imports/import-google-meet-meetings~7483623437549452284",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://stackoverflow.com/questions/66695409/how-to-export-google-meet-and-google-meet-live-stream-urls-to-google-sheet",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://getmembrane.com/integrations/google-meet/data-collections",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://docs.themeum.com/tutor-lms/addons/google-meet-integration/",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": ["https://meetgeek.ai/blog/google-meet-pricing"],
+          "candidates": [
+            "https://meetgeek.ai/blog/google-meet-pricing",
+            "https://developers.google.com/workspace/meet/api/guides/overview",
+            "https://support.aha.io/aha-discovery/getting-started/imports/import-google-meet-meetings~7483623437549452284",
+            "https://stackoverflow.com/questions/66695409/how-to-export-google-meet-and-google-meet-live-stream-urls-to-google-sheet",
+            "https://getmembrane.com/integrations/google-meet/data-collections",
+            "https://docs.themeum.com/tutor-lms/addons/google-meet-integration/"
+          ]
+        },
+        "alternatives": {
+          "blocked": [
+            {
+              "url": "https://www.reddit.com/r/opensource/comments/1jms3g7/alternatives_to_google_meets_for_overnight_stable/",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.gartner.com/reviews/market/meeting-solutions/vendor/google/product/google-meet/alternatives",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://www.noota.io/en/alternatives-to-google-meet",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.freeconference.com/top-7-of-the-best-google-meet-alternatives/",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://www.melp.us/blog/6-best-google-meet-alternatives-for-business-in-2026/",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": ["https://meetgeek.ai/blog/google-meet-pricing"],
+          "candidates": [
+            "https://meetgeek.ai/blog/google-meet-pricing",
+            "https://www.reddit.com/r/opensource/comments/1jms3g7/alternatives_to_google_meets_for_overnight_stable/",
+            "https://www.gartner.com/reviews/market/meeting-solutions/vendor/google/product/google-meet/alternatives",
+            "https://www.noota.io/en/alternatives-to-google-meet",
+            "https://www.freeconference.com/top-7-of-the-best-google-meet-alternatives/",
+            "https://www.melp.us/blog/6-best-google-meet-alternatives-for-business-in-2026/"
+          ]
+        },
+        "integrations": {
+          "blocked": [
+            {
+              "url": "https://developers.google.com/workspace/meet/api/guides/overview",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://support.aha.io/aha-discovery/getting-started/imports/import-google-meet-meetings~7483623437549452284",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://stackoverflow.com/questions/66695409/how-to-export-google-meet-and-google-meet-live-stream-urls-to-google-sheet",
+              "reason": "policy_restricted"
+            },
+            {
+              "url": "https://getmembrane.com/integrations/google-meet/data-collections",
+              "reason": "policy_missing"
+            },
+            {
+              "url": "https://docs.themeum.com/tutor-lms/addons/google-meet-integration/",
+              "reason": "policy_missing"
+            }
+          ],
+          "selected": ["https://meetgeek.ai/blog/google-meet-pricing"],
+          "candidates": [
+            "https://meetgeek.ai/blog/google-meet-pricing",
+            "https://developers.google.com/workspace/meet/api/guides/overview",
+            "https://support.aha.io/aha-discovery/getting-started/imports/import-google-meet-meetings~7483623437549452284",
+            "https://stackoverflow.com/questions/66695409/how-to-export-google-meet-and-google-meet-live-stream-urls-to-google-sheet",
+            "https://getmembrane.com/integrations/google-meet/data-collections",
+            "https://docs.themeum.com/tutor-lms/addons/google-meet-integration/"
+          ]
+        }
+      },
+      "curated_sources": {
+        "limits": [
+          {
+            "url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "notes": "official_domain, inventory_grade, freshness_hint",
+            "score": 70,
+            "domain": "meetgeek.ai",
+            "authority": "A",
+            "canonical_url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "pricing": [
+          {
+            "url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "notes": "official_domain, intent_match, inventory_grade, freshness_hint",
+            "score": 90,
+            "domain": "meetgeek.ai",
+            "authority": "A",
+            "canonical_url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "reviews": [
+          {
+            "url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "notes": "official_domain, inventory_grade, freshness_hint",
+            "score": 70,
+            "domain": "meetgeek.ai",
+            "authority": "A",
+            "canonical_url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "security": [
+          {
+            "url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "notes": "official_domain, inventory_grade, freshness_hint",
+            "score": 70,
+            "domain": "meetgeek.ai",
+            "authority": "A",
+            "canonical_url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "portability": [
+          {
+            "url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "notes": "official_domain, inventory_grade, freshness_hint",
+            "score": 70,
+            "domain": "meetgeek.ai",
+            "authority": "A",
+            "canonical_url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "alternatives": [
+          {
+            "url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "notes": "official_domain, inventory_grade, freshness_hint",
+            "score": 70,
+            "domain": "meetgeek.ai",
+            "authority": "A",
+            "canonical_url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "deep_scrape_allowed": true
+          }
+        ],
+        "integrations": [
+          {
+            "url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "notes": "official_domain, inventory_grade, freshness_hint",
+            "score": 70,
+            "domain": "meetgeek.ai",
+            "authority": "A",
+            "canonical_url": "https://meetgeek.ai/blog/google-meet-pricing",
+            "deep_scrape_allowed": true
+          }
+        ]
+      }
+    },
+    "knowledgeCard": {
+      "faqs": [],
+      "meta": {
+        "data_quality": "high",
+        "extraction_date": "2026-02-08",
+        "last_major_update": "2026-02",
+        "active_development": true
+      },
+      "company": {
+        "name": "Google Meet",
+        "founded_year": 2017,
+        "headquarters": "Mountain View, USA",
+        "funding_stage": "public",
+        "employee_count": "1000+"
+      },
+      "pricing": {
+        "model": "paid",
+        "tiers": [],
+        "trial_days": null,
+        "has_free_tier": false,
+        "has_free_trial": false,
+        "starting_price": null
+      },
+      "support": {
+        "has_community": false,
+        "has_live_chat": false,
+        "has_documentation": false,
+        "has_phone_support": false,
+        "has_dedicated_support": false
+      },
+      "audience": {
+        "primary": [],
+        "use_cases": []
+      },
+      "features": {
+        "core": [
+          "Video conferencing",
+          "Screen sharing",
+          "In-meeting chat",
+          "Live captions",
+          "Noise cancellation"
+        ],
+        "unique": [
+          "Seamless integration with Google Workspace (Gmail, Calendar, Drive)",
+          "Real-time live captions in multiple languages",
+          "AI-powered noise cancellation"
+        ],
+        "capabilities": []
+      },
+      "logo_url": null,
+      "security": {
+        "self_hosted_option": false
+      },
+      "platforms": [],
+      "competitive": {
+        "best_for": "Best for teams already invested in the Google ecosystem because of seamless integration with Gmail, Calendar, and Drive, offering a unified communication and collaboration experience.",
+        "differentiators": [],
+        "main_alternatives": [
+          "Zoom",
+          "Microsoft Teams",
+          "Cisco Webex",
+          "GoTo Meeting",
+          "Slack Huddles"
+        ]
+      },
+      "constraints": {
+        "hard_limits": [],
+        "hidden_costs": []
+      },
+      "website_url": null,
+      "integrations": {
+        "has_api": true,
+        "notable": [
+          {
+            "name": "Google Calendar",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Gmail",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Google Drive",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Google Docs",
+            "type": "native",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Slack",
+            "type": "api",
+            "direction": "bidirectional"
+          },
+          {
+            "name": "Salesforce",
+            "type": "api",
+            "direction": "bidirectional"
+          }
+        ],
+        "has_zapier": true,
+        "has_webhooks": true
+      },
+      "smp_taxonomy": {
+        "sub_category": "Video Conferencing",
+        "primary_function": "Communication",
+        "likely_departments": ["All Departments", "Operations", "Sales", "Marketing", "HR"],
+        "secondary_functions": ["Team Chat", "Screen Sharing", "Collaboration"]
+      },
+      "official_name": "Google Meet",
+      "learning_curve": "minutes",
+      "review_context": {
+        "human_verdict": null,
+        "user_advocate": {
+          "vibe": "Integrated, Reliable, Accessible",
+          "avoid_if": [
+            "Need advanced webinar features (e.g., complex registration, breakout rooms for hundreds)",
+            "Require extensive offline capabilities for meetings",
+            "Strict data residency requirements outside Google's global data centers"
+          ],
+          "ideal_for": [
+            "Google Workspace users",
+            "Teams needing simple, reliable video calls",
+            "Education institutions",
+            "Businesses prioritizing integration over niche features"
+          ],
+          "power_tip": "Use the 'J' key to quickly join a meeting from the Google Meet lobby or a calendar event, saving clicks and time.",
+          "delighters": [
+            "Live captions for accessibility and clarity",
+            "AI-powered noise cancellation for clear audio",
+            "Seamless scheduling and joining from Google Calendar and Gmail"
+          ],
+          "frustrations": [
+            "Limited advanced features compared to dedicated webinar platforms",
+            "Interface can feel basic for power users accustomed to more customization",
+            "Reliance on Google ecosystem can be a barrier for non-Google users"
+          ],
+          "origin_story": "Evolved from Google Hangouts to provide a more robust video conferencing solution for business users, deeply integrated into the Google Workspace suite."
+        },
+        "budget_analyst": {
+          "cost_drivers": [
+            "More participants require higher Google Workspace plans",
+            "Advanced features like live streaming and attendance tracking are gated by higher Workspace tiers",
+            "Storage for recordings is part of Google Drive storage limits, which scale with Workspace plans"
+          ],
+          "one_time_fees": [],
+          "roi_threshold": "Teams needing reliable, integrated video conferencing within the Google ecosystem, especially those already using Gmail and Calendar, will find value in paid Google Workspace plans for enhanced features and capacity.",
+          "commitment_terms": "Google Workspace plans typically offer monthly or annual billing options, with annual billing often providing a discount."
+        }
+      },
+      "smp_portability": {
+        "export_to": [],
+        "import_from": [],
+        "export_formats": ["MP4", "TXT"],
+        "has_api_export": true,
+        "has_data_export": true,
+        "migration_difficulty": "easy"
+      },
+      "setup_complexity": {
+        "steps": [
+          {
+            "step": 1,
+            "action": "Sign in with your Google account at meet.google.com or via Gmail/Calendar.",
+            "description": "Access Google Meet directly through your web browser or integrated Google Workspace applications."
+          },
+          {
+            "step": 2,
+            "action": "Start a new meeting or join an existing one using a meeting code or link.",
+            "description": "Initiate an instant meeting or enter credentials to join a scheduled call."
+          }
+        ],
+        "red_tape": {
+          "cc_required": false,
+          "sales_gated": false,
+          "admin_required": false,
+          "domain_required": false,
+          "approval_required": false
+        },
+        "setup_url": "https://meet.google.com/",
+        "aha_moment": "Instantly joining a video call from a calendar invite or Gmail, demonstrating seamless integration and ease of access.",
+        "setup_type": "web",
+        "friction_score": 1,
+        "requires_it_admin": false,
+        "requires_developer": false,
+        "technical_blockers": [],
+        "estimated_setup_time": "minutes",
+        "implementation_partner_needed": false
+      }
+    },
+    "validationReport": {
+      "score": 75,
+      "isValid": true,
+      "shouldPublish": true,
+      "humanReviewRequired": false
+    }
+  }
+}

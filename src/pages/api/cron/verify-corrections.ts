@@ -15,6 +15,7 @@ import type { APIRoute } from 'astro';
 import { getAdminClient } from '@/lib/supabase';
 import { createVerificationService, type CorrectionToVerify } from '@/lib/verification';
 import { sendCorrectionsSummary, sendThresholdAlert } from '@/lib/notifications/slack';
+import { verifyCronSecret } from '@/lib/auth';
 
 export const prerender = false;
 
@@ -33,13 +34,15 @@ interface VerificationStats {
 }
 
 export const GET: APIRoute = async ({ request }) => {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = import.meta.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
+  const authResult = verifyCronSecret(request, {
+    secret: import.meta.env.CRON_SECRET,
+    isDev: import.meta.env.DEV,
+    isProd: import.meta.env.PROD,
+  });
+  if (!authResult.valid) {
+    const status = authResult.error === 'Server misconfiguration' ? 500 : 401;
+    return new Response(JSON.stringify({ error: authResult.error }), {
+      status,
       headers: { 'Content-Type': 'application/json' },
     });
   }

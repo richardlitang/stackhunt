@@ -22,7 +22,15 @@ import {
 } from './services';
 import { HunterLogger } from './services/logger';
 import { executeResearchPhase, executeAnalysisPhase, executePersistencePhase } from './phases';
-import { isLlmEligibleScoutSource } from './utils';
+import { buildHuntTelemetryInsertPayload } from './telemetry-persistence';
+import { scoutSourceCounts, passesSourcePreflight } from './preflight-sources';
+import {
+  markInsufficientSources,
+  markResearchBudgetCapped,
+  markPriceOnly,
+  markBatchDeferred,
+  markDuplicateReuse,
+} from './hunt-transitions';
 import type {
   HunterConfig,
   HunterInput,
@@ -181,6 +189,44 @@ export class Hunter {
     };
   }
 
+  private async recordHuntTelemetry(params: {
+    toolName: string;
+    contextTitle?: string;
+    queueItemId?: string;
+    success: boolean;
+    durationMs: number;
+    telemetry?: HuntTelemetry;
+    errorClass?: string;
+  }): Promise<void> {
+    const { error } = await this.supabase
+      .from('hunt_telemetry')
+      .insert(buildHuntTelemetryInsertPayload(params));
+    if (error) {
+      this.log(`[Telemetry] Failed to persist hunt telemetry: ${error.message}`);
+    }
+  }
+
+  private finalizeHuntResult(
+    input: Pick<HunterInput, 'toolName' | 'contextTitle' | 'queueItemId'>,
+    result: HunterResult,
+    fallbackTokens = 0
+  ): HunterResult {
+    const finalResult = this.withTelemetry(result, fallbackTokens);
+    void this.recordHuntTelemetry({
+      toolName: input.toolName,
+      contextTitle: input.contextTitle,
+      queueItemId: input.queueItemId,
+      success: finalResult.success,
+      durationMs: finalResult.durationMs ?? 0,
+      telemetry: finalResult.telemetry,
+      errorClass:
+        finalResult.success || !finalResult.error
+          ? undefined
+          : classifyErrorForDlq(new Error(finalResult.error)),
+    }).catch(() => {});
+    return finalResult;
+  }
+
   private async loadLatestResearchCheckpoint(
     toolName: string,
     contextTitle?: string,
@@ -273,10 +319,15 @@ export class Hunter {
 
       const op = operationName.toLowerCase();
       if (op.includes('gemini synthesis evidence stage')) {
-        return parseTimeoutOverride(process.env.HUNTER_GEMINI_EVIDENCE_TIMEOUT_MS) ?? 300000;
+        // 180s (was 300s): a hanging synthesis x retries could stall a hunt ~15 min
+        // before the timeout-fallback model engaged. 180s bounds the stall while
+        // still giving the QUALITY-tier synthesis room to finish before falling
+        // back to FAST_CHEAP (120s forced fallback on nearly every hunt). Monitor
+        // hunt_telemetry.timeout_failures to tune; override via env.
+        return parseTimeoutOverride(process.env.HUNTER_GEMINI_EVIDENCE_TIMEOUT_MS) ?? 180000;
       }
       if (op.includes('gemini synthesis')) {
-        return parseTimeoutOverride(process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_MS) ?? 300000;
+        return parseTimeoutOverride(process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_MS) ?? 180000;
       }
       if (op.includes('gemini fact extraction')) {
         return parseTimeoutOverride(process.env.HUNTER_GEMINI_EXTRACTION_TIMEOUT_MS) ?? 180000;
@@ -350,7 +401,8 @@ export class Hunter {
           : '';
       const errorMessage = `${subjectPreflight.message || 'Subject preflight failed.'}${recommendation}`;
       this.log(`❌ ${errorMessage}`);
-      return this.withTelemetry(
+      return this.finalizeHuntResult(
+        input,
         {
           success: false,
           error: errorMessage,
@@ -448,7 +500,7 @@ export class Hunter {
           this.log(
             `🛑 Token budget exceeded after research (${ctx.tokensUsed}/${maxTokens}). Saving research only.`
           );
-          ctx.skipSynthesis = true;
+          markResearchBudgetCapped(ctx);
         }
         this.logger?.endPhase({
           tokens_used: ctx.research.tokensUsed,
@@ -468,7 +520,8 @@ export class Hunter {
           if (!saved) {
             this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
             // Abort to prevent duplicate work
-            return this.withTelemetry(
+            return this.finalizeHuntResult(
+              input,
               {
                 success: false,
                 error:
@@ -491,7 +544,8 @@ export class Hunter {
         if (status.shutdownDate) this.log(`   Shutdown: ${status.shutdownDate}`);
         if (status.reason) this.log(`   Reason: ${status.reason}`);
 
-        return this.withTelemetry(
+        return this.finalizeHuntResult(
+          input,
           {
             success: true,
             defunctStatus: status,
@@ -505,9 +559,10 @@ export class Hunter {
       // Early exit: Hard duplicate detected (unless forceUpdate)
       if (ctx.research.isDuplicate && !ctx.forceUpdate) {
         if (ctx.queueItemId) {
-          ctx.skipAnalysis = true;
+          markDuplicateReuse(ctx);
           this.log(`⚠️ Duplicate detected, skipping expensive analysis`);
-          return this.withTelemetry(
+          return this.finalizeHuntResult(
+            input,
             {
               success: true,
               toolId: ctx.research.existingToolId,
@@ -528,42 +583,14 @@ export class Hunter {
       // Pre-flight check: Validate sufficient source material before analysis
       // Saves research for dedup, but skips analysis if insufficient data
       if (!ctx.skipAnalysis && ctx.research && ctx.huntType !== 'price_only') {
-        const passesPreflight = (eligibleCount: number, officialCount: number): boolean => {
-          // Adaptive threshold: allow 2 eligible sources when we have at least 2 official sources.
-          // This prevents over-blocking well-documented tools while preserving strictness for weak evidence.
-          const baseMinEligible = ctx.contextTitle ? 3 : 4;
-          const adaptiveMinEligible =
-            officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
-          const minOfficialSources = 1;
-          return eligibleCount >= adaptiveMinEligible && officialCount >= minOfficialSources;
-        };
+        const hasContext = Boolean(ctx.contextTitle);
+        const counts = scoutSourceCounts(ctx.research.scoutResult.raw_sources);
+        const preflight = passesSourcePreflight(counts, { hasContext });
 
-        const scout = ctx.research.scoutResult;
-        const reviewCount = scout.raw_sources.filter(
-          (source) => source.intent_tags.includes('reviews') && isLlmEligibleScoutSource(source)
-        ).length;
-        const tribalCount = scout.raw_sources.filter(
-          (source) => source.source_type === 'community' && isLlmEligibleScoutSource(source)
-        ).length;
-        const officialCount = scout.raw_sources
-          .filter((source) => ['official', 'docs', 'support', 'legal'].includes(source.source_type))
-          .filter((source) => isLlmEligibleScoutSource(source)).length;
-        const pricingCount = scout.raw_sources.filter(
-          (source) => source.intent_tags.includes('pricing') && isLlmEligibleScoutSource(source)
-        ).length;
-        const eligibleCount = scout.raw_sources.filter((source) =>
-          isLlmEligibleScoutSource(source)
-        ).length;
-        const _totalSnippets = reviewCount + tribalCount + pricingCount;
-
-        if (!passesPreflight(eligibleCount, officialCount)) {
-          const baseMinEligible = ctx.contextTitle ? 3 : 4;
-          const adaptiveMinEligible =
-            officialCount >= 2 ? Math.min(baseMinEligible, 2) : baseMinEligible;
-          const minOfficialSources = 1;
+        if (!preflight.passed) {
           if (resumedResearchFromCheckpoint) {
             this.log(
-              `↻ Resumed checkpoint failed pre-flight (${eligibleCount} eligible, ${officialCount} official). Re-running fresh research once.`
+              `↻ Resumed checkpoint failed pre-flight (${counts.eligible} eligible, ${counts.official} official). Re-running fresh research once.`
             );
             this.logger?.startPhase('research');
             const freshResearch = await executeResearchPhase(ctx, deps);
@@ -576,64 +603,41 @@ export class Hunter {
             resumedResearchFromCheckpoint = false;
 
             // Re-evaluate pre-flight with fresh research output
-            const freshScout = freshResearch.scoutResult;
-            const freshReviewCount = freshScout.raw_sources.filter(
-              (source) => source.intent_tags.includes('reviews') && isLlmEligibleScoutSource(source)
-            ).length;
-            const freshTribalCount = freshScout.raw_sources.filter(
-              (source) => source.source_type === 'community' && isLlmEligibleScoutSource(source)
-            ).length;
-            const freshOfficialCount = freshScout.raw_sources
-              .filter((source) =>
-                ['official', 'docs', 'support', 'legal'].includes(source.source_type)
-              )
-              .filter((source) => isLlmEligibleScoutSource(source)).length;
-            const freshPricingCount = freshScout.raw_sources.filter(
-              (source) => source.intent_tags.includes('pricing') && isLlmEligibleScoutSource(source)
-            ).length;
-            const freshEligibleCount = freshScout.raw_sources.filter((source) =>
-              isLlmEligibleScoutSource(source)
-            ).length;
-            if (passesPreflight(freshEligibleCount, freshOfficialCount)) {
+            const freshCounts = scoutSourceCounts(freshResearch.scoutResult.raw_sources);
+            const freshPreflight = passesSourcePreflight(freshCounts, { hasContext });
+            if (freshPreflight.passed) {
               this.log(
-                `✅ Pre-flight passed after fresh research: ${freshEligibleCount} eligible sources (${freshReviewCount} reviews, ${freshTribalCount} tribal, ${freshPricingCount} pricing, ${freshOfficialCount} official)`
+                `✅ Pre-flight passed after fresh research: ${freshCounts.eligible} eligible sources (${freshCounts.review} reviews, ${freshCounts.tribal} tribal, ${freshCounts.pricing} pricing, ${freshCounts.official} official)`
               );
             } else {
-              const freshBaseMinEligible = ctx.contextTitle ? 3 : 4;
-              const freshAdaptiveMinEligible =
-                freshOfficialCount >= 2 ? Math.min(freshBaseMinEligible, 2) : freshBaseMinEligible;
               this.log(`⚠️  Fresh research still insufficient for pre-flight.`);
               this.log(
-                `   Found: ${freshEligibleCount} eligible sources (${freshReviewCount} reviews, ${freshTribalCount} tribal, ${freshPricingCount} pricing, ${freshOfficialCount} official)`
+                `   Found: ${freshCounts.eligible} eligible sources (${freshCounts.review} reviews, ${freshCounts.tribal} tribal, ${freshCounts.pricing} pricing, ${freshCounts.official} official)`
               );
-              this.log(`   Required: ${freshAdaptiveMinEligible}+ eligible, 1+ official`);
+              this.log(`   Required: ${freshPreflight.minEligible}+ eligible, 1+ official`);
               this.log(`   Saving research data but skipping analysis to save API credits`);
               this.log(`   Re-run later to check if more sources available`);
-              ctx.skipAnalysis = true;
-              ctx.skipSynthesis = true;
-              ctx.insufficientSources = true;
+              markInsufficientSources(ctx);
             }
             // Continue to next phase decision without applying the old insufficient result
           } else if (!ctx.skipAnalysis) {
             const huntType = ctx.contextTitle ? 'contextual' : 'discovery';
             this.log(`⚠️  Pre-flight: Insufficient source material for ${huntType} hunt`);
             this.log(
-              `   Found: ${eligibleCount} eligible sources (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing, ${officialCount} official)`
+              `   Found: ${counts.eligible} eligible sources (${counts.review} reviews, ${counts.tribal} tribal, ${counts.pricing} pricing, ${counts.official} official)`
             );
             this.log(
-              `   Required: ${adaptiveMinEligible}+ eligible, ${minOfficialSources}+ official`
+              `   Required: ${preflight.minEligible}+ eligible, ${preflight.minOfficial}+ official`
             );
             this.log(`   Saving research data but skipping analysis to save API credits`);
             this.log(`   Re-run later to check if more sources available`);
 
             // Skip analysis and persist via the research-only path.
-            ctx.skipAnalysis = true;
-            ctx.skipSynthesis = true;
-            ctx.insufficientSources = true; // Flag for persistence phase
+            markInsufficientSources(ctx);
           }
         } else {
           this.log(
-            `✅ Pre-flight passed: ${eligibleCount} eligible sources (${reviewCount} reviews, ${tribalCount} tribal, ${pricingCount} pricing, ${officialCount} official)`
+            `✅ Pre-flight passed: ${counts.eligible} eligible sources (${counts.review} reviews, ${counts.tribal} tribal, ${counts.pricing} pricing, ${counts.official} official)`
           );
         }
       }
@@ -642,18 +646,18 @@ export class Hunter {
       // PHASE 2: ANALYSIS (Synthesize + Embed + Logo)
       // ===================================================================
       if (ctx.huntType === 'price_only') {
-        ctx.skipAnalysis = true;
+        markPriceOnly(ctx);
         this.log(`🧾 price_only hunt: skipping analysis phase`);
       }
 
       if (!ctx.skipAnalysis && ctx.tokensUsed >= softTokenThreshold) {
-        ctx.skipSynthesis = true;
+        markResearchBudgetCapped(ctx);
         this.log(`[Budget] Near token cap (${ctx.tokensUsed}/${maxTokens}). Saving research only.`);
       }
 
       // Two-stage pipeline: Skip analysis if in batch mode
       if (ctx.skipSynthesis) {
-        ctx.skipAnalysis = true;
+        markBatchDeferred(ctx);
         this.log(`[Two-Stage] Skipping analysis phase (will be done in batch)`);
 
         // Go directly to persistence to save research data
@@ -678,7 +682,8 @@ export class Hunter {
         this.log(`Tokens: ${ctx.tokensUsed}, Duration: ${Date.now() - ctx.startTime}ms`);
 
         // Don't clear checkpoint - item is in research_complete status
-        return this.withTelemetry(
+        return this.finalizeHuntResult(
+          input,
           {
             success: true,
             toolId: persistence.toolId,
@@ -718,7 +723,8 @@ export class Hunter {
 
           if (!saved) {
             this.log(`⚠️  Checkpoint conflict - another worker may have processed this item`);
-            return this.withTelemetry(
+            return this.finalizeHuntResult(
+              input,
               {
                 success: false,
                 error:
@@ -756,7 +762,8 @@ export class Hunter {
           await this.queue.clearCheckpoint(ctx.queueItemId, this.log.bind(this));
         }
 
-        return this.withTelemetry(
+        return this.finalizeHuntResult(
+          input,
           {
             success: true,
             toolId: persistence.toolId,
@@ -770,7 +777,8 @@ export class Hunter {
       }
 
       // If persistence was skipped, return partial result
-      return this.withTelemetry(
+      return this.finalizeHuntResult(
+        input,
         {
           success: true,
           tokensUsed: ctx.tokensUsed,
@@ -782,7 +790,8 @@ export class Hunter {
     } catch (error) {
       const err = error as Error;
       this.log(`❌ Hunt failed: ${err.message}`);
-      return this.withTelemetry(
+      return this.finalizeHuntResult(
+        input,
         {
           success: false,
           error: err.message,

@@ -7,6 +7,7 @@
 
 import type { APIRoute } from 'astro';
 import { supabase } from '@/lib/supabase';
+import { formatScore, truncateVerdict } from '@/lib/homepage';
 
 type ToolIndexEntry = {
   id: string;
@@ -14,7 +15,29 @@ type ToolIndexEntry = {
   slug: string;
   logo_url: string | null;
   short_description: string | null;
+  score: string | null;
+  verdict: string;
 };
+
+export function mapToolIndexEntry(row: {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  short_description: string | null;
+  avg_score: number | null;
+  verdict: string | null;
+}): ToolIndexEntry {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    logo_url: row.logo_url || null,
+    short_description: row.short_description || null,
+    score: formatScore(row.avg_score),
+    verdict: truncateVerdict(row.verdict, 70),
+  };
+}
 
 const MAX_TOOL_INDEX_SIZE = 5000;
 const INDEX_TTL_MS = 10 * 60 * 1000; // 10 minutes (server instance cache)
@@ -33,7 +56,7 @@ async function loadToolIndex(): Promise<ToolIndexEntry[]> {
   inflightLoad = (async () => {
     const { data, error } = await supabase
       .from('items')
-      .select('id, name, slug, logo_url, short_description')
+      .select('id, name, slug, logo_url, short_description, avg_score, verdict')
       .eq('type', 'tool')
       .not('slug', 'is', null)
       .order('name', { ascending: true })
@@ -41,13 +64,7 @@ async function loadToolIndex(): Promise<ToolIndexEntry[]> {
 
     if (error) throw error;
 
-    const items = (data || []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      logo_url: row.logo_url || null,
-      short_description: row.short_description || null,
-    }));
+    const items = (data || []).map((row) => mapToolIndexEntry(row as any));
 
     toolIndexCache = {
       items,

@@ -115,7 +115,8 @@ export function verifyCronSecret(
   request: Request,
   options: { secret?: string; isDev: boolean; isProd: boolean }
 ): { valid: boolean; error?: string } {
-  const { secret, isDev, isProd } = options;
+  const { isDev, isProd } = options;
+  const secret = options.secret?.trim();
 
   if (!secret && isProd) {
     console.error('CRITICAL: CRON_SECRET not configured in production');

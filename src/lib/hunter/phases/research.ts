@@ -13,6 +13,7 @@ import type { KnowledgeCard } from '../../knowledge-card';
 import type { HunterContext, HunterDependencies, ResearchOutput } from '../types';
 import { detectDefunctTool, extractSearchSnippets } from '../services/defunct-detector.js';
 import { resolveDetectedCategory } from '../category-resolver.js';
+import { buildGapQueries, detectSourceLaneGaps } from '../coverage/research-gaps';
 import { buildSnippetBucketsFromScout } from '../utils.js';
 
 /**
@@ -122,6 +123,36 @@ export async function executeResearchPhase(
     }
   } else {
     deps.log(`[Name Collision] ✓ No collision detected`);
+  }
+
+  // Adaptive follow-up: fill lane gaps with targeted queries before extraction.
+  if (ctx.huntType === 'full') {
+    const laneGaps = detectSourceLaneGaps(scoutResult.raw_sources);
+    if (laneGaps.length > 0) {
+      const gapQueries = buildGapQueries(toolName, laneGaps);
+      deps.log(
+        `[Adaptive Research] Lane gaps: ${laneGaps.join(', ')} -> ${gapQueries.length} follow-up queries`
+      );
+      try {
+        const followUp = await deps.serper.scout(
+          toolName,
+          ctx.contextTitle,
+          deps.withRetry,
+          gapQueries,
+          ctx.entityScope
+        );
+        const knownUrls = new Set(scoutResult.raw_sources.map((source: any) => source.url));
+        const merged = followUp.raw_sources.filter((source: any) => !knownUrls.has(source.url));
+        scoutResult.raw_sources.push(...merged);
+        deps.log(
+          `[Adaptive Research] Merged ${merged.length} new sources (${scoutResult.raw_sources.length} total)`
+        );
+      } catch (error) {
+        deps.log(
+          `[Adaptive Research] Follow-up scout failed, continuing with base sources: ${(error as Error).message}`
+        );
+      }
+    }
   }
 
   // Step 1.6: Check if tool is defunct (save API costs on dead tools)

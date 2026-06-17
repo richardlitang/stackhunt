@@ -1,0 +1,12 @@
+{
+  "toolName": "Google Meet",
+  "minClaimCitationRate": 0.95,
+  "minActionabilityScore": 40,
+  "minReaderUtilityScore": 30,
+  "maxCoverageGaps": 1,
+  "mustMentionAny": [
+    ["google meet", "meet"],
+    ["meeting", "video"]
+  ],
+  "mustNotContain": ["best tool ever", "guaranteed"]
+}

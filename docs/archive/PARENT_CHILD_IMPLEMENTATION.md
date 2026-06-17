@@ -3,6 +3,7 @@
 ## Overview
 
 Implemented parent/child relationship for bundled tools (e.g., Google Meet → Google Workspace).This enables:
+
 - Single source of truth for suite pricing
 - Ecosystem navigation (sibling tools)
 - Inherited compliance/security specs
@@ -11,6 +12,7 @@ Implemented parent/child relationship for bundled tools (e.g., Google Meet → G
 ## Changes Made
 
 ### 1. **Schema Migration** (`supabase/migrations/030_add_parent_child_relationship.sql`)
+
 ```sql
 ALTER TABLE items
 ADD COLUMN parent_id UUID REFERENCES items(id) ON DELETE SET NULL;
@@ -19,29 +21,36 @@ CREATE INDEX idx_items_parent_id ON items(parent_id);
 ```
 
 ### 2. **TypeScript Types** (`src/types/database.ts`)
+
 - Added `parent_id: string | null` to `Item` interface
 - Added `parent_id?: string | null` to `ItemInsert` interface
 
 ### 3. **Knowledge Card Schema** (`src/lib/knowledge-card.ts`)
+
 - Added `is_standalone: boolean` to `SMPPricingDataSchema`
 - Added `bundled_in: string | null` to `SMPPricingDataSchema`
 
 ### 4. **Suite Manager** (`src/lib/hunter/utils/suite-manager.ts`)
+
 New utility module with:
+
 - `ensureParentSuite()` - Find or create suite stub
 - `getSiblings()` - Get all sibling tools
 
 ### 5. **Persistence Phase** (`src/lib/hunter/phases/persistence.ts`)
+
 - Import `ensureParentSuite`
 - Check for `bundled_in` in knowledge card
 - Create parent suite stub if needed
 - Set `parent_id` when saving bundled tools
 
 ### 6. **Embedding Logic** (`src/lib/hunter/phases/analysis.ts`)
+
 - Added "Part of [Suite]" to embedding text
 - Improves semantic search: "Google Workspace video tool" → finds Meet
 
 ### 7. **Gemini Prompt** (`src/lib/hunter/services/gemini.ts`)
+
 - Enhanced bundle detection with clear criteria
 - Instructs AI to set `is_standalone` and `bundled_in`
 - Logs bundle detection in `pricing_analysis_log`
@@ -88,6 +97,7 @@ npm run hunt -- --tool="Google Calendar"
 ```
 
 **Expected**:
+
 ```
 [Pricing CoT] BUNDLE DETECTED: Google Calendar is bundled in Google Workspace...
 [Suite] Tool is bundled in: Google Workspace
@@ -97,6 +107,7 @@ npm run hunt -- --tool="Google Calendar"
 ### Test Case 2: Embedding Includes Suite
 
 Check logs:
+
 ```
 [Embedding] Anchored text: Tool: Google Calendar | Part of the Google Workspace suite | Category: Scheduling | ...
 ```
@@ -120,13 +131,13 @@ const siblings = await supabase.rpc('get_siblings', { item_id: currentItemId });
 <aside>
   <h3>Also in {parentSuite.name}</h3>
   <ul>
-    {siblings.map(sibling => (
+    {siblings.map((sibling) => (
       <li key={sibling.id}>
         <Link href={`/tool/${sibling.slug}`}>{sibling.name}</Link>
       </li>
     ))}
   </ul>
-</aside>
+</aside>;
 ```
 
 ### 2. **Inherited Compliance**
@@ -134,11 +145,14 @@ const siblings = await supabase.rpc('get_siblings', { item_id: currentItemId });
 ```tsx
 const compliance = tool.specs.security || tool.parent.specs.security;
 
-{compliance && (
-  <p>Security: {compliance.join(', ')}
-    {tool.parent_id && ' (Inherited from ' + parentName + ')'}
-  </p>
-)}
+{
+  compliance && (
+    <p>
+      Security: {compliance.join(', ')}
+      {tool.parent_id && ' (Inherited from ' + parentName + ')'}
+    </p>
+  );
+}
 ```
 
 ### 3. **"Already Paid For" Calculator**
@@ -147,7 +161,7 @@ const compliance = tool.specs.security || tool.parent.specs.security;
 if (tool.parent_id && userStack.includes(tool.parent_id)) {
   return {
     price: 0,
-    note: `Included in your ${parentName} subscription`
+    note: `Included in your ${parentName} subscription`,
   };
 }
 ```
@@ -158,6 +172,7 @@ if (tool.parent_id && userStack.includes(tool.parent_id)) {
 
 1. Go to https://supabase.com/dashboard/project/yjtsyvzhplcwvfbkzcjt/sql/new
 2. Paste:
+
    ```sql
    ALTER TABLE items
    ADD COLUMN parent_id UUID REFERENCES items(id) ON DELETE SET NULL;
@@ -166,6 +181,7 @@ if (tool.parent_id && userStack.includes(tool.parent_id)) {
 
    COMMENT ON COLUMN items.parent_id IS 'References parent suite for bundled tools. NULL for standalone tools.';
    ```
+
 3. Click "Run"
 
 ### Option B: Local Supabase CLI
@@ -179,6 +195,7 @@ npx supabase db push
 After migration, verify:
 
 1. **Column exists**:
+
    ```sql
    SELECT column_name, data_type
    FROM information_schema.columns
@@ -186,6 +203,7 @@ After migration, verify:
    ```
 
 2. **Index exists**:
+
    ```sql
    SELECT indexname
    FROM pg_indexes
@@ -193,6 +211,7 @@ After migration, verify:
    ```
 
 3. **Hunt a bundled tool**:
+
    ```bash
    npm run hunt -- --tool="Google Calendar"
    ```

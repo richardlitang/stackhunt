@@ -25,6 +25,8 @@ import {
   getPersonaContext,
   buildAdaptiveSpecificsPrompt,
 } from '../services/prompts';
+import { PROMPT_VERSIONS } from '../prompts/registry';
+import { shouldEscalateSynthesis, synthesisQualityScore } from '../escalation';
 import {
   buildDecisionSlots,
   generateDecisionEvidence,
@@ -180,26 +182,56 @@ export async function executeAnalysisPhase(
     : interpolatedPrompt;
 
   // Step 8: Synthesize analysis (Pass 2 - The Architect + Human Context Roles)
-  const {
-    analysis,
-    tokensUsed: synthesisTokens,
-    generationQuality,
-  } = await deps.gemini.synthesize(
-    {
-      toolName: ctx.toolName,
-      contextTitle: ctx.contextTitle,
-      reviewsSnippets: snippetBuckets.reviewsSnippets,
-      pricingSnippets: snippetBuckets.pricingSnippets,
-      alternativesSnippets: snippetBuckets.alternativesSnippets,
-      budgetAnalystSnippets: snippetBuckets.budgetAnalystSnippets,
-      tribalKnowledgeSnippets: snippetBuckets.tribalKnowledgeSnippets,
-      tribalDeepContent: undefined,
-      knowledgeCardFacts: factSummary,
-      existingCategories,
-      promptTemplate: promptWithAdminInstructions,
-    },
-    deps.withRetry
-  );
+  const synthesisInput = {
+    toolName: ctx.toolName,
+    contextTitle: ctx.contextTitle,
+    reviewsSnippets: snippetBuckets.reviewsSnippets,
+    pricingSnippets: snippetBuckets.pricingSnippets,
+    alternativesSnippets: snippetBuckets.alternativesSnippets,
+    budgetAnalystSnippets: snippetBuckets.budgetAnalystSnippets,
+    tribalKnowledgeSnippets: snippetBuckets.tribalKnowledgeSnippets,
+    tribalDeepContent: undefined,
+    knowledgeCardFacts: factSummary,
+    existingCategories,
+    promptTemplate: promptWithAdminInstructions,
+  };
+  const baseSynthesis = await deps.gemini.synthesize(synthesisInput, deps.withRetry);
+  let analysis = baseSynthesis.analysis;
+  let generationQuality = baseSynthesis.generationQuality;
+  let synthesisTokens = baseSynthesis.tokensUsed;
+
+  // Quality escalation: if the QUALITY-tier synthesis shows weak signals, retry
+  // once at the ESCALATION tier and keep whichever attempt scores higher.
+  const escalation = shouldEscalateSynthesis(generationQuality);
+  if (escalation.escalate) {
+    deps.log(
+      `[Escalation] Weak synthesis signals (${escalation.reasons.join('; ')}). Retrying at escalation tier.`
+    );
+    try {
+      const escalated = await deps.gemini.synthesize(synthesisInput, deps.withRetry, {
+        modelStage: 'analysis_synthesis_escalation',
+      });
+      synthesisTokens += escalated.tokensUsed;
+      const baseScore = synthesisQualityScore(generationQuality);
+      const escalatedScore = synthesisQualityScore(escalated.generationQuality);
+      if (escalatedScore >= baseScore) {
+        deps.log(
+          `[Escalation] Kept escalated result (score ${escalatedScore.toFixed(3)} >= ${baseScore.toFixed(3)})`
+        );
+        analysis = escalated.analysis;
+        generationQuality = escalated.generationQuality;
+      } else {
+        deps.log(
+          `[Escalation] Kept original result (escalated score ${escalatedScore.toFixed(3)} < ${baseScore.toFixed(3)})`
+        );
+      }
+    } catch (error) {
+      deps.log(
+        `[Escalation] Escalation synthesis failed, keeping original: ${(error as Error).message}`
+      );
+    }
+  }
+  generationQuality.promptVersions = PROMPT_VERSIONS;
   if (generationQuality.stage1Enabled) {
     deps.log(
       `[Pass 2] Generation quality: mean_confidence=${(generationQuality.meanConfidence ?? 0).toFixed(2)} low_conf_ratio=${(generationQuality.lowConfidenceRatio ?? 0).toFixed(2)} official=${generationQuality.officialClaims ?? 0} non_official=${generationQuality.nonOfficialClaims ?? 0} domains=${generationQuality.distinctDomains ?? 0} actionability=${generationQuality.actionabilityScore ?? 0} reader_utility=${generationQuality.readerUtilityScore ?? 0}`

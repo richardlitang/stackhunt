@@ -6,7 +6,7 @@ A programmatic SEO platform for discovering software alternatives. Features an A
 
 - **Frontend**: Astro v5 + React (Islands) + Tailwind CSS
 - **Database**: Supabase (Postgres) + pgvector for semantic search
-- **Automation**: Node.js + TypeScript + OpenAI GPT-4o + Serper.dev
+- **Automation**: Node.js + TypeScript + Google Gemini 2.0 Flash + Serper.dev
 - **Security**: Cloudflare Turnstile (invisible captcha)
 - **Hosting**: Vercel
 
@@ -30,12 +30,14 @@ A programmatic SEO platform for discovering software alternatives. Features an A
 │         │                                                       │
 │         ▼                                                       │
 │  ┌──────────────┐                                               │
-│  │   OpenAI     │                                               │
-│  │   GPT-4o     │                                               │
+│  │   Gemini     │                                               │
+│  │   2.0 Flash  │                                               │
 │  └──────────────┘                                               │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+See [`docs/index.md`](docs/index.md) for the full documentation index and [`PRODUCT_SUMMARY.md`](PRODUCT_SUMMARY.md) for the complete architecture.
 
 ## Data Model (Hub & Spoke)
 
@@ -172,12 +174,12 @@ stackhunt/
 
 ## Pages & SEO
 
-| Page | URL Pattern | JSON-LD Schema |
-|------|-------------|----------------|
-| Homepage | `/` | WebSite, Organization |
-| Tool Detail | `/tools/[slug]` | SoftwareApplication |
-| Comparison List | `/best/[slug]` | ItemList |
-| Category | `/categories/[slug]` | BreadcrumbList |
+| Page            | URL Pattern          | JSON-LD Schema        |
+| --------------- | -------------------- | --------------------- |
+| Homepage        | `/`                  | WebSite, Organization |
+| Tool Detail     | `/tools/[slug]`      | SoftwareApplication   |
+| Comparison List | `/best/[slug]`       | ItemList              |
+| Category        | `/categories/[slug]` | BreadcrumbList        |
 
 ## Content Pipeline
 
@@ -237,15 +239,15 @@ npm run hunt -- --queue process
    ├── Search "[Tool] pricing features"
    └── Search "[Tool] alternatives"
 
-2. SYNTHESIZE (OpenAI GPT-4o)
+2. SYNTHESIZE (Google Gemini 2.0 Flash)
    ├── Analyze search snippets
    ├── Generate contextual score (0-100)
    ├── Extract 3 pros, 3 cons
    ├── Write markdown summary
    └── Tag sentiment (easy-to-use, expensive, etc.)
 
-3. EMBED (OpenAI text-embedding-3-small)
-   └── Generate 1536-dim vector for semantic search
+3. EMBED (Gemini embedding model)
+   └── Generate vector embeddings for semantic search
 
 4. LOGO
    ├── Extract domain from website URL
@@ -261,6 +263,7 @@ npm run hunt -- --queue process
 ## Voting System
 
 Anti-gaming measures:
+
 - **IP Hashing**: Privacy-preserving duplicate detection
 - **Browser Fingerprint**: Additional spam prevention
 - **Cloudflare Turnstile**: Invisible captcha
@@ -288,7 +291,7 @@ Create `.github/workflows/hunter.yml`:
 name: Hunter Agent
 on:
   schedule:
-    - cron: '0 6 * * *'  # Daily at 6 AM
+    - cron: '0 6 * * *' # Daily at 6 AM
   workflow_dispatch:
 
 jobs:
@@ -304,18 +307,19 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
 ```
 
 ## API Costs (Estimated)
 
 Per tool hunted:
-- Serper.dev: ~$0.001 (3 searches)
-- OpenAI GPT-4o: ~$0.02-0.05 (analysis)
-- OpenAI Embeddings: ~$0.0001
 
-**~$0.03-0.06 per tool**
+- Serper.dev: ~$0.001 (3 searches)
+- Google Gemini 2.0 Flash: variable by prompt and output size
+- Gemini embeddings: variable by indexed content volume
+
+Use runtime logs and provider dashboards for current cost tracking.
 
 ## Next Steps (Phase 4: Semantic Search)
 

@@ -12,21 +12,41 @@ interface BuildToolPagePricingInsightsInput {
   budgetRoiThreshold: string | null | undefined;
 }
 
+const GENERIC_PRICING_COPY_PATTERN =
+  /\bsupports core workflows\b.*\bplan limits\b.*\bfeature constraints\b.*\bdocumented in (?:the )?source\b/i;
+
+function sanitizePricingInsightText(value: string | null | undefined): string | null {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) return null;
+  if (GENERIC_PRICING_COPY_PATTERN.test(text)) return null;
+  return text;
+}
+
+function sanitizePricingInsightList(items: string[]): string[] {
+  return items
+    .map((item) => sanitizePricingInsightText(item))
+    .filter((item): item is string => Boolean(item));
+}
+
 export function buildToolPagePricingInsightsBudgetAnalyst(
   input: BuildToolPagePricingInsightsInput
 ): ToolPagePricingInsightsBudgetAnalyst | undefined {
+  const costDrivers = sanitizePricingInsightList(input.budgetCostDrivers);
+  const oneTimeFees = sanitizePricingInsightList(input.budgetOneTimeFees);
+  const commitmentTerms = sanitizePricingInsightText(input.budgetCommitmentTerms);
+  const roiThreshold = sanitizePricingInsightText(input.budgetRoiThreshold);
   const hasAny =
-    input.budgetCostDrivers.length > 0 ||
-    input.budgetOneTimeFees.length > 0 ||
-    Boolean(input.budgetCommitmentTerms) ||
-    Boolean(input.budgetRoiThreshold);
+    costDrivers.length > 0 ||
+    oneTimeFees.length > 0 ||
+    Boolean(commitmentTerms) ||
+    Boolean(roiThreshold);
 
   if (!hasAny) return undefined;
 
   return {
-    costDrivers: input.budgetCostDrivers,
-    oneTimeFees: input.budgetOneTimeFees,
-    commitmentTerms: input.budgetCommitmentTerms,
-    roiThreshold: input.budgetRoiThreshold,
+    costDrivers,
+    oneTimeFees,
+    commitmentTerms,
+    roiThreshold,
   };
 }

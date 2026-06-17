@@ -107,6 +107,38 @@ describe('Auth - Cookie Constants', () => {
   });
 });
 
+describe('Auth - Cron Secret Validation', () => {
+  it('trims configured cron secrets before comparing bearer tokens', async () => {
+    const { verifyCronSecret } = await import('@/lib/auth');
+    const request = new Request('https://stackhunt.io/api/cron/hunt', {
+      headers: { Authorization: 'Bearer cron-secret' },
+    });
+
+    expect(
+      verifyCronSecret(request, {
+        secret: ' cron-secret\n',
+        isDev: false,
+        isProd: true,
+      })
+    ).toEqual({ valid: true });
+  });
+
+  it('treats whitespace-only production cron secrets as misconfiguration', async () => {
+    const { verifyCronSecret } = await import('@/lib/auth');
+    const request = new Request('https://stackhunt.io/api/cron/hunt', {
+      headers: { Authorization: 'Bearer cron-secret' },
+    });
+
+    expect(
+      verifyCronSecret(request, {
+        secret: ' \n\t',
+        isDev: false,
+        isProd: true,
+      })
+    ).toEqual({ valid: false, error: 'Server misconfiguration' });
+  });
+});
+
 describe('Auth - Legacy Token Support', () => {
   it('should detect legacy tokens', async () => {
     const { isLegacyToken } = await import('@/lib/auth');

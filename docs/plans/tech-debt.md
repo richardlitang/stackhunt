@@ -6,6 +6,14 @@ Track architecture, pipeline, and SEO debt as small, agent-executable items.
 
 ## Open Items
 
+- `hunter-persistence-remaining-split`: `src/lib/hunter/phases/persistence.ts` dropped from 5,334 to 4,532 lines on 2026-06-10 after extracting claim-language policy, coverage-gap detection, pricing canonicalization, and text-similarity, but it still owns `createReview`, `persistResearchOnly`, `updatePricingOnly`, and quality-snapshot writing.
+  - Owner: platform
+  - Target date: 2026-06-17
+  - Next verification: `wc -l src/lib/hunter/phases/persistence.ts && rg -n "async function createReview|async function persistResearchOnly|async function updatePricingOnly|qualitySnapshot" src/lib/hunter/phases/persistence.ts`
+- `hunter-observability-vendor-gap`: no error-tracking vendor is installed on cron or queue paths yet, console logs plus Discord/Slack remain the only runtime observability path.
+  - Owner: platform
+  - Target date: 2026-06-17
+  - Next verification: `rg -n "Sentry|error tracking|captureException" src scripts docs`
 - `tool-page-entity-ambiguity`: ambiguous parent products like GitHub can still render mixed-scope reviews because page selection is freshness-based instead of subject-based.
   - Owner: platform
   - Target date: 2026-03-14

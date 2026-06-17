@@ -1,0 +1,12 @@
+{
+  "toolName": "Plane",
+  "minClaimCitationRate": 0.95,
+  "minActionabilityScore": 28,
+  "minReaderUtilityScore": 45,
+  "maxCoverageGaps": 1,
+  "mustMentionAny": [
+    ["open source", "open-source"],
+    ["self-host", "self host", "product team"]
+  ],
+  "mustNotContain": ["best tool ever", "guaranteed"]
+}

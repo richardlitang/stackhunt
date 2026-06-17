@@ -2,6 +2,7 @@
 import type { MetaProps } from '@/lib/seo';
 import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/seo';
 import MyStackWidget from '@/components/MyStackWidget';
+import DemoBanner from '@/components/DemoBanner';
 import '@/styles/globals.css';
 
 interface Props {
@@ -57,7 +58,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <!-- Preload critical font for LCP optimization -->
@@ -83,8 +84,13 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
       <nav class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <!-- Logo -->
         <a href="/" class="flex items-center gap-2">
-          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500">
-            <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500">
+            <svg
+              class="h-4 w-4 text-zinc-950"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -93,7 +99,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             </svg>
           </div>
           <span class="text-lg font-semibold text-zinc-100"
-            >Stack<span class="text-indigo-400">Hunt</span></span
+            >Stack<span class="text-amber-400">Hunt</span></span
           >
         </a>
 
@@ -115,6 +121,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
 
     <!-- My Stack Widget (floating) -->
     <MyStackWidget client:load />
+    <DemoBanner client:load />
 
     <!-- Footer -->
     <footer class="border-t border-zinc-800 bg-zinc-900">
@@ -122,8 +129,13 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
         <!-- Brand -->
         <div class="mb-8">
           <a href="/" class="flex items-center gap-2">
-            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500">
-              <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500">
+              <svg
+                class="h-4 w-4 text-zinc-950"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -132,7 +144,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
               </svg>
             </div>
             <span class="text-lg font-semibold text-zinc-100"
-              >Stack<span class="text-indigo-400">Hunt</span></span
+              >Stack<span class="text-amber-400">Hunt</span></span
             >
           </a>
           <p class="mt-2 max-w-md text-sm text-zinc-500">
@@ -147,22 +159,22 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <h3 class="text-sm font-semibold text-zinc-100 mb-3">Product</h3>
             <ul class="space-y-2">
               <li>
-                <a href="/categories" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/categories" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Browse Categories</a
                 >
               </li>
               <li>
-                <a href="/compare" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/compare" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Compare Tools</a
                 >
               </li>
               <li>
-                <a href="/tools" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/tools" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >All Tools</a
                 >
               </li>
               <li>
-                <a href="/best" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/best" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Best Lists</a
                 >
               </li>
@@ -174,18 +186,17 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <h3 class="text-sm font-semibold text-zinc-100 mb-3">Company</h3>
             <ul class="space-y-2">
               <li>
-                <a href="/about" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/about" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >About StackHunt</a
                 >
               </li>
               <li>
-                <a
-                  href="/methodology"
-                  class="text-sm text-zinc-500 hover:text-indigo-400 transition">Methodology</a
+                <a href="/methodology" class="text-sm text-zinc-500 hover:text-amber-400 transition"
+                  >Methodology</a
                 >
               </li>
               <li>
-                <a href="/contact" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/contact" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Contact</a
                 >
               </li>
@@ -197,17 +208,17 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <h3 class="text-sm font-semibold text-zinc-100 mb-3">Legal</h3>
             <ul class="space-y-2">
               <li>
-                <a href="/privacy" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/privacy" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Privacy Policy</a
                 >
               </li>
               <li>
-                <a href="/terms" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/terms" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Terms of Service</a
                 >
               </li>
               <li>
-                <a href="/disclosure" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/disclosure" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Affiliate Disclosure</a
                 >
               </li>
@@ -219,17 +230,17 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <h3 class="text-sm font-semibold text-zinc-100 mb-3">Popular</h3>
             <ul class="space-y-2">
               <li>
-                <a href="/best" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/best" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Best Tool Lists</a
                 >
               </li>
               <li>
-                <a href="/compare" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/compare" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Compare Tools</a
                 >
               </li>
               <li>
-                <a href="/categories" class="text-sm text-zinc-500 hover:text-indigo-400 transition"
+                <a href="/categories" class="text-sm text-zinc-500 hover:text-amber-400 transition"
                   >Browse Categories</a
                 >
               </li>
@@ -245,7 +256,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
             <p class="text-xs text-zinc-500 leading-relaxed mb-4">
               StackHunt is an independent, AI-powered research platform. Some links may earn us a
               commission at no cost to you.
-              <a href="/disclosure" class="underline hover:text-indigo-400"> Full disclosure → </a>
+              <a href="/disclosure" class="underline hover:text-amber-400"> Full disclosure → </a>
             </p>
             <p class="text-xs text-zinc-500 leading-relaxed mb-4">
               Community insights reflect aggregated, subjective reports and may not represent all
@@ -277,7 +288,7 @@ const allSchemas = [generateOrganizationSchema(), generateWebSiteSchema(), ...sc
     text-decoration-thickness: 2px;
   }
   main a:focus-visible {
-    outline: 2px solid #818cf8;
+    outline: 2px solid #f59e0b;
     outline-offset: 2px;
     border-radius: 2px;
   }
