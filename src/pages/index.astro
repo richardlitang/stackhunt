@@ -2,10 +2,10 @@
 /**
  * Homepage - /
  *
- * Design System: "Professional" Dark Mode
- * - Zinc palette with 50% opacity surfaces
- * - Indigo for tech, Emerald for money
- * - Subtle hover gradients
+ * Design System: "Decision Instrument"
+ * - Warm near-black (ink) surfaces, warm off-white (paper) text
+ * - Amber (signal) brand accent; verdict scores color-coded via getScoreColor
+ * - Space Grotesk display + IBM Plex Mono for data
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -93,11 +93,11 @@ const meta = {
       <form id="home-decide-form" class="mt-4 flex flex-wrap items-center gap-2 text-sm text-paper-muted">
         <span>or jump to a decision —</span>
         <span>best</span>
-        <select id="decide-category" aria-label="Category" class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none">
+        <select id="decide-category" aria-label="Category" class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50">
           {decideCategories.map((cat) => <option value={cat.slug}>{cat.name}</option>)}
         </select>
         <span>for</span>
-        <select id="decide-context" aria-label="Use case" class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none">
+        <select id="decide-context" aria-label="Use case" class="rounded-lg border border-ink-border bg-ink-900 px-2.5 py-1.5 text-paper focus:border-signal focus:outline-none focus:ring-1 focus:ring-signal/50">
           {decideContexts.map((ctx) => <option value={ctx.slug}>{ctx.title}</option>)}
         </select>
         <button type="submit" class="rounded-lg bg-signal px-3 py-1.5 font-medium text-ink-950 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-signal/50">

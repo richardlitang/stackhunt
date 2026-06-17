@@ -6,8 +6,9 @@ describe('formatScore', () => {
     expect(formatScore(92)).toBe('92');
     expect(formatScore(7.6)).toBe('8');
   });
-  it('returns null for missing or zero scores', () => {
+  it('returns null for missing, zero, or negative scores', () => {
     expect(formatScore(0)).toBeNull();
+    expect(formatScore(-1)).toBeNull();
     expect(formatScore(null)).toBeNull();
     expect(formatScore(undefined)).toBeNull();
   });
