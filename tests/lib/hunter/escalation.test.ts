@@ -48,6 +48,18 @@ describe('shouldEscalateSynthesis', () => {
     expect(decision.reasons[0]).toContain('abstained_fields');
   });
 
+  it('escalates when actionability is below the draft-forcing floor', () => {
+    const decision = shouldEscalateSynthesis(quality({ actionabilityScore: 45 }));
+    expect(decision.escalate).toBe(true);
+    expect(decision.reasons.some((r) => r.includes('actionability'))).toBe(true);
+  });
+
+  it('escalates when reader utility is below the draft-forcing floor', () => {
+    const decision = shouldEscalateSynthesis(quality({ readerUtilityScore: 38 }));
+    expect(decision.escalate).toBe(true);
+    expect(decision.reasons.some((r) => r.includes('reader_utility'))).toBe(true);
+  });
+
   it('respects an injected config', () => {
     const decision = shouldEscalateSynthesis(quality({ meanConfidence: 0.7 }), {
       ...ESCALATION_TRIGGERS,

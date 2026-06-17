@@ -10,6 +10,10 @@
  * @module hunter/escalation
  */
 import type { SynthesisGenerationQuality } from './services/gemini';
+import {
+  DEFAULT_MIN_ACTIONABILITY_SCORE,
+  DEFAULT_MIN_READER_UTILITY_SCORE,
+} from './coverage/coverage-gaps';
 
 export interface EscalationTriggerConfig {
   /** Escalate when mean claim confidence drops below this. */
@@ -18,12 +22,21 @@ export interface EscalationTriggerConfig {
   maxLowConfidenceRatio: number;
   /** Escalate when at least this many fields were auto-abstained. */
   minAbstainedFields: number;
+  /** Escalate when actionability is below the draft-forcing floor. */
+  minActionabilityScore: number;
+  /** Escalate when reader utility is below the draft-forcing floor. */
+  minReaderUtilityScore: number;
 }
 
 export const ESCALATION_TRIGGERS: EscalationTriggerConfig = {
   minMeanConfidence: 0.55,
   maxLowConfidenceRatio: 0.4,
   minAbstainedFields: 3,
+  // Mirror the persistence draft-forcing floors so escalation targets the
+  // failure mode that actually demotes a review to draft (single source of
+  // truth in coverage/coverage-gaps.ts).
+  minActionabilityScore: DEFAULT_MIN_ACTIONABILITY_SCORE,
+  minReaderUtilityScore: DEFAULT_MIN_READER_UTILITY_SCORE,
 };
 
 export interface SynthesisEscalationDecision {
@@ -63,6 +76,18 @@ export function shouldEscalateSynthesis(
     reasons.push(
       `abstained_fields ${quality.abstainedFields.length} >= ${config.minAbstainedFields}`
     );
+  }
+  if (
+    typeof quality.actionabilityScore === 'number' &&
+    quality.actionabilityScore < config.minActionabilityScore
+  ) {
+    reasons.push(`actionability ${quality.actionabilityScore} < ${config.minActionabilityScore}`);
+  }
+  if (
+    typeof quality.readerUtilityScore === 'number' &&
+    quality.readerUtilityScore < config.minReaderUtilityScore
+  ) {
+    reasons.push(`reader_utility ${quality.readerUtilityScore} < ${config.minReaderUtilityScore}`);
   }
 
   return { escalate: reasons.length > 0, reasons };

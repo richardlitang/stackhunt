@@ -319,10 +319,13 @@ export class Hunter {
 
       const op = operationName.toLowerCase();
       if (op.includes('gemini synthesis evidence stage')) {
-        return parseTimeoutOverride(process.env.HUNTER_GEMINI_EVIDENCE_TIMEOUT_MS) ?? 300000;
+        // 120s (was 300s): a hanging synthesis call x3 retries could stall a hunt
+        // ~15 min before the timeout-fallback model engaged. Lower so fallback
+        // kicks in sooner; override via env for slow/large prompts.
+        return parseTimeoutOverride(process.env.HUNTER_GEMINI_EVIDENCE_TIMEOUT_MS) ?? 120000;
       }
       if (op.includes('gemini synthesis')) {
-        return parseTimeoutOverride(process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_MS) ?? 300000;
+        return parseTimeoutOverride(process.env.HUNTER_GEMINI_SYNTHESIS_TIMEOUT_MS) ?? 120000;
       }
       if (op.includes('gemini fact extraction')) {
         return parseTimeoutOverride(process.env.HUNTER_GEMINI_EXTRACTION_TIMEOUT_MS) ?? 180000;

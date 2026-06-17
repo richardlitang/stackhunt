@@ -9,8 +9,8 @@ export const COVERAGE_MIGRATION_TOKENS =
   /\b(migration|migrate|switch|switching|lock[-\s]?in|export|import|portability|data portability)\b/i;
 export const COVERAGE_SUPPORT_TOKENS =
   /\b(support|docs|documentation|SLA|uptime|ticket|response time|customer success)\b/i;
-const DEFAULT_MIN_ACTIONABILITY_SCORE = 58;
-const DEFAULT_MIN_READER_UTILITY_SCORE = 62;
+export const DEFAULT_MIN_ACTIONABILITY_SCORE = 58;
+export const DEFAULT_MIN_READER_UTILITY_SCORE = 62;
 
 export function meetsAuthoritativeSourceThreshold(
   tier: PopularityTier,

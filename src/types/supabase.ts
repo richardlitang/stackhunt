@@ -1730,6 +1730,7 @@ export type Database = {
           dlq_at: string | null
           dlq_reason: string | null
           duration_ms: number | null
+          entity_scope: string | null
           error_details: Json | null
           error_message: string | null
           force_regenerate: boolean | null
@@ -1772,6 +1773,7 @@ export type Database = {
           dlq_at?: string | null
           dlq_reason?: string | null
           duration_ms?: number | null
+          entity_scope?: string | null
           error_details?: Json | null
           error_message?: string | null
           force_regenerate?: boolean | null
@@ -1814,6 +1816,7 @@ export type Database = {
           dlq_at?: string | null
           dlq_reason?: string | null
           duration_ms?: number | null
+          entity_scope?: string | null
           error_details?: Json | null
           error_message?: string | null
           force_regenerate?: boolean | null
@@ -1928,6 +1931,72 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "tools_with_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hunt_telemetry: {
+        Row: {
+          context_title: string | null
+          created_at: string
+          duration_ms: number | null
+          error_class: string | null
+          estimated_cost_usd: number | null
+          id: string
+          queue_item_id: string | null
+          retries: number | null
+          success: boolean
+          timeout_failures: number | null
+          tokens_analysis: number | null
+          tokens_research: number | null
+          tokens_total: number | null
+          tool_name: string
+        }
+        Insert: {
+          context_title?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_class?: string | null
+          estimated_cost_usd?: number | null
+          id?: string
+          queue_item_id?: string | null
+          retries?: number | null
+          success: boolean
+          timeout_failures?: number | null
+          tokens_analysis?: number | null
+          tokens_research?: number | null
+          tokens_total?: number | null
+          tool_name: string
+        }
+        Update: {
+          context_title?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_class?: string | null
+          estimated_cost_usd?: number | null
+          id?: string
+          queue_item_id?: string | null
+          retries?: number | null
+          success?: boolean
+          timeout_failures?: number | null
+          tokens_analysis?: number | null
+          tokens_research?: number | null
+          tokens_total?: number | null
+          tool_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hunt_telemetry_queue_item_id_fkey"
+            columns: ["queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "hunt_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hunt_telemetry_queue_item_id_fkey"
+            columns: ["queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "hunt_queue_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -2920,6 +2989,7 @@ export type Database = {
           display_order: number | null
           downvotes: number | null
           fit_score: number | null
+          generation_quality: Json | null
           id: string
           item_id: string
           pros: Json | null
@@ -2948,6 +3018,7 @@ export type Database = {
           display_order?: number | null
           downvotes?: number | null
           fit_score?: number | null
+          generation_quality?: Json | null
           id?: string
           item_id: string
           pros?: Json | null
@@ -2976,6 +3047,7 @@ export type Database = {
           display_order?: number | null
           downvotes?: number | null
           fit_score?: number | null
+          generation_quality?: Json | null
           id?: string
           item_id?: string
           pros?: Json | null
@@ -5260,6 +5332,10 @@ export type Database = {
           similarity: number
           slug: string
         }[]
+      }
+      normalize_hunt_category_slug: {
+        Args: { p_slug: string }
+        Returns: string
       }
       normalize_item_name: { Args: { p_name: string }; Returns: string }
       publish_review: {
