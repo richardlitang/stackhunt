@@ -18,16 +18,48 @@ function sanitizeText(value: string | null | undefined): string | null {
   const lower = cleaned.toLowerCase();
   if (lower.includes('[object object]')) return null;
   if (/^that need\b/.test(lower)) return null;
+  if (isGenericDecisionText(cleaned)) return null;
   return cleaned;
+}
+
+function sanitizeDecisionSlotText(value: string | null | undefined): string | null {
+  const cleaned = cleanToolPageDecisionText(value);
+  if (!cleaned) return null;
+  if (isGenericDecisionText(cleaned)) return null;
+  return cleaned;
+}
+
+const GENERIC_DECISION_PATTERNS = [
+  /\bsupports core workflows\b.*\bplan limits\b.*\bfeature constraints\b.*\bdocumented in (?:the )?source\b/i,
+  /\bbest for teams that need supports\b/i,
+  /\bestimated setup time:\s*minutes\.?$/i,
+];
+
+function isGenericDecisionText(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return GENERIC_DECISION_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+function buildImplementationSummaryFallback(
+  level: ToolPageBuyerDecisionLayer['heroDecisionCard']['implementationFriction']['level'],
+  drivers: string[]
+): string | null {
+  if (level === 'unknown' || drivers.length === 0) return null;
+  const label = level.charAt(0).toUpperCase() + level.slice(1);
+  return `${label} rollout friction. Validate ${drivers.slice(0, 2).join(' and ')} before rollout.`;
 }
 
 const GENERIC_TEST_PATTERNS = [
   /\bmatters most when this directly improves a workflow you run every day\b/i,
   /\bworkflow completes without role, plan, or handoff blockers\b/i,
   /\ba key step depends on a gated feature, hidden limit, or missing ownership\b/i,
+  /\bsupports core workflows\b.*\bplan limits\b.*\bfeature constraints\b.*\bdocumented in (?:the )?source\b/i,
+  /\bworkflow passes without plan, ownership, or permission blockers\b/i,
+  /\bcritical step depends on an unsupported tier, integration, or control model\b/i,
   /\bdaily workflow test\b/i,
   /\badmin\/setup test\b/i,
   /\bfailure and export test\b/i,
+  /\bfailure\/export test\b/i,
 ];
 
 function isGenericTestText(value: string | null | undefined): boolean {
@@ -99,19 +131,31 @@ export function enforceToolPageDecisionLayerIntegrity(
   const layer = input.layer;
   const allowedSlugs = new Set((input.allowedAlternativeSlugs || []).filter(Boolean));
 
+  const implementationDrivers = layer.heroDecisionCard.implementationFriction.drivers
+    .map((item) => sanitizeText(item))
+    .filter((item): item is string => Boolean(item))
+    .filter(
+      (item, index, list) =>
+        list.findIndex((entry) => toNormalizedKey(entry) === toNormalizedKey(item)) === index
+    )
+    .slice(0, 4);
+  const implementationSummary =
+    sanitizeText(layer.heroDecisionCard.implementationFriction.summary) ||
+    buildImplementationSummaryFallback(
+      layer.heroDecisionCard.implementationFriction.level,
+      implementationDrivers
+    );
+
   const heroDecisionCard: ToolPageBuyerDecisionLayer['heroDecisionCard'] = {
     ...layer.heroDecisionCard,
-    bestFor: cleanToolPageDecisionText(layer.heroDecisionCard.bestFor),
-    notFor: cleanToolPageDecisionText(layer.heroDecisionCard.notFor),
-    mainRisk: cleanToolPageDecisionText(layer.heroDecisionCard.mainRisk),
-    upgradeTrigger: cleanToolPageDecisionText(layer.heroDecisionCard.upgradeTrigger),
+    bestFor: sanitizeDecisionSlotText(layer.heroDecisionCard.bestFor),
+    notFor: sanitizeDecisionSlotText(layer.heroDecisionCard.notFor),
+    mainRisk: sanitizeDecisionSlotText(layer.heroDecisionCard.mainRisk),
+    upgradeTrigger: sanitizeDecisionSlotText(layer.heroDecisionCard.upgradeTrigger),
     implementationFriction: {
       ...layer.heroDecisionCard.implementationFriction,
-      summary: sanitizeText(layer.heroDecisionCard.implementationFriction.summary),
-      drivers: layer.heroDecisionCard.implementationFriction.drivers
-        .map((item) => sanitizeText(item))
-        .filter((item): item is string => Boolean(item))
-        .slice(0, 4),
+      summary: implementationSummary,
+      drivers: implementationDrivers,
       stakeholders: layer.heroDecisionCard.implementationFriction.stakeholders
         .map((item) => sanitizeText(item))
         .filter((item): item is string => Boolean(item))

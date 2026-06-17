@@ -138,19 +138,15 @@ const recommendationEvidenceChipClass =
   {/* Layer 1: Curated Verdict (Expert insight) */}
   {
     showCurated && (
-      <div class="mb-3 flex items-start gap-2 rounded-lg bg-purple-900/30 px-3 py-2 border border-purple-700/50">
-        <svg
-          class="h-4 w-4 mt-0.5 shrink-0 text-purple-400"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
+      <div class="mb-3 flex items-start gap-2 rounded-lg bg-amber-900/30 px-3 py-2 border border-amber-700/50">
+        <svg class="h-4 w-4 mt-0.5 shrink-0 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
           <path
             fill-rule="evenodd"
             d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
             clip-rule="evenodd"
           />
         </svg>
-        <p class="text-xs text-purple-200 line-clamp-2">{curatedVerdict}</p>
+        <p class="text-xs text-amber-200 line-clamp-2">{curatedVerdict}</p>
       </div>
     )
   }

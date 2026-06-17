@@ -49,6 +49,34 @@ describe('tool page decision utility state', () => {
     expect(result.decisionUpgradeTrigger).toMatch(/seat-based pricing|advanced controls require/i);
   });
 
+  it('suppresses source-placeholder utility copy even when other anchors exist', () => {
+    const genericCopy =
+      'Best for teams that need supports core workflows, with plan limits and feature constraints documented in the source.';
+    const result = buildToolPageDecisionUtilityState({
+      toolName: 'Linear',
+      categorySlug: 'project-management',
+      pricingType: 'freemium',
+      activeReviewLens: 'general',
+      hasApi: true,
+      hasParentTool: false,
+      hasEnterpriseSignals: false,
+      lensBestFitLine: genericCopy,
+      lensWeakFitLine: 'Avoid when reporting constraints block rollout.',
+      lensTradeoffLine: genericCopy,
+      hardLimitText: 'Exports require CSV or manual API extraction.',
+      pricingEvidenceSourceUrl: null,
+      pricingEvidenceSummary: genericCopy,
+      lowConfidenceMode: false,
+    });
+
+    expect(result.decisionUseIf).toBe('');
+    expect(result.decisionWatchOut).toBe('Exports require CSV or manual API extraction.');
+    expect(result.decisionUpgradeTrigger).toBe('Exports require CSV or manual API extraction.');
+    expect(
+      result.pricingMentalModelItems.every((item) => !item.text.includes('supports core'))
+    ).toBe(true);
+  });
+
   it('uses subject-specific checklist and verdict lead for product surfaces', () => {
     const result = buildToolPageDecisionUtilityState({
       toolName: 'GitHub Actions',

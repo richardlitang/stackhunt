@@ -6,16 +6,18 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Route Composition Order
 
-1. `buildToolPageRequestRouteState(...)` (frontmatter line 54)
-2. `getToolPageData(...)` (frontmatter line 59)
-3. `buildToolPagePageCompilerRouteStateFromPageContext(...)` (frontmatter line 63)
-4. `applyToolPageResponseRouteState(...)` (frontmatter line 126)
+1. `buildToolPageRequestRouteState(...)` (frontmatter line 55)
+2. `getToolPageData(...)` (frontmatter line 60)
+3. `buildToolPagePageCompilerRouteStateFromPageContext(...)` (frontmatter line 64)
+4. `buildToolPageBuyerDecisionPresentationState(...)` (frontmatter line 87)
+5. `applyToolPageResponseRouteState(...)` (frontmatter line 146)
 
 ## Tool-Page Imports Used by Route
 
 | Symbol                                               | Module                                         |
 | ---------------------------------------------------- | ---------------------------------------------- |
 | `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing-link-text`            |
+| `buildToolPageBuyerDecisionPresentationState`        | `@/lib/tool-page/buyer-decision-presentation`  |
 | `getToolPageData`                                    | `@/lib/tool-page/data`                         |
 | `buildToolPageRequestRouteState`                     | `@/lib/tool-page/request-response-route-state` |
 | `applyToolPageResponseRouteState`                    | `@/lib/tool-page/request-response-route-state` |
@@ -24,6 +26,10 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 ## One-Level Helper Dependencies
 
 ### `buildToolPagePricingLinkText`
+
+- no nested `ToolPage*` helper calls detected
+
+### `buildToolPageBuyerDecisionPresentationState`
 
 - no nested `ToolPage*` helper calls detected
 

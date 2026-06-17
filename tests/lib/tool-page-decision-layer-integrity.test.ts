@@ -136,4 +136,49 @@ describe('tool page decision layer integrity', () => {
     expect(result.fitMatrix.startup).toBeNull();
     expect(result.alternativesRebuttals).toHaveLength(0);
   });
+
+  it('suppresses source-placeholder decision and before-you-buy copy', () => {
+    const genericCopy =
+      'Best for teams that need supports core workflows, with plan limits and feature constraints documented in the source.';
+    const result = enforceToolPageDecisionLayerIntegrity({
+      layer: {
+        ...buildBaseLayer(),
+        heroDecisionCard: {
+          ...buildBaseLayer().heroDecisionCard,
+          bestFor: null,
+          notFor: null,
+          mainRisk: genericCopy,
+          upgradeTrigger: genericCopy,
+          implementationFriction: {
+            level: 'medium',
+            summary: 'Estimated setup time: minutes.',
+            drivers: [genericCopy, genericCopy],
+            stakeholders: ['Operations'],
+          },
+        },
+        beforeYouBuyTests: [
+          {
+            testType: 'daily_workflow',
+            name: 'Daily workflow test',
+            whyItMatters: genericCopy,
+            whatToDo: genericCopy,
+            passCondition: 'The workflow passes without plan, ownership, or permission blockers.',
+            commonFailure:
+              'A critical step depends on an unsupported tier, integration, or control model.',
+            evidence: {
+              evidenceType: 'editorial_inference',
+              confidence: 'medium',
+              lastChecked: '2026-03-20',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(result.heroDecisionCard.mainRisk).toBeNull();
+    expect(result.heroDecisionCard.upgradeTrigger).toBeNull();
+    expect(result.heroDecisionCard.implementationFriction.summary).toBeNull();
+    expect(result.heroDecisionCard.implementationFriction.drivers).toEqual([]);
+    expect(result.beforeYouBuyTests).toEqual([]);
+  });
 });

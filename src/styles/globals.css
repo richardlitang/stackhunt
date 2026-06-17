@@ -102,8 +102,8 @@
     inset: -2rem 0 auto;
     height: 32rem;
     background:
-      radial-gradient(circle at top left, rgb(96 120 255 / 0.22), transparent 34%),
-      radial-gradient(circle at top right, rgb(34 197 94 / 0.08), transparent 28%),
+      radial-gradient(circle at top left, rgb(245 158 11 / 0.2), transparent 34%),
+      radial-gradient(circle at top right, rgb(251 191 36 / 0.1), transparent 28%),
       linear-gradient(180deg, rgb(24 24 27 / 0.88), transparent 72%);
     pointer-events: none;
     z-index: -1;
@@ -136,7 +136,7 @@
     width: 22rem;
     height: 22rem;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgb(90 118 255 / 0.24), transparent 68%);
+    background: radial-gradient(circle, rgb(245 158 11 / 0.2), transparent 68%);
     filter: blur(8px);
     pointer-events: none;
   }
@@ -146,14 +146,14 @@
     align-items: center;
     gap: 0.5rem;
     border-radius: 9999px;
-    border: 1px solid rgb(99 102 241 / 0.28);
-    background: rgb(79 70 229 / 0.12);
+    border: 1px solid rgb(245 158 11 / 0.3);
+    background: rgb(245 158 11 / 0.12);
     padding: 0.4rem 0.8rem;
     font-size: 0.66rem;
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgb(199 210 254);
+    color: rgb(253 230 138);
   }
 
   .tool-review-chip {
