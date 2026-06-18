@@ -534,9 +534,9 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   const root = process.cwd();
   const sourcePaths = [
     path.join(root, 'src/pages/tool/[slug].astro'),
-    path.join(root, 'src/lib/tool-page/lens.ts'),
-    path.join(root, 'src/lib/tool-page/decision.ts'),
-    path.join(root, 'src/components/AlternativeCard.astro'),
+    path.join(root, 'src/lib/tool-page/presentation/lens.ts'),
+    path.join(root, 'src/lib/tool-page/decision/decision.ts'),
+    path.join(root, 'src/components/tool-page/AlternativeCard.astro'),
   ];
   const failures = [];
   if (!fs.existsSync(sourcePaths[0])) {
