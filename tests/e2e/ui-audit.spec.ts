@@ -15,11 +15,13 @@ async function discoverReachablePath(
 
   for (const discoveryPath of discoveryPages) {
     await gotoAuditPage(page, discoveryPath);
-    const hrefs = await page.locator(selector).evaluateAll((nodes) =>
-      nodes
-        .map((node) => (node as HTMLAnchorElement).getAttribute('href') || '')
-        .filter((href) => href.startsWith('/'))
-    );
+    const hrefs = await page
+      .locator(selector)
+      .evaluateAll((nodes) =>
+        nodes
+          .map((node) => (node as HTMLAnchorElement).getAttribute('href') || '')
+          .filter((href) => href.startsWith('/'))
+      );
 
     for (const href of hrefs) {
       if (tried.has(href)) continue;
@@ -59,7 +61,7 @@ test.describe('UI Audit Screenshots', () => {
   test('capture a tool page', async ({ page }) => {
     await gotoAuditPage(page, '/');
     const toolLink = page.locator('a[href^="/tool/"]').first();
-    if (await toolLink.count() > 0) {
+    if ((await toolLink.count()) > 0) {
       await toolLink.click();
       await page.waitForLoadState('networkidle');
       await page.screenshot({ path: 'tests/e2e/screenshots/audit-tool-page.png', fullPage: true });
@@ -77,7 +79,10 @@ test.describe('UI Audit Screenshots', () => {
     if (bestPath) {
       await gotoAuditPage(page, bestPath);
       await page.waitForLoadState('networkidle');
-      await page.screenshot({ path: 'tests/e2e/screenshots/audit-context-page.png', fullPage: true });
+      await page.screenshot({
+        path: 'tests/e2e/screenshots/audit-context-page.png',
+        fullPage: true,
+      });
       return;
     }
 
@@ -93,7 +98,10 @@ test.describe('UI Audit Screenshots', () => {
     );
     if (directComparePath) {
       await gotoAuditPage(page, directComparePath);
-      await page.screenshot({ path: 'tests/e2e/screenshots/audit-compare-page.png', fullPage: true });
+      await page.screenshot({
+        path: 'tests/e2e/screenshots/audit-compare-page.png',
+        fullPage: true,
+      });
       return;
     }
 
@@ -125,17 +133,23 @@ test.describe('UI Audit Screenshots', () => {
   test('mobile homepage', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await gotoAuditPage(page, '/');
-    await page.screenshot({ path: 'tests/e2e/screenshots/audit-mobile-homepage.png', fullPage: true });
+    await page.screenshot({
+      path: 'tests/e2e/screenshots/audit-mobile-homepage.png',
+      fullPage: true,
+    });
   });
 
   test('mobile tool page', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await gotoAuditPage(page, '/');
     const toolLink = page.locator('a[href^="/tool/"]').first();
-    if (await toolLink.count() > 0) {
+    if ((await toolLink.count()) > 0) {
       await toolLink.click();
       await page.waitForLoadState('networkidle');
-      await page.screenshot({ path: 'tests/e2e/screenshots/audit-mobile-tool.png', fullPage: true });
+      await page.screenshot({
+        path: 'tests/e2e/screenshots/audit-mobile-tool.png',
+        fullPage: true,
+      });
     }
   });
 });

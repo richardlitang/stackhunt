@@ -2,7 +2,9 @@ import { normalizeComparePair } from '@/lib/compiler/snapshot-helpers';
 import { getAdminClient, supabase } from '@/lib/supabase';
 
 export async function getLatestPublishedBestSnapshot(contextSlug: string) {
-  const slug = String(contextSlug || '').trim().toLowerCase();
+  const slug = String(contextSlug || '')
+    .trim()
+    .toLowerCase();
   if (!slug) return null;
 
   const { data, error } = await supabase
@@ -19,7 +21,9 @@ export async function getLatestPublishedBestSnapshot(contextSlug: string) {
 }
 
 export async function getLatestDraftBestSnapshot(contextSlug: string) {
-  const slug = String(contextSlug || '').trim().toLowerCase();
+  const slug = String(contextSlug || '')
+    .trim()
+    .toLowerCase();
   if (!slug) return null;
 
   const admin = getAdminClient();
@@ -54,7 +58,9 @@ export async function getLatestPublishedCompareSnapshot(
     .order('published_at', { ascending: false })
     .limit(1);
 
-  const { data, error } = specKey ? await query.eq('spec_key', specKey).maybeSingle() : await query.is('spec_key', null).maybeSingle();
+  const { data, error } = specKey
+    ? await query.eq('spec_key', specKey).maybeSingle()
+    : await query.is('spec_key', null).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -78,7 +84,9 @@ export async function getLatestDraftCompareSnapshot(
     .order('computed_at', { ascending: false })
     .limit(1);
 
-  const { data, error } = specKey ? await query.eq('spec_key', specKey).maybeSingle() : await query.is('spec_key', null).maybeSingle();
+  const { data, error } = specKey
+    ? await query.eq('spec_key', specKey).maybeSingle()
+    : await query.is('spec_key', null).maybeSingle();
   if (error) throw error;
   return data;
 }

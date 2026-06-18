@@ -180,7 +180,9 @@ export const POST: APIRoute = async ({ params, request }) => {
     const handsOnChecks = parseLineList(handsOnChecksRaw);
     const handsOnSteps = parseLineList(handsOnStepsRaw);
     const handsOnFindings = parseLineList(handsOnFindingsRaw);
-    const handsOnTestedAtIso = handsOnTestedAtRaw ? new Date(`${handsOnTestedAtRaw}T00:00:00Z`) : null;
+    const handsOnTestedAtIso = handsOnTestedAtRaw
+      ? new Date(`${handsOnTestedAtRaw}T00:00:00Z`)
+      : null;
     if (handsOnTestedAtRaw && (!handsOnTestedAtIso || Number.isNaN(handsOnTestedAtIso.getTime()))) {
       return new Response('Invalid hands-on test date', { status: 400 });
     }
@@ -300,8 +302,7 @@ export const POST: APIRoute = async ({ params, request }) => {
       string,
       unknown
     >;
-    const currentCanonical =
-      (currentSpecs.canonical as Record<string, unknown> | undefined) || {};
+    const currentCanonical = (currentSpecs.canonical as Record<string, unknown> | undefined) || {};
     const nextCanonical: Record<string, unknown> = { ...currentCanonical };
     if (handsOnChecks.length > 0) {
       nextCanonical.hands_on_checks = handsOnChecks;

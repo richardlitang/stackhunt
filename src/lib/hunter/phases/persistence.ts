@@ -50,13 +50,13 @@ import {
   resolvePopularityTier,
   type PopularityTier,
 } from '@/lib/quality-gate';
-import { createToolPageEvidenceContract } from '@/lib/tool-page/evidence-contract';
-import { applyToolPageFreshnessPolicy } from '@/lib/tool-page/freshness-policy';
-import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
-import { readToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
-import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/lane-decision-signals';
-import { deriveToolPageDecisionLayerConsistencySignals } from '@/lib/tool-page/decision-layer-consistency-signals';
-import { computeToolPageSectionContract } from '@/lib/tool-page/standard';
+import { createToolPageEvidenceContract } from '@/lib/tool-page/evidence/evidence-contract';
+import { applyToolPageFreshnessPolicy } from '@/lib/tool-page/evidence/freshness-policy';
+import { evaluateToolPageQaGate } from '@/lib/tool-page/policy/qa-gate';
+import { readToolPageLaneOutputs } from '@/lib/tool-page/decision/lane-outputs';
+import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/decision/lane-decision-signals';
+import { deriveToolPageDecisionLayerConsistencySignals } from '@/lib/tool-page/decision/decision-layer-consistency-signals';
+import { computeToolPageSectionContract } from '@/lib/tool-page/policy/standard';
 import { sanitizeUrl } from '@/lib/utils/url';
 import { buildFallbackUserSignalClaimsFromSources } from '@/lib/hunter/user-signal-fallback';
 import {
@@ -64,7 +64,7 @@ import {
   normalizeUserSignalClaimKey,
   scoreUserSignalClaim,
 } from '@/lib/hunter/user-signal-claims';
-import { buildDecisionSlots } from '@/lib/tool-page/intro';
+import { buildDecisionSlots } from '@/lib/tool-page/presentation/intro';
 import {
   sanitizeConstraintsForPersistence,
   sanitizeOperationalRecord,

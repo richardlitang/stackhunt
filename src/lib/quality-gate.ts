@@ -143,7 +143,8 @@ function hasFreePlanSignal(rawPricing: unknown): boolean {
       obj.value,
     ];
     for (const candidate of priceCandidates) {
-      if (typeof candidate === 'number' && Number.isFinite(candidate) && candidate === 0) return true;
+      if (typeof candidate === 'number' && Number.isFinite(candidate) && candidate === 0)
+        return true;
       if (
         typeof candidate === 'string' &&
         /\b(?:\$?\s*0(?:\.0+)?)\b/.test(candidate.trim().toLowerCase())
@@ -502,7 +503,10 @@ export function evaluateIndexReadiness(
           HIGH_VOLATILITY_WINDOW_DAYS
         ),
         community: resolveSectionFreshness(firstReview?.updated_at || null, FRESHNESS_WINDOW_DAYS),
-        verdict: resolveSectionFreshness(firstReview?.updated_at || tool.updated_at, FRESHNESS_WINDOW_DAYS),
+        verdict: resolveSectionFreshness(
+          firstReview?.updated_at || tool.updated_at,
+          FRESHNESS_WINDOW_DAYS
+        ),
       },
       evidence_counts: {
         pricing: hasPricing ? 1 : 0,

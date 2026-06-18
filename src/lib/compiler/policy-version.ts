@@ -6,4 +6,3 @@ export function resolveCompilerPolicyVersion(explicit?: string | null): Compiler
   const trimmed = typeof explicit === 'string' ? explicit.trim() : '';
   return trimmed.length > 0 ? trimmed : CURRENT_COMPILER_POLICY_VERSION;
 }
-

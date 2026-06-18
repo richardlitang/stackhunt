@@ -16,8 +16,12 @@ export interface EvidenceRef {
 }
 
 export function normalizeComparePair(slugA: string, slugB: string) {
-  const a = String(slugA || '').trim().toLowerCase();
-  const b = String(slugB || '').trim().toLowerCase();
+  const a = String(slugA || '')
+    .trim()
+    .toLowerCase();
+  const b = String(slugB || '')
+    .trim()
+    .toLowerCase();
   if (!a || !b) {
     throw new Error('Both comparison slugs are required');
   }
@@ -46,7 +50,10 @@ export function toClaimList(value: unknown, limit = 4): string[] {
 }
 
 function normalizeDomain(rawDomain: string): string {
-  return rawDomain.replace(/^www\./i, '').trim().toLowerCase();
+  return rawDomain
+    .replace(/^www\./i, '')
+    .trim()
+    .toLowerCase();
 }
 
 export function toEvidenceRefs(value: unknown, limit = 3): EvidenceRef[] {

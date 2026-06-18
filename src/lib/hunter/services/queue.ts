@@ -265,7 +265,10 @@ export class QueueService {
       updatePayload.batch_id = null;
     }
 
-    const { error } = await this.supabase.from('hunt_queue').update(updatePayload).eq('id', queueId);
+    const { error } = await this.supabase
+      .from('hunt_queue')
+      .update(updatePayload)
+      .eq('id', queueId);
     if (error) {
       throw new Error(`Failed to mark queue item as research_complete: ${error.message}`);
     }

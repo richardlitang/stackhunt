@@ -35,8 +35,9 @@ if (!article) {
 <BaseLayout
   meta={{
     title: `${article.title} | StackHunt`,
-    description:
-      (article.summary_markdown || 'Longform analysis and guidance from StackHunt.').slice(0, 160),
+    description: (
+      article.summary_markdown || 'Longform analysis and guidance from StackHunt.'
+    ).slice(0, 160),
     canonical: getCanonicalUrl(`/articles/${article.slug}`),
     ogType: 'article',
   }}

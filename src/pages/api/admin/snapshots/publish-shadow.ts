@@ -50,7 +50,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (bestError) {
       return new Response(
-        JSON.stringify({ success: false, error: `Failed to load best drafts: ${bestError.message}` }),
+        JSON.stringify({
+          success: false,
+          error: `Failed to load best drafts: ${bestError.message}`,
+        }),
         {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
@@ -123,16 +126,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           compare_eligible: payload.compareEligible.length,
         },
       });
-      return new Response(
-        JSON.stringify(payload),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    const bestPublished: Array<{ slug: string; ok: boolean; error?: string; version?: number }> = [];
+    const bestPublished: Array<{ slug: string; ok: boolean; error?: string; version?: number }> =
+      [];
     for (const slug of bestEligible) {
       try {
         const result = await publishBestSnapshot(slug);
@@ -146,7 +147,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    const comparePublished: Array<{ pair: string; ok: boolean; error?: string; version?: number }> = [];
+    const comparePublished: Array<{ pair: string; ok: boolean; error?: string; version?: number }> =
+      [];
     for (const pair of compareEligible) {
       try {
         const result = await publishCompareSnapshot(pair.slugA, pair.slugB, pair.specKey);
@@ -192,13 +194,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       },
     });
 
-    return new Response(
-      JSON.stringify(payload),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     await logSnapshotAction({
       action: 'snapshots.publish-shadow',

@@ -68,7 +68,7 @@ test.describe('Logo Loading', () => {
     // Check main tool logo
     const mainLogo = page.locator('img[alt*="logo"]').first();
 
-    if (await mainLogo.count() > 0) {
+    if ((await mainLogo.count()) > 0) {
       await expect(mainLogo).toBeVisible({ timeout: 10000 });
       const naturalWidth = await mainLogo.evaluate((img: HTMLImageElement) => img.naturalWidth);
       expect(naturalWidth).toBeGreaterThan(0);
@@ -104,7 +104,10 @@ test.describe('Logo Loading', () => {
       expect(result.loaded).toBeGreaterThan(0);
     }
 
-    await page.screenshot({ path: 'tests/e2e/screenshots/logos-dentists-page.png', fullPage: true });
+    await page.screenshot({
+      path: 'tests/e2e/screenshots/logos-dentists-page.png',
+      fullPage: true,
+    });
   });
 
   test('Compare Page - logos should load', async ({ page }) => {
@@ -129,7 +132,10 @@ test.describe('Logo Loading', () => {
     // This page has text links, not logos - just verify it loads
     await expect(page).toHaveTitle(/Compare/i);
 
-    await page.screenshot({ path: 'tests/e2e/screenshots/logos-compare-index.png', fullPage: true });
+    await page.screenshot({
+      path: 'tests/e2e/screenshots/logos-compare-index.png',
+      fullPage: true,
+    });
   });
 
   test('Logo fallback chain works', async ({ page }) => {

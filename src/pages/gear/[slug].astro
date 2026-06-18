@@ -5,16 +5,16 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Logo from '@/components/Logo.astro';
-import ScoreBadge from '@/components/ScoreBadge.astro';
-import PricingBadge from '@/components/PricingBadge.astro';
-import ProsCons from '@/components/ProsCons.astro';
-import AffiliateButton from '@/components/AffiliateButton.astro';
-import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
-import SpiderwebGrid from '@/components/SpiderwebGrid.astro';
-import SentimentTags from '@/components/SentimentTags.astro';
-import VoteWidget from '@/components/VoteWidget';
-import VideoEmbed from '@/components/VideoEmbed';
+import Logo from '@/components/shared/Logo.astro';
+import ScoreBadge from '@/components/shared/ScoreBadge.astro';
+import PricingBadge from '@/components/pricing/PricingBadge.astro';
+import ProsCons from '@/components/tool-page/ProsCons.astro';
+import AffiliateButton from '@/components/shared/AffiliateButton.astro';
+import AffiliateDisclosure from '@/components/shared/AffiliateDisclosure.astro';
+import SpiderwebGrid from '@/components/tool-page/SpiderwebGrid.astro';
+import SentimentTags from '@/components/tool-page/SentimentTags.astro';
+import VoteWidget from '@/components/interactive/VoteWidget';
+import VideoEmbed from '@/components/tool-page/VideoEmbed';
 import {
   getToolBySlugAndType,
   getToolContexts,
@@ -79,7 +79,6 @@ const schemas = [
     { name: gear.name, url: `/gear/${gear.slug}` },
   ]),
 ];
-
 ---
 
 <BaseLayout meta={meta} schemas={schemas}>

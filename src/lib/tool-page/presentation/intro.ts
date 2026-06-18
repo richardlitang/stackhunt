@@ -1,0 +1,290 @@
+export interface DecisionIntroInput {
+  toolName: string;
+  shortDescription?: string | null;
+  pros: string[];
+  cons: string[];
+  proClaims?: ClaimEvidenceLike[];
+  conClaims?: ClaimEvidenceLike[];
+}
+
+export interface DecisionIntro {
+  what_it_is: string;
+  best_for: string;
+  not_for: string;
+  main_tradeoff: string;
+  summary: string;
+}
+
+export interface DecisionSlots {
+  what_it_is: string;
+  best_fit: string;
+  weak_fit: string;
+  tradeoff: string;
+  summary: string;
+}
+
+interface BuildDecisionSlotsInput extends DecisionIntroInput {
+  decisionIntro?: Partial<DecisionIntro> | null;
+}
+
+export interface DecisionEvidenceClaim {
+  text: string;
+  source_url: string;
+  source_type: 'official' | 'editorial' | 'community' | 'unknown';
+  claim_type: 'fact' | 'opinion' | 'unknown';
+}
+
+export interface DecisionEvidence {
+  best_for_reason?: DecisionEvidenceClaim;
+  not_for_reason?: DecisionEvidenceClaim;
+  tradeoff_reason?: DecisionEvidenceClaim;
+}
+
+export interface ClaimEvidenceLike {
+  text?: string | null;
+  source_url?: string | null;
+  source_type?: string | null;
+  claim_type?: string | null;
+}
+
+const HEDGING_PREFIX =
+  /^(users report(?: that)?|community (?:reports|mentions|consensus (?:is|suggests)|feedback)|according to (?:reddit|hn|community)|based on user discussions)[:,]?\s*/i;
+const GENERIC_DECISION_PATTERNS = [
+  /\brobust and powerful solution\b/gi,
+  /\bworth shortlisting\b/gi,
+  /\bbest-in-class capabilities?\b/gi,
+  /\bgreat for teams?\b/gi,
+  /\bmodern teams?\b/gi,
+  /\bsoftware buying decision\b/gi,
+  /\bbest value threshold\b/gi,
+  /\bworth it when\b/gi,
+  /\bplatform access is limited to web-based environments\b/gi,
+];
+
+function removeGenericPhrases(value: string): string {
+  let next = value;
+  for (const pattern of GENERIC_DECISION_PATTERNS) {
+    next = next.replace(pattern, '');
+  }
+  return next.replace(/\s+/g, ' ').trim();
+}
+
+function cleanText(value: string): string {
+  return removeGenericPhrases(
+    value
+      .replace(/\s+/g, ' ')
+      .replace(HEDGING_PREFIX, '')
+      .replace(/[.:;!?]+$/, '')
+      .trim()
+  );
+}
+
+function stripSlotPrefix(value: string, slot: 'best_fit' | 'weak_fit' | 'tradeoff'): string {
+  const normalized = value.trim().replace(/^[-\u2022]\s*/, '');
+  if (slot === 'best_fit') {
+    return normalized
+      .replace(/^best\s*fit:\s*/i, '')
+      .replace(/^best\s*for(?:\s+teams?)?(?:\s+where)?\s*/i, '')
+      .trim();
+  }
+  if (slot === 'weak_fit') {
+    return normalized
+      .replace(/^weak\s*fit:\s*/i, '')
+      .replace(/^not\s*for(?:\s+teams?)?(?:\s+where)?\s*/i, '')
+      .replace(/^avoid\s*if\s*/i, '')
+      .trim();
+  }
+  return normalized
+    .replace(/^main\s*tradeoff:\s*/i, '')
+    .replace(/^tradeoff:\s*/i, '')
+    .trim();
+}
+
+function isIncompleteClause(text: string): boolean {
+  return /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/i.test(
+    text
+  );
+}
+
+function normalizeSlotText(
+  value: unknown,
+  slot: 'best_fit' | 'weak_fit' | 'tradeoff',
+  minLength = 8
+): string | null {
+  if (typeof value !== 'string') return null;
+  const cleaned = cleanText(stripSlotPrefix(value, slot)).replace(/\s+/g, ' ').trim();
+  if (!cleaned || cleaned.length < minLength) return null;
+  if (isIncompleteClause(cleaned)) return null;
+  return cleaned;
+}
+
+function toSentence(value: string, fallback: string): string {
+  const text = cleanText(value || '');
+  const next = text.length > 0 ? text : fallback;
+  return next.endsWith('.') ? next : `${next}.`;
+}
+
+function normalizeEvidenceClaim(
+  claim: ClaimEvidenceLike | null | undefined
+): DecisionEvidenceClaim | undefined {
+  if (!claim || typeof claim.text !== 'string' || claim.text.trim().length < 8) return undefined;
+  if (typeof claim.source_url !== 'string' || claim.source_url.trim().length < 10) return undefined;
+  return {
+    text: cleanText(claim.text),
+    source_url: claim.source_url.trim(),
+    source_type:
+      claim.source_type === 'official' ||
+      claim.source_type === 'editorial' ||
+      claim.source_type === 'community'
+        ? claim.source_type
+        : 'unknown',
+    claim_type:
+      claim.claim_type === 'fact' || claim.claim_type === 'opinion' ? claim.claim_type : 'unknown',
+  };
+}
+
+function hasConcreteSignal(value: string): boolean {
+  return (
+    /\d/.test(value) ||
+    /\b(k|m|b|token|request|seat|plan|tier|gb|tb|ms|sec|min|hour|day|month|year|api|quota|limit)\b/i.test(
+      value
+    )
+  );
+}
+
+function scoreSpecificity(claim: ClaimEvidenceLike): number {
+  const text = typeof claim.text === 'string' ? cleanText(claim.text) : '';
+  if (text.length < 8) return -100;
+
+  let score = text.length >= 32 ? 2 : 0;
+  if (hasConcreteSignal(text)) score += 5;
+
+  if (claim.source_type === 'official') score += 5;
+  else if (claim.source_type === 'editorial') score += 2;
+  else if (claim.source_type === 'community') score += 1;
+
+  if (claim.claim_type === 'fact') score += 3;
+  else if (claim.claim_type === 'opinion') score += 1;
+
+  if (/\b(great|best-in-class|robust|powerful|shortlisting)\b/i.test(text)) score -= 4;
+  return score;
+}
+
+function pickMostSpecificClaim(claims: ClaimEvidenceLike[] | undefined): string | null {
+  if (!Array.isArray(claims) || claims.length === 0) return null;
+  const ranked = claims
+    .map((claim) => ({ claim, score: scoreSpecificity(claim) }))
+    .sort((a, b) => b.score - a.score);
+
+  const best = ranked[0];
+  if (!best || best.score < 3 || typeof best.claim.text !== 'string') return null;
+  return cleanText(best.claim.text);
+}
+
+function toBuyerFitSentence(prefix: string, claim: string, fallback: string): string {
+  const normalized = cleanText(claim);
+  if (normalized.length < 8) return fallback;
+  return toSentence(`${prefix} ${normalized}`, fallback);
+}
+
+export function generateDecisionEvidence(
+  pros: ClaimEvidenceLike[],
+  cons: ClaimEvidenceLike[]
+): DecisionEvidence {
+  const sortedPros = [...pros].sort((a, b) => scoreSpecificity(b) - scoreSpecificity(a));
+  const sortedCons = [...cons].sort((a, b) => scoreSpecificity(b) - scoreSpecificity(a));
+  const bestFor = normalizeEvidenceClaim(sortedPros[0]);
+  const notFor = normalizeEvidenceClaim(sortedCons[0]);
+  const tradeoff = normalizeEvidenceClaim(sortedCons[1] || sortedCons[0] || sortedPros[0]);
+  return {
+    ...(bestFor ? { best_for_reason: bestFor } : {}),
+    ...(notFor ? { not_for_reason: notFor } : {}),
+    ...(tradeoff ? { tradeoff_reason: tradeoff } : {}),
+  };
+}
+
+export function generateDecisionIntro(input: DecisionIntroInput): DecisionIntro {
+  const firstPro =
+    input.pros.find((value) => typeof value === 'string' && value.trim().length > 8) || '';
+  const firstCon =
+    input.cons.find((value) => typeof value === 'string' && value.trim().length > 8) || '';
+  const specificProFromClaims = pickMostSpecificClaim(input.proClaims);
+  const specificConFromClaims = pickMostSpecificClaim(input.conClaims);
+  const specificPro = specificProFromClaims || cleanText(firstPro);
+  const specificCon = specificConFromClaims || cleanText(firstCon);
+
+  const descriptionCandidate =
+    typeof input.shortDescription === 'string' && input.shortDescription.trim().length >= 20
+      ? cleanText(input.shortDescription)
+      : '';
+  const whatItIsRaw =
+    descriptionCandidate.length >= 20
+      ? descriptionCandidate
+      : `${input.toolName} is a software product reviewed here for practical team fit and rollout tradeoffs.`;
+
+  const best_for = toBuyerFitSentence(
+    'Best for teams where',
+    specificPro,
+    'Best for teams with needs that match the current verified feature set.'
+  );
+  const not_for = toBuyerFitSentence(
+    'Not for teams where',
+    specificCon,
+    'Not for teams that require capabilities not confirmed in current sources.'
+  );
+  const tradeoffRaw =
+    specificPro.length > 0 && specificCon.length > 0
+      ? `Main tradeoff: stronger fit when ${specificPro}, but higher risk when ${specificCon}`
+      : 'Main tradeoff: advantages are clearer than constraints only after source-backed claims are complete';
+
+  const what_it_is = toSentence(
+    whatItIsRaw,
+    `${input.toolName} is a software product reviewed for practical team fit and rollout tradeoffs.`
+  );
+  const main_tradeoff = toSentence(
+    tradeoffRaw,
+    'Main tradeoff: advantages and constraints are still being confirmed from source-backed claims.'
+  );
+
+  return {
+    what_it_is,
+    best_for,
+    not_for,
+    main_tradeoff,
+    summary: `${what_it_is} ${best_for} ${not_for} ${main_tradeoff}`.trim(),
+  };
+}
+
+export function buildDecisionSlots(input: BuildDecisionSlotsInput): DecisionSlots {
+  const generated = generateDecisionIntro(input);
+  const raw = input.decisionIntro || {};
+
+  const whatItIs = toSentence(
+    typeof raw.what_it_is === 'string' ? raw.what_it_is : generated.what_it_is,
+    generated.what_it_is
+  );
+  const bestFit =
+    normalizeSlotText(raw.best_for, 'best_fit') ||
+    normalizeSlotText(generated.best_for, 'best_fit') ||
+    'Teams whose day-to-day workflow matches the current source-backed strengths.';
+  const weakFit =
+    normalizeSlotText(raw.not_for, 'weak_fit') ||
+    normalizeSlotText(generated.not_for, 'weak_fit') ||
+    'Teams that depend on capabilities not confirmed in current sources.';
+  const tradeoff =
+    normalizeSlotText(raw.main_tradeoff, 'tradeoff') ||
+    normalizeSlotText(generated.main_tradeoff, 'tradeoff') ||
+    'Strengths are clear, but constraints need to be weighed before rollout.';
+
+  const summary = `${whatItIs} Best fit: ${bestFit}. Weak fit: ${weakFit}. Tradeoff: ${tradeoff}.`
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return {
+    what_it_is: whatItIs,
+    best_fit: bestFit,
+    weak_fit: weakFit,
+    tradeoff,
+    summary,
+  };
+}

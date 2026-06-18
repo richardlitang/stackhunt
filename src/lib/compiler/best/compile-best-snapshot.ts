@@ -1,7 +1,10 @@
 import { getAdminClient } from '@/lib/supabase';
 import { resolveCompilerPolicyVersion } from '@/lib/compiler/policy-version';
 import { toClaimList, toEvidenceRefs } from '@/lib/compiler/snapshot-helpers';
-import { evaluateBestPublishGate, resolveBestPublishThresholds } from '@/lib/compiler/best/publish-gate';
+import {
+  evaluateBestPublishGate,
+  resolveBestPublishThresholds,
+} from '@/lib/compiler/best/publish-gate';
 import {
   evaluateFactPackReadiness,
   resolveFactPackReadinessThresholds,
@@ -33,14 +36,19 @@ function parseDateValue(value: string | null | undefined): number {
   return Number.isFinite(ts) ? ts : 0;
 }
 
-export async function compileBestSnapshotDraft(contextSlug: string, options: CompileBestOptions = {}) {
+export async function compileBestSnapshotDraft(
+  contextSlug: string,
+  options: CompileBestOptions = {}
+) {
   const admin = getAdminClient();
   const factPackThresholds = resolveFactPackReadinessThresholds();
   const factPackProfile = String(process.env.FACT_PACK_READINESS_PROFILE || 'default');
   const bestPublishThresholds = resolveBestPublishThresholds();
   const bestPublishProfile = String(process.env.BEST_PUBLISH_PROFILE || 'default');
   const reviewStatuses = resolveBestCompilerReviewStatuses();
-  const slug = String(contextSlug || '').trim().toLowerCase();
+  const slug = String(contextSlug || '')
+    .trim()
+    .toLowerCase();
   if (!slug) {
     throw new Error('Context slug is required');
   }
@@ -84,7 +92,9 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
     throw new Error(`Failed to load reviews for "${slug}": ${reviewsError.message}`);
   }
 
-  const candidateRows = (reviews || []).filter((review: any) => review?.item_id && review?.item?.slug);
+  const candidateRows = (reviews || []).filter(
+    (review: any) => review?.item_id && review?.item?.slug
+  );
   const candidateItemIds = Array.from(
     new Set(candidateRows.map((review: any) => String(review.item_id)).filter(Boolean))
   );
@@ -126,10 +136,7 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
       excludedByReadiness.push({ item_slug: review.item.slug, reasons: ['fact_pack_missing'] });
       return false;
     }
-    const readiness = evaluateFactPackReadiness(
-      factPack.quality_json,
-      factPackThresholds
-    );
+    const readiness = evaluateFactPackReadiness(factPack.quality_json, factPackThresholds);
     if (!readiness.eligible) {
       excludedByReadiness.push({ item_slug: review.item.slug, reasons: readiness.reasons });
       return false;
@@ -197,13 +204,16 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
   };
 
   const topK = ranked.slice(0, 5);
-  const publishGate = evaluateBestPublishGate({
-    rankedCount: ranked.length,
-    topKCount: topK.length,
-    topKWithEvidenceCount: topK.filter((entry) => entry.evidence_refs.length > 0).length,
-    topKFreshCount: topK.length, // v0 assumes review freshness already screened upstream
-    criticalConflictCount: 0,
-  }, bestPublishThresholds);
+  const publishGate = evaluateBestPublishGate(
+    {
+      rankedCount: ranked.length,
+      topKCount: topK.length,
+      topKWithEvidenceCount: topK.filter((entry) => entry.evidence_refs.length > 0).length,
+      topKFreshCount: topK.length, // v0 assumes review freshness already screened upstream
+      criticalConflictCount: 0,
+    },
+    bestPublishThresholds
+  );
 
   (snapshotJson as any).publish_gate = publishGate;
 
@@ -218,7 +228,8 @@ export async function compileBestSnapshotDraft(contextSlug: string, options: Com
     throw new Error(`Failed to resolve snapshot version for "${slug}": ${versionError.message}`);
   }
 
-  const nextVersion = ((latestVersionRows?.[0] as { version?: number } | undefined)?.version || 0) + 1;
+  const nextVersion =
+    ((latestVersionRows?.[0] as { version?: number } | undefined)?.version || 0) + 1;
 
   const { data: insertedRows, error: insertError } = await admin
     .from('best_snapshots')

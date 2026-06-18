@@ -1,0 +1,96 @@
+---
+/**
+ * IncludedTools Component
+ *
+ * For parent suite tools, displays all included child tools.
+ * E.g., on Google Workspace page, shows Meet, Calendar, Drive, etc.
+ *
+ * @module components/IncludedTools
+ */
+
+import { supabase } from '@/lib/supabase';
+import Logo from '@/components/shared/Logo.astro';
+import PricingBadge from '@/components/pricing/PricingBadge.astro';
+import { getDisplayDescription } from '@/lib/display-description';
+
+interface Props {
+  toolId: string;
+  toolName: string;
+}
+
+const { toolId, toolName } = Astro.props;
+
+// Fetch all child tools (tools with this tool as parent)
+const { data: includedTools } = await supabase
+  .from('items')
+  .select('id, slug, name, logo_url, short_description, pricing_type, avg_score')
+  .eq('parent_id', toolId)
+  .order('name');
+
+if (!includedTools || includedTools.length === 0) return null;
+---
+
+<section class="tool-review-panel rounded-[1.8rem] p-6 shadow-sm">
+  <div class="mb-4 flex items-start gap-3">
+    <div
+      class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-500/10"
+    >
+      <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+        ></path>
+      </svg>
+    </div>
+    <div class="flex-1">
+      <h2 class="tool-review-section-title text-3xl">What's Included</h2>
+      <p class="mt-1 text-sm text-zinc-400">
+        {toolName} includes {includedTools.length}
+        {includedTools.length === 1 ? 'tool' : 'tools'}:
+      </p>
+    </div>
+  </div>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    {
+      includedTools.map((tool) => (
+        <a
+          href={`/tool/${tool.slug}`}
+          class="tool-review-panel-muted group flex items-start gap-3 rounded-lg p-4 transition hover:border-amber-400/40"
+        >
+          <Logo domain={tool.logo_url} name={tool.name} size="md" class="flex-shrink-0" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2">
+              <h3 class="font-medium text-zinc-100 group-hover:text-green-400 transition">
+                {tool.name}
+              </h3>
+              {tool.avg_score > 0 && (
+                <span class="flex-shrink-0 rounded-full bg-zinc-700 px-2 py-0.5 text-xs font-medium text-zinc-300">
+                  {Math.round(tool.avg_score)}
+                </span>
+              )}
+            </div>
+            <p class="mt-1 text-xs text-zinc-400 line-clamp-2">
+              {getDisplayDescription({
+                shortDescription: tool.short_description,
+                pricingType: tool.pricing_type,
+                itemType: 'tool',
+              })}
+            </p>
+            <div class="mt-2">
+              <PricingBadge type={tool.pricing_type} size="sm" />
+            </div>
+          </div>
+        </a>
+      ))
+    }
+  </div>
+
+  <div class="mt-4 rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+    <p class="text-xs text-green-400">
+      ✨ All these tools are available as part of your {toolName} subscription.
+    </p>
+  </div>
+</section>

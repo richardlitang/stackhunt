@@ -1,0 +1,174 @@
+---
+/**
+ * PortabilityCard Component
+ * Displays data portability and migration information
+ * Only renders if portability data exists
+ */
+
+import type { SMPPortability } from '@/lib/knowledge-card';
+
+interface Props {
+  portability: SMPPortability | undefined;
+  toolName: string;
+}
+
+const { portability, toolName: _toolName } = Astro.props;
+
+if (!portability) return null;
+
+// Check if portability has any meaningful data
+const hasMeaningfulData =
+  portability.migration_difficulty ||
+  (portability.export_formats && portability.export_formats.length > 0) ||
+  portability.has_api_export ||
+  portability.min_commitment_months ||
+  portability.cancellation_notice_days ||
+  (portability.import_from && portability.import_from.length > 0) ||
+  (portability.export_to && portability.export_to.length > 0);
+
+// Don't render if no meaningful data
+if (!hasMeaningfulData) return null;
+
+// Migration difficulty badge colors
+const difficultyColors = {
+  trivial: 'bg-green-900/30 text-green-400 border-green-700',
+  easy: 'bg-green-900/30 text-green-400 border-green-700',
+  moderate: 'bg-amber-900/30 text-amber-400 border-amber-700',
+  hard: 'bg-red-900/30 text-red-400 border-red-700',
+  locked: 'bg-red-900/30 text-red-400 border-red-700',
+};
+
+const difficultyLabels = {
+  trivial: 'Trivial',
+  easy: 'Easy',
+  moderate: 'Moderate',
+  hard: 'Hard',
+  locked: 'Vendor Lock-in',
+};
+
+const FILE_FORMAT_PATTERN = /^(csv|tsv|txt|json|xml|yaml|yml|xlsx?|parquet|pdf|md|html)$/i;
+const splitEntries = (items: string[] | undefined) => {
+  const source = Array.isArray(items) ? items : [];
+  const formats: string[] = [];
+  const tools: string[] = [];
+  for (const entry of source) {
+    if (typeof entry !== 'string' || entry.trim().length === 0) continue;
+    const trimmed = entry.trim();
+    if (FILE_FORMAT_PATTERN.test(trimmed)) {
+      formats.push(trimmed.toUpperCase());
+    } else {
+      tools.push(trimmed);
+    }
+  }
+  return { formats, tools };
+};
+
+const importEntries = splitEntries(portability.import_from);
+const exportEntries = splitEntries(portability.export_to);
+---
+
+<div class="rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-sm">
+  <h3 class="mb-4 font-semibold text-zinc-100">Data Portability</h3>
+
+  <div class="space-y-4">
+    {/* Migration Difficulty */}
+    {
+      portability.migration_difficulty && (
+        <div>
+          <h4 class="mb-2 text-sm font-medium text-zinc-300">Migration Difficulty</h4>
+          <span
+            class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${difficultyColors[portability.migration_difficulty]}`}
+          >
+            {difficultyLabels[portability.migration_difficulty]}
+          </span>
+        </div>
+      )
+    }
+
+    {/* Export Formats */}
+    {
+      portability.export_formats && portability.export_formats.length > 0 && (
+        <div>
+          <h4 class="mb-2 text-sm font-medium text-zinc-300">Export Formats</h4>
+          <div class="flex flex-wrap gap-2">
+            {portability.export_formats.map((format) => (
+              <span class="inline-flex items-center rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-300 border border-zinc-700">
+                {format}
+              </span>
+            ))}
+          </div>
+          {portability.has_api_export && (
+            <p class="mt-2 text-xs text-zinc-400">✓ API access available for programmatic export</p>
+          )}
+        </div>
+      )
+    }
+
+    {/* Contract Terms */}
+    {
+      (portability.min_commitment_months || portability.cancellation_notice_days) && (
+        <div>
+          <h4 class="mb-2 text-sm font-medium text-zinc-300">Contract Terms</h4>
+          <dl class="space-y-2 text-sm">
+            {portability.min_commitment_months && (
+              <div class="flex justify-between">
+                <dt class="text-zinc-400">Minimum commitment</dt>
+                <dd class="text-zinc-200">
+                  {portability.min_commitment_months}{' '}
+                  {portability.min_commitment_months === 1 ? 'month' : 'months'}
+                </dd>
+              </div>
+            )}
+            {portability.cancellation_notice_days && (
+              <div class="flex justify-between">
+                <dt class="text-zinc-400">Cancellation notice</dt>
+                <dd class="text-zinc-200">
+                  {portability.cancellation_notice_days}{' '}
+                  {portability.cancellation_notice_days === 1 ? 'day' : 'days'}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      )
+    }
+
+    {/* Import/Export Compatibility */}
+    {
+      ((portability.import_from && portability.import_from.length > 0) ||
+        (portability.export_to && portability.export_to.length > 0)) && (
+        <div>
+          <h4 class="mb-2 text-sm font-medium text-zinc-300">Import / Export Paths</h4>
+          {importEntries.formats.length > 0 && (
+            <div class="mb-2">
+              <p class="text-xs text-zinc-400 mb-1">Import formats:</p>
+              <p class="text-xs text-zinc-300">{importEntries.formats.join(', ')}</p>
+            </div>
+          )}
+          {exportEntries.formats.length > 0 && (
+            <div>
+              <p class="text-xs text-zinc-400 mb-1">Export formats:</p>
+              <p class="text-xs text-zinc-300">{exportEntries.formats.join(', ')}</p>
+            </div>
+          )}
+          {importEntries.tools.length > 0 && (
+            <div class="mt-2">
+              <p class="text-xs text-zinc-400 mb-1">Connected tools (import path):</p>
+              <p class="text-xs text-zinc-300">{importEntries.tools.join(', ')}</p>
+            </div>
+          )}
+          {exportEntries.tools.length > 0 && (
+            <div class="mt-2">
+              <p class="text-xs text-zinc-400 mb-1">Connected tools (export path):</p>
+              <p class="text-xs text-zinc-300">{exportEntries.tools.join(', ')}</p>
+            </div>
+          )}
+          <p class="mt-2 text-[11px] text-zinc-500">
+            Paths shown from current source-backed docs. Integration-specific flows may vary by
+            plan.
+          </p>
+        </div>
+      )
+    }
+  </div>
+</div>

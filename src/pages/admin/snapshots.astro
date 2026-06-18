@@ -14,9 +14,15 @@ const [
   { data: recentAuditLogs },
 ] = await Promise.all([
   admin.from('best_snapshots').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
-  admin.from('best_snapshots').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+  admin
+    .from('best_snapshots')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'published'),
   admin.from('compare_snapshots').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
-  admin.from('compare_snapshots').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+  admin
+    .from('compare_snapshots')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'published'),
   admin
     .from('best_snapshots')
     .select('context_slug, version, status, computed_at, published_at')
@@ -76,7 +82,9 @@ const [
                 class="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
                 required
               />
-              <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white">Run</button>
+              <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+                >Run</button
+              >
             </div>
           </form>
 
@@ -89,7 +97,9 @@ const [
                 class="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
                 required
               />
-              <button class="rounded bg-green-600 px-3 py-2 text-sm font-medium text-white">Publish</button>
+              <button class="rounded bg-green-600 px-3 py-2 text-sm font-medium text-white"
+                >Publish</button
+              >
             </div>
           </form>
 
@@ -109,7 +119,9 @@ const [
                 required
               />
             </div>
-            <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white">Run</button>
+            <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+              >Run</button
+            >
           </form>
 
           <form data-action="/api/admin/compare/publish" class="space-y-2">
@@ -133,7 +145,9 @@ const [
                 class="rounded border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
-            <button class="rounded bg-green-600 px-3 py-2 text-sm font-medium text-white">Publish</button>
+            <button class="rounded bg-green-600 px-3 py-2 text-sm font-medium text-white"
+              >Publish</button
+            >
           </form>
         </div>
       </section>
@@ -161,10 +175,16 @@ const [
                 class="rounded border border-slate-300 px-3 py-2 text-sm"
               />
             </div>
-            <button class="rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white">Compile Batch</button>
+            <button class="rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white"
+              >Compile Batch</button
+            >
           </form>
 
-          <form data-action="/api/admin/snapshots/publish-shadow" data-apply="false" class="space-y-2">
+          <form
+            data-action="/api/admin/snapshots/publish-shadow"
+            data-apply="false"
+            class="space-y-2"
+          >
             <label class="text-sm font-medium text-slate-700">Publish shadow batch (dry run)</label>
             <div class="grid gap-2 sm:grid-cols-2">
               <input
@@ -185,7 +205,9 @@ const [
               />
             </div>
             <div class="flex gap-2">
-              <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white">Dry Run</button>
+              <button class="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+                >Dry Run</button
+              >
               <button
                 type="button"
                 data-submit-apply="true"
@@ -197,7 +219,9 @@ const [
           </form>
 
           <form data-action="/api/admin/snapshots/parity" data-target="best" class="space-y-2">
-            <label class="text-sm font-medium text-slate-700">Parity: Best runtime vs snapshot</label>
+            <label class="text-sm font-medium text-slate-700"
+              >Parity: Best runtime vs snapshot</label
+            >
             <div class="grid gap-2 sm:grid-cols-2">
               <input
                 name="sample"
@@ -212,11 +236,15 @@ const [
                 <option value="published">published</option>
               </select>
             </div>
-            <button class="rounded bg-purple-600 px-3 py-2 text-sm font-medium text-white">Run Best Parity</button>
+            <button class="rounded bg-purple-600 px-3 py-2 text-sm font-medium text-white"
+              >Run Best Parity</button
+            >
           </form>
 
           <form data-action="/api/admin/snapshots/parity" data-target="compare" class="space-y-2">
-            <label class="text-sm font-medium text-slate-700">Parity: Compare runtime vs snapshot</label>
+            <label class="text-sm font-medium text-slate-700"
+              >Parity: Compare runtime vs snapshot</label
+            >
             <div class="grid gap-2 sm:grid-cols-2">
               <input
                 name="sample"
@@ -231,7 +259,9 @@ const [
                 <option value="published">published</option>
               </select>
             </div>
-            <button class="rounded bg-purple-600 px-3 py-2 text-sm font-medium text-white">Run Compare Parity</button>
+            <button class="rounded bg-purple-600 px-3 py-2 text-sm font-medium text-white"
+              >Run Compare Parity</button
+            >
           </form>
         </div>
       </section>
@@ -252,13 +282,15 @@ const [
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                {(recentBest || []).map((row: any) => (
-                  <tr>
-                    <td class="px-3 py-2 font-medium text-slate-700">{row.context_slug}</td>
-                    <td class="px-3 py-2 text-slate-600">{row.version}</td>
-                    <td class="px-3 py-2 text-slate-600">{row.status}</td>
-                  </tr>
-                ))}
+                {
+                  (recentBest || []).map((row: any) => (
+                    <tr>
+                      <td class="px-3 py-2 font-medium text-slate-700">{row.context_slug}</td>
+                      <td class="px-3 py-2 text-slate-600">{row.version}</td>
+                      <td class="px-3 py-2 text-slate-600">{row.status}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
@@ -276,15 +308,17 @@ const [
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                {(recentCompare || []).map((row: any) => (
-                  <tr>
-                    <td class="px-3 py-2 font-medium text-slate-700">
-                      {row.tool_a_slug}-vs-{row.tool_b_slug}
-                    </td>
-                    <td class="px-3 py-2 text-slate-600">{row.version}</td>
-                    <td class="px-3 py-2 text-slate-600">{row.status}</td>
-                  </tr>
-                ))}
+                {
+                  (recentCompare || []).map((row: any) => (
+                    <tr>
+                      <td class="px-3 py-2 font-medium text-slate-700">
+                        {row.tool_a_slug}-vs-{row.tool_b_slug}
+                      </td>
+                      <td class="px-3 py-2 text-slate-600">{row.version}</td>
+                      <td class="px-3 py-2 text-slate-600">{row.status}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
@@ -296,8 +330,7 @@ const [
       <h2 class="text-lg font-semibold text-slate-900">Result</h2>
       <pre
         id="snapshot-result"
-        class="mt-3 max-h-[420px] overflow-auto rounded bg-slate-950 p-4 text-xs text-green-200"
-      >Run an action...</pre>
+        class="mt-3 max-h-[420px] overflow-auto rounded bg-slate-950 p-4 text-xs text-green-200">Run an action...</pre>
     </section>
 
     <section class="rounded-lg border border-slate-200 bg-white p-6">
@@ -315,30 +348,36 @@ const [
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            {(recentAuditLogs || []).map((row: any) => (
-              <tr>
-                <td class="whitespace-nowrap px-3 py-2 text-slate-700">
-                  {new Date(row.created_at).toLocaleString()}
-                </td>
-                <td class="px-3 py-2 font-medium text-slate-700">{row.action}</td>
-                <td class="px-3 py-2">
-                  <span
-                    class:list={[
-                      'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-                      row.status === 'success' && 'bg-green-100 text-green-700',
-                      row.status === 'error' && 'bg-red-100 text-red-700',
-                      row.status === 'denied' && 'bg-amber-100 text-amber-700',
-                    ]}
-                  >
-                    {row.status}
-                  </span>
-                </td>
-                <td class="whitespace-nowrap px-3 py-2 text-slate-600">{row.actor || 'unknown'}</td>
-                <td class="max-w-xl px-3 py-2 text-xs text-slate-600">
-                  <div class="line-clamp-2">{row.error_text || JSON.stringify(row.details_json || {})}</div>
-                </td>
-              </tr>
-            ))}
+            {
+              (recentAuditLogs || []).map((row: any) => (
+                <tr>
+                  <td class="whitespace-nowrap px-3 py-2 text-slate-700">
+                    {new Date(row.created_at).toLocaleString()}
+                  </td>
+                  <td class="px-3 py-2 font-medium text-slate-700">{row.action}</td>
+                  <td class="px-3 py-2">
+                    <span
+                      class:list={[
+                        'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                        row.status === 'success' && 'bg-green-100 text-green-700',
+                        row.status === 'error' && 'bg-red-100 text-red-700',
+                        row.status === 'denied' && 'bg-amber-100 text-amber-700',
+                      ]}
+                    >
+                      {row.status}
+                    </span>
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-2 text-slate-600">
+                    {row.actor || 'unknown'}
+                  </td>
+                  <td class="max-w-xl px-3 py-2 text-xs text-slate-600">
+                    <div class="line-clamp-2">
+                      {row.error_text || JSON.stringify(row.details_json || {})}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            }
           </tbody>
         </table>
       </div>
@@ -359,7 +398,9 @@ const [
     if (form.dataset.target) data.target = form.dataset.target;
     if (form.dataset.action?.includes('/publish-shadow')) {
       data.apply =
-        forceApply !== null ? forceApply : String(form.dataset.apply || 'false').toLowerCase() === 'true';
+        forceApply !== null
+          ? forceApply
+          : String(form.dataset.apply || 'false').toLowerCase() === 'true';
     }
 
     if (output) output.textContent = `Running ${endpoint}...`;
@@ -391,7 +432,11 @@ const [
       try {
         await handleSubmit(form);
       } catch (error) {
-        if (output) output.textContent = format({ success: false, error: error?.message || 'Request failed' });
+        if (output)
+          output.textContent = format({
+            success: false,
+            error: error?.message || 'Request failed',
+          });
       } finally {
         if (submitButton) submitButton.disabled = false;
         if (submitButton) submitButton.textContent = original;
@@ -417,7 +462,11 @@ const [
       try {
         await handleSubmit(form, true);
       } catch (error) {
-        if (output) output.textContent = format({ success: false, error: error?.message || 'Request failed' });
+        if (output)
+          output.textContent = format({
+            success: false,
+            error: error?.message || 'Request failed',
+          });
       } finally {
         button.disabled = false;
         button.textContent = original;

@@ -17,7 +17,10 @@ function cleanText(value: string): string {
 
 function truncateText(value: string, max = 140): string {
   if (value.length <= max) return value;
-  const clipped = value.slice(0, max).replace(/\s+\S*$/, '').trim();
+  const clipped = value
+    .slice(0, max)
+    .replace(/\s+\S*$/, '')
+    .trim();
   return `${clipped}...`;
 }
 
@@ -29,10 +32,12 @@ function humanizePricing(pricingType?: string | null): string | null {
 }
 
 export function getDisplayDescription(input: DisplayDescriptionInput): string {
-  const shortDescription = typeof input.shortDescription === 'string' ? input.shortDescription.trim() : '';
+  const shortDescription =
+    typeof input.shortDescription === 'string' ? input.shortDescription.trim() : '';
   if (shortDescription) return shortDescription;
 
-  const summaryMarkdown = typeof input.summaryMarkdown === 'string' ? input.summaryMarkdown.trim() : '';
+  const summaryMarkdown =
+    typeof input.summaryMarkdown === 'string' ? input.summaryMarkdown.trim() : '';
   if (summaryMarkdown) {
     const summaryText = cleanText(summaryMarkdown);
     if (summaryText) return truncateText(summaryText);

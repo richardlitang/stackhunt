@@ -7,10 +7,10 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import InfoCardsGrid from '@/components/InfoCardsGrid.astro';
-import ToolCard from '@/components/ToolCard.astro';
-import RelatedLinks from '@/components/RelatedLinks.astro';
-import Logo from '@/components/Logo.astro';
+import InfoCardsGrid from '@/components/shared/InfoCardsGrid.astro';
+import ToolCard from '@/components/tool-page/ToolCard.astro';
+import RelatedLinks from '@/components/shared/RelatedLinks.astro';
+import Logo from '@/components/shared/Logo.astro';
 import { Icon } from 'astro-icon/components';
 import {
   getToolsByCategory,
@@ -81,13 +81,17 @@ const pricingMixRows = Object.entries(pricingMix)
 
 const highlightStrengths = Array.from(
   new Set(
-    topTools.flatMap((tool) => extractHighlights(tool.specs, 2).pros).filter((value) => value.length > 0)
+    topTools
+      .flatMap((tool) => extractHighlights(tool.specs, 2).pros)
+      .filter((value) => value.length > 0)
   )
 ).slice(0, 3);
 
 const highlightWatchouts = Array.from(
   new Set(
-    topTools.flatMap((tool) => extractHighlights(tool.specs, 2).cons).filter((value) => value.length > 0)
+    topTools
+      .flatMap((tool) => extractHighlights(tool.specs, 2).cons)
+      .filter((value) => value.length > 0)
   )
 ).slice(0, 3);
 
@@ -177,15 +181,18 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
     <section class="mb-10 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm">
       <h2 class="text-xl font-semibold text-zinc-100">How to Evaluate {category.name} Tools</h2>
       <p class="mt-2 text-sm text-zinc-300">
-        Use this hub as a shortlist builder, not just a directory. Start with your single most frequent
-        workflow, then test whether each candidate handles that flow cleanly before comparing edge-case features.
+        Use this hub as a shortlist builder, not just a directory. Start with your single most
+        frequent workflow, then test whether each candidate handles that flow cleanly before
+        comparing edge-case features.
       </p>
       <p class="mt-2 text-sm text-zinc-400">
-        {hasAnyTools
-          ? sampleToolNames.length > 0
-            ? `${sampleToolNames.join(', ')} are current examples in this category, but fit still depends on rollout constraints and plan limits.`
-            : 'We track tools in this category with source-backed reviews and list-level context pages.'
-          : 'This category is active, but enough source-backed tool profiles have not been published yet.'}
+        {
+          hasAnyTools
+            ? sampleToolNames.length > 0
+              ? `${sampleToolNames.join(', ')} are current examples in this category, but fit still depends on rollout constraints and plan limits.`
+              : 'We track tools in this category with source-backed reviews and list-level context pages.'
+            : 'This category is active, but enough source-backed tool profiles have not been published yet.'
+        }
       </p>
       <InfoCardsGrid
         className="mt-5 grid gap-4 md:grid-cols-3"
@@ -303,14 +310,12 @@ function extractHighlights(specs: Record<string, unknown> | null | undefined, li
                             )}
                           </div>
                           <p class="mt-1 text-sm text-zinc-400 line-clamp-2">
-                            {
-                              getDisplayDescription({
-                                shortDescription: tool.short_description,
-                                categoryName: category.name,
-                                pricingType: tool.pricing_type,
-                                itemType: tool.type || 'tool',
-                              })
-                            }
+                            {getDisplayDescription({
+                              shortDescription: tool.short_description,
+                              categoryName: category.name,
+                              pricingType: tool.pricing_type,
+                              itemType: tool.type || 'tool',
+                            })}
                           </p>
                         </div>
                       </div>

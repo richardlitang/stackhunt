@@ -25,4 +25,3 @@ export async function resolveCanonicalItemSlugByAlias(alias: string): Promise<st
   const item = aliasRow?.item as { slug?: string } | null | undefined;
   return item?.slug || null;
 }
-

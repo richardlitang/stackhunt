@@ -76,8 +76,12 @@ export const POST: APIRoute = async ({ request }) => {
 
       if (reviewError || !topReviews || topReviews.length < 2) continue;
 
-      const rawA = String((topReviews[0] as any)?.item?.slug || '').trim().toLowerCase();
-      const rawB = String((topReviews[1] as any)?.item?.slug || '').trim().toLowerCase();
+      const rawA = String((topReviews[0] as any)?.item?.slug || '')
+        .trim()
+        .toLowerCase();
+      const rawB = String((topReviews[1] as any)?.item?.slug || '')
+        .trim()
+        .toLowerCase();
       if (!rawA || !rawB || rawA === rawB) continue;
 
       const normalized = normalizeComparePair(rawA, rawB);

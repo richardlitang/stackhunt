@@ -32,7 +32,10 @@ export function evaluateComparePublishGate(
     reasons.push('pair_not_comparable');
   }
 
-  if (thresholds.requireEvidenceForBothTools && (!input.toolAHasEvidence || !input.toolBHasEvidence)) {
+  if (
+    thresholds.requireEvidenceForBothTools &&
+    (!input.toolAHasEvidence || !input.toolBHasEvidence)
+  ) {
     reasons.push('missing_evidence_for_one_or_more_tools');
   }
 

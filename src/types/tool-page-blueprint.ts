@@ -1,4 +1,4 @@
-import type { ReviewLens } from '@/lib/tool-page/view-model';
+import type { ReviewLens } from '@/lib/tool-page/presentation/view-model';
 
 export type ToolPageBuyerFitStrength = 'weak' | 'mixed' | 'strong';
 export type ToolPageImplementationFrictionLevel = 'low' | 'medium' | 'high' | 'unknown';

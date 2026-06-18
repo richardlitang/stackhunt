@@ -5,16 +5,16 @@ Centralized icon management for StackHunt to avoid duplicating SVG code.
 ## Structure
 
 ### Astro Icons (`src/components/icons/*.astro`)
+
 Reusable icon components for Astro files:
+
 - `Check.astro` - Checkmark icon
 - `X.astro` - Close/X icon
 - `ExternalLink.astro` - External link arrow
-- `Plus.astro` - Plus/Add icon
-- `FileText.astro` - Document icon
-- `Clipboard.astro` - Clipboard icon
-- `Trash.astro` - Trash/Delete icon
+- `Minus.astro` - Minus icon
 
 **Usage in Astro:**
+
 ```astro
 ---
 import CheckIcon from '@/components/icons/Check.astro';
@@ -24,17 +24,19 @@ import CheckIcon from '@/components/icons/Check.astro';
 ```
 
 ### React Icons (via lucide-react)
+
 For React/TSX components, use lucide-react directly:
 
 ```tsx
 import { Check, X, Plus, ExternalLink, Trash2 } from 'lucide-react';
 
-<Check className="h-4 w-4" />
+<Check className="h-4 w-4" />;
 ```
 
 ## Migrated Components
 
 ### React Components (using lucide-react)
+
 - ✅ `CompareButton.tsx` - Check, Clipboard, X, Trash2
 - ✅ `AddToStackButton.tsx` - Check, Plus
 - ✅ `MyStackWidget.tsx` - Layers, ChevronDown, X
@@ -44,7 +46,12 @@ import { Check, X, Plus, ExternalLink, Trash2 } from 'lucide-react';
 - ✅ `VoteWidget.tsx` - ThumbsUp, ThumbsDown (already migrated)
 
 ### Astro Components (using icon library)
+
 - ✅ `ProsCons.astro` - Check, X, ExternalLink
+- ✅ `PricingPlansGrid.astro` - Check
+- ✅ `PlatformIntegrations.astro` - Check
+- ✅ `SecurityCompliance.astro` - Check, X
+- ✅ `SupportOptions.astro` - Check
 
 ## Benefits
 
@@ -57,11 +64,13 @@ import { Check, X, Plus, ExternalLink, Trash2 } from 'lucide-react';
 ## Adding New Icons
 
 ### For Astro files:
+
 1. Create new `.astro` file in `src/components/icons/`
 2. Copy SVG from existing code or design system
 3. Make class/size props configurable
 
 ### For React files:
+
 1. Browse [lucide.dev](https://lucide.dev)
 2. Import the icon you need
 3. Use consistent className patterns

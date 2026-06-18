@@ -1,0 +1,63 @@
+---
+import ScoreBadge from '@/components/shared/ScoreBadge.astro';
+import PricingBadge from '@/components/pricing/PricingBadge.astro';
+import Logo from '@/components/shared/Logo.astro';
+import type { Tool, ItemType } from '@/types/database';
+import { getDisplayDescription } from '@/lib/display-description';
+
+interface Props {
+  tool: Pick<
+    Tool,
+    'name' | 'slug' | 'logo_url' | 'short_description' | 'avg_score' | 'pricing_type'
+  > & { type?: ItemType };
+  category?: { name: string; slug: string } | null;
+  score?: number;
+  rank?: number;
+}
+
+const { tool, category, score, rank } = Astro.props;
+const displayScore = score ?? tool.avg_score;
+const basePath = tool.type === 'gear' ? '/gear' : '/tool';
+const displayDescription = getDisplayDescription({
+  shortDescription: tool.short_description,
+  categoryName: category?.name || null,
+  pricingType: tool.pricing_type,
+  itemType: tool.type || 'tool',
+});
+---
+
+<a
+  href={`${basePath}/${tool.slug}`}
+  class="group relative flex flex-col rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700 hover:bg-gradient-to-b hover:from-zinc-800/50 hover:to-zinc-900/50"
+>
+  {
+    rank && (
+      <div class="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white">
+        {rank}
+      </div>
+    )
+  }
+
+  <div class="flex items-start justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <Logo domain={tool.logo_url} name={tool.name} size="md" />
+
+      <div class="min-w-0">
+        <h3 class="text-sm font-medium text-zinc-100 group-hover:text-white transition truncate">
+          {tool.name}
+        </h3>
+        {category && <span class="text-xs text-zinc-500">{category.name}</span>}
+      </div>
+    </div>
+
+    {displayScore > 0 && <ScoreBadge score={displayScore} size="sm" />}
+  </div>
+
+  <p class="mt-3 line-clamp-2 text-sm text-zinc-400">{displayDescription}</p>
+
+  <div class="mt-3 flex items-center justify-between">
+    <PricingBadge type={tool.pricing_type} size="sm" />
+
+    <span class="text-xs text-zinc-500 group-hover:text-zinc-300 transition"> View → </span>
+  </div>
+</a>

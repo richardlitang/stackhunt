@@ -30,7 +30,10 @@ test.describe('Journey 1: Compliance-First Buyer', () => {
 
     const redirectedToNotFound =
       new URL(page.url()).pathname === '/404' ||
-      (await page.getByText(/Page not found/i).isVisible().catch(() => false));
+      (await page
+        .getByText(/Page not found/i)
+        .isVisible()
+        .catch(() => false));
 
     if (redirectedToNotFound) {
       await expect(page.getByRole('link', { name: /Go Home/i })).toBeVisible();
@@ -99,10 +102,14 @@ test.describe('Journey 2: Bootstrapped Solo Dev', () => {
     console.log('Looking at: Firebase vs Supabase');
     console.log('✓ Free tier mentioned:', freeTier.visible);
     console.log('✓ Specific limits shown:', limits.visible);
-    console.log('✗ Hard vs Soft limit:', hardLimit.visible, '(DEALBREAKER - need to know if I get surprise bill)');
+    console.log(
+      '✗ Hard vs Soft limit:',
+      hardLimit.visible,
+      '(DEALBREAKER - need to know if I get surprise bill)'
+    );
 
     if (!hardLimit.visible) {
-      console.log('❌ BOUNCE: I\'m terrified of waking up to a $500 bill. Need clarity.');
+      console.log("❌ BOUNCE: I'm terrified of waking up to a $500 bill. Need clarity.");
     }
   });
 
@@ -185,7 +192,9 @@ test.describe('Journey 4: Non-Technical Agency Owner', () => {
     console.log('✗ Setup time estimate:', setupTime.visible);
 
     if (!requiresDev.visible) {
-      console.log('❌ BOUNCE: I looked at Salesforce and felt stupid. Need to know if I need a consultant.');
+      console.log(
+        '❌ BOUNCE: I looked at Salesforce and felt stupid. Need to know if I need a consultant.'
+      );
     }
   });
 
@@ -201,7 +210,7 @@ test.describe('Journey 4: Non-Technical Agency Owner', () => {
     console.log('✓ "Complex/Difficult" warnings:', complexity.visible);
 
     if (easeOfUse.visible || complexity.visible) {
-      console.log('✅ HELPFUL: I can tell which one won\'t make me feel dumb.');
+      console.log("✅ HELPFUL: I can tell which one won't make me feel dumb.");
     }
   });
 });
@@ -227,7 +236,7 @@ test.describe('Journey 5: Scale-Up CTO', () => {
     console.log('✗ SSO Tax calculation:', ssoTax.visible, '(Would love to see % markup)');
 
     if (!ssoMention.visible) {
-      console.log('⚠️  Can\'t tell if SSO is available or which plan includes it.');
+      console.log("⚠️  Can't tell if SSO is available or which plan includes it.");
     }
   });
 
@@ -245,7 +254,7 @@ test.describe('Journey 5: Scale-Up CTO', () => {
     console.log('✓ Priority support:', prioritySupport.visible);
 
     if (!auditLogs.visible) {
-      console.log('❌ CONCERN: Need audit logs for compliance. Can\'t buy without confirmation.');
+      console.log("❌ CONCERN: Need audit logs for compliance. Can't buy without confirmation.");
     }
   });
 });
@@ -271,7 +280,7 @@ test.describe('Journey 6: Data Sovereign European', () => {
     console.log('✗ Self-hostable option:', selfHostable.visible);
 
     if (!dataResidency.visible && !selfHostable.visible) {
-      console.log('❌ BOUNCE: Can\'t buy without knowing where servers are. Legal will block this.');
+      console.log("❌ BOUNCE: Can't buy without knowing where servers are. Legal will block this.");
     }
   });
 
@@ -287,7 +296,9 @@ test.describe('Journey 6: Data Sovereign European', () => {
     console.log('✗ AI data warning:', aiDataWarning.visible);
 
     if (!subProcessors.visible) {
-      console.log('❌ DEALBREAKER: Tool might be EU-hosted but use US AI services. Compliance nightmare.');
+      console.log(
+        '❌ DEALBREAKER: Tool might be EU-hosted but use US AI services. Compliance nightmare.'
+      );
     }
   });
 });
@@ -302,17 +313,35 @@ test.describe('User Journey Summary', () => {
     console.log('═══════════════════════════════════════════════\n');
 
     const results = {
-      'Compliance-First Buyer': { ready: '75%', blockers: ['Data residency not shown', 'Company viability hidden'] },
-      'Bootstrapped Solo Dev': { ready: '30%', blockers: ['No hard vs soft limit flag', 'Overage behavior unclear'] },
-      'Hostage Migrator': { ready: '60%', blockers: ['No fidelity loss warnings', 'Missing "what breaks" details'] },
-      'Non-Technical Agency Owner': { ready: '40%', blockers: ['No "Requires Developer?" flag', 'Setup complexity hidden'] },
-      'Scale-Up CTO': { ready: '25%', blockers: ['No SSO tax calculation', 'Audit logs not shown', 'No SLA data'] },
-      'Data Sovereign European': { ready: '15%', blockers: ['No data residency', 'No sub-processor disclosure'] },
+      'Compliance-First Buyer': {
+        ready: '75%',
+        blockers: ['Data residency not shown', 'Company viability hidden'],
+      },
+      'Bootstrapped Solo Dev': {
+        ready: '30%',
+        blockers: ['No hard vs soft limit flag', 'Overage behavior unclear'],
+      },
+      'Hostage Migrator': {
+        ready: '60%',
+        blockers: ['No fidelity loss warnings', 'Missing "what breaks" details'],
+      },
+      'Non-Technical Agency Owner': {
+        ready: '40%',
+        blockers: ['No "Requires Developer?" flag', 'Setup complexity hidden'],
+      },
+      'Scale-Up CTO': {
+        ready: '25%',
+        blockers: ['No SSO tax calculation', 'Audit logs not shown', 'No SLA data'],
+      },
+      'Data Sovereign European': {
+        ready: '15%',
+        blockers: ['No data residency', 'No sub-processor disclosure'],
+      },
     };
 
     for (const [persona, status] of Object.entries(results)) {
       console.log(`${status.ready.padEnd(5)} ready: ${persona}`);
-      status.blockers.forEach(blocker => {
+      status.blockers.forEach((blocker) => {
         console.log(`         ❌ ${blocker}`);
       });
       console.log('');

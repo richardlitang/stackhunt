@@ -14,14 +14,14 @@ Purpose: provide a fast birds-eye view of `src/pages/tool/[slug].astro` composit
 
 ## Tool-Page Imports Used by Route
 
-| Symbol                                               | Module                                         |
-| ---------------------------------------------------- | ---------------------------------------------- |
-| `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing-link-text`            |
-| `buildToolPageBuyerDecisionPresentationState`        | `@/lib/tool-page/buyer-decision-presentation`  |
-| `getToolPageData`                                    | `@/lib/tool-page/data`                         |
-| `buildToolPageRequestRouteState`                     | `@/lib/tool-page/request-response-route-state` |
-| `applyToolPageResponseRouteState`                    | `@/lib/tool-page/request-response-route-state` |
-| `buildToolPagePageCompilerRouteStateFromPageContext` | `@/lib/tool-page/page-compiler-route-state`    |
+| Symbol                                               | Module                                                     |
+| ---------------------------------------------------- | ---------------------------------------------------------- |
+| `buildToolPagePricingLinkText`                       | `@/lib/tool-page/pricing/pricing-link-text`                |
+| `buildToolPageBuyerDecisionPresentationState`        | `@/lib/tool-page/decision/buyer-decision-presentation`     |
+| `getToolPageData`                                    | `@/lib/tool-page/data/data`                                |
+| `buildToolPageRequestRouteState`                     | `@/lib/tool-page/route-state/request-response-route-state` |
+| `applyToolPageResponseRouteState`                    | `@/lib/tool-page/route-state/request-response-route-state` |
+| `buildToolPagePageCompilerRouteStateFromPageContext` | `@/lib/tool-page/route-state/page-compiler-route-state`    |
 
 ## One-Level Helper Dependencies
 

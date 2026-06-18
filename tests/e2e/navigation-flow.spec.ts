@@ -24,11 +24,13 @@ async function pickReachablePath(
     const discoveryResponse = await page.goto(discoveryPath, { waitUntil: 'domcontentloaded' });
     if ((discoveryResponse?.status() ?? 500) >= 400) continue;
 
-    const hrefs = await page.locator(selector).evaluateAll((nodes) =>
-      nodes
-        .map((node) => (node as HTMLAnchorElement).getAttribute('href'))
-        .filter((href): href is string => Boolean(href))
-    );
+    const hrefs = await page
+      .locator(selector)
+      .evaluateAll((nodes) =>
+        nodes
+          .map((node) => (node as HTMLAnchorElement).getAttribute('href'))
+          .filter((href): href is string => Boolean(href))
+      );
 
     for (const href of hrefs.slice(0, MAX_LINK_CANDIDATES)) {
       const normalized = normalizeInternalHref(href);
@@ -57,12 +59,8 @@ test.describe('Primary public navigation flow', () => {
     await expect(page).toHaveTitle(/StackHunt/i);
 
     const categoryPath =
-      (await pickReachablePath(
-        page,
-        ['/'],
-        'a[href^="/categories/"]',
-        '/categories/',
-        (path) => /^\/categories\/[a-z0-9-]+$/i.test(path)
+      (await pickReachablePath(page, ['/'], 'a[href^="/categories/"]', '/categories/', (path) =>
+        /^\/categories\/[a-z0-9-]+$/i.test(path)
       )) ??
       (await pickReachablePath(
         page,
@@ -85,7 +83,12 @@ test.describe('Primary public navigation flow', () => {
     await expect(page).toHaveURL(/\/best\//);
     await expect(page.locator('h1:visible').first()).toBeVisible();
 
-    const toolPath = await pickReachablePath(page, [bestPath as string, '/tools'], 'a[href^="/tool/"]', '/tool/');
+    const toolPath = await pickReachablePath(
+      page,
+      [bestPath as string, '/tools'],
+      'a[href^="/tool/"]',
+      '/tool/'
+    );
     expect(toolPath, 'Expected at least one tool detail path to be reachable').toBeTruthy();
     await expect(page).toHaveURL(/\/tool\//);
     await expect(page.locator('h1:visible').first()).toBeVisible();
@@ -96,8 +99,7 @@ test.describe('Primary public navigation flow', () => {
         [toolPath as string, '/compare', bestPath as string],
         'a[href^="/compare/"]',
         '/compare/'
-      )) ??
-      (await pickReachablePath(page, ['/compare'], 'a[href^="/compare/"]', '/compare/'));
+      )) ?? (await pickReachablePath(page, ['/compare'], 'a[href^="/compare/"]', '/compare/'));
 
     expect(comparePath, 'Expected at least one compare path to be reachable').toBeTruthy();
     await expect(page).toHaveURL(/\/compare\//);

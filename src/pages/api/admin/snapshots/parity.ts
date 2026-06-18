@@ -35,7 +35,11 @@ function runtimeWinnerFromScores(scoreA: number, scoreB: number): string {
   return delta > 0 ? 'a' : 'b';
 }
 
-function snapshotWinnerToAB(snapshotWinner: string | null, toolASlug: string, toolBSlug: string): string | null {
+function snapshotWinnerToAB(
+  snapshotWinner: string | null,
+  toolASlug: string,
+  toolBSlug: string
+): string | null {
   if (!snapshotWinner) return null;
   if (snapshotWinner === 'depends' || snapshotWinner === 'tie') return 'depends';
   if (snapshotWinner === toolASlug) return 'a';
@@ -81,7 +85,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (contextError) {
         return new Response(
-          JSON.stringify({ success: false, error: `Failed to load contexts: ${contextError.message}` }),
+          JSON.stringify({
+            success: false,
+            error: `Failed to load contexts: ${contextError.message}`,
+          }),
           {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
@@ -152,13 +159,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         details: { target, sample, status, summary: payload },
       });
 
-      return new Response(
-        JSON.stringify(payload),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const { data: compareRows, error: compareError } = await admin
@@ -170,7 +174,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (compareError) {
       return new Response(
-        JSON.stringify({ success: false, error: `Failed to load compare snapshots: ${compareError.message}` }),
+        JSON.stringify({
+          success: false,
+          error: `Failed to load compare snapshots: ${compareError.message}`,
+        }),
         {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
@@ -193,12 +200,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       const toolB = tools.find((tool: any) => tool.slug === row.tool_b_slug) as any;
       if (!toolA || !toolB) continue;
 
-      const runtimeWinner = runtimeWinnerFromScores(Number(toolA.avg_score || 0), Number(toolB.avg_score || 0));
+      const runtimeWinner = runtimeWinnerFromScores(
+        Number(toolA.avg_score || 0),
+        Number(toolB.avg_score || 0)
+      );
       const snapshotWinnerRaw =
         typeof (row as any)?.snapshot_json?.verdict?.winner === 'string'
           ? String((row as any).snapshot_json.verdict.winner).toLowerCase()
           : null;
-      const snapshotWinner = snapshotWinnerToAB(snapshotWinnerRaw, row.tool_a_slug, row.tool_b_slug);
+      const snapshotWinner = snapshotWinnerToAB(
+        snapshotWinnerRaw,
+        row.tool_a_slug,
+        row.tool_b_slug
+      );
 
       const diff = diffWinner(runtimeWinner, snapshotWinner);
       compared += 1;
@@ -224,13 +238,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       details: { target, sample, status, summary: payload },
     });
 
-    return new Response(
-      JSON.stringify(payload),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     await logSnapshotAction({
       action: 'snapshots.parity',

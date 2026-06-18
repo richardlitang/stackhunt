@@ -14,14 +14,14 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Logo from '@/components/Logo.astro';
-import ProsCons from '@/components/ProsCons.astro';
-import SentimentTags from '@/components/SentimentTags.astro';
-import VoteWidget from '@/components/VoteWidget';
-import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
-import RelatedContent from '@/components/RelatedContent.astro';
-import TrustBar from '@/components/TrustBar.astro';
-import BestShortlistSection from '@/components/BestShortlistSection.astro';
+import Logo from '@/components/shared/Logo.astro';
+import ProsCons from '@/components/tool-page/ProsCons.astro';
+import SentimentTags from '@/components/tool-page/SentimentTags.astro';
+import VoteWidget from '@/components/interactive/VoteWidget';
+import AffiliateDisclosure from '@/components/shared/AffiliateDisclosure.astro';
+import RelatedContent from '@/components/shared/RelatedContent.astro';
+import TrustBar from '@/components/tool-page/TrustBar.astro';
+import BestShortlistSection from '@/components/shared/BestShortlistSection.astro';
 import { getContextBySlug, getProvisionalReviewsForContext, supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {

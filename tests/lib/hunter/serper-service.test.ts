@@ -7,7 +7,9 @@ describe('SerperService community snippet guardrail', () => {
   it('uses community fallback when policy provider is unavailable', async () => {
     const service = new SerperService({ apiKey: 'test-key' });
 
-    const decision = await (service as any).getPolicyDecision('https://www.reddit.com/r/test/comments/1');
+    const decision = await (service as any).getPolicyDecision(
+      'https://www.reddit.com/r/test/comments/1'
+    );
 
     expect(decision).toMatchObject({
       isDeepScrapeAllowed: false,
@@ -30,7 +32,9 @@ describe('SerperService community snippet guardrail', () => {
       },
     });
 
-    const decision = await (service as any).getPolicyDecision('https://news.ycombinator.com/item?id=1');
+    const decision = await (service as any).getPolicyDecision(
+      'https://news.ycombinator.com/item?id=1'
+    );
 
     expect(decision?.blockReason).toBe('community_snippet_only_guardrail');
     expect(recordUnknownDomain).not.toHaveBeenCalled();
@@ -51,7 +55,9 @@ describe('SerperService community snippet guardrail', () => {
       },
     });
 
-    const decision = await (service as any).getPolicyDecision('https://stackoverflow.com/questions/123');
+    const decision = await (service as any).getPolicyDecision(
+      'https://stackoverflow.com/questions/123'
+    );
 
     expect(decision).toMatchObject({
       isDeepScrapeAllowed: false,

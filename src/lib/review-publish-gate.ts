@@ -6,10 +6,10 @@ import {
   hasScopeQualifier,
   isClaimStale,
 } from '@/lib/claim-policy';
-import { evaluateToolPageQaGate } from '@/lib/tool-page/qa-gate';
-import { deriveToolPageDecisionLayerConsistencySignals } from '@/lib/tool-page/decision-layer-consistency-signals';
-import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/lane-decision-signals';
-import { readToolPageLaneOutputs } from '@/lib/tool-page/lane-outputs';
+import { evaluateToolPageQaGate } from '@/lib/tool-page/policy/qa-gate';
+import { deriveToolPageDecisionLayerConsistencySignals } from '@/lib/tool-page/decision/decision-layer-consistency-signals';
+import { deriveToolPageLaneDecisionEvidenceSignals } from '@/lib/tool-page/decision/lane-decision-signals';
+import { readToolPageLaneOutputs } from '@/lib/tool-page/decision/lane-outputs';
 import type { Review, Tool } from '@/types/database';
 
 const AUTHORITATIVE_SOURCE_TYPES = new Set(['official', 'docs', 'support', 'legal']);

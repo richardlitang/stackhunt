@@ -1,0 +1,607 @@
+---
+/**
+ * ProsCons Component
+ * Displays pros and cons with full source attribution for legal protection
+ *
+ * Supports multiple formats:
+ * - Legacy: string[] - ["pro1", "pro2"]
+ * - Basic: Array<{text: string, source_url?: string}>
+ * - Full: Array<{text: string, source_url: string, source_type: string, claim_type: string}>
+ *
+ * For community sources and opinions, applies hedging language automatically.
+ */
+
+type SourceType = 'official' | 'editorial' | 'community';
+type ClaimType = 'fact' | 'opinion';
+
+interface ClaimWithSource {
+  text: string;
+  source_url?: string;
+  source_type?: SourceType;
+  source_channel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other';
+  claim_type?: ClaimType;
+  corroborating_source_count?: number;
+  claim_confidence_tier?: 'high' | 'medium' | 'low';
+  claim_confidence_score?: number;
+  retrieved_at?: string; // ISO 8601 timestamp for time-bound defense
+}
+
+type ClaimItem = string | ClaimWithSource;
+
+interface Props {
+  pros: ClaimItem[];
+  cons: ClaimItem[];
+  title?: string;
+  showSources?: boolean;
+  sourceDisplay?: 'inline' | 'toggle' | 'block' | 'hidden';
+}
+
+const { pros, cons, title, showSources = true, sourceDisplay } = Astro.props;
+const resolvedSourceDisplay =
+  (sourceDisplay === 'toggle' ? 'block' : sourceDisplay) || (showSources ? 'block' : 'hidden');
+const TERMINAL_PUNCTUATION = /[.:;!?…"'`”’)\]]+$/g;
+
+import {
+  finalizeProsConsClaims,
+  stripProsConsControlChars,
+} from '@/lib/tool-page/presentation/pros-cons-quality';
+import {
+  classifyProsConsSourceType,
+  prioritizeProsConsClaims,
+} from '@/lib/tool-page/presentation/pros-cons-signal';
+
+const stripControlChars = (value: string): string => stripProsConsControlChars(value);
+const isLikelyIncompleteClause = (value: string): boolean => {
+  const text = stripControlChars(value).replace(TERMINAL_PUNCTUATION, '').trim();
+  if (!text) return true;
+  const lower = text.toLowerCase();
+  if (lower.length < 12) return false;
+  return /\b(to|for|with|from|into|onto|on|at|by|of|in|as|than|that|which|who|when|where|if|because|while|and|or|but|via|per)\s*$/.test(
+    lower
+  );
+};
+const normalizeSourceUrl = (value?: string | null): string | null => {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
+// Hedging prefixes for different source types
+const HEDGING_PREFIXES: Record<SourceType, string[]> = {
+  community: [
+    'Users report that',
+    'According to community feedback,',
+    'Based on user discussions,',
+  ],
+  editorial: ['According to reviews,', 'Reviewers note that'],
+  official: [],
+};
+const EXISTING_HEDGING_PREFIX =
+  /^(users report(?: that)?|according to community feedback|based on user discussions|according to reviews|reviewers note that),?\s+/i;
+
+// Normalize items to consistent format
+function normalizeClaim(
+  item: ClaimItem,
+  index: number
+): ClaimWithSource & { displayText: string; formattedDate: string | null } {
+  if (typeof item === 'string') {
+    let cleaned = stripControlChars(item);
+    if (cleaned.startsWith('{') && cleaned.includes('"text"')) {
+      try {
+        const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+        if (typeof parsed.text === 'string') {
+          cleaned = stripControlChars(parsed.text);
+        }
+      } catch {
+        // Keep raw string when JSON parsing fails.
+      }
+    }
+    return { text: cleaned, displayText: cleaned, formattedDate: null };
+  }
+
+  // Determine if we need hedging
+  const needsHedging =
+    item.source_type === 'community' ||
+    (item.claim_type === 'opinion' && item.source_type !== 'official');
+
+  let displayText = stripControlChars(item.text);
+  if (needsHedging && item.source_type) {
+    const prefixes = HEDGING_PREFIXES[item.source_type];
+    if (prefixes.length > 0) {
+      const prefix = prefixes[index % prefixes.length];
+      if (!EXISTING_HEDGING_PREFIX.test(displayText)) {
+        // Lowercase first letter of claim text when adding prefix
+        displayText = `${prefix} ${item.text.charAt(0).toLowerCase()}${item.text.slice(1)}`;
+      }
+    }
+  }
+
+  return {
+    ...item,
+    text: stripControlChars(item.text),
+    displayText: stripControlChars(displayText),
+    formattedDate: formatTimestamp(item.retrieved_at),
+  };
+}
+
+const normalizedPros = pros
+  .map((item, i) => normalizeClaim(item, i))
+  .filter((item) => item.displayText && !isLikelyIncompleteClause(item.displayText));
+const normalizedCons = cons
+  .map((item, i) => normalizeClaim(item, i))
+  .filter((item) => item.displayText && !isLikelyIncompleteClause(item.displayText));
+const evidenceBackedPros = normalizedPros
+  .map((item) => {
+    const sourceUrl = normalizeSourceUrl(item.source_url);
+    return sourceUrl
+      ? {
+          ...item,
+          source_url: sourceUrl,
+          source_type: classifyProsConsSourceType({
+            sourceUrl,
+            sourceType: item.source_type || null,
+          }),
+        }
+      : null;
+  })
+  .filter((item): item is (typeof normalizedPros)[number] => Boolean(item));
+const evidenceBackedCons = normalizedCons
+  .map((item) => {
+    const sourceUrl = normalizeSourceUrl(item.source_url);
+    return sourceUrl
+      ? {
+          ...item,
+          source_url: sourceUrl,
+          source_type: classifyProsConsSourceType({
+            sourceUrl,
+            sourceType: item.source_type || null,
+          }),
+        }
+      : null;
+  })
+  .filter((item): item is (typeof normalizedCons)[number] => Boolean(item));
+const finalizedPros = finalizeProsConsClaims(prioritizeProsConsClaims(evidenceBackedPros));
+const finalizedCons = finalizeProsConsClaims(prioritizeProsConsClaims(evidenceBackedCons));
+function limitClaimsPerDomain<T extends { source_url?: string }>(
+  items: T[],
+  maxPerDomain = 2
+): { items: T[]; droppedForDomainCap: number } {
+  const domainCounts = new Map<string, number>();
+  const kept: T[] = [];
+  let droppedForDomainCap = 0;
+  for (const item of items) {
+    const sourceUrl = item.source_url;
+    if (!sourceUrl) {
+      kept.push(item);
+      continue;
+    }
+    const domain = getDomain(sourceUrl);
+    const nextCount = (domainCounts.get(domain) || 0) + 1;
+    if (nextCount > maxPerDomain) {
+      droppedForDomainCap++;
+      continue;
+    }
+    domainCounts.set(domain, nextCount);
+    kept.push(item);
+  }
+  return { items: kept, droppedForDomainCap };
+}
+const domainCappedPros = limitClaimsPerDomain(finalizedPros.items, 2);
+const domainCappedCons = limitClaimsPerDomain(finalizedCons.items, 2);
+const hasUserSignalClaims = [...finalizedPros.items, ...finalizedCons.items].some(
+  (item) => item.source_type === 'community' || item.source_type === 'editorial'
+);
+const droppedClaimsForQuality =
+  finalizedPros.droppedDuplicates +
+  finalizedPros.droppedLowSignal +
+  finalizedCons.droppedDuplicates +
+  finalizedCons.droppedLowSignal +
+  domainCappedPros.droppedForDomainCap +
+  domainCappedCons.droppedForDomainCap;
+const hasEvidenceBackedClaims =
+  domainCappedPros.items.length > 0 || domainCappedCons.items.length > 0;
+const hasMinimumUniqueEvidenceClaims =
+  domainCappedPros.items.length + domainCappedCons.items.length >= 2;
+const showInsufficientUniqueClaimsNotice =
+  !hasMinimumUniqueEvidenceClaims && droppedClaimsForQuality > 0;
+
+const sourceEntries = (() => {
+  const entries = [...domainCappedPros.items, ...domainCappedCons.items].map((item) => ({
+    url: item.source_url as string,
+    domain: getDomain(item.source_url as string),
+    source_type: item.source_type,
+    formattedDate: item.formattedDate,
+  }));
+
+  const seenDomains = new Set<string>();
+  const unique: typeof entries = [];
+  for (const entry of entries) {
+    if (seenDomains.has(entry.domain)) continue;
+    seenDomains.add(entry.domain);
+    unique.push(entry);
+  }
+  return unique;
+})();
+const sourceDomains = sourceEntries.map((entry) => entry.domain);
+const collectedSourcesTotal = sourceEntries.length;
+
+// Extract domain from URL for display
+function getDomain(url: string): string {
+  try {
+    const domain = new URL(url).hostname.replace(/^www\./, '');
+    return domain;
+  } catch {
+    return url;
+  }
+}
+
+// Get source type badge styles
+function getSourceBadgeClass(sourceType?: SourceType): string {
+  switch (sourceType) {
+    case 'official':
+      return 'bg-blue-900/30 text-blue-400 border-blue-700';
+    case 'editorial':
+      return 'bg-amber-900/30 text-amber-400 border-amber-700';
+    case 'community':
+      return 'bg-amber-900/30 text-amber-400 border-amber-700';
+    default:
+      return 'bg-zinc-800 text-zinc-400 border-zinc-700';
+  }
+}
+
+// Get source type label
+function getSourceLabel(sourceType?: SourceType): string {
+  switch (sourceType) {
+    case 'official':
+      return 'Official';
+    case 'editorial':
+      return 'Review';
+    case 'community':
+      return 'Community';
+    default:
+      return 'Source';
+  }
+}
+
+function getSourceChannelLabel(
+  sourceChannel?: 'reddit' | 'forum' | 'hn' | 'editorial' | 'other'
+): string | null {
+  if (sourceChannel === 'reddit') return 'Reddit';
+  if (sourceChannel === 'hn') return 'HN';
+  if (sourceChannel === 'forum') return 'Forum';
+  if (sourceChannel === 'editorial') return 'Editorial';
+  return null;
+}
+
+// Format timestamp for display (e.g., "Jan 2026")
+function formatTimestamp(isoDate?: string): string | null {
+  if (!isoDate) return null;
+  try {
+    const date = new Date(isoDate);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get appropriate rel attribute for source links based on source type
+ *
+ * SEO Strategy (per Gemini's E-E-A-T analysis):
+ * - Official sources: dofollow (links to authoritative sites help SEO)
+ * - Editorial sources: nofollow (don't pass juice to review aggregators)
+ * - Community sources: nofollow ugc (UGC = User Generated Content per Google guidelines)
+ */
+function getSourceRelAttribute(sourceType?: SourceType): string {
+  switch (sourceType) {
+    case 'official':
+      // Dofollow for official sources - linking to high-authority sites helps our SEO
+      return 'noopener noreferrer';
+    case 'editorial':
+      // Nofollow for review sites - cite but don't pass authority
+      return 'nofollow noopener noreferrer';
+    case 'community':
+      // Nofollow + UGC for user-generated content (Reddit, forums)
+      return 'nofollow ugc noopener noreferrer';
+    default:
+      // Default to nofollow for safety
+      return 'nofollow noopener noreferrer';
+  }
+}
+
+// Get source icon based on domain
+function getSourceIcon(url?: string): string | null {
+  if (!url) return null;
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    // Return emoji icons for known sources (lightweight, no external requests)
+    if (hostname.includes('reddit.com')) return '🗣️';
+    if (hostname.includes('g2.com')) return '⭐';
+    if (hostname.includes('capterra.com')) return '📊';
+    if (hostname.includes('producthunt.com')) return '🚀';
+    if (hostname.includes('ycombinator.com')) return '🟧';
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function deriveWhyItMatters(text: string, kind: 'pro' | 'con'): string {
+  const lower = text.toLowerCase();
+  if (/\b(api|sdk|integration|automation)\b/.test(lower)) {
+    return kind === 'pro'
+      ? 'Reduces integration glue work for teams with custom workflow requirements.'
+      : 'Can create workflow gaps if your stack depends on unsupported integrations.';
+  }
+  if (/\b(seat|user|limit|cap|quota|plan)\b/.test(lower)) {
+    return kind === 'pro'
+      ? 'Helps forecast upgrade timing and budget before team growth creates surprises.'
+      : 'Can force an earlier upgrade once your team or usage crosses thresholds.';
+  }
+  if (/\b(report|analytics|dashboard|forecast)\b/.test(lower)) {
+    return 'Directly affects planning quality, KPI visibility, and operating cadence.';
+  }
+  if (/\b(model|version|context window|latency|throughput|capacity)\b/.test(lower)) {
+    return kind === 'pro'
+      ? 'Determines whether quality and response speed hold up on your highest-volume tasks.'
+      : 'Can create delivery risk if model behavior or capacity is inconsistent under load.';
+  }
+  if (/\b(export|portability|lock[-\s]?in|migration)\b/.test(lower)) {
+    return kind === 'pro'
+      ? 'Makes migration and compliance operations easier if you need to move data later.'
+      : 'Increases switching risk and operational effort if migration paths are constrained.';
+  }
+  return kind === 'pro'
+    ? 'Matters most when this directly improves a workflow you run every day.'
+    : 'Becomes a blocker when it conflicts with your required rollout or operating model.';
+}
+
+function needsConfirmationChip(claim: {
+  source_type?: SourceType;
+  claim_confidence_tier?: 'high' | 'medium' | 'low';
+  corroborating_source_count?: number;
+  claim_confidence_score?: number;
+}): boolean {
+  const corroborationCount =
+    typeof claim.corroborating_source_count === 'number' ? claim.corroborating_source_count : 1;
+  if (claim.source_type === 'community' && corroborationCount < 2) return true;
+  if (typeof claim.claim_confidence_score === 'number' && claim.claim_confidence_score < 0.65) {
+    return true;
+  }
+  return claim.claim_confidence_tier === 'low';
+}
+const hasNeedsConfirmationClaims = [...finalizedPros.items, ...finalizedCons.items].some((item) =>
+  needsConfirmationChip(item)
+);
+
+import CheckIcon from '@/components/icons/Check.astro';
+import MinusIcon from '@/components/icons/Minus.astro';
+import ExternalLinkIcon from '@/components/icons/ExternalLink.astro';
+---
+
+<div
+  class="rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-sm hover:shadow-md transition-shadow"
+>
+  {title && <h2 class="mb-4 text-lg font-semibold text-zinc-100">{title}</h2>}
+
+  <div class="space-y-8">
+    <!-- Pros -->
+    <div>
+      <div class="flex items-center gap-2 mb-4">
+        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-900/30">
+          <CheckIcon class="h-4 w-4 text-green-400" />
+        </div>
+        <span class="font-semibold text-green-400">Pros</span>
+      </div>
+      {
+        hasUserSignalClaims && (
+          <p class="mb-3 text-xs text-zinc-500">
+            Ordering favors user-reported and independent review signals before vendor-doc claims.
+          </p>
+        )
+      }
+
+      <ul class="space-y-3">
+        {
+          domainCappedPros.items.map((pro) => (
+            <li class="text-sm text-zinc-300">
+              <div class="flex items-start gap-3">
+                <CheckIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
+                <div class="flex-1">
+                  <p>{pro.displayText}</p>
+                  {resolvedSourceDisplay !== 'block' && resolvedSourceDisplay !== 'hidden' && (
+                    <details class="mt-1">
+                      <summary class="cursor-pointer text-xs text-zinc-500 hover:text-zinc-400">
+                        Source details
+                      </summary>
+                      <p class="mt-1 text-xs text-zinc-500">
+                        Source:{' '}
+                        <a
+                          href={pro.source_url}
+                          target="_blank"
+                          rel={getSourceRelAttribute(pro.source_type)}
+                          class="text-zinc-400 underline underline-offset-2 hover:text-hunt-400"
+                        >
+                          {getDomain(pro.source_url)}
+                        </a>
+                        {typeof pro.corroborating_source_count === 'number' &&
+                          pro.corroborating_source_count > 1 &&
+                          `, corroborated by ${pro.corroborating_source_count} sources`}
+                        {getSourceChannelLabel(pro.source_channel) &&
+                          `, ${getSourceChannelLabel(pro.source_channel)}`}
+                        {pro.claim_confidence_tier && `, confidence ${pro.claim_confidence_tier}`}
+                      </p>
+                    </details>
+                  )}
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Why it matters: {deriveWhyItMatters(pro.displayText, 'pro')}
+                  </p>
+                  {resolvedSourceDisplay === 'inline' && pro.source_url && (
+                    <span class="inline-flex items-center gap-1 ml-2">
+                      {pro.source_type && (
+                        <span
+                          class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(pro.source_type)}`}
+                        >
+                          {getSourceIcon(pro.source_url) && (
+                            <span class="mr-0.5">{getSourceIcon(pro.source_url)}</span>
+                          )}
+                          {getSourceLabel(pro.source_type)}
+                          {pro.formattedDate && `, ${pro.formattedDate}`}
+                        </span>
+                      )}
+                      <a
+                        href={pro.source_url}
+                        target="_blank"
+                        rel={getSourceRelAttribute(pro.source_type)}
+                        class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
+                        title={`View source: ${getDomain(pro.source_url)}${pro.formattedDate ? ` (retrieved ${pro.formattedDate})` : ''}`}
+                      >
+                        <ExternalLinkIcon class="h-3 w-3" />
+                      </a>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <!-- Cons -->
+    <div>
+      <div class="flex items-center gap-2 mb-4">
+        <div class="flex h-6 w-6 items-center justify-center rounded-full bg-red-900/30">
+          <MinusIcon class="h-4 w-4 text-red-400" />
+        </div>
+        <span class="font-semibold text-red-400">Cons</span>
+      </div>
+
+      <ul class="space-y-3">
+        {
+          domainCappedCons.items.map((con) => (
+            <li class="text-sm text-zinc-300">
+              <div class="flex items-start gap-3">
+                <MinusIcon class="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                <div class="flex-1">
+                  <p>{con.displayText}</p>
+                  {resolvedSourceDisplay !== 'block' && resolvedSourceDisplay !== 'hidden' && (
+                    <details class="mt-1">
+                      <summary class="cursor-pointer text-xs text-zinc-500 hover:text-zinc-400">
+                        Source details
+                      </summary>
+                      <p class="mt-1 text-xs text-zinc-500">
+                        Source:{' '}
+                        <a
+                          href={con.source_url}
+                          target="_blank"
+                          rel={getSourceRelAttribute(con.source_type)}
+                          class="text-zinc-400 underline underline-offset-2 hover:text-hunt-400"
+                        >
+                          {getDomain(con.source_url)}
+                        </a>
+                        {typeof con.corroborating_source_count === 'number' &&
+                          con.corroborating_source_count > 1 &&
+                          `, corroborated by ${con.corroborating_source_count} sources`}
+                        {getSourceChannelLabel(con.source_channel) &&
+                          `, ${getSourceChannelLabel(con.source_channel)}`}
+                        {con.claim_confidence_tier && `, confidence ${con.claim_confidence_tier}`}
+                      </p>
+                    </details>
+                  )}
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Why it matters: {deriveWhyItMatters(con.displayText, 'con')}
+                  </p>
+                  {resolvedSourceDisplay === 'inline' && con.source_url && (
+                    <span class="inline-flex items-center gap-1 ml-2">
+                      {con.source_type && (
+                        <span
+                          class={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded border ${getSourceBadgeClass(con.source_type)}`}
+                        >
+                          {getSourceIcon(con.source_url) && (
+                            <span class="mr-0.5">{getSourceIcon(con.source_url)}</span>
+                          )}
+                          {getSourceLabel(con.source_type)}
+                          {con.formattedDate && `, ${con.formattedDate}`}
+                        </span>
+                      )}
+                      <a
+                        href={con.source_url}
+                        target="_blank"
+                        rel={getSourceRelAttribute(con.source_type)}
+                        class="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-hunt-400 transition"
+                        title={`View source: ${getDomain(con.source_url)}${con.formattedDate ? ` (retrieved ${con.formattedDate})` : ''}`}
+                      >
+                        <ExternalLinkIcon class="h-3 w-3" />
+                      </a>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  {
+    !hasEvidenceBackedClaims && (
+      <div class="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/50 p-3 text-xs text-zinc-500">
+        Strength and weakness bullets are hidden until sources are collected.
+      </div>
+    )
+  }
+  {
+    showInsufficientUniqueClaimsNotice && (
+      <div class="mt-4 rounded-lg border border-amber-700/40 bg-amber-950/20 p-3 text-xs text-amber-200">
+        Not enough unique source-backed pros found yet.
+      </div>
+    )
+  }
+  {
+    hasNeedsConfirmationClaims && (
+      <div class="mt-4 rounded-lg border border-amber-700/40 bg-amber-950/20 p-3 text-xs text-amber-200">
+        Some user-reported claims are still weakly corroborated and should be validated in a live
+        demo.
+      </div>
+    )
+  }
+
+  {
+    resolvedSourceDisplay === 'block' && sourceEntries.length > 0 && (
+      <div class="mt-6 border-t border-zinc-800 pt-4">
+        <div class="text-xs text-zinc-500">
+          Sources collected: {collectedSourcesTotal} ({sourceDomains.join(' • ')})
+        </div>
+        <details class="mt-2">
+          <summary class="cursor-pointer text-xs text-zinc-400 hover:text-hunt-400">
+            View sources
+          </summary>
+          <div class="mt-2 flex flex-wrap gap-2">
+            {sourceEntries.map((entry) => (
+              <a
+                href={entry.url}
+                target="_blank"
+                rel={getSourceRelAttribute(entry.source_type)}
+                class="inline-flex items-center gap-1 rounded-full border border-zinc-800 px-2 py-1 text-[11px] text-zinc-400 hover:border-hunt-500 hover:text-hunt-400"
+                title={`View source: ${entry.domain}${entry.formattedDate ? ` (retrieved ${entry.formattedDate})` : ''}`}
+              >
+                {entry.domain}
+                <ExternalLinkIcon class="h-3 w-3" />
+              </a>
+            ))}
+          </div>
+        </details>
+      </div>
+    )
+  }
+</div>
+
+<!-- Source links now open in new tab instead of copy-to-clipboard -->

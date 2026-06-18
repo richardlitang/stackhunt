@@ -49,4 +49,3 @@ describe('compiler golden fixtures', () => {
     });
   }
 });
-

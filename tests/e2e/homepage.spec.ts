@@ -52,7 +52,7 @@ test.describe('Context Pages', () => {
     // Look for any "best for" context link
     const contextLink = page.locator('a[href^="/best/"]').first();
 
-    if (await contextLink.count() > 0) {
+    if ((await contextLink.count()) > 0) {
       await contextLink.click();
       await expect(page).toHaveURL(/\/best\//);
     }

@@ -1,0 +1,116 @@
+---
+import {
+  deriveVisibleToolCompareGridRows,
+  resolveToolCompareGridCell,
+  type ToolCompareGridCell,
+  type ToolCompareGridLike,
+} from '@/lib/tool-page/alternatives/alternatives-compare-grid';
+import type { ReviewLens } from '@/lib/tool-page/presentation/view-model';
+
+interface Props {
+  main: ToolCompareGridLike;
+  alternatives: ToolCompareGridLike[];
+  asOfLabel?: string | null;
+  activeReviewLens?: ReviewLens;
+}
+
+const { main, alternatives, asOfLabel = null, activeReviewLens = 'general' } = Astro.props as Props;
+const visibleRows = deriveVisibleToolCompareGridRows(main, alternatives, activeReviewLens);
+
+function evidenceChipClass(cell: ToolCompareGridCell): string {
+  if (cell.evidenceTag === 'source') {
+    return 'border-emerald-700/70 bg-emerald-950/40 text-emerald-300';
+  }
+  if (cell.evidenceTag === 'heuristic') {
+    return 'border-amber-700/70 bg-amber-950/40 text-amber-200';
+  }
+  return 'border-zinc-700 bg-zinc-900/70 text-zinc-400';
+}
+
+function evidenceChipLabel(cell: ToolCompareGridCell): string {
+  if (cell.evidenceTag === 'source') return 'Source-backed';
+  if (cell.evidenceTag === 'heuristic') return '-';
+  return '-';
+}
+---
+
+{
+  alternatives.length > 0 && visibleRows.length > 0 && (
+    <div class="tool-review-table mb-5 overflow-x-auto rounded-[1.5rem] p-4">
+      <p class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+        Quick compare grid
+      </p>
+      <table class="min-w-full text-left text-xs text-zinc-300">
+        <thead>
+          <tr class="border-b border-zinc-800 text-zinc-400">
+            <th class="px-2 py-2 font-medium">Dimension</th>
+            <th class="px-2 py-2 font-medium">{main.name}</th>
+            {alternatives.slice(0, 2).map((alt) => (
+              <th class="px-2 py-2 font-medium">{alt.name}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {visibleRows.map((row) => (
+            <tr class="border-b border-zinc-900/80 last:border-b-0 hover:bg-zinc-900/40">
+              <td class="px-2 py-2 text-zinc-400">{row}</td>
+              <td class="px-2 py-2">
+                {(() => {
+                  const cell = resolveToolCompareGridCell(row, main, activeReviewLens);
+                  const value =
+                    row === 'Choose this instead if' ? 'Current tool under review' : cell.value;
+                  return (
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <span>{value}</span>
+                      <span
+                        class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${evidenceChipClass(cell)}`}
+                      >
+                        {evidenceChipLabel(cell)}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </td>
+              {alternatives.slice(0, 2).map((alt) => {
+                const cell = resolveToolCompareGridCell(row, alt, activeReviewLens);
+                const hasCompareLink =
+                  ((row === 'Rationale source' && cell.value === 'Comparison brief') ||
+                    (row === 'Choose this instead if' && cell.evidenceTag === 'source')) &&
+                  Boolean(main.slug && alt.slug);
+                const [slugA, slugB] =
+                  (main.slug || '') < (alt.slug || '')
+                    ? [main.slug, alt.slug]
+                    : [alt.slug, main.slug];
+                const compareHref = slugA && slugB ? `/compare/${slugA}-vs-${slugB}` : null;
+
+                return (
+                  <td class="px-2 py-2">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      {hasCompareLink && compareHref ? (
+                        <a href={compareHref} class="text-hunt-500 hover:text-hunt-400">
+                          {cell.value}
+                        </a>
+                      ) : (
+                        <span>{cell.value}</span>
+                      )}
+                      <span
+                        class={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${evidenceChipClass(cell)}`}
+                      >
+                        {evidenceChipLabel(cell)}
+                      </span>
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="mt-2 text-[11px] text-zinc-500">
+        Low-confidence rows are suppressed. Remaining heuristic rows should still be verified in
+        product docs or a live demo.
+      </p>
+      {asOfLabel && <p class="mt-1 text-[11px] text-zinc-500">Summary as of {asOfLabel}.</p>}
+    </div>
+  )
+}

@@ -27,7 +27,8 @@ export function sanitizeOutboundHref(href: string): string {
 
 export function deriveOutboundType(link: HTMLAnchorElement): string {
   return (
-    link.dataset.outbound || (link.textContent?.trim().toLowerCase() === 'source' ? 'source' : 'vendor')
+    link.dataset.outbound ||
+    (link.textContent?.trim().toLowerCase() === 'source' ? 'source' : 'vendor')
   );
 }
 

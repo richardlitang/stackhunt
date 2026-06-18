@@ -68,13 +68,16 @@ export async function compileCompareSnapshotDraft(
     );
   }
   if (!items || items.length !== 2) {
-    throw new Error(`Unable to compile compare snapshot: missing item for "${toolASlug}-vs-${toolBSlug}"`);
+    throw new Error(
+      `Unable to compile compare snapshot: missing item for "${toolASlug}-vs-${toolBSlug}"`
+    );
   }
 
   const getPrimaryCategory = (item: any) =>
     (item?.item_category_links || [])
       .slice()
-      .sort((a: any, b: any) => (b.relevance_score || 0) - (a.relevance_score || 0))[0]?.category || null;
+      .sort((a: any, b: any) => (b.relevance_score || 0) - (a.relevance_score || 0))[0]?.category ||
+    null;
 
   const toolA = items.find((item: any) => item.slug === toolASlug);
   const toolB = items.find((item: any) => item.slug === toolBSlug);
@@ -145,8 +148,7 @@ export async function compileCompareSnapshotDraft(
   const derivedScoreB = toolB.avg_score || averageScore(reviewsB);
 
   const delta = Number((derivedScoreA - derivedScoreB).toFixed(1));
-  const winner =
-    Math.abs(delta) < 1.5 ? 'depends' : delta > 0 ? toolA.slug : toolB.slug;
+  const winner = Math.abs(delta) < 1.5 ? 'depends' : delta > 0 ? toolA.slug : toolB.slug;
 
   const sectionWinners = {
     overall: winner,
@@ -211,17 +213,35 @@ export async function compileCompareSnapshotDraft(
     ],
     tool_summaries: {
       [toolA.slug]: {
-        pros: toClaimList(reviewsA.flatMap((review: any) => review.pros || []), 4),
-        cons: toClaimList(reviewsA.flatMap((review: any) => review.cons || []), 4),
+        pros: toClaimList(
+          reviewsA.flatMap((review: any) => review.pros || []),
+          4
+        ),
+        cons: toClaimList(
+          reviewsA.flatMap((review: any) => review.cons || []),
+          4
+        ),
       },
       [toolB.slug]: {
-        pros: toClaimList(reviewsB.flatMap((review: any) => review.pros || []), 4),
-        cons: toClaimList(reviewsB.flatMap((review: any) => review.cons || []), 4),
+        pros: toClaimList(
+          reviewsB.flatMap((review: any) => review.pros || []),
+          4
+        ),
+        cons: toClaimList(
+          reviewsB.flatMap((review: any) => review.cons || []),
+          4
+        ),
       },
     },
     citations: {
-      [toolA.slug]: toEvidenceRefs(reviewsA.flatMap((review: any) => review.sources || []), 6),
-      [toolB.slug]: toEvidenceRefs(reviewsB.flatMap((review: any) => review.sources || []), 6),
+      [toolA.slug]: toEvidenceRefs(
+        reviewsA.flatMap((review: any) => review.sources || []),
+        6
+      ),
+      [toolB.slug]: toEvidenceRefs(
+        reviewsB.flatMap((review: any) => review.sources || []),
+        6
+      ),
     },
     meta: {
       compiler: 'shadow-v0',
@@ -244,7 +264,8 @@ export async function compileCompareSnapshotDraft(
   });
   (snapshotJson as any).publish_gate = publishGate;
 
-  const specKey = typeof options.specKey === 'string' && options.specKey.trim() ? options.specKey.trim() : null;
+  const specKey =
+    typeof options.specKey === 'string' && options.specKey.trim() ? options.specKey.trim() : null;
   const latestVersionQuery = admin
     .from('compare_snapshots')
     .select('version')

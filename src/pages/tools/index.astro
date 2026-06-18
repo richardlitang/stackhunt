@@ -5,7 +5,7 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import ToolCard from '@/components/ToolCard.astro';
+import ToolCard from '@/components/tool-page/ToolCard.astro';
 import { supabase, getCategories } from '@/lib/supabase';
 import { getCanonicalUrl } from '@/lib/utils';
 
@@ -172,16 +172,14 @@ function buildPageUrl(pageNum: number) {
 }
 
 const meta = {
-  title:
-    hasSearchQuery
-      ? `Search: ${searchQuery} | StackHunt`
-      : page > 1
+  title: hasSearchQuery
+    ? `Search: ${searchQuery} | StackHunt`
+    : page > 1
       ? `All Software Tools - Page ${page} | StackHunt`
       : 'All Software Tools - Browse Our Directory | StackHunt',
-  description:
-    hasSearchQuery
-      ? `Search results for "${searchQuery}".`
-      : 'Browse our complete directory of software tools. Filter by category, compare features, and find the best tools for your stack.',
+  description: hasSearchQuery
+    ? `Search results for "${searchQuery}".`
+    : 'Browse our complete directory of software tools. Filter by category, compare features, and find the best tools for your stack.',
   canonical: getCanonicalUrl(buildPageUrl(page)),
   ogType: 'website' as const,
 };
@@ -289,8 +287,8 @@ const meta = {
             {hasSearchQuery
               ? 'No name matches found. Try a different tool name.'
               : activeCategoryFilter
-              ? 'No tools in this category. Try another filter.'
-              : 'Check back soon for more tools!'}
+                ? 'No tools in this category. Try another filter.'
+                : 'Check back soon for more tools!'}
           </p>
         </div>
       )

@@ -464,7 +464,11 @@ export class SerperService {
         },
         {
           type: 'pricing',
-          query: this.applyEntityScopeToQuery(`${scopedTool} pricing plans features`, toolName, entityScope),
+          query: this.applyEntityScopeToQuery(
+            `${scopedTool} pricing plans features`,
+            toolName,
+            entityScope
+          ),
         },
         {
           type: 'pricing_compare',
@@ -1229,7 +1233,10 @@ export class SerperService {
     if (!scope || !this.isGitHubFamily(toolName)) return query;
 
     const escapedTool = toolName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const replaced = query.replace(new RegExp(escapedTool, 'ig'), this.buildScopedToolQuery(toolName, scope));
+    const replaced = query.replace(
+      new RegExp(escapedTool, 'ig'),
+      this.buildScopedToolQuery(toolName, scope)
+    );
 
     if (scope === 'core') return `${replaced} -copilot -GHES -"GitHub Enterprise Server"`.trim();
     if (scope === 'copilot') return `${replaced} "GitHub Copilot" -"GitHub Actions" -GHES`.trim();
@@ -1254,7 +1261,11 @@ export class SerperService {
     const queryPlan: Array<{ type: QueryType; query: string }> = [
       {
         type: 'pricing',
-        query: this.applyEntityScopeToQuery(`${scopedTool} pricing plans features`, toolName, entityScope),
+        query: this.applyEntityScopeToQuery(
+          `${scopedTool} pricing plans features`,
+          toolName,
+          entityScope
+        ),
       },
       {
         type: 'pricing_compare',
@@ -1857,7 +1868,8 @@ function inferOfficialPricingUrlFromSources(
   candidates.sort((a, b) => {
     const score = (source: RawSource): number => {
       const hasPricingIntent = source.intent_tags.includes('pricing') ? 3 : 0;
-      const sourceTypeWeight = source.source_type === 'official' ? 2 : source.source_type === 'docs' ? 1 : 0;
+      const sourceTypeWeight =
+        source.source_type === 'official' ? 2 : source.source_type === 'docs' ? 1 : 0;
       const path = safePathname(source.url);
       const pathPenalty = Math.min(path.split('/').filter(Boolean).length, 4);
       return hasPricingIntent + sourceTypeWeight - pathPenalty;
@@ -1872,7 +1884,11 @@ function isLikelyPricingPath(url: string): boolean {
   const path = safePathname(url);
   if (!path) return false;
   const normalized = path.toLowerCase();
-  if (normalized.includes('/blog/') || normalized.includes('/docs/') || normalized.includes('/help/')) {
+  if (
+    normalized.includes('/blog/') ||
+    normalized.includes('/docs/') ||
+    normalized.includes('/help/')
+  ) {
     return false;
   }
   return /(pricing|plans?|billing|cost|quote|subscriptions?)/.test(normalized);

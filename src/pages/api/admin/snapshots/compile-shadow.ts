@@ -51,7 +51,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (contextError) {
       return new Response(
-        JSON.stringify({ success: false, error: `Failed to load contexts: ${contextError.message}` }),
+        JSON.stringify({
+          success: false,
+          error: `Failed to load contexts: ${contextError.message}`,
+        }),
         {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
@@ -89,8 +92,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (reviewError || !topReviews || topReviews.length < 2) continue;
 
-      const rawA = String((topReviews[0] as any)?.item?.slug || '').trim().toLowerCase();
-      const rawB = String((topReviews[1] as any)?.item?.slug || '').trim().toLowerCase();
+      const rawA = String((topReviews[0] as any)?.item?.slug || '')
+        .trim()
+        .toLowerCase();
+      const rawB = String((topReviews[1] as any)?.item?.slug || '')
+        .trim()
+        .toLowerCase();
       if (!rawA || !rawB || rawA === rawB) continue;
 
       const normalized = normalizeComparePair(rawA, rawB);
@@ -144,13 +151,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       },
     });
 
-    return new Response(
-      JSON.stringify(payload),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     await logSnapshotAction({
       action: 'snapshots.compile-shadow',

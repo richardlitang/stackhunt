@@ -16,7 +16,9 @@ function gatePassFromSnapshot(snapshotJson: unknown): boolean {
 
 export async function publishBestSnapshot(contextSlug: string): Promise<PublishBestResult> {
   const admin = getAdminClient();
-  const slug = String(contextSlug || '').trim().toLowerCase();
+  const slug = String(contextSlug || '')
+    .trim()
+    .toLowerCase();
   if (!slug) throw new Error('Context slug is required');
 
   const { data: draftRows, error: draftError } = await admin

@@ -79,7 +79,9 @@ const comparisonPairs = (rawPopularComparisons || [])
     b: pair.item_b_slug as string,
   }));
 
-const comparisonSlugs = Array.from(new Set(comparisonPairs.flatMap((pair) => [pair.a, pair.b]))).slice(0, 50);
+const comparisonSlugs = Array.from(
+  new Set(comparisonPairs.flatMap((pair) => [pair.a, pair.b]))
+).slice(0, 50);
 const { data: comparisonTools } =
   comparisonSlugs.length > 0
     ? await supabase.from('tools').select('slug, name').in('slug', comparisonSlugs).limit(50)
@@ -217,7 +219,9 @@ const meta = {
             ))}
           </div>
         ) : (
-          <p class="text-sm text-zinc-500">Popular comparison links will appear as data is curated.</p>
+          <p class="text-sm text-zinc-500">
+            Popular comparison links will appear as data is curated.
+          </p>
         )
       }
     </div>

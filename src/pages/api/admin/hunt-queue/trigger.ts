@@ -25,7 +25,13 @@ import type { APIRoute } from 'astro';
 import { Hunter } from '@/lib/hunter';
 import { ApiError } from '@/lib/hunter/errors';
 import { alertCritical, alertQueueSummary } from '@/lib/notifications/discord';
-import { validateSession, COOKIE_NAME, isLegacyToken, validateLegacyToken, safeCompare } from '@/lib/auth';
+import {
+  validateSession,
+  COOKIE_NAME,
+  isLegacyToken,
+  validateLegacyToken,
+  safeCompare,
+} from '@/lib/auth';
 
 export const prerender = false;
 

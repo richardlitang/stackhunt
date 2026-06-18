@@ -31,7 +31,7 @@ import {
   buildDecisionSlots,
   generateDecisionEvidence,
   generateDecisionIntro,
-} from '@/lib/tool-page/intro';
+} from '@/lib/tool-page/presentation/intro';
 import { getCategoryDefinition } from '../schemas';
 import { guardFaqVolatileFacts } from '../validation/faq-volatile-guard';
 import { resolveDetectedCategory } from '../category-resolver';

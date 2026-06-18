@@ -132,7 +132,7 @@ function buildFacts(params: {
       has_free_tier:
         typeof pricing?.plans !== 'undefined'
           ? pricing.plans.some((plan) => (plan.price_monthly || 0) === 0)
-          : params.knowledgeCard.pricing?.has_free_tier ?? null,
+          : (params.knowledgeCard.pricing?.has_free_tier ?? null),
       has_free_trial: params.knowledgeCard.pricing?.has_free_trial ?? null,
       trial_days: params.knowledgeCard.pricing?.trial_days ?? null,
       billing_cycles: pricing?.billing_cycles || [],
@@ -223,7 +223,8 @@ function buildQuality(params: {
   const requiredPresent = requiredPaths.filter((path) => hasValueAtPath(params.facts, path)).length;
   const totalPresent = allPaths.filter((path) => hasValueAtPath(params.facts, path)).length;
   const coverageRatio = allPaths.length > 0 ? totalPresent / allPaths.length : 0;
-  const requiredCoverageRatio = requiredPaths.length > 0 ? requiredPresent / requiredPaths.length : 0;
+  const requiredCoverageRatio =
+    requiredPaths.length > 0 ? requiredPresent / requiredPaths.length : 0;
 
   const staleThresholdDays = {
     pricing: 90,
@@ -245,7 +246,8 @@ function buildQuality(params: {
 
   const canonicalQuality = extractCanonicalQuality(params.specs);
   const scoutConflicts =
-    Array.isArray((params.facts as any)?.quality?.conflicts) && (params.facts as any).quality.conflicts
+    Array.isArray((params.facts as any)?.quality?.conflicts) &&
+    (params.facts as any).quality.conflicts
       ? (params.facts as any).quality.conflicts.length
       : 0;
   const conflictsCount = Number(canonicalQuality.conflicts_count || 0) + scoutConflicts;
@@ -384,7 +386,9 @@ function extractCanonical(specs: Record<string, unknown> | null | undefined) {
     model_inventory_raw: Array.isArray((canonical as any).model_inventory_raw)
       ? (canonical as any).model_inventory_raw
       : [],
-    quick_checks: Array.isArray((canonical as any).quick_checks) ? (canonical as any).quick_checks : [],
+    quick_checks: Array.isArray((canonical as any).quick_checks)
+      ? (canonical as any).quick_checks
+      : [],
     team_it_checks: Array.isArray((canonical as any).team_it_checks)
       ? (canonical as any).team_it_checks
       : [],

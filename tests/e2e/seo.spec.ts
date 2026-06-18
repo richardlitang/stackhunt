@@ -10,7 +10,12 @@ type RouteCase = {
 };
 
 const ROUTES: RouteCase[] = [
-  { name: 'Home', path: '/', requiredSchemaTypes: ['Organization', 'WebSite'], internalLinkBudget: 4 },
+  {
+    name: 'Home',
+    path: '/',
+    requiredSchemaTypes: ['Organization', 'WebSite'],
+    internalLinkBudget: 4,
+  },
   { name: 'Tool page', resolvePath: resolveToolPath, checkInternalLinks: false },
   { name: 'Tools index', path: '/tools', checkInternalLinks: false },
   { name: 'Categories index', path: '/categories', checkInternalLinks: false },
@@ -77,17 +82,26 @@ async function resolveToolPath(page: Page): Promise<string> {
 
 async function assertSeoBasics(route: RouteCase, path: string, page: Page) {
   const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
-  expect(response?.status(), `${route.name} should return a successful page response`).toBeLessThan(400);
+  expect(response?.status(), `${route.name} should return a successful page response`).toBeLessThan(
+    400
+  );
 
   const h1Count = await page.locator('h1:visible').count();
   expect(h1Count, `${route.name} should have exactly one visible h1`).toBe(1);
 
   await expect(page, `${route.name} should define a non-empty <title>`).toHaveTitle(/\S+/);
 
-  const description = (await page.locator('meta[name="description"]').first().getAttribute('content')) ?? '';
+  const description =
+    (await page.locator('meta[name="description"]').first().getAttribute('content')) ?? '';
   const descriptionLength = description.trim().length;
-  expect(descriptionLength, `${route.name} should have a description between 50 and 160 chars`).toBeGreaterThanOrEqual(50);
-  expect(descriptionLength, `${route.name} should have a description between 50 and 160 chars`).toBeLessThanOrEqual(160);
+  expect(
+    descriptionLength,
+    `${route.name} should have a description between 50 and 160 chars`
+  ).toBeGreaterThanOrEqual(50);
+  expect(
+    descriptionLength,
+    `${route.name} should have a description between 50 and 160 chars`
+  ).toBeLessThanOrEqual(160);
 
   const canonical = await page.locator('link[rel="canonical"]').first().getAttribute('href');
   expect(canonical, `${route.name} should expose a canonical URL`).toBeTruthy();
@@ -110,12 +124,20 @@ async function assertSeoBasics(route: RouteCase, path: string, page: Page) {
       expect(normalizePathname(canonicalUrl.pathname)).toBe(normalizePathname(currentUrl.pathname));
     }
   } else {
-    expect(canonical?.startsWith('/'), `${route.name} canonical should be absolute URL or absolute path`).toBeTruthy();
+    expect(
+      canonical?.startsWith('/'),
+      `${route.name} canonical should be absolute URL or absolute path`
+    ).toBeTruthy();
   }
 
   for (const property of OG_TAGS) {
-    const value = await page.locator(`meta[property="${property}"]`).first().getAttribute('content');
-    expect(value?.trim().length ?? 0, `${route.name} should include ${property}`).toBeGreaterThan(0);
+    const value = await page
+      .locator(`meta[property="${property}"]`)
+      .first()
+      .getAttribute('content');
+    expect(value?.trim().length ?? 0, `${route.name} should include ${property}`).toBeGreaterThan(
+      0
+    );
   }
 
   const robots = (
@@ -132,24 +154,35 @@ async function assertSeoBasics(route: RouteCase, path: string, page: Page) {
   const schemaTypes = new Set<string>();
   for (const [index, rawJson] of jsonLdScripts.entries()) {
     const source = rawJson.trim();
-    expect(source.length, `${route.name} JSON-LD script #${index + 1} should not be empty`).toBeGreaterThan(0);
+    expect(
+      source.length,
+      `${route.name} JSON-LD script #${index + 1} should not be empty`
+    ).toBeGreaterThan(0);
     let parsed: unknown;
-    expect(() => {
-      parsed = JSON.parse(source);
-    }, `${route.name} JSON-LD script #${index + 1} should be valid JSON`).not.toThrow();
+    expect(
+      () => {
+        parsed = JSON.parse(source);
+      },
+      `${route.name} JSON-LD script #${index + 1} should be valid JSON`
+    ).not.toThrow();
     collectSchemaTypes(parsed, schemaTypes);
   }
 
   for (const schemaType of route.requiredSchemaTypes ?? []) {
-    expect(schemaTypes.has(schemaType), `${route.name} should expose schema type ${schemaType}`).toBeTruthy();
+    expect(
+      schemaTypes.has(schemaType),
+      `${route.name} should expose schema type ${schemaType}`
+    ).toBeTruthy();
   }
 
   if (route.checkInternalLinks !== false) {
-    const internalLinks = await page.locator('main a[href]').evaluateAll((nodes) =>
-      nodes
-        .map((node) => (node as HTMLAnchorElement).getAttribute('href') || '')
-        .filter((href) => href.length > 0)
-    );
+    const internalLinks = await page
+      .locator('main a[href]')
+      .evaluateAll((nodes) =>
+        nodes
+          .map((node) => (node as HTMLAnchorElement).getAttribute('href') || '')
+          .filter((href) => href.length > 0)
+      );
 
     const budget = route.internalLinkBudget ?? MAX_INTERNAL_LINK_CHECKS;
     const uniquePublicLinks = Array.from(
@@ -165,7 +198,10 @@ async function assertSeoBasics(route: RouteCase, path: string, page: Page) {
         maxRedirects: 5,
         timeout: INTERNAL_LINK_TIMEOUT_MS,
       });
-      expect(linkResponse.status(), `${route.name} contains a broken internal link: ${href}`).toBeLessThan(400);
+      expect(
+        linkResponse.status(),
+        `${route.name} contains a broken internal link: ${href}`
+      ).toBeLessThan(400);
     }
   }
 }

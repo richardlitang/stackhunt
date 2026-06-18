@@ -81,7 +81,9 @@ export function evaluateBestPublishGate(
   }
 
   if (topKFreshRate < thresholds.minTopKFreshRate) {
-    reasons.push(`topk_freshness_below_min:${topKFreshRate.toFixed(2)}<${thresholds.minTopKFreshRate.toFixed(2)}`);
+    reasons.push(
+      `topk_freshness_below_min:${topKFreshRate.toFixed(2)}<${thresholds.minTopKFreshRate.toFixed(2)}`
+    );
   }
 
   if (input.criticalConflictCount > thresholds.maxCriticalConflictCount) {

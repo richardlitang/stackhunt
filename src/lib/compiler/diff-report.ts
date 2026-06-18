@@ -75,10 +75,7 @@ export function diffRankings(
         id,
         runtimeRank,
         snapshotRank,
-        delta:
-          runtimeRank && snapshotRank
-            ? snapshotRank - runtimeRank
-            : null,
+        delta: runtimeRank && snapshotRank ? snapshotRank - runtimeRank : null,
       };
     })
     .sort((a, b) => {
@@ -113,4 +110,3 @@ export function diffWinner(
     matches: runtime !== null && snapshot !== null ? runtime === snapshot : false,
   };
 }
-

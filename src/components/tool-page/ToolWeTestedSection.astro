@@ -1,0 +1,42 @@
+---
+import TwoColumnChecklistCards from '@/components/tool-page/TwoColumnChecklistCards.astro';
+
+interface Props {
+  testedAtLabel?: string | null;
+  testEnvironment?: string | null;
+  testSteps: string[];
+  testFindings: string[];
+}
+
+const {
+  testedAtLabel = null,
+  testEnvironment = null,
+  testSteps,
+  testFindings,
+} = Astro.props as Props;
+---
+
+<details
+  id="we-tested-it"
+  class="group tool-review-panel mt-8 rounded-[1.8rem] p-6 shadow-sm"
+  data-focus-target
+  data-focus-groups="all trust"
+>
+  <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
+    <h2 class="tool-review-section-title text-3xl">We tested it</h2>
+    {
+      testedAtLabel && (
+        <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300">
+          Tested on {testedAtLabel}
+        </span>
+      )
+    }
+  </summary>
+  <div class="mt-3">
+    {testEnvironment && <p class="text-sm text-zinc-300">Environment: {testEnvironment}</p>}
+    <TwoColumnChecklistCards
+      left={testSteps.length > 0 ? { title: 'Steps run', items: testSteps } : undefined}
+      right={testFindings.length > 0 ? { title: 'Findings', items: testFindings } : undefined}
+    />
+  </div>
+</details>

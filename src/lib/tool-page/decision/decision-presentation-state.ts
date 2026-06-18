@@ -1,0 +1,47 @@
+import { buildToolPageQuickJumpLinksView } from '@/lib/tool-page/navigation/quick-jump-links-view';
+import { buildToolPageWorkflowFitVisibility } from '@/lib/tool-page/policy/workflow-fit-visibility';
+import type { buildToolPageDecisionUtilityState } from '@/lib/tool-page/decision/decision-utility';
+import type { buildToolPageProsConsView } from '@/lib/tool-page/presentation/pros-cons-view';
+import type { buildToolPageNavigationState } from '@/lib/tool-page/navigation/navigation-state';
+
+interface BuildToolPageDecisionPresentationStateInput {
+  categorySlug: string | null;
+  hasGettingStarted: boolean;
+  workflowFitCardsCount: number;
+  workflowFitHighlightsCount: number;
+  decisionUtilityState: ReturnType<typeof buildToolPageDecisionUtilityState>;
+  prosConsView: ReturnType<typeof buildToolPageProsConsView>;
+  quickJumpLinks: ReturnType<typeof buildToolPageNavigationState>['quickJumpLinks'];
+}
+
+export function buildToolPageDecisionPresentationState(
+  input: BuildToolPageDecisionPresentationStateInput
+): {
+  showWorkflowFitSection: boolean;
+  shouldShowDecisionUtilitySection: boolean;
+  shouldShowPracticalOutcomes: boolean;
+  hasUserSignalProsCons: boolean;
+  quickJumpLinksView: ReturnType<typeof buildToolPageQuickJumpLinksView>;
+} {
+  const { showWorkflowFitSection } = buildToolPageWorkflowFitVisibility({
+    categorySlug: input.categorySlug,
+    hasWorkflowCards: input.workflowFitCardsCount > 0,
+    hasWorkflowHighlights: input.workflowFitHighlightsCount > 0,
+  });
+  const shouldShowDecisionUtilitySection = false;
+  const shouldShowPracticalOutcomes = input.decisionUtilityState.practicalOutcomes.length > 0;
+  const hasUserSignalProsCons =
+    input.prosConsView.userSignalPros.length > 0 || input.prosConsView.userSignalCons.length > 0;
+  const quickJumpLinksView = buildToolPageQuickJumpLinksView({
+    links: input.quickJumpLinks,
+    showWorkflowFitSection,
+  });
+
+  return {
+    showWorkflowFitSection,
+    shouldShowDecisionUtilitySection,
+    shouldShowPracticalOutcomes,
+    hasUserSignalProsCons,
+    quickJumpLinksView,
+  };
+}

@@ -6,7 +6,9 @@ test.describe('Pricing Display Features', () => {
   async function openToolPricing(page: Page, slug: string) {
     await page.goto(`/tool/${slug}`, { waitUntil: 'domcontentloaded' });
     const pricingSection = page.locator('#pricing-plans');
-    await expect(pricingSection, `${slug} should expose a pricing section`).toBeVisible({ timeout: 15_000 });
+    await expect(pricingSection, `${slug} should expose a pricing section`).toBeVisible({
+      timeout: 15_000,
+    });
     return pricingSection;
   }
 
@@ -14,7 +16,9 @@ test.describe('Pricing Display Features', () => {
     const hasTable = (await pricingSection.locator('table').count()) > 0;
     const hasGridCards = (await pricingSection.locator('.grid > *').count()) > 0;
     const hasFallbackSnapshot =
-      (await pricingSection.getByText(/Structured pricing table is unavailable|Varies by plan/i).count()) > 0;
+      (await pricingSection
+        .getByText(/Structured pricing table is unavailable|Varies by plan/i)
+        .count()) > 0;
 
     expect(
       hasTable || hasGridCards || hasFallbackSnapshot,
@@ -65,11 +69,16 @@ test.describe('Pricing Display Features', () => {
     const hasTable = (await pricingSection.locator('table').count()) > 0;
 
     if (!hasTable) {
-      await expect(pricingSection.getByText(/Structured pricing table is unavailable|Varies by plan/i).first()).toBeVisible();
+      await expect(
+        pricingSection.getByText(/Structured pricing table is unavailable|Varies by plan/i).first()
+      ).toBeVisible();
       return;
     }
 
     const unitMentions = await pricingSection.getByText(/per\s+[a-z]+/i).count();
-    expect(unitMentions, 'Expected at least one unit label in structured pricing rows').toBeGreaterThan(0);
+    expect(
+      unitMentions,
+      'Expected at least one unit label in structured pricing rows'
+    ).toBeGreaterThan(0);
   });
 });

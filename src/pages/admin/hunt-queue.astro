@@ -38,12 +38,18 @@ for (const row of fairnessRows || []) {
   const source = row.source || 'unknown';
   const existing = sourceBreakdown.get(source) || { count: 0, oldestCreatedAt: null };
   existing.count += 1;
-  if (!existing.oldestCreatedAt || new Date(row.created_at).getTime() < new Date(existing.oldestCreatedAt).getTime()) {
+  if (
+    !existing.oldestCreatedAt ||
+    new Date(row.created_at).getTime() < new Date(existing.oldestCreatedAt).getTime()
+  ) {
     existing.oldestCreatedAt = row.created_at;
   }
   sourceBreakdown.set(source, existing);
 
-  if (!oldestPendingAt || new Date(row.created_at).getTime() < new Date(oldestPendingAt).getTime()) {
+  if (
+    !oldestPendingAt ||
+    new Date(row.created_at).getTime() < new Date(oldestPendingAt).getTime()
+  ) {
     oldestPendingAt = row.created_at;
   }
 }
@@ -53,7 +59,10 @@ const fairnessSources = Array.from(sourceBreakdown.entries())
     source,
     count: data.count,
     oldestHours: data.oldestCreatedAt
-      ? Math.max(0, Math.round((Date.now() - new Date(data.oldestCreatedAt).getTime()) / (1000 * 60 * 60)))
+      ? Math.max(
+          0,
+          Math.round((Date.now() - new Date(data.oldestCreatedAt).getTime()) / (1000 * 60 * 60))
+        )
       : 0,
   }))
   .sort((a, b) => b.count - a.count)
@@ -182,9 +191,11 @@ const statusLabels: Record<string, { label: string; color: string }> = {
         <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div class="text-xs uppercase tracking-wide text-slate-500">Top source share</div>
           <div class="mt-1 text-xl font-semibold text-slate-900">
-            {fairnessSources[0]
-              ? `${Math.round((fairnessSources[0].count / Math.max(1, stats.pending + stats.claimed + stats.processing)) * 100)}%`
-              : '0%'}
+            {
+              fairnessSources[0]
+                ? `${Math.round((fairnessSources[0].count / Math.max(1, stats.pending + stats.claimed + stats.processing)) * 100)}%`
+                : '0%'
+            }
           </div>
         </div>
         <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">

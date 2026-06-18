@@ -9,23 +9,23 @@
  */
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Logo from '@/components/Logo.astro';
-import ScoreBadge from '@/components/ScoreBadge.astro';
-import PricingBadge from '@/components/PricingBadge.astro';
-import CompareKeyDifferencesTable from '@/components/CompareKeyDifferencesTable.astro';
-import AffiliateButton from '@/components/AffiliateButton.astro';
-import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
-import ProsCons from '@/components/ProsCons.astro';
-import TrustBar from '@/components/TrustBar.astro';
-import AudienceFitTable from '@/components/AudienceFitTable.astro';
-import MigrationDirectionCards from '@/components/MigrationDirectionCards.astro';
-import SwitchReasonsCards from '@/components/SwitchReasonsCards.astro';
-import CompareSuggestionsGrid from '@/components/CompareSuggestionsGrid.astro';
-import ChooseIfCards from '@/components/ChooseIfCards.astro';
-import ComparePricingCrossoverSection from '@/components/ComparePricingCrossoverSection.astro';
-import CompareFeatureComparisonSection from '@/components/CompareFeatureComparisonSection.astro';
-import CompareQuickLinks from '@/components/CompareQuickLinks.astro';
-import CompareVerdictSection from '@/components/CompareVerdictSection.astro';
+import Logo from '@/components/shared/Logo.astro';
+import ScoreBadge from '@/components/shared/ScoreBadge.astro';
+import PricingBadge from '@/components/pricing/PricingBadge.astro';
+import CompareKeyDifferencesTable from '@/components/compare/CompareKeyDifferencesTable.astro';
+import AffiliateButton from '@/components/shared/AffiliateButton.astro';
+import AffiliateDisclosure from '@/components/shared/AffiliateDisclosure.astro';
+import ProsCons from '@/components/tool-page/ProsCons.astro';
+import TrustBar from '@/components/tool-page/TrustBar.astro';
+import AudienceFitTable from '@/components/tool-page/AudienceFitTable.astro';
+import MigrationDirectionCards from '@/components/shared/MigrationDirectionCards.astro';
+import SwitchReasonsCards from '@/components/shared/SwitchReasonsCards.astro';
+import CompareSuggestionsGrid from '@/components/compare/CompareSuggestionsGrid.astro';
+import ChooseIfCards from '@/components/tool-page/ChooseIfCards.astro';
+import ComparePricingCrossoverSection from '@/components/compare/ComparePricingCrossoverSection.astro';
+import CompareFeatureComparisonSection from '@/components/compare/CompareFeatureComparisonSection.astro';
+import CompareQuickLinks from '@/components/compare/CompareQuickLinks.astro';
+import CompareVerdictSection from '@/components/compare/CompareVerdictSection.astro';
 import { supabase } from '@/lib/supabase';
 import { validateAdminAuth } from '@/lib/auth';
 import {
@@ -64,7 +64,8 @@ const canUseAdminPreview = wantsAdminPreview ? await validateAdminAuth(Astro.coo
 const snapshotReadEnabled =
   String(import.meta.env.COMPARE_SNAPSHOT_READ_ENABLED || 'false').toLowerCase() === 'true';
 const snapshotDraftPreviewEnabled =
-  String(import.meta.env.COMPARE_SNAPSHOT_DRAFT_PREVIEW_ENABLED || 'false').toLowerCase() === 'true';
+  String(import.meta.env.COMPARE_SNAPSHOT_DRAFT_PREVIEW_ENABLED || 'false').toLowerCase() ===
+  'true';
 const snapshotSpecKey = Astro.url.searchParams.get('spec');
 
 let selectedSnapshot: any = null;
@@ -266,7 +267,9 @@ let scoreB = Number(toolB.avg_score || 0);
 let winner: 'A' | 'B' | 'tie' = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'tie';
 
 if (selectedSnapshot?.snapshot_json) {
-  const snapshotWinner = String(selectedSnapshot.snapshot_json?.verdict?.winner || '').toLowerCase();
+  const snapshotWinner = String(
+    selectedSnapshot.snapshot_json?.verdict?.winner || ''
+  ).toLowerCase();
   if (snapshotWinner === toolA.slug.toLowerCase() || snapshotWinner === 'a') winner = 'A';
   else if (snapshotWinner === toolB.slug.toLowerCase() || snapshotWinner === 'b') winner = 'B';
   else if (snapshotWinner === 'depends' || snapshotWinner === 'tie') winner = 'tie';
@@ -474,9 +477,10 @@ const formatDate = (value?: string | null): string | null => {
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
-const latestCompareUpdate = [toolA.updated_at, toolB.updated_at]
-  .filter((value): value is string => Boolean(value))
-  .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
+const latestCompareUpdate =
+  [toolA.updated_at, toolB.updated_at]
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
 const compareCheckedLabel = formatDate(latestCompareUpdate);
 const hasAffiliateLinks = Boolean(offerA?.is_affiliate || offerB?.is_affiliate);
 const compareTrustStatus: 'Source-backed' | 'Needs confirmation' = compareCheckedLabel
@@ -503,16 +507,18 @@ const compareSourcesCountFromSnapshot = (() => {
   return new Set(allCitations).size;
 })();
 const compareSourcesCount =
-  compareSourcesCountFromSnapshot > 0 ? compareSourcesCountFromSnapshot : compareSourcesCountFromReviews;
+  compareSourcesCountFromSnapshot > 0
+    ? compareSourcesCountFromSnapshot
+    : compareSourcesCountFromReviews;
 const comparisonDecisionText = curatedVerdict
   ? curatedVerdict
   : typeof selectedSnapshot?.snapshot_json?.verdict?.rationale === 'string'
     ? selectedSnapshot.snapshot_json.verdict.rationale
-  : winner === 'A'
-    ? `${toolA.name} is the stronger default choice for most buyers in this matchup.`
-    : winner === 'B'
-      ? `${toolB.name} is the stronger default choice for most buyers in this matchup.`
-      : `Both tools can work; choose based on workflow fit and constraints.`;
+    : winner === 'A'
+      ? `${toolA.name} is the stronger default choice for most buyers in this matchup.`
+      : winner === 'B'
+        ? `${toolB.name} is the stronger default choice for most buyers in this matchup.`
+        : `Both tools can work; choose based on workflow fit and constraints.`;
 const comparisonBestFor =
   winner === 'A'
     ? `${toolA.name} if you value its stronger overall fit in this comparison.`
@@ -803,10 +809,24 @@ const schemas = [
           <ChooseIfCards
             columns={[
               ...(chooseAIf.length > 0
-                ? [{ name: toolA.name, logoUrl: toolA.logo_url, reasons: chooseAIf, tone: 'emerald' as const }]
+                ? [
+                    {
+                      name: toolA.name,
+                      logoUrl: toolA.logo_url,
+                      reasons: chooseAIf,
+                      tone: 'emerald' as const,
+                    },
+                  ]
                 : []),
               ...(chooseBIf.length > 0
-                ? [{ name: toolB.name, logoUrl: toolB.logo_url, reasons: chooseBIf, tone: 'sky' as const }]
+                ? [
+                    {
+                      name: toolB.name,
+                      logoUrl: toolB.logo_url,
+                      reasons: chooseBIf,
+                      tone: 'sky' as const,
+                    },
+                  ]
                 : []),
             ]}
           />

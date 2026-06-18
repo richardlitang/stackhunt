@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  normalizeComparePair,
-  toClaimList,
-  toEvidenceRefs,
-} from '@/lib/compiler/snapshot-helpers';
+import { normalizeComparePair, toClaimList, toEvidenceRefs } from '@/lib/compiler/snapshot-helpers';
 
 describe('snapshot helpers', () => {
   it('normalizes compare pair ordering', () => {
