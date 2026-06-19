@@ -44,3 +44,6 @@ logs
 /blob-report/
 /playwright/.cache/
 tests/e2e/screenshots/
+
+# git worktrees created by Claude Code
+.claude/worktrees/
