@@ -4,6 +4,7 @@ import { getScoreColor } from '@/lib/utils';
 export interface ToolVerdict {
   score: number | null;
   scoreLabel: string | null;
+  recommendationTerm: 'Strong buy' | 'Consider' | 'Weak fit' | 'Avoid' | null;
   scoreColor: ReturnType<typeof getScoreColor> | null;
   verdictLine: string | null;
   lastVerified: string | null;
@@ -29,6 +30,16 @@ export function resolveToolVerdict(input: {
   // Score label and color
   const scoreColor = score != null ? getScoreColor(score) : null;
   const scoreLabel = scoreColor ? scoreColor.label : null;
+  const recommendationTerm =
+    score == null
+      ? null
+      : score >= 70
+        ? 'Strong buy'
+        : score >= 50
+          ? 'Consider'
+          : score >= 30
+            ? 'Weak fit'
+            : 'Avoid';
 
   // Verdict line: truncate to 140 chars, return null if empty or no terminal punctuation
   const t = truncateVerdict(verdictText, 140);
@@ -43,5 +54,5 @@ export function resolveToolVerdict(input: {
       })
     : null;
 
-  return { score, scoreLabel, scoreColor, verdictLine, lastVerified };
+  return { score, scoreLabel, recommendationTerm, scoreColor, verdictLine, lastVerified };
 }

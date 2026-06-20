@@ -1,0 +1,187 @@
+---
+import type { ToolVerdict } from '@/lib/tool-page/tool-verdict';
+
+interface Props {
+  verdict: ToolVerdict;
+  bestFor: string | null;
+  notFor: string | null;
+  mainRisk: string | null;
+  upgradeTrigger: string | null;
+  toolName: string;
+  visitHref: string | null;
+  logoUrl?: string | null;
+  sourceCount?: number | null;
+}
+
+const {
+  verdict,
+  bestFor,
+  notFor,
+  mainRisk,
+  upgradeTrigger,
+  toolName,
+  visitHref,
+  logoUrl = null,
+  sourceCount = null,
+} = Astro.props;
+
+const scoreAriaLabel =
+  verdict.score !== null && verdict.scoreLabel
+    ? `Score ${verdict.score} of 100, ${verdict.scoreLabel}`
+    : undefined;
+const scoreCircumference = 2 * Math.PI * 48;
+const scoreDashOffset =
+  verdict.score === null ? scoreCircumference : scoreCircumference * (1 - verdict.score / 100);
+const decisions = [
+  { label: 'Best for', value: bestFor, labelClass: 'text-emerald-300' },
+  { label: 'Not for', value: notFor, labelClass: 'text-paper-muted' },
+  { label: 'Main risk', value: mainRisk, labelClass: 'text-rose-300' },
+  { label: 'Upgrade trigger', value: upgradeTrigger, labelClass: 'text-amber-300' },
+].filter((decision) => decision.value);
+---
+
+<section
+  class="relative overflow-hidden rounded-[1.75rem] border border-ink-border bg-ink-900 p-5 text-paper shadow-2xl shadow-black/30 sm:p-7"
+  aria-labelledby="tool-verdict-title"
+>
+  <div
+    class="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-paper/20 to-transparent"
+  >
+  </div>
+
+  <div class="grid items-center gap-7 lg:grid-cols-[8.5rem_minmax(0,1fr)]">
+    {
+      verdict.score !== null && verdict.scoreColor && (
+        <div class="mx-auto flex flex-col items-center gap-3 lg:mx-0">
+          <div
+            class:list={[
+              'relative grid size-32 place-items-center rounded-full bg-ink-950',
+              verdict.scoreColor.text,
+            ]}
+            role="img"
+            aria-label={scoreAriaLabel}
+          >
+            <svg
+              class="absolute inset-0 size-full -rotate-90"
+              viewBox="0 0 112 112"
+              aria-hidden="true"
+            >
+              <circle
+                cx="56"
+                cy="56"
+                r="48"
+                fill="none"
+                stroke="currentColor"
+                stroke-opacity="0.12"
+                stroke-width="5"
+              />
+              <circle
+                cx="56"
+                cy="56"
+                r="48"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-width="5"
+                stroke-dasharray={scoreCircumference}
+                stroke-dashoffset={scoreDashOffset}
+              />
+            </svg>
+            <span class="font-mono text-4xl font-semibold tabular-nums tracking-[-0.06em]">
+              {verdict.score}
+            </span>
+          </div>
+          <p
+            class:list={[
+              'font-mono text-[11px] uppercase tracking-[0.16em]',
+              verdict.scoreColor.text,
+            ]}
+          >
+            {verdict.scoreLabel}
+            {verdict.recommendationTerm && <span> · {verdict.recommendationTerm}</span>}
+          </p>
+        </div>
+      )
+    }
+
+    <div class="min-w-0">
+      <div class="flex items-center gap-3">
+        {
+          logoUrl && (
+            <img
+              src={logoUrl}
+              alt=""
+              class="size-9 rounded-xl border border-paper/10 bg-paper/5 object-contain p-1.5"
+              loading="eager"
+            />
+          )
+        }
+        <div>
+          <p class="font-mono text-[10px] uppercase tracking-[0.22em] text-paper-muted">
+            Decision instrument
+          </p>
+          <h2
+            id="tool-verdict-title"
+            class="mt-1 font-grotesk text-xl font-semibold tracking-tight"
+          >
+            {toolName}
+          </h2>
+        </div>
+      </div>
+
+      {
+        verdict.verdictLine && (
+          <p class="mt-5 max-w-3xl font-grotesk text-xl leading-snug tracking-[-0.02em] text-paper sm:text-2xl">
+            {verdict.verdictLine}
+          </p>
+        )
+      }
+
+      {
+        decisions.length > 0 && (
+          <ul class="mt-6 grid gap-px overflow-hidden rounded-2xl border border-ink-border bg-ink-border sm:grid-cols-2">
+            {decisions.map((decision) => (
+              <li class="bg-ink-800 p-4">
+                <p
+                  class:list={[
+                    'font-mono text-[10px] font-medium uppercase tracking-[0.17em]',
+                    decision.labelClass,
+                  ]}
+                >
+                  {decision.label}
+                </p>
+                <p class="mt-2 text-sm leading-6 text-paper">{decision.value}</p>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+
+      <div
+        class="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-ink-border pt-4"
+      >
+        {
+          verdict.lastVerified && (
+            <p class="font-mono text-[10px] uppercase tracking-[0.14em] text-paper-muted">
+              Last verified {verdict.lastVerified}
+              {sourceCount !== null && sourceCount > 0 && <span> · {sourceCount} sources</span>}
+            </p>
+          )
+        }
+        {
+          visitHref && (
+            <a
+              data-verdict-visit
+              href={visitHref}
+              target="_blank"
+              rel="sponsored noopener noreferrer"
+              class="ml-auto rounded-sm text-sm font-medium text-signal underline decoration-signal/40 underline-offset-4 transition-colors hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-4 focus-visible:ring-offset-ink-900 motion-reduce:transition-none"
+            >
+              Visit {toolName} <span aria-hidden="true">↗</span>
+            </a>
+          )
+        }
+      </div>
+    </div>
+  </div>
+</section>

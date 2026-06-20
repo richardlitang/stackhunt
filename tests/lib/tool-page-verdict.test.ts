@@ -11,6 +11,7 @@ describe('resolveToolVerdict', () => {
     });
     expect(v.score).toBe(82);
     expect(v.scoreLabel).toBe('Good');
+    expect(v.recommendationTerm).toBe('Strong buy');
     expect(v.scoreColor?.text).toBe('text-green-400');
   });
 
