@@ -309,3 +309,17 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
 - **Open dependency:** Phase 0.1 tokens may be delivered by the homepage plan first — Task 0.1 Step 1 handles the idempotency.
 - **Data risk:** Task 1.1 is a hard gate — if score coverage is poor, Path B (1.3) is mandatory before 3.1 can show a number; 3.1 already handles `score === null` gracefully.
 - **Decision recorded:** decision-authority (not affiliate) — enforced by the CTA-demotion constraint and Task 3.2.
+
+---
+
+## Approved composition (Phase 0.2 — approved 2026-06-20)
+
+Hero verdict instrument, locked:
+- **Signature element:** circular score dial — integer score in IBM Plex Mono, arc + numerals colored by `getScoreColor(score)` (functional scale, e.g. green for 82). NOT brand amber.
+- **Verdict label:** `getScoreColor` word + buy term, e.g. "Good · Strong buy" (KEEP the buy term).
+- **Sub-scores:** small labeled bars from `base_score_breakdown` (Features/UX/Value/Support) under the dial. Gated on breakdown data (Task 1.1).
+- **Verdict line:** one sentence leads the text column; tool name in Space Grotesk.
+- **Decision strip:** Best for / Not for / Main risk (rose label) / Upgrade trigger (amber label) in one row.
+- **Freshness:** single "Last verified <date> · N sources" line (replaces all scattered hedges).
+- **CTA demoted:** Compare / Add to stack as ghost buttons; "Visit <domain> ↗" as a small amber underline link — never a full-width filled bar above the verdict.
+- Mobile: text + dial stack; decision strip becomes 2×2.
