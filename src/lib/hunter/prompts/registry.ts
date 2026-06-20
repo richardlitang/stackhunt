@@ -29,12 +29,12 @@ const EXTRACTION_FINGERPRINT_INPUT = {
 } as Parameters<typeof buildExtractionPrompt>[0];
 
 export const PROMPT_VERSIONS = {
-  synthesis: 'synthesis-v1',
+  synthesis: 'synthesis-v2',
   extraction: 'extraction-v1',
 } as const;
 
 export const PROMPT_FINGERPRINTS: Record<keyof typeof PROMPT_VERSIONS, string> = {
-  synthesis: '2d9de9246ca93794ebac9f86f7c83979ded6c8359b43f8bd71dfebd32d588f04',
+  synthesis: '54a611309b9fa8093974a59e67e9b7fafc60e9abd8277c14ccfa63c07335b8a4',
   extraction: 'f49b5de326b33f31056379eb812ce12a8494255556bcb272b2216bd59b21d7f8',
 };
 

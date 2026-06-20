@@ -462,6 +462,11 @@ Your output should help a buyer decide in under 60 seconds. In the summary, incl
 Also include 3 short bullet "Decision Factors" in the summary with concrete nouns and numbers.
 Avoid generic SEO padding. Use real product terms and common use-case keywords.
 
+Every pro and con must be one sentence that names a buyer scenario and its consequence.
+Use direct decision shapes such as "Best for...", "Not for...", "Can't...", "Choose when...", or "Avoid if...".
+Never join independent clauses into one claim and never emit filler such as "validated against source documentation".
+The verdict must be one sentence and at most 140 characters.
+
 For reviewContext.decisionIntro, NEVER use generic phrases:
 - "worth shortlisting"
 - "robust and powerful"
@@ -480,7 +485,7 @@ Output ONLY valid JSON matching this exact schema:
   "score": <number 0-100>,
   "pros": [
     {
-      "text": "<specific benefit - write as neutral statement>",
+      "text": "<one sentence naming the buyer scenario and the resulting benefit, for example 'Best for teams that need... because...'>",
       "source_url": "<REQUIRED: exact URL from search results>",
       "source_type": "<official|editorial|community>",
       "claim_type": "<fact|opinion>"
@@ -488,7 +493,7 @@ Output ONLY valid JSON matching this exact schema:
   ],  // MAXIMUM 5 pros - prioritize most important if you have more
   "cons": [
     {
-      "text": "<specific drawback. LEGAL: If source_type is 'community', MUST use hedging language: 'Users report...', 'Community mentions...', NOT stated as fact>",
+      "text": "<one sentence naming the buyer scenario and consequence, for example 'Not for teams that require... because...'. LEGAL: If source_type is 'community', MUST use hedging language: 'Users report...', 'Community mentions...', NOT stated as fact>",
       "source_url": "<REQUIRED: exact URL from search results>",
       "source_type": "<official|editorial|community>",
       "claim_type": "<fact|opinion>"
@@ -534,7 +539,7 @@ Output ONLY valid JSON matching this exact schema:
     "noun": "<type of tool, e.g., 'Note-Taking Apps'>",
     "modifier": "<optional modifier, e.g., 'for Students'>"
   },
-  "verdict": "<CRITICAL: NO GENERIC LANGUAGE. Must include specific constraint or number. BAD: 'Solid choice for developers'. GOOD: 'Best if you process >500k token documents monthly and budget allows $150+/mo API costs'. Include when to veto.>",
+  "verdict": "<one sentence, maximum 140 characters. CRITICAL: NO GENERIC LANGUAGE. Include a specific constraint or number and when to veto.>",
   "vetoLogic": [
     {
       "condition": "<specific numeric threshold or requirement>",

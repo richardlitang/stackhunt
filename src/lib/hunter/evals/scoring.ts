@@ -8,6 +8,8 @@ export interface EvalGolden {
   maxCoverageGaps: number;
   mustMentionAny: string[][];
   mustNotContain: string[];
+  requireDecisionShapedClaims?: boolean;
+  maxVerdictCharacters?: number;
 }
 
 export interface EvalMetrics {
@@ -42,6 +44,28 @@ export function reviewText(analysis: Partial<HunterAnalysis>): string {
     .join('\n');
 
   return `${analysis.summary || ''}\n${claims}`.toLowerCase();
+}
+
+function claimText(claim: HunterAnalysis['pros'][number]): string {
+  return typeof claim === 'string' ? claim : claim?.text || '';
+}
+
+function isSingleSentence(text: string): boolean {
+  const sentenceEndings = text.match(/[.!?](?=\s|$)/g) || [];
+  return sentenceEndings.length === 1 && /[.!?]$/.test(text.trim());
+}
+
+function isDecisionShaped(text: string): boolean {
+  const normalized = text.trim();
+  const namesScenario =
+    /^(best for|not for|can(?:not|'t)|choose (?:when|if)|avoid (?:when|if)|teams? (?:that|who)|organizations? (?:that|who))/i.test(
+      normalized
+    );
+  const namesConsequence =
+    /\b(because|so that|which means|without|unless|when|if|requires?|cannot|can't|limits?|blocks?|adds?|costs?)\b/i.test(
+      normalized
+    );
+  return namesScenario && namesConsequence;
 }
 
 export function scoreAnalysisAgainstGolden(input: {
@@ -95,6 +119,32 @@ export function scoreAnalysisAgainstGolden(input: {
     if (text.includes(banned.toLowerCase())) {
       failures.push(`contains banned phrase: ${banned}`);
     }
+  }
+
+  if (input.golden.requireDecisionShapedClaims) {
+    for (const [groupName, claims] of [
+      ['pros', input.analysis.pros || []],
+      ['cons', input.analysis.cons || []],
+    ] as const) {
+      claims.forEach((claim, index) => {
+        const text = claimText(claim);
+        if (!isSingleSentence(text)) {
+          failures.push(`${groupName}[${index}] must be one sentence`);
+        }
+        if (!isDecisionShaped(text)) {
+          failures.push(`${groupName}[${index}] must name a buyer scenario and consequence`);
+        }
+      });
+    }
+  }
+
+  const maxVerdictCharacters = input.golden.maxVerdictCharacters;
+  if (
+    maxVerdictCharacters !== undefined &&
+    typeof input.analysis.verdict === 'string' &&
+    input.analysis.verdict.length > maxVerdictCharacters
+  ) {
+    failures.push(`verdict exceeds ${maxVerdictCharacters} characters`);
   }
 
   return { failures, metrics };
