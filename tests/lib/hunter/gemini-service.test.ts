@@ -544,8 +544,8 @@ describe('GeminiService.synthesize', () => {
     expect(firstCon.claim_type).toBe('opinion');
   });
 
-  it('retries evidence stage when claims are generic and accepts specific retry', async () => {
-    const genericEvidence = buildEvidencePayload({
+  it('drops generic evidence claims and keeps specific ones without retrying', async () => {
+    const evidence = buildEvidencePayload({
       pros: [
         {
           text: 'Easy to use',
@@ -554,10 +554,6 @@ describe('GeminiService.synthesize', () => {
           claim_type: 'opinion',
           confidence: 0.8,
         },
-      ],
-    });
-    const specificEvidence = buildEvidencePayload({
-      pros: [
         {
           text: 'Supports scoped API keys and role-based access controls',
           source_url: 'https://example.com/docs/security',
@@ -569,16 +565,12 @@ describe('GeminiService.synthesize', () => {
     });
     mockGenerateContentWithThinkingFallback
       .mockResolvedValueOnce({
-        text: JSON.stringify(genericEvidence),
+        text: JSON.stringify(evidence),
         usageMetadata: { totalTokenCount: 110 },
       })
       .mockResolvedValueOnce({
-        text: JSON.stringify(specificEvidence),
-        usageMetadata: { totalTokenCount: 120 },
-      })
-      .mockResolvedValueOnce({
         text: JSON.stringify(buildValidPayload()),
-        usageMetadata: { totalTokenCount: 130 },
+        usageMetadata: { totalTokenCount: 120 },
       });
 
     const service = new GeminiService({ apiKey: 'test-key' });
@@ -596,12 +588,17 @@ describe('GeminiService.synthesize', () => {
       strictClaimSourcing: true,
     });
 
-    expect(mockGenerateContentWithThinkingFallback).toHaveBeenCalledTimes(3);
-    expect(result.tokensUsed).toBe(360);
+    // Single pass — no retry. The generic claim is dropped, the specific one kept.
+    expect(mockGenerateContentWithThinkingFallback).toHaveBeenCalledTimes(2);
+    const prosTexts = (result.analysis.pros as Array<{ text?: string }>).map((p) =>
+      (p.text || '').toLowerCase()
+    );
+    expect(prosTexts.some((t) => t.includes('easy to use'))).toBe(false);
+    expect(prosTexts.some((t) => /scoped api keys|role-based access/.test(t))).toBe(true);
   });
 
-  it('rewrites generic evidence claims into specific fallback phrasing', async () => {
-    const genericEvidence = buildEvidencePayload({
+  it('drops generic claims instead of substituting canned phrasing', async () => {
+    const evidence = buildEvidencePayload({
       pros: [
         {
           text: 'Solid choice for teams',
@@ -609,6 +606,13 @@ describe('GeminiService.synthesize', () => {
           source_type: 'official',
           claim_type: 'opinion',
           confidence: 0.7,
+        },
+        {
+          text: 'Supports SSO on all paid tiers',
+          source_url: 'https://example.com/security',
+          source_type: 'official',
+          claim_type: 'fact',
+          confidence: 0.8,
         },
       ],
       cons: [
@@ -619,20 +623,23 @@ describe('GeminiService.synthesize', () => {
           claim_type: 'opinion',
           confidence: 0.62,
         },
+        {
+          text: 'No phone support below the enterprise plan',
+          source_url: 'https://independent.example.org/support',
+          source_type: 'editorial',
+          claim_type: 'fact',
+          confidence: 0.66,
+        },
       ],
     });
     mockGenerateContentWithThinkingFallback
       .mockResolvedValueOnce({
-        text: JSON.stringify(genericEvidence),
+        text: JSON.stringify(evidence),
         usageMetadata: { totalTokenCount: 140 },
       })
       .mockResolvedValueOnce({
         text: JSON.stringify(buildValidPayload()),
         usageMetadata: { totalTokenCount: 150 },
-      })
-      .mockResolvedValueOnce({
-        text: JSON.stringify(buildValidPayload()),
-        usageMetadata: { totalTokenCount: 151 },
       });
 
     const service = new GeminiService({ apiKey: 'test-key' });
@@ -650,12 +657,19 @@ describe('GeminiService.synthesize', () => {
       strictClaimSourcing: true,
     });
 
-    const firstPro = result.analysis.pros[0] as { text?: string };
-    const firstCon = result.analysis.cons[0] as { text?: string };
-    expect(firstPro.text?.toLowerCase()).not.toContain('solid choice for teams');
-    expect(firstCon.text?.toLowerCase()).not.toContain('good value overall');
-    expect(firstPro.text || '').toMatch(/(api|supports?|limit|constraint|requires?)/i);
-    expect(firstCon.text || '').toMatch(/(supports?|limit|constraint|requires?|users report)/i);
+    const prosTexts = (result.analysis.pros as Array<{ text?: string }>).map((p) =>
+      (p.text || '').toLowerCase()
+    );
+    const consTexts = (result.analysis.cons as Array<{ text?: string }>).map((c) =>
+      (c.text || '').toLowerCase()
+    );
+    // Generic claims are dropped...
+    expect(prosTexts.some((t) => t.includes('solid choice'))).toBe(false);
+    expect(consTexts.some((t) => t.includes('good value overall'))).toBe(false);
+    // ...the specific ones survive, and no canned filler is substituted.
+    expect(prosTexts.some((t) => /sso/.test(t))).toBe(true);
+    expect(consTexts.some((t) => /phone support|enterprise/.test(t))).toBe(true);
+    expect(prosTexts.join(' ')).not.toContain('users report useful workflow support');
   });
 
   it('injects alternative signal weighting block into synthesis prompts', async () => {

@@ -16,6 +16,11 @@ import {
   GeminiKnowledgeCardSchema,
   type KnowledgeCard,
 } from '../../knowledge-card';
+import {
+  enforceDecisionUsefulClaim,
+  hasSpecificitySignal,
+  rewriteLowSpecificityClaim,
+} from '../content-policy/claim-shaping';
 import { AnalysisSchema, type HunterAnalysis } from '../types';
 import { classifyGeminiError } from '../errors';
 import { geminiCircuit } from './circuit-breaker';
@@ -881,90 +886,6 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
     // Fix common AI mistakes: source_type and claim_type confusion
     // AI sometimes puts "fact"/"opinion" in source_type instead of claim_type
     const validSourceTypes = ['official', 'editorial', 'community'];
-    const GENERIC_CLAIM_PATTERNS = [
-      /\beasy to use\b/i,
-      /\buser[- ]?friendly\b/i,
-      /\bpowerful\b/i,
-      /\brobust\b/i,
-      /\bscalable\b/i,
-      /\bgreat support\b/i,
-      /\bgood value\b/i,
-      /\bfeature[- ]?rich\b/i,
-      /\bgreat for\b/i,
-      /\bsolid choice\b/i,
-      /\bworth (?:considering|shortlisting)\b/i,
-    ];
-    const hasSpecificitySignal = (text: string): boolean => {
-      const normalized = text.trim().toLowerCase();
-      if (!normalized) return false;
-      if (/\d/.test(normalized)) return true;
-      if (
-        /\b(no|not|without|only|limited|limit|limits|constraint|constraints|requires?|supports?|lacks?)\b/.test(
-          normalized
-        )
-      ) {
-        return true;
-      }
-      if (
-        /\b(api|sso|sla|gdpr|soc ?2|hipaa|oauth|export|import|linux|windows|ios|android)\b/.test(
-          normalized
-        )
-      ) {
-        return true;
-      }
-      return false;
-    };
-    const lowercaseFirst = (text: string): string =>
-      text.length > 0 ? `${text.charAt(0).toLowerCase()}${text.slice(1)}` : text;
-    const isGenericClaim = (text: string): boolean => {
-      const normalized = text.trim();
-      if (normalized.length < 18) return true;
-      return GENERIC_CLAIM_PATTERNS.some((pattern) => pattern.test(normalized));
-    };
-    const rewriteLowSpecificityClaim = (
-      text: string,
-      label: 'pros' | 'cons',
-      sourceType: 'official' | 'editorial' | 'community'
-    ): string => {
-      if (!isGenericClaim(text) && hasSpecificitySignal(text)) return text;
-      if (label === 'pros') {
-        return sourceType === 'official'
-          ? 'Supports core workflows, with plan limits and feature constraints documented in the source.'
-          : 'Users report useful workflow support, but feature limits and constraints should be verified in source documentation.';
-      }
-      if (sourceType === 'community') {
-        return 'Users report workflow friction and practical limits; verify documented constraints before rollout.';
-      }
-      return 'Reports indicate constraints or workflow limits that should be validated against source documentation.';
-    };
-    const DECISION_SCENARIO_SIGNAL_REGEX =
-      /\b(best for|not for|avoid if|switch (?:when|if)|if|when|unless|team|teams|startup|enterprise|small business|solo|agency|developer|marketer|ops|compliance|budget|rollout|migration)\b/i;
-    const DECISION_CONSEQUENCE_SIGNAL_REGEX =
-      /\b(block|blocker|risk|trade[- ]?off|means|impact|forces|requires|cannot|can't|only on|tier|plan|overage|limit|limited)\b/i;
-    const enforceDecisionUsefulClaim = (
-      text: string,
-      label: 'pros' | 'cons',
-      sourceType: 'official' | 'editorial' | 'community'
-    ): string => {
-      let next = text.trim().replace(/\s+/g, ' ');
-      if (!next) return next;
-      if (!DECISION_SCENARIO_SIGNAL_REGEX.test(next)) {
-        next =
-          label === 'pros'
-            ? `Best for teams that need ${lowercaseFirst(next)}`
-            : sourceType === 'community'
-              ? `Users report this can block teams that require ${lowercaseFirst(next)}`
-              : `Can block teams that require ${lowercaseFirst(next)}`;
-      }
-      if (label === 'cons' && !DECISION_CONSEQUENCE_SIGNAL_REGEX.test(next)) {
-        next =
-          sourceType === 'community'
-            ? `Users report rollout risk: ${lowercaseFirst(next)}`
-            : `Rollout risk: ${lowercaseFirst(next)}`;
-      }
-      if (!/[.!?]$/.test(next)) next = `${next}.`;
-      return next;
-    };
     const isValidUrl = (value: unknown): value is string => {
       if (typeof value !== 'string' || !value.trim()) return false;
       try {
@@ -1290,10 +1211,11 @@ Use this to prioritize switchingFrom and vetoLogic alternatives. Treat mention c
             ? rewriteLowSpecificityClaim(c.text, label, c.source_type)
             : String(c.text || '');
         const decisionUsefulText = enforceDecisionUsefulClaim(rewrittenText, label, c.source_type);
-        if (!hasSpecificitySignal(decisionUsefulText)) {
-          throw new Error(
-            `Evidence packet invalid: ${label}.text must be specific and decision-useful (avoid generic marketing claims)`
-          );
+        // Drop generic/unimprovable claims (rewrite returned '' or no specificity
+        // signal survives) rather than failing the whole evidence packet. The
+        // rest of the packet's claims are kept.
+        if (!decisionUsefulText || !hasSpecificitySignal(decisionUsefulText)) {
+          continue;
         }
         const normalizedClaimType =
           c.source_type === 'community' && c.claim_type === 'fact' ? 'opinion' : c.claim_type;
