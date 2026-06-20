@@ -25,16 +25,18 @@
 
 ## Phase 0 — Identity alignment & verdict-instrument composition (DESIGN GATE)
 
-> This phase produces a single approved visual composition for the hero verdict instrument before any production component is built. It exists because the user chose "open to a fresh visual direction" — but the homepage decision-instrument already defines that direction, so this phase *adopts and extends* it rather than inventing a third look. **No Phase 3+ UI task may begin until the prototype in Task 0.2 is approved.**
+> This phase produces a single approved visual composition for the hero verdict instrument before any production component is built. It exists because the user chose "open to a fresh visual direction" — but the homepage decision-instrument already defines that direction, so this phase _adopts and extends_ it rather than inventing a third look. **No Phase 3+ UI task may begin until the prototype in Task 0.2 is approved.**
 
 ### Task 0.1: Ensure identity tokens exist
 
 **Files:**
+
 - Modify: `tailwind.config.js` (`theme.extend.colors`, `theme.extend.fontFamily`)
 - Modify: `src/layouts/BaseLayout.astro` (Google Fonts `<link>`/preload block)
 - Test: `tests/config/theme-tokens.test.ts`
 
 **Interfaces:**
+
 - Produces: Tailwind classes `bg-ink-950 bg-ink-900 bg-ink-800 border-ink-border text-paper text-paper-muted text-signal bg-signal font-grotesk font-mono`.
 
 - [ ] **Step 1: Check if the homepage plan already landed these tokens.** Run `grep -n "ink\|signal\|grotesk" tailwind.config.js`. If all tokens from Global Constraints are present, mark this task complete and skip to Task 0.2. Otherwise continue.
@@ -46,6 +48,7 @@
 ### Task 0.2: Static hero prototype + approval
 
 **Files:**
+
 - Create: `docs/superpowers/plans/proto/tool-hero.html` (throwaway static prototype, deleted after approval)
 
 - [ ] **Step 1:** Build a static HTML prototype of the new hero using the `ink`/`signal`/`getScoreColor`/mono tokens, showing for Linear: logo + name, a **score dial (82, green) with the verdict label**, a one-line verdict sentence, the best-for / not-for / main-risk / upgrade-trigger block, a single "Last verified Jun 16 2026" line, and a **calm secondary** "Visit Linear ↗" text link (not a filled bar). Include a mobile (375px) and desktop (1440px) frame.
@@ -59,9 +62,11 @@
 ### Task 1.1: Audit displayable-score coverage (DATA GATE)
 
 **Files:**
+
 - Create: `scripts/audit-tool-score-coverage.ts`
 
 **Interfaces:**
+
 - Produces: a decision recorded in this plan: **Path A** (scores resolvable from existing data → presentation-only) or **Path B** (must backfill).
 
 - [ ] **Step 1:** Write `scripts/audit-tool-score-coverage.ts` using `supabaseAdmin` from `@/lib/supabase` to print: count of `tools` with non-null `base_score`; count of published `tools` whose related `reviews` have a non-null `score`; and the join coverage (tools with at least one of the two).
@@ -74,54 +79,85 @@
 ### Task 1.2: `resolveToolVerdict()` — pure score+verdict resolver
 
 **Files:**
+
 - Create: `src/lib/tool-page/decision/tool-verdict.ts`
 - Test: `tests/lib/tool-page/decision/tool-verdict.test.ts`
 
 **Interfaces:**
+
 - Consumes: `formatScore`, `truncateVerdict` from `@/lib/homepage`; `getScoreColor` from `@/lib/utils`; tool + reviews shapes from `@/types/database`.
 - Produces:
+
   ```ts
   export interface ToolVerdict {
-    score: number | null;          // resolved 0-100 integer, or null if none
-    scoreLabel: string | null;     // getScoreColor(score).label, or null
+    score: number | null; // resolved 0-100 integer, or null if none
+    scoreLabel: string | null; // getScoreColor(score).label, or null
     scoreColor: ReturnType<typeof getScoreColor> | null;
-    verdictLine: string | null;    // one-sentence verdict, <= 140 chars, no trailing fragment
-    lastVerified: string | null;   // human date or null
+    verdictLine: string | null; // one-sentence verdict, <= 140 chars, no trailing fragment
+    lastVerified: string | null; // human date or null
   }
   export function resolveToolVerdict(input: {
     baseScore: number | null;
-    reviewScores: number[];        // contextual review.score values
+    reviewScores: number[]; // contextual review.score values
     verdictText: string | null;
     lastCheckedISO: string | null;
   }): ToolVerdict;
   ```
+
   Resolution order for `score`: average of `reviewScores` (rounded) if any present, else `baseScore`, else `null`. `verdictLine` = `truncateVerdict(verdictText, 140)`, returning `null` if the result is empty or ends mid-word without terminal punctuation after truncation-cleanup.
 
 - [ ] **Step 1: Write the failing test.**
+
 ```ts
 import { describe, it, expect } from 'vitest';
 import { resolveToolVerdict } from '@/lib/tool-page/decision/tool-verdict';
 
 describe('resolveToolVerdict', () => {
   it('averages review scores over base_score', () => {
-    const v = resolveToolVerdict({ baseScore: 50, reviewScores: [80, 84], verdictText: 'Great for fast teams.', lastCheckedISO: null });
+    const v = resolveToolVerdict({
+      baseScore: 50,
+      reviewScores: [80, 84],
+      verdictText: 'Great for fast teams.',
+      lastCheckedISO: null,
+    });
     expect(v.score).toBe(82);
     expect(v.scoreLabel).toBe('Good');
     expect(v.scoreColor?.text).toBe('text-green-400');
   });
   it('falls back to base_score when no review scores', () => {
-    expect(resolveToolVerdict({ baseScore: 88, reviewScores: [], verdictText: null, lastCheckedISO: null }).score).toBe(88);
+    expect(
+      resolveToolVerdict({
+        baseScore: 88,
+        reviewScores: [],
+        verdictText: null,
+        lastCheckedISO: null,
+      }).score
+    ).toBe(88);
   });
   it('returns null score when nothing resolves', () => {
-    expect(resolveToolVerdict({ baseScore: null, reviewScores: [], verdictText: null, lastCheckedISO: null }).score).toBeNull();
+    expect(
+      resolveToolVerdict({
+        baseScore: null,
+        reviewScores: [],
+        verdictText: null,
+        lastCheckedISO: null,
+      }).score
+    ).toBeNull();
   });
   it('trims verdict to one clean sentence', () => {
-    const v = resolveToolVerdict({ baseScore: 70, reviewScores: [], verdictText: 'Linear is fast and opinionated; it suits product teams who want speed over configurability and dislike Jira.', lastCheckedISO: null });
+    const v = resolveToolVerdict({
+      baseScore: 70,
+      reviewScores: [],
+      verdictText:
+        'Linear is fast and opinionated; it suits product teams who want speed over configurability and dislike Jira.',
+      lastCheckedISO: null,
+    });
     expect(v.verdictLine!.length).toBeLessThanOrEqual(140);
     expect(/[.!?]$/.test(v.verdictLine!)).toBe(true);
   });
 });
 ```
+
 - [ ] **Step 2: Run → FAIL** (`tool-verdict` not found).
 - [ ] **Step 3: Implement** `resolveToolVerdict` per the Interfaces contract.
 - [ ] **Step 4: Run → PASS.**
@@ -130,6 +166,7 @@ describe('resolveToolVerdict', () => {
 ### Task 1.3: (Path B only) score backfill RPC
 
 **Files:**
+
 - Migration via `mcp__supabase__apply_migration` name `backfill_tool_base_score`
 - Modify: `src/lib/hunter/phases/persistence.ts` (persist `base_score` derived from `base_score_breakdown` average on upsert)
 - Test: `tests/lib/hunter/base-score-derivation.test.ts`
@@ -149,20 +186,30 @@ describe('resolveToolVerdict', () => {
 ### Task 2.1: Stop Frankenstein claim prefixing
 
 **Files:**
+
 - Modify: `src/lib/hunter/services/gemini.ts` (`enforceDecisionUsefulClaim`, `rewriteLowSpecificityClaim`, ~924-967)
 - Test: `tests/lib/hunter/claim-shaping.test.ts`
 
 **Interfaces:**
+
 - The two helpers must be exported (or extracted to `src/lib/hunter/content-policy/claim-shaping.ts` and imported back) so they are unit-testable in isolation.
 
 - [ ] **Step 1: Write failing tests** asserting the regression cases:
+
 ```ts
 import { describe, it, expect } from 'vitest';
-import { enforceDecisionUsefulClaim, rewriteLowSpecificityClaim } from '@/lib/hunter/content-policy/claim-shaping';
+import {
+  enforceDecisionUsefulClaim,
+  rewriteLowSpecificityClaim,
+} from '@/lib/hunter/content-policy/claim-shaping';
 
 describe('claim shaping never produces double-clause Frankenstein copy', () => {
   it('does not prefix a claim that already contains a clause verb', () => {
-    const out = enforceDecisionUsefulClaim('reports indicate constraints or workflow limits', 'cons', 'community');
+    const out = enforceDecisionUsefulClaim(
+      'reports indicate constraints or workflow limits',
+      'cons',
+      'community'
+    );
     expect(out).not.toMatch(/block teams that require reports indicate/i);
     expect(out).not.toMatch(/that require .* indicate/i);
   });
@@ -175,14 +222,16 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
   });
 });
 ```
+
 - [ ] **Step 2: Run → FAIL.**
-- [ ] **Step 3: Refactor.** Extract both helpers to `src/lib/hunter/content-policy/claim-shaping.ts`. Replace the prefixing branch: a claim that already begins with a clause/verb phrase is never wrapped in "Can block teams that require …"; instead, if a claim lacks scenario signal AND cannot be cleanly framed (no safe single-clause rewrite), `rewriteLowSpecificityClaim` returns `''` (caller drops it). Keep canned fallbacks only as a last-resort *when zero valid claims survive*, and have callers route dropped claims to the existing low-specificity drop path rather than display.
+- [ ] **Step 3: Refactor.** Extract both helpers to `src/lib/hunter/content-policy/claim-shaping.ts`. Replace the prefixing branch: a claim that already begins with a clause/verb phrase is never wrapped in "Can block teams that require …"; instead, if a claim lacks scenario signal AND cannot be cleanly framed (no safe single-clause rewrite), `rewriteLowSpecificityClaim` returns `''` (caller drops it). Keep canned fallbacks only as a last-resort _when zero valid claims survive_, and have callers route dropped claims to the existing low-specificity drop path rather than display.
 - [ ] **Step 4:** Update `gemini.ts` callers to filter out `''` results before persistence.
 - [ ] **Step 5: Run → PASS. Commit** `fix(hunter): stop stitching broken multi-clause claims`.
 
 ### Task 2.2: Prompt the model to emit decision-shaped claims
 
 **Files:**
+
 - Modify: `src/lib/hunter/prompts/registry.ts` (or the synthesis prompt that produces pros/cons + verdict)
 - Test: `tests/lib/hunter/evals/decision-claims.eval.test.ts` (extend existing eval harness in `src/lib/hunter/evals/`)
 
@@ -193,6 +242,7 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
 ### Task 2.3: Guarantee the canonical decision snapshot; deprecate legacy verdict narrative
 
 **Files:**
+
 - Modify: pipeline analysis output assembly so `heroDecisionCard` fields (`bestFor`, `notFor`, `mainRisk`, `upgradeTrigger`) are always populated from structured claims (not a free-text "verdict" blob).
 - Modify: `src/lib/tool-page/decision/verdict-policy.ts` and `decision-utility.ts` to stop generating the legacy narrative when a canonical snapshot exists.
 - Test: `tests/lib/tool-page/decision/verdict-policy.test.ts`
@@ -210,18 +260,24 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
 ### Task 3.1: `ToolVerdictInstrument.astro`
 
 **Files:**
+
 - Create: `src/components/tool-page/ToolVerdictInstrument.astro`
 - Test: `tests/components/tool-verdict-instrument.test.ts` (render-to-string assertion via the existing rendered-page test pattern, or a structural snapshot)
 
 **Interfaces:**
+
 - Consumes: `ToolVerdict` (Task 1.2) + `ToolPageHeroDecisionCard` fields (`bestFor`, `notFor`, `mainRisk`, `upgradeTrigger`) + tool name/logo + a calm CTA href.
 - Props:
+
   ```ts
   interface Props {
     verdict: ToolVerdict;
-    bestFor: string | null; notFor: string | null;
-    mainRisk: string | null; upgradeTrigger: string | null;
-    toolName: string; visitHref: string | null;
+    bestFor: string | null;
+    notFor: string | null;
+    mainRisk: string | null;
+    upgradeTrigger: string | null;
+    toolName: string;
+    visitHref: string | null;
   }
   ```
 
@@ -233,6 +289,7 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
 ### Task 3.2: Mount instrument in the hero; demote the CTA; remove the empty right column
 
 **Files:**
+
 - Modify: `src/pages/tool/[slug].astro` (hero block ~188-424)
 
 - [ ] **Step 1:** Replace the `aside` sidebar CTA stack (`405-421`) and the separate `ToolImmediateVerdictCard` mount with `ToolVerdictInstrument` filling the hero's right column (currently empty on Linear). Move `AffiliateButton` out of the hero's primary action row into a calm inline link; keep `CompareButton`/`AddToStackButton` as secondary.
@@ -247,6 +304,7 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
 ### Task 4.1: Collapse hedging into one freshness line
 
 **Files:**
+
 - Create: `src/lib/tool-page/evidence/freshness-line.ts` (single resolver returning `Last verified <date>` or `null`)
 - Modify: components emitting `Pending verification` / `Data confidence` / `Not confirmed` / `Evaluation depth` (`TrustBar.astro`, `ToolHowWeEvaluateSection.astro`, `update-history-state.ts`, pricing notice, `compactTrustStrip` tooltip)
 - Test: `tests/lib/tool-page/evidence/freshness-line.test.ts`
@@ -260,17 +318,19 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
 ### Task 4.2: Cut/merge empty + duplicate sections
 
 **Files:**
+
 - Modify: `src/pages/tool/[slug].astro` (sections: How We Evaluated 118/`ToolHowWeEvaluateSection`, Update History `hasUpdateHistorySection`, nested "What Users Report" in Strengths 887-903, alternatives 1226-1300)
 
 - [ ] **Step 1:** Hide "How We Evaluated" and "Update History" when their only content is "Docs only" / "Not confirmed" (gate on real content presence, not `true`). `hasHowWeEvaluatedSection = true` (line 118) becomes a real predicate.
 - [ ] **Step 2:** Merge the nested "User-Reported Signals" pros/cons into the main `ProsCons` with a per-row "community" badge instead of a second stacked pros/cons block.
-- [ ] **Step 3:** Alternatives: keep ONE representation. Remove either the `AlternativesCompareGrid` *or* the per-card grid + rebuttal cards (recommend: keep the compare grid as the scannable default, fold rebuttals into each grid row's "choose instead if"). Remove the other two stacked renders.
+- [ ] **Step 3:** Alternatives: keep ONE representation. Remove either the `AlternativesCompareGrid` _or_ the per-card grid + rebuttal cards (recommend: keep the compare grid as the scannable default, fold rebuttals into each grid row's "choose instead if"). Remove the other two stacked renders.
 - [ ] **Step 4:** `npm run build`; screenshot Linear full page; confirm section count dropped and no empty headings remain.
 - [ ] **Step 5: Commit** `refactor(tool-page): cut empty sections and dedupe alternatives`.
 
 ### Task 4.3: Default-open the decision-critical sections; reduce accordion wall
 
 **Files:**
+
 - Modify: `src/pages/tool/[slug].astro` (pricing `details` 594, strengths already `open`, specs `details` 920, operational details 1070, about 1012)
 
 - [ ] **Step 1:** Keep Pricing and Strengths open by default; keep Specs/Operational/About collapsed (reference). Ensure the jump-rail (`renderedJumpLinks`) reflects the trimmed section set from Task 4.2.
@@ -284,6 +344,7 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
 ### Task 5.1: Accessibility + responsive + reduced motion
 
 **Files:**
+
 - Modify: `ToolVerdictInstrument.astro` and touched components
 - Test: extend rendered-page checks
 
@@ -315,6 +376,7 @@ describe('claim shaping never produces double-clause Frankenstein copy', () => {
 ## Approved composition (Phase 0.2 — approved 2026-06-20)
 
 Hero verdict instrument, locked:
+
 - **Signature element:** circular score dial — integer score in IBM Plex Mono, arc + numerals colored by `getScoreColor(score)` (functional scale, e.g. green for 82). NOT brand amber.
 - **Verdict label:** `getScoreColor` word + buy term, e.g. "Good · Strong buy" (KEEP the buy term).
 - **Sub-scores:** small labeled bars from `base_score_breakdown` (Features/UX/Value/Support) under the dial. Gated on breakdown data (Task 1.1).
