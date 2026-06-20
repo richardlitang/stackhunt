@@ -2,6 +2,7 @@
 import type { ToolVerdict } from '@/lib/tool-page/tool-verdict';
 
 interface Props {
+  sectionId?: string | null;
   verdict: ToolVerdict;
   bestFor: string | null;
   notFor: string | null;
@@ -11,9 +12,11 @@ interface Props {
   visitHref: string | null;
   logoUrl?: string | null;
   sourceCount?: number | null;
+  isAffiliate?: boolean;
 }
 
 const {
+  sectionId = null,
   verdict,
   bestFor,
   notFor,
@@ -23,6 +26,7 @@ const {
   visitHref,
   logoUrl = null,
   sourceCount = null,
+  isAffiliate = false,
 } = Astro.props;
 
 const scoreAriaLabel =
@@ -41,6 +45,7 @@ const decisions = [
 ---
 
 <section
+  id={sectionId || undefined}
   class="relative overflow-hidden rounded-[1.75rem] border border-ink-border bg-ink-900 p-5 text-paper shadow-2xl shadow-black/30 sm:p-7"
   aria-labelledby="tool-verdict-title"
 >
@@ -118,7 +123,7 @@ const decisions = [
         }
         <div>
           <p class="font-mono text-[10px] uppercase tracking-[0.22em] text-paper-muted">
-            Decision instrument
+            Verdict instrument
           </p>
           <h2
             id="tool-verdict-title"
@@ -174,7 +179,7 @@ const decisions = [
               data-verdict-visit
               href={visitHref}
               target="_blank"
-              rel="sponsored noopener noreferrer"
+              rel={isAffiliate ? 'nofollow sponsored noopener noreferrer' : 'noopener noreferrer'}
               class="ml-auto rounded-sm text-sm font-medium text-signal underline decoration-signal/40 underline-offset-4 transition-colors hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-4 focus-visible:ring-offset-ink-900 motion-reduce:transition-none"
             >
               Visit {toolName} <span aria-hidden="true">↗</span>

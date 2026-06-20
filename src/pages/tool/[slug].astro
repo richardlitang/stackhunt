@@ -7,7 +7,6 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Logo from '@/components/Logo.astro';
 import ProsCons from '@/components/ProsCons.astro';
-import AffiliateButton from '@/components/AffiliateButton.astro';
 import AffiliateDisclosure from '@/components/AffiliateDisclosure.astro';
 import CompareButton from '@/components/CompareButton';
 import AddToStackButton from '@/components/AddToStackButton';
@@ -35,9 +34,10 @@ import ToolDecisionConditionsSection from '@/components/ToolDecisionConditionsSe
 import ToolPracticalOutcomesSection from '@/components/ToolPracticalOutcomesSection.astro';
 import ToolBeforeYouBuyTests from '@/components/ToolBeforeYouBuyTests.astro';
 import ToolFitMatrix from '@/components/ToolFitMatrix.astro';
-import ToolImmediateVerdictCard from '@/components/ToolImmediateVerdictCard.astro';
+import ToolVerdictInstrument from '@/components/tool-page/ToolVerdictInstrument.astro';
 import SignalReportWidget from '@/components/SignalReportWidget';
 import { simpleMarkdown } from '@/lib/utils';
+import { resolveToolVerdict } from '@/lib/tool-page/tool-verdict';
 import {
   buildToolPagePricingLinkText,
   buildToolPageBuyerDecisionPresentationState,
@@ -88,25 +88,24 @@ const buyerDecisionPresentationState = buildToolPageBuyerDecisionPresentationSta
   layer: pageAssemblyState.buyerDecisionLayer,
   hasSourcesSection,
 });
-const showLegacyVerdictNarrative =
-  routeDataState.hasVerdict &&
-  pageAssemblyState.verdictContent.body.trim().length > 0 &&
-  buyerDecisionPresentationState.showLegacyVerdictNarrative;
-const hasVerdictEvidenceNotes =
-  routeDataState.lensRankedHardLimits.length > 0 || pageAssemblyState.scoreDrivers.length > 0;
-const showVerdictEvidenceNotesOnly =
-  routeDataState.hasVerdict &&
-  buyerDecisionPresentationState.hasCanonicalDecisionSnapshot &&
-  hasVerdictEvidenceNotes;
-const hasVerdictSection =
-  buyerDecisionPresentationState.hasCanonicalDecisionSnapshot ||
-  showLegacyVerdictNarrative ||
-  routeDataState.showProceduralVerdict;
-const verdictSectionId = buyerDecisionPresentationState.hasCanonicalDecisionSnapshot
-  ? buyerDecisionPresentationState.verdictAnchorTarget
-  : showLegacyVerdictNarrative
-    ? 'verdict'
-    : 'verdict-conditions';
+const publishedReviewScore = toolPageData.firstReview?.score;
+const toolVerdict = resolveToolVerdict({
+  baseScore: routeDataState.tool.base_score,
+  reviewScores: typeof publishedReviewScore === 'number' ? [publishedReviewScore] : [],
+  verdictText: routeDataState.tool.verdict || pageAssemblyState.verdictContent.body || null,
+  lastCheckedISO: toolPageData.firstReview?.updated_at || routeDataState.tool.updated_at || null,
+});
+const verdictSourceCount = Array.isArray(toolPageData.firstReview?.sources)
+  ? toolPageData.firstReview.sources.length
+  : null;
+const verdictVisitHref = routeDataState.primaryOffer?.url || routeDataState.tool.website || null;
+const hasVerdictInstrument = Boolean(
+  toolVerdict.score !== null ||
+  toolVerdict.verdictLine ||
+  buyerDecisionPresentationState.hasCanonicalDecisionSnapshot
+);
+const hasVerdictSection = hasVerdictInstrument || routeDataState.showProceduralVerdict;
+const verdictSectionId = hasVerdictInstrument ? 'decision-snapshot' : 'verdict-conditions';
 const hasPricingSection = routeDataState.showPricingSection;
 const hasGettingStartedSection = routeDataState.hasGettingStarted;
 const hasStrengthsSection = routeDataState.hasStrengths;
@@ -205,7 +204,9 @@ applyToolPageResponseRouteState({
       >
       </div>
 
-      <div class="relative grid gap-10 xl:grid-cols-[1.55fr_0.95fr]">
+      <div
+        class:list={['relative grid gap-10', hasVerdictInstrument && 'xl:grid-cols-[1.25fr_1fr]']}
+      >
         <div class="space-y-5">
           <div class="flex items-start gap-5">
             <Logo
@@ -344,15 +345,6 @@ applyToolPageResponseRouteState({
           </div>
 
           <div class="flex flex-wrap gap-3 pt-2">
-            {
-              routeDataState.primaryOffer && (
-                <AffiliateButton
-                  offer={routeDataState.primaryOffer}
-                  toolName={routeDataState.tool.name}
-                  size="lg"
-                />
-              )
-            }
             <CompareButton
               client:load
               toolSlug={pageAssemblyState.compareButtonProps.toolSlug}
@@ -372,54 +364,26 @@ applyToolPageResponseRouteState({
           </div>
         </div>
 
-        <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
-          {
-            buyerDecisionPresentationState.showHeroDecisionCard && (
-              <ToolImmediateVerdictCard
-                sectionId={
-                  buyerDecisionPresentationState.hasCanonicalDecisionSnapshot
-                    ? buyerDecisionPresentationState.verdictAnchorTarget
-                    : null
-                }
+        {
+          hasVerdictInstrument && (
+            <aside class="xl:sticky xl:top-24 xl:self-start">
+              <ToolVerdictInstrument
+                sectionId="decision-snapshot"
+                verdict={toolVerdict}
                 bestFor={pageAssemblyState.buyerDecisionLayer.heroDecisionCard.bestFor}
                 notFor={pageAssemblyState.buyerDecisionLayer.heroDecisionCard.notFor}
                 mainRisk={pageAssemblyState.buyerDecisionLayer.heroDecisionCard.mainRisk}
                 upgradeTrigger={
                   pageAssemblyState.buyerDecisionLayer.heroDecisionCard.upgradeTrigger
                 }
-                implementationFriction={
-                  pageAssemblyState.buyerDecisionLayer.heroDecisionCard.implementationFriction
-                    .summary
-                }
-                implementationDrivers={
-                  pageAssemblyState.buyerDecisionLayer.heroDecisionCard.implementationFriction
-                    .drivers
-                }
-                implementationStakeholders={
-                  pageAssemblyState.buyerDecisionLayer.heroDecisionCard.implementationFriction
-                    .stakeholders
-                }
+                toolName={routeDataState.tool.name}
+                visitHref={verdictVisitHref}
+                sourceCount={verdictSourceCount}
+                isAffiliate={Boolean(routeDataState.primaryOffer?.is_affiliate)}
               />
-            )
-          }
-          <div class="space-y-2">
-            {
-              pageAssemblyState.websiteState.hasWebsite && (
-                <a
-                  href={routeDataState.tool.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-outbound="vendor"
-                  data-location="sidebar-cta"
-                  data-tool={routeDataState.tool.slug}
-                  class="inline-flex w-full items-center justify-center rounded-xl bg-amber-500 px-3 py-3 text-sm font-semibold text-zinc-950 hover:bg-amber-400 transition"
-                >
-                  Visit {routeDataState.tool.name}
-                </a>
-              )
-            }
-          </div>
-        </aside>
+            </aside>
+          )
+        }
       </div>
     </header>
 
@@ -461,132 +425,6 @@ applyToolPageResponseRouteState({
       }
 
       <div class="space-y-8 lg:col-span-2 xl:col-span-1">
-        {/* Our Verdict - Quick summary with key points */}
-        {
-          showLegacyVerdictNarrative && (
-            <section
-              id="verdict"
-              class="tool-review-panel rounded-[1.8rem] p-7 shadow-sm transition-shadow hover:shadow-md"
-              data-focus-target
-              data-focus-groups="all verdict"
-            >
-              <h2 class="tool-review-section-title mb-2 text-3xl">
-                Best fit, main risk, and upgrade trigger
-              </h2>
-              <p class="text-sm text-zinc-300">
-                {pageAssemblyState.decisionUtilityState.verdictLeadOverride}
-              </p>
-              <p class="text-sm text-zinc-400">
-                As of {pageAssemblyState.freshnessLabels.verdictAsOfLabel}.
-              </p>
-              <div class="tool-review-panel-muted mt-5 rounded-2xl p-5">
-                <div
-                  class="prose prose-slate prose-sm max-w-none text-zinc-200 leading-7"
-                  set:html={simpleMarkdown(pageAssemblyState.verdictContent.body)}
-                />
-              </div>
-              {(routeDataState.lensRankedHardLimits.length > 0 ||
-                pageAssemblyState.scoreDrivers.length > 0) && (
-                <details class="tool-review-panel-muted mt-4 rounded-2xl p-4">
-                  <summary class="cursor-pointer text-sm font-semibold text-zinc-200">
-                    Evidence notes
-                  </summary>
-                  {routeDataState.lensRankedHardLimits.length > 0 && (
-                    <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                      {routeDataState.lensRankedHardLimits.slice(0, 4).map((item) => (
-                        <li>
-                          - {item.text}{' '}
-                          <a
-                            href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
-                            aria-label={pageAssemblyState.sourceAriaLabel(item.text)}
-                            data-outbound="source"
-                            data-location="verdict-hard-limits"
-                            data-tool={routeDataState.tool.slug}
-                            class="text-xs text-zinc-500 underline underline-offset-2 hover:text-hunt-500"
-                            title="Open source"
-                          >
-                            Source
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {pageAssemblyState.scoreDrivers.length > 0 && (
-                    <ul class="mt-3 space-y-1 text-sm text-zinc-300">
-                      {pageAssemblyState.scoreDrivers.map((item) => (
-                        <li>- {item}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {buyerDecisionPresentationState.showVerdictSourcesLink && (
-                    <p class="mt-3 text-xs text-zinc-500">
-                      Source detail is available in{' '}
-                      <a
-                        href="#sources"
-                        class="text-zinc-400 underline underline-offset-2 hover:text-hunt-500"
-                      >
-                        Methodology and sources
-                      </a>
-                      .
-                    </p>
-                  )}
-                </details>
-              )}
-            </section>
-          )
-        }
-        {
-          showVerdictEvidenceNotesOnly && (
-            <details class="tool-review-panel rounded-[1.6rem] p-6 shadow-sm">
-              <summary class="cursor-pointer text-sm font-semibold text-zinc-200">
-                Evidence behind the decision
-              </summary>
-              {routeDataState.lensRankedHardLimits.length > 0 && (
-                <ul class="mt-3 space-y-2 text-sm text-zinc-300">
-                  {routeDataState.lensRankedHardLimits.slice(0, 4).map((item) => (
-                    <li>
-                      - {item.text}{' '}
-                      <a
-                        href={item.sourceUrl}
-                        target="_blank"
-                        rel="noopener"
-                        aria-label={pageAssemblyState.sourceAriaLabel(item.text)}
-                        data-outbound="source"
-                        data-location="verdict-hard-limits"
-                        data-tool={routeDataState.tool.slug}
-                        class="text-xs text-zinc-500 underline underline-offset-2 hover:text-hunt-500"
-                        title="Open source"
-                      >
-                        Source
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {pageAssemblyState.scoreDrivers.length > 0 && (
-                <ul class="mt-3 space-y-1 text-sm text-zinc-300">
-                  {pageAssemblyState.scoreDrivers.map((item) => (
-                    <li>- {item}</li>
-                  ))}
-                </ul>
-              )}
-              {buyerDecisionPresentationState.showVerdictSourcesLink && (
-                <p class="mt-3 text-xs text-zinc-500">
-                  Source detail is available in{' '}
-                  <a
-                    href="#sources"
-                    class="text-zinc-400 underline underline-offset-2 hover:text-hunt-500"
-                  >
-                    Methodology and sources
-                  </a>
-                  .
-                </p>
-              )}
-            </details>
-          )
-        }
         {routeDataState.showProceduralVerdict && <ToolDecisionConditionsSection />}
         {/* Pricing Plans */}
         {

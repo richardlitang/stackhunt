@@ -133,9 +133,10 @@ const SUBJECT_SCOPE_PENDING_PATTERN =
   /\b(Published review content is hidden until this page resolves (?:one product surface|a single review subject)|waiting for clearer subject resolution)\b/i;
 const HERO_DEK_GENERIC_PATTERN = /^Pricing,\s*tradeoffs,\s*best for,\s*and alternatives\.?$/i;
 const DECISION_SECTION_HEADING_PATTERN =
-  /\b(?:Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger)\b/i;
+  /\b(?:Verdict instrument|Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger)\b/i;
 const DECISION_SECTION_PATTERN =
-  /<section[^>]*>[\s\S]*?<h2[^>]*>\s*(?:Decision in 60 Seconds|Should You Shortlist|Best fit, main risk, and upgrade trigger)\s*<\/h2>[\s\S]*?<\/section>/i;
+  /<section(?=[^>]*id=["']decision-snapshot["'])[^>]*>[\s\S]*?<\/section>/i;
+const DECISION_INSTRUMENT_MOUNT_PATTERN = /<ToolVerdictInstrument\b/;
 const ALLOWED_DECISION_SECTION_LINKS = new Set(['#verdict', '#sources']);
 const SECTION_RAIL_PATTERN = /<nav[^>]*aria-label=["']Section rail["'][^>]*>([\s\S]*?)<\/nav>/i;
 const FIT_MATRIX_SECTION_PATTERN = /<section[^>]*id=["']fit-matrix["'][^>]*>([\s\S]*?)<\/section>/i;
@@ -165,6 +166,13 @@ function extractHeroDek(html) {
   return match ? stripHtml(match[1]) : '';
 }
 
+function findDisallowedDecisionLinks(sectionHtml) {
+  return Array.from(sectionHtml.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi))
+    .filter((match) => !/\bdata-verdict-visit\b/i.test(match[0]))
+    .map((match) => match[1])
+    .filter((href) => !ALLOWED_DECISION_SECTION_LINKS.has(href));
+}
+
 function auditRenderedPage({ url, html, maxNotConfirmed }) {
   const failures = [];
   const text = stripHtml(html);
@@ -182,12 +190,7 @@ function auditRenderedPage({ url, html, maxNotConfirmed }) {
   ).length;
   const decisionSectionMatch = html.match(DECISION_SECTION_PATTERN);
   if (decisionSectionMatch) {
-    const hrefMatches = Array.from(decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)).map(
-      (match) => match[1]
-    );
-    const disallowedDecisionLinks = hrefMatches.filter(
-      (href) => !ALLOWED_DECISION_SECTION_LINKS.has(href)
-    );
+    const disallowedDecisionLinks = findDisallowedDecisionLinks(decisionSectionMatch[0]);
     if (disallowedDecisionLinks.length > 0) {
       failures.push(
         `decision_section_has_extra_cta_links:${Array.from(new Set(disallowedDecisionLinks)).join(',')}`
@@ -631,12 +634,7 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
   }
   const decisionSectionMatch = source.match(DECISION_SECTION_PATTERN);
   if (decisionSectionMatch) {
-    const hrefMatches = Array.from(decisionSectionMatch[0].matchAll(/href=["']([^"']+)["']/gi)).map(
-      (match) => match[1]
-    );
-    const disallowedDecisionLinks = hrefMatches.filter(
-      (href) => !ALLOWED_DECISION_SECTION_LINKS.has(href)
-    );
+    const disallowedDecisionLinks = findDisallowedDecisionLinks(decisionSectionMatch[0]);
     if (disallowedDecisionLinks.length > 0) {
       failures.push(
         `template_decision_section_has_extra_cta_links:${Array.from(
@@ -644,7 +642,7 @@ function runTemplateFallbackChecks({ maxNotConfirmed }) {
         ).join(',')}`
       );
     }
-  } else {
+  } else if (!DECISION_INSTRUMENT_MOUNT_PATTERN.test(source)) {
     failures.push('template_missing_decision_section');
   }
   if (
