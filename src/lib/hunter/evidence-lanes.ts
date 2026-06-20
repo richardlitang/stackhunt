@@ -328,10 +328,15 @@ export function buildHunterLaneOutputs(input: {
     ? input.analysis.userReportedCons
     : [];
 
-  const officialFacts = [...pros, ...cons]
+  const officialPros = pros
     .map((claim) => toLaneClaim(claim))
     .filter((claim): claim is HunterLaneClaim => Boolean(claim))
     .filter((claim) => claim.source_type === 'official');
+  const officialCons = cons
+    .map((claim) => toLaneClaim(claim))
+    .filter((claim): claim is HunterLaneClaim => Boolean(claim))
+    .filter((claim) => claim.source_type === 'official');
+  const officialFacts = [...officialPros, ...officialCons];
 
   const officialPricingFacts = officialFacts.filter((claim) => PRICING_TOKENS.test(claim.text));
   const officialLimitFacts = officialFacts.filter((claim) => LIMIT_TOKENS.test(claim.text));
@@ -353,19 +358,22 @@ export function buildHunterLaneOutputs(input: {
       : typeof input.analysis.summary === 'string'
         ? input.analysis.summary.trim()
         : null;
-  const bestFor =
+  const bestForFromIntro =
     typeof decisionIntro?.best_for === 'string' && decisionIntro.best_for.trim().length > 0
       ? decisionIntro.best_for.trim()
       : null;
-  const notFor =
+  const bestFor = bestForFromIntro || officialPros[0]?.text || null;
+  const notForFromIntro =
     typeof decisionIntro?.not_for === 'string' && decisionIntro.not_for.trim().length > 0
       ? decisionIntro.not_for.trim()
       : null;
-  const mainTradeoff =
+  const notFor = notForFromIntro || officialCons[0]?.text || null;
+  const mainTradeoffFromIntro =
     typeof decisionIntro?.main_tradeoff === 'string' &&
     decisionIntro.main_tradeoff.trim().length > 0
       ? decisionIntro.main_tradeoff.trim()
       : null;
+  const mainTradeoff = mainTradeoffFromIntro || officialCons[0]?.text || null;
   const mainRisk = toMainRiskFromFacts({
     officialLimitFacts,
     officialPricingFacts,
@@ -504,9 +512,13 @@ export function buildHunterLaneOutputs(input: {
       alternatives_rebuttals: alternativesRebuttals,
       generation_mode: {
         summary: editorialSummary ? 'llm_phrase_only' : 'suppress',
-        best_for: bestFor ? 'llm_phrase_only' : 'suppress',
-        not_for: notFor ? 'llm_phrase_only' : 'suppress',
-        main_tradeoff: mainTradeoff ? 'llm_phrase_only' : 'suppress',
+        best_for: bestForFromIntro ? 'llm_phrase_only' : bestFor ? 'extractive' : 'suppress',
+        not_for: notForFromIntro ? 'llm_phrase_only' : notFor ? 'extractive' : 'suppress',
+        main_tradeoff: mainTradeoffFromIntro
+          ? 'llm_phrase_only'
+          : mainTradeoff
+            ? 'extractive'
+            : 'suppress',
         main_risk:
           officialLimitFacts.length > 0 || officialPricingFacts.length > 0
             ? 'deterministic'
