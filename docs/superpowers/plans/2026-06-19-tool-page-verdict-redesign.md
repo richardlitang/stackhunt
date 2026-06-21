@@ -69,12 +69,21 @@
 
 - Produces: a decision recorded in this plan: **Path A** (scores resolvable from existing data → presentation-only) or **Path B** (must backfill).
 
-- [ ] **Step 1:** Write `scripts/audit-tool-score-coverage.ts` using `supabaseAdmin` from `@/lib/supabase` to print: count of `tools` with non-null `base_score`; count of published `tools` whose related `reviews` have a non-null `score`; and the join coverage (tools with at least one of the two).
-- [ ] **Step 2:** Run `npx tsx scripts/audit-tool-score-coverage.ts`. Record the numbers in this plan under a "Score coverage" note.
-- [ ] **Step 3: Branch.**
+- [x] **Step 1:** Write `scripts/audit-tool-score-coverage.ts` using `supabaseAdmin` from `@/lib/supabase` to print: count of `tools` with non-null `base_score`; count of published `tools` whose related `reviews` have a non-null `score`; and the join coverage (tools with at least one of the two).
+- [x] **Step 2:** Run `npx tsx scripts/audit-tool-score-coverage.ts`. Record the numbers in this plan under a "Score coverage" note.
+- [x] **Step 3: Branch.**
   - If ≥90% of published tools have a resolvable score from `reviews.score` (avg) or `base_score` → **Path A**: no backfill; Task 1.2 resolves from existing data. Skip Task 1.3.
   - Else → **Path B**: keep Task 1.3 (backfill) in scope.
-- [ ] **Step 4: Commit** `chore(audit): add tool score coverage audit script`.
+- [x] **Step 4: Commit** `chore(audit): add tool score coverage audit script`.
+
+**Score coverage, 2026-06-21:** Production contains 166 tool records. The `items`
+table has no publish-status column, so this audit defines a published tool as a tool with
+at least one `reviews.status = 'published'` row, matching the page's published-review
+selection. There are 53 published tools, and all 53 have at least one scored published
+review. No tool currently has `base_score`. Resolvable coverage is therefore 53/53
+published tools (100.0%) and 53/166 tool records overall (31.9%). **Path A selected:**
+no backfill or schema change is required. Tool records without a published scored review
+continue to render the resolver's intentional null-score state.
 
 ### Task 1.2: `resolveToolVerdict()` — pure score+verdict resolver
 
@@ -163,7 +172,7 @@ describe('resolveToolVerdict', () => {
 - [ ] **Step 4: Run → PASS.**
 - [ ] **Step 5: Commit** `feat(tool-page): add resolveToolVerdict score+verdict resolver`.
 
-### Task 1.3: (Path B only) score backfill RPC
+### Task 1.3: (Path B only) score backfill RPC (SKIPPED)
 
 **Files:**
 
@@ -171,7 +180,7 @@ describe('resolveToolVerdict', () => {
 - Modify: `src/lib/hunter/phases/persistence.ts` (persist `base_score` derived from `base_score_breakdown` average on upsert)
 - Test: `tests/lib/hunter/base-score-derivation.test.ts`
 
-- [ ] **Step 1:** If Path A was chosen in Task 1.1, **delete this task** and move on.
+- [x] **Step 1:** Path A was selected in Task 1.1. No backfill is required.
 - [ ] **Step 2: Write failing test** for a pure `deriveBaseScore(breakdown: BaseScoreBreakdown): number | null` (average of present 0-100 dimensions, rounded; `null` if all absent). Place the helper in `src/lib/hunter/phases/analysis.ts` and export it.
 - [ ] **Step 3: Run → FAIL. Implement `deriveBaseScore`. Run → PASS.**
 - [ ] **Step 4:** Wire `deriveBaseScore` into persistence upsert so new hunts populate `base_score`; add a one-time SQL backfill migration computing `base_score` from `base_score_breakdown` for existing rows where `base_score IS NULL AND base_score_breakdown IS NOT NULL`. Run `npm run types:db` after the migration.

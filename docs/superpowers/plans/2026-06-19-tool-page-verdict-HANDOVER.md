@@ -4,10 +4,9 @@ _Last updated: 2026-06-21. Authoritative status doc for the tool-page redesign._
 
 ## TL;DR
 
-The foundation remains on `main` (`origin/main` @ `8af43e0`). The redesign is complete
-on `codex/tool-page-verdict-continue` and pushed to origin. It has not been merged to
-`main`. The only plan item still blocked is the Task 1.1 production score-coverage audit,
-which requires Supabase authentication.
+The foundation remains on `main` (`origin/main` @ `8af43e0`). The redesign and production
+score audit are complete on `codex/tool-page-verdict-continue` and pushed to origin. The
+branch has not been merged to `main`.
 
 ## Plan and source of truth
 
@@ -30,6 +29,10 @@ which requires Supabase authentication.
 
 ### Redesign on `codex/tool-page-verdict-continue`
 
+- Task 1.1: the production score audit selected Path A. All 53 tools with a published
+  review have a scored published review, so no backfill or migration is required. The
+  other 113 tool records retain the intentional null-score presentation until they have
+  a scored published review.
 - Task 2.2: generation prompts and eval coverage request decision-shaped,
   single-sentence claims.
 - Task 2.3: the route always builds one canonical decision snapshot, including a
@@ -60,6 +63,8 @@ Implementation commits after the main foundation:
 
 - `npm run qa:prepush`: PASS, including format, strict lint, typecheck, build, and
   rendered tool-page sampling.
+- `npx tsx scripts/audit-tool-score-coverage.ts`: 53/53 published tools resolvable
+  (100.0%), Path A.
 - `npx playwright test tests/e2e/ui-audit.spec.ts`: 9 of 9 PASS.
 - Focused verdict/freshness tests: 7 of 7 PASS.
 - Full `npm test`: 701 PASS, 7 FAIL. The seven failures exactly match the documented
@@ -67,9 +72,6 @@ Implementation commits after the main foundation:
 
 ## Remaining work
 
-- Task 1.1 production score-coverage audit remains blocked until Supabase MCP or CLI is
-  authenticated. `resolveToolVerdict` safely handles missing scores, so this does not
-  block rendering.
 - Review and merge `codex/tool-page-verdict-continue` into `main` when desired. This is a
   production-affecting redesign and should not be merged or pushed to main without
   explicit confirmation.
@@ -78,7 +80,8 @@ Implementation commits after the main foundation:
 
 ## Environment notes
 
-- Supabase MCP is not authenticated on this machine.
+- Supabase MCP is authenticated and was used to confirm the production schema. The
+  committed audit script uses the service-role environment from the local `.env`.
 - Isolated worktrees need the gitignored `.env` copied from the main checkout before
   builds that render data-backed pages.
 - Playwright Chromium was installed locally for the visual audit.
