@@ -74,10 +74,12 @@ Implementation commits after the main foundation:
 
 ## Remaining work
 
-- Land the test-only baseline cleanup from `codex/tool-page-verdict-continue` on `main`.
-- Decide later whether to clean up the preserved `codex/tool-page-verdict-continue`
-  worktree and branch. The local root checkout was intentionally left untouched because
-  it is dirty and diverged from `origin/main`.
+No tool-page verdict work remains. The test-only baseline cleanup landed on `main` at
+`77b96b2`.
+
+Repository housekeeping is separate from this redesign: reconcile the previously dirty,
+diverged root checkout before removing the preserved
+`codex/tool-page-verdict-continue` worktree and branch.
 
 ## Environment notes
 
