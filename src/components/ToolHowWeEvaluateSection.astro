@@ -2,13 +2,12 @@
 import TwoColumnChecklistCards from '@/components/TwoColumnChecklistCards.astro';
 
 interface Props {
-  evaluationDepth: string;
   hasCollectedSources: boolean;
   testedItems: string[];
   notTestedItems: string[];
 }
 
-const { evaluationDepth, hasCollectedSources, testedItems, notTestedItems } = Astro.props as Props;
+const { hasCollectedSources, testedItems, notTestedItems } = Astro.props as Props;
 ---
 
 <details
@@ -19,18 +18,13 @@ const { evaluationDepth, hasCollectedSources, testedItems, notTestedItems } = As
 >
   <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
     <h2 class="tool-review-section-title text-3xl">How We Evaluated</h2>
-    <span
-      class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-xs text-zinc-300"
-    >
-      Evaluation depth: {evaluationDepth}
-    </span>
   </summary>
   <div class="mt-3">
     <p class="text-sm text-zinc-400">
       {
         hasCollectedSources
-          ? 'Verified against linked sources means each claim appears in a linked source on the date checked. Vendors can update details after that date.'
-          : 'No qualifying sources collected yet. Some claims remain in verification mode until section-level sources are attached.'
+          ? 'Claims are linked to the sources used for this review.'
+          : 'The review scope and test coverage are documented below.'
       }
     </p>
     <TwoColumnChecklistCards

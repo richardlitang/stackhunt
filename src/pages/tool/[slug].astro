@@ -217,47 +217,7 @@ applyToolPageResponseRouteState({
               class="shrink-0 rounded-2xl border border-zinc-700/80 shadow-md"
             />
             <div>
-              <div class="group relative inline-flex items-center gap-2">
-                <p class="tool-review-kicker">Review dossier</p>
-                <button
-                  type="button"
-                  class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-amber-700/40 bg-amber-950/20 text-amber-200 transition hover:border-amber-600/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
-                  aria-describedby="review-status-tooltip"
-                  aria-label="Review status details"
-                >
-                  <svg
-                    class="h-3.5 w-3.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-11a1 1 0 0 0-1 1v4a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Zm0-3a1.25 1.25 0 1 0 0 2.5A1.25 1.25 0 0 0 10 4Z"
-                    ></path>
-                  </svg>
-                </button>
-                <div
-                  id="review-status-tooltip"
-                  role="tooltip"
-                  class="pointer-events-none absolute left-0 top-[calc(100%+0.5rem)] z-20 hidden w-72 rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-xs text-zinc-300 shadow-lg group-hover:block group-focus-within:block"
-                >
-                  <p>
-                    <span class="text-zinc-500">Status:</span>{' '}
-                    {pageAssemblyState.buyerDecisionLayer.compactTrustStrip.status}
-                  </p>
-                  <p>
-                    <span class="text-zinc-500">Confidence:</span>{' '}
-                    {pageAssemblyState.buyerDecisionLayer.compactTrustStrip.confidence}
-                  </p>
-                  <p>
-                    <span class="text-zinc-500">Last checked:</span>{' '}
-                    {
-                      pageAssemblyState.buyerDecisionLayer.compactTrustStrip.lastChecked ||
-                        'unknown'
-                    }
-                  </p>
-                </div>
-              </div>
+              <p class="tool-review-kicker">Review dossier</p>
               <div class="mt-1 flex items-center gap-3">
                 <h1
                   class="font-headline text-4xl font-extrabold tracking-[-0.05em] text-zinc-50 sm:text-5xl lg:text-6xl"
@@ -532,9 +492,9 @@ applyToolPageResponseRouteState({
                       smp_pricing={routeDataState.knowledgeCard?.smp_pricing}
                       toolName={routeDataState.tool.name}
                       activeReviewLens={activeReviewLens}
-                    >
+                    />
+                    <div class="mt-4 flex justify-end">
                       <PriceVerification
-                        slot="verification"
                         client:visible
                         toolId={pageAssemblyState.priceVerificationProps.toolId}
                         toolName={pageAssemblyState.priceVerificationProps.toolName}
@@ -545,7 +505,7 @@ applyToolPageResponseRouteState({
                         }
                         variant={pageAssemblyState.priceVerificationProps.variant}
                       />
-                    </PricingPlansGrid>
+                    </div>
                   </>
                 ) : (
                   <div class="tool-review-panel-muted space-y-3 rounded-2xl p-5 text-sm text-zinc-300">
@@ -597,10 +557,6 @@ applyToolPageResponseRouteState({
                         </ul>
                       </details>
                     )}
-                    <p class="text-xs text-zinc-500">
-                      Last checked{' '}
-                      {pageAssemblyState.freshnessLabels.pricingSectionLastCheckedLabel}.
-                    </p>
                   </div>
                 )}
                 {routeDataState.lensRankedHardLimits.length > 0 && (
@@ -1162,7 +1118,6 @@ applyToolPageResponseRouteState({
     }
 
     <ToolHowWeEvaluateSection
-      evaluationDepth={routeDataState.evaluationDepth}
       hasCollectedSources={routeDataState.hasCollectedSources}
       testedItems={routeDataState.testedItems}
       notTestedItems={routeDataState.notTestedItems}
@@ -1204,10 +1159,8 @@ applyToolPageResponseRouteState({
               </span>
             </summary>
             <p class="mt-3 text-xs text-zinc-500">
-              Trust status: {pageAssemblyState.trustBarProps.status}. Confidence:{' '}
-              {pageAssemblyState.trustBarProps.confidence}. Sources:{' '}
-              {pageAssemblyState.trustBarProps.sourcesCount}. Last checked:{' '}
-              {pageAssemblyState.trustBarProps.lastChecked || 'Unknown'}.
+              {toolVerdict.freshnessLine || 'Verification details'} ·{' '}
+              {pageAssemblyState.trustBarProps.sourcesCount} sources
             </p>
             <details class="tool-review-panel-muted mt-3 rounded-lg p-3">
               <summary class="cursor-pointer text-sm text-zinc-300">Verification snapshot</summary>
@@ -1289,10 +1242,6 @@ applyToolPageResponseRouteState({
           <summary class="flex cursor-pointer list-none items-center justify-between">
             <div>
               <h2 class="tool-review-section-title text-3xl">Update History</h2>
-              <p class="mt-1 text-sm text-zinc-400">
-                Last update {pageAssemblyState.updateHistoryLabels.lastUpdateLabel} • Last check{' '}
-                {pageAssemblyState.updateHistoryLabels.lastCheckLabel}
-              </p>
             </div>
             <span class="inline-flex items-center gap-2 text-xs text-zinc-400">
               <span class="group-open:hidden">Expand</span>

@@ -20,7 +20,7 @@ describe('ToolVerdictInstrument structure', () => {
     expect(componentSource).toContain('Not for');
     expect(componentSource).toContain('Main risk');
     expect(componentSource).toContain('Upgrade trigger');
-    expect(componentSource.match(/Last verified/g)).toHaveLength(1);
+    expect(componentSource).toContain('verdict.freshnessLine');
   });
 
   it('keeps the visit action visually secondary and exposes score meaning to assistive tech', () => {

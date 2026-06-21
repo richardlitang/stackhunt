@@ -1,4 +1,6 @@
 ---
+import { resolveFreshnessLine } from '@/lib/tool-page/freshness-line';
+
 interface Props {
   status: 'Source-backed' | 'Needs confirmation' | 'Needs recheck';
   pendingCount?: number;
@@ -9,48 +11,14 @@ interface Props {
   sourcesHref?: string;
 }
 
-const {
-  status,
-  pendingCount = 0,
-  evaluationDepth,
-  lastChecked = null,
-  confidence,
-  sourcesCount = 0,
-  sourcesHref = '#sources',
-} = Astro.props;
-
-const statusClasses =
-  status === 'Source-backed'
-    ? 'border-emerald-700/40 bg-emerald-950/30 text-emerald-200'
-    : status === 'Needs recheck'
-      ? 'border-amber-700/40 bg-amber-950/30 text-amber-200'
-      : 'border-amber-700/40 bg-amber-950/30 text-amber-200';
-const statusLabel =
-  status === 'Source-backed'
-    ? 'Verified against linked sources'
-    : status === 'Needs recheck'
-      ? 'Needs recheck'
-      : 'Some claims still being checked';
+const { status, lastChecked = null, sourcesCount = 0, sourcesHref = '#sources' } = Astro.props;
+const freshnessLine = resolveFreshnessLine({ lastCheckedISO: lastChecked, status });
 ---
 
 <section class="mb-8 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm">
-  <div class="flex flex-wrap items-center gap-2 text-xs">
-    <span class:list={['rounded-full border px-2.5 py-1 font-medium', statusClasses]}>
-      Sourcing: {statusLabel}
-      {pendingCount > 0 ? ` (${pendingCount} pending)` : ''}
-    </span>
-    <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-zinc-300">
-      Evaluation: {evaluationDepth}
-    </span>
-    <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-zinc-300">
-      Confidence: {confidence}
-    </span>
-    <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-zinc-300">
-      Last checked: {lastChecked || 'Unknown'}
-    </span>
-    <span class="rounded-full border border-zinc-700 bg-zinc-800/90 px-2.5 py-1 text-zinc-300">
-      Sources: {sourcesCount}
-    </span>
+  <div class="flex flex-wrap items-center gap-3 text-xs text-zinc-300">
+    {freshnessLine && <span>{freshnessLine}</span>}
+    <span>{sourcesCount} sources</span>
   </div>
   <div class="mt-3 flex flex-wrap gap-2">
     <a

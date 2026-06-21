@@ -1,4 +1,5 @@
 import { truncateVerdict } from '@/lib/homepage';
+import { resolveFreshnessLine } from '@/lib/tool-page/freshness-line';
 import { getScoreColor } from '@/lib/utils';
 
 export interface ToolVerdict {
@@ -7,7 +8,7 @@ export interface ToolVerdict {
   recommendationTerm: 'Strong buy' | 'Consider' | 'Weak fit' | 'Avoid' | null;
   scoreColor: ReturnType<typeof getScoreColor> | null;
   verdictLine: string | null;
-  lastVerified: string | null;
+  freshnessLine: string | null;
 }
 
 export function resolveToolVerdict(input: {
@@ -45,14 +46,7 @@ export function resolveToolVerdict(input: {
   const t = truncateVerdict(verdictText, 140);
   const verdictLine = t && /[.!?]$/.test(t) ? t : null;
 
-  // Last verified: human-readable date or null
-  const lastVerified = lastCheckedISO
-    ? new Date(lastCheckedISO).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : null;
+  const freshnessLine = resolveFreshnessLine({ lastCheckedISO });
 
-  return { score, scoreLabel, recommendationTerm, scoreColor, verdictLine, lastVerified };
+  return { score, scoreLabel, recommendationTerm, scoreColor, verdictLine, freshnessLine };
 }

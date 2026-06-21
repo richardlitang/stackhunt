@@ -48,4 +48,16 @@ describe('resolveToolVerdict', () => {
     expect(v.verdictLine!.length).toBeLessThanOrEqual(140);
     expect(/[.!?]$/.test(v.verdictLine!)).toBe(true);
   });
+
+  it('uses the canonical freshness line', () => {
+    const verdict = resolveToolVerdict({
+      baseScore: 80,
+      reviewScores: [],
+      verdictText: null,
+      lastCheckedISO: '2026-06-16T12:00:00.000Z',
+    });
+
+    expect(verdict.freshnessLine).toBe('Last verified Jun 16 2026');
+    expect(verdict).not.toHaveProperty('lastVerified');
+  });
 });

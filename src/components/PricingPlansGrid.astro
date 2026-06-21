@@ -89,13 +89,6 @@ const modelLabels = {
   open_source: 'Open Source',
 };
 
-// Confidence indicator colors
-const confidenceColors = {
-  high: 'text-green-400',
-  medium: 'text-amber-400',
-  low: 'text-zinc-500',
-};
-
 // Discount badge labels
 const discountLabels = {
   startup: 'Startup Discount',
@@ -387,18 +380,6 @@ const discountLabels = {
                 {discountLabels[discount]}
               </span>
             ))}
-          </div>
-        )}
-        {/* Data Confidence - slot for inline verification */}
-        {smp_pricing.confidence && (
-          <div class="flex items-center justify-between gap-4 text-xs">
-            <div class="flex items-center gap-2">
-              <span class="text-zinc-500">Data confidence:</span>
-              <span class={`font-medium ${confidenceColors[smp_pricing.confidence]}`}>
-                {smp_pricing.confidence.charAt(0).toUpperCase() + smp_pricing.confidence.slice(1)}
-              </span>
-            </div>
-            <slot name="verification" />
           </div>
         )}
         {smp_pricing.pricing_page_url && (
