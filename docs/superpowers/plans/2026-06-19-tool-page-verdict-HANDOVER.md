@@ -1,83 +1,106 @@
-# Tool Page Verdict Redesign — Handover
+# Tool Page Verdict Redesign: Handover
 
-_Last updated: 2026-06-20. Authoritative status doc for the tool-page redesign._
+_Last updated: 2026-06-21. Authoritative status doc for the tool-page redesign._
 
 ## TL;DR
 
-The **foundation** is merged to `main` and pushed (`origin/main` @ `6e9cf24`). The
-**redesign UI itself is not built yet** — only the verdict resolver and the pipeline
-claim-quality fix landed. Continue on **flat `main`** (see "Structure" below).
+The foundation remains on `main` (`origin/main` @ `8af43e0`). The redesign is complete
+on `codex/tool-page-verdict-continue` and pushed to origin. It has not been merged to
+`main`. The only plan item still blocked is the Task 1.1 production score-coverage audit,
+which requires Supabase authentication.
 
-## Plan & source of truth
+## Plan and source of truth
 
-- Plan (task breakdown, global constraints, approved hero composition):
-  `docs/superpowers/plans/2026-06-19-tool-page-verdict-redesign.md`
-- ⚠️ The plan's per-task **file paths were written for a NESTED `src/lib/tool-page/`
-  layout that never reached main**. Main is FLAT. Remap paths when implementing
-  (e.g. plan says `src/lib/tool-page/decision/tool-verdict.ts`; on main it is
-  `src/lib/tool-page/tool-verdict.ts`). The plan's _intent and global constraints
-  still hold_ — only paths differ.
-- The plan's **Task 1.1/1.3 gitignore + `data/` backfill is MOOT on main** — that bug
-  only existed in the nested layout. Main's `src/lib/tool-page/data.ts` is flat and
-  tracked. Do not recreate a `src/lib/tool-page/data/` directory.
+- Plan: `docs/superpowers/plans/2026-06-19-tool-page-verdict-redesign.md`.
+- The plan's task paths assume an abandoned nested `src/lib/tool-page/` layout. The
+  implementation correctly uses the flat layout on main, for example
+  `src/lib/tool-page/tool-verdict.ts` and `tests/lib/tool-page-verdict.test.ts`.
+- The plan's Task 1.1/1.3 gitignore and `data/` backfill concern is moot in the flat
+  layout. Do not recreate `src/lib/tool-page/data/`.
 
-## Structure (IMPORTANT)
+## Implemented
 
-`main` uses a **FLAT** `src/lib/tool-page/` (files top-level, e.g. `data.ts`,
-`verdict-content.ts`, `tool-verdict.ts`). Tests are flat too:
-`tests/lib/tool-page-<name>.test.ts`. The homepage decision-instrument shipped via
-PR #8 on this flat layout. (A local `feat/homepage-decision-instrument` branch had a
-nested reorg that was abandoned — ignore it.)
+### Foundation on main
 
-## Done & on main (`origin/main` @ 6e9cf24)
+- Task 1.2: `resolveToolVerdict` resolves a 0 to 100 score, recommendation label and
+  color, and a concise verdict line.
+- Task 2.1: low-specificity claims are dropped instead of being wrapped in generic
+  framing or replaced with canned filler.
+- Phase 0 identity: the existing ink/signal tokens and grotesk/mono typography are used.
 
-- **Task 1.2** — `src/lib/tool-page/tool-verdict.ts` (`resolveToolVerdict`): resolves a
-  0–100 score (avg of review scores, else `base_score`), `getScoreColor` label/color,
-  one clean verdict line. Test: `tests/lib/tool-page-verdict.test.ts`.
-- **Task 2.1** — `src/lib/hunter/content-policy/claim-shaping.ts`: `enforceDecisionUsefulClaim`
-  no longer wraps a full clause in a framing prefix; `rewriteLowSpecificityClaim` returns
-  `''` for generic claims; `gemini.ts` synthesis loop now DROPS such claims (keeps the rest
-  of the packet) instead of throwing/canned-filler. Tests: `tests/lib/hunter/claim-shaping.test.ts`
-  - rewritten cases in `tests/lib/hunter/gemini-service.test.ts`.
-- **Phase 0 (identity) already satisfied on main**: `ink/signal` tokens + `grotesk/mono`
-  fonts in `tailwind.config.mjs`, webfonts loaded in `BaseLayout.astro`.
-- **Approved hero composition** recorded at the bottom of the plan doc — build Phase 3 to it.
+### Redesign on `codex/tool-page-verdict-continue`
 
-## Remaining work (build on flat main, in plan order)
+- Task 2.2: generation prompts and eval coverage request decision-shaped,
+  single-sentence claims.
+- Task 2.3: the route always builds one canonical decision snapshot, including a
+  structured-claim fallback. The legacy narrative path is no longer the page verdict.
+- Phase 3: `ToolVerdictInstrument.astro` is mounted in the hero with a functional score
+  dial, recommendation, decision strip, one freshness line, and secondary visit link.
+- Phase 4: duplicate verdict, freshness, Pros and Cons, alternatives, and methodology
+  surfaces were consolidated. Pricing and decision-critical sections open by default;
+  lower-priority operational and methodology sections remain collapsed.
+- Phase 5: desktop and 375px screenshots were reviewed. The verdict instrument stacks
+  without clipping or overlap. Its link has visible keyboard focus styling, the score
+  has an accessible label, and reduced-motion styling is present.
+- The screenshot harness now dismisses the demo dialog and navigates directly to
+  discovered tool URLs, preventing overlays from invalidating mobile audits.
 
-- **1.1** score-coverage audit — BLOCKED on Supabase auth (`supabase login` / `SUPABASE_ACCESS_TOKEN`).
-  Decides whether `base_score` needs a backfill. `resolveToolVerdict` already handles null score.
-- **2.2** prompt the model for decision-shaped single-sentence claims (+ eval fixture).
-- **2.3** guarantee the canonical decision snapshot; deprecate the legacy verdict-narrative path.
-- **3.1/3.2** `ToolVerdictInstrument.astro` (build to the approved composition: score dial
-  colored by `getScoreColor` — functional, NOT brand amber; mono numerals; decision strip;
-  single freshness line; demoted ghost CTA) → mount in `src/pages/tool/[slug].astro`, demote
-  the affiliate CTA, delete the legacy verdict section.
-- **Phase 4** collapse hedging to one freshness line; cut empty/duplicate sections; dedupe alternatives.
-- **Phase 5** a11y/responsive + run gates.
+Implementation commits after the main foundation:
 
-## Environment gotchas (this machine)
+- `6a38a39` `feat(hunter): prompt decision-shaped claims`
+- `4d7a283` `refactor(tool-page): guarantee canonical decision snapshot`
+- `68e0979` `feat(tool-page): add verdict instrument`
+- `7994da6` `feat(tool-page): lead hero with verdict instrument`
+- `0950454` `refactor(tool-page): collapse hedging into freshness line`
+- `f2a0e00` `refactor(tool-page): dedupe sections and alternatives`
+- `8e9e889` `refactor(tool-page): open decision-critical sections`
+- `eeb2095` `test(e2e): harden visual audit navigation`
 
-- **Subagents cannot run Bash here** (Read/Write work; npm/git denied even when allowlisted).
-  Execute implementation **inline**, with TDD (superpowers:test-driven-development) and
-  verification-before-completion. Do not rely on subagents to run tests/commit.
-- **Supabase MCP is not authenticated.** Task 1.1 is blocked until the human authenticates.
-- **Worktree builds need `.env`**: env files are gitignored and don't copy into worktrees.
-  Copy `.env` from the main checkout (`/Users/richardlitang/code/personal/stackhunt/.env`)
-  into the worktree before `npm run build` / pushing, or the build fails on `SUPABASE_URL`.
-- **Pre-push hook runs `npm run qa:prepush`** (format:check:changed, lint:strict, typecheck,
-  build, rendered-page checks). Run it locally before pushing. Untracked artifacts (e.g.
-  `.playwright-mcp/`) can trip `format:check:changed` — keep them gitignored/removed.
+## Verification evidence
 
-## Known issue (pre-existing, NOT from this work)
+- `npm run qa:prepush`: PASS, including format, strict lint, typecheck, build, and
+  rendered tool-page sampling.
+- `npx playwright test tests/e2e/ui-audit.spec.ts`: 9 of 9 PASS.
+- Focused verdict/freshness tests: 7 of 7 PASS.
+- Full `npm test`: 701 PASS, 7 FAIL. The seven failures exactly match the documented
+  failures already present on clean main; no additional branch regression appeared.
 
-`main` has **7 failing tool-page route-state/runtime/orchestration tests**
-(`tool-page-section-runtime-input`, `tool-page-orchestration-map`,
-`tool-page-page-assembly-route-state`, `tool-page-decision-navigation-route-state`,
-`tool-page-blueprint-runtime`, `tool-page-runtime-context`, `review-publish-gate`).
-Verified failing on clean `origin/main` without this work. Worth a separate fix.
+## Remaining work
+
+- Task 1.1 production score-coverage audit remains blocked until Supabase MCP or CLI is
+  authenticated. `resolveToolVerdict` safely handles missing scores, so this does not
+  block rendering.
+- Review and merge `codex/tool-page-verdict-continue` into `main` when desired. This is a
+  production-affecting redesign and should not be merged or pushed to main without
+  explicit confirmation.
+- Fix the seven baseline tests as a separate change. Do not mix that cleanup into this
+  redesign branch.
+
+## Environment notes
+
+- Supabase MCP is not authenticated on this machine.
+- Isolated worktrees need the gitignored `.env` copied from the main checkout before
+  builds that render data-backed pages.
+- Playwright Chromium was installed locally for the visual audit.
+- Astro's Vercel adapter does not support `astro preview`; the repository E2E runner
+  correctly falls back to `astro dev`.
+- The local Node version is 25 while Vercel functions target Node 22. Builds pass, but
+  Astro reports the version mismatch warning.
+
+## Known baseline failures
+
+The seven existing failures are:
+
+- `tool-page-section-runtime-input`
+- `tool-page-orchestration-map`
+- `tool-page-page-assembly-route-state`
+- `tool-page-decision-navigation-route-state`
+- `tool-page-blueprint-runtime`
+- `tool-page-runtime-context`
+- `review-publish-gate`
 
 ## Branches
 
-- `feat/tool-page-verdict-flat` (pushed) == current `main` foundation.
-- `feat/tool-page-verdict` (local only) = abandoned nested version; keep as backup or delete.
+- `codex/tool-page-verdict-continue`: current pushed redesign branch.
+- `feat/tool-page-verdict-flat`: historical foundation branch now represented by main.
+- `feat/tool-page-verdict`: abandoned local nested-layout backup.
