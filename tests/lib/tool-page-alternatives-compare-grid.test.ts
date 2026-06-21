@@ -48,6 +48,18 @@ describe('resolveToolCompareGridValue', () => {
     expect(resolveToolCompareGridCell('Choose this instead if', tool).evidenceTag).toBe('source');
   });
 
+  it('uses a structured rebuttal as the choose-instead row', () => {
+    const tool: ToolCompareGridLike = {
+      ...baseTool,
+      chooseInsteadIf: 'you need self-hosting and offline control',
+    };
+
+    expect(resolveToolCompareGridCell('Choose this instead if', tool)).toEqual({
+      value: 'You need self-hosting and offline control',
+      evidenceTag: 'source',
+    });
+  });
+
   it('uses computed diff for setup/seat heuristics while keeping decision rows pending', () => {
     const tool: ToolCompareGridLike = {
       ...baseTool,

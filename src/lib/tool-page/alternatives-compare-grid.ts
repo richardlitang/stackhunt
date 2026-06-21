@@ -14,6 +14,7 @@ export interface ToolCompareGridLike {
   pricing_type?: string | null;
   learning_curve?: string | null;
   curatedVerdict?: string | null;
+  chooseInsteadIf?: string | null;
   computedDiff?: {
     priceDiff?: string;
     learningDiff?: string;
@@ -130,6 +131,12 @@ export function resolveToolCompareGridCell(
       }
       return { value: lensFallbackForBestFor(activeReviewLens), evidenceTag: 'pending' };
     case 'Choose this instead if': {
+      if (tool.chooseInsteadIf?.trim()) {
+        return {
+          value: toSentenceCase(tool.chooseInsteadIf),
+          evidenceTag: 'source',
+        };
+      }
       if (tool.curatedVerdict) {
         return {
           value: buildAlternativeChooseLine({
