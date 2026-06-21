@@ -4,9 +4,11 @@ _Last updated: 2026-06-21. Authoritative status doc for the tool-page redesign._
 
 ## TL;DR
 
-The foundation remains on `main` (`origin/main` @ `8af43e0`). The redesign and production
-score audit are complete on `codex/tool-page-verdict-continue` and pushed to origin. The
-branch has not been merged to `main`.
+The redesign is now on `main` (`origin/main` @ `00a3666`). The former redesign branch,
+`codex/tool-page-verdict-continue`, matches the promoted `main` commit and remains
+preserved as a worktree for reference. Repository-wide verification is not fully green
+because `npm test` still reports the same 7 unrelated baseline failures already present
+before promotion.
 
 ## Plan and source of truth
 
@@ -19,15 +21,13 @@ branch has not been merged to `main`.
 
 ## Implemented
 
-### Foundation on main
+### Foundation and redesign on main
 
 - Task 1.2: `resolveToolVerdict` resolves a 0 to 100 score, recommendation label and
   color, and a concise verdict line.
 - Task 2.1: low-specificity claims are dropped instead of being wrapped in generic
   framing or replaced with canned filler.
 - Phase 0 identity: the existing ink/signal tokens and grotesk/mono typography are used.
-
-### Redesign on `codex/tool-page-verdict-continue`
 
 - Task 1.1: the production score audit selected Path A. All 53 tools with a published
   review have a scored published review, so no backfill or migration is required. The
@@ -69,14 +69,16 @@ Implementation commits after the main foundation:
 - Focused verdict/freshness tests: 7 of 7 PASS.
 - Full `npm test`: 701 PASS, 7 FAIL. The seven failures exactly match the documented
   failures already present on clean main; no additional branch regression appeared.
+- Fresh verification on the promoted `00a3666` commit produced the same result:
+  `npm run qa:prepush` PASS, `npm test` still FAIL with the same 7 baseline tests.
 
 ## Remaining work
 
-- Review and merge `codex/tool-page-verdict-continue` into `main` when desired. This is a
-  production-affecting redesign and should not be merged or pushed to main without
-  explicit confirmation.
 - Fix the seven baseline tests as a separate change. Do not mix that cleanup into this
-  redesign branch.
+  landed redesign slice.
+- Decide later whether to clean up the preserved `codex/tool-page-verdict-continue`
+  worktree and branch. The local root checkout was intentionally left untouched because
+  it is dirty and diverged from `origin/main`.
 
 ## Environment notes
 
@@ -104,6 +106,7 @@ The seven existing failures are:
 
 ## Branches
 
-- `codex/tool-page-verdict-continue`: current pushed redesign branch.
+- `codex/tool-page-verdict-continue`: preserved post-promotion branch/worktree, currently
+  matching `origin/main`.
 - `feat/tool-page-verdict-flat`: historical foundation branch now represented by main.
 - `feat/tool-page-verdict`: abandoned local nested-layout backup.
