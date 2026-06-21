@@ -178,8 +178,8 @@ describe('review publish gate copy quality', () => {
                 official_pricing_facts: [],
                 official_limit_facts: [],
                 pricing_reality: {
-                  free_works_if: 'Free for pilots',
-                  paid_needed_when: 'Free for pilots',
+                  free_works_if: 'Free plan supports teams under 10 seats',
+                  paid_needed_when: 'Free plan supports teams under 10 seats',
                   hidden_cost_triggers: [],
                   main_cost_drivers: [],
                 },

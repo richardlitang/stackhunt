@@ -12,9 +12,8 @@ describe('tool page orchestration map', () => {
 
   it('includes current pipeline and assembly helpers in route map', () => {
     const markdown = generateToolPageOrchestrationMapMarkdown(process.cwd());
-    expect(markdown).toContain('buildToolPageDecisionEvidenceRouteState');
-    expect(markdown).toContain('buildToolPageDisplayRouteState');
-    expect(markdown).toContain('buildToolPageRuntimeMidRouteState');
+    expect(markdown).toContain('buildToolPagePageCompilerRouteStateFromPageContext');
+    expect(markdown).toContain('buildToolPageRouteDataPipelineStateFromPageContext');
     expect(markdown).toContain('buildToolPagePageAssemblyRouteStateFromRouteData');
   });
 

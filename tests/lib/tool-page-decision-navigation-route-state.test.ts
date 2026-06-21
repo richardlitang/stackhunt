@@ -30,7 +30,7 @@ describe('tool page decision navigation route state', () => {
 
     expect(result.sourcesSectionState.hasSources).toBe(true);
     expect(result.hasUserSignalProsCons).toBe(true);
-    expect(result.shouldShowDecisionUtilitySection).toBe(true);
+    expect(result.shouldShowDecisionUtilitySection).toBe(false);
     expect(result.quickJumpLinksView.length).toBe(1);
   });
 });

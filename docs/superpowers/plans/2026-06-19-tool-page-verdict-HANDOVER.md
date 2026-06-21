@@ -4,11 +4,11 @@ _Last updated: 2026-06-21. Authoritative status doc for the tool-page redesign._
 
 ## TL;DR
 
-The redesign is now on `main` (`origin/main` @ `00a3666`). The former redesign branch,
-`codex/tool-page-verdict-continue`, matches the promoted `main` commit and remains
-preserved as a worktree for reference. Repository-wide verification is not fully green
-because `npm test` still reports the same 7 unrelated baseline failures already present
-before promotion.
+The redesign is on `main` (`origin/main` @ `00a3666`). The preserved
+`codex/tool-page-verdict-continue` worktree now also contains a follow-up cleanup that
+aligns seven stale test fixtures with the current tool-page contracts. Repository-wide
+verification is fully green in that worktree: all 708 tests and `npm run qa:prepush`
+pass.
 
 ## Plan and source of truth
 
@@ -67,15 +67,14 @@ Implementation commits after the main foundation:
   (100.0%), Path A.
 - `npx playwright test tests/e2e/ui-audit.spec.ts`: 9 of 9 PASS.
 - Focused verdict/freshness tests: 7 of 7 PASS.
-- Full `npm test`: 701 PASS, 7 FAIL. The seven failures exactly match the documented
-  failures already present on clean main; no additional branch regression appeared.
-- Fresh verification on the promoted `00a3666` commit produced the same result:
-  `npm run qa:prepush` PASS, `npm test` still FAIL with the same 7 baseline tests.
+- Promotion verification on `00a3666`: `npm run qa:prepush` passed and `npm test`
+  reported the seven pre-existing baseline failures documented below.
+- Follow-up baseline cleanup: focused verification passed 16 of 16 tests, full
+  `npm test` passed 708 of 708 tests, and `npm run qa:prepush` passed.
 
 ## Remaining work
 
-- Fix the seven baseline tests as a separate change. Do not mix that cleanup into this
-  landed redesign slice.
+- Land the test-only baseline cleanup from `codex/tool-page-verdict-continue` on `main`.
 - Decide later whether to clean up the preserved `codex/tool-page-verdict-continue`
   worktree and branch. The local root checkout was intentionally left untouched because
   it is dirty and diverged from `origin/main`.
@@ -92,9 +91,9 @@ Implementation commits after the main foundation:
 - The local Node version is 25 while Vercel functions target Node 22. Builds pass, but
   Astro reports the version mismatch warning.
 
-## Known baseline failures
+## Resolved baseline failures
 
-The seven existing failures are:
+The follow-up cleanup corrected stale fixtures or assertions in:
 
 - `tool-page-section-runtime-input`
 - `tool-page-orchestration-map`

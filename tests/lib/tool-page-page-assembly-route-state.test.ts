@@ -31,6 +31,7 @@ const {
     prosConsView: { userSignalPros: [{ text: 'Fast' }], userSignalCons: [] },
     workflowFitCards: [{ title: 'Ops fit' }],
     workflowFitHighlights: ['Fast setup'],
+    alternativeCardsView: [],
   })),
   buildToolPageDecisionAssemblyRouteStateMock: vi.fn(() => ({
     decisionUtilityState: {

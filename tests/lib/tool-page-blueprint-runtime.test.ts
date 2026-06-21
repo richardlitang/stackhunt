@@ -60,6 +60,12 @@ describe('tool page blueprint runtime', () => {
             paid_needed_when: 'Paid needed for approvals.',
             hidden_cost_triggers: ['Seat growth'],
             main_cost_drivers: ['Per-seat pricing'],
+            generation_mode: {
+              free_works_if: 'extractive',
+              paid_needed_when: 'extractive',
+              hidden_cost_triggers: 'extractive',
+              main_cost_drivers: 'extractive',
+            },
           },
         },
         user_signal_sheet: {
@@ -110,6 +116,13 @@ describe('tool page blueprint runtime', () => {
               confidence: 'high',
             },
           ],
+          generation_mode: {
+            main_risk: 'extractive',
+            upgrade_trigger: 'extractive',
+            implementation_friction: 'extractive',
+            test_before_buy: 'extractive',
+            alternatives_rebuttals: 'extractive',
+          },
         },
       },
     });

@@ -164,6 +164,11 @@ describe('tool page runtime context', () => {
           decisionSnapshotWatchOuts: ['Watch out'],
           decisionTradeoffSummary: 'Tradeoff',
           introLooksSpecSheet: false,
+          hasSourceBackedMainRiskSignal: true,
+          hasSourceBackedUpgradeTriggerSignal: true,
+          hasSourceBackedImplementationFrictionSignal: true,
+          hasSourceBackedFitMatrixSignal: true,
+          hasSourceBackedTestBeforeBuySignal: true,
         },
         schemas: {
           tool: { name: 'Acme', slug: 'acme' },
